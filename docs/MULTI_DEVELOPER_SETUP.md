@@ -105,9 +105,19 @@ docker-compose up -d
 
 ### Option 2: Automated Script (Easiest)
 
-**1. Create Setup Script**
+**For Linux/Mac:**
 
-Save as `setup-dev-environment.sh`:
+Use `setup-dev-environment.sh` (included in repository)
+
+**For Windows Server 2025:**
+
+Use `setup-dev-environment.ps1` (included in repository)
+
+See **[Windows Setup Guide](WINDOWS_SETUP.md)** for detailed Windows instructions.
+
+**1. Linux/Mac Setup Script**
+
+The `setup-dev-environment.sh` script:
 
 ```bash
 #!/bin/bash

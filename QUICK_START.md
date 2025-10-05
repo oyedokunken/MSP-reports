@@ -9,6 +9,7 @@
 
 **If you're on a shared remote desktop server with other developers:**
 
+### Linux/Mac:
 ```bash
 # 1. Clone the repository
 git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
@@ -21,6 +22,25 @@ cd reporting
 # 3. Run automated setup
 make install
 ```
+
+### Windows Server 2025:
+```powershell
+# 1. Clone the repository
+git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
+cd reporting
+
+# 2. Configure your developer environment (avoids port conflicts)
+.\setup-dev-environment.ps1
+# Enter your developer ID when prompted (1-20)
+
+# 3. Start services and install dependencies
+docker-compose up -d
+docker-compose exec app composer install
+docker-compose exec app php artisan key:generate
+docker-compose exec app php artisan migrate
+```
+
+**See [Windows Setup Guide](docs/WINDOWS_SETUP.md) for detailed Windows instructions.**
 
 The script will assign you unique ports to avoid conflicts with other developers.
 
@@ -127,6 +147,7 @@ Run `make help` to see all available commands.
 
 ## Need More Help?
 
+- **Windows Server Setup**: See `docs/WINDOWS_SETUP.md`
 - **Multi-Developer Setup**: See `docs/MULTI_DEVELOPER_SETUP.md`
 - **Detailed Setup**: See `docs/DOCKER_SETUP.md`
 - **Docker Overview**: See `docs/DOCKER_SUMMARY.md`
