@@ -174,7 +174,7 @@ Centralised platform that:
 - **Build Tool:** Vite
 
 ### Backend
-- **Framework:** Laravel 11
+- **Framework:** Laravel 12
 - **Language:** PHP 8.2+
 - **API Pattern:** RESTful with consistent response structure
 - **Authentication:** Laravel Sanctum (sessions + API tokens)

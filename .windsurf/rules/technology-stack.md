@@ -6,7 +6,7 @@ trigger: always_on
 
 ### Frontend
 
-- **Framework:** React 18+
+- **Framework:** React 19
 - **State Management:** React Context or Zustand (lightweight)
 - **Styling:** Tailwind CSS (utility-first, white-label friendly)
 - **Charts/Graphs:** Apache eCharts
@@ -15,7 +15,7 @@ trigger: always_on
 
 ### Backend
 
-- **Framework:** Laravel 11
+- **Framework:** Laravel 12
 - **Language:** PHP 8.2+
 - **API Pattern:** RESTful with consistent response structure
 - **Authentication:** Laravel Sanctum (sessions + API tokens)
@@ -25,7 +25,7 @@ trigger: always_on
 ### Database
 
 - **Primary:** TimescaleDB (PostgreSQL 16 with time-series extension)
-- **Caching:** Redis 7+
+- **Caching:** Redis 8.2+
 - **Why TimescaleDB:** 
   - Native time-series optimization for historical data
   - Automatic partitioning by time

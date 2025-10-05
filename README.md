@@ -21,8 +21,8 @@ This platform solves the critical pain point of fragmented customer data across 
 
 ## Technology Stack
 
-- **Frontend:** React 18, Tailwind CSS
-- **Backend:** Laravel 11, PHP 8.2+
+- **Frontend:** React 19, Tailwind CSS
+- **Backend:** Laravel 12, PHP 8.2+
 - **Database:** TimescaleDB (PostgreSQL with time-series extensions)
 - **Infrastructure:** Docker, Redis, NGINX
 
