@@ -18,6 +18,13 @@ This platform solves the critical pain point of fragmented customer data across 
 
 - **[Project Overview](PROJECT_OVERVIEW.md)** - Concise summary of features, technical stack, and development guidelines
 - **[Project Plan](PROJECT_PLAN.md)** - Comprehensive technical architecture, data models, and implementation phases
+- **[Quick Start](QUICK_START.md)** - Step-by-step guide to get started with the platform
+
+## Further Reading
+
+- **[Encryption](docs/ENCRYPTION_SUMMARY.md)** - How encryption is configured in the platform
+- **[Docker](docs/DOCKER_SUMMARY.md)** - How Docker is configured in the platform
+- **[Docker Setup](docs/DOCKER_SETUP.md)** - How to set up Docker for the platform
 
 ## Technology Stack
 
