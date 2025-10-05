@@ -1,9 +1,34 @@
 # Quick Start Guide - 5 Minutes to Running
 
-## Prerequisites Check
-- [ ] Docker Desktop installed and running
-- [ ] Git installed
-- [ ] 8GB+ RAM allocated to Docker
+## Context7
+- Visit https://context7.com/
+- Click Sign In
+- Create an account (its free)
+- Generate an API key
+- Add the MCP to Windsurf similar to below:
+
+```json
+{
+	"mcpServers": {
+		"GitKraken": {
+			"args": [
+				"mcp",
+				"--host=windsurf",
+				"--source=gitlens",
+				"--scheme=windsurf"
+			],
+			"command": "/Users/josh/Library/Application Support/Windsurf/User/globalStorage/eamodio.gitlens/gk",
+			"type":    "stdio"
+		},
+		"context7": {
+			"command": "npx",
+			"args": ["-y", "@upstash/context7-mcp", "--api-key", "ctx7sk-049ecac0-cf31-4844-b92d-440ae4a86fa9"]
+		  }	  
+	}
+}
+
+Context7 will add up to date documentation to Claude, this will ensure its not making mistakes based on old training data. Just type to Claude normally and then at the end add: `use context7` to trigger the MCP.
+```
 
 ## Multi-Developer Setup (Shared Server)
 
