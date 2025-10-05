@@ -28,6 +28,11 @@ help:
 	@echo "  make db-shell        - Access PostgreSQL shell"
 	@echo "  make db-backup       - Backup database"
 	@echo "  make db-restore      - Restore database from backup.sql"
+	@echo "  make db-verify-ssl   - Verify SSL encryption is enabled"
+	@echo ""
+	@echo "Security:"
+	@echo "  make generate-certs  - Generate SSL certificates for PostgreSQL"
+	@echo "  make verify-encryption - Verify database encryption settings"
 	@echo ""
 	@echo "Redis:"
 	@echo "  make redis-cli       - Access Redis CLI"
@@ -201,3 +206,28 @@ mcp-logs:
 
 mcp-restart:
 	docker-compose restart mcp
+
+# Security & Encryption
+generate-certs:
+	@echo "Generating SSL certificates for PostgreSQL..."
+	./docker/timescaledb/scripts/generate-ssl-certs.sh
+	@echo "✅ Certificates generated. Restart TimescaleDB to apply:"
+	@echo "   make restart"
+
+verify-encryption:
+	@echo "=== Verifying Database Encryption ==="
+	@echo ""
+	@echo "Checking SSL status..."
+	@docker-compose exec timescaledb psql -U reporting_user -d reporting -c "SHOW ssl;"
+	@echo ""
+	@echo "Checking password encryption..."
+	@docker-compose exec timescaledb psql -U reporting_user -d reporting -c "SHOW password_encryption;"
+	@echo ""
+	@echo "Checking active SSL connections..."
+	@docker-compose exec timescaledb psql -U reporting_user -d reporting -c "SELECT datname, usename, ssl, version, cipher FROM pg_stat_ssl JOIN pg_stat_activity ON pg_stat_ssl.pid = pg_stat_activity.pid WHERE datname = 'reporting';"
+	@echo ""
+	@echo "✅ Encryption verification complete"
+
+db-verify-ssl:
+	@echo "Verifying SSL connection from application..."
+	@docker-compose exec app php -r "$$pdo = new PDO('pgsql:host=timescaledb;dbname=reporting', 'reporting_user', 'reporting_password'); $$result = $$pdo->query('SELECT version FROM pg_stat_ssl WHERE pid = pg_backend_pid()')->fetch(); echo 'SSL Version: ' . ($$result['version'] ?? 'Not connected via SSL') . PHP_EOL;"

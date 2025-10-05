@@ -19,7 +19,9 @@ This Docker Compose configuration provides a complete development environment fo
 3. **TimescaleDB** (Port 5432)
    - PostgreSQL 16 with TimescaleDB extension
    - Time-series data storage for historical integration data
-   - Configured for optimal performance
+   - **SSL/TLS encryption enabled** for all connections
+   - **SCRAM-SHA-256** password encryption
+   - Configured for optimal performance and security
 
 4. **Redis** (Port 6379)
    - Cache storage
@@ -78,38 +80,48 @@ git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
 cd reporting
 ```
 
-### 2. Copy Environment File
+### 2. Generate SSL Certificates
+```bash
+./docker/timescaledb/scripts/generate-ssl-certs.sh
+```
+
+### 3. Copy Environment File
 ```bash
 cp .env.example .env
 ```
 
-### 3. Start Docker Services
+### 4. Start Docker Services
 ```bash
 docker-compose up -d
 ```
 
-### 4. Install Laravel Dependencies
+### 5. Install Laravel Dependencies
 ```bash
 docker-compose exec app composer install
 ```
 
-### 5. Generate Application Key
+### 6. Generate Application Key
 ```bash
 docker-compose exec app php artisan key:generate
 ```
 
-### 6. Run Migrations
+### 7. Run Migrations
 ```bash
 docker-compose exec app php artisan migrate
 ```
 
-### 7. Install Frontend Dependencies
+### 8. Verify Encryption (Optional)
+```bash
+make verify-encryption
+```
+
+### 9. Install Frontend Dependencies
 ```bash
 cd frontend
 npm install
 ```
 
-### 8. Access Application
+### 10. Access Application
 - **Frontend**: http://localhost:5173
 - **API**: http://localhost/api
 - **MailHog**: http://localhost:8025

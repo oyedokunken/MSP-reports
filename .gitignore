@@ -78,3 +78,8 @@ Thumbs.db
 # Temporary files
 /tmp
 /temp
+
+# SSL Certificates (development only - regenerate locally)
+docker/timescaledb/ssl/*.key
+docker/timescaledb/ssl/*.crt
+docker/timescaledb/ssl/*.csr

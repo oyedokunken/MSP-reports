@@ -51,9 +51,11 @@ services:
       - reporting-network
     restart: unless-stopped
 
-  # TimescaleDB (PostgreSQL with time-series extension)
+  # TimescaleDB (PostgreSQL with time-series extension + encryption)
   timescaledb:
-    image: timescale/timescaledb:latest-pg16
+    build:
+      context: .
+      dockerfile: docker/timescaledb/Dockerfile
     container_name: reporting-timescaledb
     ports:
       - "5432:5432"
@@ -61,17 +63,24 @@ services:
       - POSTGRES_DB=reporting
       - POSTGRES_USER=reporting_user
       - POSTGRES_PASSWORD=reporting_password
-      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8 --auth-host=scram-sha-256
     volumes:
       - timescaledb-data:/var/lib/postgresql/data
       - ./docker/timescaledb/init:/docker-entrypoint-initdb.d
+      - ./docker/timescaledb/scripts:/docker-scripts
+      - ./docker/timescaledb/ssl:/var/lib/postgresql/ssl:ro
     networks:
       - reporting-network
     restart: unless-stopped
-    # Enable encryption at rest (production requirement)
+    # Performance tuning + SSL/TLS encryption enabled
     command: >
       postgres
       -c shared_preload_libraries=timescaledb
+      -c ssl=on
+      -c ssl_cert_file=/var/lib/postgresql/ssl/server.crt
+      -c ssl_key_file=/var/lib/postgresql/ssl/server.key
+      -c ssl_min_protocol_version=TLSv1.2
+      -c password_encryption=scram-sha-256
       -c max_connections=200
       -c shared_buffers=512MB
       -c effective_cache_size=2GB
@@ -84,6 +93,8 @@ services:
       -c work_mem=4MB
       -c min_wal_size=1GB
       -c max_wal_size=4GB
+      -c log_connections=on
+      -c log_disconnections=on
 
   # Redis (Cache, Sessions, Queues)
   redis:
