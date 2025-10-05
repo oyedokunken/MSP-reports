@@ -1,0 +1,265 @@
+version: '3.8'
+
+services:
+  # NGINX Web Server
+  nginx:
+    image: nginx:alpine
+    container_name: reporting-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - app
+    networks:
+      - reporting-network
+    restart: unless-stopped
+
+  # Laravel Application (PHP-FPM)
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: reporting-app
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/php.ini
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=pgsql
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_DATABASE=reporting
+      - DB_USERNAME=reporting_user
+      - DB_PASSWORD=reporting_password
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=null
+      - REDIS_PORT=6379
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+    depends_on:
+      - timescaledb
+      - redis
+    networks:
+      - reporting-network
+    restart: unless-stopped
+
+  # TimescaleDB (PostgreSQL with time-series extension)
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: reporting-timescaledb
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=reporting
+      - POSTGRES_USER=reporting_user
+      - POSTGRES_PASSWORD=reporting_password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+      - ./docker/timescaledb/init:/docker-entrypoint-initdb.d
+    networks:
+      - reporting-network
+    restart: unless-stopped
+    # Enable encryption at rest (production requirement)
+    command: >
+      postgres
+      -c shared_preload_libraries=timescaledb
+      -c max_connections=200
+      -c shared_buffers=512MB
+      -c effective_cache_size=2GB
+      -c maintenance_work_mem=128MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+
+  # Redis (Cache, Sessions, Queues)
+  redis:
+    image: redis:7-alpine
+    container_name: reporting-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - reporting-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+
+  # Queue Worker (Laravel Queue)
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: reporting-queue
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=pgsql
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_DATABASE=reporting
+      - DB_USERNAME=reporting_user
+      - DB_PASSWORD=reporting_password
+      - REDIS_HOST=redis
+      - QUEUE_CONNECTION=redis
+    depends_on:
+      - app
+      - timescaledb
+      - redis
+    networks:
+      - reporting-network
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+
+  # Scheduler (Laravel Cron)
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: reporting-scheduler
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=pgsql
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_DATABASE=reporting
+      - DB_USERNAME=reporting_user
+      - DB_PASSWORD=reporting_password
+      - REDIS_HOST=redis
+    depends_on:
+      - app
+      - timescaledb
+      - redis
+    networks:
+      - reporting-network
+    restart: unless-stopped
+    command: >
+      sh -c "while true; do
+        php artisan schedule:run --verbose --no-interaction &
+        sleep 60
+      done"
+
+  # MCP Server (Laravel MCP for AI assistance)
+  mcp:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: reporting-mcp
+    working_dir: /var/www/html
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=pgsql
+      - DB_HOST=timescaledb
+      - DB_PORT=5432
+      - DB_DATABASE=reporting
+      - DB_USERNAME=reporting_user
+      - DB_PASSWORD=reporting_password
+      - REDIS_HOST=redis
+      - MCP_ENABLED=true
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=3000
+      - MCP_READ_ONLY=false
+      - MCP_ALLOW_DB_WRITES=false
+    depends_on:
+      - app
+      - timescaledb
+      - redis
+    networks:
+      - reporting-network
+    restart: unless-stopped
+    command: php artisan mcp:serve
+
+  # React Frontend Development Server
+  frontend:
+    image: node:20-alpine
+    container_name: reporting-frontend
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost/api
+    networks:
+      - reporting-network
+    restart: unless-stopped
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+  # MailHog (Email Testing - Development Only)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: reporting-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - reporting-network
+    restart: unless-stopped
+
+  # pgAdmin (Database Management - Development Only)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: reporting-pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@athenanetworks.com.au
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - reporting-network
+    restart: unless-stopped
+
+  # Redis Commander (Redis Management - Development Only)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: reporting-redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    networks:
+      - reporting-network
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+networks:
+  reporting-network:
+    driver: bridge
+
+volumes:
+  timescaledb-data:
+    driver: local
+  redis-data:
+    driver: local
+  pgadmin-data:
+    driver: local
+  frontend-node-modules:
+    driver: local

@@ -1,0 +1,80 @@
+# Laravel
+/vendor
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/storage/app/*
+!/storage/app/.gitkeep
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/testing/*
+!/storage/framework/testing/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+
+# Environment
+.env
+.env.backup
+.env.production
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.phpunit.result.cache
+coverage/
+.phpunit.cache
+
+# Build
+/public/build
+/public/mix-manifest.json
+/public/css
+/public/js
+
+# Composer
+composer.phar
+composer.lock
+
+# NPM
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Frontend
+frontend/node_modules
+frontend/dist
+frontend/.vite
+
+# Docker
+docker-compose.override.yml
+
+# Backups
+*.sql
+backup-*.sql
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+
+# Reports (generated files)
+/storage/app/reports/*
+!/storage/app/reports/.gitkeep
+
+# Temporary files
+/tmp
+/temp
