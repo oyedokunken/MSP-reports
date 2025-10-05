@@ -3,6 +3,13 @@
 
 Write-Host "=== Multi-Developer Environment Setup ===" -ForegroundColor Cyan
 Write-Host ""
+Write-Host "This script generates developer-specific configuration files:" -ForegroundColor Yellow
+Write-Host "  - docker-compose.override.yml"
+Write-Host "  - .env.local"
+Write-Host ""
+Write-Host "These files are gitignored and will NOT be committed." -ForegroundColor Green
+Write-Host "Each developer should run this script with their own unique ID." -ForegroundColor Green
+Write-Host ""
 
 # Prompt for developer ID
 $DEV_ID = Read-Host "Enter your developer ID (1-20)"

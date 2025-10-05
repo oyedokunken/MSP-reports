@@ -2,6 +2,13 @@
 
 echo "=== Multi-Developer Environment Setup ==="
 echo ""
+echo "This script generates developer-specific configuration files:"
+echo "  - docker-compose.override.yml"
+echo "  - .env.local"
+echo ""
+echo "These files are gitignored and will NOT be committed."
+echo "Each developer should run this script with their own unique ID."
+echo ""
 
 # Prompt for developer ID
 read -p "Enter your developer ID (1-20): " DEV_ID
