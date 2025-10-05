@@ -37,7 +37,7 @@ trigger: always_on
 ### Infrastructure
 
 - **Containerization:** Docker + Docker Compose
-- **Web Server:** NGINX or Caddy (TLS termination)
+- **Web Server:** NGINX (TLS termination)
 - **Process Management:** Supervisor (queue workers, scheduler)
 - **Storage:** Local filesystem initially, S3-compatible for SaaS
 - **Backups:** Automated PostgreSQL dumps with encryption
