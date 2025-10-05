@@ -22,6 +22,7 @@ This platform solves the critical pain point of fragmented customer data across 
 
 ## Further Reading
 
+- **[Multi-Developer Setup](docs/MULTI_DEVELOPER_SETUP.md)** - Avoid port conflicts on shared servers
 - **[Encryption](docs/ENCRYPTION_SUMMARY.md)** - How encryption is configured in the platform
 - **[Docker](docs/DOCKER_SUMMARY.md)** - How Docker is configured in the platform
 - **[Docker Setup](docs/DOCKER_SETUP.md)** - How to set up Docker for the platform

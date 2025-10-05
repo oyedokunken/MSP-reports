@@ -5,7 +5,26 @@
 - [ ] Git installed
 - [ ] 8GB+ RAM allocated to Docker
 
-## Setup (First Time Only)
+## Multi-Developer Setup (Shared Server)
+
+**If you're on a shared remote desktop server with other developers:**
+
+```bash
+# 1. Clone the repository
+git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
+cd reporting
+
+# 2. Configure your developer environment (avoids port conflicts)
+./setup-dev-environment.sh
+# Enter your developer ID when prompted (1-20)
+
+# 3. Run automated setup
+make install
+```
+
+The script will assign you unique ports to avoid conflicts with other developers.
+
+## Solo Developer Setup (Local Machine)
 
 ```bash
 # 1. Clone the repository
@@ -26,6 +45,8 @@ That's it! The `make install` command will:
 
 ## Access Your Application
 
+### Solo Developer (Default Ports)
+
 | Service | URL | Purpose |
 |---------|-----|---------|
 | 🎨 Frontend | http://localhost:5173 | React development server |
@@ -33,6 +54,17 @@ That's it! The `make install` command will:
 | 📧 MailHog | http://localhost:8025 | Test emails |
 | 🗄️ pgAdmin | http://localhost:5050 | Database management |
 | 🔴 Redis | http://localhost:8081 | Redis management |
+
+### Multi-Developer (Custom Ports)
+
+If you ran `./setup-dev-environment.sh`, your URLs were displayed after setup.
+
+**Example for Developer 1:**
+- Frontend: http://localhost:5174
+- API: http://localhost:8001/api
+- MailHog: http://localhost:8026
+- pgAdmin: http://localhost:5051
+- Redis Commander: http://localhost:8082
 
 **pgAdmin Login**: admin@athenanetworks.com.au / admin
 
@@ -54,6 +86,16 @@ make down            # Stop all services
 ```
 
 ## Troubleshooting
+
+**Port conflict errors?**
+```bash
+# If on shared server, run the setup script
+./setup-dev-environment.sh
+
+# Then restart
+make down
+make up
+```
 
 **Services won't start?**
 ```bash
@@ -85,8 +127,9 @@ Run `make help` to see all available commands.
 
 ## Need More Help?
 
-- **Detailed Setup**: See `DOCKER_SETUP.md`
-- **Docker Overview**: See `DOCKER_SUMMARY.md`
+- **Multi-Developer Setup**: See `docs/MULTI_DEVELOPER_SETUP.md`
+- **Detailed Setup**: See `docs/DOCKER_SETUP.md`
+- **Docker Overview**: See `docs/DOCKER_SUMMARY.md`
 - **Project Info**: See `README.md`
 - **Full Architecture**: See `PROJECT_PLAN.md`
 
