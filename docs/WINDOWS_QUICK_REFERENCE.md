@@ -1,5 +1,7 @@
 # Windows Server 2025 - Quick Reference
 
+> **💡 New!** All commands now use the `dev.ps1` PowerShell script for a consistent, cross-platform experience. It automatically handles SSL certificates, detects your developer ID, and shows your correct URLs.
+
 ## First Time Setup
 
 ### 1. Prerequisites
@@ -7,7 +9,7 @@
 # Verify Docker Desktop is running
 docker --version
 
-# Verify Git is installed
+# Verify Git is installed (includes Git Bash for SSL certificate generation)
 git --version
 ```
 
@@ -20,79 +22,103 @@ cd reporting
 # Run setup script (assigns unique ports)
 .\setup-dev-environment.ps1
 # Enter your developer ID (1-20)
-
-# Generate SSL certificates (using Git Bash)
-bash docker/timescaledb/scripts/generate-ssl-certs.sh
-
-# Create environment file
-Copy-Item .env.example .env
 ```
 
-### 3. Start Services
+### 3. Install Everything
 ```powershell
-# Start all Docker services
-docker-compose up -d
+# One command to install everything
+.\dev.ps1 install
 
-# Install dependencies
-docker-compose exec app composer install
-docker-compose exec app php artisan key:generate
-docker-compose exec app php artisan migrate
+# This will:
+# - Generate SSL certificates (if needed)
+# - Start Docker services
+# - Install Composer dependencies
+# - Generate app key
+# - Run migrations
+# - Install frontend dependencies
 ```
 
 ### 4. Access Your Services
-Your URLs were displayed after running `setup-dev-environment.ps1`
+Your URLs are displayed after installation completes.
 
 **Example for Developer 1:**
 - Frontend: http://localhost:5174
 - API: http://localhost:8001/api
 - MailHog: http://localhost:8026
 - pgAdmin: http://localhost:5051
+- Redis Commander: http://localhost:8082
+- MCP Server: http://localhost:3001
+
+**Check your URLs anytime:**
+```powershell
+.\dev.ps1 status
+```
 
 ---
 
 ## Daily Commands
 
+**All commands use the `dev.ps1` script for consistency:**
+
 ### Start/Stop Services
 ```powershell
-# Start services
-docker-compose up -d
+# Start services (auto-generates SSL certs if needed)
+.\dev.ps1 up
 
 # Stop services
-docker-compose down
+.\dev.ps1 down
 
 # Restart services
-docker-compose restart
+.\dev.ps1 restart
+
+# Rebuild containers
+.\dev.ps1 build
 ```
 
 ### View Logs
 ```powershell
 # All services
-docker-compose logs -f
+.\dev.ps1 logs
 
 # Specific service
-docker-compose logs -f app
-docker-compose logs -f timescaledb
+.\dev.ps1 logs-app
+.\dev.ps1 logs-queue
+.\dev.ps1 logs-scheduler
+.\dev.ps1 mcp-logs
 ```
 
 ### Run Artisan Commands
 ```powershell
 # Run migrations
-docker-compose exec app php artisan migrate
+.\dev.ps1 migrate
 
 # Clear cache
-docker-compose exec app php artisan cache:clear
+.\dev.ps1 cache-clear
 
 # Access Tinker
-docker-compose exec app php artisan tinker
+.\dev.ps1 tinker
+
+# Any artisan command
+.\dev.ps1 artisan route:list
+.\dev.ps1 artisan make:model Example
 ```
 
 ### Access Containers
 ```powershell
 # App container shell
-docker-compose exec app bash
+.\dev.ps1 shell
 
 # Database shell
-docker-compose exec timescaledb psql -U reporting_user -d reporting
+.\dev.ps1 db-shell
+
+# Redis CLI
+.\dev.ps1 redis-cli
+```
+
+### Check Status
+```powershell
+# Show all services and your URLs
+.\dev.ps1 status
 ```
 
 ---
@@ -105,28 +131,52 @@ docker-compose exec timescaledb psql -U reporting_user -d reporting
 git pull
 
 # Restart services
-docker-compose restart
+.\dev.ps1 restart
 
 # Run new migrations
-docker-compose exec app php artisan migrate
+.\dev.ps1 migrate
 ```
 
 ### Clear Everything
 ```powershell
-# Clear Laravel caches
-docker-compose exec app php artisan cache:clear
-docker-compose exec app php artisan config:clear
-docker-compose exec app php artisan route:clear
-docker-compose exec app php artisan view:clear
+# Clear all Laravel caches
+.\dev.ps1 cache-clear
 
-# Restart services
-docker-compose restart
+# Or optimize for production
+.\dev.ps1 optimize
 ```
 
 ### Fresh Database
 ```powershell
 # ⚠️ Warning: Deletes all data!
-docker-compose exec app php artisan migrate:fresh --seed
+.\dev.ps1 fresh
+
+# Or just migrations without seed
+.\dev.ps1 migrate-fresh
+```
+
+### Database Operations
+```powershell
+# Backup database
+.\dev.ps1 db-backup
+
+# Restore from backup.sql
+.\dev.ps1 db-restore
+
+# Verify SSL encryption
+.\dev.ps1 db-verify-ssl
+```
+
+### Frontend Development
+```powershell
+# Install frontend dependencies
+.\dev.ps1 frontend-install
+
+# Build for production
+.\dev.ps1 frontend-build
+
+# Start dev server
+.\dev.ps1 frontend-dev
 ```
 
 ---
@@ -157,54 +207,64 @@ wsl --update
 # Restart Windows
 ```
 
+### SSL Certificate Issues
+```powershell
+# Regenerate SSL certificates
+.\dev.ps1 generate-certs
+
+# Verify encryption is working
+.\dev.ps1 verify-encryption
+```
+
 ### Permission Errors
 ```powershell
-# Fix container permissions
-docker-compose exec app chmod -R 775 storage bootstrap/cache
-docker-compose exec app chown -R www:www storage bootstrap/cache
+# Fix container permissions (use dev.ps1 shell first)
+.\dev.ps1 shell
+# Then inside container:
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
+exit
 ```
 
 ### Services Not Responding
 ```powershell
 # Stop everything
-docker-compose down
-
-# Remove containers
-docker-compose rm -f
+.\dev.ps1 down
 
 # Start fresh
-docker-compose up -d
+.\dev.ps1 up
+
+# Or rebuild if needed
+.\dev.ps1 build
 ```
 
 ---
 
-## PowerShell Aliases
+## PowerShell Aliases (Optional)
 
-Add to `$PROFILE`:
+Add to `$PROFILE` for even shorter commands:
 
 ```powershell
-# Docker shortcuts
-function dcu { docker-compose up -d }
-function dcd { docker-compose down }
-function dcl { docker-compose logs -f $args }
+# Navigate to project
+function rp { Set-Location "C:\path\to\reporting" }
 
-# Reporting shortcuts
-function rp-up { docker-compose up -d }
-function rp-down { docker-compose down }
-function rp-logs { docker-compose logs -f }
-function rp-shell { docker-compose exec app bash }
-function rp-artisan { docker-compose exec app php artisan $args }
-function rp-migrate { docker-compose exec app php artisan migrate }
-function rp-cache { 
-    docker-compose exec app php artisan cache:clear
-    docker-compose exec app php artisan config:clear
-}
+# Common dev.ps1 shortcuts
+function rp-up { .\dev.ps1 up }
+function rp-down { .\dev.ps1 down }
+function rp-logs { .\dev.ps1 logs }
+function rp-status { .\dev.ps1 status }
+function rp-shell { .\dev.ps1 shell }
+function rp-migrate { .\dev.ps1 migrate }
+function rp-artisan { .\dev.ps1 artisan $args }
 
 # Usage:
-# rp-up
+# rp              # Navigate to project
+# rp-up           # Start services
+# rp-status       # Check status
 # rp-artisan migrate
-# rp-logs
 ```
+
+**Or just use the dev.ps1 script directly - it's already very simple!**
 
 ---
 
@@ -220,9 +280,10 @@ function rp-cache {
 
 ### Best Practices
 - Update roster before claiming ID
-- Stop services when done: `docker-compose down`
+- Stop services when done: `.\dev.ps1 down`
 - Clean up unused containers: `docker system prune`
 - Communicate with team about resource usage
+- Use `.\dev.ps1 status` to check your assigned ports
 
 ---
 
@@ -230,25 +291,41 @@ function rp-cache {
 
 ### Is Everything Running?
 ```powershell
+# Best way - shows status and URLs
+.\dev.ps1 status
+
+# Or check Docker directly
 docker ps
 ```
 
 ### Check Service Health
 ```powershell
 # Test database connection
-docker-compose exec app php artisan db:show
+.\dev.ps1 artisan db:show
 
 # Test SSL encryption
-docker-compose exec timescaledb psql -U reporting_user -d reporting -c "SHOW ssl;"
+.\dev.ps1 verify-encryption
+
+# Or specific SSL check
+.\dev.ps1 db-verify-ssl
 ```
 
 ### View Your Configuration
 ```powershell
-# See your ports
-Get-Content docker-compose.override.yml | Select-String "ports:"
+# See all your URLs and ports
+.\dev.ps1 status
 
 # See your developer ID
 Get-Content .env.local
+
+# See your port mappings
+Get-Content docker-compose.override.yml | Select-String "ports:"
+```
+
+### Available Commands
+```powershell
+# See all available commands
+.\dev.ps1 help
 ```
 
 ---
@@ -270,16 +347,20 @@ Get-Content .env.local
 ```powershell
 # ⚠️ Warning: Deletes everything!
 
-# Stop and remove containers
-docker-compose down
+# Use the clean command (prompts for confirmation)
+.\dev.ps1 clean
 
-# Remove volumes (deletes database)
+# Or manually:
+# Stop and remove containers
+.\dev.ps1 down
+
+# Remove volumes (deletes database) - replace dev1 with your ID
 docker volume rm reporting-timescaledb-data-dev1
 docker volume rm reporting-redis-data-dev1
 
 # Start fresh
 .\setup-dev-environment.ps1
-docker-compose up -d
+.\dev.ps1 install
 ```
 
 ### Check Disk Space
@@ -289,8 +370,26 @@ docker system df
 
 # Clean up unused resources
 docker system prune -a
+
+# Clean Laravel cache files
+.\dev.ps1 clean-cache
 ```
 
 ---
+
+## Quick Command Reference
+
+| Task | Command |
+|------|---------|
+| **Setup** | `.\setup-dev-environment.ps1` |
+| **Install** | `.\dev.ps1 install` |
+| **Start** | `.\dev.ps1 up` |
+| **Stop** | `.\dev.ps1 down` |
+| **Status** | `.\dev.ps1 status` |
+| **Logs** | `.\dev.ps1 logs` |
+| **Shell** | `.\dev.ps1 shell` |
+| **Migrate** | `.\dev.ps1 migrate` |
+| **Artisan** | `.\dev.ps1 artisan <command>` |
+| **Help** | `.\dev.ps1 help` |
 
 **Keep this reference handy for quick access to common commands!**

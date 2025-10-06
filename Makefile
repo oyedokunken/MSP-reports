@@ -1,5 +1,21 @@
 .PHONY: help up down restart build logs shell artisan migrate seed fresh test cache-clear db-shell redis-cli install
 
+# Detect docker-compose command (prefer docker-compose if available, otherwise use docker compose)
+DOCKER_COMPOSE := $(shell command -v docker-compose 2> /dev/null)
+ifndef DOCKER_COMPOSE
+	DOCKER_COMPOSE := docker compose
+endif
+
+# Check for SSL certificates
+check-certs:
+	@if [ ! -f ./docker/timescaledb/ssl/server.crt ] || [ ! -f ./docker/timescaledb/ssl/server.key ]; then \
+		echo "⚠️  SSL certificates not found!"; \
+		echo "   Generating certificates now..."; \
+		echo ""; \
+		./docker/timescaledb/scripts/generate-ssl-certs.sh; \
+		echo ""; \
+	fi
+
 # Default target
 help:
 	@echo "Multi-Tenant Reporting Platform - Development Commands"
@@ -47,43 +63,43 @@ help:
 	@echo "  make clean-cache     - Remove all cache files"
 
 # Docker Management
-up:
-	docker compose up -d
+up: check-certs
+	$(DOCKER_COMPOSE) up -d
 
 down:
-	docker compose down
+	$(DOCKER_COMPOSE) down
 
 restart:
-	docker compose restart
+	$(DOCKER_COMPOSE) restart
 
-build:
-	docker compose up -d --build
+build: check-certs
+	$(DOCKER_COMPOSE) up -d --build
 
 logs:
-	docker compose logs -f
+	$(DOCKER_COMPOSE) logs -f
 
 logs-app:
-	docker compose logs -f app
+	$(DOCKER_COMPOSE) logs -f app
 
 logs-queue:
-	docker compose logs -f queue
+	$(DOCKER_COMPOSE) logs -f queue
 
 logs-scheduler:
-	docker compose logs -f scheduler
+	$(DOCKER_COMPOSE) logs -f scheduler
 
 logs-nginx:
-	docker compose logs -f nginx
+	$(DOCKER_COMPOSE) logs -f nginx
 
 # Initial Setup
 install: up
 	@echo "Installing Composer dependencies..."
-	docker compose exec app composer install
+	$(DOCKER_COMPOSE) exec app composer install
 	@echo "Copying .env file..."
 	@if [ ! -f .env ]; then cp .env.example .env; fi
 	@echo "Generating application key..."
-	docker compose exec app php artisan key:generate
+	$(DOCKER_COMPOSE) exec app php artisan key:generate
 	@echo "Running migrations..."
-	docker compose exec app php artisan migrate
+	$(DOCKER_COMPOSE) exec app php artisan migrate
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
 	@echo ""
@@ -95,57 +111,57 @@ install: up
 
 # Application Commands
 shell:
-	docker compose exec app bash
+	$(DOCKER_COMPOSE) exec app bash
 
 artisan:
-	docker compose exec app php artisan $(CMD)
+	$(DOCKER_COMPOSE) exec app php artisan $(CMD)
 
 migrate:
-	docker compose exec app php artisan migrate
+	$(DOCKER_COMPOSE) exec app php artisan migrate
 
 migrate-fresh:
-	docker compose exec app php artisan migrate:fresh
+	$(DOCKER_COMPOSE) exec app php artisan migrate:fresh
 
 seed:
-	docker compose exec app php artisan db:seed
+	$(DOCKER_COMPOSE) exec app php artisan db:seed
 
 fresh:
-	docker compose exec app php artisan migrate:fresh --seed
+	$(DOCKER_COMPOSE) exec app php artisan migrate:fresh --seed
 
 test:
-	docker compose exec app php artisan test
+	$(DOCKER_COMPOSE) exec app php artisan test
 
 cache-clear:
-	docker compose exec app php artisan cache:clear
-	docker compose exec app php artisan config:clear
-	docker compose exec app php artisan route:clear
-	docker compose exec app php artisan view:clear
+	$(DOCKER_COMPOSE) exec app php artisan cache:clear
+	$(DOCKER_COMPOSE) exec app php artisan config:clear
+	$(DOCKER_COMPOSE) exec app php artisan route:clear
+	$(DOCKER_COMPOSE) exec app php artisan view:clear
 
 optimize:
-	docker compose exec app php artisan config:cache
-	docker compose exec app php artisan route:cache
-	docker compose exec app php artisan view:cache
+	$(DOCKER_COMPOSE) exec app php artisan config:cache
+	$(DOCKER_COMPOSE) exec app php artisan route:cache
+	$(DOCKER_COMPOSE) exec app php artisan view:cache
 
 # Database Commands
 db-shell:
-	docker compose exec timescaledb psql -U reporting_user -d reporting
+	$(DOCKER_COMPOSE) exec timescaledb psql -U reporting_user -d reporting
 
 db-backup:
 	@echo "Creating database backup..."
-	docker compose exec timescaledb pg_dump -U reporting_user reporting > backup-$(shell date +%Y%m%d-%H%M%S).sql
+	$(DOCKER_COMPOSE) exec timescaledb pg_dump -U reporting_user reporting > backup-$(shell date +%Y%m%d-%H%M%S).sql
 	@echo "✅ Backup created: backup-$(shell date +%Y%m%d-%H%M%S).sql"
 
 db-restore:
 	@echo "Restoring database from backup.sql..."
-	docker compose exec -T timescaledb psql -U reporting_user reporting < backup.sql
+	$(DOCKER_COMPOSE) exec -T timescaledb psql -U reporting_user reporting < backup.sql
 	@echo "✅ Database restored"
 
 # Redis Commands
 redis-cli:
-	docker compose exec redis redis-cli
+	$(DOCKER_COMPOSE) exec redis redis-cli
 
 redis-flush:
-	docker compose exec redis redis-cli FLUSHALL
+	$(DOCKER_COMPOSE) exec redis redis-cli FLUSHALL
 
 # Frontend Commands
 frontend-install:
@@ -159,18 +175,18 @@ frontend-dev:
 
 # Queue & Scheduler
 queue-restart:
-	docker compose restart queue
+	$(DOCKER_COMPOSE) restart queue
 
 queue-work:
-	docker compose exec app php artisan queue:work
+	$(DOCKER_COMPOSE) exec app php artisan queue:work
 
 scheduler-run:
-	docker compose exec app php artisan schedule:run
+	$(DOCKER_COMPOSE) exec app php artisan schedule:run
 
 # Cleanup
 clean:
 	@echo "⚠️  This will remove all containers and volumes. Are you sure? [y/N] " && read ans && [ $${ans:-N} = y ]
-	docker compose down -v
+	$(DOCKER_COMPOSE) down -v
 	@echo "✅ Cleanup complete"
 
 clean-cache:
@@ -181,17 +197,17 @@ clean-cache:
 
 # Development Helpers
 tinker:
-	docker compose exec app php artisan tinker
+	$(DOCKER_COMPOSE) exec app php artisan tinker
 
 routes:
-	docker compose exec app php artisan route:list
+	$(DOCKER_COMPOSE) exec app php artisan route:list
 
 models:
-	docker compose exec app php artisan model:show
+	$(DOCKER_COMPOSE) exec app php artisan model:show
 
 status:
 	@echo "=== Docker Services Status ==="
-	@docker compose ps
+	@$(DOCKER_COMPOSE) ps
 	@echo ""
 	@echo "=== Application URLs ==="
 	@echo "Frontend:        http://localhost:5173"
@@ -202,10 +218,10 @@ status:
 
 # MCP Server
 mcp-logs:
-	docker compose logs -f mcp
+	$(DOCKER_COMPOSE) logs -f mcp
 
 mcp-restart:
-	docker compose restart mcp
+	$(DOCKER_COMPOSE) restart mcp
 
 # Security & Encryption
 generate-certs:
@@ -218,16 +234,16 @@ verify-encryption:
 	@echo "=== Verifying Database Encryption ==="
 	@echo ""
 	@echo "Checking SSL status..."
-	@docker compose exec timescaledb psql -U reporting_user -d reporting -c "SHOW ssl;"
+	@$(DOCKER_COMPOSE) exec timescaledb psql -U reporting_user -d reporting -c "SHOW ssl;"
 	@echo ""
 	@echo "Checking password encryption..."
-	@docker compose exec timescaledb psql -U reporting_user -d reporting -c "SHOW password_encryption;"
+	@$(DOCKER_COMPOSE) exec timescaledb psql -U reporting_user -d reporting -c "SHOW password_encryption;"
 	@echo ""
 	@echo "Checking active SSL connections..."
-	@docker compose exec timescaledb psql -U reporting_user -d reporting -c "SELECT datname, usename, ssl, version, cipher FROM pg_stat_ssl JOIN pg_stat_activity ON pg_stat_ssl.pid = pg_stat_activity.pid WHERE datname = 'reporting';"
+	@$(DOCKER_COMPOSE) exec timescaledb psql -U reporting_user -d reporting -c "SELECT datname, usename, ssl, version, cipher FROM pg_stat_ssl JOIN pg_stat_activity ON pg_stat_ssl.pid = pg_stat_activity.pid WHERE datname = 'reporting';"
 	@echo ""
 	@echo "✅ Encryption verification complete"
 
 db-verify-ssl:
 	@echo "Verifying SSL connection from application..."
-	@docker compose exec app php -r "$$pdo = new PDO('pgsql:host=timescaledb;dbname=reporting', 'reporting_user', 'reporting_password'); $$result = $$pdo->query('SELECT version FROM pg_stat_ssl WHERE pid = pg_backend_pid()')->fetch(); echo 'SSL Version: ' . ($$result['version'] ?? 'Not connected via SSL') . PHP_EOL;"
+	@$(DOCKER_COMPOSE) exec app php -r "$$pdo = new PDO('pgsql:host=timescaledb;dbname=reporting', 'reporting_user', 'reporting_password'); $$result = $$pdo->query('SELECT version FROM pg_stat_ssl WHERE pid = pg_backend_pid()')->fetch(); echo 'SSL Version: ' . ($$result['version'] ?? 'Not connected via SSL') . PHP_EOL;"
