@@ -64,7 +64,7 @@ This Docker Compose configuration provides a complete development environment fo
 
 ## Prerequisites
 
-- **Docker Desktop** (Mac/Windows) or **Docker Engine** (Linux)
+- **Docker Desktop** (Mac) or **Docker Engine** (Linux)
 - **Docker Compose** v2.0+
 - **Git**
 - Minimum 8GB RAM allocated to Docker
@@ -257,13 +257,9 @@ cd frontend && npm run build
 If you get port binding errors, check if ports are already in use:
 
 ```bash
-# Mac/Linux
 lsof -i :80
 lsof -i :5432
 lsof -i :6379
-
-# Windows
-netstat -ano | findstr :80
 ```
 
 Change ports in `docker-compose.yml` if needed.

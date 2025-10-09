@@ -77,7 +77,7 @@ sudo mount /dev/mapper/encrypted-docker /var/lib/docker/volumes
 ```
 
 **Option 3: Host Filesystem Encryption**
-- Use full disk encryption (FileVault on Mac, BitLocker on Windows, LUKS on Linux)
+- Use full disk encryption (FileVault on Mac, LUKS on Linux)
 - Docker volumes inherit host encryption
 
 ### Production Environment - On-Premise

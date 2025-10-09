@@ -74,7 +74,7 @@ git status
 
 ```bash
 # Run the setup script
-./setup-dev-environment.sh  # or .\setup-dev-environment.ps1 on Windows
+./setup-dev-environment.sh
 
 # Check git status again
 git status

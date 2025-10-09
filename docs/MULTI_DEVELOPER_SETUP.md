@@ -105,17 +105,9 @@ docker-compose up -d
 
 ### Option 2: Automated Script (Easiest)
 
-**For Linux/Mac:**
-
 Use `setup-dev-environment.sh` (included in repository)
 
-**For Windows Server 2025:**
-
-Use `setup-dev-environment.ps1` (included in repository)
-
-See **[Windows Setup Guide](WINDOWS_SETUP.md)** for detailed Windows instructions.
-
-**1. Linux/Mac Setup Script**
+**1. Setup Script**
 
 The `setup-dev-environment.sh` script:
 
@@ -378,11 +370,7 @@ When a developer leaves or joins:
 
 **Check if port is in use:**
 ```bash
-# Mac/Linux
 lsof -i :8001
-
-# Windows
-netstat -ano | findstr :8001
 ```
 
 **Solutions:**
