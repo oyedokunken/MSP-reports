@@ -1,10 +1,5 @@
 FROM timescale/timescaledb:latest-pg16
 
-# Install encryption tools
-RUN apt-get update && apt-get install -y \
-    cryptsetup \
-    && rm -rf /var/lib/apt/lists/*
-
 # Copy encryption setup scripts
 COPY ./docker/timescaledb/scripts/setup-encryption.sh /docker-entrypoint-initdb.d/00-setup-encryption.sh
 RUN chmod +x /docker-entrypoint-initdb.d/00-setup-encryption.sh

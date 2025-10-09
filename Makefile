@@ -92,16 +92,6 @@ logs-nginx:
 
 # Initial Setup
 install: up
-	@echo "Installing Composer dependencies..."
-	$(DOCKER_COMPOSE) exec app composer install
-	@echo "Copying .env file..."
-	@if [ ! -f .env ]; then cp .env.example .env; fi
-	@echo "Generating application key..."
-	$(DOCKER_COMPOSE) exec app php artisan key:generate
-	@echo "Running migrations..."
-	$(DOCKER_COMPOSE) exec app php artisan migrate
-	@echo "Installing frontend dependencies..."
-	cd frontend && npm install
 	@echo ""
 	@echo "✅ Installation complete!"
 	@echo "Frontend: http://localhost:5173"

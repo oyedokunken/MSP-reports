@@ -1,24 +1,24 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.3-fpm
 
 # Set working directory
 WORKDIR /var/www/html
 
 # Install system dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     git \
     curl \
     libpng-dev \
     libzip-dev \
     zip \
     unzip \
-    postgresql-dev \
-    icu-dev \
-    oniguruma-dev \
+    libpq-dev \
+    libicu-dev \
+    libonig-dev \
     libxml2-dev \
-    freetype-dev \
-    libjpeg-turbo-dev \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
     supervisor \
-    bash
+    && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -38,25 +38,24 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     sockets
 
 # Install Redis extension
-RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && apk del .build-deps
+RUN pecl install redis \
+    && docker-php-ext-enable redis
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Create system user to run Composer and Artisan Commands
-RUN addgroup -g 1000 www && \
-    adduser -D -u 1000 -G www www
+RUN groupadd -g 1000 www && \
+    useradd -u 1000 -g www -m -s /bin/bash www
 
 # Copy application files
 COPY --chown=www:www . /var/www/html
 
-# Set permissions
+# Create Laravel directories if they don't exist and set permissions
 RUN chown -R www:www /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+    && mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
 
 # Switch to www user
 USER www

@@ -1,0 +1,72 @@
+version: '3.8'
+
+# Auto-generated for Developer 20
+# Do not commit this file (it's in .gitignore)
+
+services:
+  nginx:
+    container_name: reporting-nginx-dev20
+    ports:
+      - "8020:80"
+      - "8420:443"
+  
+  app:
+    container_name: reporting-app-dev20
+  
+  timescaledb:
+    container_name: reporting-timescaledb-dev20
+    ports:
+      - "5452:5432"
+  
+  redis:
+    container_name: reporting-redis-dev20
+    ports:
+      - "6399:6379"
+  
+  queue:
+    container_name: reporting-queue-dev20
+  
+  scheduler:
+    container_name: reporting-scheduler-dev20
+  
+  mcp:
+    container_name: reporting-mcp-dev20
+    ports:
+      - "3020:3000"
+  
+  frontend:
+    container_name: reporting-frontend-dev20
+    ports:
+      - "5193:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8020/api
+  
+  mailhog:
+    container_name: reporting-mailhog-dev20
+    ports:
+      - "1045:1025"
+      - "8045:8025"
+  
+  pgadmin:
+    container_name: reporting-pgadmin-dev20
+    ports:
+      - "5070:80"
+  
+  redis-commander:
+    container_name: reporting-redis-commander-dev20
+    ports:
+      - "8101:8081"
+
+networks:
+  reporting-network:
+    name: reporting-network-dev20
+
+volumes:
+  timescaledb-data:
+    name: reporting-timescaledb-data-dev20
+  redis-data:
+    name: reporting-redis-data-dev20
+  pgadmin-data:
+    name: reporting-pgadmin-data-dev20
+  frontend-node-modules:
+    name: reporting-frontend-node-modules-dev20
