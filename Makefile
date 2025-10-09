@@ -20,47 +20,49 @@ check-certs:
 help:
 	@echo "Multi-Tenant Reporting Platform - Development Commands"
 	@echo ""
-	@echo "Docker Management:"
+	@echo "🐳 Docker Management:"
 	@echo "  make up              - Start all services"
 	@echo "  make down            - Stop all services"
 	@echo "  make restart         - Restart all services"
 	@echo "  make build           - Rebuild containers"
 	@echo "  make logs            - View all logs"
-	@echo "  make logs-app        - View app logs"
-	@echo "  make logs-queue      - View queue worker logs"
-	@echo "  make logs-scheduler  - View scheduler logs"
+	@echo "  make logs-app        - View backend logs"
+	@echo "  make logs-frontend   - View frontend logs"
+	@echo "  make logs-nginx      - View nginx logs"
+	@echo "  make status          - Show service status and URLs"
 	@echo ""
-	@echo "Application:"
-	@echo "  make install         - Initial setup (composer, npm, key, migrate)"
-	@echo "  make shell           - Access app container shell"
+	@echo "🚀 Backend (Laravel):"
+	@echo "  make backend-shell   - Access backend container shell"
 	@echo "  make artisan CMD=... - Run artisan command"
 	@echo "  make migrate         - Run database migrations"
 	@echo "  make seed            - Seed database"
 	@echo "  make fresh           - Fresh database with seed"
 	@echo "  make test            - Run tests"
 	@echo "  make cache-clear     - Clear all caches"
+	@echo "  make queue           - Run queue worker"
+	@echo "  make schedule        - Run scheduler once"
 	@echo ""
-	@echo "Database:"
+	@echo "🎨 Frontend (React):"
+	@echo "  make frontend-shell  - Access frontend container shell"
+	@echo "  make frontend-install - Install npm dependencies"
+	@echo "  make frontend-build  - Build for production"
+	@echo ""
+	@echo "🗄️  Database:"
 	@echo "  make db-shell        - Access PostgreSQL shell"
 	@echo "  make db-backup       - Backup database"
 	@echo "  make db-restore      - Restore database from backup.sql"
-	@echo "  make db-verify-ssl   - Verify SSL encryption is enabled"
 	@echo ""
-	@echo "Security:"
-	@echo "  make generate-certs  - Generate SSL certificates for PostgreSQL"
-	@echo "  make verify-encryption - Verify database encryption settings"
-	@echo ""
-	@echo "Redis:"
+	@echo "🔴 Redis:"
 	@echo "  make redis-cli       - Access Redis CLI"
 	@echo "  make redis-flush     - Flush Redis cache"
 	@echo ""
-	@echo "Frontend:"
-	@echo "  make frontend-install - Install frontend dependencies"
-	@echo "  make frontend-build   - Build frontend for production"
+	@echo "🔒 Security:"
+	@echo "  make generate-certs  - Generate SSL certificates"
+	@echo "  make verify-encryption - Verify database encryption"
 	@echo ""
-	@echo "Cleanup:"
+	@echo "🧹 Cleanup:"
 	@echo "  make clean           - Stop and remove all containers/volumes"
-	@echo "  make clean-cache     - Remove all cache files"
+	@echo "  make clean-backend   - Remove backend cache files"
 
 # Docker Management
 up: check-certs
@@ -81,25 +83,38 @@ logs:
 logs-app:
 	$(DOCKER_COMPOSE) logs -f app
 
-logs-queue:
-	$(DOCKER_COMPOSE) logs -f queue
+logs-backend:
+	$(DOCKER_COMPOSE) logs -f app
 
-logs-scheduler:
-	$(DOCKER_COMPOSE) logs -f scheduler
+logs-frontend:
+	$(DOCKER_COMPOSE) logs -f frontend
 
 logs-nginx:
 	$(DOCKER_COMPOSE) logs -f nginx
 
 # Initial Setup
 install: up
+	@echo "📦 Installing backend dependencies..."
+	@if [ -f backend/composer.json ]; then \
+		$(DOCKER_COMPOSE) exec app composer install; \
+	else \
+		echo "⚠️  No backend/composer.json found. Run: composer create-project laravel/laravel:^12.0 backend"; \
+	fi
+	@echo ""
+	@echo "📦 Installing frontend dependencies..."
+	@if [ -f frontend/package.json ]; then \
+		cd frontend && npm install; \
+	else \
+		echo "⚠️  No frontend/package.json found. Run: npm create vite@latest frontend -- --template react"; \
+	fi
 	@echo ""
 	@echo "✅ Installation complete!"
-	@echo "Frontend: http://localhost:5173"
-	@echo "API: http://localhost/api"
-	@echo "MailHog: http://localhost:8025"
-	@echo "pgAdmin: http://localhost:5050"
+	@echo "Run 'make status' to see your service URLs"
 
-# Application Commands
+# Backend Commands
+backend-shell:
+	$(DOCKER_COMPOSE) exec app bash
+
 shell:
 	$(DOCKER_COMPOSE) exec app bash
 
@@ -154,6 +169,9 @@ redis-flush:
 	$(DOCKER_COMPOSE) exec redis redis-cli FLUSHALL
 
 # Frontend Commands
+frontend-shell:
+	$(DOCKER_COMPOSE) exec frontend sh
+
 frontend-install:
 	cd frontend && npm install
 
@@ -163,14 +181,11 @@ frontend-build:
 frontend-dev:
 	cd frontend && npm run dev
 
-# Queue & Scheduler
-queue-restart:
-	$(DOCKER_COMPOSE) restart queue
-
-queue-work:
+# Queue & Scheduler (run manually when needed)
+queue:
 	$(DOCKER_COMPOSE) exec app php artisan queue:work
 
-scheduler-run:
+schedule:
 	$(DOCKER_COMPOSE) exec app php artisan schedule:run
 
 # Cleanup
@@ -179,11 +194,16 @@ clean:
 	$(DOCKER_COMPOSE) down -v
 	@echo "✅ Cleanup complete"
 
-clean-cache:
-	rm -rf storage/framework/cache/*
-	rm -rf storage/framework/sessions/*
-	rm -rf storage/framework/views/*
-	rm -rf bootstrap/cache/*.php
+clean-backend:
+	@if [ -d backend/storage ]; then \
+		rm -rf backend/storage/framework/cache/*; \
+		rm -rf backend/storage/framework/sessions/*; \
+		rm -rf backend/storage/framework/views/*; \
+		rm -rf backend/bootstrap/cache/*.php; \
+		echo "✅ Backend cache cleared"; \
+	else \
+		echo "⚠️  Backend not installed yet"; \
+	fi
 
 # Development Helpers
 tinker:
@@ -200,18 +220,14 @@ status:
 	@$(DOCKER_COMPOSE) ps
 	@echo ""
 	@echo "=== Application URLs ==="
-	@echo "Frontend:        http://localhost:5173"
-	@echo "API:             http://localhost/api"
-	@echo "MailHog:         http://localhost:8025"
-	@echo "pgAdmin:         http://localhost:5050"
-	@echo "Redis Commander: http://localhost:8081"
+	@echo "Note: Ports may vary if using multi-developer setup"
+	@echo ""
+	@echo "🎨 Frontend:        http://localhost:5173 (or check your dev ID)"
+	@echo "🚀 API:             http://localhost/api (or check your dev ID)"
+	@echo "📧 MailHog:         http://localhost:8025 (or check your dev ID)"
+	@echo "🗄️  pgAdmin:         http://localhost:5050 (or check your dev ID)"
+	@echo "🔴 Redis Commander: http://localhost:8081 (or check your dev ID)"
 
-# MCP Server
-mcp-logs:
-	$(DOCKER_COMPOSE) logs -f mcp
-
-mcp-restart:
-	$(DOCKER_COMPOSE) restart mcp
 
 # Security & Encryption
 generate-certs:

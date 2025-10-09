@@ -1,61 +1,61 @@
 version: '3.8'
 
-# Auto-generated for Developer 20
+# Auto-generated for Developer 1
 # Do not commit this file (it's in .gitignore)
 
 services:
   nginx:
-    container_name: reporting-nginx-dev20
+    container_name: reporting-nginx-dev1
     ports:
-      - "8020:80"
-      - "8420:443"
+      - "8001:80"
+      - "8401:443"
   
   app:
-    container_name: reporting-app-dev20
+    container_name: reporting-app-dev1
   
   timescaledb:
-    container_name: reporting-timescaledb-dev20
+    container_name: reporting-timescaledb-dev1
     ports:
-      - "5452:5432"
+      - "5433:5432"
   
   redis:
-    container_name: reporting-redis-dev20
+    container_name: reporting-redis-dev1
     ports:
-      - "6399:6379"
+      - "6380:6379"
   
   frontend:
-    container_name: reporting-frontend-dev20
+    container_name: reporting-frontend-dev1
     ports:
-      - "5193:5173"
+      - "5174:5173"
     environment:
-      - VITE_API_URL=http://localhost:8020/api
+      - VITE_API_URL=http://localhost:8001/api
   
   mailhog:
-    container_name: reporting-mailhog-dev20
+    container_name: reporting-mailhog-dev1
     ports:
-      - "1045:1025"
-      - "8045:8025"
+      - "1026:1025"
+      - "8026:8025"
   
   pgadmin:
-    container_name: reporting-pgadmin-dev20
+    container_name: reporting-pgadmin-dev1
     ports:
-      - "5070:80"
+      - "5051:80"
   
   redis-commander:
-    container_name: reporting-redis-commander-dev20
+    container_name: reporting-redis-commander-dev1
     ports:
-      - "8101:8081"
+      - "8082:8081"
 
 networks:
   reporting-network:
-    name: reporting-network-dev20
+    name: reporting-network-dev1
 
 volumes:
   timescaledb-data:
-    name: reporting-timescaledb-data-dev20
+    name: reporting-timescaledb-data-dev1
   redis-data:
-    name: reporting-redis-data-dev20
+    name: reporting-redis-data-dev1
   pgadmin-data:
-    name: reporting-pgadmin-data-dev20
+    name: reporting-pgadmin-data-dev1
   frontend-node-modules:
-    name: reporting-frontend-node-modules-dev20
+    name: reporting-frontend-node-modules-dev1
