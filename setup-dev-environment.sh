@@ -8,10 +8,10 @@ echo "  - docker-compose.override.yml (gitignored)"
 echo ""
 
 # Prompt for developer ID
-read -p "Enter your developer ID (1-20): " DEV_ID
+read -p "Enter your developer ID (1-20,69): " DEV_ID
 
 # Validate input
-if ! [[ "$DEV_ID" =~ ^[0-9]+$ ]] || [ "$DEV_ID" -lt 1 ] || [ "$DEV_ID" -gt 20 ] || [ "$DEV_ID" != "69" ]; then
+if ! [[ "$DEV_ID" =~ ^[0-9]+$ ]] || [ "$DEV_ID" -lt 1 ] || [ "$DEV_ID" -gt 69 ]; then
     echo "❌ Invalid developer ID. Must be between 1 and 20 or 69."
     exit 1
 fi
