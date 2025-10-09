@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+chown root:root /var/lib/postgresql/ssl/server.crt
+chown root:root /var/lib/postgresql/ssl/server.key
+
 echo "=== PostgreSQL Encryption Setup ==="
 
 # Enable SSL in PostgreSQL configuration
