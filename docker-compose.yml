@@ -5,11 +5,8 @@ services:
   nginx:
     image: nginx:alpine
     container_name: reporting-nginx
-    ports:
-      - "80:80"
-      - "443:443"
     volumes:
-      - ./:/var/www/html
+      - ./backend:/var/www/html
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./docker/nginx/conf.d:/etc/nginx/conf.d
       - ./docker/nginx/ssl:/etc/nginx/ssl
@@ -22,12 +19,12 @@ services:
   # Laravel Application (PHP-FPM)
   app:
     build:
-      context: .
-      dockerfile: docker/php/Dockerfile
+      context: ./backend
+      dockerfile: ../docker/php/Dockerfile
     container_name: reporting-app
     working_dir: /var/www/html
     volumes:
-      - ./:/var/www/html
+      - ./backend:/var/www/html
       - ./docker/php/php.ini:/usr/local/etc/php/php.ini
     environment:
       - APP_ENV=local
@@ -57,8 +54,6 @@ services:
       context: .
       dockerfile: docker/timescaledb/Dockerfile
     container_name: reporting-timescaledb
-    ports:
-      - "5432:5432"
     environment:
       - POSTGRES_DB=reporting
       - POSTGRES_USER=reporting_user
@@ -100,8 +95,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: reporting-redis
-    ports:
-      - "6379:6379"
     volumes:
       - redis-data:/data
     networks:
@@ -109,106 +102,11 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
 
-  # Queue Worker (Laravel Queue)
-  queue:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
-    container_name: reporting-queue
-    working_dir: /var/www/html
-    volumes:
-      - ./:/var/www/html
-    environment:
-      - APP_ENV=local
-      - DB_CONNECTION=pgsql
-      - DB_HOST=timescaledb
-      - DB_PORT=5432
-      - DB_DATABASE=reporting
-      - DB_USERNAME=reporting_user
-      - DB_PASSWORD=reporting_password
-      - REDIS_HOST=redis
-      - QUEUE_CONNECTION=redis
-    depends_on:
-      - app
-      - timescaledb
-      - redis
-    networks:
-      - reporting-network
-    restart: unless-stopped
-    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
-
-  # Scheduler (Laravel Cron)
-  scheduler:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
-    container_name: reporting-scheduler
-    working_dir: /var/www/html
-    volumes:
-      - ./:/var/www/html
-    environment:
-      - APP_ENV=local
-      - DB_CONNECTION=pgsql
-      - DB_HOST=timescaledb
-      - DB_PORT=5432
-      - DB_DATABASE=reporting
-      - DB_USERNAME=reporting_user
-      - DB_PASSWORD=reporting_password
-      - REDIS_HOST=redis
-    depends_on:
-      - app
-      - timescaledb
-      - redis
-    networks:
-      - reporting-network
-    restart: unless-stopped
-    command: >
-      sh -c "while true; do
-        php artisan schedule:run --verbose --no-interaction &
-        sleep 60
-      done"
-
-  # MCP Server (Laravel MCP for AI assistance)
-  mcp:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
-    container_name: reporting-mcp
-    working_dir: /var/www/html
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./:/var/www/html
-    environment:
-      - APP_ENV=local
-      - DB_CONNECTION=pgsql
-      - DB_HOST=timescaledb
-      - DB_PORT=5432
-      - DB_DATABASE=reporting
-      - DB_USERNAME=reporting_user
-      - DB_PASSWORD=reporting_password
-      - REDIS_HOST=redis
-      - MCP_ENABLED=true
-      - MCP_HOST=0.0.0.0
-      - MCP_PORT=3000
-      - MCP_READ_ONLY=false
-      - MCP_ALLOW_DB_WRITES=false
-    depends_on:
-      - app
-      - timescaledb
-      - redis
-    networks:
-      - reporting-network
-    restart: unless-stopped
-    command: php artisan mcp:serve
-
   # React Frontend Development Server
   frontend:
     image: node:20-alpine
     container_name: reporting-frontend
     working_dir: /app
-    ports:
-      - "5173:5173"
     volumes:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules
@@ -224,9 +122,6 @@ services:
   mailhog:
     image: mailhog/mailhog:latest
     container_name: reporting-mailhog
-    ports:
-      - "1025:1025"  # SMTP
-      - "8025:8025"  # Web UI
     networks:
       - reporting-network
     restart: unless-stopped
@@ -235,8 +130,6 @@ services:
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: reporting-pgadmin
-    ports:
-      - "5050:80"
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@athenanetworks.com.au
       - PGADMIN_DEFAULT_PASSWORD=admin
@@ -251,8 +144,6 @@ services:
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: reporting-redis-commander
-    ports:
-      - "8081:8081"
     environment:
       - REDIS_HOSTS=local:redis:6379
     networks:

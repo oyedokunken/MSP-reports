@@ -23,17 +23,6 @@ services:
     ports:
       - "6399:6379"
   
-  queue:
-    container_name: reporting-queue-dev20
-  
-  scheduler:
-    container_name: reporting-scheduler-dev20
-  
-  mcp:
-    container_name: reporting-mcp-dev20
-    ports:
-      - "3020:3000"
-  
   frontend:
     container_name: reporting-frontend-dev20
     ports:

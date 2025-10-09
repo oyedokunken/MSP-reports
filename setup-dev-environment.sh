@@ -2,12 +2,9 @@
 
 echo "=== Multi-Developer Environment Setup ==="
 echo ""
-echo "This script generates developer-specific configuration files:"
-echo "  - docker-compose.override.yml"
-echo "  - .env.local"
-echo ""
-echo "These files are gitignored and will NOT be committed."
-echo "Each developer should run this script with their own unique ID."
+echo "This script configures unique ports for each developer to avoid conflicts."
+echo "Generated files:"
+echo "  - docker-compose.override.yml (gitignored)"
 echo ""
 
 # Prompt for developer ID
@@ -19,7 +16,7 @@ if ! [[ "$DEV_ID" =~ ^[0-9]+$ ]] || [ "$DEV_ID" -lt 1 ] || [ "$DEV_ID" -gt 20 ];
     exit 1
 fi
 
-# Calculate ports
+# Calculate ports (base_port + developer_id)
 NGINX_PORT=$((8000 + DEV_ID))
 POSTGRES_PORT=$((5432 + DEV_ID))
 REDIS_PORT=$((6379 + DEV_ID))
@@ -28,7 +25,6 @@ MAILHOG_SMTP_PORT=$((1025 + DEV_ID))
 MAILHOG_UI_PORT=$((8025 + DEV_ID))
 PGADMIN_PORT=$((5050 + DEV_ID))
 REDIS_CMD_PORT=$((8081 + DEV_ID))
-MCP_PORT=$((3000 + DEV_ID))
 
 # Create docker-compose.override.yml
 cat > docker-compose.override.yml <<EOF
@@ -56,17 +52,6 @@ services:
     container_name: reporting-redis-dev${DEV_ID}
     ports:
       - "${REDIS_PORT}:6379"
-  
-  queue:
-    container_name: reporting-queue-dev${DEV_ID}
-  
-  scheduler:
-    container_name: reporting-scheduler-dev${DEV_ID}
-  
-  mcp:
-    container_name: reporting-mcp-dev${DEV_ID}
-    ports:
-      - "${MCP_PORT}:3000"
   
   frontend:
     container_name: reporting-frontend-dev${DEV_ID}
@@ -106,37 +91,26 @@ volumes:
     name: reporting-frontend-node-modules-dev${DEV_ID}
 EOF
 
-# Create .env.local with developer-specific settings
-cat > .env.local <<EOF
-# Developer ${DEV_ID} Environment
-DEVELOPER_ID=${DEV_ID}
-
-# Update these in your .env file if needed
-APP_URL=http://localhost:${NGINX_PORT}
-VITE_API_URL=http://localhost:${NGINX_PORT}/api
-EOF
-
 echo ""
 echo "✅ Environment configured for Developer ${DEV_ID}"
 echo ""
 echo "📋 Your service URLs:"
-echo "  Frontend:        http://localhost:${FRONTEND_PORT}"
-echo "  API:             http://localhost:${NGINX_PORT}/api"
-echo "  MailHog:         http://localhost:${MAILHOG_UI_PORT}"
-echo "  pgAdmin:         http://localhost:${PGADMIN_PORT}"
-echo "  Redis Commander: http://localhost:${REDIS_CMD_PORT}"
-echo "  MCP Server:      localhost:${MCP_PORT}"
+echo "  🎨 Frontend:        http://localhost:${FRONTEND_PORT}"
+echo "  🚀 API:             http://localhost:${NGINX_PORT}/api"
+echo "  📧 MailHog:         http://localhost:${MAILHOG_UI_PORT}"
+echo "  🗄️  pgAdmin:         http://localhost:${PGADMIN_PORT}"
+echo "  🔴 Redis Commander: http://localhost:${REDIS_CMD_PORT}"
 echo ""
-echo "🗄️  PostgreSQL connection:"
-echo "  Host: localhost"
-echo "  Port: ${POSTGRES_PORT}"
+echo "🔌 Database connection:"
+echo "  Host:     localhost"
+echo "  Port:     ${POSTGRES_PORT}"
 echo "  Database: reporting"
-echo "  User: reporting_user"
+echo "  User:     reporting_user"
+echo "  Password: reporting_password"
 echo ""
 echo "📝 Next steps:"
-echo "  1. Copy .env.example to .env (if not done already)"
-echo "  2. Run: make install"
-echo "  3. Access your services at the URLs above"
-echo ""
-echo "💡 Tip: Save these URLs for easy access!"
+echo "  1. Start services:  docker-compose up -d"
+echo "  2. Install Laravel: composer create-project laravel/laravel:^12.0 backend"
+echo "  3. Install React:   npm create vite@latest frontend -- --template react"
+echo "  4. Access services at the URLs above"
 echo ""

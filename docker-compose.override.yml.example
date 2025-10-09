@@ -1,0 +1,35 @@
+version: '3.8'
+
+# Example override file for solo developers (default ports)
+# Copy this to docker-compose.override.yml if you're the only developer
+
+services:
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+  
+  timescaledb:
+    ports:
+      - "5432:5432"
+  
+  redis:
+    ports:
+      - "6379:6379"
+  
+  frontend:
+    ports:
+      - "5173:5173"
+  
+  mailhog:
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+  
+  pgadmin:
+    ports:
+      - "5050:80"
+  
+  redis-commander:
+    ports:
+      - "8081:8081"
