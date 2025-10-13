@@ -11,12 +11,6 @@ use App\Http\Requests\LoginRequest;
 
 class AuthController extends Controller
 {
-    public function __construct()
-    {
-        // Example: apply middleware to secure other methods if needed
-        $this->middleware('auth:sanctum')->only(['logout']);
-    }
-
     /**
      * POST /api/auth/login
      */
@@ -34,32 +28,23 @@ class AuthController extends Controller
             ]);
         }
 
-        switch ($validated['auth_method']) {
-            case 'local':
-                if (!$validated['password'] || !Hash::check($validated['password'], $user->password)) {
-                    throw ValidationException::withMessages([
-                        'password' => ['Invalid password.'],
-                    ]);
-                }
-                break;
-
-            case 'saml':
-            case 'm365':
-            case 'ldap':
-                // Placeholder for external auth logic
-                break;
+        if ($validated['auth_method'] === 'local') {
+            if (!$validated['password'] || !Hash::check($validated['password'], $user->password)) {
+                throw ValidationException::withMessages([
+                    'password' => ['Invalid password.'],
+                ]);
+            }
         }
 
         $user->last_login_at = now();
         $user->save();
 
-        // Generate API token via Sanctum
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
             'status' => 'success',
             'data' => [
-                'user' => $user,
+                'user' => $user->load('role'),
                 'token' => $token,
             ],
         ]);
