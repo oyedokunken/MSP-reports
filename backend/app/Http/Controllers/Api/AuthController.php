@@ -11,10 +11,7 @@ use App\Http\Requests\LoginRequest;
 
 class AuthController extends Controller
 {
-    /**
-     * POST /api/auth/login
-     */
-    public function login(LoginRequest $request)
+    public function authLogin(LoginRequest $request)
     {
         $validated = $request->validated();
 
@@ -49,11 +46,8 @@ class AuthController extends Controller
             ],
         ]);
     }
-
-    /**
-     * POST /api/auth/logout
-     */
-    public function logout(Request $request)
+    
+    public function authLogout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
 
