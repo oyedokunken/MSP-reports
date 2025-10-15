@@ -48,4 +48,45 @@ Route::middleware(['secure.headers', 'throttle:5,1'])->group(function () {
     Route::patch('/api/company/source-integration', [IntegrationController::class, 'setSourceIntegration'])
         ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
         ->middleware(['auth:sanctum']);
+
+    // Customer Mapping
+    Route::get('/api/customers', [\App\Http\Controllers\Api\CustomerMappingController::class, 'getCustomers'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+
+    Route::get('/api/customers/unmapped', [\App\Http\Controllers\Api\CustomerMappingController::class, 'getUnmappedCustomers'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+
+    Route::post('/api/customers/map', [\App\Http\Controllers\Api\CustomerMappingController::class, 'mapCustomer'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+    
+    Route::get('/api/customers/{id}/integrations', [\App\Http\Controllers\Api\CustomerMappingController::class, 'getCustomerIntegrations'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+    
+    // Report Config
+    Route::get('/api/reports', [\App\Http\Controllers\Api\ReportConfigController::class, 'getAvailableReports'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+
+    Route::get('/api/customers/{id}/reports', [\App\Http\Controllers\Api\ReportConfigController::class, 'getCustomerReports'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+
+    // Update customer report configuration
+    Route::patch('/api/customers/{id}/reports', [\App\Http\Controllers\Api\ReportConfigController::class, 'updateCustomerReports'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+
+    // Update customer report delivery destination
+    Route::patch('/api/customers/{id}/report-destination', [\App\Http\Controllers\Api\ReportConfigController::class, 'updateCustomerReportDestination'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+    
+    // Manual report generation trigger
+    Route::post('/api/reports/generate/{customer_id}', [\App\Http\Controllers\Api\ReportConfigController::class, 'generateReport'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
 });

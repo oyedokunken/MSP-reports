@@ -62,4 +62,15 @@ class Company extends Model
     {
         return $this->hasMany(AuditLog::class, 'company_id', 'company_id');
     }
+
+    public function reportSchedules()
+    {
+        return $this->hasMany(ReportSchedule::class, 'company_id', 'company_id');
+    }
+
+    public function generatedReports()
+    {
+        return $this->hasMany(GeneratedReport::class, 'company_id', 'company_id');
+    }
+
 }
