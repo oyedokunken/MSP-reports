@@ -75,18 +75,28 @@ Route::middleware(['secure.headers', 'throttle:5,1'])->group(function () {
         ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
         ->middleware(['auth:sanctum']);
 
-    // Update customer report configuration
     Route::patch('/api/customers/{id}/reports', [\App\Http\Controllers\Api\ReportConfigController::class, 'updateCustomerReports'])
         ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
         ->middleware(['auth:sanctum']);
 
-    // Update customer report delivery destination
     Route::patch('/api/customers/{id}/report-destination', [\App\Http\Controllers\Api\ReportConfigController::class, 'updateCustomerReportDestination'])
         ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
         ->middleware(['auth:sanctum']);
     
-    // Manual report generation trigger
     Route::post('/api/reports/generate/{customer_id}', [\App\Http\Controllers\Api\ReportConfigController::class, 'generateReport'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+
+    // Reporting & Analytics
+    Route::get('/api/reports/scheduled', [\App\Http\Controllers\Api\ReportAnalyticsController::class, 'getScheduledReports'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+    
+    Route::get('/api/reports/history', [\App\Http\Controllers\Api\ReportAnalyticsController::class, 'getReportHistory'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+    
+    Route::get('/api/reports/{id}/download', [\App\Http\Controllers\Api\ReportAnalyticsController::class, 'downloadReport'])
         ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
         ->middleware(['auth:sanctum']);
 });
