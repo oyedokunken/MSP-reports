@@ -5,13 +5,17 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\IntegrationController;
 
-Route::middleware(['secure.headers', 'throttle:5,1'])->group(function () {
+Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
 
     // Auth API Routes
     Route::post('/api/auth/login', [AuthController::class, 'authLogin'])
         ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
     Route::post('/api/auth/logout', [AuthController::class, 'authLogout'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+    
+    Route::get('/api/auth/me', [AuthController::class, 'me'])
         ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
         ->middleware(['auth:sanctum']);
 

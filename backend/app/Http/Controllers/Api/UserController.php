@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
 class UserController extends Controller
@@ -46,11 +47,7 @@ class UserController extends Controller
 
         $permissions = $validated['permissions'] ?? [];
         foreach ($defaultPermissions as $section => $actions) {
-            if (!isset($permissions[$section]) || !is_array($permissions[$section])) {
-                $permissions[$section] = $actions;
-            } else {
-                $permissions[$section] = array_merge($actions, $permissions[$section]);
-            }
+            $permissions[$section] = array_merge($actions, $permissions[$section] ?? []);
         }
 
         $user = User::create([
@@ -58,7 +55,7 @@ class UserController extends Controller
             'role_id' => $validated['role_id'],
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => $validated['password'],
+            'password' => Hash::make($validated['password']),
             'status' => $validated['status'] ?? 'active',
             'auth_method' => $validated['auth_method'] ?? 'local',
             'permissions' => $permissions,
@@ -99,11 +96,7 @@ class UserController extends Controller
 
         $permissions = $validated['permissions'];
         foreach ($defaultPermissions as $section => $actions) {
-            if (!isset($permissions[$section]) || !is_array($permissions[$section])) {
-                $permissions[$section] = $actions;
-            } else {
-                $permissions[$section] = array_merge($actions, $permissions[$section]);
-            }
+            $permissions[$section] = array_merge($actions, $permissions[$section] ?? []);
         }
 
         $user->permissions = $permissions;

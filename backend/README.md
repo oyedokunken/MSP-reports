@@ -21,6 +21,58 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
+# Backend API Documentation
+
+This Laravel project provides a backend API for **User Management, Integrations, Customer Mapping, and Reporting**. Below is a full list of available API endpoints with descriptions.
+
+---
+
+## Key API Endpoints
+
+### Authentication & User Management
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | Multi-mechanism authentication (Local, SAML/M365/LDAP) |
+| POST | `/api/auth/logout` | Logout authenticated user |
+| GET | `/api/users` | List all users in the company |
+| POST | `/api/users` | Create a new user with permissions |
+| PATCH | `/api/users/{id}/permissions` | Update user permissions |
+
+### Integration Management
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/integrations` | List available integration types |
+| POST | `/api/integrations` | Add a new integration to the company |
+| GET | `/api/integrations/{id}/sync` | Trigger manual sync for an integration |
+| GET | `/api/integrations/{id}/customers` | List customers from a specific integration |
+| PATCH | `/api/company/source-integration` | Set source-of-truth integration for company |
+
+### Customer Mapping
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/customers` | List all customers (merged view across integrations) |
+| GET | `/api/customers/unmapped` | List customers requiring manual mapping |
+| POST | `/api/customers/map` | Create manual customer mapping |
+| GET | `/api/customers/{id}/integrations` | Show which integrations contain this customer |
+
+### Report Configuration
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/reports` | List available report types |
+| GET | `/api/customers/{id}/reports` | Get report configuration for a customer |
+| PATCH | `/api/customers/{id}/reports` | Update which reports to generate |
+| PATCH | `/api/customers/{id}/report-destination` | Set report delivery destination |
+| POST | `/api/reports/generate/{customer_id}` | Trigger manual report generation |
+
+### Reporting & Analytics
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/reports/scheduled` | View scheduled report queue |
+| GET | `/api/reports/history` | View report delivery history |
+| GET | `/api/reports/{id}/download` | Download a specific report |
+
+---
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.

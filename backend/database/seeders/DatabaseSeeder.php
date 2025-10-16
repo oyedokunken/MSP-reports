@@ -75,6 +75,21 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // === License for Autotask ===
+        License::firstOrCreate(
+            [
+                'company_id' => $company->company_id,
+                'product_sku' => 'integration_autotask',
+            ],
+            [
+                'license_type' => 'integration',
+                'status' => 'active',
+                'expiry_date' => null,
+                'quantity' => null,
+                'metadata' => ['note' => 'Perpetual license for Autotask testing'],
+            ]
+        );
+
         // === Integration ===
         $integration = Integration::firstOrCreate(
             [

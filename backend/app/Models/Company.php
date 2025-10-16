@@ -28,7 +28,7 @@ class Company extends Model
     ];
 
     protected $casts = [
-        'settings' => 'array', // JSON structure for settings
+        'settings' => 'array',
     ];
 
     // Relationships
@@ -71,6 +71,11 @@ class Company extends Model
     public function generatedReports()
     {
         return $this->hasMany(GeneratedReport::class, 'company_id', 'company_id');
+    }
+
+    public function historicalImportJobs()
+    {
+        return $this->hasMany(HistoricalImportJob::class, 'company_id', 'company_id');
     }
 
 }

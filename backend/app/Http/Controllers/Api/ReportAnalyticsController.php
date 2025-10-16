@@ -12,10 +12,6 @@ use App\Models\GeneratedReport;
 
 class ReportAnalyticsController extends Controller
 {
-    /**
-     * GET /api/reports/scheduled
-     * View scheduled report queue
-     */
     public function getScheduledReports(Request $request)
     {
         $authUser = $request->user();
@@ -46,11 +42,7 @@ class ReportAnalyticsController extends Controller
             'schedules' => $schedules
         ], 200);
     }
-
-    /**
-     * GET /api/reports/history
-     * View report delivery history for the authenticated company
-     */
+    
     public function getReportHistory(Request $request)
     {
         $authUser = $request->user();
@@ -85,15 +77,10 @@ class ReportAnalyticsController extends Controller
         ], 200);
     }
 
-    /**
-     * GET /api/reports/{id}/download
-     * Download a specific generated report if user has access
-     */
     public function downloadReport(Request $request, $id)
     {
         $authUser = $request->user();
 
-        // Find report
         $report = GeneratedReport::where('generated_report_id', $id)
             ->where('company_id', $authUser->company_id)
             ->with(['customer:customer_id,canonical_name'])
@@ -106,7 +93,6 @@ class ReportAnalyticsController extends Controller
             ], 404);
         }
 
-        // Check if file exists
         if (!$report->file_path || !Storage::exists($report->file_path)) {
             return response()->json([
                 'status' => 'error',
@@ -114,13 +100,9 @@ class ReportAnalyticsController extends Controller
             ], 404);
         }
 
-        // Extract file details
         $filename = basename($report->file_path);
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
         $mimeType = File::mimeType(Storage::path($report->file_path));
-
-        // Log download action (optional future improvement)
-        // AuditLog::create([...]);
 
         return Storage::download($report->file_path, $filename, [
             'Content-Type' => $mimeType,

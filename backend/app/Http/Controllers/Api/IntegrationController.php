@@ -22,8 +22,21 @@ class IntegrationController extends Controller
             'Zendesk',
         ];
 
+        // $configuredIntegrations = $company->integrations()
+        //     ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth']);
+
         $configuredIntegrations = $company->integrations()
-            ->get(['integration_id', 'integration_type', 'display_name', 'status']);
+            ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth'])
+            ->map(function($integration) {
+                return [
+                    'integration_id' => $integration->integration_id,
+                    'integration_type' => $integration->integration_type,
+                    'display_name' => $integration->display_name,
+                    'status' => $integration->status,
+                    'is_source_of_truth' => $integration->is_source_of_truth,
+                    'source_label' => $integration->is_source_of_truth ? '✅ Source of Truth' : null,
+                ];
+            });
 
         return response()->json([
             'available_types' => $availableTypes,
