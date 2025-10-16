@@ -7,12 +7,13 @@ import { TenantProvider } from '@/contexts/TenantContext'
 import Login from '@/pages/auth/pages/Signin'
 import Dashboard from '@/pages/dashboard/Dashboard'
 import IntegrationList from '@/pages/integrations/IntegrationList'
-import CustomerList from '@/pages/customers/CustomerList'
+import CustomerMapping from '@/pages/customers/CustomerMapping'
 import ReportList from '@/pages/reports/ReportList'
 import ScheduleList from '@/pages/schedules/ScheduleList'
 import Settings from '@/pages/settings/Settings'
 import Signup from '@/pages/auth/pages/Signup'
 import AuthLayout from '@/pages/auth/Layout'
+import { UsersList, CreateUser } from '@/pages/users'
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -92,7 +93,7 @@ function AppRoutes() {
         path="/customers"
         element={
           <ProtectedRoute>
-            <CustomerList />
+            <CustomerMapping />
           </ProtectedRoute>
         }
       />
@@ -120,6 +121,24 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Settings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/users"
+        element={
+          <ProtectedRoute>
+            <UsersList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/users/create"
+        element={
+          <ProtectedRoute>
+            <CreateUser />
           </ProtectedRoute>
         }
       />

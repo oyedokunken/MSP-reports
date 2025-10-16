@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   Home,
@@ -8,6 +9,7 @@ import {
   LogOut,
   Calendar,
   SlidersHorizontal,
+  UserPlus,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBranding } from '@/contexts/BrandingContext'
@@ -25,11 +27,13 @@ import {
   SidebarSeparator,
   SidebarRail,
 } from '@/components/ui/sidebar'
+import { CreateUserModal } from '@/components/modals/CreateUserModal'
 
 export default function AppSidebar() {
   const location = useLocation()
   const { user, logout } = useAuth()
   const { branding } = useBranding()
+  const [createUserOpen, setCreateUserOpen] = useState(false)
 
   const navItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -38,6 +42,11 @@ export default function AppSidebar() {
     { path: '/reports', icon: FileText, label: 'Reports' },
     { path: '/schedules', icon: Calendar, label: 'Schedules' },
   ]
+
+  const adminNavItems = [
+    { path: '/users', icon: UserPlus, label: 'Users' },
+  ]
+
 
   const bottomItems = [
     { path: '/settings', icon: SettingsIcon, label: 'Settings' },
@@ -107,6 +116,27 @@ export default function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Admin</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {adminNavItems.map((item) => {
+                const Icon = item.icon
+                const active = isActive(item.path)
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+                      <Link to={item.path}>
+                        <Icon />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter>
@@ -147,6 +177,16 @@ export default function AppSidebar() {
       </SidebarFooter>
       {/* Collapsible rail to toggle icon mode */}
       <SidebarRail />
+      
+      {/* Create User Modal */}
+      <CreateUserModal 
+        open={createUserOpen} 
+        onOpenChange={setCreateUserOpen}
+        onSuccess={() => {
+          // Optionally refresh user list or show toast
+          console.log('User created successfully')
+        }}
+      />
     </Sidebar>
   )
 }

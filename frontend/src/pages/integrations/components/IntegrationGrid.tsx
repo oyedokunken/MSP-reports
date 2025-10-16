@@ -10,9 +10,22 @@ type IntegrationGridProps = {
   progress: number
   onSync: (id: number, name: string) => void
   onEmptyAction: () => void
+  onViewCustomers: (id: number, name: string) => void
+  onSetSourceOfTruth: (id: number, name: string) => void
+  sourceOfTruthId: number | null
 }
 
-export function IntegrationGrid ({ isLoading, items, syncingId, progress, onSync, onEmptyAction }: IntegrationGridProps) {
+export function IntegrationGrid ({ 
+  isLoading, 
+  items, 
+  syncingId, 
+  progress, 
+  onSync, 
+  onEmptyAction,
+  onViewCustomers,
+  onSetSourceOfTruth,
+  sourceOfTruthId
+}: IntegrationGridProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {isLoading ? (
@@ -39,6 +52,9 @@ export function IntegrationGrid ({ isLoading, items, syncingId, progress, onSync
             isSyncing={syncingId === integration.id}
             progress={progress}
             onSync={onSync}
+            onViewCustomers={onViewCustomers}
+            onSetSourceOfTruth={onSetSourceOfTruth}
+            isSourceOfTruth={sourceOfTruthId === integration.id}
           />
         ))
       )}

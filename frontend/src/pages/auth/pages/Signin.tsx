@@ -1,35 +1,33 @@
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
+import { useAuthForm } from "../hooks/useAuthForm";
 
 const Signin = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const navigate = useNavigate();
-    const { login } = useAuth();
-
-    const handleEmailSubmit = async (e: FormEvent) => {
-      e.preventDefault();
-      if (!email || !password) return;
-      setError("");
-      setIsSubmitting(true);
-      try {
-        await login({ email, password });
-        navigate("/dashboard");
-      } catch (err: any) {
-        setError(err.message || "Failed to verify email");
-      } finally {
-        setIsSubmitting(false);
+    const [showPassword, setShowPassword] = useState(false);
+    
+    const {
+      email,
+      password,
+      error,
+      isSubmitting,
+      setEmail,
+      setPassword,
+      handleSubmit,
+    } = useAuthForm({
+      redirectTo: '/dashboard',
+      onSuccess: () => {
+        console.log('Login successful!')
+      },
+      onError: (err) => {
+        console.error('Login failed:', err)
       }
-    };
+    });
 
     return (
         <Card className="w-full max-w-[400px] border-border bg-[hsl(var(--auth-card))] shadow-2xl">
@@ -43,7 +41,7 @@ const Signin = () => {
           </CardHeader>
       
           <CardContent className="space-y-3">
-            <form onSubmit={handleEmailSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-1">
                 <Label htmlFor="email" className="text-xs">Email address</Label>
                 <div className="relative">
@@ -67,14 +65,26 @@ const Signin = () => {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
                   <Input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 pr-10"
                     required
                     disabled={isSubmitting}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
               </div>
 

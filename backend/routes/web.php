@@ -19,6 +19,10 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
         ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
         ->middleware(['auth:sanctum']);
 
+    Route::get('/api/auth/me', [AuthController::class, 'me'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->middleware(['auth:sanctum']);
+
     // Users API Routes
     Route::get('/api/users', [UserController::class, 'getUser'])
         ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])

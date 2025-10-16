@@ -39,6 +39,7 @@ export interface UserPermissions {
 export interface LoginCredentials {
   email: string
   password: string
+  auth_method?: 'local' | 'saml' | 'm365' | 'ldap'
 }
 
 export interface LoginResponse {

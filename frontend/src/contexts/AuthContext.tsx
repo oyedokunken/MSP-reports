@@ -3,8 +3,8 @@ import type { User, LoginCredentials, LoginResponse, AuthState } from '@/types/a
 import { api } from '@/lib/api'
 import { mockLogin, MOCK_USER } from '@/lib/mockData'
 
-// Use mock authentication in development
-const USE_MOCK_AUTH = import.meta.env.DEV
+// Use real API authentication (set to false to use real backend)
+const USE_MOCK_AUTH = false
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Use real API in production
         const response = await api.post<LoginResponse>('/auth/login', credentials)
 
-        if (!response.success || !response.data) {
+        if (!response.data) {
           throw new Error('Login failed')
         }
 
