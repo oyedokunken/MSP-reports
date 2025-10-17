@@ -16,6 +16,10 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
+        /** 🧹 Sanitise email and auth_method **/
+        $validated['email'] = trim(strtolower($validated['email']));
+        $validated['auth_method'] = trim($validated['auth_method']);
+
         $user = User::where('email', $validated['email'])
                     ->where('auth_method', $validated['auth_method'])
                     ->with('company', 'role')
@@ -55,6 +59,7 @@ class AuthController extends Controller
 
         $token = $user->createToken('api-token')->plainTextToken;
 
+        /** 🧾 Log the login event **/
         AuditLog::create([
             'company_id'  => $user->company_id,
             'event_type'  => 'login',
@@ -69,10 +74,13 @@ class AuthController extends Controller
             'user_agent'  => $request->userAgent(),
         ]);
 
+        /** 🛡️ Hide sensitive user fields before returning **/
+        $sanitisedUser = $user->makeHidden(['password', 'remember_token']);
+
         return response()->json([
             'status' => 'success',
             'data' => [
-                'user' => $user,
+                'user' => $sanitisedUser,
                 'company' => $user->company,
                 'token' => $token,
             ],
@@ -107,9 +115,12 @@ class AuthController extends Controller
     {
         $user = $request->user()->load('role', 'company');
 
+        /** 🛡️ Hide sensitive fields **/
+        $sanitisedUser = $user->makeHidden(['password', 'remember_token']);
+
         return response()->json([
             'status' => 'success',
-            'data' => $user,
+            'data' => $sanitisedUser,
         ]);
     }
 }

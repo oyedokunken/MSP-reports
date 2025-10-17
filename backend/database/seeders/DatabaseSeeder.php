@@ -29,10 +29,75 @@ class DatabaseSeeder extends Seeder
                 'status' => 'active',
                 'subscription_tier' => 'enterprise',
                 'settings' => [
-                    'integrations' => [
-                        'auto_sync_enabled' => true,
-                        'sync_schedule' => '0 */4 * * *',
+                    "authentication" => [
+                        "auth_methods" => ["local", "m365", "saml", "ldap"],
+                        "saml_config" => new \stdClass(),
+                        "m365_config" => new \stdClass(),
+                        "ldap_config" => new \stdClass(),
+                        "password_policy" => new \stdClass(),
+                        "require_2fa" => false,
+                        "session_timeout_minutes" => 60
                     ],
+                    "integrations" => [
+                        "source_of_truth_integration_id" => null,
+                        "auto_sync_enabled" => true,
+                        "sync_schedule" => "0 */4 * * *",
+                        "sync_failure_notifications" => ["admin@company.com"]
+                    ],
+                    "customer_mapping" => [
+                        "auto_match_enabled" => true,
+                        "auto_match_threshold" => 85,
+                        "manual_match_required" => false
+                    ],
+                    "reports" => [
+                        "default_report_destination" => "admin@company.com",
+                        "report_timezone" => "Australia/Brisbane",
+                        "report_retention_days" => 1095,
+                        "report_format" => [
+                            "default_format" => "pdf",
+                            "pdf_page_size" => "A4",
+                            "include_raw_data" => false,
+                            "compress_attachments" => true
+                        ]
+                    ],
+                    "white_label" => [
+                        "enabled" => true,
+                        "company_name" => "Customer MSP Name",
+                        "logo_url" => "https://storage/logo.png",
+                        "primary_color" => "#1a56db",
+                        "secondary_color" => "#7c3aed",
+                        "favicon_url" => "https://storage/favicon.ico",
+                        "email_from_name" => "Customer MSP",
+                        "email_from_address" => "reports@customermsp.com.au",
+                        "support_email" => "support@customermsp.com.au",
+                        "support_phone" => "1300 XXX XXX",
+                        "footer_text" => "© 2025 Customer MSP",
+                        "report_header_text" => "Monthly Service Report"
+                    ],
+                    "data_retention" => [
+                        "default_months" => 36,
+                        "audit_logs_months" => 84,
+                        "generated_reports_months" => 36,
+                        "integration_sync_logs_months" => 12,
+                        "historical_data" => [
+                            "raw_events_days" => 90,
+                            "aggregated_daily_days" => 365,
+                            "aggregated_monthly_days" => 1095
+                        ]
+                    ],
+                    "security" => [
+                        "allowed_ip_ranges" => [],
+                        "encryption_key_id" => "company_123_key"
+                    ],
+                    "licensing" => [
+                        "deployment_type" => "on_premise",
+                        "license_enforcement" => false
+                    ],
+                    "historical_data" => [
+                        "import_on_activation" => true,
+                        "default_import_range_days" => 90,
+                        "aggregation_enabled" => true
+                    ]
                 ],
             ]
         );
@@ -154,6 +219,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $this->command->info('✅ Database seeded with mapped and unmapped customers.');
+        $this->command->info('✅ Database seeded with mapped and unmapped customers and full company settings.');
     }
 }

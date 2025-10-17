@@ -57,10 +57,17 @@ class IntegrationController extends Controller
             'Zendesk',
         ];
 
+        // 🧼 Sanitize input
+        $request->merge([
+            'integration_type' => trim($request->integration_type),
+            'display_name' => trim(strip_tags($request->display_name)),
+        ]);
+
+        // ✅ Validate input
         $validated = $request->validate([
-            'integration_type' => ['required', Rule::in($availableTypes)],
-            'display_name' => 'required|string|max:255',
-            'status' => ['required', Rule::in(['active', 'disconnected', 'error', 'importing_historical'])],
+            'integration_type' => ['required', 'string', Rule::in($availableTypes)],
+            'display_name' => 'required|string|min:2|max:255|regex:/^[A-Za-z0-9\s\-\_\.]+$/',
+            'status' => ['required', 'string', Rule::in(['active', 'disconnected', 'error', 'importing_historical'])],
             'credentials' => 'nullable|array',
             'configuration' => 'nullable|array',
             'is_source_of_truth' => 'nullable|boolean',
@@ -115,7 +122,16 @@ class IntegrationController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $integration = $company->integrations()->where('integration_id', $id)->first();
+        // 🧼 Sanitize & validate path param
+        $request->merge(['integration_id' => intval($id)]);
+
+        $validated = $request->validate([
+            'integration_id' => 'required|integer|exists:integrations,integration_id',
+        ]);
+
+        $integration = $company->integrations()
+            ->where('integration_id', $validated['integration_id'])
+            ->first();
 
         if (! $integration) {
             return response()->json([
@@ -160,8 +176,14 @@ class IntegrationController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
+        // 🧼 Sanitize & validate path param
+        $request->merge(['integration_id' => intval($id)]);
+        $validated = $request->validate([
+            'integration_id' => 'required|integer|exists:integrations,integration_id',
+        ]);
+
         $integration = $company->integrations()
-            ->where('integration_id', $id)
+            ->where('integration_id', $validated['integration_id'])
             ->first();
 
         if (! $integration) {
@@ -198,6 +220,7 @@ class IntegrationController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
+        // ✅ Validate input
         $validated = $request->validate([
             'integration_id' => 'required|integer|exists:integrations,integration_id',
         ]);
@@ -213,8 +236,8 @@ class IntegrationController extends Controller
             ], 404);
         }
 
+        // 🧼 Reset other integrations, update selected one
         $company->integrations()->update(['is_source_of_truth' => false]);
-
         $integration->update(['is_source_of_truth' => true]);
 
         $settings = $company->settings ?? [];
@@ -232,5 +255,4 @@ class IntegrationController extends Controller
             ]
         ], 200);
     }
-
 }

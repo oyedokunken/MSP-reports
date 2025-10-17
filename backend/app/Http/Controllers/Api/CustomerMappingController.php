@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Customer;
 use App\Models\IntegrationCustomer;
+use Illuminate\Support\Facades\Validator;
 
 class CustomerMappingController extends Controller
 {
@@ -32,17 +33,17 @@ class CustomerMappingController extends Controller
         $merged = $customers->map(function ($customer) {
             return [
                 'customer_id' => $customer->customer_id,
-                'canonical_name' => $customer->canonical_name,
-                'status' => $customer->status,
-                'report_destination' => $customer->report_destination,
+                'canonical_name' => e($customer->canonical_name),
+                'status' => e($customer->status),
+                'report_destination' => e($customer->report_destination),
                 'integrations' => $customer->integrationCustomers->map(function ($ic) {
                     return [
                         'integration_customer_id' => $ic->integration_customer_id,
-                        'integration_type' => $ic->integration->integration_type ?? null,
-                        'display_name' => $ic->integration->display_name ?? null,
-                        'external_id' => $ic->external_id,
-                        'name' => $ic->name,
-                        'active' => $ic->active,
+                        'integration_type' => e($ic->integration->integration_type ?? null),
+                        'display_name' => e($ic->integration->display_name ?? null),
+                        'external_id' => e($ic->external_id),
+                        'name' => e($ic->name),
+                        'active' => (bool) $ic->active,
                         'last_seen_at' => $ic->last_seen_at,
                     ];
                 }),
@@ -57,11 +58,11 @@ class CustomerMappingController extends Controller
                 'report_destination' => null,
                 'integrations' => [[
                     'integration_customer_id' => $ic->integration_customer_id,
-                    'integration_type' => $ic->integration->integration_type ?? null,
-                    'display_name' => $ic->integration->display_name ?? null,
-                    'external_id' => $ic->external_id,
-                    'name' => $ic->name,
-                    'active' => $ic->active,
+                    'integration_type' => e($ic->integration->integration_type ?? null),
+                    'display_name' => e($ic->integration->display_name ?? null),
+                    'external_id' => e($ic->external_id),
+                    'name' => e($ic->name),
+                    'active' => (bool) $ic->active,
                     'last_seen_at' => $ic->last_seen_at,
                 ]],
             ]);
@@ -90,11 +91,11 @@ class CustomerMappingController extends Controller
         $data = $unmappedIntegrationCustomers->map(function ($ic) {
             return [
                 'integration_customer_id' => $ic->integration_customer_id,
-                'integration_type' => $ic->integration->integration_type ?? null,
-                'display_name' => $ic->integration->display_name ?? null,
-                'external_id' => $ic->external_id,
-                'name' => $ic->name,
-                'active' => $ic->active,
+                'integration_type' => e($ic->integration->integration_type ?? null),
+                'display_name' => e($ic->integration->display_name ?? null),
+                'external_id' => e($ic->external_id),
+                'name' => e($ic->name),
+                'active' => (bool) $ic->active,
                 'last_seen_at' => $ic->last_seen_at,
             ];
         });
@@ -110,20 +111,37 @@ class CustomerMappingController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $request->validate([
-            'integration_customer_id' => 'required|exists:integration_customers,integration_customer_id',
-            'customer_id' => 'required|exists:customers,customer_id',
+        $validator = Validator::make($request->all(), [
+            'integration_customer_id' => 'required|integer|exists:integration_customers,integration_customer_id',
+            'customer_id' => 'required|integer|exists:customers,customer_id',
         ]);
 
-        $integrationCustomer = IntegrationCustomer::find($request->integration_customer_id);
-        $customer = Customer::where('company_id', $company->company_id)
-                            ->where('customer_id', $request->customer_id)
-                            ->first();
-
-        if (! $customer) {
+        if ($validator->fails()) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Customer not found in your company.'
+                'message' => 'Invalid input.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $integrationCustomer = IntegrationCustomer::find($request->integration_customer_id);
+
+        // Ensure the integration belongs to the same company
+        if ($integrationCustomer->integration->company_id !== $company->company_id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration customer does not belong to your company.',
+            ], 403);
+        }
+
+        $customer = Customer::where('company_id', $company->company_id)
+            ->where('customer_id', $request->customer_id)
+            ->first();
+
+        if (!$customer) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Customer not found in your company.',
             ], 404);
         }
 
@@ -136,7 +154,7 @@ class CustomerMappingController extends Controller
             'data' => [
                 'integration_customer_id' => $integrationCustomer->integration_customer_id,
                 'customer_id' => $customer->customer_id,
-                'canonical_name' => $customer->canonical_name,
+                'canonical_name' => e($customer->canonical_name),
             ],
         ]);
     }
@@ -146,25 +164,32 @@ class CustomerMappingController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $customer = Customer::where('company_id', $company->company_id)
-                            ->where('customer_id', $id)
-                            ->first();
-
-        if (! $customer) {
+        if (!is_numeric($id)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Customer not found in your company.'
+                'message' => 'Invalid customer ID format.',
+            ], 400);
+        }
+
+        $customer = Customer::where('company_id', $company->company_id)
+            ->where('customer_id', $id)
+            ->first();
+
+        if (!$customer) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Customer not found in your company.',
             ], 404);
         }
 
         $integrations = $customer->integrationCustomers->map(function ($ic) {
             return [
                 'integration_customer_id' => $ic->integration_customer_id,
-                'integration_type' => $ic->integration->integration_type ?? null,
-                'display_name' => $ic->integration->display_name ?? null,
-                'external_id' => $ic->external_id,
-                'name' => $ic->name,
-                'active' => $ic->active,
+                'integration_type' => e($ic->integration->integration_type ?? null),
+                'display_name' => e($ic->integration->display_name ?? null),
+                'external_id' => e($ic->external_id),
+                'name' => e($ic->name),
+                'active' => (bool) $ic->active,
                 'last_seen_at' => $ic->last_seen_at,
             ];
         });

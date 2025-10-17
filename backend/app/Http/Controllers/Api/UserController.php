@@ -15,7 +15,9 @@ class UserController extends Controller
 
         $users = User::where('company_id', $authUser->company_id)
                      ->with('role')
-                     ->get();
+                     ->get()
+                     /** 🛡️ Hide passwords from the returned collection **/
+                     ->makeHidden(['password']);
 
         return response()->json([
             'status' => 'success',
@@ -37,6 +39,12 @@ class UserController extends Controller
             'permissions' => 'nullable|array',
         ]);
 
+        /** 🧹 Sanitise inputs **/
+        $validated['name'] = trim(strip_tags($validated['name']));
+        $validated['email'] = trim(strtolower($validated['email']));
+        $validated['auth_method'] = trim($validated['auth_method'] ?? 'local');
+        $validated['status'] = trim($validated['status'] ?? 'active');
+
         $defaultPermissions = [
             "integrations" => ["view" => true, "manage" => true, "sync" => true],
             "customers" => ["view" => true, "edit" => true, "map" => true],
@@ -56,14 +64,17 @@ class UserController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'status' => $validated['status'] ?? 'active',
-            'auth_method' => $validated['auth_method'] ?? 'local',
+            'status' => $validated['status'],
+            'auth_method' => $validated['auth_method'],
             'permissions' => $permissions,
         ]);
 
+        /** 🛡️ Hide password before returning **/
+        $sanitisedUser = $user->makeHidden(['password']);
+
         return response()->json([
             'status' => 'success',
-            'data' => $user->load('role')
+            'data' => $sanitisedUser->load('role')
         ], 201);
     }
 
@@ -102,9 +113,12 @@ class UserController extends Controller
         $user->permissions = $permissions;
         $user->save();
 
+        /** 🛡️ Hide password before returning **/
+        $sanitisedUser = $user->makeHidden(['password']);
+
         return response()->json([
             'status' => 'success',
-            'data' => $user->load('role')
+            'data' => $sanitisedUser->load('role')
         ]);
     }
 }
