@@ -15,20 +15,23 @@ type IntegrationCardProps = {
   isSourceOfTruth?: boolean
 }
 
-export function IntegrationCard ({ 
-  integration, 
-  isSyncing, 
-  progress, 
-  onSync, 
-  onViewCustomers, 
+export function IntegrationCard ({
+  integration,
+  isSyncing,
+  progress,
+  onSync,
+  onViewCustomers,
   onSetSourceOfTruth,
-  isSourceOfTruth = false 
+  isSourceOfTruth = false
 }: IntegrationCardProps) {
   const statusInfo = getStatusText(integration.status, integration.syncStatus)
+
   return (
     <AnimatedCard
       hoverLift={!isSyncing}
-      className={`p-6 transition-all duration-300 ${isSyncing ? 'ring-2 ring-primary/50 shadow-lg bg-primary/5' : ''} ${isSourceOfTruth ? 'border-2 border-purple-500' : ''}`}
+      className={`p-6 transition-all duration-300 ${
+        isSyncing ? 'ring-2 ring-primary/50 shadow-lg bg-primary/5' : ''
+      } ${isSourceOfTruth ? 'border-2 border-purple-500' : ''}`}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -76,7 +79,10 @@ export function IntegrationCard ({
               <span className="font-medium text-primary">{Math.round(progress)}%</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div className="bg-primary h-2 rounded-full transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
+              <div
+                className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${progress}%` }}
+              />
             </div>
           </div>
         )}
@@ -88,13 +94,15 @@ export function IntegrationCard ({
             onClick={() => onSync(integration.id, integration.name)}
             disabled={isSyncing}
             className={`flex-1 flex items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium transition-all ${
-              isSyncing ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground hover:bg-muted'
+              isSyncing
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-background text-foreground hover:bg-muted'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             {isSyncing ? <LoadingSpinner size="sm" /> : <RefreshCw className="h-4 w-4" />}
             {isSyncing ? 'Syncing...' : 'Sync Now'}
           </button>
-          <button 
+          <button
             onClick={() => onViewCustomers(integration.id, integration.name)}
             className="flex-1 flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
           >
@@ -102,12 +110,12 @@ export function IntegrationCard ({
             View Customers
           </button>
         </div>
-        <button 
+        <button
           onClick={() => onSetSourceOfTruth(integration.id, integration.name)}
           disabled={isSourceOfTruth}
           className={`w-full flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${
-            isSourceOfTruth 
-              ? 'border-purple-500 bg-purple-500/10 text-purple-700 cursor-not-allowed' 
+            isSourceOfTruth
+              ? 'border-purple-500 bg-purple-500/10 text-purple-700 cursor-not-allowed'
               : 'border-border bg-background text-foreground hover:bg-muted'
           }`}
         >
@@ -118,5 +126,3 @@ export function IntegrationCard ({
     </AnimatedCard>
   )
 }
-
-

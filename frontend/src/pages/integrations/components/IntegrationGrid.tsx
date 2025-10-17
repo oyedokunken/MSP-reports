@@ -15,12 +15,12 @@ type IntegrationGridProps = {
   sourceOfTruthId: number | null
 }
 
-export function IntegrationGrid ({ 
-  isLoading, 
-  items, 
-  syncingId, 
-  progress, 
-  onSync, 
+export function IntegrationGrid({
+  isLoading,
+  items,
+  syncingId,
+  progress,
+  onSync,
   onEmptyAction,
   onViewCustomers,
   onSetSourceOfTruth,
@@ -45,18 +45,21 @@ export function IntegrationGrid ({
           />
         </div>
       ) : (
-        items.map(integration => (
-          <IntegrationCard
-            key={integration.id}
-            integration={integration}
-            isSyncing={syncingId === integration.id}
-            progress={progress}
-            onSync={onSync}
-            onViewCustomers={onViewCustomers}
-            onSetSourceOfTruth={onSetSourceOfTruth}
-            isSourceOfTruth={sourceOfTruthId === integration.id}
-          />
-        ))
+        [...items]
+          // ✅ This ensures Source of Truth card is always first
+          .sort((a, b) => (a.id === sourceOfTruthId ? -1 : b.id === sourceOfTruthId ? 1 : 0))
+          .map((integration) => (
+            <IntegrationCard
+              key={integration.id}
+              integration={integration}
+              isSyncing={syncingId === integration.id}
+              progress={progress}
+              onSync={onSync}
+              onViewCustomers={onViewCustomers}
+              onSetSourceOfTruth={onSetSourceOfTruth}
+              isSourceOfTruth={sourceOfTruthId === integration.id}
+            />
+          ))
       )}
 
       {!isLoading && items.length > 0 && (
@@ -69,5 +72,3 @@ export function IntegrationGrid ({
     </div>
   )
 }
-
-

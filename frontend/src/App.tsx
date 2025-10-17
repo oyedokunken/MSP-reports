@@ -8,12 +8,12 @@ import Login from '@/pages/auth/pages/Signin'
 import Dashboard from '@/pages/dashboard/Dashboard'
 import IntegrationList from '@/pages/integrations/IntegrationList'
 import CustomerMapping from '@/pages/customers/CustomerMapping'
-import ReportList from '@/pages/reports/ReportList'
 import ScheduleList from '@/pages/schedules/ScheduleList'
 import Settings from '@/pages/settings/Settings'
 import Signup from '@/pages/auth/pages/Signup'
 import AuthLayout from '@/pages/auth/Layout'
 import { UsersList, CreateUser } from '@/pages/users'
+import { ReportsList, CustomerReports, ConfigureReports } from '@/pages/reports'
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -99,10 +99,28 @@ function AppRoutes() {
       />
 
       <Route
+        path="/customers/:id/configure-reports"
+        element={
+          <ProtectedRoute>
+            <ConfigureReports />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/customers/:id/reports"
+        element={
+          <ProtectedRoute>
+            <CustomerReports />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/reports"
         element={
           <ProtectedRoute>
-            <ReportList />
+            <ReportsList />
           </ProtectedRoute>
         }
       />
