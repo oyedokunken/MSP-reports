@@ -30,9 +30,15 @@ class Customer extends Model
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
+    // Many-to-Many through CustomerMappings
     public function integrationCustomers()
     {
-        return $this->hasMany(IntegrationCustomer::class, 'customer_id', 'customer_id');
+        return $this->belongsToMany(
+            IntegrationCustomer::class,
+            'customer_mappings',
+            'customer_id',
+            'integration_customer_id'
+        );
     }
 
     public function customerMappings()

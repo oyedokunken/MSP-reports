@@ -180,59 +180,70 @@ class ReportConfigController extends Controller
 
         $customer = Customer::where('customer_id', $customer_id)
             ->where('company_id', $company->company_id)
-            ->first();
+            ->firstOrFail();
 
-        if (!$customer) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Customer not found'
-            ], 404);
-        }
-
-        $reportConfig = $customer->report_configuration ?? [];
-        $enabledReports = $reportConfig['enabled_reports'] ?? [];
+        $enabledReports = $customer->report_configuration['enabled_reports'] ?? [];
 
         if (empty($enabledReports)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No enabled reports for this customer'
+                'message' => 'No enabled reports for this customer.'
             ], 400);
         }
 
         $generatedReports = [];
 
         foreach ($enabledReports as $report) {
-            // Create sample file
-            $timestamp = now()->format('Ymd_His');
-            $filename = "report_{$customer->canonical_name}_{$timestamp}.txt";
-            $filePath = "reports/{$filename}";
+            $reportType = $report['report_type'] ?? $report['type'] ?? $report;
 
-            $content = "Sample Report\nCompany: {$company->name}\nCustomer: {$customer->canonical_name}\nGenerated: {$timestamp}";
-            \Storage::put($filePath, $content);
+            $reportTypeMap = [
+                'uptime_monthly' => 'UptimeReport',
+                'security_weekly' => 'SecuritySummary',
+            ];
 
-            // Create record
-            $generatedReport = \App\Models\GeneratedReport::create([
+            $reportType = $reportTypeMap[$reportType] ?? str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', $reportType)));
+
+            $class = "App\\Reports\\{$reportType}\\{$reportType}";
+
+            if (!class_exists($class)) continue;
+
+            $reportInstance = new $class();
+
+            if (!$reportInstance->validate($customer)) continue;
+
+            if (isset($report['schedule_id']) && $report['schedule_id']) {
+                $schedule = ReportSchedule::find($report['schedule_id']);
+            } else {
+                $schedule = ReportSchedule::create([
+                    'company_id' => $company->company_id,
+                    'customer_id' => $customer->customer_id,
+                    'report_type' => $reportType,
+                    'frequency' => 'on-demand',
+                    'schedule_config' => null,
+                    'time_of_day' => null,
+                    'active' => true,
+                    'timezone' => $company->settings['reports']['report_timezone'] ?? 'UTC',
+                ]);
+            }
+
+            $period = 'monthly';
+            $filePath = $reportInstance->generate($customer, $period);
+            $reportInstance->deliver($company, $customer, $filePath);
+
+            $generatedReports[] = GeneratedReport::create([
                 'company_id' => $company->company_id,
                 'customer_id' => $customer->customer_id,
-                'report_schedule_id' => $report['schedule_id'] ?? null,
+                'report_schedule_id' => $schedule->report_schedule_id,
                 'generated_at' => now(),
-                'report_period' => null,
-                'status' => 'completed', // ✅ mark as done
-                'delivery_method' => $reportConfig['delivery']['method'] ?? 'email',
-                'file_path' => $filePath,
-                'file_size' => strlen($content),
-                'delivered' => false,
-                'delivered_at' => null,
-                'error_message' => null,
-                'retention_until' => now()->addDays($company->settings['reports']['report_retention_days'] ?? 1095)
+                'report_period' => $period,
+                'status' => 'completed',
+                'file_path' => str_replace(storage_path('app/'), '', $filePath),
             ]);
-
-            $generatedReports[] = $generatedReport;
         }
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Report generated successfully',
+            'message' => 'Reports generated successfully',
             'data' => $generatedReports
         ]);
     }

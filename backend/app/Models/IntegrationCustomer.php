@@ -13,7 +13,6 @@ class IntegrationCustomer extends Model
 
     protected $fillable = [
         'integration_id',
-        'customer_id',
         'external_id',
         'name',
         'metadata',
@@ -32,13 +31,25 @@ class IntegrationCustomer extends Model
         return $this->belongsTo(Integration::class, 'integration_id', 'integration_id');
     }
 
-    public function customer()
+    // Many-to-Many through CustomerMappings
+    public function customers()
     {
-        return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
+        return $this->belongsToMany(
+            Customer::class,
+            'customer_mappings',
+            'integration_customer_id',
+            'customer_id'
+        );
     }
 
     public function customerMappings()
     {
         return $this->hasMany(CustomerMapping::class, 'integration_customer_id', 'integration_customer_id');
+    }
+
+    // Link to historical data
+    public function integrationData()
+    {
+        return $this->hasMany(IntegrationData::class, 'integration_customer_id', 'integration_customer_id');
     }
 }
