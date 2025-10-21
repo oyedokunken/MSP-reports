@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('licenses', function (Blueprint $table) {
             $table->id('license_id');
 
-            $table->enum('license_type', ['integration', 'retention', 'users', 'reports']);
+            $table->enum('license_type', ['integration', 'retention', 'users', 'reports', 'unlimited']);
             $table->string('product_sku')->unique();
             $table->enum('status', ['active', 'expired', 'suspended'])->default('active');
             $table->dateTime('expiry_date')->nullable();

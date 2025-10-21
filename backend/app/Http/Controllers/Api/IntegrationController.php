@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Integration;
+use App\Models\AuditLog;
 use Illuminate\Validation\Rule;
 
 class IntegrationController extends Controller
@@ -86,12 +87,17 @@ class IntegrationController extends Controller
 
         $sku = 'integration_' . strtolower($validated['integration_type']);
 
+        // Check for specific integration license OR unlimited license
         $hasLicense = $company->licenses()
-            ->where('product_sku', $sku)
             ->where('status', 'active')
             ->where(function ($q) {
                 $q->whereNull('expiry_date')
                 ->orWhere('expiry_date', '>', now());
+            })
+            ->where(function ($q) use ($sku) {
+                $q->where('product_sku', $sku)
+                  ->orWhere('product_sku', 'unlimited')
+                  ->orWhere('license_type', 'unlimited');
             })
             ->exists();
 
@@ -254,5 +260,351 @@ class IntegrationController extends Controller
                 'display_name' => $integration->display_name,
             ]
         ], 200);
+    }
+
+    /**
+     * Update integration configuration
+     */
+    public function updateIntegration(Request $request, $id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $integration = $company->integrations()
+            ->where('integration_id', $id)
+            ->first();
+
+        if (!$integration) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration not found for this company.'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'display_name' => 'sometimes|string|min:2|max:255|regex:/^[A-Za-z0-9\s\-\_\.]+$/',
+            'status' => ['sometimes', 'string', Rule::in(['active', 'disconnected', 'error', 'importing_historical'])],
+            'credentials' => 'sometimes|array',
+            'configuration' => 'sometimes|array',
+        ]);
+
+        $oldData = [
+            'display_name' => $integration->display_name,
+            'status' => $integration->status,
+        ];
+
+        // Update fields if provided
+        if (isset($validated['display_name'])) {
+            $integration->display_name = trim(strip_tags($validated['display_name']));
+        }
+
+        if (isset($validated['status'])) {
+            $integration->status = $validated['status'];
+        }
+
+        if (isset($validated['credentials'])) {
+            $integration->credentials = $validated['credentials'];
+        }
+
+        if (isset($validated['configuration'])) {
+            $integration->configuration = $validated['configuration'];
+        }
+
+        $integration->save();
+
+        // Log the update
+        AuditLog::create([
+            'company_id' => $company->company_id,
+            'event_type' => 'integration_updated',
+            'actor_type' => 'User',
+            'actor_id' => $authUser->user_id,
+            'target_type' => 'Integration',
+            'target_id' => $integration->integration_id,
+            'event_data' => json_encode([
+                'integration_type' => $integration->integration_type,
+                'old_data' => $oldData,
+                'new_data' => [
+                    'display_name' => $integration->display_name,
+                    'status' => $integration->status,
+                ],
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $integration
+        ]);
+    }
+
+    /**
+     * Delete/disconnect integration
+     */
+    public function deleteIntegration(Request $request, $id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $integration = $company->integrations()
+            ->where('integration_id', $id)
+            ->first();
+
+        if (!$integration) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration not found for this company.'
+            ], 404);
+        }
+
+        // Check if it's the source of truth
+        if ($integration->is_source_of_truth) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Cannot delete source of truth integration. Please designate another integration as source of truth first.'
+            ], 400);
+        }
+
+        // Log before deletion
+        AuditLog::create([
+            'company_id' => $company->company_id,
+            'event_type' => 'integration_deleted',
+            'actor_type' => 'User',
+            'actor_id' => $authUser->user_id,
+            'target_type' => 'Integration',
+            'target_id' => $integration->integration_id,
+            'event_data' => json_encode([
+                'integration_type' => $integration->integration_type,
+                'display_name' => $integration->display_name,
+                'customer_count' => $integration->integrationCustomers()->count(),
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        // Delete the integration (cascade will handle related records)
+        $integration->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Integration deleted successfully'
+        ]);
+    }
+
+    /**
+     * Get integration sync logs
+     */
+    public function getSyncLogs(Request $request, $id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $integration = $company->integrations()
+            ->where('integration_id', $id)
+            ->first();
+
+        if (!$integration) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration not found for this company.'
+            ], 404);
+        }
+
+        $limit = $request->input('limit', 50);
+        $limit = min($limit, 100); // Max 100
+
+        $syncLogs = $integration->syncLogs()
+            ->orderBy('started_at', 'desc')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'integration' => [
+                    'integration_id' => $integration->integration_id,
+                    'display_name' => $integration->display_name,
+                    'integration_type' => $integration->integration_type,
+                ],
+                'sync_logs' => $syncLogs,
+            ]
+        ]);
+    }
+
+    /**
+     * Get integration health check
+     */
+    public function healthCheck(Request $request, $id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $integration = $company->integrations()
+            ->where('integration_id', $id)
+            ->first();
+
+        if (!$integration) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration not found for this company.'
+            ], 404);
+        }
+
+        // TODO: Implement actual health check logic per integration type
+        // For now, return mock data
+        $isHealthy = $integration->status === 'active';
+        $lastSyncAge = $integration->last_sync_at 
+            ? now()->diffInMinutes($integration->last_sync_at)
+            : null;
+
+        $health = [
+            'healthy' => $isHealthy,
+            'status' => $integration->status,
+            'last_sync_at' => $integration->last_sync_at,
+            'last_sync_status' => $integration->last_sync_status,
+            'last_sync_age_minutes' => $lastSyncAge,
+            'error_message' => $integration->error_message,
+            'checks' => [
+                'credentials_valid' => $integration->credentials !== null,
+                'recent_sync' => $lastSyncAge !== null && $lastSyncAge < 1440, // Within 24 hours
+                'no_errors' => $integration->error_message === null,
+            ],
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $health
+        ]);
+    }
+
+    /**
+     * Get rate limit status
+     */
+    public function getRateLimitStatus(Request $request, $id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $integration = $company->integrations()
+            ->where('integration_id', $id)
+            ->first();
+
+        if (!$integration) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration not found for this company.'
+            ], 404);
+        }
+
+        // TODO: Implement actual rate limit tracking with Redis
+        // For now, return mock data based on recent sync logs
+        $recentLogs = $integration->syncLogs()
+            ->where('started_at', '>', now()->subHour())
+            ->get();
+
+        $totalHits = $recentLogs->sum('rate_limit_hits');
+        $requestsLastHour = $recentLogs->count();
+
+        // Mock rate limits based on integration type
+        $limits = [
+            'Datto' => ['per_minute' => 60, 'per_hour' => 1000],
+            'Autotask' => ['per_minute' => 100, 'per_hour' => 5000],
+            'ConnectWise' => ['per_minute' => 120, 'per_hour' => 6000],
+            'Microsoft365' => ['per_minute' => 200, 'per_hour' => 10000],
+            'Zendesk' => ['per_minute' => 100, 'per_hour' => 5000],
+        ];
+
+        $limit = $limits[$integration->integration_type] ?? ['per_minute' => 60, 'per_hour' => 1000];
+
+        $rateLimitStatus = [
+            'integration_type' => $integration->integration_type,
+            'limits' => $limit,
+            'current_usage' => [
+                'requests_last_hour' => $requestsLastHour,
+                'rate_limit_hits' => $totalHits,
+            ],
+            'percentage_used' => round(($requestsLastHour / $limit['per_hour']) * 100, 2),
+            'status' => $totalHits > 0 ? 'throttled' : 'normal',
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $rateLimitStatus
+        ]);
+    }
+
+    /**
+     * Start historical import
+     */
+    public function startHistoricalImport(Request $request, $id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $integration = $company->integrations()
+            ->where('integration_id', $id)
+            ->first();
+
+        if (!$integration) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration not found for this company.'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'start_date' => 'required|date|before:today',
+            'end_date' => 'required|date|after:start_date|before_or_equal:today',
+        ]);
+
+        // Check if already importing
+        if ($integration->historical_import_status === 'running') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Historical import is already running for this integration.'
+            ], 400);
+        }
+
+        // Create historical import job
+        $job = $integration->historicalImportJobs()->create([
+            'company_id' => $company->company_id,
+            'import_start_date' => $validated['start_date'],
+            'import_end_date' => $validated['end_date'],
+            'current_position' => $validated['start_date'],
+            'status' => 'queued',
+            'priority_level' => 1,
+        ]);
+
+        // Update integration status
+        $integration->update([
+            'historical_import_status' => 'running',
+            'historical_import_progress' => 0,
+        ]);
+
+        // Log the action
+        AuditLog::create([
+            'company_id' => $company->company_id,
+            'event_type' => 'historical_import_started',
+            'actor_type' => 'User',
+            'actor_id' => $authUser->user_id,
+            'target_type' => 'Integration',
+            'target_id' => $integration->integration_id,
+            'event_data' => json_encode([
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'job_id' => $job->id,
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Historical import started successfully',
+            'data' => [
+                'job_id' => $job->id,
+                'integration' => $integration,
+            ]
+        ]);
     }
 }

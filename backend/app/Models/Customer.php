@@ -4,12 +4,22 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Scopes\CompanyScope;
 
 class Customer extends Model
 {
     use HasFactory;
 
     protected $primaryKey = 'customer_id';
+
+    /**
+     * The "booted" method of the model.
+     * Apply global scope for multi-tenancy isolation.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
 
     protected $fillable = [
         'company_id',

@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\AuditLog;
+use App\Models\PasswordResetToken;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\LoginRequest;
 
@@ -121,6 +124,187 @@ class AuthController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $sanitisedUser,
+        ]);
+    }
+
+    /**
+     * Request password reset - sends email with reset token
+     */
+    public function requestPasswordReset(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $email = trim(strtolower($validated['email']));
+        
+        $user = User::where('email', $email)
+                    ->where('auth_method', 'local')
+                    ->first();
+
+        // Always return success to prevent email enumeration
+        if (!$user) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'If an account exists with this email, a password reset link has been sent.',
+            ]);
+        }
+
+        // Delete any existing tokens for this email
+        PasswordResetToken::where('email', $email)->delete();
+
+        // Generate secure token
+        $token = Str::random(64);
+        $hashedToken = hash('sha256', $token);
+
+        // Create password reset token (expires in 1 hour)
+        PasswordResetToken::create([
+            'email' => $email,
+            'token' => $hashedToken,
+            'created_at' => now(),
+            'expires_at' => now()->addHour(),
+        ]);
+
+        // TODO: Send email with reset link
+        // For now, we'll log it (in production, send actual email)
+        // Mail::to($user->email)->send(new PasswordResetMail($token, $user));
+        
+        // Log the password reset request
+        AuditLog::create([
+            'company_id' => $user->company_id,
+            'event_type' => 'password_reset_requested',
+            'actor_type' => 'User',
+            'actor_id' => $user->user_id,
+            'event_data' => json_encode([
+                'email' => $user->email,
+                'timestamp' => now()->toDateTimeString(),
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'If an account exists with this email, a password reset link has been sent.',
+            // TODO: Remove this in production - only for testing
+            'debug_token' => config('app.debug') ? $token : null,
+        ]);
+    }
+
+    /**
+     * Reset password using token
+     */
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'token' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $email = trim(strtolower($validated['email']));
+        $hashedToken = hash('sha256', $validated['token']);
+
+        // Find valid token
+        $resetToken = PasswordResetToken::where('email', $email)
+                                        ->where('token', $hashedToken)
+                                        ->valid()
+                                        ->first();
+
+        if (!$resetToken) {
+            throw ValidationException::withMessages([
+                'token' => ['Invalid or expired password reset token.'],
+            ]);
+        }
+
+        // Find user
+        $user = User::where('email', $email)
+                    ->where('auth_method', 'local')
+                    ->first();
+
+        if (!$user) {
+            throw ValidationException::withMessages([
+                'email' => ['User not found.'],
+            ]);
+        }
+
+        // Update password
+        $user->password = Hash::make($validated['password']);
+        $user->save();
+
+        // Delete the used token
+        $resetToken->delete();
+
+        // Revoke all existing tokens for security
+        $user->tokens()->delete();
+
+        // Log the password reset
+        AuditLog::create([
+            'company_id' => $user->company_id,
+            'event_type' => 'password_reset_completed',
+            'actor_type' => 'User',
+            'actor_id' => $user->user_id,
+            'event_data' => json_encode([
+                'email' => $user->email,
+                'timestamp' => now()->toDateTimeString(),
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password has been reset successfully. Please login with your new password.',
+        ]);
+    }
+
+    /**
+     * Change password for authenticated user
+     */
+    public function changePassword(Request $request)
+    {
+        $user = $request->user();
+
+        // Only local auth users can change password
+        if ($user->auth_method !== 'local') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Password changes are not available for ' . $user->auth_method . ' authentication.',
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Verify current password
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['Current password is incorrect.'],
+            ]);
+        }
+
+        // Update password
+        $user->password = Hash::make($validated['new_password']);
+        $user->save();
+
+        // Log the password change
+        AuditLog::create([
+            'company_id' => $user->company_id,
+            'event_type' => 'password_changed',
+            'actor_type' => 'User',
+            'actor_id' => $user->user_id,
+            'event_data' => json_encode([
+                'timestamp' => now()->toDateTimeString(),
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password changed successfully.',
         ]);
     }
 }

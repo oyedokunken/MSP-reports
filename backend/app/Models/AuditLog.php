@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Company;
+use App\Models\Scopes\CompanyScope;
 
 class AuditLog extends Model
 {
@@ -12,6 +13,11 @@ class AuditLog extends Model
 
     protected $primaryKey = 'audit_log_id';
     public $timestamps = false;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
 
     protected $fillable = [
         'company_id',

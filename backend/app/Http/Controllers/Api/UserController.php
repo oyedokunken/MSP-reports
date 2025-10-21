@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Models\AuditLog;
 
 class UserController extends Controller
 {
@@ -113,12 +114,317 @@ class UserController extends Controller
         $user->permissions = $permissions;
         $user->save();
 
+        // Log the permission change
+        AuditLog::create([
+            'company_id' => $authUser->company_id,
+            'event_type' => 'user_permissions_updated',
+            'actor_type' => 'User',
+            'actor_id' => $authUser->user_id,
+            'target_type' => 'User',
+            'target_id' => $user->user_id,
+            'event_data' => json_encode([
+                'user_email' => $user->email,
+                'permissions' => $permissions,
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
         /** 🛡️ Hide password before returning **/
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
             'status' => 'success',
             'data' => $sanitisedUser->load('role')
+        ]);
+    }
+
+    /**
+     * Update user profile (name, email, role)
+     */
+    public function updateUser(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $user = User::where('user_id', $id)
+                    ->where('company_id', $authUser->company_id)
+                    ->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found in your company'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
+            'role_id' => 'sometimes|exists:roles,id',
+        ]);
+
+        $oldData = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'role_id' => $user->role_id,
+        ];
+
+        // Update fields if provided
+        if (isset($validated['name'])) {
+            $user->name = trim(strip_tags($validated['name']));
+        }
+        
+        if (isset($validated['email'])) {
+            $user->email = trim(strtolower($validated['email']));
+        }
+        
+        if (isset($validated['role_id'])) {
+            $user->role_id = $validated['role_id'];
+        }
+
+        $user->save();
+
+        // Log the update
+        AuditLog::create([
+            'company_id' => $authUser->company_id,
+            'event_type' => 'user_updated',
+            'actor_type' => 'User',
+            'actor_id' => $authUser->user_id,
+            'target_type' => 'User',
+            'target_id' => $user->user_id,
+            'event_data' => json_encode([
+                'old_data' => $oldData,
+                'new_data' => [
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role_id' => $user->role_id,
+                ],
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        /** 🛡️ Hide password before returning **/
+        $sanitisedUser = $user->makeHidden(['password']);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $sanitisedUser->load('role')
+        ]);
+    }
+
+    /**
+     * Deactivate a user
+     */
+    public function deactivateUser(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $user = User::where('user_id', $id)
+                    ->where('company_id', $authUser->company_id)
+                    ->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found in your company'
+            ], 404);
+        }
+
+        // Prevent self-deactivation
+        if ($user->user_id === $authUser->user_id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'You cannot deactivate your own account'
+            ], 400);
+        }
+
+        $user->status = 'inactive';
+        $user->save();
+
+        // Revoke all user's tokens
+        $user->tokens()->delete();
+
+        // Log the deactivation
+        AuditLog::create([
+            'company_id' => $authUser->company_id,
+            'event_type' => 'user_deactivated',
+            'actor_type' => 'User',
+            'actor_id' => $authUser->user_id,
+            'target_type' => 'User',
+            'target_id' => $user->user_id,
+            'event_data' => json_encode([
+                'user_email' => $user->email,
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        /** 🛡️ Hide password before returning **/
+        $sanitisedUser = $user->makeHidden(['password']);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User deactivated successfully',
+            'data' => $sanitisedUser->load('role')
+        ]);
+    }
+
+    /**
+     * Reactivate a user
+     */
+    public function reactivateUser(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $user = User::where('user_id', $id)
+                    ->where('company_id', $authUser->company_id)
+                    ->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found in your company'
+            ], 404);
+        }
+
+        $user->status = 'active';
+        $user->save();
+
+        // Log the reactivation
+        AuditLog::create([
+            'company_id' => $authUser->company_id,
+            'event_type' => 'user_reactivated',
+            'actor_type' => 'User',
+            'actor_id' => $authUser->user_id,
+            'target_type' => 'User',
+            'target_id' => $user->user_id,
+            'event_data' => json_encode([
+                'user_email' => $user->email,
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        /** 🛡️ Hide password before returning **/
+        $sanitisedUser = $user->makeHidden(['password']);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User reactivated successfully',
+            'data' => $sanitisedUser->load('role')
+        ]);
+    }
+
+    /**
+     * Delete a user (soft delete via status change)
+     */
+    public function deleteUser(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $user = User::where('user_id', $id)
+                    ->where('company_id', $authUser->company_id)
+                    ->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found in your company'
+            ], 404);
+        }
+
+        // Prevent self-deletion
+        if ($user->user_id === $authUser->user_id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'You cannot delete your own account'
+            ], 400);
+        }
+
+        // Revoke all user's tokens
+        $user->tokens()->delete();
+
+        // Log the deletion before deleting
+        AuditLog::create([
+            'company_id' => $authUser->company_id,
+            'event_type' => 'user_deleted',
+            'actor_type' => 'User',
+            'actor_id' => $authUser->user_id,
+            'target_type' => 'User',
+            'target_id' => $user->user_id,
+            'event_data' => json_encode([
+                'user_email' => $user->email,
+                'user_name' => $user->name,
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        // Actually delete the user
+        $user->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User deleted successfully'
+        ]);
+    }
+
+    /**
+     * Reset user password (admin function)
+     */
+    public function resetUserPassword(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $user = User::where('user_id', $id)
+                    ->where('company_id', $authUser->company_id)
+                    ->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found in your company'
+            ], 404);
+        }
+
+        // Only for local auth users
+        if ($user->auth_method !== 'local') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Password reset is only available for local authentication users'
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'new_password' => 'required|string|min:8',
+        ]);
+
+        // Update password
+        $user->password = Hash::make($validated['new_password']);
+        $user->save();
+
+        // Revoke all user's tokens for security
+        $user->tokens()->delete();
+
+        // Log the password reset
+        AuditLog::create([
+            'company_id' => $authUser->company_id,
+            'event_type' => 'user_password_reset_by_admin',
+            'actor_type' => 'User',
+            'actor_id' => $authUser->user_id,
+            'target_type' => 'User',
+            'target_id' => $user->user_id,
+            'event_data' => json_encode([
+                'user_email' => $user->email,
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User password reset successfully'
         ]);
     }
 }

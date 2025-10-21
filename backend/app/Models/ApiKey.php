@@ -7,12 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Company;
 use App\Models\User;
 use App\Models\AuditLog;
+use App\Models\Scopes\CompanyScope;
 
 class ApiKey extends Model
 {
     use HasFactory;
 
     protected $primaryKey = 'api_key_id';
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
 
     protected $fillable = [
         'company_id',

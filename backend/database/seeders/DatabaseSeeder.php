@@ -15,7 +15,26 @@ use App\Models\CustomerMapping;
 
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Seed the application's database.
+     * 
+     * This will call individual seeders for production setup.
+     * For first customer deployment, run: php artisan db:seed --class=FirstCustomerSeeder
+     */
     public function run(): void
+    {
+        $this->call([
+            RoleSeeder::class,
+            CompanySeeder::class,
+            UserSeeder::class,
+            LicenseSeeder::class,
+        ]);
+    }
+
+    /**
+     * Original test data seeder (kept for development/testing).
+     */
+    public function runTestData(): void
     {
         // === Roles ===
         $adminRole = Role::firstOrCreate(['name' => 'admin']);

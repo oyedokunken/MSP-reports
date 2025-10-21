@@ -5,16 +5,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // <- Add this
+use Laravel\Sanctum\HasApiTokens;
 use App\Models\Company;
 use App\Models\AuditLog;
 use App\Models\Role;
+use App\Models\Scopes\CompanyScope;
 
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $primaryKey = 'user_id';
+
+    /**
+     * The "booted" method of the model.
+     * Apply global scope for multi-tenancy isolation.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+    }
 
     protected $fillable = [
         'company_id',
