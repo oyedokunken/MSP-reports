@@ -17,18 +17,35 @@ class ReportConfigController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $companyReportSettings = $company->settings['reports'] ?? [];
+        // Scan the Reports directory for available report types
+        $reportsPath = app_path('Reports');
+        $availableReports = [];
 
-        $data = [
-            'default_destination' => $companyReportSettings['default_report_destination'] ?? null,
-            'timezone' => $companyReportSettings['report_timezone'] ?? null,
-            'retention_days' => $companyReportSettings['report_retention_days'] ?? null,
-            'format' => $companyReportSettings['report_format'] ?? [],
-        ];
+        if (is_dir($reportsPath)) {
+            $directories = array_diff(scandir($reportsPath), ['.', '..', 'Contracts']);
+            
+            foreach ($directories as $reportDir) {
+                $configPath = $reportsPath . '/' . $reportDir . '/config.php';
+                
+                if (file_exists($configPath)) {
+                    $config = include $configPath;
+                    
+                    // Add the report type identifier
+                    $reportType = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $reportDir));
+                    
+                    $availableReports[] = [
+                        'report_type' => $reportType,
+                        'name' => $config['name'] ?? ucwords(str_replace('_', ' ', $reportType)),
+                        'description' => $config['description'] ?? '',
+                        'frequency_options' => $config['supported_frequencies'] ?? ['on-demand'],
+                    ];
+                }
+            }
+        }
 
         return response()->json([
             'status' => 'success',
-            'data' => $data
+            'data' => $availableReports
         ]);
     }
 
@@ -48,26 +65,29 @@ class ReportConfigController extends Controller
             ], 404);
         }
 
-        $companyReports = $company->settings['reports'] ?? [];
-
-        $customerReports = $customer->report_configuration ?? [];
-
-        $effectiveConfig = [
-            'enabled_reports' => $customerReports['enabled_reports'] ?? [],
-            'report_branding' => $customerReports['report_branding'] ?? [],
-            'delivery' => $customerReports['delivery'] ?? [
-                'method' => 'email',
-                'destination' => $companyReports['default_report_destination'] ?? null,
-                'cc' => []
-            ],
-            'timezone' => $companyReports['report_timezone'] ?? null,
-            'retention_days' => $companyReports['report_retention_days'] ?? null,
-            'format' => $companyReports['report_format'] ?? [],
-        ];
+        // Get all report schedules for this customer
+        $schedules = ReportSchedule::where('customer_id', $customer->customer_id)
+            ->where('company_id', $company->company_id)
+            ->get()
+            ->map(function ($schedule) {
+                return [
+                    'report_schedule_id' => $schedule->report_schedule_id,
+                    'report_type' => $schedule->report_type,
+                    'frequency' => $schedule->frequency,
+                    'time_of_day' => $schedule->time_of_day,
+                    'active' => $schedule->active,
+                    'next_scheduled_at' => $schedule->next_scheduled_at,
+                    'last_generated_at' => $schedule->last_generated_at,
+                ];
+            });
 
         return response()->json([
             'status' => 'success',
-            'data' => $effectiveConfig
+            'data' => [
+                'customer_id' => $customer->customer_id,
+                'customer_name' => $customer->canonical_name,
+                'report_schedules' => $schedules
+            ]
         ]);
     }
 
@@ -85,55 +105,56 @@ class ReportConfigController extends Controller
         }
 
         $validated = $request->validate([
-            'enabled_reports' => 'required|array',
-            'enabled_reports.*.report_type' => 'required|string',
-            'report_branding' => 'nullable|array',
-            'delivery' => 'nullable|array',
-            'delivery.method' => 'nullable|string|in:email,api,download',
-            'delivery.destination' => 'nullable|string|email',
-            'delivery.cc' => 'nullable|array',
-            'delivery.cc.*' => 'nullable|email'
+            'schedules' => 'required|array|min:1',
+            'schedules.*.report_type' => 'required|string',
+            'schedules.*.frequency' => 'required|string|in:daily,weekly,monthly,yearly,on-demand',
+            'schedules.*.time_of_day' => 'nullable|string',
+            'schedules.*.active' => 'nullable|boolean',
+            'schedules.*.schedule_config' => 'nullable|array',
         ]);
 
-        $enabledReports = [];
+        $schedulesCreated = 0;
+        $schedulesUpdated = 0;
 
-        foreach ($validated['enabled_reports'] as $report) {
-            if (isset($report['schedule_id']) && $report['schedule_id']) {
-                $schedule = ReportSchedule::find($report['schedule_id']);
+        foreach ($validated['schedules'] as $scheduleData) {
+            // Check if schedule already exists for this report type
+            $existingSchedule = ReportSchedule::where('customer_id', $customer->customer_id)
+                ->where('company_id', $company->company_id)
+                ->where('report_type', $scheduleData['report_type'])
+                ->first();
+
+            if ($existingSchedule) {
+                // Update existing schedule
+                $existingSchedule->update([
+                    'frequency' => $scheduleData['frequency'],
+                    'time_of_day' => $scheduleData['time_of_day'] ?? null,
+                    'active' => $scheduleData['active'] ?? true,
+                    'schedule_config' => $scheduleData['schedule_config'] ?? null,
+                ]);
+                $schedulesUpdated++;
             } else {
-                $schedule = ReportSchedule::create([
+                // Create new schedule
+                ReportSchedule::create([
                     'company_id' => $company->company_id,
                     'customer_id' => $customer->customer_id,
-                    'report_type' => $report['report_type'],
-                    'frequency' => 'on-demand',
-                    'schedule_config' => null,
-                    'time_of_day' => null,
-                    'active' => true,
+                    'report_type' => $scheduleData['report_type'],
+                    'frequency' => $scheduleData['frequency'],
+                    'time_of_day' => $scheduleData['time_of_day'] ?? '09:00',
+                    'schedule_config' => $scheduleData['schedule_config'] ?? null,
+                    'active' => $scheduleData['active'] ?? true,
                     'timezone' => $company->settings['reports']['report_timezone'] ?? 'UTC',
                 ]);
+                $schedulesCreated++;
             }
-
-            $enabledReports[] = [
-                'report_type' => $report['report_type'],
-                'schedule_id' => $schedule->report_schedule_id
-            ];
         }
 
-        $customer->report_configuration = array_merge(
-            $customer->report_configuration ?? [],
-            [
-                'enabled_reports' => $enabledReports,
-                'report_branding' => $validated['report_branding'] ?? [],
-                'delivery' => $validated['delivery'] ?? ($customer->report_configuration['delivery'] ?? [])
-            ]
-        );
-
-        $customer->save();
-
         return response()->json([
-            'status'=>'success',
-            'message'=>'Customer report configuration updated',
-            'data'=>$customer->report_configuration
+            'status' => 'success',
+            'message' => 'Report schedules updated successfully',
+            'data' => [
+                'schedules_created' => $schedulesCreated,
+                'schedules_updated' => $schedulesUpdated
+            ]
         ]);
     }
 
@@ -182,69 +203,77 @@ class ReportConfigController extends Controller
             ->where('company_id', $company->company_id)
             ->firstOrFail();
 
-        $enabledReports = $customer->report_configuration['enabled_reports'] ?? [];
+        // Get active report schedules for this customer
+        $schedules = ReportSchedule::where('customer_id', $customer->customer_id)
+            ->where('company_id', $company->company_id)
+            ->where('active', true)
+            ->get();
 
-        if (empty($enabledReports)) {
+        if ($schedules->isEmpty()) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'No enabled reports for this customer.'
+                'message' => 'No active report schedules for this customer. Please create schedules first.'
             ], 400);
         }
 
         $generatedReports = [];
+        $errors = [];
 
-        foreach ($enabledReports as $report) {
-            $reportType = $report['report_type'] ?? $report['type'] ?? $report;
+        foreach ($schedules as $schedule) {
+            try {
+                // Convert report_type to class name
+                $reportType = str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', $schedule->report_type)));
+                $class = "App\\Reports\\{$reportType}\\{$reportType}";
 
-            $reportTypeMap = [
-                'uptime_monthly' => 'UptimeReport',
-                'security_weekly' => 'SecuritySummary',
-            ];
+                if (!class_exists($class)) {
+                    $errors[] = "Report class not found: {$class}";
+                    continue;
+                }
 
-            $reportType = $reportTypeMap[$reportType] ?? str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', $reportType)));
+                $reportInstance = new $class();
 
-            $class = "App\\Reports\\{$reportType}\\{$reportType}";
+                // Validate data availability
+                if (!method_exists($reportInstance, 'validate') || !$reportInstance->validate($customer)) {
+                    $errors[] = "Insufficient data for {$schedule->report_type}";
+                    continue;
+                }
 
-            if (!class_exists($class)) continue;
+                // Generate the report
+                $period = $schedule->frequency === 'monthly' ? 'monthly' : 'weekly';
+                $filePath = $reportInstance->generate($customer, $period);
+                
+                // Deliver the report
+                if (method_exists($reportInstance, 'deliver')) {
+                    $reportInstance->deliver($company, $customer, $filePath);
+                }
 
-            $reportInstance = new $class();
-
-            if (!$reportInstance->validate($customer)) continue;
-
-            if (isset($report['schedule_id']) && $report['schedule_id']) {
-                $schedule = ReportSchedule::find($report['schedule_id']);
-            } else {
-                $schedule = ReportSchedule::create([
+                // Record the generated report
+                $generatedReports[] = GeneratedReport::create([
                     'company_id' => $company->company_id,
                     'customer_id' => $customer->customer_id,
-                    'report_type' => $reportType,
-                    'frequency' => 'on-demand',
-                    'schedule_config' => null,
-                    'time_of_day' => null,
-                    'active' => true,
-                    'timezone' => $company->settings['reports']['report_timezone'] ?? 'UTC',
+                    'report_schedule_id' => $schedule->report_schedule_id,
+                    'generated_at' => now(),
+                    'report_period' => $period,
+                    'status' => 'completed',
+                    'file_path' => str_replace(storage_path('app/'), '', $filePath),
                 ]);
+
+                // Update schedule's last generated timestamp
+                $schedule->update(['last_generated_at' => now()]);
+
+            } catch (\Exception $e) {
+                $errors[] = "Error generating {$schedule->report_type}: " . $e->getMessage();
             }
-
-            $period = 'monthly';
-            $filePath = $reportInstance->generate($customer, $period);
-            $reportInstance->deliver($company, $customer, $filePath);
-
-            $generatedReports[] = GeneratedReport::create([
-                'company_id' => $company->company_id,
-                'customer_id' => $customer->customer_id,
-                'report_schedule_id' => $schedule->report_schedule_id,
-                'generated_at' => now(),
-                'report_period' => $period,
-                'status' => 'completed',
-                'file_path' => str_replace(storage_path('app/'), '', $filePath),
-            ]);
         }
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Reports generated successfully',
-            'data' => $generatedReports
+            'message' => 'Report generation completed',
+            'data' => [
+                'generated' => count($generatedReports),
+                'errors' => $errors,
+                'reports' => $generatedReports
+            ]
         ]);
     }
 }

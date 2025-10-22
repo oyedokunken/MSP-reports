@@ -17,29 +17,25 @@ class ReportAnalyticsController extends Controller
         $authUser = $request->user();
 
         $schedules = ReportSchedule::where('company_id', $authUser->company_id)
-            ->with([
-                'customer:customer_id,canonical_name',
-                'company:company_id,name',
-                'generatedReports:report_schedule_id,status,generated_at'
-            ])
+            ->with('customer:customer_id,canonical_name')
             ->orderBy('next_scheduled_at', 'asc')
-            ->get([
-                'report_schedule_id',
-                'company_id',
-                'customer_id',
-                'report_type',
-                'frequency',
-                'time_of_day',
-                'active',
-                'last_generated_at',
-                'next_scheduled_at',
-                'timezone',
-            ]);
+            ->get()
+            ->map(function ($schedule) {
+                return [
+                    'report_schedule_id' => $schedule->report_schedule_id,
+                    'customer_id' => $schedule->customer_id,
+                    'customer_name' => $schedule->customer->canonical_name ?? 'Unknown',
+                    'report_type' => $schedule->report_type,
+                    'frequency' => $schedule->frequency,
+                    'next_scheduled_at' => $schedule->next_scheduled_at,
+                    'last_generated_at' => $schedule->last_generated_at,
+                    'active' => $schedule->active,
+                ];
+            });
 
         return response()->json([
             'status' => 'success',
-            'count' => $schedules->count(),
-            'schedules' => $schedules
+            'data' => $schedules
         ], 200);
     }
     
@@ -47,33 +43,43 @@ class ReportAnalyticsController extends Controller
     {
         $authUser = $request->user();
 
+        $perPage = $request->input('per_page', 50);
+        
         $reports = GeneratedReport::where('company_id', $authUser->company_id)
             ->with([
                 'customer:customer_id,canonical_name',
-                'reportSchedule:report_schedule_id,report_type,frequency,time_of_day',
+                'reportSchedule:report_schedule_id,report_type',
             ])
             ->orderBy('generated_at', 'desc')
-            ->get([
-                'generated_report_id',
-                'company_id',
-                'customer_id',
-                'report_schedule_id',
-                'generated_at',
-                'report_period',
-                'status',
-                'delivery_method',
-                'file_path',
-                'file_size',
-                'delivered',
-                'delivered_at',
-                'error_message',
-                'retention_until',
-            ]);
+            ->paginate($perPage);
+
+        $formattedReports = $reports->map(function ($report) {
+            return [
+                'generated_report_id' => $report->generated_report_id,
+                'customer_id' => $report->customer_id,
+                'customer_name' => $report->customer->canonical_name ?? 'Unknown',
+                'report_type' => $report->reportSchedule->report_type ?? 'Unknown',
+                'generated_at' => $report->generated_at,
+                'status' => $report->status,
+                'file_size' => $report->file_size,
+                'delivered' => $report->delivered,
+                'delivered_at' => $report->delivered_at,
+                'delivery_method' => $report->delivery_method,
+                'error_message' => $report->error_message,
+            ];
+        });
 
         return response()->json([
             'status' => 'success',
-            'count' => $reports->count(),
-            'reports' => $reports
+            'data' => [
+                'reports' => $formattedReports,
+                'pagination' => [
+                    'total' => $reports->total(),
+                    'per_page' => $reports->perPage(),
+                    'current_page' => $reports->currentPage(),
+                    'last_page' => $reports->lastPage(),
+                ]
+            ]
         ], 200);
     }
 
