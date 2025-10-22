@@ -7,17 +7,11 @@ use App\Models\Integration;
 
 class RateLimiter
 {
-    /**
-     * Check if a request can be made within rate limits.
-     * 
-     * @param Integration $integration
-     * @return bool
-     */
     public function canMakeRequest(Integration $integration): bool
     {
         $limits = $this->getRateLimits($integration);
         
-        // Check per-minute limit
+        
         $minuteKey = $this->getRedisKey($integration, 'minute');
         $minuteCount = Redis::get($minuteKey) ?? 0;
         
@@ -25,7 +19,7 @@ class RateLimiter
             return false;
         }
         
-        // Check per-hour limit
+        
         $hourKey = $this->getRedisKey($integration, 'hour');
         $hourCount = Redis::get($hourKey) ?? 0;
         
@@ -36,22 +30,16 @@ class RateLimiter
         return true;
     }
 
-    /**
-     * Record a request made to the integration API.
-     * 
-     * @param Integration $integration
-     * @return void
-     */
     public function recordRequest(Integration $integration): void
     {
         $minuteKey = $this->getRedisKey($integration, 'minute');
         $hourKey = $this->getRedisKey($integration, 'hour');
         
-        // Increment counters
+        
         Redis::incr($minuteKey);
         Redis::incr($hourKey);
         
-        // Set expiry if not already set
+        
         if (Redis::ttl($minuteKey) === -1) {
             Redis::expire($minuteKey, 60);
         }
@@ -61,12 +49,6 @@ class RateLimiter
         }
     }
 
-    /**
-     * Get current rate limit status for an integration.
-     * 
-     * @param Integration $integration
-     * @return array
-     */
     public function getStatus(Integration $integration): array
     {
         $limits = $this->getRateLimits($integration);
@@ -96,13 +78,6 @@ class RateLimiter
         ];
     }
 
-    /**
-     * Wait if necessary to respect rate limits.
-     * 
-     * @param Integration $integration
-     * @param int $maxWaitSeconds
-     * @return bool True if can proceed, false if exceeded max wait
-     */
     public function waitForSlot(Integration $integration, int $maxWaitSeconds = 60): bool
     {
         $waited = 0;
@@ -119,12 +94,6 @@ class RateLimiter
         return true;
     }
 
-    /**
-     * Get rate limits for an integration from its configuration.
-     * 
-     * @param Integration $integration
-     * @return array
-     */
     private function getRateLimits(Integration $integration): array
     {
         $config = $integration->configuration ?? [];
@@ -135,13 +104,6 @@ class RateLimiter
         ];
     }
 
-    /**
-     * Generate Redis key for rate limiting.
-     * 
-     * @param Integration $integration
-     * @param string $period
-     * @return string
-     */
     private function getRedisKey(Integration $integration, string $period): string
     {
         return "rate_limit:integration:{$integration->integration_id}:{$period}";

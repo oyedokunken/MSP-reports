@@ -11,15 +11,9 @@ use Illuminate\Support\Facades\Hash;
 
 class ApiKeyAuthentication
 {
-    /**
-     * Handle an incoming request.
-     * 
-     * Authenticates requests using API keys instead of user sessions.
-     * API keys have the same permission structure as users.
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check for API key in Authorization header
+        
         $apiKey = $request->bearerToken();
 
         if (!$apiKey) {
@@ -28,11 +22,10 @@ class ApiKeyAuthentication
                 'message' => 'API key required.',
             ], 401);
         }
-
-        // Hash the provided key to compare with stored hash
+        
         $keyHash = hash('sha256', $apiKey);
 
-        // Find the API key
+        
         $apiKeyModel = ApiKey::where('key_hash', $keyHash)
             ->where('revoked', false)
             ->with('company')
@@ -45,7 +38,6 @@ class ApiKeyAuthentication
             ], 401);
         }
 
-        // Check if company is active
         if (in_array($apiKeyModel->company->status, ['suspended'])) {
             return response()->json([
                 'status' => 'error',
@@ -53,11 +45,10 @@ class ApiKeyAuthentication
             ], 403);
         }
 
-        // Check IP whitelist if configured
         if (!empty($apiKeyModel->ip_whitelist)) {
             $clientIp = $request->ip();
             if (!in_array($clientIp, $apiKeyModel->ip_whitelist)) {
-                // Log unauthorized access attempt
+                
                 AuditLog::create([
                     'company_id' => $apiKeyModel->company_id,
                     'event_type' => 'api_key_unauthorized_ip',
@@ -79,7 +70,7 @@ class ApiKeyAuthentication
             }
         }
 
-        // Check endpoint restrictions if configured
+        
         if (!empty($apiKeyModel->allowed_endpoints)) {
             $currentPath = $request->path();
             $allowed = false;
@@ -99,18 +90,18 @@ class ApiKeyAuthentication
             }
         }
 
-        // Update last used timestamp
+        
         $apiKeyModel->last_used_at = now();
         $apiKeyModel->save();
 
-        // Store API key context in request
+        
         $request->merge([
             '_api_key' => $apiKeyModel,
             '_company_id' => $apiKeyModel->company_id,
             '_permissions' => $apiKeyModel->permissions,
         ]);
 
-        // Log API request
+        
         AuditLog::create([
             'company_id' => $apiKeyModel->company_id,
             'event_type' => 'api_request',

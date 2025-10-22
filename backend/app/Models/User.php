@@ -17,10 +17,6 @@ class User extends Authenticatable
 
     protected $primaryKey = 'user_id';
 
-    /**
-     * The "booted" method of the model.
-     * Apply global scope for multi-tenancy isolation.
-     */
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
@@ -49,7 +45,7 @@ class User extends Authenticatable
         'permissions' => 'array',
     ];
 
-    // Relationships
+    
     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');

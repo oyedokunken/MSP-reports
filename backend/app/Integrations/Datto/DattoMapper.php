@@ -4,9 +4,6 @@ namespace App\Integrations\Datto;
 
 class DattoMapper
 {
-    /**
-     * Map Datto customer to standardized format.
-     */
     public static function mapCustomer(array $dattoCustomer): array
     {
         return [
@@ -23,9 +20,6 @@ class DattoMapper
         ];
     }
 
-    /**
-     * Map Datto backup data to standardized format.
-     */
     public static function mapBackupData(array $dattoBackup): array
     {
         return [
@@ -44,9 +38,6 @@ class DattoMapper
         ];
     }
 
-    /**
-     * Map Datto device uptime data to standardized format.
-     */
     public static function mapUptimeData(array $dattoUptime): array
     {
         return [

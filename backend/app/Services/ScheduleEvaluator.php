@@ -8,12 +8,6 @@ use Carbon\Carbon;
 
 class ScheduleEvaluator
 {
-    /**
-     * Evaluate all report schedules and trigger generation for those that are due.
-     * This is called by a scheduled command (e.g., every hour).
-     * 
-     * @return array
-     */
     public function evaluateDueReports(): array
     {
         $results = [
@@ -21,8 +15,7 @@ class ScheduleEvaluator
             'triggered' => 0,
             'skipped' => 0,
         ];
-
-        // Get all active schedules
+        
         $schedules = ReportSchedule::where('active', true)
             ->with(['customer', 'company'])
             ->get();
@@ -41,15 +34,9 @@ class ScheduleEvaluator
         return $results;
     }
 
-    /**
-     * Check if a report schedule is due for generation.
-     * 
-     * @param ReportSchedule $schedule
-     * @return bool
-     */
     public function isScheduleDue(ReportSchedule $schedule): bool
     {
-        // If next_scheduled_at is null, calculate it
+        
         if (!$schedule->next_scheduled_at) {
             $nextRun = $this->calculateNextRun($schedule);
             $schedule->next_scheduled_at = $nextRun;
@@ -57,40 +44,27 @@ class ScheduleEvaluator
             return false;
         }
 
-        // Check if current time is past the scheduled time
+        
         return now()->gte($schedule->next_scheduled_at);
     }
 
-    /**
-     * Trigger report generation for a schedule.
-     * 
-     * @param ReportSchedule $schedule
-     * @return void
-     */
     public function triggerReportGeneration(ReportSchedule $schedule): void
     {
-        // Dispatch report generation job
         GenerateReportJob::dispatch($schedule);
 
-        // Update schedule
+        
         $schedule->last_generated_at = now();
         $schedule->next_scheduled_at = $this->calculateNextRun($schedule);
         $schedule->save();
     }
 
-    /**
-     * Calculate the next run time for a schedule.
-     * 
-     * @param ReportSchedule $schedule
-     * @return Carbon
-     */
     public function calculateNextRun(ReportSchedule $schedule): Carbon
     {
         $timezone = $schedule->timezone ?? $schedule->company->settings['reports']['report_timezone'] ?? 'UTC';
         $config = $schedule->schedule_config;
         $timeOfDay = $schedule->time_of_day ?? '09:00';
 
-        // Parse time
+        
         [$hour, $minute] = explode(':', $timeOfDay);
 
         $now = Carbon::now($timezone);
@@ -114,26 +88,23 @@ class ScheduleEvaluator
                 break;
 
             default:
-                // On-demand, set far in future
+                
                 $next = Carbon::now($timezone)->addYears(10);
         }
 
         return $next;
     }
 
-    /**
-     * Calculate next daily run.
-     */
     private function calculateDailyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
     {
         $next->setTime($hour, $minute, 0);
 
-        // If time has passed today, move to tomorrow
+        
         if ($next->isPast()) {
             $next->addDay();
         }
 
-        // Check days of week restriction
+        
         if (isset($config['days_of_week'])) {
             while (!in_array($next->dayOfWeek, $config['days_of_week'])) {
                 $next->addDay();
@@ -143,17 +114,14 @@ class ScheduleEvaluator
         return $next;
     }
 
-    /**
-     * Calculate next weekly run.
-     */
     private function calculateWeeklyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
     {
-        $dayOfWeek = $config['day_of_week'] ?? 1; // Default Monday
+        $dayOfWeek = $config['day_of_week'] ?? 1; 
 
         $next->setTime($hour, $minute, 0);
         $next->next($dayOfWeek);
 
-        // If we're on the target day but time has passed, move to next week
+        
         if ($next->dayOfWeek === $dayOfWeek && $next->isPast()) {
             $next->addWeek();
         }
@@ -161,9 +129,6 @@ class ScheduleEvaluator
         return $next;
     }
 
-    /**
-     * Calculate next monthly run.
-     */
     private function calculateMonthlyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
     {
         $dayOfMonth = $config['day_of_month'] ?? 1;
@@ -172,13 +137,13 @@ class ScheduleEvaluator
         $next->setTime($hour, $minute, 0);
         $next->day = min($dayOfMonth, $next->daysInMonth);
 
-        // If time has passed this month, move to next month
+        
         if ($next->isPast()) {
             $next->addMonth();
             $next->day = min($dayOfMonth, $next->daysInMonth);
         }
 
-        // Handle months with fewer days
+        
         if ($fallbackToLastDay && $dayOfMonth > $next->daysInMonth) {
             $next->day = $next->daysInMonth;
         }
@@ -186,9 +151,6 @@ class ScheduleEvaluator
         return $next;
     }
 
-    /**
-     * Calculate next yearly run.
-     */
     private function calculateYearlyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
     {
         $month = $config['month'] ?? 1;
@@ -198,7 +160,7 @@ class ScheduleEvaluator
         $next->month = $month;
         $next->day = $dayOfMonth;
 
-        // If time has passed this year, move to next year
+        
         if ($next->isPast()) {
             $next->addYear();
         }
@@ -206,13 +168,6 @@ class ScheduleEvaluator
         return $next;
     }
 
-    /**
-     * Preview next N scheduled runs for a schedule.
-     * 
-     * @param ReportSchedule $schedule
-     * @param int $count
-     * @return array
-     */
     public function previewNextRuns(ReportSchedule $schedule, int $count = 5): array
     {
         $runs = [];
@@ -222,7 +177,7 @@ class ScheduleEvaluator
             $nextRun = $this->calculateNextRun($tempSchedule);
             $runs[] = $nextRun->toDateTimeString();
 
-            // Update temp schedule for next iteration
+            
             $tempSchedule->next_scheduled_at = $nextRun;
             $tempSchedule->last_generated_at = $nextRun;
         }

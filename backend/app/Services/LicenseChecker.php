@@ -7,24 +7,16 @@ use App\Models\License;
 
 class LicenseChecker
 {
-    /**
-     * Check if a company has a valid license for a specific feature.
-     * 
-     * @param Company $company
-     * @param string $productSku
-     * @return bool
-     */
     public function hasLicense(Company $company, string $productSku): bool
     {
-        // Check if license enforcement is enabled
+        
         $licenseEnforcement = $company->settings['licensing']['license_enforcement'] ?? false;
 
         if (!$licenseEnforcement) {
-            // License enforcement disabled (e.g., first customer with unlimited license)
+            
             return true;
         }
 
-        // Check for active license
         return $company->licenses()
             ->where('product_sku', $productSku)
             ->where('status', 'active')
@@ -35,13 +27,6 @@ class LicenseChecker
             ->exists();
     }
 
-    /**
-     * Check if a company can activate an integration type.
-     * 
-     * @param Company $company
-     * @param string $integrationType
-     * @return array ['allowed' => bool, 'reason' => string|null]
-     */
     public function canActivateIntegration(Company $company, string $integrationType): array
     {
         $productSku = "integration_{$integrationType}";
@@ -56,16 +41,9 @@ class LicenseChecker
         return ['allowed' => true, 'reason' => null];
     }
 
-    /**
-     * Check if a company can extend data retention period.
-     * 
-     * @param Company $company
-     * @param int $requestedMonths
-     * @return array ['allowed' => bool, 'reason' => string|null]
-     */
     public function canExtendRetention(Company $company, int $requestedMonths): array
     {
-        // Check for retention licenses
+        
         $retentionLicense = $company->licenses()
             ->where('license_type', 'retention')
             ->where('status', 'active')
@@ -82,7 +60,7 @@ class LicenseChecker
             ];
         }
 
-        // Check if requested months exceeds license allowance
+        
         $allowedMonths = $retentionLicense->metadata['max_retention_months'] ?? 12;
 
         if ($requestedMonths > $allowedMonths) {
@@ -95,12 +73,6 @@ class LicenseChecker
         return ['allowed' => true, 'reason' => null];
     }
 
-    /**
-     * Get all active licenses for a company.
-     * 
-     * @param Company $company
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
     public function getActiveLicenses(Company $company)
     {
         return $company->licenses()
@@ -112,13 +84,6 @@ class LicenseChecker
             ->get();
     }
 
-    /**
-     * Check for expiring licenses and return warnings.
-     * 
-     * @param Company $company
-     * @param int $daysThreshold
-     * @return array
-     */
     public function getExpiringLicenses(Company $company, int $daysThreshold = 30): array
     {
         $expiringLicenses = $company->licenses()

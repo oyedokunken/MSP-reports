@@ -18,52 +18,46 @@ class SyncIntegrationJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
-    public $timeout = 300; // 5 minutes
+    public $timeout = 300; 
 
     protected Integration $integration;
     protected SyncLog $syncLog;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(Integration $integration, SyncLog $syncLog)
     {
         $this->integration = $integration;
         $this->syncLog = $syncLog;
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(RateLimiter $rateLimiter, SyncEngine $syncEngine): void
     {
         try {
-            // Update sync log status
+            
             $this->syncLog->update(['status' => 'running']);
 
-            // Load integration implementation
+            
             $integrationClass = $this->loadIntegrationClass();
 
             if (!$integrationClass) {
                 throw new \Exception("Integration type {$this->integration->integration_type} not found.");
             }
 
-            // Check rate limits
+            
             if (!$rateLimiter->waitForSlot($this->integration, 60)) {
                 throw new \Exception("Rate limit exceeded, could not acquire slot within timeout.");
             }
 
-            // Perform sync
+            
             $result = $integrationClass->sync();
 
-            // Record rate limit usage
+            
             $rateLimiter->recordRequest($this->integration);
 
-            // Process sync results
+            
             $recordsSynced = count($result['customers'] ?? []);
             $recordsFailed = count($result['errors'] ?? []);
 
-            // Complete sync log
+            
             $syncEngine->completeSyncLog(
                 $this->syncLog,
                 'success',
@@ -91,14 +85,11 @@ class SyncIntegrationJob implements ShouldQueue
                 [$e->getMessage()]
             );
 
-            // Re-throw to trigger retry
+            
             throw $e;
         }
     }
 
-    /**
-     * Handle a job failure.
-     */
     public function failed(\Throwable $exception): void
     {
         Log::error('Integration sync job failed permanently', [
@@ -112,9 +103,6 @@ class SyncIntegrationJob implements ShouldQueue
         ]);
     }
 
-    /**
-     * Load integration class.
-     */
     private function loadIntegrationClass()
     {
         $integrationClasses = [

@@ -31,7 +31,7 @@ class Company extends Model
         'settings' => 'array',
     ];
 
-    // Relationships
+    
 
     public function users()
     {

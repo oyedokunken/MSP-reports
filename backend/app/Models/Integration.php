@@ -12,10 +12,6 @@ class Integration extends Model
 
     protected $primaryKey = 'integration_id';
 
-    /**
-     * The "booted" method of the model.
-     * Apply global scope for multi-tenancy isolation.
-     */
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);

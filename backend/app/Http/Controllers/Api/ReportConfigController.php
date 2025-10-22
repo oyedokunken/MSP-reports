@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\ReportSchedule;
 use App\Models\GeneratedReport;
 use Carbon\Carbon;
+use App\Services\ReportGenerationService;
 
 class ReportConfigController extends Controller
 {
@@ -17,7 +18,6 @@ class ReportConfigController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        // Scan the Reports directory for available report types
         $reportsPath = app_path('Reports');
         $availableReports = [];
 
@@ -30,7 +30,7 @@ class ReportConfigController extends Controller
                 if (file_exists($configPath)) {
                     $config = include $configPath;
                     
-                    // Add the report type identifier
+                    
                     $reportType = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $reportDir));
                     
                     $availableReports[] = [
@@ -65,7 +65,7 @@ class ReportConfigController extends Controller
             ], 404);
         }
 
-        // Get all report schedules for this customer
+        
         $schedules = ReportSchedule::where('customer_id', $customer->customer_id)
             ->where('company_id', $company->company_id)
             ->get()
@@ -117,14 +117,14 @@ class ReportConfigController extends Controller
         $schedulesUpdated = 0;
 
         foreach ($validated['schedules'] as $scheduleData) {
-            // Check if schedule already exists for this report type
+            
             $existingSchedule = ReportSchedule::where('customer_id', $customer->customer_id)
                 ->where('company_id', $company->company_id)
                 ->where('report_type', $scheduleData['report_type'])
                 ->first();
 
             if ($existingSchedule) {
-                // Update existing schedule
+                
                 $existingSchedule->update([
                     'frequency' => $scheduleData['frequency'],
                     'time_of_day' => $scheduleData['time_of_day'] ?? null,
@@ -133,7 +133,7 @@ class ReportConfigController extends Controller
                 ]);
                 $schedulesUpdated++;
             } else {
-                // Create new schedule
+                
                 ReportSchedule::create([
                     'company_id' => $company->company_id,
                     'customer_id' => $customer->customer_id,
@@ -203,7 +203,7 @@ class ReportConfigController extends Controller
             ->where('company_id', $company->company_id)
             ->firstOrFail();
 
-        // Get active report schedules for this customer
+        
         $schedules = ReportSchedule::where('customer_id', $customer->customer_id)
             ->where('company_id', $company->company_id)
             ->where('active', true)
@@ -218,47 +218,24 @@ class ReportConfigController extends Controller
 
         $generatedReports = [];
         $errors = [];
+        $reportService = new ReportGenerationService();
 
         foreach ($schedules as $schedule) {
             try {
-                // Convert report_type to class name
-                $reportType = str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', $schedule->report_type)));
-                $class = "App\\Reports\\{$reportType}\\{$reportType}";
-
-                if (!class_exists($class)) {
-                    $errors[] = "Report class not found: {$class}";
-                    continue;
-                }
-
-                $reportInstance = new $class();
-
-                // Validate data availability
-                if (!method_exists($reportInstance, 'validate') || !$reportInstance->validate($customer)) {
-                    $errors[] = "Insufficient data for {$schedule->report_type}";
-                    continue;
-                }
-
-                // Generate the report
-                $period = $schedule->frequency === 'monthly' ? 'monthly' : 'weekly';
-                $filePath = $reportInstance->generate($customer, $period);
                 
-                // Deliver the report
-                if (method_exists($reportInstance, 'deliver')) {
-                    $reportInstance->deliver($company, $customer, $filePath);
-                }
+                $generatedReport = $reportService->generateReport($schedule);
+                
+                // Dispatch email delivery job
+                \App\Jobs\DeliverReportJob::dispatch($generatedReport);
+                
+                // Add email status to response
+                $reportArray = $generatedReport->toArray();
+                $reportArray['email_status'] = 'queued';
+                $reportArray['email_destination'] = $generatedReport->customer->report_destination;
+                
+                $generatedReports[] = $reportArray;
 
-                // Record the generated report
-                $generatedReports[] = GeneratedReport::create([
-                    'company_id' => $company->company_id,
-                    'customer_id' => $customer->customer_id,
-                    'report_schedule_id' => $schedule->report_schedule_id,
-                    'generated_at' => now(),
-                    'report_period' => $period,
-                    'status' => 'completed',
-                    'file_path' => str_replace(storage_path('app/'), '', $filePath),
-                ]);
-
-                // Update schedule's last generated timestamp
+                
                 $schedule->update(['last_generated_at' => now()]);
 
             } catch (\Exception $e) {

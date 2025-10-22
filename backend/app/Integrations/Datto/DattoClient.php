@@ -16,9 +16,6 @@ class DattoClient
         $this->baseUrl = $credentials['base_url'] ?? 'https://api.datto.com';
     }
 
-    /**
-     * Test API connection.
-     */
     public function testConnection(): bool
     {
         try {
@@ -29,9 +26,6 @@ class DattoClient
         }
     }
 
-    /**
-     * Get all customers from Datto.
-     */
     public function getCustomers(): array
     {
         $response = $this->makeRequest('GET', '/v1/customers');
@@ -43,9 +37,6 @@ class DattoClient
         throw new \Exception("Failed to fetch customers: " . $response->body());
     }
 
-    /**
-     * Get backup history for a date range.
-     */
     public function getBackupHistory(Carbon $startDate, Carbon $endDate): array
     {
         $response = $this->makeRequest('GET', '/v1/backups/history', [
@@ -60,9 +51,6 @@ class DattoClient
         throw new \Exception("Failed to fetch backup history: " . $response->body());
     }
 
-    /**
-     * Make an authenticated API request.
-     */
     protected function makeRequest(string $method, string $endpoint, array $params = [])
     {
         $url = $this->baseUrl . $endpoint;

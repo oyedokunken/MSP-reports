@@ -22,21 +22,15 @@ class AutoMatchCustomersJob implements ShouldQueue
 
     protected IntegrationCustomer $integrationCustomer;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(IntegrationCustomer $integrationCustomer)
     {
         $this->integrationCustomer = $integrationCustomer;
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(CustomerMappingService $mappingService): void
     {
         try {
-            // Check if already mapped
+            
             if ($this->integrationCustomer->customerMappings()->exists()) {
                 Log::info('Integration customer already mapped', [
                     'integration_customer_id' => $this->integrationCustomer->integration_customer_id,
@@ -54,13 +48,13 @@ class AutoMatchCustomersJob implements ShouldQueue
                 return;
             }
 
-            // Attempt auto-match
+            
             $match = $mappingService->autoMatch($this->integrationCustomer);
 
             if ($match) {
                 $requiresManualReview = $company->settings['customer_mapping']['manual_match_required'] ?? false;
 
-                // Create mapping
+                
                 CustomerMapping::create([
                     'customer_id' => $match['customer']->customer_id,
                     'integration_customer_id' => $this->integrationCustomer->integration_customer_id,
@@ -81,7 +75,7 @@ class AutoMatchCustomersJob implements ShouldQueue
                     'customer_name' => $this->integrationCustomer->customer_name,
                 ]);
 
-                // TODO: Notify admins of unmapped customer
+                
             }
 
         } catch (\Exception $e) {

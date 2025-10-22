@@ -19,12 +19,8 @@ class CleanupExpiredDataJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 1;
-    public $timeout = 3600; // 1 hour
+    public $timeout = 3600; 
 
-    /**
-     * Execute the job.
-     * This job runs nightly to clean up expired data per company retention policies.
-     */
     public function handle(): void
     {
         Log::info('Starting nightly data cleanup');
@@ -45,26 +41,20 @@ class CleanupExpiredDataJob implements ShouldQueue
         Log::info('Nightly data cleanup completed');
     }
 
-    /**
-     * Clean up data for a specific company.
-     */
     private function cleanupCompanyData(Company $company): void
     {
         $retentionSettings = $company->settings['data_retention'] ?? [];
 
-        // Clean up generated reports
+        
         $this->cleanupGeneratedReports($company, $retentionSettings);
 
-        // Clean up sync logs
+        
         $this->cleanupSyncLogs($company, $retentionSettings);
 
-        // Note: AuditLogs are kept for 7 years minimum (compliance requirement)
-        // IntegrationData cleanup is handled by TimescaleDB retention policies
+        
+        
     }
 
-    /**
-     * Clean up expired generated reports.
-     */
     private function cleanupGeneratedReports(Company $company, array $retentionSettings): void
     {
         $retentionMonths = $retentionSettings['generated_reports_months'] ?? 36;
@@ -77,18 +67,18 @@ class CleanupExpiredDataJob implements ShouldQueue
         $deletedCount = 0;
 
         foreach ($expiredReports as $report) {
-            // Delete file if exists
+            
             if ($report->file_path && Storage::exists($report->file_path)) {
                 Storage::delete($report->file_path);
             }
 
-            // Delete record
+            
             $report->delete();
             $deletedCount++;
         }
 
         if ($deletedCount > 0) {
-            // Log retention action
+            
             DataRetentionLog::create([
                 'company_id' => $company->company_id,
                 'record_type' => 'GeneratedReport',
@@ -107,9 +97,6 @@ class CleanupExpiredDataJob implements ShouldQueue
         }
     }
 
-    /**
-     * Clean up old sync logs.
-     */
     private function cleanupSyncLogs(Company $company, array $retentionSettings): void
     {
         $retentionMonths = $retentionSettings['integration_sync_logs_months'] ?? 12;

@@ -17,21 +17,15 @@ class GenerateReportJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 2;
-    public $timeout = 600; // 10 minutes
+    public $timeout = 600; 
 
     protected ReportSchedule $schedule;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(ReportSchedule $schedule)
     {
         $this->schedule = $schedule;
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(ReportGenerationService $reportService): void
     {
         try {
@@ -41,14 +35,14 @@ class GenerateReportJob implements ShouldQueue
                 'report_type' => $this->schedule->report_type,
             ]);
 
-            // Generate report
+            
             $generatedReport = $reportService->generateReport($this->schedule);
 
             Log::info('Report generated successfully', [
                 'generated_report_id' => $generatedReport->generated_report_id,
             ]);
 
-            // Queue delivery job
+            
             DeliverReportJob::dispatch($generatedReport);
 
         } catch (\Exception $e) {
@@ -61,16 +55,11 @@ class GenerateReportJob implements ShouldQueue
         }
     }
 
-    /**
-     * Handle a job failure.
-     */
     public function failed(\Throwable $exception): void
     {
         Log::error('Report generation job failed permanently', [
             'schedule_id' => $this->schedule->report_schedule_id,
             'error' => $exception->getMessage(),
         ]);
-
-        // TODO: Notify company admins of failure
     }
 }

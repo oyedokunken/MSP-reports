@@ -8,20 +8,15 @@ use App\Http\Middleware\SecureHeaders;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
+
     public function register(): void
     {
-        //
+        // Register services
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        // Register middleware alias
+        // Register middleware
         app('router')->aliasMiddleware('secure.headers', SecureHeaders::class);
     }
 }

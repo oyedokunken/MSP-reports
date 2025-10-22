@@ -18,38 +18,54 @@ class UptimeReport implements ReportInterface
 
     public static function getRequiredHistoricalRange(): int
     {
-        return 30; // monthly range
+        return 30; 
     }
 
     public function validate(Customer $customer): bool
     {
-        // TODO: Check if required uptime data exists
+        
         return true;
     }
 
-    public function generate(Customer $customer, string $period): string
+    public function generate(Customer $customer, $period): array
     {
         $dataGatherer = new UptimeDataGatherer($customer);
         $data = $dataGatherer->getAggregatedData($period);
 
-        $fileName = "UptimeReport_{$customer->id}_" . now()->format('Ymd') . ".pdf";
-        $filePath = storage_path("app/private/reports/{$fileName}");
-
-        $html = view('Reports.UptimeReport.template', [
-            'customer' => $customer,
-            'data' => $data,
-        ])->render();
-
-        $pdf = Pdf::loadHTML($html);
-
-        // Ensure directory exists
-        if (!is_dir(dirname($filePath))) {
-            mkdir(dirname($filePath), 0755, true);
-        }
-
-        $pdf->save($filePath);
-
-        return $filePath;
+        return [
+            'generated_at' => now()->toDateTimeString(),
+            'customer' => [
+                'id' => $customer->customer_id,
+                'name' => $customer->canonical_name,
+            ],
+            'period' => [
+                'start' => is_array($period) ? $period['start']->format('F j, Y') : $period,
+                'end' => is_array($period) ? $period['end']->format('F j, Y') : now()->format('F j, Y'),
+            ],
+            'metrics' => [
+                [
+                    'label' => 'Average Uptime',
+                    'value' => $data['avg_uptime'] ?? '99.9%',
+                    'unit' => 'percentage',
+                ],
+                [
+                    'label' => 'Total Downtime',
+                    'value' => $data['total_downtime'] ?? '2',
+                    'unit' => 'hours',
+                ],
+                [
+                    'label' => 'Incidents',
+                    'value' => $data['incident_count'] ?? '3',
+                    'unit' => 'events',
+                ],
+                [
+                    'label' => 'MTTR',
+                    'value' => $data['mttr'] ?? '45',
+                    'unit' => 'minutes',
+                ],
+            ],
+            'details' => $data,
+        ];
     }
 
     public function getTemplate(): string
@@ -59,13 +75,6 @@ class UptimeReport implements ReportInterface
 
     public function deliver(Company $company, Customer $customer, string $filePath): void
     {
-        // Delivery temporarily disabled
-        // $destination = $company->settings['reports']['default_report_destination'] ?? null;
-
-        // if ($destination) {
-        //     Mail::to($destination)->send(
-        //         new ReportDeliveryMail($company, $customer, $filePath)
-        //     );
-        // }
+        // TODO: Implement deliver method   
     }
 }

@@ -23,8 +23,8 @@ class IntegrationController extends Controller
             'Zendesk',
         ];
 
-        // $configuredIntegrations = $company->integrations()
-        //     ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth']);
+        
+        
 
         $configuredIntegrations = $company->integrations()
             ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth'])
@@ -58,13 +58,13 @@ class IntegrationController extends Controller
             'Zendesk',
         ];
 
-        // 🧼 Sanitize input
+        
         $request->merge([
             'integration_type' => trim($request->integration_type),
             'display_name' => trim(strip_tags($request->display_name)),
         ]);
 
-        // ✅ Validate input
+        
         $validated = $request->validate([
             'integration_type' => ['required', 'string', Rule::in($availableTypes)],
             'display_name' => 'required|string|min:2|max:255|regex:/^[A-Za-z0-9\s\-\_\.]+$/',
@@ -87,7 +87,7 @@ class IntegrationController extends Controller
 
         $sku = 'integration_' . strtolower($validated['integration_type']);
 
-        // Check for specific integration license OR unlimited license
+        
         $hasLicense = $company->licenses()
             ->where('status', 'active')
             ->where(function ($q) {
@@ -128,7 +128,7 @@ class IntegrationController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        // 🧼 Sanitize & validate path param
+        
         $request->merge(['integration_id' => intval($id)]);
 
         $validated = $request->validate([
@@ -182,7 +182,7 @@ class IntegrationController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        // 🧼 Sanitize & validate path param
+        
         $request->merge(['integration_id' => intval($id)]);
         $validated = $request->validate([
             'integration_id' => 'required|integer|exists:integrations,integration_id',
@@ -226,7 +226,7 @@ class IntegrationController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        // ✅ Validate input
+        
         $validated = $request->validate([
             'integration_id' => 'required|integer|exists:integrations,integration_id',
         ]);
@@ -242,7 +242,7 @@ class IntegrationController extends Controller
             ], 404);
         }
 
-        // 🧼 Reset other integrations, update selected one
+        
         $company->integrations()->update(['is_source_of_truth' => false]);
         $integration->update(['is_source_of_truth' => true]);
 
@@ -262,9 +262,6 @@ class IntegrationController extends Controller
         ], 200);
     }
 
-    /**
-     * Update integration configuration
-     */
     public function updateIntegration(Request $request, $id)
     {
         $authUser = $request->user();
@@ -293,7 +290,7 @@ class IntegrationController extends Controller
             'status' => $integration->status,
         ];
 
-        // Update fields if provided
+        
         if (isset($validated['display_name'])) {
             $integration->display_name = trim(strip_tags($validated['display_name']));
         }
@@ -312,7 +309,7 @@ class IntegrationController extends Controller
 
         $integration->save();
 
-        // Log the update
+        
         AuditLog::create([
             'company_id' => $company->company_id,
             'event_type' => 'integration_updated',
@@ -338,9 +335,6 @@ class IntegrationController extends Controller
         ]);
     }
 
-    /**
-     * Delete/disconnect integration
-     */
     public function deleteIntegration(Request $request, $id)
     {
         $authUser = $request->user();
@@ -357,7 +351,7 @@ class IntegrationController extends Controller
             ], 404);
         }
 
-        // Check if it's the source of truth
+        
         if ($integration->is_source_of_truth) {
             return response()->json([
                 'status' => 'error',
@@ -365,7 +359,7 @@ class IntegrationController extends Controller
             ], 400);
         }
 
-        // Log before deletion
+        
         AuditLog::create([
             'company_id' => $company->company_id,
             'event_type' => 'integration_deleted',
@@ -382,7 +376,7 @@ class IntegrationController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        // Delete the integration (cascade will handle related records)
+        
         $integration->delete();
 
         return response()->json([
@@ -391,9 +385,6 @@ class IntegrationController extends Controller
         ]);
     }
 
-    /**
-     * Get integration sync logs
-     */
     public function getSyncLogs(Request $request, $id)
     {
         $authUser = $request->user();
@@ -411,7 +402,7 @@ class IntegrationController extends Controller
         }
 
         $limit = $request->input('limit', 50);
-        $limit = min($limit, 100); // Max 100
+        $limit = min($limit, 100); 
 
         $syncLogs = $integration->syncLogs()
             ->orderBy('started_at', 'desc')
@@ -431,9 +422,6 @@ class IntegrationController extends Controller
         ]);
     }
 
-    /**
-     * Get integration health check
-     */
     public function healthCheck(Request $request, $id)
     {
         $authUser = $request->user();
@@ -450,8 +438,8 @@ class IntegrationController extends Controller
             ], 404);
         }
 
-        // TODO: Implement actual health check logic per integration type
-        // For now, return mock data
+        
+        
         $isHealthy = $integration->status === 'active';
         $lastSyncAge = $integration->last_sync_at 
             ? now()->diffInMinutes($integration->last_sync_at)
@@ -466,7 +454,7 @@ class IntegrationController extends Controller
             'error_message' => $integration->error_message,
             'checks' => [
                 'credentials_valid' => $integration->credentials !== null,
-                'recent_sync' => $lastSyncAge !== null && $lastSyncAge < 1440, // Within 24 hours
+                'recent_sync' => $lastSyncAge !== null && $lastSyncAge < 1440, 
                 'no_errors' => $integration->error_message === null,
             ],
         ];
@@ -477,9 +465,6 @@ class IntegrationController extends Controller
         ]);
     }
 
-    /**
-     * Get rate limit status
-     */
     public function getRateLimitStatus(Request $request, $id)
     {
         $authUser = $request->user();
@@ -496,8 +481,8 @@ class IntegrationController extends Controller
             ], 404);
         }
 
-        // TODO: Implement actual rate limit tracking with Redis
-        // For now, return mock data based on recent sync logs
+        
+        
         $recentLogs = $integration->syncLogs()
             ->where('started_at', '>', now()->subHour())
             ->get();
@@ -505,7 +490,7 @@ class IntegrationController extends Controller
         $totalHits = $recentLogs->sum('rate_limit_hits');
         $requestsLastHour = $recentLogs->count();
 
-        // Mock rate limits based on integration type
+        
         $limits = [
             'Datto' => ['per_minute' => 60, 'per_hour' => 1000],
             'Autotask' => ['per_minute' => 100, 'per_hour' => 5000],
@@ -533,9 +518,6 @@ class IntegrationController extends Controller
         ]);
     }
 
-    /**
-     * Start historical import
-     */
     public function startHistoricalImport(Request $request, $id)
     {
         $authUser = $request->user();
@@ -557,7 +539,7 @@ class IntegrationController extends Controller
             'end_date' => 'required|date|after:start_date|before_or_equal:today',
         ]);
 
-        // Check if already importing
+        
         if ($integration->historical_import_status === 'running') {
             return response()->json([
                 'status' => 'error',
@@ -565,7 +547,7 @@ class IntegrationController extends Controller
             ], 400);
         }
 
-        // Create historical import job
+        
         $job = $integration->historicalImportJobs()->create([
             'company_id' => $company->company_id,
             'import_start_date' => $validated['start_date'],
@@ -575,13 +557,13 @@ class IntegrationController extends Controller
             'priority_level' => 1,
         ]);
 
-        // Update integration status
+        
         $integration->update([
             'historical_import_status' => 'running',
             'historical_import_progress' => 0,
         ]);
 
-        // Log the action
+        
         AuditLog::create([
             'company_id' => $company->company_id,
             'event_type' => 'historical_import_started',

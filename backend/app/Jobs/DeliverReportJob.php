@@ -10,6 +10,8 @@ use Illuminate\Queue\SerializesModels;
 use App\Models\GeneratedReport;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ReportDeliveryMail;
 
 class DeliverReportJob implements ShouldQueue
 {
@@ -20,24 +22,18 @@ class DeliverReportJob implements ShouldQueue
 
     protected GeneratedReport $generatedReport;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(GeneratedReport $generatedReport)
     {
         $this->generatedReport = $generatedReport;
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(): void
     {
         try {
             $customer = $this->generatedReport->customer;
             $company = $this->generatedReport->company;
 
-            // Get delivery destination
+            
             $destination = $customer->report_destination 
                 ?? $customer->report_configuration['delivery']['destination'] 
                 ?? null;
@@ -46,7 +42,7 @@ class DeliverReportJob implements ShouldQueue
                 throw new \Exception("No delivery destination configured for customer.");
             }
 
-            // Get delivery method
+            
             $deliveryMethod = $customer->report_configuration['delivery']['method'] ?? 'email';
 
             switch ($deliveryMethod) {
@@ -62,7 +58,7 @@ class DeliverReportJob implements ShouldQueue
                     throw new \Exception("Unsupported delivery method: {$deliveryMethod}");
             }
 
-            // Update delivery status
+            
             $this->generatedReport->update([
                 'delivered' => true,
                 'delivered_at' => now(),
@@ -88,43 +84,43 @@ class DeliverReportJob implements ShouldQueue
         }
     }
 
-    /**
-     * Deliver report via email.
-     */
     private function deliverViaEmail(string $destination, $company): void
     {
-        // TODO: Implement actual email delivery
-        // For now, just log
-        Log::info('Email delivery (placeholder)', [
+        $customer = $this->generatedReport->customer;
+        $ccAddresses = $customer->report_configuration['delivery']['cc'] ?? [];
+
+        
+        $mail = Mail::to($destination);
+        
+        
+        if (!empty($ccAddresses)) {
+            $mail->cc($ccAddresses);
+        }
+
+        $mail->send(new ReportDeliveryMail($this->generatedReport, $company));
+
+        Log::info('Report delivered via email', [
             'to' => $destination,
+            'cc' => $ccAddresses,
             'report_id' => $this->generatedReport->generated_report_id,
         ]);
-
-        // Actual implementation would use Mail facade:
-        // Mail::to($destination)->send(new ReportDeliveryMail($this->generatedReport, $company));
     }
 
-    /**
-     * Deliver report via API webhook.
-     */
     private function deliverViaAPI(string $webhookUrl): void
     {
-        // TODO: Implement API webhook delivery
+        
         Log::info('API delivery (placeholder)', [
             'webhook_url' => $webhookUrl,
             'report_id' => $this->generatedReport->generated_report_id,
         ]);
 
-        // Actual implementation would use HTTP client:
-        // Http::post($webhookUrl, [
-        //     'report_id' => $this->generatedReport->generated_report_id,
-        //     'file_url' => Storage::url($this->generatedReport->file_path),
-        // ]);
+        
+        
+        
+        
+        
     }
 
-    /**
-     * Handle a job failure.
-     */
     public function failed(\Throwable $exception): void
     {
         Log::error('Report delivery job failed permanently', [

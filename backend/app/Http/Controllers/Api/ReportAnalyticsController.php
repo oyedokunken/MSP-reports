@@ -99,13 +99,13 @@ class ReportAnalyticsController extends Controller
             ], 404);
         }
 
-        // Ensure storage directory exists
+        
         $storagePath = 'private/reports';
         if (!Storage::exists($storagePath)) {
             Storage::makeDirectory($storagePath);
         }
 
-        // If file is missing, regenerate it
+        
         if (!$report->file_path || !Storage::exists($report->file_path)) {
             $customerName = $report->customer->canonical_name ?? 'Unknown_Customer';
             $timestamp = now()->format('Ymd_His');
@@ -121,7 +121,7 @@ class ReportAnalyticsController extends Controller
 
             Storage::put($filePath, $content);
 
-            // Update record with file info
+            
             $report->update([
                 'file_path' => $filePath,
                 'file_size' => Storage::size($filePath),

@@ -30,8 +30,7 @@ class IntegrationCustomer extends Model
     {
         return $this->belongsTo(Integration::class, 'integration_id', 'integration_id');
     }
-
-    // Many-to-Many through CustomerMappings
+    
     public function customers()
     {
         return $this->belongsToMany(
@@ -47,7 +46,7 @@ class IntegrationCustomer extends Model
         return $this->hasMany(CustomerMapping::class, 'integration_customer_id', 'integration_customer_id');
     }
 
-    // Link to historical data
+    
     public function integrationData()
     {
         return $this->hasMany(IntegrationData::class, 'integration_customer_id', 'integration_customer_id');

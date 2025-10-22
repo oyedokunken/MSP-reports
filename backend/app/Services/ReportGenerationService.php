@@ -10,15 +10,10 @@ use Illuminate\Support\Facades\Log;
 
 class ReportGenerationService
 {
-    /**
-     * Generate a report for a schedule.
-     * 
-     * @param ReportSchedule $schedule
-     * @return GeneratedReport
-     */
+
     public function generateReport(ReportSchedule $schedule): GeneratedReport
     {
-        // Create generated report record
+        
         $generatedReport = GeneratedReport::create([
             'company_id' => $schedule->company_id,
             'customer_id' => $schedule->customer_id,
@@ -29,28 +24,28 @@ class ReportGenerationService
         ]);
 
         try {
-            // Load report class
+            
             $reportClass = $this->loadReportClass($schedule->report_type);
 
             if (!$reportClass) {
                 throw new \Exception("Report type {$schedule->report_type} not found.");
             }
 
-            // Validate data availability
+            
             if (!$reportClass->validate($schedule->customer, $this->calculateReportPeriod($schedule))) {
                 throw new \Exception("Insufficient data to generate report.");
             }
 
-            // Generate report
+            
             $reportData = $reportClass->generate($schedule->customer, $this->calculateReportPeriod($schedule));
 
-            // Apply white-label branding
+            
             $reportData = $this->applyBranding($reportData, $schedule->company, $schedule->customer);
 
-            // Generate PDF
+            
             $pdfPath = $this->generatePDF($reportData, $schedule);
 
-            // Update generated report
+            
             $generatedReport->update([
                 'status' => 'completed',
                 'file_path' => $pdfPath,
@@ -75,12 +70,6 @@ class ReportGenerationService
         }
     }
 
-    /**
-     * Calculate the report period based on schedule frequency.
-     * 
-     * @param ReportSchedule $schedule
-     * @return array ['start' => Carbon, 'end' => Carbon]
-     */
     private function calculateReportPeriod(ReportSchedule $schedule): array
     {
         $now = now();
@@ -111,7 +100,7 @@ class ReportGenerationService
                 ];
 
             default:
-                // On-demand: last 30 days
+                
                 return [
                     'start' => $now->copy()->subDays(30),
                     'end' => $now,
@@ -119,16 +108,11 @@ class ReportGenerationService
         }
     }
 
-    /**
-     * Load report class by type.
-     * 
-     * @param string $reportType
-     * @return mixed|null
-     */
     private function loadReportClass(string $reportType)
     {
-        // Map report types to classes
+        
         $reportClasses = [
+            'uptime_report' => \App\Reports\UptimeReport\UptimeReport::class,
             'uptime_monthly' => \App\Reports\UptimeReport\UptimeReport::class,
             'security_summary' => \App\Reports\SecuritySummary\SecuritySummary::class,
         ];
@@ -142,14 +126,6 @@ class ReportGenerationService
         return null;
     }
 
-    /**
-     * Apply white-label branding to report data.
-     * 
-     * @param array $reportData
-     * @param \App\Models\Company $company
-     * @param Customer $customer
-     * @return array
-     */
     private function applyBranding(array $reportData, $company, Customer $customer): array
     {
         $whiteLabel = $company->settings['white_label'] ?? [];
@@ -169,18 +145,8 @@ class ReportGenerationService
         return $reportData;
     }
 
-    /**
-     * Generate PDF from report data.
-     * 
-     * @param array $reportData
-     * @param ReportSchedule $schedule
-     * @return string File path
-     */
     private function generatePDF(array $reportData, ReportSchedule $schedule): string
     {
-        // TODO: Implement actual PDF generation using DomPDF or similar
-        // For now, create a placeholder
-
         $filename = sprintf(
             'reports/%s/%s_%s.pdf',
             $schedule->company_id,
@@ -188,18 +154,27 @@ class ReportGenerationService
             now()->format('Y-m-d_His')
         );
 
-        // Placeholder: Store JSON data as file
-        Storage::put($filename, json_encode($reportData));
+        
+        $html = $this->generateHTML($reportData, $schedule);
+
+        
+        Storage::put($filename, $html);
 
         return $filename;
     }
 
-    /**
-     * Calculate retention date for report.
-     * 
-     * @param \App\Models\Company $company
-     * @return \Carbon\Carbon
-     */
+
+    private function generateHTML(array $reportData, ReportSchedule $schedule): string
+    {
+        return view('reports.template', [
+            'reportData' => $reportData,
+            'schedule' => $schedule,
+            'branding' => $reportData['branding'] ?? [],
+            'metrics' => $reportData['metrics'] ?? [],
+            'period' => $reportData['period'] ?? [],
+        ])->render();
+    }
+
     private function calculateRetentionDate($company): \Carbon\Carbon
     {
         $retentionDays = $company->settings['data_retention']['generated_reports_months'] ?? 36;

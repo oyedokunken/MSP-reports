@@ -17,7 +17,7 @@ class UserController extends Controller
         $users = User::where('company_id', $authUser->company_id)
                      ->with('role')
                      ->get()
-                     /** 🛡️ Hide passwords from the returned collection **/
+                     
                      ->makeHidden(['password']);
 
         return response()->json([
@@ -40,7 +40,7 @@ class UserController extends Controller
             'permissions' => 'nullable|array',
         ]);
 
-        /** 🧹 Sanitise inputs **/
+        
         $validated['name'] = trim(strip_tags($validated['name']));
         $validated['email'] = trim(strtolower($validated['email']));
         $validated['auth_method'] = trim($validated['auth_method'] ?? 'local');
@@ -70,7 +70,7 @@ class UserController extends Controller
             'permissions' => $permissions,
         ]);
 
-        /** 🛡️ Hide password before returning **/
+        
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -114,7 +114,7 @@ class UserController extends Controller
         $user->permissions = $permissions;
         $user->save();
 
-        // Log the permission change
+        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_permissions_updated',
@@ -130,7 +130,7 @@ class UserController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        /** 🛡️ Hide password before returning **/
+        
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -139,9 +139,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Update user profile (name, email, role)
-     */
     public function updateUser(Request $request, $id)
     {
         $authUser = $request->user();
@@ -169,7 +166,7 @@ class UserController extends Controller
             'role_id' => $user->role_id,
         ];
 
-        // Update fields if provided
+        
         if (isset($validated['name'])) {
             $user->name = trim(strip_tags($validated['name']));
         }
@@ -184,7 +181,7 @@ class UserController extends Controller
 
         $user->save();
 
-        // Log the update
+        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_updated',
@@ -204,7 +201,7 @@ class UserController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        /** 🛡️ Hide password before returning **/
+        
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -213,9 +210,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Deactivate a user
-     */
     public function deactivateUser(Request $request, $id)
     {
         $authUser = $request->user();
@@ -231,7 +225,7 @@ class UserController extends Controller
             ], 404);
         }
 
-        // Prevent self-deactivation
+        
         if ($user->user_id === $authUser->user_id) {
             return response()->json([
                 'status' => 'error',
@@ -242,10 +236,10 @@ class UserController extends Controller
         $user->status = 'inactive';
         $user->save();
 
-        // Revoke all user's tokens
+        
         $user->tokens()->delete();
 
-        // Log the deactivation
+        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_deactivated',
@@ -260,7 +254,7 @@ class UserController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        /** 🛡️ Hide password before returning **/
+        
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -270,9 +264,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Reactivate a user
-     */
     public function reactivateUser(Request $request, $id)
     {
         $authUser = $request->user();
@@ -291,7 +282,7 @@ class UserController extends Controller
         $user->status = 'active';
         $user->save();
 
-        // Log the reactivation
+        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_reactivated',
@@ -306,7 +297,7 @@ class UserController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        /** 🛡️ Hide password before returning **/
+        
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -316,9 +307,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Delete a user (soft delete via status change)
-     */
     public function deleteUser(Request $request, $id)
     {
         $authUser = $request->user();
@@ -334,7 +322,7 @@ class UserController extends Controller
             ], 404);
         }
 
-        // Prevent self-deletion
+        
         if ($user->user_id === $authUser->user_id) {
             return response()->json([
                 'status' => 'error',
@@ -342,10 +330,10 @@ class UserController extends Controller
             ], 400);
         }
 
-        // Revoke all user's tokens
+        
         $user->tokens()->delete();
 
-        // Log the deletion before deleting
+        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_deleted',
@@ -361,7 +349,7 @@ class UserController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        // Actually delete the user
+        
         $user->delete();
 
         return response()->json([
@@ -370,9 +358,6 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * Reset user password (admin function)
-     */
     public function resetUserPassword(Request $request, $id)
     {
         $authUser = $request->user();
@@ -388,7 +373,7 @@ class UserController extends Controller
             ], 404);
         }
 
-        // Only for local auth users
+        
         if ($user->auth_method !== 'local') {
             return response()->json([
                 'status' => 'error',
@@ -400,14 +385,14 @@ class UserController extends Controller
             'new_password' => 'required|string|min:8',
         ]);
 
-        // Update password
+        
         $user->password = Hash::make($validated['new_password']);
         $user->save();
 
-        // Revoke all user's tokens for security
+        
         $user->tokens()->delete();
 
-        // Log the password reset
+        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_password_reset_by_admin',

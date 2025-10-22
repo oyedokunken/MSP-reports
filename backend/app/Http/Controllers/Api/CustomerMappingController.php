@@ -129,7 +129,7 @@ class CustomerMappingController extends Controller
 
         $integrationCustomer = IntegrationCustomer::find($request->integration_customer_id);
 
-        // Ensure the integration belongs to the same company
+        
         if ($integrationCustomer->integration->company_id !== $company->company_id) {
             return response()->json([
                 'status' => 'error',
@@ -203,9 +203,6 @@ class CustomerMappingController extends Controller
         ]);
     }
 
-    /**
-     * Update customer details
-     */
     public function updateCustomer(Request $request, $id)
     {
         $authUser = $request->user();
@@ -235,7 +232,7 @@ class CustomerMappingController extends Controller
             'report_destination' => $customer->report_destination,
         ];
 
-        // Update fields if provided
+        
         if (isset($validated['canonical_name'])) {
             $customer->canonical_name = trim(strip_tags($validated['canonical_name']));
         }
@@ -254,7 +251,7 @@ class CustomerMappingController extends Controller
 
         $customer->save();
 
-        // Log the update
+        
         AuditLog::create([
             'company_id' => $company->company_id,
             'event_type' => 'customer_updated',
@@ -280,9 +277,6 @@ class CustomerMappingController extends Controller
         ]);
     }
 
-    /**
-     * Merge two customers
-     */
     public function mergeCustomers(Request $request, $id)
     {
         $authUser = $request->user();
@@ -323,21 +317,21 @@ class CustomerMappingController extends Controller
 
         DB::beginTransaction();
         try {
-            // Move all integration customer mappings to primary
+            
             IntegrationCustomer::where('customer_id', $mergeCustomer->customer_id)
                 ->update(['customer_id' => $primaryCustomer->customer_id]);
 
-            // Move all report schedules to primary
+            
             $mergeCustomer->reportSchedules()->update([
                 'customer_id' => $primaryCustomer->customer_id,
             ]);
 
-            // Move all generated reports to primary
+            
             $mergeCustomer->generatedReports()->update([
                 'customer_id' => $primaryCustomer->customer_id,
             ]);
 
-            // Log the merge
+            
             AuditLog::create([
                 'company_id' => $company->company_id,
                 'event_type' => 'customers_merged',
@@ -360,7 +354,7 @@ class CustomerMappingController extends Controller
                 'user_agent' => $request->userAgent(),
             ]);
 
-            // Delete the merged customer
+            
             $mergeCustomer->delete();
 
             DB::commit();
@@ -379,9 +373,6 @@ class CustomerMappingController extends Controller
         }
     }
 
-    /**
-     * Split customer (reassign specific integration customers to new customer)
-     */
     public function splitCustomer(Request $request, $id)
     {
         $authUser = $request->user();
@@ -406,7 +397,7 @@ class CustomerMappingController extends Controller
 
         DB::beginTransaction();
         try {
-            // Create new customer
+            
             $newCustomer = Customer::create([
                 'company_id' => $company->company_id,
                 'canonical_name' => trim(strip_tags($validated['new_customer_name'])),
@@ -415,7 +406,7 @@ class CustomerMappingController extends Controller
                 'metadata' => $originalCustomer->metadata,
             ]);
 
-            // Move specified integration customer mappings to new customer
+            
             $movedCount = CustomerMapping::whereIn('integration_customer_id', $validated['integration_customer_ids'])
                 ->where('customer_id', $originalCustomer->customer_id)
                 ->update(['customer_id' => $newCustomer->customer_id]);
@@ -428,7 +419,7 @@ class CustomerMappingController extends Controller
                 ], 400);
             }
 
-            // Log the split
+            
             AuditLog::create([
                 'company_id' => $company->company_id,
                 'event_type' => 'customer_split',
@@ -470,9 +461,6 @@ class CustomerMappingController extends Controller
         }
     }
 
-    /**
-     * Bulk map integration customers
-     */
     public function bulkMapCustomers(Request $request)
     {
         $authUser = $request->user();
@@ -497,14 +485,14 @@ class CustomerMappingController extends Controller
             foreach ($validated['mappings'] as $mapping) {
                 $integrationCustomer = IntegrationCustomer::find($mapping['integration_customer_id']);
 
-                // Verify company ownership
+                
                 if ($integrationCustomer->integration->company_id !== $company->company_id) {
                     $failedCount++;
                     $errors[] = "Integration customer {$mapping['integration_customer_id']} does not belong to your company";
                     continue;
                 }
 
-                // Create new customer or use existing
+                
                 if (!empty($mapping['create_new']) && $mapping['create_new'] === true) {
                     $customer = Customer::create([
                         'company_id' => $company->company_id,
@@ -523,7 +511,7 @@ class CustomerMappingController extends Controller
                     }
                 }
 
-                // Create mapping
+                
                 CustomerMapping::create([
                     'customer_id' => $customer->customer_id,
                     'integration_customer_id' => $integrationCustomer->integration_customer_id,
@@ -537,7 +525,7 @@ class CustomerMappingController extends Controller
                 $successCount++;
             }
 
-            // Log the bulk operation
+            
             AuditLog::create([
                 'company_id' => $company->company_id,
                 'event_type' => 'bulk_customer_mapping',
@@ -572,9 +560,6 @@ class CustomerMappingController extends Controller
         }
     }
 
-    /**
-     * Delete a specific customer mapping
-     */
     public function deleteMapping(Request $request, $customerId, $mappingId)
     {
         $authUser = $request->user();
@@ -603,7 +588,7 @@ class CustomerMappingController extends Controller
             ], 404);
         }
 
-        // Verify company ownership through integration
+        
         if ($mapping->integrationCustomer->integration->company_id !== $company->company_id) {
             return response()->json([
                 'status' => 'error',
@@ -611,7 +596,7 @@ class CustomerMappingController extends Controller
             ], 403);
         }
 
-        // Log before deleting
+        
         AuditLog::create([
             'company_id' => $company->company_id,
             'event_type' => 'customer_mapping_deleted',
@@ -629,7 +614,7 @@ class CustomerMappingController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        // Delete the mapping
+        
         $mapping->delete();
 
         return response()->json([

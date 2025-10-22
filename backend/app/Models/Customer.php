@@ -12,10 +12,10 @@ class Customer extends Model
 
     protected $primaryKey = 'customer_id';
 
-    /**
-     * The "booted" method of the model.
-     * Apply global scope for multi-tenancy isolation.
-     */
+    
+
+
+
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
@@ -40,7 +40,7 @@ class Customer extends Model
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
-    // Many-to-Many through CustomerMappings
+    
     public function integrationCustomers()
     {
         return $this->belongsToMany(

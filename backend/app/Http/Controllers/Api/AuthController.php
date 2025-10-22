@@ -19,7 +19,7 @@ class AuthController extends Controller
     {
         $validated = $request->validated();
 
-        /** 🧹 Sanitise email and auth_method **/
+        
         $validated['email'] = trim(strtolower($validated['email']));
         $validated['auth_method'] = trim($validated['auth_method']);
 
@@ -62,7 +62,7 @@ class AuthController extends Controller
 
         $token = $user->createToken('api-token')->plainTextToken;
 
-        /** 🧾 Log the login event **/
+        
         AuditLog::create([
             'company_id'  => $user->company_id,
             'event_type'  => 'login',
@@ -77,7 +77,7 @@ class AuthController extends Controller
             'user_agent'  => $request->userAgent(),
         ]);
 
-        /** 🛡️ Hide sensitive user fields before returning **/
+        
         $sanitisedUser = $user->makeHidden(['password', 'remember_token']);
 
         return response()->json([
@@ -118,7 +118,7 @@ class AuthController extends Controller
     {
         $user = $request->user()->load('role', 'company');
 
-        /** 🛡️ Hide sensitive fields **/
+        
         $sanitisedUser = $user->makeHidden(['password', 'remember_token']);
 
         return response()->json([
@@ -127,9 +127,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Request password reset - sends email with reset token
-     */
     public function requestPasswordReset(Request $request)
     {
         $validated = $request->validate([
@@ -142,7 +139,7 @@ class AuthController extends Controller
                     ->where('auth_method', 'local')
                     ->first();
 
-        // Always return success to prevent email enumeration
+        
         if (!$user) {
             return response()->json([
                 'status' => 'success',
@@ -150,14 +147,14 @@ class AuthController extends Controller
             ]);
         }
 
-        // Delete any existing tokens for this email
+        
         PasswordResetToken::where('email', $email)->delete();
 
-        // Generate secure token
+        
         $token = Str::random(64);
         $hashedToken = hash('sha256', $token);
 
-        // Create password reset token (expires in 1 hour)
+        
         PasswordResetToken::create([
             'email' => $email,
             'token' => $hashedToken,
@@ -165,11 +162,11 @@ class AuthController extends Controller
             'expires_at' => now()->addHour(),
         ]);
 
-        // TODO: Send email with reset link
-        // For now, we'll log it (in production, send actual email)
-        // Mail::to($user->email)->send(new PasswordResetMail($token, $user));
         
-        // Log the password reset request
+        
+        
+        
+        
         AuditLog::create([
             'company_id' => $user->company_id,
             'event_type' => 'password_reset_requested',
@@ -186,14 +183,11 @@ class AuthController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'If an account exists with this email, a password reset link has been sent.',
-            // TODO: Remove this in production - only for testing
+            
             'debug_token' => config('app.debug') ? $token : null,
         ]);
     }
 
-    /**
-     * Reset password using token
-     */
     public function resetPassword(Request $request)
     {
         $validated = $request->validate([
@@ -205,7 +199,7 @@ class AuthController extends Controller
         $email = trim(strtolower($validated['email']));
         $hashedToken = hash('sha256', $validated['token']);
 
-        // Find valid token
+        
         $resetToken = PasswordResetToken::where('email', $email)
                                         ->where('token', $hashedToken)
                                         ->valid()
@@ -217,7 +211,7 @@ class AuthController extends Controller
             ]);
         }
 
-        // Find user
+        
         $user = User::where('email', $email)
                     ->where('auth_method', 'local')
                     ->first();
@@ -228,17 +222,17 @@ class AuthController extends Controller
             ]);
         }
 
-        // Update password
+        
         $user->password = Hash::make($validated['password']);
         $user->save();
 
-        // Delete the used token
+        
         $resetToken->delete();
 
-        // Revoke all existing tokens for security
+        
         $user->tokens()->delete();
 
-        // Log the password reset
+        
         AuditLog::create([
             'company_id' => $user->company_id,
             'event_type' => 'password_reset_completed',
@@ -258,14 +252,11 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Change password for authenticated user
-     */
     public function changePassword(Request $request)
     {
         $user = $request->user();
 
-        // Only local auth users can change password
+        
         if ($user->auth_method !== 'local') {
             return response()->json([
                 'status' => 'error',
@@ -278,18 +269,18 @@ class AuthController extends Controller
             'new_password' => 'required|string|min:8|confirmed',
         ]);
 
-        // Verify current password
+        
         if (!Hash::check($validated['current_password'], $user->password)) {
             throw ValidationException::withMessages([
                 'current_password' => ['Current password is incorrect.'],
             ]);
         }
 
-        // Update password
+        
         $user->password = Hash::make($validated['new_password']);
         $user->save();
 
-        // Log the password change
+        
         AuditLog::create([
             'company_id' => $user->company_id,
             'event_type' => 'password_changed',

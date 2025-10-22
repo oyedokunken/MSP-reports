@@ -17,33 +17,27 @@ class DattoIntegration implements IntegrationInterface
         $this->client = new DattoClient($integration->credentials);
     }
 
-    /**
-     * Authenticate and validate credentials.
-     */
     public function authenticate(): bool
     {
         return $this->client->testConnection();
     }
 
-    /**
-     * Pull latest current-state data from the integration.
-     */
     public function sync(): array
     {
         $customers = [];
         $errors = [];
 
         try {
-            // Get customers from Datto
+            
             $dattoCustomers = $this->client->getCustomers();
 
             foreach ($dattoCustomers as $dattoCustomer) {
                 try {
-                    // Transform to standardized format
+                    
                     $standardized = DattoMapper::mapCustomer($dattoCustomer);
                     $customers[] = $standardized;
 
-                    // Store in IntegrationCustomer model
+                    
                     $this->storeCustomer($standardized);
 
                 } catch (\Exception $e) {
@@ -61,25 +55,19 @@ class DattoIntegration implements IntegrationInterface
         ];
     }
 
-    /**
-     * Get customer list in standardized format.
-     */
     public function getCustomers(): array
     {
         $dattoCustomers = $this->client->getCustomers();
         return array_map(fn($customer) => DattoMapper::mapCustomer($customer), $dattoCustomers);
     }
 
-    /**
-     * Pull historical data for a specific date range.
-     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         $data = [];
         $errors = [];
 
         try {
-            // Get historical backup data
+            
             $backupData = $this->client->getBackupHistory($startDate, $endDate);
 
             foreach ($backupData as $record) {
@@ -87,7 +75,7 @@ class DattoIntegration implements IntegrationInterface
                     $standardized = DattoMapper::mapBackupData($record);
                     $data[] = $standardized;
 
-                    // Store in IntegrationData model
+                    
                     $this->storeHistoricalData($standardized);
 
                 } catch (\Exception $e) {
@@ -105,18 +93,12 @@ class DattoIntegration implements IntegrationInterface
         ];
     }
 
-    /**
-     * Query how far back historical data is available.
-     */
     public function getAvailableHistoryRange(): ?Carbon
     {
-        // Datto typically keeps 90 days of backup history
+        
         return now()->subDays(90);
     }
 
-    /**
-     * Get metadata about what data fields this integration provides.
-     */
     public function getMetadata(): array
     {
         return [
@@ -132,18 +114,12 @@ class DattoIntegration implements IntegrationInterface
         ];
     }
 
-    /**
-     * Clean up connection and revoke tokens if applicable.
-     */
     public function disconnect(): void
     {
-        // Datto uses API keys, no token revocation needed
-        // Just clear cached data if any
+        
+        
     }
 
-    /**
-     * Test if connection is still valid.
-     */
     public function healthCheck(): bool
     {
         try {
@@ -153,9 +129,6 @@ class DattoIntegration implements IntegrationInterface
         }
     }
 
-    /**
-     * Declare API rate limits for this integration.
-     */
     public function getRateLimits(): array
     {
         return [
@@ -164,9 +137,6 @@ class DattoIntegration implements IntegrationInterface
         ];
     }
 
-    /**
-     * Store customer in database.
-     */
     private function storeCustomer(array $customer): void
     {
         \App\Models\IntegrationCustomer::updateOrCreate(
@@ -183,9 +153,6 @@ class DattoIntegration implements IntegrationInterface
         );
     }
 
-    /**
-     * Store historical data in database.
-     */
     private function storeHistoricalData(array $data): void
     {
         \App\Models\IntegrationData::create([
