@@ -45,14 +45,9 @@ class CleanupExpiredDataJob implements ShouldQueue
     {
         $retentionSettings = $company->settings['data_retention'] ?? [];
 
-        
         $this->cleanupGeneratedReports($company, $retentionSettings);
 
-        
         $this->cleanupSyncLogs($company, $retentionSettings);
-
-        
-        
     }
 
     private function cleanupGeneratedReports(Company $company, array $retentionSettings): void
@@ -71,8 +66,7 @@ class CleanupExpiredDataJob implements ShouldQueue
             if ($report->file_path && Storage::exists($report->file_path)) {
                 Storage::delete($report->file_path);
             }
-
-            
+ 
             $report->delete();
             $deletedCount++;
         }

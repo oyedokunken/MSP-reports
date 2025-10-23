@@ -20,7 +20,6 @@ class SecuritySummary implements ReportInterface
 
     public function validate(Customer $customer): bool
     {
-        
         return true;
     }
 
@@ -28,7 +27,6 @@ class SecuritySummary implements ReportInterface
     {
         $dataGatherer = new SecurityDataGatherer($customer);
         $data = $dataGatherer->getAggregatedData($period);
-
         
         return [
             'generated_at' => now()->toDateTimeString(),
@@ -73,6 +71,6 @@ class SecuritySummary implements ReportInterface
 
     public function deliver(Company $company, Customer $customer, string $filePath): void
     {
-        
+        // TODO: Implement deliver method.
     }
 }

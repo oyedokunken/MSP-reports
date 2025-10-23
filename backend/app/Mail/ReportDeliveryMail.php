@@ -69,8 +69,8 @@ class ReportDeliveryMail extends Mailable
     {
         $attachments = [];
 
-        if ($this->report->file_path && Storage::exists($this->report->file_path)) {
-            $attachments[] = Attachment::fromStorage($this->report->file_path)
+        if ($this->report->file_path && Storage::disk('reports')->exists($this->report->file_path)) {
+            $attachments[] = Attachment::fromStorageDisk('reports', $this->report->file_path)
                 ->as(sprintf(
                     '%s_Report_%s.pdf',
                     str_replace(' ', '_', $this->report->customer->canonical_name),

@@ -16,7 +16,7 @@ class CustomerTestDataSeeder extends Seeder
      * Seed test data for customer mapping endpoints testing.
      * 
      * This creates:
-     * - 2 integrations (Datto and Autotask)
+     * - 2 integrations (Autotask primary, Datto secondary)
      * - 10 integration customers (some mapped, some unmapped)
      * - 5 unified customers
      * - Various mapping scenarios for testing
@@ -33,28 +33,7 @@ class CustomerTestDataSeeder extends Seeder
         $admin = User::where('company_id', $company->company_id)->first();
 
         // === Create Integrations ===
-        $dattoIntegration = Integration::firstOrCreate(
-            [
-                'company_id' => $company->company_id,
-                'integration_type' => 'Datto',
-            ],
-            [
-                'display_name' => 'Datto RMM Production',
-                'status' => 'active',
-                'credentials' => [
-                    'api_key' => 'test_datto_key_123',
-                    'api_secret' => 'test_datto_secret_456',
-                ],
-                'configuration' => [
-                    'sync_interval' => 3600,
-                    'enable_auto_sync' => true,
-                ],
-                'is_source_of_truth' => true,
-                'last_sync_at' => now()->subHours(2),
-                'last_sync_status' => 'success',
-            ]
-        );
-
+        // Autotask (Primary First Integration - Source of Truth)
         $autotaskIntegration = Integration::firstOrCreate(
             [
                 'company_id' => $company->company_id,
@@ -68,10 +47,33 @@ class CustomerTestDataSeeder extends Seeder
                     'api_key' => 'test_autotask_key_789',
                 ],
                 'configuration' => [
+                    'sync_interval' => 3600,
+                    'enable_auto_sync' => true,
+                ],
+                'is_source_of_truth' => true,  // Autotask as primary source
+                'last_sync_at' => now()->subHours(1),
+                'last_sync_status' => 'success',
+            ]
+        );
+
+        // Datto (Secondary Integration)
+        $dattoIntegration = Integration::firstOrCreate(
+            [
+                'company_id' => $company->company_id,
+                'integration_type' => 'Datto',
+            ],
+            [
+                'display_name' => 'Datto RMM Production',
+                'status' => 'active',
+                'credentials' => [
+                    'api_key' => 'test_datto_key_123',
+                    'api_secret' => 'test_datto_secret_456',
+                ],
+                'configuration' => [
                     'sync_interval' => 7200,
                 ],
                 'is_source_of_truth' => false,
-                'last_sync_at' => now()->subHours(1),
+                'last_sync_at' => now()->subHours(2),
                 'last_sync_status' => 'success',
             ]
         );
@@ -301,10 +303,10 @@ class CustomerTestDataSeeder extends Seeder
         $this->command->info('✅ Customer test data seeded successfully!');
         $this->command->info('');
         $this->command->info('📊 Summary:');
-        $this->command->info('  - 2 Integrations (Datto, Autotask)');
+        $this->command->info('  - 2 Integrations (Autotask primary, Datto secondary)');
         $this->command->info('  - 5 Unified Customers');
-        $this->command->info('  - 7 Datto Integration Customers (3 mapped, 4 unmapped)');
-        $this->command->info('  - 5 Autotask Integration Customers (3 mapped, 2 unmapped)');
+        $this->command->info('  - 5 Autotask Integration Customers (3 mapped, 2 unmapped) - Primary');
+        $this->command->info('  - 7 Datto Integration Customers (3 mapped, 4 unmapped) - Secondary');
         $this->command->info('  - 6 Customer Mappings');
         $this->command->info('');
         $this->command->info('🧪 Test Scenarios Available:');

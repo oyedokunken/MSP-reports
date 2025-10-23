@@ -16,15 +16,12 @@ class IntegrationController extends Controller
         $company = $authUser->company;
 
         $availableTypes = [
+            'Autotask',  // Primary first integration
             'Datto',
-            'Autotask',
             'ConnectWise',
             'Microsoft365',
             'Zendesk',
         ];
-
-        
-        
 
         $configuredIntegrations = $company->integrations()
             ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth'])
@@ -51,20 +48,18 @@ class IntegrationController extends Controller
         $company = $authUser->company;
 
         $availableTypes = [
+            'Autotask',  // Primary first integration
             'Datto',
-            'Autotask',
             'ConnectWise',
             'Microsoft365',
             'Zendesk',
         ];
-
         
         $request->merge([
             'integration_type' => trim($request->integration_type),
             'display_name' => trim(strip_tags($request->display_name)),
         ]);
 
-        
         $validated = $request->validate([
             'integration_type' => ['required', 'string', Rule::in($availableTypes)],
             'display_name' => 'required|string|min:2|max:255|regex:/^[A-Za-z0-9\s\-\_\.]+$/',
@@ -87,7 +82,6 @@ class IntegrationController extends Controller
 
         $sku = 'integration_' . strtolower($validated['integration_type']);
 
-        
         $hasLicense = $company->licenses()
             ->where('status', 'active')
             ->where(function ($q) {
@@ -128,7 +122,6 @@ class IntegrationController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        
         $request->merge(['integration_id' => intval($id)]);
 
         $validated = $request->validate([
@@ -182,7 +175,6 @@ class IntegrationController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        
         $request->merge(['integration_id' => intval($id)]);
         $validated = $request->validate([
             'integration_id' => 'required|integer|exists:integrations,integration_id',
@@ -226,7 +218,6 @@ class IntegrationController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        
         $validated = $request->validate([
             'integration_id' => 'required|integer|exists:integrations,integration_id',
         ]);
@@ -242,7 +233,6 @@ class IntegrationController extends Controller
             ], 404);
         }
 
-        
         $company->integrations()->update(['is_source_of_truth' => false]);
         $integration->update(['is_source_of_truth' => true]);
 
@@ -290,7 +280,6 @@ class IntegrationController extends Controller
             'status' => $integration->status,
         ];
 
-        
         if (isset($validated['display_name'])) {
             $integration->display_name = trim(strip_tags($validated['display_name']));
         }
@@ -309,7 +298,6 @@ class IntegrationController extends Controller
 
         $integration->save();
 
-        
         AuditLog::create([
             'company_id' => $company->company_id,
             'event_type' => 'integration_updated',
@@ -351,15 +339,13 @@ class IntegrationController extends Controller
             ], 404);
         }
 
-        
         if ($integration->is_source_of_truth) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Cannot delete source of truth integration. Please designate another integration as source of truth first.'
             ], 400);
         }
-
-        
+  
         AuditLog::create([
             'company_id' => $company->company_id,
             'event_type' => 'integration_deleted',
@@ -376,7 +362,6 @@ class IntegrationController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        
         $integration->delete();
 
         return response()->json([
@@ -437,8 +422,6 @@ class IntegrationController extends Controller
                 'message' => 'Integration not found for this company.'
             ], 404);
         }
-
-        
         
         $isHealthy = $integration->status === 'active';
         $lastSyncAge = $integration->last_sync_at 
@@ -481,8 +464,6 @@ class IntegrationController extends Controller
             ], 404);
         }
 
-        
-        
         $recentLogs = $integration->syncLogs()
             ->where('started_at', '>', now()->subHour())
             ->get();
@@ -490,10 +471,9 @@ class IntegrationController extends Controller
         $totalHits = $recentLogs->sum('rate_limit_hits');
         $requestsLastHour = $recentLogs->count();
 
-        
         $limits = [
-            'Datto' => ['per_minute' => 60, 'per_hour' => 1000],
             'Autotask' => ['per_minute' => 100, 'per_hour' => 5000],
+            'Datto' => ['per_minute' => 60, 'per_hour' => 1000],
             'ConnectWise' => ['per_minute' => 120, 'per_hour' => 6000],
             'Microsoft365' => ['per_minute' => 200, 'per_hour' => 10000],
             'Zendesk' => ['per_minute' => 100, 'per_hour' => 5000],
@@ -518,7 +498,7 @@ class IntegrationController extends Controller
         ]);
     }
 
-    public function startHistoricalImport(Request $request, $id)
+    public function startHistoricalImport(Request $request, $id, LicenseChecker $licenseChecker)
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -539,14 +519,27 @@ class IntegrationController extends Controller
             'end_date' => 'required|date|after:start_date|before_or_equal:today',
         ]);
 
+        // Check retention license
+        $startDate = \Carbon\Carbon::parse($validated['start_date']);
+        $endDate = \Carbon\Carbon::parse($validated['end_date']);
+        $requestedMonths = $startDate->diffInMonths($endDate);
         
+        $retentionCheck = $licenseChecker->canExtendRetention($company, $requestedMonths);
+        
+        if (!$retentionCheck['allowed']) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $retentionCheck['reason'],
+                'requested_months' => $requestedMonths
+            ], 403);
+        }
+
         if ($integration->historical_import_status === 'running') {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Historical import is already running for this integration.'
             ], 400);
         }
-
         
         $job = $integration->historicalImportJobs()->create([
             'company_id' => $company->company_id,
@@ -557,13 +550,11 @@ class IntegrationController extends Controller
             'priority_level' => 1,
         ]);
 
-        
         $integration->update([
             'historical_import_status' => 'running',
             'historical_import_progress' => 0,
         ]);
 
-        
         AuditLog::create([
             'company_id' => $company->company_id,
             'event_type' => 'historical_import_started',

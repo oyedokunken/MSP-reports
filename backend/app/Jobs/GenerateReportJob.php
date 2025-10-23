@@ -34,14 +34,12 @@ class GenerateReportJob implements ShouldQueue
                 'customer_id' => $this->schedule->customer_id,
                 'report_type' => $this->schedule->report_type,
             ]);
-
             
             $generatedReport = $reportService->generateReport($this->schedule);
 
             Log::info('Report generated successfully', [
                 'generated_report_id' => $generatedReport->generated_report_id,
             ]);
-
             
             DeliverReportJob::dispatch($generatedReport);
 
@@ -50,7 +48,6 @@ class GenerateReportJob implements ShouldQueue
                 'schedule_id' => $this->schedule->report_schedule_id,
                 'error' => $e->getMessage(),
             ]);
-
             throw $e;
         }
     }

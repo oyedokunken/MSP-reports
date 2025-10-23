@@ -144,22 +144,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // === License for Datto ===
-        License::firstOrCreate(
-            [
-                'company_id' => $company->company_id,
-                'product_sku' => 'integration_datto',
-            ],
-            [
-                'license_type' => 'integration',
-                'status' => 'active',
-                'expiry_date' => null,
-                'quantity' => null,
-                'metadata' => ['note' => 'Perpetual license for testing'],
-            ]
-        );
-
-        // === License for Autotask ===
+        // === License for Autotask (Primary First Integration) ===
         License::firstOrCreate(
             [
                 'company_id' => $company->company_id,
@@ -170,20 +155,35 @@ class DatabaseSeeder extends Seeder
                 'status' => 'active',
                 'expiry_date' => null,
                 'quantity' => null,
-                'metadata' => ['note' => 'Perpetual license for Autotask testing'],
+                'metadata' => ['note' => 'Perpetual license for Autotask - Primary first integration'],
             ]
         );
 
-        // === Integration ===
+        // === License for Datto (Secondary) ===
+        License::firstOrCreate(
+            [
+                'company_id' => $company->company_id,
+                'product_sku' => 'integration_datto',
+            ],
+            [
+                'license_type' => 'integration',
+                'status' => 'active',
+                'expiry_date' => null,
+                'quantity' => null,
+                'metadata' => ['note' => 'Perpetual license for Datto testing'],
+            ]
+        );
+
+        // === Integration (Autotask - Primary) ===
         $integration = Integration::firstOrCreate(
             [
                 'company_id' => $company->company_id,
-                'integration_type' => 'Datto',
+                'integration_type' => 'Autotask',
             ],
             [
-                'display_name' => 'Datto Backup',
+                'display_name' => 'Autotask PSA',
                 'status' => 'active',
-                'is_source_of_truth' => false,
+                'is_source_of_truth' => true,  // Autotask as primary source
             ]
         );
 

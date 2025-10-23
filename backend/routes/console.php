@@ -13,3 +13,15 @@ Schedule::command('reports:evaluate-schedules')
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Schedule integration sync evaluation to run every 4 hours
+Schedule::command('integrations:evaluate-syncs')
+    ->everyFourHours()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Schedule data cleanup to run nightly at 2am
+Schedule::command('data:cleanup')
+    ->dailyAt('02:00')
+    ->withoutOverlapping()
+    ->runInBackground();

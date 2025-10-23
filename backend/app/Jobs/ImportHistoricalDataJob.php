@@ -121,8 +121,8 @@ class ImportHistoricalDataJob implements ShouldQueue
     private function loadIntegrationClass(Integration $integration)
     {
         $integrationClasses = [
+            'Autotask' => \App\Integrations\Autotask\AutotaskIntegration::class,  // Primary first integration
             'Datto' => \App\Integrations\Datto\DattoIntegration::class,
-            'Autotask' => \App\Integrations\Autotask\AutotaskIntegration::class,
         ];
 
         $className = $integrationClasses[$integration->integration_type] ?? null;

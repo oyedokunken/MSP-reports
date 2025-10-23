@@ -7,6 +7,7 @@ use App\Models\GeneratedReport;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportGenerationService
 {
@@ -49,7 +50,7 @@ class ReportGenerationService
             $generatedReport->update([
                 'status' => 'completed',
                 'file_path' => $pdfPath,
-                'file_size' => Storage::size($pdfPath),
+                'file_size' => Storage::disk('reports')->size($pdfPath),
                 'retention_until' => $this->calculateRetentionDate($schedule->company),
             ]);
 
@@ -148,17 +149,23 @@ class ReportGenerationService
     private function generatePDF(array $reportData, ReportSchedule $schedule): string
     {
         $filename = sprintf(
-            'reports/%s/%s_%s.pdf',
+            '%s/%s_%s.pdf',
             $schedule->company_id,
             $schedule->customer_id,
             now()->format('Y-m-d_His')
         );
 
-        
+        // Generate HTML from template
         $html = $this->generateHTML($reportData, $schedule);
 
-        
-        Storage::put($filename, $html);
+        // Generate PDF from HTML using DomPDF
+        $pdf = Pdf::loadHTML($html)
+            ->setPaper('a4', 'portrait')
+            ->setOption('isHtml5ParserEnabled', true)
+            ->setOption('isRemoteEnabled', true); // Allow external images/CSS
+
+        // Save PDF to storage
+        Storage::disk('reports')->put($filename, $pdf->output());
 
         return $filename;
     }
@@ -166,6 +173,29 @@ class ReportGenerationService
 
     private function generateHTML(array $reportData, ReportSchedule $schedule): string
     {
+        // Load the report class to get the correct template
+        $reportClass = $this->loadReportClass($schedule->report_type);
+        
+        if ($reportClass && method_exists($reportClass, 'getTemplate')) {
+            $templatePath = $reportClass->getTemplate();
+            
+            // Check if the template file exists
+            if (file_exists($templatePath)) {
+                // Render the specific report template
+                return view()->file($templatePath, [
+                    'reportData' => $reportData,
+                    'schedule' => $schedule,
+                    'customer' => $schedule->customer,
+                    'branding' => $reportData['branding'] ?? [],
+                    'metrics' => $reportData['metrics'] ?? [],
+                    'period' => $reportData['period'] ?? [],
+                    'data' => $reportData['data'] ?? [],
+                    'alerts' => $reportData['alerts'] ?? [],
+                ])->render();
+            }
+        }
+        
+        // Fallback to generic template if specific template not found
         return view('reports.template', [
             'reportData' => $reportData,
             'schedule' => $schedule,

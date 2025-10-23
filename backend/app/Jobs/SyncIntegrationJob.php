@@ -32,31 +32,25 @@ class SyncIntegrationJob implements ShouldQueue
     public function handle(RateLimiter $rateLimiter, SyncEngine $syncEngine): void
     {
         try {
-            
-            $this->syncLog->update(['status' => 'running']);
 
+            $this->syncLog->update(['status' => 'running']);
             
             $integrationClass = $this->loadIntegrationClass();
 
             if (!$integrationClass) {
                 throw new \Exception("Integration type {$this->integration->integration_type} not found.");
             }
-
             
             if (!$rateLimiter->waitForSlot($this->integration, 60)) {
                 throw new \Exception("Rate limit exceeded, could not acquire slot within timeout.");
             }
-
             
             $result = $integrationClass->sync();
-
             
             $rateLimiter->recordRequest($this->integration);
-
             
             $recordsSynced = count($result['customers'] ?? []);
             $recordsFailed = count($result['errors'] ?? []);
-
             
             $syncEngine->completeSyncLog(
                 $this->syncLog,
@@ -84,7 +78,6 @@ class SyncIntegrationJob implements ShouldQueue
                 0,
                 [$e->getMessage()]
             );
-
             
             throw $e;
         }
@@ -106,8 +99,8 @@ class SyncIntegrationJob implements ShouldQueue
     private function loadIntegrationClass()
     {
         $integrationClasses = [
+            'Autotask' => \App\Integrations\Autotask\AutotaskIntegration::class,  // Primary first integration
             'Datto' => \App\Integrations\Datto\DattoIntegration::class,
-            'Autotask' => \App\Integrations\Autotask\AutotaskIntegration::class,
         ];
 
         $className = $integrationClasses[$this->integration->integration_type] ?? null;

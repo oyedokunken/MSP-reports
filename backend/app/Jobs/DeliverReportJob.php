@@ -33,7 +33,6 @@ class DeliverReportJob implements ShouldQueue
             $customer = $this->generatedReport->customer;
             $company = $this->generatedReport->company;
 
-            
             $destination = $customer->report_destination 
                 ?? $customer->report_configuration['delivery']['destination'] 
                 ?? null;
@@ -42,7 +41,6 @@ class DeliverReportJob implements ShouldQueue
                 throw new \Exception("No delivery destination configured for customer.");
             }
 
-            
             $deliveryMethod = $customer->report_configuration['delivery']['method'] ?? 'email';
 
             switch ($deliveryMethod) {
@@ -58,7 +56,6 @@ class DeliverReportJob implements ShouldQueue
                     throw new \Exception("Unsupported delivery method: {$deliveryMethod}");
             }
 
-            
             $this->generatedReport->update([
                 'delivered' => true,
                 'delivered_at' => now(),
@@ -89,9 +86,7 @@ class DeliverReportJob implements ShouldQueue
         $customer = $this->generatedReport->customer;
         $ccAddresses = $customer->report_configuration['delivery']['cc'] ?? [];
 
-        
         $mail = Mail::to($destination);
-        
         
         if (!empty($ccAddresses)) {
             $mail->cc($ccAddresses);
@@ -107,18 +102,11 @@ class DeliverReportJob implements ShouldQueue
     }
 
     private function deliverViaAPI(string $webhookUrl): void
-    {
-        
+    { 
         Log::info('API delivery (placeholder)', [
             'webhook_url' => $webhookUrl,
             'report_id' => $this->generatedReport->generated_report_id,
-        ]);
-
-        
-        
-        
-        
-        
+        ]);  
     }
 
     public function failed(\Throwable $exception): void

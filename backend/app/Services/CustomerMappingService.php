@@ -14,7 +14,6 @@ class CustomerMappingService
         $company = $integrationCustomer->integration->company;
         $threshold = $company->settings['customer_mapping']['auto_match_threshold'] ?? 85;
         
-        
         $existingCustomers = Customer::where('company_id', $company->company_id)
             ->where('status', 'active')
             ->get();

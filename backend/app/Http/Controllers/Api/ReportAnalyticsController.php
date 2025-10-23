@@ -99,44 +99,27 @@ class ReportAnalyticsController extends Controller
             ], 404);
         }
 
-        
-        $storagePath = 'private/reports';
-        if (!Storage::exists($storagePath)) {
-            Storage::makeDirectory($storagePath);
-        }
-
-        
-        if (!$report->file_path || !Storage::exists($report->file_path)) {
-            $customerName = $report->customer->canonical_name ?? 'Unknown_Customer';
-            $timestamp = now()->format('Ymd_His');
-            $fileName = "report_{$customerName}_{$timestamp}.txt";
-            $filePath = "{$storagePath}/{$fileName}";
-
-            $content = "Generated Report\n"
-                . "Customer: {$customerName}\n"
-                . "Generated At: {$report->generated_at}\n"
-                . "Company ID: {$report->company_id}\n"
-                . "Report Period: {$report->report_period}\n"
-                . "Status: {$report->status}\n";
-
-            Storage::put($filePath, $content);
-
-            
-            $report->update([
-                'file_path' => $filePath,
-                'file_size' => Storage::size($filePath),
-                'status' => 'completed'
-            ]);
+        // Check if file exists on reports disk
+        if (!$report->file_path || !Storage::disk('reports')->exists($report->file_path)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report file not found.'
+            ], 404);
         }
 
         $filename = basename($report->file_path);
-        $mimeType = File::mimeType(Storage::path($report->file_path));
+        
+        // Generate a user-friendly filename
+        $customerName = str_replace(' ', '_', $report->customer->canonical_name ?? 'Customer');
+        $generatedDate = $report->generated_at->format('Y-m-d');
+        $reportType = str_replace('_', ' ', $report->reportSchedule->report_type ?? 'Report');
+        $downloadFilename = "{$customerName}_{$reportType}_{$generatedDate}.pdf";
 
-        return Storage::download($report->file_path, $filename, [
-            'Content-Type' => $mimeType,
-            'X-Report-Name' => $filename,
+        return Storage::disk('reports')->download($report->file_path, $downloadFilename, [
+            'Content-Type' => 'application/pdf',
+            'X-Report-Name' => $downloadFilename,
             'X-Customer' => $report->customer->canonical_name ?? 'N/A',
-            'X-Generated-At' => $report->generated_at,
+            'X-Generated-At' => $report->generated_at->toDateTimeString(),
         ]);
     }
 }

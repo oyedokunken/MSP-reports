@@ -10,7 +10,6 @@ class CompanyScope implements Scope
 {
     public function apply(Builder $builder, Model $model): void
     {
-        
         if (auth()->check()) {
             $companyId = auth()->user()->company_id;
             

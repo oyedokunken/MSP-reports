@@ -48,13 +48,11 @@ class AutoMatchCustomersJob implements ShouldQueue
                 return;
             }
 
-            
             $match = $mappingService->autoMatch($this->integrationCustomer);
 
             if ($match) {
                 $requiresManualReview = $company->settings['customer_mapping']['manual_match_required'] ?? false;
 
-                
                 CustomerMapping::create([
                     'customer_id' => $match['customer']->customer_id,
                     'integration_customer_id' => $this->integrationCustomer->integration_customer_id,
@@ -73,9 +71,7 @@ class AutoMatchCustomersJob implements ShouldQueue
                 Log::info('No auto-match found, requires manual mapping', [
                     'integration_customer_id' => $this->integrationCustomer->integration_customer_id,
                     'customer_name' => $this->integrationCustomer->customer_name,
-                ]);
-
-                
+                ]);    
             }
 
         } catch (\Exception $e) {

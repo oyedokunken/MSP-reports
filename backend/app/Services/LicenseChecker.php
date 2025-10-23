@@ -84,6 +84,84 @@ class LicenseChecker
             ->get();
     }
 
+    public function canCreateUser(Company $company): array
+    {
+        // Check if license enforcement is enabled
+        $licenseEnforcement = $company->settings['licensing']['license_enforcement'] ?? false;
+
+        if (!$licenseEnforcement) {
+            return ['allowed' => true, 'reason' => null];
+        }
+
+        // Find user license
+        $userLicense = $company->licenses()
+            ->where('license_type', 'users')
+            ->where('status', 'active')
+            ->where(function ($query) {
+                $query->whereNull('expiry_date')
+                      ->orWhere('expiry_date', '>', now());
+            })
+            ->first();
+
+        if (!$userLicense) {
+            return [
+                'allowed' => false,
+                'reason' => 'No active user license. Contact sales to add more users.',
+            ];
+        }
+
+        // Check if unlimited
+        if ($userLicense->product_sku === 'unlimited' || $userLicense->quantity === null) {
+            return ['allowed' => true, 'reason' => null];
+        }
+
+        // Check current user count against license quantity
+        $currentUserCount = $company->users()->count();
+
+        if ($currentUserCount >= $userLicense->quantity) {
+            return [
+                'allowed' => false,
+                'reason' => "User limit reached ({$userLicense->quantity} users). Upgrade license to add more users.",
+            ];
+        }
+
+        return ['allowed' => true, 'reason' => null];
+    }
+
+    public function getUserLicenseStatus(Company $company): array
+    {
+        $userLicense = $company->licenses()
+            ->where('license_type', 'users')
+            ->where('status', 'active')
+            ->where(function ($query) {
+                $query->whereNull('expiry_date')
+                      ->orWhere('expiry_date', '>', now());
+            })
+            ->first();
+
+        $currentUserCount = $company->users()->count();
+
+        if (!$userLicense) {
+            return [
+                'licensed' => false,
+                'current_users' => $currentUserCount,
+                'max_users' => 0,
+                'remaining' => 0,
+            ];
+        }
+
+        $maxUsers = $userLicense->quantity ?? PHP_INT_MAX;
+        $isUnlimited = $userLicense->product_sku === 'unlimited' || $userLicense->quantity === null;
+
+        return [
+            'licensed' => true,
+            'current_users' => $currentUserCount,
+            'max_users' => $isUnlimited ? 'unlimited' : $maxUsers,
+            'remaining' => $isUnlimited ? 'unlimited' : max(0, $maxUsers - $currentUserCount),
+            'is_unlimited' => $isUnlimited,
+        ];
+    }
+
     public function getExpiringLicenses(Company $company, int $daysThreshold = 30): array
     {
         $expiringLicenses = $company->licenses()

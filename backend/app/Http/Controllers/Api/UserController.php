@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\AuditLog;
+use App\Services\LicenseChecker;
 
 class UserController extends Controller
 {
@@ -26,9 +27,20 @@ class UserController extends Controller
         ]);
     }
 
-    public function createUser(Request $request)
+    public function createUser(Request $request, LicenseChecker $licenseChecker)
     {
         $authUser = $request->user();
+
+        // Check user license before creating
+        $licenseCheck = $licenseChecker->canCreateUser($authUser->company);
+        
+        if (!$licenseCheck['allowed']) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $licenseCheck['reason'],
+                'license_status' => $licenseChecker->getUserLicenseStatus($authUser->company)
+            ], 403);
+        }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -40,7 +52,6 @@ class UserController extends Controller
             'permissions' => 'nullable|array',
         ]);
 
-        
         $validated['name'] = trim(strip_tags($validated['name']));
         $validated['email'] = trim(strtolower($validated['email']));
         $validated['auth_method'] = trim($validated['auth_method'] ?? 'local');
@@ -70,7 +81,6 @@ class UserController extends Controller
             'permissions' => $permissions,
         ]);
 
-        
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -114,7 +124,6 @@ class UserController extends Controller
         $user->permissions = $permissions;
         $user->save();
 
-        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_permissions_updated',
@@ -130,7 +139,6 @@ class UserController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -165,7 +173,6 @@ class UserController extends Controller
             'email' => $user->email,
             'role_id' => $user->role_id,
         ];
-
         
         if (isset($validated['name'])) {
             $user->name = trim(strip_tags($validated['name']));
@@ -181,7 +188,6 @@ class UserController extends Controller
 
         $user->save();
 
-        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_updated',
@@ -225,7 +231,6 @@ class UserController extends Controller
             ], 404);
         }
 
-        
         if ($user->user_id === $authUser->user_id) {
             return response()->json([
                 'status' => 'error',
@@ -236,10 +241,8 @@ class UserController extends Controller
         $user->status = 'inactive';
         $user->save();
 
-        
         $user->tokens()->delete();
 
-        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_deactivated',
@@ -254,7 +257,6 @@ class UserController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -282,7 +284,6 @@ class UserController extends Controller
         $user->status = 'active';
         $user->save();
 
-        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_reactivated',
@@ -297,7 +298,6 @@ class UserController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -322,7 +322,6 @@ class UserController extends Controller
             ], 404);
         }
 
-        
         if ($user->user_id === $authUser->user_id) {
             return response()->json([
                 'status' => 'error',
@@ -330,10 +329,8 @@ class UserController extends Controller
             ], 400);
         }
 
-        
         $user->tokens()->delete();
 
-        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_deleted',
@@ -349,7 +346,6 @@ class UserController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        
         $user->delete();
 
         return response()->json([
@@ -372,7 +368,6 @@ class UserController extends Controller
                 'message' => 'User not found in your company'
             ], 404);
         }
-
         
         if ($user->auth_method !== 'local') {
             return response()->json([
@@ -385,14 +380,11 @@ class UserController extends Controller
             'new_password' => 'required|string|min:8',
         ]);
 
-        
         $user->password = Hash::make($validated['new_password']);
         $user->save();
 
-        
         $user->tokens()->delete();
 
-        
         AuditLog::create([
             'company_id' => $authUser->company_id,
             'event_type' => 'user_password_reset_by_admin',

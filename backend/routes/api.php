@@ -7,9 +7,9 @@ use App\Http\Controllers\Api\IntegrationController;
 use App\Http\Controllers\Api\CustomerMappingController;
 use App\Http\Controllers\Api\ReportConfigController;
 use App\Http\Controllers\Api\ReportAnalyticsController;
+use App\Http\Controllers\Api\LicenseController;
 
 // All routes are automatically prefixed with /api
-// No CSRF protection needed for API routes
 Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
 
     // Auth Routes
@@ -74,5 +74,14 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
         Route::get('/reports/scheduled', [ReportAnalyticsController::class, 'getScheduledReports']);
         Route::get('/reports/history', [ReportAnalyticsController::class, 'getReportHistory']);
         Route::get('/reports/{id}/download', [ReportAnalyticsController::class, 'downloadReport']);
+    });
+
+    // License Management Routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/licenses', [LicenseController::class, 'index']);
+        Route::get('/licenses/usage', [LicenseController::class, 'getLicenseUsage']);
+        Route::post('/licenses/check/integration', [LicenseController::class, 'checkIntegrationLicense']);
+        Route::post('/licenses/check/retention', [LicenseController::class, 'checkRetentionLicense']);
+        Route::post('/licenses/check/user', [LicenseController::class, 'checkUserLicense']);
     });
 });

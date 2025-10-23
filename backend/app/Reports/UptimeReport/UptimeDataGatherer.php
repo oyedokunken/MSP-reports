@@ -17,7 +17,6 @@ class UptimeDataGatherer
 
     public function getAggregatedData($period)
     {
-        
         if (is_array($period)) {
             $startDate = $period['start'] ?? now()->subDays(30);
             $endDate = $period['end'] ?? now();
@@ -25,7 +24,6 @@ class UptimeDataGatherer
             $startDate = now()->subDays(30);
             $endDate = now();
         }
-
         
         $integrationCustomerIds = IntegrationCustomer::query()
             ->whereIn('integration_customer_id', function ($query) {
@@ -34,14 +32,12 @@ class UptimeDataGatherer
                     ->where('customer_id', $this->customer->customer_id);
             })
             ->pluck('integration_customer_id');
-
         
         $records = IntegrationData::query()
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->where('data_type', 'uptime')
             ->whereBetween('data_timestamp', [$startDate, $endDate])
             ->get();
-
         
         if ($records->isEmpty()) {
             return [
