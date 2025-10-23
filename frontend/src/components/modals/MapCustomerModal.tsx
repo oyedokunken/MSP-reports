@@ -25,6 +25,13 @@ interface ExistingCustomer {
   integrations: any[]
 }
 
+interface SuggestedMatch {
+  customer_id: number
+  canonical_name: string
+  confidence_score: number
+  integrations?: any[]
+}
+
 interface MapCustomerModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -45,6 +52,10 @@ export function MapCustomerModal({
   const [success, setSuccess] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null)
+  const [createNew, setCreateNew] = useState(false)
+  const [newCustomerName, setNewCustomerName] = useState('')
+  const [suggestedMatches, setSuggestedMatches] = useState<SuggestedMatch[]>([])
+  const [_isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
 
   useEffect(() => {
     if (open && integrationCustomer) {
@@ -52,33 +63,92 @@ export function MapCustomerModal({
       setSelectedCustomerId(null)
       setError('')
       setSuccess(false)
+      setCreateNew(false)
+      setNewCustomerName(integrationCustomer.name) // Pre-fill with integration customer name
+      fetchSuggestedMatches()
     }
   }, [open, integrationCustomer])
+
+  const fetchSuggestedMatches = async () => {
+    if (!integrationCustomer) return
+    
+    try {
+      setIsLoadingSuggestions(true)
+      const response = await api.get(`/customers/unmapped`)
+      const rawData = response.data || response
+      const data: any[] = Array.isArray(rawData) ? rawData : []
+      
+      // Find the current integration customer in the response
+      const currentCustomer = data.find(
+        (c: any) => c.integration_customer_id === integrationCustomer.integration_customer_id
+      )
+      
+      if (currentCustomer && currentCustomer.suggested_matches) {
+        setSuggestedMatches(currentCustomer.suggested_matches)
+      } else {
+        setSuggestedMatches([])
+      }
+    } catch (err) {
+      console.error('Failed to fetch suggested matches:', err)
+      setSuggestedMatches([])
+    } finally {
+      setIsLoadingSuggestions(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!selectedCustomerId || !integrationCustomer) {
-      setError('Please select a customer to map to')
-      return
+    if (createNew) {
+      if (!newCustomerName.trim()) {
+        setError('Please enter a customer name')
+        return
+      }
+    } else {
+      if (!selectedCustomerId || !integrationCustomer) {
+        setError('Please select a customer to map to')
+        return
+      }
     }
 
     setError('')
     setIsSubmitting(true)
 
     try {
-      const response = await api.post('/customers/map', {
-        integration_customer_id: integrationCustomer.integration_customer_id,
-        customer_id: selectedCustomerId
-      })
+      if (createNew) {
+        // Use bulk-map endpoint to create new customer
+        const response = await api.post('/customers/bulk-map', {
+          mappings: [{
+            integration_customer_id: integrationCustomer!.integration_customer_id,
+            create_new: true,
+            canonical_name: newCustomerName.trim(),
+            mapping_type: 'manual'
+          }]
+        })
 
-      if (response) {
-        setSuccess(true)
-        setTimeout(() => {
-          setSuccess(false)
-          onOpenChange(false)
-          onSuccess?.()
-        }, 2000)
+        if (response) {
+          setSuccess(true)
+          setTimeout(() => {
+            setSuccess(false)
+            onOpenChange(false)
+            onSuccess?.()
+          }, 2000)
+        }
+      } else {
+        // Map to existing customer
+        const response = await api.post('/customers/map', {
+          integration_customer_id: integrationCustomer!.integration_customer_id,
+          customer_id: selectedCustomerId
+        })
+
+        if (response) {
+          setSuccess(true)
+          setTimeout(() => {
+            setSuccess(false)
+            onOpenChange(false)
+            onSuccess?.()
+          }, 2000)
+        }
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Failed to map customer'
@@ -104,32 +174,7 @@ export function MapCustomerModal({
     customer.canonical_name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const getSimilarityScore = (name1: string, name2: string): number => {
-    const n1 = name1.toLowerCase()
-    const n2 = name2.toLowerCase()
-    
-    if (n1 === n2) return 100
-    if (n1.includes(n2) || n2.includes(n1)) return 90
-    
-    // Simple word matching
-    const words1 = n1.split(/\s+/)
-    const words2 = n2.split(/\s+/)
-    const matches = words1.filter(w => words2.some(w2 => w2.includes(w) || w.includes(w2)))
-    
-    return Math.round((matches.length / Math.max(words1.length, words2.length)) * 80)
-  }
-
-  const suggestedMatches = integrationCustomer
-    ? existingCustomers
-        .filter(c => c.customer_id !== null && c.canonical_name)
-        .map(customer => ({
-          ...customer,
-          similarity: getSimilarityScore(integrationCustomer.name, customer.canonical_name!)
-        }))
-        .filter(c => c.similarity >= 70)
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, 3)
-    : []
+  // Suggested matches now come from backend API with proper confidence scores
 
   if (success) {
     return (
@@ -179,84 +224,141 @@ export function MapCustomerModal({
             </div>
           </div>
 
-          {/* Suggested Matches */}
-          {suggestedMatches.length > 0 && (
+          {/* Create New or Map to Existing */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateNew(false)
+                  setSelectedCustomerId(null)
+                }}
+                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
+                  !createNew
+                    ? 'border-primary bg-primary/10 text-primary font-medium'
+                    : 'border-border hover:bg-accent/50'
+                }`}
+              >
+                Map to Existing
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateNew(true)
+                  setSelectedCustomerId(null)
+                }}
+                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
+                  createNew
+                    ? 'border-primary bg-primary/10 text-primary font-medium'
+                    : 'border-border hover:bg-accent/50'
+                }`}
+              >
+                Create New Customer
+              </button>
+            </div>
+          </div>
+
+          {/* Create New Customer Form */}
+          {createNew ? (
             <div>
-              <Label className="text-sm font-medium mb-2 block">Suggested Matches</Label>
-              <div className="space-y-2">
-                {suggestedMatches.map((match) => (
-                  <button
-                    key={match.customer_id}
-                    type="button"
-                    onClick={() => setSelectedCustomerId(match.customer_id)}
-                    className={`w-full text-left rounded-lg border p-3 transition-all ${
-                      selectedCustomerId === match.customer_id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:bg-accent/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{match.canonical_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {match.integrations.length} integration{match.integrations.length !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <Badge variant={match.similarity >= 90 ? 'default' : 'secondary'}>
-                        {match.similarity}% match
-                      </Badge>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <Label htmlFor="search" className="text-sm font-medium mb-2 block">
-              Or Search All Customers
-            </Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="newCustomerName" className="text-sm font-medium mb-2 block">
+                New Customer Name
+              </Label>
               <Input
-                id="search"
+                id="newCustomerName"
                 type="text"
-                placeholder="Search customers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                placeholder="Enter customer name..."
+                value={newCustomerName}
+                onChange={(e) => setNewCustomerName(e.target.value)}
                 disabled={isSubmitting}
+                className="w-full"
               />
+              <p className="text-xs text-muted-foreground mt-2">
+                This will create a new customer record and link the integration customer to it.
+              </p>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Suggested Matches */}
+              {suggestedMatches.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Suggested Matches</Label>
+                  <div className="space-y-2">
+                    {suggestedMatches.map((match) => (
+                      <button
+                        key={match.customer_id}
+                        type="button"
+                        onClick={() => setSelectedCustomerId(match.customer_id)}
+                        className={`w-full text-left rounded-lg border p-3 transition-all ${
+                          selectedCustomerId === match.customer_id
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:bg-accent/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{match.canonical_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {match.integrations?.length || 0} integration{(match.integrations?.length || 0) !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <Badge variant={match.confidence_score >= 85 ? 'default' : 'secondary'} className="text-white">
+                            {match.confidence_score}% match
+                          </Badge>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          <div className="flex-1 overflow-y-auto border border-border rounded-lg">
-            {filteredCustomers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <p className="text-sm text-muted-foreground">No customers found</p>
+              <div>
+                <Label htmlFor="search" className="text-sm font-medium mb-2 block">
+                  Or Search All Customers
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    type="text"
+                    placeholder="Search customers..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                    disabled={isSubmitting}
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="divide-y divide-border">
-                {filteredCustomers.map((customer) => (
-                  <button
-                    key={customer.customer_id}
-                    type="button"
-                    onClick={() => setSelectedCustomerId(customer.customer_id)}
-                    className={`w-full text-left p-3 transition-all ${
-                      selectedCustomerId === customer.customer_id
-                        ? 'bg-primary/10'
-                        : 'hover:bg-accent/50'
-                    }`}
-                  >
-                    <p className="font-medium">{customer.canonical_name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {customer.integrations.length} integration{customer.integrations.length !== 1 ? 's' : ''}
-                    </p>
-                  </button>
-                ))}
+
+              <div className="flex-1 overflow-y-auto border border-border rounded-lg">
+                {filteredCustomers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <p className="text-sm text-muted-foreground">No customers found</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {filteredCustomers.map((customer) => (
+                      <button
+                        key={customer.customer_id}
+                        type="button"
+                        onClick={() => setSelectedCustomerId(customer.customer_id)}
+                        className={`w-full text-left p-3 transition-all ${
+                          selectedCustomerId === customer.customer_id
+                            ? 'bg-primary/10'
+                            : 'hover:bg-accent/50'
+                        }`}
+                      >
+                        <p className="font-medium">{customer.canonical_name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {customer.integrations.length} integration{customer.integrations.length !== 1 ? 's' : ''}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
@@ -273,16 +375,16 @@ export function MapCustomerModal({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || !selectedCustomerId}>
+            <Button type="submit" disabled={isSubmitting || (!createNew && !selectedCustomerId) || (createNew && !newCustomerName.trim())}>
               {isSubmitting ? (
                 <>
                   <Spinner className="mr-2 h-4 w-4" />
-                  Mapping...
+                  {createNew ? 'Creating...' : 'Mapping...'}
                 </>
               ) : (
                 <>
                   <MapPin className="mr-2 h-4 w-4" />
-                  Map Customer
+                  {createNew ? 'Create & Map' : 'Map Customer'}
                 </>
               )}
             </Button>

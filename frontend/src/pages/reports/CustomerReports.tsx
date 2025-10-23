@@ -54,9 +54,17 @@ export default function CustomerReports() {
       const data = (response as any).data || response
       const reportData = data.data || data
       
-      setConfig(reportData)
-      setDestination(reportData.delivery?.destination || '')
-      setCcEmails(reportData.delivery?.cc?.join(', ') || '')
+      // Ensure enabled_reports is always an array
+      const configData = {
+        ...reportData,
+        enabled_reports: reportData.enabled_reports || [],
+        delivery: reportData.delivery || { method: 'email', destination: '', cc: [] },
+        report_branding: reportData.report_branding || {}
+      }
+      
+      setConfig(configData)
+      setDestination(configData.delivery?.destination || '')
+      setCcEmails(configData.delivery?.cc?.join(', ') || '')
     } catch (err: any) {
       toast.error('Failed to load report configuration', err.response?.data?.message || err.message)
     } finally {
@@ -152,7 +160,7 @@ export default function CustomerReports() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {config.enabled_reports.length === 0 ? (
+            {!config?.enabled_reports || config.enabled_reports.length === 0 ? (
               <p className="text-sm text-muted-foreground">No reports enabled for this customer</p>
             ) : (
               <div className="space-y-2">

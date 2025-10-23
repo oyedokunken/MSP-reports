@@ -7,7 +7,7 @@ import { TenantProvider } from '@/contexts/TenantContext'
 import Login from '@/pages/auth/pages/Signin'
 import Dashboard from '@/pages/dashboard/Dashboard'
 import IntegrationList from '@/pages/integrations/IntegrationList'
-import CustomerMapping from '@/pages/customers/CustomerMapping'
+import CustomerList from '@/pages/customers/CustomerList'
 import ScheduleList from '@/pages/schedules/ScheduleList'
 import Settings from '@/pages/settings/Settings'
 import Signup from '@/pages/auth/pages/Signup'
@@ -93,7 +93,7 @@ function AppRoutes() {
         path="/customers"
         element={
           <ProtectedRoute>
-            <CustomerMapping />
+            <CustomerList />
           </ProtectedRoute>
         }
       />

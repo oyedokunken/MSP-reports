@@ -9,31 +9,18 @@ import { FileText, Download, CheckCircle2, XCircle, AlertCircle, RefreshCw, Cloc
 import { api } from '@/lib/api'
 import apiClient from '@/lib/api'
 
-interface Customer {
-  customer_id: number
-  canonical_name: string
-}
-
 interface GeneratedReport {
   generated_report_id: number
   customer_id: number
-  report_schedule_id: number | null
+  customer_name: string
+  report_type: string
   generated_at: string
-  report_period: string | null
   status: string
-  delivery_method: string
-  file_path: string
   file_size: number
   delivered: boolean
   delivered_at: string | null
+  delivery_method: string
   error_message: string | null
-  customer: Customer
-  report_schedule?: {
-    report_schedule_id: number
-    report_type: string
-    frequency: string
-    time_of_day: string | null
-  }
 }
 
 export default function ReportsList() {
@@ -70,16 +57,28 @@ export default function ReportsList() {
       })
 
       const blob = response.data
+      
+      // Extract filename from Content-Disposition header or use default
+      const contentDisposition = response.headers['content-disposition']
+      let filename = `report_${reportId}.pdf`
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '')
+        }
+      }
+      
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `report_${reportId}.txt`)
+      link.setAttribute('download', filename)
       document.body.appendChild(link)
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
 
-      toast.success('Download Started', 'Report is downloading...')
+      toast.success('Download Started', 'PDF report is downloading...')
     } catch (err: any) {
       toast.error('Download Failed', err.response?.data?.message || err.message)
     } finally {
@@ -159,10 +158,10 @@ export default function ReportsList() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <CardTitle className="text-base truncate">
-                        {report.customer.canonical_name}
+                        {report.customer_name || 'Unknown Customer'}
                       </CardTitle>
                       <CardDescription className="text-xs mt-1 truncate">
-                        {report.report_schedule?.report_type || 'Custom Report'}
+                        {report.report_type || 'Custom Report'}
                       </CardDescription>
                     </div>
                     {getStatusBadge(report.status)}

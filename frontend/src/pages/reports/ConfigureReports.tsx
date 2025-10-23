@@ -39,10 +39,9 @@ interface ReportConfig {
 }
 
 const AVAILABLE_REPORT_TYPES: ReportType[] = [
-  { id: 'monthly_uptime', name: 'Monthly Uptime Report', description: 'Monthly uptime statistics and availability' },
-  { id: 'weekly_backup', name: 'Weekly Backup Report', description: 'Weekly backup status and success rates' },
+  { id: 'uptime_report', name: 'Uptime Report', description: 'System uptime statistics and availability' },
+  { id: 'uptime_monthly', name: 'Monthly Uptime Report', description: 'Monthly uptime statistics and availability' },
   { id: 'security_summary', name: 'Security Summary', description: 'Security events and threat analysis' },
-  { id: 'performance_metrics', name: 'Performance Metrics', description: 'System performance and resource usage' },
 ]
 
 const FREQUENCIES = [
@@ -77,11 +76,54 @@ export default function ConfigureReports() {
       const data = (response as any).data || response
       const reportData = data.data || data
       
+      console.log('Fetched report config:', reportData)
+      
       setConfig(reportData)
-      setEnabledReports(reportData.enabled_reports || [])
-      setDestination(reportData.delivery?.destination || '')
-      setCcEmails(reportData.delivery?.cc?.join(', ') || '')
+      // Backend returns report_schedules, map to enabled_reports format
+      const schedules = reportData.report_schedules || []
+      console.log('Schedules from backend:', schedules)
+      
+      const mappedSchedules = schedules.map((s: any) => ({
+        report_type: s.report_type,
+        schedule_id: s.report_schedule_id,
+        frequency: s.frequency,
+        time_of_day: s.time_of_day,
+        active: s.active
+      }))
+      
+      console.log('Mapped schedules:', mappedSchedules)
+      setEnabledReports(mappedSchedules)
+      
+      // Get email settings - prioritize schedule data over delivery config
+      let emailDestination = ''
+      let ccEmailsList: string[] = []
+      
+      console.log('Delivery config:', reportData.delivery)
+      console.log('Raw schedules array:', schedules)
+      console.log('First schedule:', schedules[0])
+      console.log('First schedule email_destination:', schedules[0]?.email_destination)
+      console.log('First schedule cc_emails:', schedules[0]?.cc_emails)
+      
+      // First try to get from schedule (this is where backend stores it)
+      if (schedules.length > 0 && schedules[0].email_destination) {
+        console.log('Using email from schedule:', schedules[0].email_destination)
+        emailDestination = schedules[0].email_destination
+        ccEmailsList = schedules[0].cc_emails || []
+      } 
+      // Fallback to delivery config if not in schedule
+      else if (reportData.delivery?.destination) {
+        console.log('Using email from delivery config')
+        emailDestination = reportData.delivery.destination
+        ccEmailsList = reportData.delivery.cc || []
+      }
+      
+      console.log('Final email destination:', emailDestination)
+      console.log('Final CC emails:', ccEmailsList)
+      
+      setDestination(emailDestination)
+      setCcEmails(Array.isArray(ccEmailsList) ? ccEmailsList.join(', ') : '')
     } catch (err: any) {
+      console.error('Failed to load report configuration:', err)
       toast.error('Failed to load report configuration', err.response?.data?.message || err.message)
     } finally {
       setIsLoading(false)
@@ -92,7 +134,7 @@ export default function ConfigureReports() {
     setEnabledReports([
       ...enabledReports,
       {
-        report_type: 'monthly_uptime',
+        report_type: 'uptime_monthly',
         frequency: 'monthly',
         time_of_day: '09:00',
         active: true
@@ -100,7 +142,21 @@ export default function ConfigureReports() {
     ])
   }
 
-  const handleRemoveReport = (index: number) => {
+  const handleRemoveReport = async (index: number) => {
+    const report = enabledReports[index]
+    
+    // If the report has a schedule_id, delete it from the backend
+    if (report.schedule_id) {
+      try {
+        await api.delete(`/reports/schedules/${report.schedule_id}`)
+        toast.success('Deleted', 'Report schedule deleted successfully')
+      } catch (err: any) {
+        toast.error('Delete Failed', err.response?.data?.message || err.message)
+        return // Don't remove from UI if backend delete failed
+      }
+    }
+    
+    // Remove from UI
     setEnabledReports(enabledReports.filter((_, i) => i !== index))
   }
 
@@ -119,14 +175,25 @@ export default function ConfigureReports() {
         .map(email => email.trim())
         .filter(email => email.length > 0)
 
-      // Update reports configuration
+      // Convert enabled reports to schedules format that backend expects
+      const schedules = enabledReports.map(report => ({
+        report_type: report.report_type,
+        frequency: report.frequency || 'monthly',
+        time_of_day: report.time_of_day || '09:00',
+        active: report.active !== false,
+        schedule_config: null
+      }))
+
+      // Update report schedules
       await api.patch(`/customers/${id}/reports`, {
-        enabled_reports: enabledReports,
-        delivery: {
-          method: 'email',
-          destination,
-          cc: ccArray
-        }
+        schedules: schedules
+      })
+
+      // Update delivery destination separately
+      await api.patch(`/customers/${id}/report-destination`, {
+        method: 'email',
+        destination,
+        cc: ccArray
       })
 
       toast.success('Saved', 'Report configuration updated successfully')
@@ -245,7 +312,7 @@ export default function ConfigureReports() {
                             onValueChange={(value) => handleUpdateReport(index, 'report_type', value)}
                           >
                             <SelectTrigger id={`report-type-${index}`} className="mt-1">
-                              <SelectValue />
+                              <SelectValue placeholder="Select report type" />
                             </SelectTrigger>
                             <SelectContent>
                               {AVAILABLE_REPORT_TYPES.map((type) => (

@@ -6,24 +6,19 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
-import { Calendar, Clock, FileText, Settings } from 'lucide-react'
+import { Calendar, Clock, Settings } from 'lucide-react'
 import { api } from '@/lib/api'
-
-interface Customer {
-  customer_id: number
-  canonical_name: string
-}
 
 interface ReportSchedule {
   report_schedule_id: number
+  customer_id: number
+  customer_name: string
   report_type: string
   frequency: string
   time_of_day: string | null
-  active: boolean
-  last_generated_at: string | null
   next_scheduled_at: string | null
-  timezone: string
-  customer: Customer
+  last_generated_at: string | null
+  active: boolean
 }
 
 export default function ScheduleList() {
@@ -39,9 +34,10 @@ export default function ScheduleList() {
   const fetchScheduledReports = async () => {
     try {
       setIsLoading(true)
-      const response = await api.get<{ schedules: ReportSchedule[] }>('/reports/scheduled')
+      const response = await api.get<ReportSchedule[]>('/reports/scheduled')
       const data = (response as any).data || response
-      setSchedules(data.schedules || [])
+      // Backend returns array directly in data field
+      setSchedules(Array.isArray(data) ? data : [])
     } catch (err: any) {
       toast.error('Failed to load scheduled reports', err.response?.data?.message || err.message)
     } finally {
@@ -64,11 +60,17 @@ export default function ScheduleList() {
     <FloatingLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Report Schedules</h1>
-          <p className="mt-2 text-muted-foreground">
-            View and manage automated report generation schedules
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Report Schedules</h1>
+            <p className="mt-2 text-muted-foreground">
+              View and manage automated report generation schedules
+            </p>
+          </div>
+          <Button onClick={() => navigate('/customers')}>
+            <Calendar className="h-4 w-4 mr-2" />
+            Create Schedule
+          </Button>
         </div>
 
         {/* Content */}
@@ -81,9 +83,13 @@ export default function ScheduleList() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-lg font-medium">No Scheduled Reports</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-4">
                 Configure report schedules for your customers
               </p>
+              <Button onClick={() => navigate('/customers')}>
+                <Calendar className="h-4 w-4 mr-2" />
+                Go to Customers
+              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -94,7 +100,7 @@ export default function ScheduleList() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <CardTitle className="text-base truncate">
-                        {schedule.customer.canonical_name}
+                        {schedule.customer_name}
                       </CardTitle>
                       <CardDescription className="text-xs mt-1 truncate">
                         {schedule.report_type}
@@ -129,12 +135,6 @@ export default function ScheduleList() {
                       <span className="text-muted-foreground">Next Scheduled</span>
                       <span className="font-medium">{formatDate(schedule.next_scheduled_at)}</span>
                     </div>
-                    {schedule.timezone && (
-                      <div className="flex justify-between pt-2 border-t border-border">
-                        <span className="text-muted-foreground">Timezone</span>
-                        <span className="font-medium">{schedule.timezone}</span>
-                      </div>
-                    )}
                   </div>
 
                   <Button
@@ -143,7 +143,7 @@ export default function ScheduleList() {
                     className="w-full"
                     onClick={(e) => {
                       e.preventDefault()
-                      navigate(`/customers/${schedule.customer.customer_id}/configure-reports`)
+                      navigate(`/customers/${schedule.customer_id}/configure-reports`)
                     }}
                   >
                     <Settings className="h-4 w-4 mr-2" />
