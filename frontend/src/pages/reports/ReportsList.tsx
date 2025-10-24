@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
-import { FileText, Download, CheckCircle2, XCircle, AlertCircle, RefreshCw, Clock } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { FileText, Download, CheckCircle2, XCircle, AlertCircle, RefreshCw, Clock, List, Search, Filter } from 'lucide-react'
 import { api } from '@/lib/api'
 import apiClient from '@/lib/api'
 
@@ -25,27 +28,67 @@ interface GeneratedReport {
 
 export default function ReportsList() {
   const toast = useToast()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const customerId = searchParams.get('customer')
+  
   const [isLoading, setIsLoading] = useState(true)
   const [reports, setReports] = useState<GeneratedReport[]>([])
   const [downloading, setDownloading] = useState<number | null>(null)
+  const [customerName, setCustomerName] = useState<string>('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [reportTypeFilter, setReportTypeFilter] = useState<string>('all')
 
   // ✅ Correctly wrapped in useEffect
   useEffect(() => {
     fetchReportHistory()
-  }, [])
+  }, [customerId])
 
   const fetchReportHistory = async () => {
     try {
       setIsLoading(true)
-      const response = await api.get<{ reports: GeneratedReport[] }>('/reports/history')
+      const url = customerId 
+        ? `/reports/history?customer_id=${customerId}`
+        : '/reports/history'
+      const response = await api.get<{ reports: GeneratedReport[] }>(url)
       const data = (response as any).data || response
-      setReports(data.reports || [])
+      const reportsList = data.reports || []
+      setReports(reportsList)
+      
+      // Set customer name from first report if filtering by customer
+      if (customerId && reportsList.length > 0) {
+        setCustomerName(reportsList[0].customer_name)
+      }
     } catch (err: any) {
       toast.error('Failed to load report history', err.response?.data?.message || err.message)
     } finally {
       setIsLoading(false)
     }
   }
+
+  // Filter reports based on search and filters
+  const filteredReports = reports.filter(report => {
+    // Search filter
+    if (searchQuery && !report.customer_name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false
+    }
+    
+    // Status filter
+    if (statusFilter !== 'all' && report.status !== statusFilter) {
+      return false
+    }
+    
+    // Report type filter
+    if (reportTypeFilter !== 'all' && report.report_type !== reportTypeFilter) {
+      return false
+    }
+    
+    return true
+  })
+
+  // Get unique report types for filter dropdown
+  const uniqueReportTypes = Array.from(new Set(reports.map(r => r.report_type)))
 
   const handleDownload = async (reportId: number) => {
     try {
@@ -128,12 +171,73 @@ export default function ReportsList() {
     <FloatingLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Generated Reports</h1>
-          <p className="mt-2 text-muted-foreground">
-            View and download generated reports
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              {customerId && customerName ? `${customerName} - Reports` : 'Generated Reports'}
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              {customerId ? `View and download reports for ${customerName || 'this customer'}` : 'View and download generated reports'}
+            </p>
+          </div>
+          {customerId && (
+            <Button variant="outline" onClick={() => navigate('/reports')}>
+              <List className="h-4 w-4 mr-2" />
+              View All Reports
+            </Button>
+          )}
         </div>
+
+        {/* Search and Filters */}
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by customer name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full md:w-[180px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="generating">Generating</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {/* Report Type Filter */}
+          <Select value={reportTypeFilter} onValueChange={setReportTypeFilter}>
+            <SelectTrigger className="w-full md:w-[200px]">
+              <SelectValue placeholder="Report Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Report Types</SelectItem>
+              {uniqueReportTypes.map(type => (
+                <SelectItem key={type} value={type}>
+                  {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* Active Filters Display */}
+        {(searchQuery || statusFilter !== 'all' || reportTypeFilter !== 'all') && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Filter className="h-4 w-4" />
+            <span>Showing {filteredReports.length} of {reports.length} reports</span>
+          </div>
+        )}
 
         {/* Content */}
         {isLoading ? (
@@ -150,9 +254,19 @@ export default function ReportsList() {
               </p>
             </CardContent>
           </Card>
+        ) : filteredReports.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-lg font-medium">No Reports Match Filters</p>
+              <p className="text-sm text-muted-foreground">
+                Try adjusting your search or filters
+              </p>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {reports.map((report) => (
+            {filteredReports.map((report) => (
               <Card key={report.generated_report_id} className="flex flex-col">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">

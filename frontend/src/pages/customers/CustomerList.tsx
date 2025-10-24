@@ -6,9 +6,23 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
-import { Users, FileText, Settings, Link2, MapPin, Building2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Users, FileText, Settings, Link2, MapPin, Building2, Search, Filter, MoreVertical, Edit, Cable, GitMerge, GitBranch } from 'lucide-react'
 import { api } from '@/lib/api'
-import { MapCustomerModal } from '@/components/modals/MapCustomerModal'
+import { MapCustomerModal } from './components/MapCustomerModal'
+import { EditCustomerModal } from './modals/EditCustomerModal'
+import { ViewCustomerIntegrationsModal } from './modals/ViewCustomerIntegrationsModal'
+import { MergeCustomersModal } from './modals/MergeCustomersModal'
+import { SplitCustomerModal } from './modals/SplitCustomerModal'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import type { Customer } from './types'
 
 interface IntegrationCustomer {
   integration_customer_id: number
@@ -20,22 +34,32 @@ interface IntegrationCustomer {
   last_seen_at: string | null
 }
 
-interface Customer {
+interface MappedCustomer {
   customer_id: number | null
   canonical_name: string | null
   status: string | null
   report_destination: string | null
   integrations: IntegrationCustomer[]
+  report_schedules_count?: number
+  has_reports_configured?: boolean
 }
 
 export default function CustomerList() {
   const navigate = useNavigate()
   const toast = useToast()
   const [isLoading, setIsLoading] = useState(true)
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const [customers, setCustomers] = useState<MappedCustomer[]>([])
   const [mapModalOpen, setMapModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [integrationsModalOpen, setIntegrationsModalOpen] = useState(false)
+  const [mergeModalOpen, setMergeModalOpen] = useState(false)
+  const [splitModalOpen, setSplitModalOpen] = useState(false)
   const [selectedUnmappedCustomer, setSelectedUnmappedCustomer] = useState<IntegrationCustomer | null>(null)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [_currentUnmappedIndex, setCurrentUnmappedIndex] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [reportFilter, setReportFilter] = useState<string>('all')
 
   useEffect(() => {
     fetchCustomers()
@@ -57,7 +81,33 @@ export default function CustomerList() {
     }
   }
 
-  const mappedCustomers = customers.filter(c => c.customer_id !== null)
+  // Filter customers based on search and filters
+  const filteredCustomers = customers.filter(c => {
+    // Only show mapped customers
+    if (c.customer_id === null) return false
+    
+    // Search filter
+    if (searchQuery && !c.canonical_name?.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false
+    }
+    
+    // Status filter
+    if (statusFilter !== 'all' && c.status !== statusFilter) {
+      return false
+    }
+    
+    // Report configuration filter
+    if (reportFilter === 'configured' && (!c.report_schedules_count || c.report_schedules_count === 0)) {
+      return false
+    }
+    if (reportFilter === 'not-configured' && c.report_schedules_count && c.report_schedules_count > 0) {
+      return false
+    }
+    
+    return true
+  })
+  
+  const mappedCustomers = filteredCustomers
   const unmappedCustomers = customers.filter(c => c.customer_id === null)
 
   const handleStartMapping = () => {
@@ -113,6 +163,52 @@ export default function CustomerList() {
             Manage customers and configure their report schedules
           </p>
         </div>
+
+        {/* Search and Filters */}
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search customers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full md:w-[180px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {/* Report Filter */}
+          <Select value={reportFilter} onValueChange={setReportFilter}>
+            <SelectTrigger className="w-full md:w-[180px]">
+              <SelectValue placeholder="Reports" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Customers</SelectItem>
+              <SelectItem value="configured">Configured</SelectItem>
+              <SelectItem value="not-configured">Not Configured</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        {/* Active Filters Display */}
+        {(searchQuery || statusFilter !== 'all' || reportFilter !== 'all') && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Filter className="h-4 w-4" />
+            <span>Showing {mappedCustomers.length} of {customers.filter(c => c.customer_id !== null).length} customers</span>
+          </div>
+        )}
 
         {/* Unmapped Warning - Clear & Actionable */}
         {unmappedCustomers.length > 0 && (
@@ -214,6 +310,20 @@ export default function CustomerList() {
                     </div>
                   </div>
 
+                  {/* Report Status */}
+                  <div className={`flex items-center gap-2 text-xs py-2 px-3 rounded-md ${
+                    customer.report_schedules_count && customer.report_schedules_count > 0
+                      ? 'bg-green-50 text-green-700 border border-green-200'
+                      : 'bg-orange-50 text-orange-700 border border-orange-200'
+                  }`}>
+                    <FileText className="h-3 w-3" />
+                    <span className="font-medium">
+                      {customer.report_schedules_count && customer.report_schedules_count > 0 
+                        ? `${customer.report_schedules_count} report${customer.report_schedules_count !== 1 ? 's' : ''} configured`
+                        : 'No reports configured'}
+                    </span>
+                  </div>
+
                   {/* Actions */}
                   <div className="flex gap-2 pt-2">
                     <Button
@@ -223,17 +333,75 @@ export default function CustomerList() {
                       onClick={() => navigate(`/customers/${customer.customer_id}/configure-reports`)}
                     >
                       <Settings className="h-4 w-4 mr-2" />
-                      Configure
+                      Setup Reports
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       className="flex-1"
-                      onClick={() => navigate(`/customers/${customer.customer_id}/reports`)}
+                      onClick={() => navigate(`/reports?customer=${customer.customer_id}`)}
                     >
                       <FileText className="h-4 w-4 mr-2" />
-                      Reports
+                      View History
                     </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="px-2">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedCustomer({
+                            customer_id: customer.customer_id!,
+                            name: customer.canonical_name!,
+                            status: customer.status!,
+                            integration_count: customer.integrations.length
+                          })
+                          setEditModalOpen(true)
+                        }}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit Customer
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedCustomer({
+                            customer_id: customer.customer_id!,
+                            name: customer.canonical_name!,
+                            status: customer.status!,
+                            integration_count: customer.integrations.length
+                          })
+                          setIntegrationsModalOpen(true)
+                        }}>
+                          <Cable className="mr-2 h-4 w-4" />
+                          View Integrations
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedCustomer({
+                            customer_id: customer.customer_id!,
+                            name: customer.canonical_name!,
+                            status: customer.status!,
+                            integration_count: customer.integrations.length
+                          })
+                          setMergeModalOpen(true)
+                        }}>
+                          <GitMerge className="mr-2 h-4 w-4" />
+                          Merge Customer
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedCustomer({
+                            customer_id: customer.customer_id!,
+                            name: customer.canonical_name!,
+                            status: customer.status!,
+                            integration_count: customer.integrations.length
+                          })
+                          setSplitModalOpen(true)
+                        }}>
+                          <GitBranch className="mr-2 h-4 w-4" />
+                          Split Customer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardContent>
               </Card>
@@ -248,6 +416,56 @@ export default function CustomerList() {
           integrationCustomer={selectedUnmappedCustomer}
           existingCustomers={mappedCustomers}
           onSuccess={handleMapSuccess}
+        />
+
+        {/* Edit Customer Modal */}
+        <EditCustomerModal
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+          customer={selectedCustomer}
+          onSuccess={() => {
+            fetchCustomers()
+            toast.success('Customer Updated', 'Customer has been updated successfully')
+          }}
+        />
+
+        {/* View Integrations Modal */}
+        <ViewCustomerIntegrationsModal
+          open={integrationsModalOpen}
+          onOpenChange={setIntegrationsModalOpen}
+          customer={selectedCustomer}
+          onSuccess={() => {
+            fetchCustomers()
+            toast.success('Mapping Deleted', 'Integration mapping has been removed')
+          }}
+        />
+
+        {/* Merge Customers Modal */}
+        <MergeCustomersModal
+          open={mergeModalOpen}
+          onOpenChange={setMergeModalOpen}
+          customer={selectedCustomer}
+          allCustomers={mappedCustomers.map(c => ({
+            customer_id: c.customer_id!,
+            name: c.canonical_name!,
+            status: c.status!,
+            integration_count: c.integrations.length
+          }))}
+          onSuccess={() => {
+            fetchCustomers()
+            toast.success('Customers Merged', 'Customers have been merged successfully')
+          }}
+        />
+
+        {/* Split Customer Modal */}
+        <SplitCustomerModal
+          open={splitModalOpen}
+          onOpenChange={setSplitModalOpen}
+          customer={selectedCustomer}
+          onSuccess={() => {
+            fetchCustomers()
+            toast.success('Customer Split', 'Customer has been split successfully')
+          }}
         />
       </div>
     </FloatingLayout>

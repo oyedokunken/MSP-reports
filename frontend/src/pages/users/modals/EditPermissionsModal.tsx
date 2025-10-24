@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Spinner } from '@/components/ui/spinner'
 import { CheckCircle2, Shield } from 'lucide-react'
 import { api } from '@/lib/api'
-import type { UserWithPermissions, Permissions } from '@/types/permissions'
+import type { UserWithPermissions, UserPermissions as UserPerms } from '../types'
 
 interface EditPermissionsModalProps {
   open: boolean
@@ -18,7 +18,13 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [permissions, setPermissions] = useState<Permissions>({})
+  const [permissions, setPermissions] = useState<UserPerms>({
+    integrations: { view: true, manage: false, sync: false },
+    customers: { view: true, edit: false, map: false },
+    reports: { view: true, configure: false, generate: false, download: false },
+    users: { view: false, manage: false },
+    company_settings: { view: false, edit: false },
+  })
 
   useEffect(() => {
     if (user && user.permissions) {
@@ -63,7 +69,7 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
     }
   }
 
-  const togglePermission = (section: keyof Permissions, action: string) => {
+  const togglePermission = (section: keyof UserPerms, action: string) => {
     setPermissions(prev => ({
       ...prev,
       [section]: {

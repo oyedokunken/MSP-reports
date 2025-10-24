@@ -19,15 +19,14 @@ export const useIntegrationSync = (
       }, 300)
 
       // Call real API
-      const response = await api.get(`/integrations/${integrationId}/sync`)
+      await api.get(`/integrations/${integrationId}/sync`)
 
       if (intervalRef.current) window.clearInterval(intervalRef.current)
       setProgress(100)
       await new Promise(resolve => setTimeout(resolve, 300))
       
-      if (response.data) {
-        onSuccess('Sync Complete', `${name} synced successfully`)
-      }
+      // Sync completed successfully
+      onSuccess('Sync Complete', `${name} synced successfully`)
     } catch (e: any) {
       if (intervalRef.current) window.clearInterval(intervalRef.current)
       const errorMsg = e.response?.data?.message || e.message || 'Sync failed'

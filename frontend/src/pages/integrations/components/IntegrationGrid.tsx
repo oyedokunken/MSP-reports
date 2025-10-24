@@ -12,6 +12,12 @@ type IntegrationGridProps = {
   onEmptyAction: () => void
   onViewCustomers: (id: number, name: string) => void
   onSetSourceOfTruth: (id: number, name: string) => void
+  onEdit: (integration: Integration) => void
+  onViewLogs: (integration: Integration) => void
+  onHealthCheck: (integration: Integration) => void
+  onRateLimit: (integration: Integration) => void
+  onHistoricalImport: (integration: Integration) => void
+  onDelete: (integration: Integration) => void
   sourceOfTruthId: number | null
 }
 
@@ -24,6 +30,12 @@ export function IntegrationGrid({
   onEmptyAction,
   onViewCustomers,
   onSetSourceOfTruth,
+  onEdit,
+  onViewLogs,
+  onHealthCheck,
+  onRateLimit,
+  onHistoricalImport,
+  onDelete,
   sourceOfTruthId
 }: IntegrationGridProps) {
   return (
@@ -57,6 +69,12 @@ export function IntegrationGrid({
               onSync={onSync}
               onViewCustomers={onViewCustomers}
               onSetSourceOfTruth={onSetSourceOfTruth}
+              onEdit={onEdit}
+              onViewLogs={onViewLogs}
+              onHealthCheck={onHealthCheck}
+              onRateLimit={onRateLimit}
+              onHistoricalImport={onHistoricalImport}
+              onDelete={onDelete}
               isSourceOfTruth={sourceOfTruthId === integration.id}
             />
           ))

@@ -94,23 +94,25 @@ export default function ConfigureReports() {
       console.log('Mapped schedules:', mappedSchedules)
       setEnabledReports(mappedSchedules)
       
-      // Get email settings - prioritize schedule data over delivery config
+      // Get email settings - backend returns them at root level
       let emailDestination = ''
       let ccEmailsList: string[] = []
       
-      console.log('Delivery config:', reportData.delivery)
-      console.log('Raw schedules array:', schedules)
-      console.log('First schedule:', schedules[0])
-      console.log('First schedule email_destination:', schedules[0]?.email_destination)
-      console.log('First schedule cc_emails:', schedules[0]?.cc_emails)
+      console.log('Full reportData:', reportData)
       
-      // First try to get from schedule (this is where backend stores it)
-      if (schedules.length > 0 && schedules[0].email_destination) {
+      // Priority 1: Root level (new backend structure)
+      if (reportData.email_destination) {
+        console.log('Using email from root level:', reportData.email_destination)
+        emailDestination = reportData.email_destination
+        ccEmailsList = reportData.cc_emails || []
+      }
+      // Priority 2: First schedule
+      else if (schedules.length > 0 && schedules[0].email_destination) {
         console.log('Using email from schedule:', schedules[0].email_destination)
         emailDestination = schedules[0].email_destination
         ccEmailsList = schedules[0].cc_emails || []
       } 
-      // Fallback to delivery config if not in schedule
+      // Priority 3: Delivery config
       else if (reportData.delivery?.destination) {
         console.log('Using email from delivery config')
         emailDestination = reportData.delivery.destination
@@ -244,9 +246,9 @@ export default function ConfigureReports() {
       <FloatingLayout>
         <div className="flex flex-col items-center justify-center h-64">
           <p className="text-lg font-medium text-muted-foreground">Customer not found</p>
-          <Button onClick={() => navigate('/schedules')} className="mt-4">
+          <Button onClick={() => navigate(-1)} className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Schedules
+            Go Back
           </Button>
         </div>
       </FloatingLayout>
@@ -258,7 +260,7 @@ export default function ConfigureReports() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/schedules')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

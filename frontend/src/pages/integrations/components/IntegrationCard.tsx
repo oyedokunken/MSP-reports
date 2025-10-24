@@ -1,9 +1,18 @@
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
-import { Cable, RefreshCw, Users, Crown } from 'lucide-react'
+import { Cable, RefreshCw, Users, Crown, Settings, FileText, Activity, Gauge, Database, Trash2 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/LoadingStates'
 import type { Integration } from '../types'
 import { getStatusIcon, getStatusText } from '../utils'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
+import { MoreVertical } from 'lucide-react'
 
 type IntegrationCardProps = {
   integration: Integration
@@ -12,6 +21,12 @@ type IntegrationCardProps = {
   onSync: (id: number, name: string) => void
   onViewCustomers: (id: number, name: string) => void
   onSetSourceOfTruth: (id: number, name: string) => void
+  onEdit: (integration: Integration) => void
+  onViewLogs: (integration: Integration) => void
+  onHealthCheck: (integration: Integration) => void
+  onRateLimit: (integration: Integration) => void
+  onHistoricalImport: (integration: Integration) => void
+  onDelete: (integration: Integration) => void
   isSourceOfTruth?: boolean
 }
 
@@ -22,7 +37,13 @@ export function IntegrationCard ({
   onSync,
   onViewCustomers,
   onSetSourceOfTruth,
-  isSourceOfTruth = false
+  onEdit,
+  onViewLogs,
+  onHealthCheck,
+  onRateLimit,
+  onHistoricalImport,
+  onDelete,
+  isSourceOfTruth = false,
 }: IntegrationCardProps) {
   const statusInfo = getStatusText(integration.status, integration.syncStatus)
 
@@ -62,8 +83,10 @@ export function IntegrationCard ({
           <span className="font-medium text-foreground">{integration.lastSync}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Customers</span>
-          <span className="font-medium text-foreground">{integration.customers}</span>
+          <span className="text-muted-foreground">Unmapped Customers</span>
+          <span className={`font-medium ${integration.customers > 0 ? 'text-orange-600' : 'text-foreground'}`}>
+            {integration.customers}
+          </span>
         </div>
         <div className="flex items-center gap-2 pt-2">
           {getStatusIcon(integration.status, integration.syncStatus)}
@@ -109,6 +132,40 @@ export function IntegrationCard ({
             <Users className="h-4 w-4" />
             View Customers
           </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="px-2">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(integration)}>
+                <Settings className="mr-2 h-4 w-4" />
+                Edit Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onViewLogs(integration)}>
+                <FileText className="mr-2 h-4 w-4" />
+                View Sync Logs
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onHealthCheck(integration)}>
+                <Activity className="mr-2 h-4 w-4" />
+                Health Check
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onRateLimit(integration)}>
+                <Gauge className="mr-2 h-4 w-4" />
+                Rate Limit Status
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onHistoricalImport(integration)}>
+                <Database className="mr-2 h-4 w-4" />
+                Import Historical Data
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onDelete(integration)} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Integration
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <button
           onClick={() => onSetSourceOfTruth(integration.id, integration.name)}

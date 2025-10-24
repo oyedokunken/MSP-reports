@@ -1,5 +1,6 @@
 export interface User {
-  id: number
+  user_id: number
+  id?: number // Alias for compatibility
   name: string
   email: string
   company_id: number

@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useBranding } from '@/contexts/BrandingContext'
 import type { CompanyBranding } from '@/types/branding'
+import { ChangePasswordModal } from '@/components/modals/ChangePasswordModal'
+import { useToast } from '@/components/ui/Toast'
 
 export default function Settings() {
   const { branding, applyBranding } = useBranding()
+  const toast = useToast()
 
   // Company info form
   const [companyName, setCompanyName] = useState('')
@@ -17,6 +20,9 @@ export default function Settings() {
   // API key (frontend demo only)
   const [apiKeyMasked] = useState('•'.repeat(26))
   const [lastGenerated, setLastGenerated] = useState<string | null>(null)
+  
+  // Password change modal
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false)
 
   // Sync initial form values if branding changes
   useEffect(() => {
@@ -193,7 +199,35 @@ export default function Settings() {
             )}
           </div>
         </section>
+
+        {/* Security */}
+        <section className="rounded-lg border border-gray-200 dark:border-0 bg-white dark:bg-[hsl(var(--auth-card))] p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-foreground">Security</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Manage your account security settings</p>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-foreground mb-2">Password</label>
+            <p className="text-sm text-muted-foreground mb-4">
+              Change your password to keep your account secure
+            </p>
+            <button
+              onClick={() => setChangePasswordModalOpen(true)}
+              className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              Change Password
+            </button>
+          </div>
+        </section>
       </div>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        open={changePasswordModalOpen}
+        onOpenChange={setChangePasswordModalOpen}
+        onSuccess={() => {
+          toast.success('Password Changed', 'Your password has been updated successfully')
+        }}
+      />
     </FloatingLayout>
   )
 }

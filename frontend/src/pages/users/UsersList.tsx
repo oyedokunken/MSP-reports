@@ -4,38 +4,39 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
-import { UserPlus, Mail, Shield, Clock, Settings } from 'lucide-react'
-import { api } from '@/lib/api'
-import { CreateUserModal } from '@/components/modals/CreateUserModal'
-import { EditPermissionsModal } from '@/components/modals/EditPermissionsModal'
-import type { UserWithPermissions } from '@/types/permissions'
+import { UserPlus, Mail, Shield, Clock, Settings, Edit, Lock, UserX, UserCheck, Trash2 } from 'lucide-react'
+import { CreateUserModal } from './modals/CreateUserModal'
+import { EditPermissionsModal } from './modals/EditPermissionsModal'
+import { EditUserModal } from './modals/EditUserModal'
+import { ResetUserPasswordModal } from './modals/ResetUserPasswordModal'
+import { DeleteUserModal } from './modals/DeleteUserModal'
+import { useToast } from '@/components/ui/Toast'
+import { useAuth } from '@/contexts/AuthContext'
+import { useUsers, useUserActions } from './hooks'
+import type { UserWithPermissions } from './types'
 
 export default function UsersList() {
-  const [users, setUsers] = useState<UserWithPermissions[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
+  const toast = useToast()
+  const { user: currentUser } = useAuth()
+  const { users, isLoading, error, fetchUsers } = useUsers()
+  const { deactivateUser, reactivateUser } = useUserActions(
+    () => {
+      fetchUsers()
+      toast.success('Success', 'User status updated')
+    },
+    (message) => toast.error('Error', message)
+  )
+  
   const [createUserOpen, setCreateUserOpen] = useState(false)
   const [editPermissionsOpen, setEditPermissionsOpen] = useState(false)
+  const [editUserOpen, setEditUserOpen] = useState(false)
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false)
+  const [deleteUserOpen, setDeleteUserOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserWithPermissions | null>(null)
 
   useEffect(() => {
     fetchUsers()
   }, [])
-
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true)
-      const response = await api.get<UserWithPermissions[]>('/users')
-      
-      if (response.data) {
-        setUsers(response.data)
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load users')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
@@ -68,6 +69,16 @@ export default function UsersList() {
       month: 'short',
       day: 'numeric',
     })
+  }
+
+  const handleDeactivate = async (user: UserWithPermissions) => {
+    await deactivateUser(user.user_id)
+    toast.success('User Deactivated', `${user.name} has been deactivated`)
+  }
+
+  const handleReactivate = async (user: UserWithPermissions) => {
+    await reactivateUser(user.user_id)
+    toast.success('User Reactivated', `${user.name} has been reactivated`)
   }
 
   if (isLoading) {
@@ -145,14 +156,25 @@ export default function UsersList() {
                       <Clock className="h-3 w-3" />
                       Last Login
                     </p>
-                    <p className="font-medium">{formatDate(user.last_login_at)}</p>
+                    <p className="font-medium">{formatDate(user.last_login)}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground mb-1">Created</p>
                     <p className="font-medium">{formatDate(user.created_at)}</p>
                   </div>
                 </div>
-                <div className="flex gap-2 pt-4 border-t border-border">
+                <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedUser(user)
+                      setEditUserOpen(true)
+                    }}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Details
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -162,8 +184,59 @@ export default function UsersList() {
                     }}
                   >
                     <Settings className="mr-2 h-4 w-4" />
-                    Edit Permissions
+                    Permissions
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedUser(user)
+                      setResetPasswordOpen(true)
+                    }}
+                    disabled={user.auth_method !== 'local' || user.user_id === currentUser?.user_id}
+                  >
+                    <Lock className="mr-2 h-4 w-4" />
+                    Reset Password
+                  </Button>
+                  {user.user_id !== currentUser?.user_id && (
+                    <>
+                      {user.status === 'active' ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeactivate(user)}
+                        >
+                          <UserX className="mr-2 h-4 w-4" />
+                          Deactivate
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleReactivate(user)}
+                        >
+                          <UserCheck className="mr-2 h-4 w-4" />
+                          Reactivate
+                        </Button>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedUser(user)
+                          setDeleteUserOpen(true)
+                        }}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
+                    </>
+                  )}
+                  {user.user_id === currentUser?.user_id && (
+                    <Badge variant="outline" className="ml-2">
+                      You
+                    </Badge>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -180,10 +253,40 @@ export default function UsersList() {
         }}
       />
 
+      {/* Edit User Modal */}
+      <EditUserModal
+        open={editUserOpen}
+        onOpenChange={setEditUserOpen}
+        user={selectedUser}
+        onSuccess={() => {
+          fetchUsers() // Refresh the user list
+        }}
+      />
+
       {/* Edit Permissions Modal */}
       <EditPermissionsModal
         open={editPermissionsOpen}
         onOpenChange={setEditPermissionsOpen}
+        user={selectedUser}
+        onSuccess={() => {
+          fetchUsers() // Refresh the user list
+        }}
+      />
+
+      {/* Reset Password Modal */}
+      <ResetUserPasswordModal
+        open={resetPasswordOpen}
+        onOpenChange={setResetPasswordOpen}
+        user={selectedUser}
+        onSuccess={() => {
+          fetchUsers() // Refresh the user list
+        }}
+      />
+
+      {/* Delete User Modal */}
+      <DeleteUserModal
+        open={deleteUserOpen}
+        onOpenChange={setDeleteUserOpen}
         user={selectedUser}
         onSuccess={() => {
           fetchUsers() // Refresh the user list

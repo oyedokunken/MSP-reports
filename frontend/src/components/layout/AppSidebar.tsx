@@ -27,7 +27,7 @@ import {
   SidebarSeparator,
   SidebarRail,
 } from '@/components/ui/sidebar'
-import { CreateUserModal } from '@/components/modals/CreateUserModal'
+import { CreateUserModal } from '@/pages/users/modals/CreateUserModal'
 
 export default function AppSidebar() {
   const location = useLocation()
