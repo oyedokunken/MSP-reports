@@ -12,6 +12,9 @@ use App\Models\Integration;
 use App\Services\RateLimiter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use App\Integrations\Autotask\AutotaskIntegration;
+use App\Integrations\Datto\DattoIntegration;
+
 
 class ImportHistoricalDataJob implements ShouldQueue
 {
@@ -121,8 +124,8 @@ class ImportHistoricalDataJob implements ShouldQueue
     private function loadIntegrationClass(Integration $integration)
     {
         $integrationClasses = [
-            'Autotask' => \App\Integrations\Autotask\AutotaskIntegration::class,  // Primary first integration
-            'Datto' => \App\Integrations\Datto\DattoIntegration::class,
+            'Autotask' => AutotaskIntegration::class,
+            'Datto' => DattoIntegration::class,
         ];
 
         $className = $integrationClasses[$integration->integration_type] ?? null;

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Services\CustomerMappingService;
 use App\Models\Customer;
 use App\Models\IntegrationCustomer;
 use App\Models\CustomerMapping;
@@ -19,7 +20,8 @@ class CustomerMappingController extends Controller
         $company = $authUser->company;
 
         $customers = Customer::with([
-            'integrationCustomers.integration:integration_id,display_name,integration_type'
+            'integrationCustomers.integration:integration_id,display_name,integration_type',
+            'reportSchedules'
         ])
             ->where('company_id', $company->company_id)
             ->get();
@@ -39,7 +41,10 @@ class CustomerMappingController extends Controller
                 'canonical_name' => e($customer->canonical_name),
                 'status' => e($customer->status),
                 'report_destination' => e($customer->report_destination),
+                'report_schedules_count' => $customer->reportSchedules->count(),
                 'integrations' => $customer->integrationCustomers->map(function ($ic) {
+                    $mapping = $ic->customerMappings()->first();
+                    
                     return [
                         'integration_customer_id' => $ic->integration_customer_id,
                         'integration_type' => e($ic->integration->integration_type ?? null),
@@ -48,6 +53,12 @@ class CustomerMappingController extends Controller
                         'name' => e($ic->name),
                         'active' => (bool) $ic->active,
                         'last_seen_at' => $ic->last_seen_at,
+                        'mapping' => $mapping ? [
+                            'type' => $mapping->mapping_type,
+                            'confidence_score' => $mapping->confidence_score,
+                            'mapped_at' => $mapping->mapped_at,
+                            'notes' => $mapping->notes,
+                        ] : null,
                     ];
                 }),
             ];
@@ -59,6 +70,7 @@ class CustomerMappingController extends Controller
                 'canonical_name' => null,
                 'status' => null,
                 'report_destination' => null,
+                'report_schedules_count' => 0,
                 'integrations' => [[
                     'integration_customer_id' => $ic->integration_customer_id,
                     'integration_type' => e($ic->integration->integration_type ?? null),
@@ -82,16 +94,24 @@ class CustomerMappingController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $unmappedIntegrationCustomers = IntegrationCustomer::with(
-            'integration:integration_id,display_name,integration_type'
-        )
+        $unmappedIntegrationCustomers = IntegrationCustomer::with([
+            'integration:integration_id,company_id,display_name,integration_type'
+        ])
             ->whereHas('integration', function ($q) use ($company) {
                 $q->where('company_id', $company->company_id);
             })
             ->whereNull('customer_id')
             ->get();
 
-        $data = $unmappedIntegrationCustomers->map(function ($ic) {
+        $countsByIntegrationType = $unmappedIntegrationCustomers
+            ->groupBy(fn($ic) => $ic->integration->integration_type ?? 'Unknown')
+            ->map(fn($group) => $group->count())
+            ->toArray();
+
+        $data = $unmappedIntegrationCustomers->map(function ($ic) use ($company) {
+            $mappingService = app(CustomerMappingService::class);
+            $suggestions = $mappingService->getSuggestedMatches($ic, 3);
+            
             return [
                 'integration_customer_id' => $ic->integration_customer_id,
                 'integration_type' => e($ic->integration->integration_type ?? null),
@@ -100,12 +120,23 @@ class CustomerMappingController extends Controller
                 'name' => e($ic->name),
                 'active' => (bool) $ic->active,
                 'last_seen_at' => $ic->last_seen_at,
+                'suggested_matches' => array_map(function($suggestion) {
+                    return [
+                        'customer_id' => $suggestion['customer']->customer_id,
+                        'canonical_name' => $suggestion['customer']->canonical_name,
+                        'confidence_score' => $suggestion['confidence_score'],
+                    ];
+                }, $suggestions),
             ];
         });
 
         return response()->json([
             'status' => 'success',
             'data' => $data,
+            'summary' => [
+                'total_unmapped' => $unmappedIntegrationCustomers->count(),
+                'by_integration_type' => $countsByIntegrationType,
+            ],
         ]);
     }
 
@@ -186,6 +217,8 @@ class CustomerMappingController extends Controller
         }
 
         $integrations = $customer->integrationCustomers->map(function ($ic) {
+            $mapping = $ic->customerMappings()->first();
+            
             return [
                 'integration_customer_id' => $ic->integration_customer_id,
                 'integration_type' => e($ic->integration->integration_type ?? null),
@@ -194,6 +227,12 @@ class CustomerMappingController extends Controller
                 'name' => e($ic->name),
                 'active' => (bool) $ic->active,
                 'last_seen_at' => $ic->last_seen_at,
+                'mapping' => $mapping ? [
+                    'type' => $mapping->mapping_type,
+                    'confidence_score' => $mapping->confidence_score,
+                    'mapped_at' => $mapping->mapped_at,
+                    'notes' => $mapping->notes,
+                ] : null,
             ];
         });
 
@@ -511,6 +550,8 @@ class CustomerMappingController extends Controller
                     }
                 }
 
+                $integrationCustomer->customer_id = $customer->customer_id;
+                $integrationCustomer->save();
                 
                 CustomerMapping::create([
                     'customer_id' => $customer->customer_id,

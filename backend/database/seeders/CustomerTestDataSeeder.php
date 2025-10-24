@@ -99,6 +99,15 @@ class CustomerTestDataSeeder extends Seeder
                 ],
             ],
             [
+                'canonical_name' => 'TechStart Innovations',
+                'status' => 'active',
+                'metadata' => [
+                    'industry' => 'Software',
+                    'employees' => 25,
+                    'location' => 'Brisbane, QLD',
+                ],
+            ],
+            [
                 'canonical_name' => 'Gamma Tech Group',
                 'status' => 'active',
                 'metadata' => [
@@ -144,18 +153,18 @@ class CustomerTestDataSeeder extends Seeder
 
         // === Create Integration Customers from Datto ===
         $dattoCustomers = [
-            // Mapped customers (exact or close matches)
+            // Should auto-map (high similarity with abbreviations)
             ['external_id' => 'DATTO-001', 'name' => 'ACME Corp', 'active' => true],
-            ['external_id' => 'DATTO-002', 'name' => 'Beta Solutions', 'active' => true],
-            ['external_id' => 'DATTO-003', 'name' => 'Gamma Tech', 'active' => true],
+            ['external_id' => 'DATTO-002', 'name' => 'Beta Solutions Ltd', 'active' => true],
+            ['external_id' => 'DATTO-003', 'name' => 'TechStart Inc', 'active' => true],
             
-            // Unmapped customers (need manual mapping)
-            ['external_id' => 'DATTO-004', 'name' => 'Zeta Systems Ltd', 'active' => true],
-            ['external_id' => 'DATTO-005', 'name' => 'Theta Networks', 'active' => true],
-            ['external_id' => 'DATTO-006', 'name' => 'Iota Consulting', 'active' => true],
+            // Unmapped customers (need manual mapping - low similarity)
+            ['external_id' => 'DATTO-004', 'name' => 'Zeta Systems', 'active' => true],
+            ['external_id' => 'DATTO-005', 'name' => 'Omega Consulting Group', 'active' => true],
+            ['external_id' => 'DATTO-006', 'name' => 'Phoenix Digital Services', 'active' => true],
             
             // Inactive customer
-            ['external_id' => 'DATTO-007', 'name' => 'Kappa Corp (OLD)', 'active' => false],
+            ['external_id' => 'DATTO-007', 'name' => 'Old Legacy Corp (INACTIVE)', 'active' => false],
         ];
 
         $dattoIntegrationCustomers = [];
@@ -179,14 +188,15 @@ class CustomerTestDataSeeder extends Seeder
 
         // === Create Integration Customers from Autotask ===
         $autotaskCustomers = [
-            // Same customers but with different naming
-            ['external_id' => 'AT-1001', 'name' => 'ACME Corporation Pty Ltd', 'active' => true],
-            ['external_id' => 'AT-1002', 'name' => 'Beta Solutions P/L', 'active' => true],
-            ['external_id' => 'AT-1003', 'name' => 'Delta Enterprises Ltd', 'active' => true],
+            // Should auto-map (exact or very close matches)
+            ['external_id' => 'AT-1001', 'name' => 'ACME Corporation', 'active' => true],
+            ['external_id' => 'AT-1002', 'name' => 'Beta Solutions Pty Ltd', 'active' => true],
+            ['external_id' => 'AT-1003', 'name' => 'Gamma Tech Group', 'active' => true],
+            ['external_id' => 'AT-1004', 'name' => 'TechStart Innovations Pty Ltd', 'active' => true],
             
-            // Unmapped
-            ['external_id' => 'AT-1004', 'name' => 'Lambda Services', 'active' => true],
-            ['external_id' => 'AT-1005', 'name' => 'Mu Technologies', 'active' => true],
+            // Unmapped (completely different names)
+            ['external_id' => 'AT-1005', 'name' => 'Sigma Networks Australia', 'active' => true],
+            ['external_id' => 'AT-1006', 'name' => 'Quantum IT Solutions', 'active' => true],
         ];
 
         $autotaskIntegrationCustomers = [];
@@ -208,95 +218,115 @@ class CustomerTestDataSeeder extends Seeder
             );
         }
 
-        // === Create Customer Mappings ===
+        // === Create Customer Mappings (Pre-mapped for testing) ===
+        // Note: In production, these would be created by AutoMatchCustomersJob
         
-        // Map ACME Corp from Datto (auto-matched, high confidence)
+        // ACME Corporation - mapped from both integrations
+        $dattoIntegrationCustomers[0]->customer_id = $createdCustomers[0]->customer_id;
+        $dattoIntegrationCustomers[0]->save();
         CustomerMapping::firstOrCreate(
             [
-                'customer_id' => $createdCustomers[0]->customer_id, // ACME Corporation
+                'customer_id' => $createdCustomers[0]->customer_id,
                 'integration_customer_id' => $dattoIntegrationCustomers[0]->integration_customer_id,
             ],
             [
                 'mapping_type' => 'auto',
-                'confidence_score' => 95,
-                'mapped_by_user_id' => $admin->user_id ?? null,
+                'confidence_score' => 86,
                 'mapped_at' => now()->subDays(5),
-                'notes' => 'Auto-matched based on name similarity (95% confidence)',
+                'notes' => 'Auto-matched: ACME Corp → ACME Corporation (86% confidence)',
             ]
         );
 
-        // Map ACME Corp from Autotask (manual mapping)
+        $autotaskIntegrationCustomers[0]->customer_id = $createdCustomers[0]->customer_id;
+        $autotaskIntegrationCustomers[0]->save();
         CustomerMapping::firstOrCreate(
             [
-                'customer_id' => $createdCustomers[0]->customer_id, // ACME Corporation
+                'customer_id' => $createdCustomers[0]->customer_id,
                 'integration_customer_id' => $autotaskIntegrationCustomers[0]->integration_customer_id,
             ],
             [
-                'mapping_type' => 'manual',
+                'mapping_type' => 'auto',
                 'confidence_score' => 100,
-                'mapped_by_user_id' => $admin->user_id ?? null,
                 'mapped_at' => now()->subDays(3),
-                'notes' => 'Manually confirmed - same customer across both systems',
+                'notes' => 'Auto-matched: Exact match (100% confidence)',
             ]
         );
 
-        // Map Beta Solutions from Datto (auto-matched, medium confidence)
+        // Beta Solutions - mapped from both integrations
+        $dattoIntegrationCustomers[1]->customer_id = $createdCustomers[1]->customer_id;
+        $dattoIntegrationCustomers[1]->save();
         CustomerMapping::firstOrCreate(
             [
-                'customer_id' => $createdCustomers[1]->customer_id, // Beta Solutions
+                'customer_id' => $createdCustomers[1]->customer_id,
                 'integration_customer_id' => $dattoIntegrationCustomers[1]->integration_customer_id,
             ],
             [
                 'mapping_type' => 'auto',
-                'confidence_score' => 88,
-                'mapped_by_user_id' => $admin->user_id ?? null,
+                'confidence_score' => 95,
                 'mapped_at' => now()->subDays(4),
-                'notes' => 'Auto-matched with good confidence',
+                'notes' => 'Auto-matched: Beta Solutions Ltd → Beta Solutions Pty Ltd (95% confidence)',
             ]
         );
 
-        // Map Beta Solutions from Autotask (manual)
+        $autotaskIntegrationCustomers[1]->customer_id = $createdCustomers[1]->customer_id;
+        $autotaskIntegrationCustomers[1]->save();
         CustomerMapping::firstOrCreate(
             [
-                'customer_id' => $createdCustomers[1]->customer_id, // Beta Solutions
+                'customer_id' => $createdCustomers[1]->customer_id,
                 'integration_customer_id' => $autotaskIntegrationCustomers[1]->integration_customer_id,
             ],
             [
-                'mapping_type' => 'manual',
+                'mapping_type' => 'auto',
                 'confidence_score' => 100,
-                'mapped_by_user_id' => $admin->user_id ?? null,
                 'mapped_at' => now()->subDays(2),
-                'notes' => 'Manually mapped after reviewing customer records',
+                'notes' => 'Auto-matched: Exact match (100% confidence)',
             ]
         );
 
-        // Map Gamma Tech from Datto (auto-matched, lower confidence)
+        // TechStart - mapped from both integrations
+        $dattoIntegrationCustomers[2]->customer_id = $createdCustomers[2]->customer_id;
+        $dattoIntegrationCustomers[2]->save();
         CustomerMapping::firstOrCreate(
             [
-                'customer_id' => $createdCustomers[2]->customer_id, // Gamma Tech Group
+                'customer_id' => $createdCustomers[2]->customer_id,
                 'integration_customer_id' => $dattoIntegrationCustomers[2]->integration_customer_id,
             ],
             [
                 'mapping_type' => 'auto',
-                'confidence_score' => 82,
-                'mapped_by_user_id' => $admin->user_id ?? null,
-                'mapped_at' => now()->subDays(6),
-                'notes' => 'Auto-matched but may need review (shortened name)',
+                'confidence_score' => 88,
+                'mapped_at' => now()->subDays(3),
+                'notes' => 'Auto-matched: TechStart Inc → TechStart Innovations (88% confidence)',
             ]
         );
 
-        // Map Delta from Autotask
+        $autotaskIntegrationCustomers[3]->customer_id = $createdCustomers[2]->customer_id;
+        $autotaskIntegrationCustomers[3]->save();
         CustomerMapping::firstOrCreate(
             [
-                'customer_id' => $createdCustomers[3]->customer_id, // Delta Enterprises
+                'customer_id' => $createdCustomers[2]->customer_id,
+                'integration_customer_id' => $autotaskIntegrationCustomers[3]->integration_customer_id,
+            ],
+            [
+                'mapping_type' => 'auto',
+                'confidence_score' => 95,
+                'mapped_at' => now()->subDays(1),
+                'notes' => 'Auto-matched: TechStart Innovations Pty Ltd → TechStart Innovations (95% confidence)',
+            ]
+        );
+
+        // Gamma Tech - mapped from Autotask only
+        $autotaskIntegrationCustomers[2]->customer_id = $createdCustomers[3]->customer_id;
+        $autotaskIntegrationCustomers[2]->save();
+        CustomerMapping::firstOrCreate(
+            [
+                'customer_id' => $createdCustomers[3]->customer_id,
                 'integration_customer_id' => $autotaskIntegrationCustomers[2]->integration_customer_id,
             ],
             [
-                'mapping_type' => 'manual',
+                'mapping_type' => 'auto',
                 'confidence_score' => 100,
-                'mapped_by_user_id' => $admin->user_id ?? null,
-                'mapped_at' => now()->subDays(1),
-                'notes' => 'New customer - manually mapped',
+                'mapped_at' => now()->subDays(2),
+                'notes' => 'Auto-matched: Exact match (100% confidence)',
             ]
         );
 
@@ -304,17 +334,24 @@ class CustomerTestDataSeeder extends Seeder
         $this->command->info('');
         $this->command->info('📊 Summary:');
         $this->command->info('  - 2 Integrations (Autotask primary, Datto secondary)');
-        $this->command->info('  - 5 Unified Customers');
-        $this->command->info('  - 5 Autotask Integration Customers (3 mapped, 2 unmapped) - Primary');
-        $this->command->info('  - 7 Datto Integration Customers (3 mapped, 4 unmapped) - Secondary');
-        $this->command->info('  - 6 Customer Mappings');
+        $this->command->info('  - 6 Unified Customers');
+        $this->command->info('  - 6 Autotask Integration Customers (4 auto-mapped, 2 unmapped)');
+        $this->command->info('  - 7 Datto Integration Customers (3 auto-mapped, 4 unmapped)');
+        $this->command->info('  - 7 Customer Mappings (all auto-mapped)');
         $this->command->info('');
-        $this->command->info('🧪 Test Scenarios Available:');
-        $this->command->info('  - GET /customers → View all unified customers');
-        $this->command->info('  - GET /customers/unmapped → See 6 unmapped integration customers');
-        $this->command->info('  - POST /customers/map → Map unmapped customers');
-        $this->command->info('  - GET /customers/{id}/integrations → See customer across integrations');
-        $this->command->info('  - POST /customers/{id}/merge → Merge duplicate customers');
-        $this->command->info('  - POST /customers/bulk-map → Bulk map multiple customers');
+        $this->command->info('🎯 Auto-Mapping Test Scenarios:');
+        $this->command->info('  ✅ ACME Corp → ACME Corporation (86% - abbreviation match)');
+        $this->command->info('  ✅ Beta Solutions Ltd → Beta Solutions Pty Ltd (95% - suffix match)');
+        $this->command->info('  ✅ TechStart Inc → TechStart Innovations (88% - abbreviation match)');
+        $this->command->info('  ❌ Zeta Systems, Omega Consulting, Phoenix Digital (unmapped - low similarity)');
+        $this->command->info('  ❌ Sigma Networks, Quantum IT (unmapped - completely different)');
+        $this->command->info('');
+        $this->command->info('🧪 API Test Endpoints:');
+        $this->command->info('  - GET /api/customers → View all unified customers');
+        $this->command->info('  - GET /api/customers/unmapped → See 6 unmapped integration customers');
+        $this->command->info('  - POST /api/customers/map → Map unmapped customers manually');
+        $this->command->info('  - GET /api/customers/{id}/integrations → See customer across integrations');
+        $this->command->info('  - POST /api/customers/{id}/merge → Merge duplicate customers');
+        $this->command->info('  - POST /api/customers/bulk-map → Bulk map multiple customers');
     }
 }

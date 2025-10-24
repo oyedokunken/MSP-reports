@@ -16,7 +16,7 @@ class IntegrationController extends Controller
         $company = $authUser->company;
 
         $availableTypes = [
-            'Autotask',  // Primary first integration
+            'Autotask',
             'Datto',
             'ConnectWise',
             'Microsoft365',
@@ -24,7 +24,10 @@ class IntegrationController extends Controller
         ];
 
         $configuredIntegrations = $company->integrations()
-            ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth'])
+            ->withCount(['integrationCustomers as unmapped_customers_count' => function ($query) {
+                $query->whereNull('customer_id');
+            }])
+            ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth', 'last_sync_at', 'last_sync_status'])
             ->map(function($integration) {
                 return [
                     'integration_id' => $integration->integration_id,
@@ -33,6 +36,9 @@ class IntegrationController extends Controller
                     'status' => $integration->status,
                     'is_source_of_truth' => $integration->is_source_of_truth,
                     'source_label' => $integration->is_source_of_truth ? '✅ Source of Truth' : null,
+                    'last_sync_at' => $integration->last_sync_at,
+                    'last_sync_status' => $integration->last_sync_status,
+                    'unmapped_customers_count' => $integration->unmapped_customers_count ?? 0,
                 ];
             });
 
@@ -48,7 +54,7 @@ class IntegrationController extends Controller
         $company = $authUser->company;
 
         $availableTypes = [
-            'Autotask',  // Primary first integration
+            'Autotask', 
             'Datto',
             'ConnectWise',
             'Microsoft365',
@@ -139,35 +145,84 @@ class IntegrationController extends Controller
             ], 404);
         }
 
+        if (!$integration->is_source_of_truth) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Manual sync is only allowed for the source of truth integration. Please sync the source of truth integration first, then other integrations will sync automatically.',
+                'data' => [
+                    'integration_id' => $integration->integration_id,
+                    'integration_type' => $integration->integration_type,
+                    'display_name' => $integration->display_name,
+                    'is_source_of_truth' => false,
+                ]
+            ], 403);
+        }
+
+        // Create sync log
         $syncLog = $integration->syncLogs()->create([
             'sync_type' => 'current_state',
             'started_at' => now(),
             'status' => 'running',
         ]);
 
-        sleep(1);
+        try {
+            // Get the integration class
+            $integrationClass = "App\\Integrations\\{$integration->integration_type}\\{$integration->integration_type}Integration";
+            
+            if (!class_exists($integrationClass)) {
+                throw new \Exception("Integration class not found: {$integrationClass}");
+            }
 
-        $syncLog->update([
-            'completed_at' => now(),
-            'status' => 'success',
-            'records_synced' => rand(10, 100),
-            'records_failed' => 0,
-            'rate_limit_hits' => rand(0, 2),
-        ]);
+            // Instantiate and call sync
+            $integrationInstance = new $integrationClass($integration);
+            $result = $integrationInstance->sync();
 
-        $integration->update([
-            'last_sync_at' => $syncLog->completed_at,
-            'last_sync_status' => $syncLog->status,
-        ]);
+            // Update sync log with success
+            $syncLog->update([
+                'completed_at' => now(),
+                'status' => 'success',
+                'records_synced' => $result['records_synced'] ?? 0,
+                'records_failed' => $result['records_failed'] ?? 0,
+                'rate_limit_hits' => $result['rate_limit_hits'] ?? 0,
+            ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Manual sync completed successfully.',
-            'data' => [
-                'integration' => $integration,
-                'sync_log' => $syncLog,
-            ]
-        ], 200);
+            $integration->update([
+                'last_sync_at' => $syncLog->completed_at,
+                'last_sync_status' => 'success',
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Sync completed successfully.',
+                'data' => [
+                    'integration' => $integration->fresh(),
+                    'sync_log' => $syncLog,
+                    'result' => $result,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Update sync log with failure
+            $syncLog->update([
+                'completed_at' => now(),
+                'status' => 'failed',
+                'error_messages' => [$e->getMessage()],
+            ]);
+
+            $integration->update([
+                'last_sync_at' => $syncLog->completed_at,
+                'last_sync_status' => 'failed',
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Sync failed: ' . $e->getMessage(),
+                'data' => [
+                    'integration' => $integration->fresh(),
+                    'sync_log' => $syncLog,
+                ]
+            ], 500);
+        }
     }
 
     public function getIntegrationCustomers(Request $request, $id)
@@ -519,7 +574,6 @@ class IntegrationController extends Controller
             'end_date' => 'required|date|after:start_date|before_or_equal:today',
         ]);
 
-        // Check retention license
         $startDate = \Carbon\Carbon::parse($validated['start_date']);
         $endDate = \Carbon\Carbon::parse($validated['end_date']);
         $requestedMonths = $startDate->diffInMonths($endDate);

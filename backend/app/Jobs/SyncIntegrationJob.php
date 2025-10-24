@@ -12,6 +12,8 @@ use App\Models\SyncLog;
 use App\Services\RateLimiter;
 use App\Services\SyncEngine;
 use Illuminate\Support\Facades\Log;
+use App\Integrations\Autotask\AutotaskIntegration;
+use App\Integrations\Datto\DattoIntegration;
 
 class SyncIntegrationJob implements ShouldQueue
 {
@@ -99,8 +101,8 @@ class SyncIntegrationJob implements ShouldQueue
     private function loadIntegrationClass()
     {
         $integrationClasses = [
-            'Autotask' => \App\Integrations\Autotask\AutotaskIntegration::class,  // Primary first integration
-            'Datto' => \App\Integrations\Datto\DattoIntegration::class,
+            'Autotask' => AutotaskIntegration::class,
+            'Datto' => DattoIntegration::class,
         ];
 
         $className = $integrationClasses[$this->integration->integration_type] ?? null;

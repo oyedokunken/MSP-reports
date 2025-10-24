@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Jobs\DeliverReportJob;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\ReportSchedule;
@@ -65,6 +66,10 @@ class ReportConfigController extends Controller
             ], 404);
         }
 
+        $emailDestination = $customer->report_destination 
+            ?? $customer->report_configuration['delivery']['destination'] ?? null;
+        
+        $ccEmails = $customer->report_configuration['delivery']['cc'] ?? [];
         
         $schedules = ReportSchedule::where('customer_id', $customer->customer_id)
             ->where('company_id', $company->company_id)
@@ -86,6 +91,8 @@ class ReportConfigController extends Controller
             'data' => [
                 'customer_id' => $customer->customer_id,
                 'customer_name' => $customer->canonical_name,
+                'email_destination' => $emailDestination,
+                'cc_emails' => $ccEmails,
                 'report_schedules' => $schedules
             ]
         ]);
@@ -225,10 +232,8 @@ class ReportConfigController extends Controller
                 
                 $generatedReport = $reportService->generateReport($schedule);
                 
-                // Dispatch email delivery job
-                \App\Jobs\DeliverReportJob::dispatch($generatedReport);
+                DeliverReportJob::dispatch($generatedReport);
                 
-                // Add email status to response
                 $reportArray = $generatedReport->toArray();
                 $reportArray['email_status'] = 'queued';
                 $reportArray['email_destination'] = $generatedReport->customer->report_destination;

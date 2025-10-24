@@ -8,8 +8,13 @@ use App\Http\Controllers\Api\CustomerMappingController;
 use App\Http\Controllers\Api\ReportConfigController;
 use App\Http\Controllers\Api\ReportAnalyticsController;
 use App\Http\Controllers\Api\LicenseController;
+use App\Http\Controllers\Api\HealthCheckController;
 
 // All routes are automatically prefixed with /api
+
+// Public Health Check (no auth required)
+Route::get('/health', [HealthCheckController::class, 'index']);
+
 Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
 
     // Auth Routes
@@ -74,6 +79,7 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
         Route::get('/reports/scheduled', [ReportAnalyticsController::class, 'getScheduledReports']);
         Route::get('/reports/history', [ReportAnalyticsController::class, 'getReportHistory']);
         Route::get('/reports/{id}/download', [ReportAnalyticsController::class, 'downloadReport']);
+        Route::delete('/reports/schedules/{id}', [ReportAnalyticsController::class, 'deleteSchedule']);
     });
 
     // License Management Routes
@@ -83,5 +89,13 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
         Route::post('/licenses/check/integration', [LicenseController::class, 'checkIntegrationLicense']);
         Route::post('/licenses/check/retention', [LicenseController::class, 'checkRetentionLicense']);
         Route::post('/licenses/check/user', [LicenseController::class, 'checkUserLicense']);
+    });
+
+    // Monitoring & Health Routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/monitoring/status', [HealthCheckController::class, 'status']);
+        Route::get('/monitoring/integrations', [HealthCheckController::class, 'integrationMetrics']);
+        Route::get('/monitoring/reports', [HealthCheckController::class, 'reportMetrics']);
+        Route::get('/monitoring/queue', [HealthCheckController::class, 'queueMetrics']);
     });
 });

@@ -17,19 +17,28 @@ class ReportAnalyticsController extends Controller
         $authUser = $request->user();
 
         $schedules = ReportSchedule::where('company_id', $authUser->company_id)
-            ->with('customer:customer_id,canonical_name')
+            ->with('customer:customer_id,canonical_name,report_destination,report_configuration')
             ->orderBy('next_scheduled_at', 'asc')
             ->get()
             ->map(function ($schedule) {
+                $customer = $schedule->customer;
+                
+                $emailDestination = $customer->report_destination 
+                    ?? $customer->report_configuration['delivery']['destination'] ?? null;
+                
+                $ccEmails = $customer->report_configuration['delivery']['cc'] ?? [];
+                
                 return [
                     'report_schedule_id' => $schedule->report_schedule_id,
                     'customer_id' => $schedule->customer_id,
-                    'customer_name' => $schedule->customer->canonical_name ?? 'Unknown',
+                    'customer_name' => $customer->canonical_name ?? 'Unknown',
                     'report_type' => $schedule->report_type,
                     'frequency' => $schedule->frequency,
                     'next_scheduled_at' => $schedule->next_scheduled_at,
                     'last_generated_at' => $schedule->last_generated_at,
                     'active' => $schedule->active,
+                    'email_destination' => $emailDestination,
+                    'cc_emails' => $ccEmails,
                 ];
             });
 
@@ -44,9 +53,15 @@ class ReportAnalyticsController extends Controller
         $authUser = $request->user();
 
         $perPage = $request->input('per_page', 50);
+        $customerId = $request->input('customer_id');
         
-        $reports = GeneratedReport::where('company_id', $authUser->company_id)
-            ->with([
+        $query = GeneratedReport::where('company_id', $authUser->company_id);
+        
+        if ($customerId) {
+            $query->where('customer_id', $customerId);
+        }
+        
+        $reports = $query->with([
                 'customer:customer_id,canonical_name',
                 'reportSchedule:report_schedule_id,report_type',
             ])
@@ -99,7 +114,6 @@ class ReportAnalyticsController extends Controller
             ], 404);
         }
 
-        // Check if file exists on reports disk
         if (!$report->file_path || !Storage::disk('reports')->exists($report->file_path)) {
             return response()->json([
                 'status' => 'error',
@@ -109,7 +123,6 @@ class ReportAnalyticsController extends Controller
 
         $filename = basename($report->file_path);
         
-        // Generate a user-friendly filename
         $customerName = str_replace(' ', '_', $report->customer->canonical_name ?? 'Customer');
         $generatedDate = $report->generated_at->format('Y-m-d');
         $reportType = str_replace('_', ' ', $report->reportSchedule->report_type ?? 'Report');
@@ -121,5 +134,37 @@ class ReportAnalyticsController extends Controller
             'X-Customer' => $report->customer->canonical_name ?? 'N/A',
             'X-Generated-At' => $report->generated_at->toDateTimeString(),
         ]);
+    }
+
+    public function deleteSchedule(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $schedule = ReportSchedule::where('report_schedule_id', $id)
+            ->where('company_id', $authUser->company_id)
+            ->with('customer:customer_id,canonical_name')
+            ->first();
+
+        if (!$schedule) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Schedule not found or access denied.'
+            ], 404);
+        }
+
+        $customerName = $schedule->customer->canonical_name ?? 'Unknown';
+        $reportType = $schedule->report_type;
+
+        $schedule->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Schedule deleted successfully: {$reportType} for {$customerName}",
+            'data' => [
+                'deleted_schedule_id' => $id,
+                'customer_name' => $customerName,
+                'report_type' => $reportType,
+            ]
+        ], 200);
     }
 }

@@ -11,6 +11,7 @@ use Illuminate\Queue\SerializesModels;
 use App\Models\GeneratedReport;
 use App\Models\Company;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class ReportDeliveryMail extends Mailable
 {
@@ -30,10 +31,11 @@ class ReportDeliveryMail extends Mailable
     public function envelope(): Envelope
     {
         $fromAddress = $this->branding['email_from_address'] ?? config('mail.from.address');
+        $fromName = $this->branding['email_from_name'] ?? $this->branding['company_name'] ?? config('mail.from.name');
         $subject = $this->branding['report_header_text'] ?? 'Your Monthly Service Report';
 
         return new Envelope(
-            from: new \Illuminate\Mail\Mailables\Address($fromAddress),
+            from: new \Illuminate\Mail\Mailables\Address($fromAddress, $fromName),
             subject: $subject,
         );
     }
@@ -44,8 +46,8 @@ class ReportDeliveryMail extends Mailable
         $periodString = 'N/A';
         
         if (is_array($period) && isset($period['start']) && isset($period['end'])) {
-            $start = \Carbon\Carbon::parse($period['start'])->format('F j, Y');
-            $end = \Carbon\Carbon::parse($period['end'])->format('F j, Y');
+            $start = Carbon::parse($period['start'])->format('F j, Y');
+            $end = Carbon::parse($period['end'])->format('F j, Y');
             $periodString = "{$start} - {$end}";
         }
         

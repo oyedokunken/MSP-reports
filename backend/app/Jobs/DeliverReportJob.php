@@ -73,8 +73,11 @@ class DeliverReportJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
+            // Create user-friendly error message
+            $errorMessage = $this->formatErrorMessage($e->getMessage(), $deliveryMethod ?? 'email');
+
             $this->generatedReport->update([
-                'error_message' => $e->getMessage(),
+                'error_message' => $errorMessage,
             ]);
 
             throw $e;
@@ -116,9 +119,59 @@ class DeliverReportJob implements ShouldQueue
             'error' => $exception->getMessage(),
         ]);
 
+        // Create user-friendly error message
+        $errorMessage = $this->formatErrorMessage($exception->getMessage(), 'email');
+
         $this->generatedReport->update([
             'delivered' => false,
-            'error_message' => $exception->getMessage(),
+            'error_message' => $errorMessage,
         ]);
+    }
+
+    /**
+     * Format error message to be user-friendly
+     */
+    private function formatErrorMessage(string $rawError, string $deliveryMethod): string
+    {
+        // Check for common SMTP errors
+        if (str_contains($rawError, 'Expected response code')) {
+            // Extract the actual SMTP error if possible
+            if (preg_match('/code "(\d+)".*?message "(.*?)"/', $rawError, $matches)) {
+                $code = $matches[1];
+                $message = $matches[2];
+                
+                // Map common SMTP errors to user-friendly messages
+                $friendlyMessages = [
+                    '530' => 'Email delivery failed: SMTP authentication or sender configuration error',
+                    '550' => 'Email delivery failed: Recipient address rejected',
+                    '551' => 'Email delivery failed: User not local',
+                    '552' => 'Email delivery failed: Mailbox full',
+                    '553' => 'Email delivery failed: Invalid email address',
+                    '554' => 'Email delivery failed: Transaction failed',
+                ];
+                
+                return $friendlyMessages[$code] ?? "Email delivery failed: SMTP error {$code} - {$message}";
+            }
+            
+            return 'Email delivery failed: SMTP server error';
+        }
+        
+        // Check for authentication errors
+        if (str_contains($rawError, 'authentication') || str_contains($rawError, 'auth')) {
+            return 'Email delivery failed: SMTP authentication error';
+        }
+        
+        // Check for connection errors
+        if (str_contains($rawError, 'Connection') || str_contains($rawError, 'connect')) {
+            return 'Email delivery failed: Could not connect to mail server';
+        }
+        
+        // Check for no destination
+        if (str_contains($rawError, 'No delivery destination')) {
+            return 'Email delivery failed: No recipient email configured';
+        }
+        
+        // Default message for other errors
+        return "Email delivery failed: {$rawError}";
     }
 }

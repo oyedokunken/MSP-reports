@@ -4,6 +4,11 @@ namespace App\Integrations\Datto;
 
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Models\Integration;
+use App\Models\IntegrationCustomer;
+use App\Models\IntegrationData;
+use App\Models\Customer;
+use App\Models\CustomerMapping;
+use App\Jobs\AutoMatchCustomersJob;
 use Carbon\Carbon;
 
 class DattoIntegration implements IntegrationInterface
@@ -49,10 +54,56 @@ class DattoIntegration implements IntegrationInterface
             $errors[] = "Sync failed: {$e->getMessage()}";
         }
 
+        // Process existing unmapped customers from database
+        $this->processUnmappedCustomers();
+
         return [
             'customers' => $customers,
             'errors' => $errors,
         ];
+    }
+
+    private function processUnmappedCustomers(): void
+    {
+        // Get all unmapped customers for this integration
+        $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->get();
+
+        foreach ($unmappedCustomers as $integrationCustomer) {
+            // If this integration is source of truth, auto-create unified customer
+            if ($this->integration->is_source_of_truth) {
+                $unifiedCustomer = Customer::create([
+                    'company_id' => $this->integration->company_id,
+                    'canonical_name' => $integrationCustomer->name,
+                    'status' => 'active',
+                    'metadata' => [],
+                ]);
+
+                // Link integration customer to new unified customer
+                $integrationCustomer->customer_id = $unifiedCustomer->customer_id;
+                $integrationCustomer->save();
+
+                // Create mapping record
+                CustomerMapping::create([
+                    'customer_id' => $unifiedCustomer->customer_id,
+                    'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                    'mapping_type' => 'auto',
+                    'confidence_score' => 100,
+                    'mapped_at' => now(),
+                    'notes' => 'Auto-created from source of truth integration',
+                ]);
+
+                \Log::info('Auto-created customer from source of truth', [
+                    'integration_type' => 'Datto',
+                    'customer_name' => $integrationCustomer->name,
+                    'customer_id' => $unifiedCustomer->customer_id,
+                ]);
+            } else {
+                // Not source of truth - try auto-matching
+                AutoMatchCustomersJob::dispatch($integrationCustomer);
+            }
+        }
     }
 
     public function getCustomers(): array
@@ -139,23 +190,62 @@ class DattoIntegration implements IntegrationInterface
 
     private function storeCustomer(array $customer): void
     {
-        \App\Models\IntegrationCustomer::updateOrCreate(
+        $integrationCustomer = IntegrationCustomer::updateOrCreate(
             [
                 'integration_id' => $this->integration->integration_id,
                 'external_id' => $customer['external_id'],
             ],
             [
-                'customer_name' => $customer['name'],
-                'customer_metadata' => $customer['metadata'],
+                'name' => $customer['name'],
+                'metadata' => $customer['metadata'],
                 'active' => $customer['active'],
                 'last_seen_at' => now(),
             ]
         );
+
+        // Refresh to get latest customer_id value
+        $integrationCustomer->refresh();
+
+        // If unmapped, handle based on source of truth setting
+        if (!$integrationCustomer->customer_id) {
+            // If this integration is source of truth, auto-create unified customer
+            if ($this->integration->is_source_of_truth) {
+                $unifiedCustomer = Customer::create([
+                    'company_id' => $this->integration->company_id,
+                    'canonical_name' => $customer['name'],
+                    'status' => 'active',
+                    'metadata' => [],
+                ]);
+
+                // Link integration customer to new unified customer
+                $integrationCustomer->customer_id = $unifiedCustomer->customer_id;
+                $integrationCustomer->save();
+
+                // Create mapping record
+                CustomerMapping::create([
+                    'customer_id' => $unifiedCustomer->customer_id,
+                    'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                    'mapping_type' => 'auto',
+                    'confidence_score' => 100,
+                    'mapped_at' => now(),
+                    'notes' => 'Auto-created from source of truth integration',
+                ]);
+
+                \Log::info('Auto-created customer from source of truth', [
+                    'integration_type' => 'Datto',
+                    'customer_name' => $customer['name'],
+                    'customer_id' => $unifiedCustomer->customer_id,
+                ]);
+            } else {
+                // Not source of truth - try auto-matching
+                AutoMatchCustomersJob::dispatch($integrationCustomer);
+            }
+        }
     }
 
     private function storeHistoricalData(array $data): void
     {
-        \App\Models\IntegrationData::create([
+        IntegrationData::create([
             'company_id' => $this->integration->company_id,
             'integration_id' => $this->integration->integration_id,
             'integration_customer_id' => $data['integration_customer_id'],
