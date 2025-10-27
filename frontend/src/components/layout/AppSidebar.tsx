@@ -10,6 +10,8 @@ import {
   Calendar,
   SlidersHorizontal,
   UserPlus,
+  Key,
+  Activity,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBranding } from '@/contexts/BrandingContext'
@@ -45,12 +47,13 @@ export default function AppSidebar() {
 
   const adminNavItems = [
     { path: '/users', icon: UserPlus, label: 'Users' },
+    { path: '/licenses', icon: Key, label: 'Licenses' },
+    { path: '/monitoring', icon: Activity, label: 'Monitoring' },
   ]
 
 
   const bottomItems = [
     { path: '/settings', icon: SettingsIcon, label: 'Settings' },
-    { path: '/options', icon: SlidersHorizontal, label: 'Options' },
   ]
 
   const isActive = (path: string) => location.pathname === path

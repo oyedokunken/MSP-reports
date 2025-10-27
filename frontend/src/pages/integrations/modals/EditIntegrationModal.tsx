@@ -6,11 +6,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Spinner } from '@/components/ui/spinner'
 import { CheckCircle2, Settings, AlertCircle } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useIntegrationStore } from '@/stores/useIntegrationStore'
+import type { Integration } from '../types/integration'
 
 interface EditIntegrationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  integration: any | null
+  integration: Integration | null
   onSuccess?: () => void
 }
 
@@ -24,6 +26,9 @@ export function EditIntegrationModal({
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [displayName, setDisplayName] = useState('')
+  
+  // Get fetchIntegrations from store
+  const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
 
   useEffect(() => {
     if (open && integration) {
@@ -35,6 +40,8 @@ export function EditIntegrationModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!integration) return
     
     if (!displayName.trim()) {
       setError('Please enter a display name')
@@ -48,6 +55,9 @@ export function EditIntegrationModal({
       await api.patch(`/integrations/${integration.id}`, {
         display_name: displayName.trim(),
       })
+
+      // Refresh integrations silently (without showing loading skeleton)
+      await fetchIntegrations(true)
 
       setSuccess(true)
       setTimeout(() => {

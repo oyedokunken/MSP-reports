@@ -1,32 +1,54 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
 import { Badge } from '@/components/ui/badge'
 import { FileText, CheckCircle, XCircle, Clock } from 'lucide-react'
 import { api } from '@/lib/api'
 
-interface SyncLog {
-  sync_log_id: number
+// ---- Types ----
+
+import type { Integration } from '../types/integration'
+
+export interface SyncLog {
+  sync_id: number
+  integration_id: number
   sync_type: string
   started_at: string
   completed_at: string | null
-  status: string
+  status: 'success' | 'failed' | 'running' | 'partial'
   records_synced: number
   records_failed: number
-  error_messages: any
+  error_messages: Record<string, any> | null
+  rate_limit_hits?: number
+  created_at?: string
+  updated_at?: string
+  deleted_at?: string | null
+}
+
+interface SyncLogsApiData {
+  integration: Integration
+  sync_logs: SyncLog[]
 }
 
 interface ViewSyncLogsModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  integration: any | null
+  integration: Integration | null
 }
 
-export function ViewSyncLogsModal({ 
-  open, 
+// ---- Component ----
+
+export function ViewSyncLogsModal({
+  open,
   onOpenChange,
-  integration
+  integration,
 }: ViewSyncLogsModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [logs, setLogs] = useState<SyncLog[]>([])
@@ -39,41 +61,42 @@ export function ViewSyncLogsModal({
   }, [open, integration])
 
   const fetchSyncLogs = async () => {
-    if (!integration) return
+    if (!integration?.id) return
 
     setIsLoading(true)
     setError('')
 
     try {
-      const response = await api.get(`/integrations/${integration.id}/sync-logs`)
-      const data = (response as any).data || response
-      
-      // Handle different response formats
-      if (Array.isArray(data)) {
-        setLogs(data)
-      } else if (data && Array.isArray(data.data)) {
-        setLogs(data.data)
-      } else {
-        setLogs([])
-      }
+      // ✅ use `integration.id` — backend expects that field
+      const response = await api.get<SyncLogsApiData>(
+        `/integrations/${integration.id}/sync-logs`
+      )
+
+      const syncLogs = response.data.sync_logs ?? []
+      setLogs(Array.isArray(syncLogs) ? syncLogs : [])
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to load sync logs'
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Failed to load sync logs'
       setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive', icon: any }> = {
+  const getStatusBadge = (status: SyncLog['status']) => {
+    const variants: Record<
+      SyncLog['status'],
+      { variant: 'default' | 'secondary' | 'destructive'; icon: any }
+    > = {
       success: { variant: 'default', icon: CheckCircle },
       failed: { variant: 'destructive', icon: XCircle },
       running: { variant: 'secondary', icon: Clock },
       partial: { variant: 'secondary', icon: Clock },
     }
+
     const config = variants[status] || variants.running
     const Icon = config.icon
-    
+
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
         <Icon className="h-3 w-3" />
@@ -82,19 +105,16 @@ export function ViewSyncLogsModal({
     )
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     })
-  }
 
-  const handleClose = () => {
-    onOpenChange(false)
-  }
+  const handleClose = () => onOpenChange(false)
 
   if (!integration) return null
 
@@ -110,7 +130,7 @@ export function ViewSyncLogsModal({
             Sync history for {integration.name}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -128,15 +148,22 @@ export function ViewSyncLogsModal({
           ) : (
             <div className="space-y-3">
               {logs.map((log) => (
-                <div key={log.sync_log_id} className="rounded-lg border border-border p-4 space-y-2">
+                <div
+                  key={log.sync_id}
+                  className="rounded-lg border border-border p-4 space-y-2"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {getStatusBadge(log.status)}
-                      <span className="text-sm text-muted-foreground capitalize">{log.sync_type}</span>
+                      <span className="text-sm text-muted-foreground capitalize">
+                        {log.sync_type}
+                      </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{formatDate(log.started_at)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(log.started_at)}
+                    </span>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-muted-foreground">Records Synced</p>
@@ -148,14 +175,17 @@ export function ViewSyncLogsModal({
                     </div>
                   </div>
 
-                  {log.error_messages && Object.keys(log.error_messages).length > 0 && (
-                    <div className="rounded bg-destructive/10 p-2">
-                      <p className="text-xs text-destructive font-medium">Errors:</p>
-                      <pre className="text-xs text-destructive/80 mt-1 overflow-x-auto">
-                        {JSON.stringify(log.error_messages, null, 2)}
-                      </pre>
-                    </div>
-                  )}
+                  {log.error_messages &&
+                    Object.keys(log.error_messages).length > 0 && (
+                      <div className="rounded bg-destructive/10 p-2">
+                        <p className="text-xs text-destructive font-medium">
+                          Errors:
+                        </p>
+                        <pre className="text-xs text-destructive/80 mt-1 overflow-x-auto">
+                          {JSON.stringify(log.error_messages, null, 2)}
+                        </pre>
+                      </div>
+                    )}
                 </div>
               ))}
             </div>

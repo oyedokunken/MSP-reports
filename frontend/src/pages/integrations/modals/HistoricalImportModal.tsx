@@ -6,11 +6,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Spinner } from '@/components/ui/spinner'
 import { CheckCircle2, Database, AlertCircle } from 'lucide-react'
 import { api } from '@/lib/api'
+import type { Integration } from '../types/integration'
 
 interface HistoricalImportModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  integration: any | null
+  integration: Integration | null
   onSuccess?: () => void
 }
 
@@ -27,6 +28,8 @@ export function HistoricalImportModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!integration) return
     
     const daysNum = parseInt(days)
     if (isNaN(daysNum) || daysNum < 1) {

@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Badge } from '@/components/ui/badge'
 import { Activity, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
 import { api } from '@/lib/api'
+import type { Integration } from '../types/integration'
 
 interface HealthCheckResult {
   healthy: boolean
@@ -23,7 +24,7 @@ interface HealthCheckResult {
 interface IntegrationHealthModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  integration: any | null
+  integration: Integration | null
 }
 
 export function IntegrationHealthModal({ 

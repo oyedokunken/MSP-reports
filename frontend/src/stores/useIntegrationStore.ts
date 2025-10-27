@@ -1,0 +1,153 @@
+import { create } from 'zustand'
+import { api } from '@/lib/api'
+import { transformIntegrations } from '@/pages/integrations/utils/transformIntegrations'
+import type { Integration } from '@/pages/integrations/types/integration'
+
+interface IntegrationState {
+  // Data
+  integrations: Integration[]
+  availableTypes: string[]
+  sourceOfTruthId: number | null
+  isLoading: boolean
+
+  // Sync state
+  syncingId: number | null
+  syncProgress: number
+
+  // Modal state
+  modals: {
+    add: boolean
+    viewCustomers: boolean
+    edit: boolean
+    delete: boolean
+    syncLogs: boolean
+    health: boolean
+    rateLimit: boolean
+    historicalImport: boolean
+  }
+  selectedIntegration: Integration | null
+
+  // Actions
+  fetchIntegrations: (silent?: boolean) => Promise<void>
+  setSourceOfTruth: (id: number) => Promise<{ success: boolean; error?: string }>
+  syncIntegration: (id: number) => Promise<{ success: boolean; error?: string }>
+
+  // Modal actions
+  openModal: (modal: keyof IntegrationState['modals'], integration?: Integration) => void
+  closeModal: (modal: keyof IntegrationState['modals']) => void
+  setSelectedIntegration: (integration: Integration | null) => void
+}
+
+export const useIntegrationStore = create<IntegrationState>((set, get) => ({
+  // Initial state
+  integrations: [],
+  availableTypes: [],
+  sourceOfTruthId: null,
+  isLoading: true,
+  syncingId: null,
+  syncProgress: 0,
+  modals: {
+    add: false,
+    viewCustomers: false,
+    edit: false,
+    delete: false,
+    syncLogs: false,
+    health: false,
+    rateLimit: false,
+    historicalImport: false,
+  },
+  selectedIntegration: null,
+
+  // Fetch integrations
+  fetchIntegrations: async (silent = false) => {
+    if (!silent) set({ isLoading: true })
+
+    try {
+      const response = await api.get('/integrations')
+      const data = (response as any).data || response
+
+      const availableTypes = data.available_types || []
+      const transformed = transformIntegrations(data) || []
+      const sourceOfTruth = data.configured?.find((int: any) => int.is_source_of_truth)
+      const sourceOfTruthId = sourceOfTruth ? sourceOfTruth.integration_id : null
+
+      set({
+        integrations: transformed,
+        availableTypes,
+        sourceOfTruthId,
+        isLoading: false,
+      })
+    } catch (err: any) {
+      console.error('Failed to fetch integrations:', err)
+      set({ isLoading: false })
+    }
+  },
+
+  // Set source of truth
+  setSourceOfTruth: async (id: number) => {
+    try {
+      await api.patch('/company/source-integration', { integration_id: id })
+      set({ sourceOfTruthId: id })
+      await get().fetchIntegrations(true) // refresh silently
+      return { success: true }
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.response?.data?.message || err.message,
+      }
+    }
+  },
+
+  // Sync integration
+  syncIntegration: async (integrationId: number) => {
+    set({ syncingId: integrationId, syncProgress: 0 })
+
+    // Progress animation
+    const interval = setInterval(() => {
+      set(state => ({
+        syncProgress: Math.min(state.syncProgress + Math.random() * 15, 90),
+      }))
+    }, 300)
+
+    try {
+      await api.get(`/integrations/${integrationId}/sync`)
+      clearInterval(interval)
+      set({ syncProgress: 100 })
+
+      // short delay for animation
+      await new Promise(resolve => setTimeout(resolve, 300))
+
+      set({ syncingId: null, syncProgress: 0 })
+
+      // Refresh integrations silently
+      await get().fetchIntegrations(true)
+
+      return { success: true }
+    } catch (err: any) {
+      clearInterval(interval)
+      set({ syncingId: null, syncProgress: 0 })
+      return {
+        success: false,
+        error: err.response?.data?.message || err.message,
+      }
+    }
+  },
+
+  // Modal actions
+  openModal: (modal, integration) => {
+    set(state => ({
+      modals: { ...state.modals, [modal]: true },
+      selectedIntegration: integration || state.selectedIntegration,
+    }))
+  },
+
+  closeModal: modal => {
+    set(state => ({
+      modals: { ...state.modals, [modal]: false },
+    }))
+  },
+
+  setSelectedIntegration: integration => {
+    set({ selectedIntegration: integration })
+  },
+}))

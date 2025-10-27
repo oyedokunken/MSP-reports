@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Spinner } from '@/components/ui/spinner'
 import { Gauge, RefreshCw } from 'lucide-react'
 import { api } from '@/lib/api'
+import type { Integration } from '../types/integration'
 
 interface RateLimitStatus {
   integration_type: string
@@ -22,7 +23,7 @@ interface RateLimitStatus {
 interface RateLimitStatusModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  integration: any | null
+  integration: Integration | null
 }
 
 export function RateLimitStatusModal({ 
@@ -56,10 +57,6 @@ export function RateLimitStatusModal({
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const getPercentage = (used: number, limit: number) => {
-    return Math.round((used / limit) * 100)
   }
 
   const getProgressColor = (percentage: number) => {

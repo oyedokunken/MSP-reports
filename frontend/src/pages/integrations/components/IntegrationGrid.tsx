@@ -1,6 +1,6 @@
 import { StatCardSkeleton, EmptyState } from '@/components/ui/LoadingStates'
 import { Cable } from 'lucide-react'
-import type { Integration } from '../types'
+import type { Integration } from '../types/integration'
 import { IntegrationCard } from './IntegrationCard'
 
 type IntegrationGridProps = {

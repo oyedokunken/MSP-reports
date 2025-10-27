@@ -79,7 +79,6 @@ export default function ConfigureReports() {
       console.log('Fetched report config:', reportData)
       
       setConfig(reportData)
-      // Backend returns report_schedules, map to enabled_reports format
       const schedules = reportData.report_schedules || []
       console.log('Schedules from backend:', schedules)
       
@@ -94,25 +93,21 @@ export default function ConfigureReports() {
       console.log('Mapped schedules:', mappedSchedules)
       setEnabledReports(mappedSchedules)
       
-      // Get email settings - backend returns them at root level
       let emailDestination = ''
       let ccEmailsList: string[] = []
       
       console.log('Full reportData:', reportData)
       
-      // Priority 1: Root level (new backend structure)
       if (reportData.email_destination) {
         console.log('Using email from root level:', reportData.email_destination)
         emailDestination = reportData.email_destination
         ccEmailsList = reportData.cc_emails || []
       }
-      // Priority 2: First schedule
       else if (schedules.length > 0 && schedules[0].email_destination) {
         console.log('Using email from schedule:', schedules[0].email_destination)
         emailDestination = schedules[0].email_destination
         ccEmailsList = schedules[0].cc_emails || []
       } 
-      // Priority 3: Delivery config
       else if (reportData.delivery?.destination) {
         console.log('Using email from delivery config')
         emailDestination = reportData.delivery.destination
@@ -154,11 +149,10 @@ export default function ConfigureReports() {
         toast.success('Deleted', 'Report schedule deleted successfully')
       } catch (err: any) {
         toast.error('Delete Failed', err.response?.data?.message || err.message)
-        return // Don't remove from UI if backend delete failed
+        return 
       }
     }
     
-    // Remove from UI
     setEnabledReports(enabledReports.filter((_, i) => i !== index))
   }
 
@@ -177,7 +171,6 @@ export default function ConfigureReports() {
         .map(email => email.trim())
         .filter(email => email.length > 0)
 
-      // Convert enabled reports to schedules format that backend expects
       const schedules = enabledReports.map(report => ({
         report_type: report.report_type,
         frequency: report.frequency || 'monthly',
@@ -186,12 +179,10 @@ export default function ConfigureReports() {
         schedule_config: null
       }))
 
-      // Update report schedules
       await api.patch(`/customers/${id}/reports`, {
         schedules: schedules
       })
 
-      // Update delivery destination separately
       await api.patch(`/customers/${id}/report-destination`, {
         method: 'email',
         destination,
@@ -220,7 +211,6 @@ export default function ConfigureReports() {
       
       toast.success('Report Generated!', `Successfully generated ${data.data?.length || 1} report(s)`)
       
-      // Optionally navigate to reports list
       setTimeout(() => {
         navigate('/reports')
       }, 1500)
@@ -248,7 +238,7 @@ export default function ConfigureReports() {
           <p className="text-lg font-medium text-muted-foreground">Customer not found</p>
           <Button onClick={() => navigate(-1)} className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Go Back
+            Go Back1
           </Button>
         </div>
       </FloatingLayout>
@@ -258,7 +248,6 @@ export default function ConfigureReports() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" />
@@ -271,7 +260,6 @@ export default function ConfigureReports() {
           </div>
         </div>
 
-        {/* Enabled Reports */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -306,7 +294,6 @@ export default function ConfigureReports() {
                   <div key={index} className="p-4 rounded-lg border border-border space-y-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Report Type */}
                         <div>
                           <Label htmlFor={`report-type-${index}`}>Report Type</Label>
                           <Select
@@ -326,7 +313,6 @@ export default function ConfigureReports() {
                           </Select>
                         </div>
 
-                        {/* Frequency */}
                         <div>
                           <Label htmlFor={`frequency-${index}`}>Frequency</Label>
                           <Select
@@ -346,7 +332,6 @@ export default function ConfigureReports() {
                           </Select>
                         </div>
 
-                        {/* Time of Day */}
                         {report.frequency !== 'on-demand' && (
                           <div>
                             <Label htmlFor={`time-${index}`}>Time of Day</Label>
@@ -360,7 +345,6 @@ export default function ConfigureReports() {
                           </div>
                         )}
 
-                        {/* Active Status */}
                         <div className="flex items-center gap-2 pt-6">
                           <Switch
                             id={`active-${index}`}
@@ -373,7 +357,6 @@ export default function ConfigureReports() {
                         </div>
                       </div>
 
-                      {/* Remove Button */}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -384,12 +367,10 @@ export default function ConfigureReports() {
                       </Button>
                     </div>
 
-                    {/* Report Description */}
                     <p className="text-xs text-muted-foreground">
                       {AVAILABLE_REPORT_TYPES.find(t => t.id === report.report_type)?.description}
                     </p>
 
-                    {/* Schedule ID Badge */}
                     {report.schedule_id && (
                       <Badge variant="secondary" className="text-xs text-white">
                         Schedule ID: {report.schedule_id}
@@ -402,7 +383,6 @@ export default function ConfigureReports() {
           </CardContent>
         </Card>
 
-        {/* Delivery Configuration */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -446,7 +426,6 @@ export default function ConfigureReports() {
           </CardContent>
         </Card>
 
-        {/* System Settings */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -471,12 +450,10 @@ export default function ConfigureReports() {
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5" />
-              Quick Actions
             </CardTitle>
             <CardDescription>
               Save your configuration or generate a report immediately

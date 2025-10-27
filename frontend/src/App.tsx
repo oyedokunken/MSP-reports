@@ -16,6 +16,9 @@ import ResetPassword from '@/pages/auth/pages/ResetPassword'
 import AuthLayout from '@/pages/auth/Layout'
 import { UsersList, CreateUser } from '@/pages/users'
 import { ReportsList, CustomerReports, ConfigureReports } from '@/pages/reports'
+import Licenses from '@/pages/licenses/Licenses'
+import Monitoring from '@/pages/monitoring/Monitoring'
+import { HamsterLoader } from '@/components/ui/HamsterLoader'
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -24,7 +27,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <HamsterLoader />
       </div>
     )
   }
@@ -43,7 +46,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
+        <HamsterLoader />
       </div>
     )
   }
@@ -162,6 +165,24 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CreateUser />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/licenses"
+        element={
+          <ProtectedRoute>
+            <Licenses />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/monitoring"
+        element={
+          <ProtectedRoute>
+            <Monitoring />
           </ProtectedRoute>
         }
       />

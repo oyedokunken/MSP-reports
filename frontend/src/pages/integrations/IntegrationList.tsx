@@ -1,230 +1,152 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
-import type { Integration } from './types'
-import { useIntegrationSync } from './hooks'
+import { useIntegrationStore } from '@/stores/useIntegrationStore'
 import { IntegrationHeader } from './components/IntegrationHeader'
 import { IntegrationGrid } from './components/IntegrationGrid'
-import { AddIntegrationModal } from '@/components/modals/AddIntegrationModal'
-import { ViewIntegrationCustomersModal } from '@/components/modals/ViewIntegrationCustomersModal'
-import { EditIntegrationModal } from './modals/EditIntegrationModal'
-import { DeleteIntegrationModal } from './modals/DeleteIntegrationModal'
-import { ViewSyncLogsModal } from './modals/ViewSyncLogsModal'
-import { IntegrationHealthModal } from './modals/IntegrationHealthModal'
-import { RateLimitStatusModal } from './modals/RateLimitStatusModal'
-import { HistoricalImportModal } from './modals/HistoricalImportModal'
-import { api } from '@/lib/api'
+import {
+  AddIntegrationModal,
+  ViewIntegrationCustomersModal,
+  EditIntegrationModal,
+  DeleteIntegrationModal,
+  ViewSyncLogsModal,
+  IntegrationHealthModal,
+  RateLimitStatusModal,
+  HistoricalImportModal,
+} from './modals'
 
 export default function IntegrationList() {
   const toast = useToast()
   
-  // Handle sync success - just refresh the list from backend
-  const handleSyncSuccess = (title: string, description?: string) => {
-    toast.success(title, description)
-    // Refresh integrations list to get updated sync time from backend
-    fetchIntegrations()
-  }
-  
-  const { syncingId, progress, handleSync } = useIntegrationSync(handleSyncSuccess, toast.error)
-  const [isLoading, setIsLoading] = useState(true)
-  const [integrations, setIntegrations] = useState<Integration[]>([])
-  const [availableTypes, setAvailableTypes] = useState<string[]>([])
-  const [addModalOpen, setAddModalOpen] = useState(false)
-  const [viewCustomersModalOpen, setViewCustomersModalOpen] = useState(false)
-  const [editModalOpen, setEditModalOpen] = useState(false)
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [syncLogsModalOpen, setSyncLogsModalOpen] = useState(false)
-  const [healthModalOpen, setHealthModalOpen] = useState(false)
-  const [rateLimitModalOpen, setRateLimitModalOpen] = useState(false)
-  const [historicalImportModalOpen, setHistoricalImportModalOpen] = useState(false)
-  const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null)
-  const [sourceOfTruthId, setSourceOfTruthId] = useState<number | null>(null)
+  // Zustand store - select only what we need to prevent unnecessary rerenders
+  const integrations = useIntegrationStore(state => state.integrations)
+  const availableTypes = useIntegrationStore(state => state.availableTypes)
+  const sourceOfTruthId = useIntegrationStore(state => state.sourceOfTruthId)
+  const isLoading = useIntegrationStore(state => state.isLoading)
+  const syncingId = useIntegrationStore(state => state.syncingId)
+  const syncProgress = useIntegrationStore(state => state.syncProgress)
+  const modals = useIntegrationStore(state => state.modals)
+  const selectedIntegration = useIntegrationStore(state => state.selectedIntegration)
+  const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
+  const setSourceOfTruth = useIntegrationStore(state => state.setSourceOfTruth)
+  const syncIntegration = useIntegrationStore(state => state.syncIntegration)
+  const openModal = useIntegrationStore(state => state.openModal)
+  const closeModal = useIntegrationStore(state => state.closeModal)
 
+  // Fetch integrations on mount
   useEffect(() => {
-    fetchIntegrations()
-  }, [])
-
-  const fetchIntegrations = async () => {
-    try {
-      setIsLoading(true)
-      const data = await api.get<{ available_types: string[], configured: any[] }>('/integrations')
-      
-      if (data) {
-        const responseData = (data as any).data || data
-        setAvailableTypes(responseData.available_types || [])
-        
-        const transformedIntegrations: Integration[] = (responseData.configured || []).map((int: any) => {
-          return {
-            id: int.integration_id,
-            name: int.display_name,
-            type: int.integration_type.toLowerCase(),
-            status: int.status,
-            lastSync: int.last_sync_at ? new Date(int.last_sync_at).toLocaleString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            }) : 'Never',
-            syncStatus: int.last_sync_status || 'pending',
-            customers: int.unmapped_customers_count || 0,
-          }
-        })
-        
-        setIntegrations(transformedIntegrations)
-        
-        // Find source of truth integration
-        const sourceOfTruth = responseData.configured.find((int: any) => int.is_source_of_truth)
-        if (sourceOfTruth) {
-          setSourceOfTruthId(sourceOfTruth.integration_id)
-        }
-      }
-    } catch (err: any) {
-      console.error('Failed to load integrations:', err)
+    fetchIntegrations().catch(err => {
       toast.error('Failed to load integrations', err.response?.data?.message || err.message)
-    } finally {
-      setIsLoading(false)
+    })
+  }, [fetchIntegrations])
+
+  // Handler functions
+  const handleSync = async (integrationId: number, name: string) => {
+    const result = await syncIntegration(integrationId)
+    if (result.success) {
+      toast.success('Sync Complete', `${name} synced successfully`)
+    } else {
+      toast.error('Sync Failed', `${name}: ${result.error}`)
     }
-  }
-
-  const handleViewCustomers = (id: number) => {
-    const integration = integrations.find(int => int.id === id)
-    if (integration) {
-      setSelectedIntegration(integration)
-      setViewCustomersModalOpen(true)
-    }
-  }
-
-  const handleEdit = (integration: Integration) => {
-    setSelectedIntegration(integration)
-    setEditModalOpen(true)
-  }
-
-  const handleViewLogs = (integration: Integration) => {
-    setSelectedIntegration(integration)
-    setSyncLogsModalOpen(true)
-  }
-
-  const handleHealthCheck = (integration: Integration) => {
-    setSelectedIntegration(integration)
-    setHealthModalOpen(true)
-  }
-
-  const handleRateLimit = (integration: Integration) => {
-    setSelectedIntegration(integration)
-    setRateLimitModalOpen(true)
-  }
-
-  const handleHistoricalImport = (integration: Integration) => {
-    setSelectedIntegration(integration)
-    setHistoricalImportModalOpen(true)
-  }
-
-  const handleDelete = (integration: Integration) => {
-    setSelectedIntegration(integration)
-    setDeleteModalOpen(true)
   }
 
   const handleSetSourceOfTruth = async (id: number, name: string) => {
-    try {
-      const response = await api.patch('/company/source-integration', {
-        integration_id: id
-      })
-      
-      const data = (response as any).data || response
-      if (data) {
-        setSourceOfTruthId(id)
-        toast.success('Master Customer List Set', `${name} is now your master customer list. Other integrations will map to these customers.`)
-        fetchIntegrations() // Refresh to get updated data
-      }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to set master customer list'
-      toast.error('Failed to Update', errorMessage)
+    const result = await setSourceOfTruth(id)
+    if (result.success) {
+      toast.success('Master Customer List Set', `${name} is now your master customer list.`)
+    } else {
+      toast.error('Failed to Update', result.error)
     }
   }
 
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        <IntegrationHeader onAdd={() => setAddModalOpen(true)} />
+        <IntegrationHeader onAdd={() => openModal('add')} />
+
         <IntegrationGrid
           isLoading={isLoading}
           items={integrations}
           syncingId={syncingId}
-          progress={progress}
+          progress={syncProgress}
           onSync={handleSync}
-          onEmptyAction={() => setAddModalOpen(true)}
-          onViewCustomers={handleViewCustomers}
+          onEmptyAction={() => openModal('add')}
+          onViewCustomers={id => {
+            const int = integrations.find(i => i.id === id)
+            if (int) openModal('viewCustomers', int)
+          }}
           onSetSourceOfTruth={handleSetSourceOfTruth}
-          onEdit={handleEdit}
-          onViewLogs={handleViewLogs}
-          onHealthCheck={handleHealthCheck}
-          onRateLimit={handleRateLimit}
-          onHistoricalImport={handleHistoricalImport}
-          onDelete={handleDelete}
+          onEdit={int => openModal('edit', int)}
+          onViewLogs={int => openModal('syncLogs', int)}
+          onHealthCheck={int => openModal('health', int)}
+          onRateLimit={int => openModal('rateLimit', int)}
+          onHistoricalImport={int => openModal('historicalImport', int)}
+          onDelete={int => openModal('delete', int)}
           sourceOfTruthId={sourceOfTruthId}
         />
-        
+
+        {/* Modals */}
         <AddIntegrationModal
-          open={addModalOpen}
-          onOpenChange={setAddModalOpen}
+          open={modals.add}
+          onOpenChange={open => open ? openModal('add') : closeModal('add')}
           availableTypes={availableTypes}
           onSuccess={() => {
-            fetchIntegrations()
+            closeModal('add')
             toast.success('Integration added successfully')
           }}
         />
 
         <ViewIntegrationCustomersModal
-          open={viewCustomersModalOpen}
-          onOpenChange={setViewCustomersModalOpen}
+          open={modals.viewCustomers}
+          onOpenChange={open => open ? openModal('viewCustomers') : closeModal('viewCustomers')}
           integrationId={selectedIntegration?.id || null}
           integrationName={selectedIntegration?.name || ''}
         />
 
         <EditIntegrationModal
-          open={editModalOpen}
-          onOpenChange={setEditModalOpen}
+          open={modals.edit}
+          onOpenChange={open => open ? openModal('edit') : closeModal('edit')}
           integration={selectedIntegration}
           onSuccess={() => {
-            fetchIntegrations()
+            closeModal('edit')
             toast.success('Integration Updated', 'Integration settings have been updated')
           }}
         />
 
         <DeleteIntegrationModal
-          open={deleteModalOpen}
-          onOpenChange={setDeleteModalOpen}
+          open={modals.delete}
+          onOpenChange={open => open ? openModal('delete') : closeModal('delete')}
           integration={selectedIntegration}
           onSuccess={() => {
-            fetchIntegrations()
+            closeModal('delete')
             toast.success('Integration Deleted', 'Integration has been removed')
           }}
         />
 
         <ViewSyncLogsModal
-          open={syncLogsModalOpen}
-          onOpenChange={setSyncLogsModalOpen}
+          open={modals.syncLogs}
+          onOpenChange={open => open ? openModal('syncLogs') : closeModal('syncLogs')}
           integration={selectedIntegration}
         />
 
         <IntegrationHealthModal
-          open={healthModalOpen}
-          onOpenChange={setHealthModalOpen}
+          open={modals.health}
+          onOpenChange={open => open ? openModal('health') : closeModal('health')}
           integration={selectedIntegration}
         />
 
         <RateLimitStatusModal
-          open={rateLimitModalOpen}
-          onOpenChange={setRateLimitModalOpen}
+          open={modals.rateLimit}
+          onOpenChange={open => open ? openModal('rateLimit') : closeModal('rateLimit')}
           integration={selectedIntegration}
         />
 
         <HistoricalImportModal
-          open={historicalImportModalOpen}
-          onOpenChange={setHistoricalImportModalOpen}
+          open={modals.historicalImport}
+          onOpenChange={open => open ? openModal('historicalImport') : closeModal('historicalImport')}
           integration={selectedIntegration}
           onSuccess={() => {
+            closeModal('historicalImport')
             toast.success('Import Started', 'Historical data import has been queued')
           }}
         />

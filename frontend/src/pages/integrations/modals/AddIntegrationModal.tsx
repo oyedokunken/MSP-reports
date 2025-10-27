@@ -5,8 +5,10 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
-import { CheckCircle2, Cable } from 'lucide-react'
+import { Cable } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useIntegrationStore } from '@/stores/useIntegrationStore'
+import { SuccessDialog } from '@/components/modals/SuccessDialog'
 
 interface AddIntegrationModalProps {
   open: boolean
@@ -20,6 +22,9 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   
+  // Get fetchIntegrations from store
+  const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
+
   const [formData, setFormData] = useState({
     integration_type: '',
     display_name: '',
@@ -35,9 +40,13 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
       const response = await api.post('/integrations', formData)
 
       if (response.data) {
+        // Refresh integrations silently
+        await fetchIntegrations(true)
+        
         setSuccess(true)
         setTimeout(() => {
           setSuccess(false)
+          setError('')
           setFormData({
             integration_type: '',
             display_name: '',
@@ -69,22 +78,15 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
 
   if (success) {
     return (
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-md">
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="mb-4 rounded-full bg-green-500/10 p-3">
-              <CheckCircle2 className="h-12 w-12 text-green-500" />
-            </div>
-            <DialogTitle className="text-2xl text-green-600 mb-2">Integration Added!</DialogTitle>
-            <DialogDescription className="text-center">
-              The integration has been added successfully.
-            </DialogDescription>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SuccessDialog
+        open={open}
+        onOpenChange={handleClose}
+        title="Integration Added!"
+        description="The integration has been added successfully."
+      />
     )
   }
-
+  
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -93,11 +95,9 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
             <Cable className="h-5 w-5 text-primary" />
             <DialogTitle>Add Integration</DialogTitle>
           </div>
-          <DialogDescription>
-            Connect a new integration to your platform
-          </DialogDescription>
+          <DialogDescription>Connect a new integration to your platform</DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Integration Type */}
           <div className="space-y-2">
@@ -118,9 +118,7 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
-              Choose the type of integration to add
-            </p>
+            <p className="text-xs text-muted-foreground">Choose the type of integration to add</p>
           </div>
 
           {/* Display Name */}
@@ -135,9 +133,6 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
               required
               disabled={isSubmitting}
             />
-            <p className="text-xs text-muted-foreground">
-              A friendly name to identify this integration
-            </p>
           </div>
 
           {/* Status */}
@@ -160,7 +155,6 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
             </Select>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
               <p className="text-sm text-destructive font-medium">{error}</p>
@@ -168,12 +162,7 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
           )}
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting || !formData.integration_type || !formData.display_name}>

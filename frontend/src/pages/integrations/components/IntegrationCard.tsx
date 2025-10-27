@@ -1,8 +1,8 @@
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { Cable, RefreshCw, Users, Crown, Settings, FileText, Activity, Gauge, Database, Trash2 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/LoadingStates'
-import type { Integration } from '../types'
-import { getStatusIcon, getStatusText } from '../utils'
+import type { Integration } from '../types/integration'
+import { getStatusIcon, getStatusText } from '../utils/statusBadge'
 import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
