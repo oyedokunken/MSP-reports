@@ -100,7 +100,7 @@ class UserController extends Controller
         if (!$user) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'User not found in your company'
+                'message' => 'User not found in your company.'
             ], 404);
         }
 
@@ -158,7 +158,7 @@ class UserController extends Controller
         if (!$user) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'User not found in your company'
+                'message' => 'User not found in your company.'
             ], 404);
         }
 
@@ -227,14 +227,14 @@ class UserController extends Controller
         if (!$user) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'User not found in your company'
+                'message' => 'User not found in your company.'
             ], 404);
         }
 
         if ($user->user_id === $authUser->user_id) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'You cannot deactivate your own account'
+                'message' => 'You cannot deactivate your own account.'
             ], 400);
         }
 
@@ -261,7 +261,7 @@ class UserController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'User deactivated successfully',
+            'message' => 'User deactivated successfully.',
             'data' => $sanitisedUser->load('role')
         ]);
     }
@@ -277,7 +277,7 @@ class UserController extends Controller
         if (!$user) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'User not found in your company'
+                'message' => 'User not found in your company.'
             ], 404);
         }
 
@@ -302,7 +302,7 @@ class UserController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'User reactivated successfully',
+            'message' => 'User reactivated successfully.',
             'data' => $sanitisedUser->load('role')
         ]);
     }
@@ -318,14 +318,14 @@ class UserController extends Controller
         if (!$user) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'User not found in your company'
+                'message' => 'User not found in your company.'
             ], 404);
         }
 
         if ($user->user_id === $authUser->user_id) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'You cannot delete your own account'
+                'message' => 'You cannot delete your own account.'
             ], 400);
         }
 
@@ -350,7 +350,7 @@ class UserController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'User deleted successfully'
+            'message' => 'User deleted successfully.'
         ]);
     }
 
@@ -365,14 +365,14 @@ class UserController extends Controller
         if (!$user) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'User not found in your company'
+                'message' => 'User not found in your company.'
             ], 404);
         }
         
         if ($user->auth_method !== 'local') {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Password reset is only available for local authentication users'
+                'message' => 'Password reset is only available for local authentication users.'
             ], 400);
         }
 
@@ -401,7 +401,7 @@ class UserController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'User password reset successfully'
+            'message' => 'User password reset successfully.'
         ]);
     }
 }

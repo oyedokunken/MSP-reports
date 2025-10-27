@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\LoginRequest;
+use App\Mail\PasswordResetMail;
 
 class AuthController extends Controller
 {
@@ -110,7 +111,7 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Logged out successfully',
+            'message' => 'Logged out successfully.',
         ]);
     }
 
@@ -162,11 +163,15 @@ class AuthController extends Controller
             'expires_at' => now()->addHour(),
         ]);
 
-        
-        
-        
-        
-        
+        try {
+            Mail::to($user->email)->send(new PasswordResetMail($user, $token));
+        } catch (\Exception $e) {
+            \Log::error('Password reset email failed', [
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         AuditLog::create([
             'company_id' => $user->company_id,
             'event_type' => 'password_reset_requested',
@@ -248,7 +253,7 @@ class AuthController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Password has been reset successfully. Please login with your new password.',
+            'message' => 'Password has been reset successfully. Please log in with your new password.',
         ]);
     }
 

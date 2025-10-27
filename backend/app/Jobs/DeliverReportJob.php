@@ -30,6 +30,9 @@ class DeliverReportJob implements ShouldQueue
     public function handle(): void
     {
         try {
+            // Eager load relationships to ensure they're available
+            $this->generatedReport->load(['customer', 'reportSchedule', 'company']);
+            
             $customer = $this->generatedReport->customer;
             $company = $this->generatedReport->company;
 

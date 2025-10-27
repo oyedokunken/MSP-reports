@@ -166,6 +166,12 @@ class ReportGenerationService
 
         // Save PDF to storage
         Storage::disk('reports')->put($filename, $pdf->output());
+        
+        // Ensure file has correct permissions
+        $fullPath = Storage::disk('reports')->path($filename);
+        if (file_exists($fullPath)) {
+            chmod($fullPath, 0644);
+        }
 
         return $filename;
     }

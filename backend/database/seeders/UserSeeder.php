@@ -28,8 +28,10 @@ class UserSeeder extends Seeder
             ['description' => 'Full system administrator']
         );
 
-        // Create admin user
-        User::create([
+        // Create admin user (if not exists)
+        User::firstOrCreate(
+            ['email' => 'admin@tts.com.au'],
+            [
             'company_id' => $company->company_id,
             'role_id' => $adminRole->id,
             'name' => 'TTS Administrator',
@@ -64,9 +66,52 @@ class UserSeeder extends Seeder
                 ],
             ],
             'email_verified_at' => now(),
-        ]);
+            ]
+        );
+
+        // Create test user (Kristian) - if not exists
+        User::firstOrCreate(
+            ['email' => 'kristianbas14@gmail.com'],
+            [
+            'company_id' => $company->company_id,
+            'role_id' => $adminRole->id,
+            'name' => 'Kristian Bas',
+            'email' => 'kristianbas14@gmail.com',
+            'password' => Hash::make('password123'),
+            'status' => 'active',
+            'auth_method' => 'local',
+            'permissions' => [
+                'integrations' => [
+                    'view' => true,
+                    'manage' => true,
+                    'sync' => true,
+                ],
+                'customers' => [
+                    'view' => true,
+                    'edit' => true,
+                    'map' => true,
+                ],
+                'reports' => [
+                    'view' => true,
+                    'configure' => true,
+                    'generate' => true,
+                    'download' => true,
+                ],
+                'users' => [
+                    'view' => true,
+                    'manage' => true,
+                ],
+                'company_settings' => [
+                    'view' => true,
+                    'edit' => true,
+                ],
+            ],
+            'email_verified_at' => now(),
+            ]
+        );
 
         $this->command->info('Admin user created: admin@tts.com.au (password: ChangeMe123!)');
+        $this->command->info('Test user created: kristianbas14@gmail.com (password: password123)');
         $this->command->warn('IMPORTANT: Change the default password after first login!');
     }
 }

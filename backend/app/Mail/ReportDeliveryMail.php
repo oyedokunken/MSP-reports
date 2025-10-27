@@ -72,13 +72,17 @@ class ReportDeliveryMail extends Mailable
         $attachments = [];
 
         if ($this->report->file_path && Storage::disk('reports')->exists($this->report->file_path)) {
-            $attachments[] = Attachment::fromStorageDisk('reports', $this->report->file_path)
-                ->as(sprintf(
-                    '%s_Report_%s.pdf',
-                    str_replace(' ', '_', $this->report->customer->canonical_name),
-                    $this->report->generated_at->format('Y-m-d')
-                ))
-                ->withMime('application/pdf');
+            $fullPath = Storage::disk('reports')->path($this->report->file_path);
+            
+            if (file_exists($fullPath) && is_readable($fullPath)) {
+                $attachments[] = Attachment::fromPath($fullPath)
+                    ->as(sprintf(
+                        '%s_Report_%s.pdf',
+                        str_replace(' ', '_', $this->report->customer->canonical_name),
+                        $this->report->generated_at->format('Y-m-d')
+                    ))
+                    ->withMime('application/pdf');
+            }
         }
 
         return $attachments;

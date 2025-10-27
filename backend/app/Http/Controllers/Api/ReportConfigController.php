@@ -62,7 +62,7 @@ class ReportConfigController extends Controller
         if (!$customer) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Customer not found'
+                'message' => 'Customer not found.'
             ], 404);
         }
 
@@ -157,7 +157,7 @@ class ReportConfigController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Report schedules updated successfully',
+            'message' => 'Report schedules updated successfully.',
             'data' => [
                 'schedules_created' => $schedulesCreated,
                 'schedules_updated' => $schedulesUpdated
@@ -177,7 +177,7 @@ class ReportConfigController extends Controller
         if (!$customer) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Customer not found'
+                'message' => 'Customer not found.'
             ], 404);
         }
 
@@ -196,7 +196,7 @@ class ReportConfigController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Customer report delivery destination updated',
+            'message' => 'Customer report delivery destination updated.',
             'data' => $customer->report_configuration['delivery']
         ]);
     }
@@ -234,9 +234,15 @@ class ReportConfigController extends Controller
                 
                 DeliverReportJob::dispatch($generatedReport);
                 
+                $customer = $generatedReport->customer;
+                $emailDestination = $customer->report_destination 
+                    ?? $customer->report_configuration['delivery']['destination'] 
+                    ?? null;
+                
                 $reportArray = $generatedReport->toArray();
                 $reportArray['email_status'] = 'queued';
-                $reportArray['email_destination'] = $generatedReport->customer->report_destination;
+                $reportArray['email_destination'] = $emailDestination;
+                $reportArray['customer_name'] = $customer->canonical_name;
                 
                 $generatedReports[] = $reportArray;
 
@@ -250,7 +256,7 @@ class ReportConfigController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Report generation completed',
+            'message' => 'Report generation completed.',
             'data' => [
                 'generated' => count($generatedReports),
                 'errors' => $errors,

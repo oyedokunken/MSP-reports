@@ -184,6 +184,7 @@ class IntegrationController extends Controller
                 'records_synced' => $result['records_synced'] ?? 0,
                 'records_failed' => $result['records_failed'] ?? 0,
                 'rate_limit_hits' => $result['rate_limit_hits'] ?? 0,
+                'customers_mapped' => $result['customers_mapped'] ?? [],
             ]);
 
             $integration->update([
@@ -421,7 +422,7 @@ class IntegrationController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Integration deleted successfully'
+            'message' => 'Integration deleted successfully.'
         ]);
     }
 
@@ -449,6 +450,9 @@ class IntegrationController extends Controller
             ->limit($limit)
             ->get();
 
+        // Get the most recent sync
+        $latestSync = $syncLogs->first();
+
         return response()->json([
             'status' => 'success',
             'data' => [
@@ -457,6 +461,14 @@ class IntegrationController extends Controller
                     'display_name' => $integration->display_name,
                     'integration_type' => $integration->integration_type,
                 ],
+                'latest_sync' => $latestSync ? [
+                    'sync_id' => $latestSync->sync_id,
+                    'started_at' => $latestSync->started_at,
+                    'completed_at' => $latestSync->completed_at,
+                    'status' => $latestSync->status,
+                    'records_synced' => $latestSync->records_synced,
+                    'customers_mapped' => $latestSync->customers_mapped ?? [],
+                ] : null,
                 'sync_logs' => $syncLogs,
             ]
         ]);

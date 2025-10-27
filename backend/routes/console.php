@@ -25,3 +25,9 @@ Schedule::command('data:cleanup')
     ->dailyAt('02:00')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Schedule alert rule evaluation to run every 5 minutes
+Schedule::command('alerts:evaluate')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();

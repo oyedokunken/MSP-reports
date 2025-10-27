@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Integration;
 
 class SyncLog extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $primaryKey = 'sync_id';
 
@@ -22,10 +23,12 @@ class SyncLog extends Model
         'records_failed',
         'error_messages',
         'rate_limit_hits',
+        'customers_mapped',
     ];
 
     protected $casts = [
         'error_messages' => 'array',
+        'customers_mapped' => 'array',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
     ];

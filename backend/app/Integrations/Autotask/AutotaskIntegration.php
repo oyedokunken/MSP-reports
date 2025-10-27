@@ -27,20 +27,26 @@ class AutotaskIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    protected $mappedDuringSync = [];
+
     public function sync(): array
     {
-        $customers = [];
         $errors = [];
+        $this->mappedDuringSync = [];
 
         try {
             // Get companies (customers) from Autotask
             $autotaskCompanies = $this->client->getCompanies();
+            
+            \Log::info('Autotask sync: Retrieved companies', [
+                'count' => count($autotaskCompanies),
+                'integration_id' => $this->integration->integration_id,
+            ]);
 
             foreach ($autotaskCompanies as $company) {
                 try {
                     // Map to standardized format
                     $standardized = AutotaskMapper::mapCompany($company);
-                    $customers[] = $standardized;
 
                     // Store in database
                     $this->storeCustomer($standardized);
@@ -55,20 +61,35 @@ class AutotaskIntegration implements IntegrationInterface
         }
 
         // Process existing unmapped customers from database
-        $this->processUnmappedCustomers();
+        $additionalMapped = $this->processUnmappedCustomers();
+        $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
+
+        // Count mapped and unmapped customers AFTER sync
+        $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNotNull('customer_id')
+            ->count();
+        
+        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
 
         return [
-            'customers' => $customers,
+            'records_synced' => $mappedCount,        // Already mapped customers
+            'records_new' => $unmappedCount,         // Unmapped customers (need mapping)
+            'customers_mapped' => $mappedCustomers,  // Customers mapped during this sync
+            'records_failed' => count($errors),
             'errors' => $errors,
         ];
     }
 
-    private function processUnmappedCustomers(): void
+    private function processUnmappedCustomers(): array
     {
         // Get all unmapped customers for this integration
         $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->get();
+
+        $mappedList = [];
 
         foreach ($unmappedCustomers as $integrationCustomer) {
             // If this integration is source of truth, auto-create unified customer
@@ -94,6 +115,13 @@ class AutotaskIntegration implements IntegrationInterface
                     'notes' => 'Auto-created from source of truth integration',
                 ]);
 
+                $mappedList[] = [
+                    'external_id' => $integrationCustomer->external_id,
+                    'name' => $integrationCustomer->name,
+                    'unified_customer_id' => $unifiedCustomer->customer_id,
+                    'canonical_name' => $unifiedCustomer->canonical_name,
+                ];
+
                 \Log::info('Auto-created customer from source of truth', [
                     'integration_type' => 'Autotask',
                     'customer_name' => $integrationCustomer->name,
@@ -104,6 +132,8 @@ class AutotaskIntegration implements IntegrationInterface
                 AutoMatchCustomersJob::dispatch($integrationCustomer);
             }
         }
+
+        return $mappedList;
     }
 
     public function getCustomers(): array
@@ -242,6 +272,14 @@ class AutotaskIntegration implements IntegrationInterface
                     'mapped_at' => now(),
                     'notes' => 'Auto-created from source of truth integration',
                 ]);
+
+                // Track this mapping
+                $this->mappedDuringSync[] = [
+                    'external_id' => $customer['external_id'],
+                    'name' => $customer['name'],
+                    'unified_customer_id' => $unifiedCustomer->customer_id,
+                    'canonical_name' => $unifiedCustomer->canonical_name,
+                ];
 
                 \Log::info('Auto-created customer from source of truth', [
                     'integration_type' => 'Autotask',
