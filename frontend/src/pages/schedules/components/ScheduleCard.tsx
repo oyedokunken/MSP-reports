@@ -23,7 +23,10 @@ export function ScheduleCard({ schedule, onConfigure }: ScheduleCardProps) {
               {formatReportType(schedule.report_type)}
             </CardDescription>
           </div>
-          <Badge variant={schedule.active ? 'default' : 'secondary'}>
+          <Badge 
+            variant={schedule.active ? 'default' : 'secondary'}
+            className={!schedule.active ? 'bg-purple-600 text-white hover:bg-purple-700' : ''}
+          >
             {schedule.active ? 'Active' : 'Inactive'}
           </Badge>
         </div>

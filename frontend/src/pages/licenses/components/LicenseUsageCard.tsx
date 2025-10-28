@@ -42,7 +42,7 @@ export function LicenseUsageCard({ usage }: LicenseUsageCardProps) {
           <div className="space-y-2">
             {isIntegrationsUnlimited ? (
               <>
-                <Badge variant="default" className="bg-green-500">Unlimited</Badge>
+                <Badge variant="default" className="bg-green-500 text-white hover:bg-green-600">Unlimited</Badge>
                 <p className="text-sm text-muted-foreground mt-2">
                   {usage.integrations.active} active integration{usage.integrations.active !== 1 ? 's' : ''}
                 </p>
@@ -86,7 +86,7 @@ export function LicenseUsageCard({ usage }: LicenseUsageCardProps) {
           <div className="space-y-2">
             {!usage.retention.licensed || usage.retention.max_months === 0 ? (
               <>
-                <Badge variant="default" className="bg-green-500">Unlimited</Badge>
+                <Badge variant="default" className="bg-green-500 text-white hover:bg-green-600">Unlimited</Badge>
                 <p className="text-sm text-muted-foreground mt-2">
                   No retention limits
                 </p>
@@ -126,7 +126,7 @@ export function LicenseUsageCard({ usage }: LicenseUsageCardProps) {
           <div className="space-y-2">
             {isUsersUnlimited ? (
               <>
-                <Badge variant="default" className="bg-green-500">Unlimited</Badge>
+                <Badge variant="default" className="bg-green-500 text-white hover:bg-green-600">Unlimited</Badge>
                 <p className="text-sm text-muted-foreground mt-2">
                   {usage.users.current_users} user{usage.users.current_users !== 1 ? 's' : ''} active
                 </p>

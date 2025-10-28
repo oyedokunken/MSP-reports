@@ -12,9 +12,9 @@ export function SystemStatusCard({ status }: SystemStatusCardProps) {
 
   const getStatusBadge = (statusValue: string) => {
     const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive', label: string, color: string }> = {
-      healthy: { variant: 'default', label: 'Healthy', color: 'bg-green-500' },
-      degraded: { variant: 'secondary', label: 'Degraded', color: 'bg-orange-500' },
-      down: { variant: 'destructive', label: 'Down', color: 'bg-red-500' },
+      healthy: { variant: 'default', label: 'Healthy', color: 'bg-green-500 text-white hover:bg-green-600' },
+      degraded: { variant: 'secondary', label: 'Degraded', color: 'bg-orange-500 text-white hover:bg-orange-600' },
+      down: { variant: 'destructive', label: 'Down', color: 'bg-red-500 text-white hover:bg-red-600' },
     }
     const config = variants[statusValue] || variants.healthy
     return <Badge variant={config.variant} className={config.color}>{config.label}</Badge>

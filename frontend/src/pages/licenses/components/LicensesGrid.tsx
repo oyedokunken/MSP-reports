@@ -85,7 +85,7 @@ export function LicensesGrid({
               </div>
               <div className="flex items-center gap-2">
                 {!userLicenseStatus.licensed ? (
-                  <Badge variant="default" className="bg-green-500">Unlimited</Badge>
+                  <Badge variant="default" className="bg-green-500 text-white hover:bg-green-600">Unlimited</Badge>
                 ) : userLicenseStatus.remaining > 0 ? (
                   <Badge variant="default">{userLicenseStatus.remaining} Available</Badge>
                 ) : (

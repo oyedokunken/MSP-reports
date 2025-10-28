@@ -33,14 +33,21 @@ export function LicenseCheckCard() {
         integration_type: integrationType
       })
       const data = (response as any).data || response
-      setIntegrationResult(data.data)
+      const result = data.data || data
       
-      if (data.data.allowed) {
+      if (!result || typeof result.allowed === 'undefined') {
+        throw new Error('Invalid response from server')
+      }
+      
+      setIntegrationResult(result)
+      
+      if (result.allowed) {
         toast.success('License Check', `${integrationType} integration can be activated`)
       } else {
-        toast.error('License Check Failed', data.data.reason || 'Cannot activate integration')
+        toast.error('License Check Failed', result.reason || 'Cannot activate integration')
       }
     } catch (err: any) {
+      console.error('Integration license check error:', err)
       toast.error('Check Failed', err.response?.data?.message || err.message)
     } finally {
       setCheckingIntegration(false)
@@ -54,14 +61,21 @@ export function LicenseCheckCard() {
         requested_months: parseInt(retentionMonths)
       })
       const data = (response as any).data || response
-      setRetentionResult(data.data)
+      const result = data.data || data
       
-      if (data.data.allowed) {
+      if (!result || typeof result.allowed === 'undefined') {
+        throw new Error('Invalid response from server')
+      }
+      
+      setRetentionResult(result)
+      
+      if (result.allowed) {
         toast.success('License Check', `${retentionMonths} months retention is allowed`)
       } else {
-        toast.error('License Check Failed', data.data.reason || 'Cannot extend retention')
+        toast.error('License Check Failed', result.reason || 'Cannot extend retention')
       }
     } catch (err: any) {
+      console.error('Retention license check error:', err)
       toast.error('Check Failed', err.response?.data?.message || err.message)
     } finally {
       setCheckingRetention(false)
@@ -73,14 +87,21 @@ export function LicenseCheckCard() {
     try {
       const response = await api.post('/licenses/check/user', {})
       const data = (response as any).data || response
-      setUserResult(data.data)
+      const result = data.data || data
       
-      if (data.data.can_create.allowed) {
+      if (!result || !result.can_create) {
+        throw new Error('Invalid response from server')
+      }
+      
+      setUserResult(result)
+      
+      if (result.can_create.allowed) {
         toast.success('License Check', 'New user can be created')
       } else {
-        toast.error('License Check Failed', data.data.can_create.reason || 'Cannot create user')
+        toast.error('License Check Failed', result.can_create.reason || 'Cannot create user')
       }
     } catch (err: any) {
+      console.error('User license check error:', err)
       toast.error('Check Failed', err.response?.data?.message || err.message)
     } finally {
       setCheckingUser(false)

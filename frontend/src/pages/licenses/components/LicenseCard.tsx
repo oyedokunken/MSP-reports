@@ -98,7 +98,7 @@ export function LicenseCard({ license }: LicenseCardProps) {
             <p className="text-xs text-muted-foreground mb-2">Includes:</p>
             <div className="flex flex-wrap gap-2">
               {formatIncludes(license.metadata.includes)?.map((item, idx) => (
-                <Badge key={idx} variant="secondary" className="text-xs">
+                <Badge key={idx} className="text-xs bg-purple-600 text-white hover:bg-purple-700 border-transparent">
                   {item}
                 </Badge>
               ))}

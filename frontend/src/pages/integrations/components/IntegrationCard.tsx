@@ -52,7 +52,7 @@ export function IntegrationCard ({
       hoverLift={!isSyncing}
       className={`p-6 transition-all duration-300 ${
         isSyncing ? 'ring-2 ring-primary/50 shadow-lg bg-primary/5' : ''
-      } ${isSourceOfTruth ? 'border-2 border-purple-500' : ''}`}
+      } ${isSourceOfTruth ? 'border-2 border-blue-500 dark:border-blue-400' : ''}`}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -63,7 +63,7 @@ export function IntegrationCard ({
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-foreground">{integration.name}</h3>
               {isSourceOfTruth && (
-                <Badge variant="default" className="bg-purple-500 hover:bg-purple-600">
+                <Badge variant="default" className="bg-blue-500 text-white hover:bg-blue-600">
                   <Crown className="h-3 w-3 mr-1" />
                   Master Customer List
                 </Badge>
@@ -91,7 +91,13 @@ export function IntegrationCard ({
         <div className="flex items-center gap-2 pt-2">
           {getStatusIcon(integration.status, integration.syncStatus)}
           <span className="text-sm text-muted-foreground">
-            {integration.syncStatus === 'success' ? 'Synced successfully' : 'Sync failed - check logs'}
+            {integration.syncStatus === 'success' 
+              ? 'Synced successfully' 
+              : integration.syncStatus === 'failed'
+              ? 'Sync failed - check logs'
+              : isSourceOfTruth
+              ? 'Ready to sync'
+              : 'Syncs automatically with source of truth'}
           </span>
         </div>
 
@@ -172,11 +178,11 @@ export function IntegrationCard ({
           disabled={isSourceOfTruth}
           className={`w-full flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${
             isSourceOfTruth
-              ? 'border-purple-500 bg-purple-500/10 text-purple-700 cursor-not-allowed'
+              ? 'border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300 dark:border-blue-400 dark:bg-blue-500/20 cursor-not-allowed'
               : 'border-border bg-background text-foreground hover:bg-muted'
           }`}
         >
-          <Crown className={`h-4 w-4 ${isSourceOfTruth ? 'fill-purple-500' : ''}`} />
+          <Crown className={`h-4 w-4 ${isSourceOfTruth ? 'fill-blue-500 dark:fill-blue-400' : ''}`} />
           {isSourceOfTruth ? 'Master Customer List' : 'Use as Master Customer List'}
         </button>
       </div>

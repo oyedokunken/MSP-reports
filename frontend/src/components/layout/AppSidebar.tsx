@@ -8,7 +8,6 @@ import {
   Settings as SettingsIcon,
   LogOut,
   Calendar,
-  SlidersHorizontal,
   UserPlus,
   Key,
   Activity,

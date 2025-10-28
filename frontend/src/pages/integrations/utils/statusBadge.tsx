@@ -15,10 +15,17 @@ export const getStatusText = (status: string, syncStatus: string): { text: strin
   if (status === 'error' || syncStatus === 'failed') {
     return { text: 'Error', color: 'text-red-600 bg-red-50' }
   }
-  if (syncStatus === 'success') {
+  // Show Active (green) for both synced and active integrations
+  if (status === 'active') {
     return { text: 'Active', color: 'text-green-600 bg-green-50' }
   }
-  return { text: 'Warning', color: 'text-yellow-600 bg-yellow-50' }
+  if (status === 'disconnected') {
+    return { text: 'Disconnected', color: 'text-gray-600 bg-gray-50' }
+  }
+  if (status === 'importing_historical') {
+    return { text: 'Importing', color: 'text-blue-600 bg-blue-50' }
+  }
+  return { text: 'Unknown', color: 'text-gray-600 bg-gray-50' }
 }
 
 

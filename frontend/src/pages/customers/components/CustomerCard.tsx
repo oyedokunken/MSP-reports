@@ -42,7 +42,10 @@ export function CustomerCard({
               {customer.integrations.length} integration{customer.integrations.length !== 1 ? 's' : ''}
             </CardDescription>
           </div>
-          <Badge variant={customer.status === 'active' ? 'default' : 'secondary'}>
+          <Badge 
+            variant={customer.status === 'active' ? 'default' : 'secondary'}
+            className={customer.status !== 'active' ? 'bg-purple-600 text-white hover:bg-purple-700' : ''}
+          >
             {customer.status === 'active' ? 'Active' : 'Inactive'}
           </Badge>
         </div>
@@ -66,8 +69,8 @@ export function CustomerCard({
         {/* Report Status */}
         <div className={`flex items-center gap-2 text-xs py-2 px-3 rounded-md ${
           customer.report_schedules_count && customer.report_schedules_count > 0
-            ? 'bg-green-50 text-green-700 border border-green-200'
-            : 'bg-orange-50 text-orange-700 border border-orange-200'
+            ? 'bg-green-50 text-green-700 border border-green-200 dark:bg-green-950/30 dark:text-green-400 dark:border-green-900'
+            : 'bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900'
         }`}>
           <FileText className="h-3 w-3" />
           <span className="font-medium">

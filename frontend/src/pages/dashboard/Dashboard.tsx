@@ -11,42 +11,154 @@ import { QuickActionsCard } from './components/QuickActionsCard'
 import { IntegrationsSummary } from './components/IntegrationsSummary'
 import { UpcomingReports } from './components/UpcomingReports'
 import { StatsGrid } from './components/StatsGrid'
+import { useIntegrationStore } from '@/stores/useIntegrationStore'
+import { useCustomersStore } from '@/stores/useCustomersStore'
+import { useMonitoringStore } from '@/stores/useMonitoringStore'
+import { useSchedulesStore } from '@/stores/useSchedulesStore'
 
 export default function Dashboard() {
   const toast = useToast()
   const [isLoading, setIsLoading] = useState(true)
   
+  // Store data
+  const integrations = useIntegrationStore(state => state.integrations)
+  const customers = useCustomersStore(state => state.customers)
+  const systemStatus = useMonitoringStore(state => state.systemStatus)
+  const reportMetrics = useMonitoringStore(state => state.reportMetrics)
+  const schedules = useSchedulesStore(state => state.schedules)
+  
+  const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
+  const fetchCustomers = useCustomersStore(state => state.fetchCustomers)
+  const fetchSystemStatus = useMonitoringStore(state => state.fetchSystemStatus)
+  const fetchReportMetrics = useMonitoringStore(state => state.fetchReportMetrics)
+  const fetchSchedules = useSchedulesStore(state => state.fetchSchedules)
 
+  // Fetch all data on mount
   useEffect(() => {
-    const t = setTimeout(() => setIsLoading(false), 1200)
-    return () => clearTimeout(t)
+    const loadDashboardData = async () => {
+      setIsLoading(true)
+      try {
+        await Promise.all([
+          fetchIntegrations(),
+          fetchCustomers(),
+          fetchSystemStatus(),
+          fetchReportMetrics(),
+          fetchSchedules(),
+        ])
+      } catch (err) {
+        console.error('Failed to load dashboard data:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    
+    loadDashboardData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Mock data (replace with API calls later)
-  const integrations: Integration[] = [
-    { id: 1, name: 'Autotask PSA', type: 'autotask', status: 'active' as const, lastSync: '2h ago', customers: 24, syncStatus: 'success' as const },
-    { id: 2, name: 'Datto RMM', type: 'datto', status: 'active' as const, lastSync: '1h ago', customers: 18, syncStatus: 'success' as const },
-    { id: 3, name: 'ConnectWise Manage', type: 'connectwise', status: 'error' as const, lastSync: '5h ago', customers: 0, syncStatus: 'failed' as const },
-  ]
+  // Generate recent activity reactively from store data
+  const recentActivity: RecentActivity[] = (() => {
+    const activities: RecentActivity[] = []
+    
+    // Add integration activities (synced or newly created)
+    integrations.slice(0, 5).forEach((int: any, index: number) => {
+      if (int.lastSync && int.lastSync !== 'Never') {
+        // Show sync activity for synced integrations
+        activities.push({
+          id: index + 1,
+          type: 'sync',
+          title: `${int.name} sync ${int.syncStatus === 'success' ? 'completed' : 'failed'}`,
+          time: int.lastSync,
+          severity: int.syncStatus === 'success' ? 'green' : 'red',
+        })
+      } else if (int.status === 'active' || int.status === 'warning') {
+        // Show newly created integrations that haven't synced yet
+        activities.push({
+          id: index + 1,
+          type: 'alert',
+          title: `${int.name} integration added`,
+          time: 'Recently',
+          severity: int.status === 'warning' ? 'yellow' : 'green',
+        })
+      }
+    })
+    
+    // Add report activities
+    if (reportMetrics?.metrics.completed_reports) {
+      activities.push({
+        id: activities.length + 1,
+        type: 'report',
+        title: `${reportMetrics.metrics.completed_reports} reports generated successfully`,
+        time: 'Recently',
+        severity: 'green',
+      })
+    }
+    
+    return activities.slice(0, 5)
+  })()
+  
 
-  const reports: UpcomingReport[] = [
-    { id: 1, name: 'Monthly Service Summary', customer: 'ACME Corporation', nextRun: 'Nov 1, 9:00 AM', status: 'scheduled' as const },
-    { id: 2, name: 'Weekly Uptime Report', customer: 'Tech Solutions Inc', nextRun: 'Mon, 8:00 AM', status: 'scheduled' as const },
-    { id: 3, name: 'Security Summary', customer: 'Global Services Ltd', nextRun: 'Oct 15, 10:00 AM', status: 'pending' as const },
-  ]
+  // Transform integrations data (already transformed from store)
+  const dashboardIntegrations: Integration[] = integrations.map((int: any) => ({
+    id: int.id,
+    name: int.name,
+    type: int.type || 'unknown',
+    status: (int.status === 'syncing' ? 'warning' : int.status) as 'active' | 'error' | 'warning',
+    lastSync: int.lastSync || 'Never',
+    customers: int.customers || 0,
+    syncStatus: int.syncStatus || 'pending',
+  }))
 
-  const recentActivity: RecentActivity[] = [
-    { id: 1, type: 'sync', title: 'Datto RMM sync completed', time: '10m ago', severity: 'green' as const },
-    { id: 2, type: 'report', title: 'Monthly Service Summary generated for ACME', time: '2h ago', severity: 'green' as const },
-    { id: 3, type: 'alert', title: 'ConnectWise Manage failed to sync', time: '5h ago', severity: 'red' as const },
-    { id: 4, type: 'map', title: '2 customers awaiting mapping review', time: '1d ago', severity: 'yellow' as const },
-  ]
+  // Transform schedules to upcoming reports
+  const upcomingReports: UpcomingReport[] = schedules
+    .filter((s: any) => s.active)
+    .slice(0, 5)
+    .map((schedule: any) => ({
+      id: schedule.report_schedule_id,
+      name: schedule.report_type,
+      customer: schedule.customer_name || 'Unknown Customer',
+      nextRun: schedule.next_scheduled_at ? new Date(schedule.next_scheduled_at).toLocaleString() : 'Not scheduled',
+      status: 'scheduled' as const,
+    }))
 
+  // Calculate stats from real data
+  const activeIntegrations = integrations.filter((i: any) => i.status === 'active').length
+  const errorIntegrations = integrations.filter((i: any) => i.status === 'error').length
+  const totalReports = reportMetrics?.metrics.total_reports || 0
+  const successRate = reportMetrics?.metrics.success_rate || 0
+  const queueHealth = systemStatus?.queue.health || 'unknown'
+  
   const stats: Stat[] = [
-    { label: 'Customers', value: '42', icon: Users, trend: { value: '+6 this month', isPositive: true } },
-    { label: 'Integrations', value: '3', icon: Cable, trend: { value: '1 warning', isPositive: false } },
-    { label: 'Reports (30d)', value: '156', icon: FileText, trend: { value: '99.2% success', isPositive: true } },
-    { label: 'Active Syncs', value: '2', icon: Activity, trend: { value: 'Low queue', isPositive: true } },
+    { 
+      label: 'Customers', 
+      value: customers.length.toString(), 
+      icon: Users, 
+      trend: { value: `${customers.filter((c: any) => c.status === 'active').length} active`, isPositive: true } 
+    },
+    { 
+      label: 'Integrations', 
+      value: activeIntegrations.toString(), 
+      icon: Cable, 
+      trend: { 
+        value: errorIntegrations > 0 ? `${errorIntegrations} error${errorIntegrations > 1 ? 's' : ''}` : 'All healthy', 
+        isPositive: errorIntegrations === 0 
+      } 
+    },
+    { 
+      label: `Reports (${reportMetrics?.period_days || 7}d)`, 
+      value: totalReports.toString(), 
+      icon: FileText, 
+      trend: { value: `${successRate.toFixed(1)}% success`, isPositive: successRate >= 95 } 
+    },
+    { 
+      label: 'System Health', 
+      value: queueHealth === 'healthy' ? 'Healthy' : 'Issues', 
+      icon: Activity, 
+      trend: { 
+        value: systemStatus?.queue.pending_jobs ? `${systemStatus.queue.pending_jobs} pending` : 'No jobs', 
+        isPositive: (systemStatus?.queue.pending_jobs || 0) < 10 
+      } 
+    },
   ]
 
   const { syncingId, progress, handleQuickSync } = useQuickSync(toast.success, toast.error)
@@ -72,7 +184,7 @@ export default function Dashboard() {
           <div className="space-y-6">
             <IntegrationsSummary
               isLoading={isLoading}
-              integrations={integrations}
+              integrations={dashboardIntegrations}
               isSyncingId={syncingId}
               syncProgress={progress}
               onSync={handleQuickSync}
@@ -81,7 +193,7 @@ export default function Dashboard() {
               getStatusText={getIntegrationStatusText}
               getStatusIcon={getIntegrationStatusIcon}
             />
-            <UpcomingReports isLoading={isLoading} reports={reports} onInfo={toast.info} />
+            <UpcomingReports isLoading={isLoading} reports={upcomingReports} onInfo={toast.info} />
           </div>
         </div>
       </div>
