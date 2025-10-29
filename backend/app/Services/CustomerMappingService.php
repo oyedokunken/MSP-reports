@@ -52,44 +52,35 @@ class CustomerMappingService
         $name1 = $this->normalizeName($name1);
         $name2 = $this->normalizeName($name2);
         
-        // Exact match
         if ($name1 === $name2) {
             return 100;
         }
         
-        // Case-insensitive exact match
         if (strtolower($name1) === strtolower($name2)) {
             return 95;
         }
         
-        // Extract core company name (before common suffixes)
         $core1 = $this->extractCoreName($original1);
         $core2 = $this->extractCoreName($original2);
         
-        // If core names match exactly, high confidence
         if (strtolower($core1) === strtolower($core2)) {
             return 90;
         }
         
-        // Calculate Levenshtein distance on full names
         $maxLength = max(strlen($name1), strlen($name2));
         $distance = levenshtein(strtolower($name1), strtolower($name2));
         $similarity = (1 - ($distance / $maxLength)) * 100;
         
-        // Also calculate similarity on core names
         $coreMaxLength = max(strlen($core1), strlen($core2));
         $coreDistance = levenshtein(strtolower($core1), strtolower($core2));
         $coreSimilarity = (1 - ($coreDistance / $coreMaxLength)) * 100;
         
-        // Use the better of the two scores
         $similarity = max($similarity, $coreSimilarity);
         
-        // Check for common abbreviations and give bonus
         if ($this->hasCommonAbbreviations($original1, $original2)) {
             $similarity = min(100, $similarity + 20);
         }
         
-        // Bonus if core names are very similar (handles "NewCorp Tech" vs "NewCorp Technologies")
         if ($coreSimilarity >= 70) {
             $similarity = min(100, $similarity + 15);
         }
@@ -99,7 +90,6 @@ class CustomerMappingService
     
     private function extractCoreName(string $name): string
     {
-        // Remove common company suffixes to get core name
         $suffixes = [
             'Pty Ltd', 'Pty. Ltd.', 'Pty Ltd.', 
             'Limited', 'Ltd', 'Ltd.',
@@ -115,7 +105,6 @@ class CustomerMappingService
         
         $core = $name;
         foreach ($suffixes as $suffix) {
-            // Remove suffix if it appears at the end (case-insensitive)
             $pattern = '/\s+' . preg_quote($suffix, '/') . '$/i';
             $core = preg_replace($pattern, '', $core);
         }
@@ -161,8 +150,6 @@ class CustomerMappingService
                 $customer->canonical_name
             );
             
-            // Show suggestions even for low scores (helps user see all options)
-            // Note: Auto-matching still requires ≥85% threshold
             if ($score > 30) { 
                 $suggestions[] = [
                     'customer' => $customer,
@@ -198,8 +185,6 @@ class CustomerMappingService
 
     private function normalizeName(string $name): string
     {
-        // DON'T remove suffixes - they're part of the company name!
-        // Just normalize whitespace and case for comparison
         $name = preg_replace('/\s+/', ' ', $name);
         return trim($name);
     }

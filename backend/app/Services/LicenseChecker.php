@@ -9,7 +9,6 @@ class LicenseChecker
 {
     public function hasLicense(Company $company, string $productSku): bool
     {
-        
         $licenseEnforcement = $company->settings['licensing']['license_enforcement'] ?? false;
 
         if (!$licenseEnforcement) {
@@ -42,8 +41,7 @@ class LicenseChecker
     }
 
     public function canExtendRetention(Company $company, int $requestedMonths): array
-    {
-        
+    { 
         $retentionLicense = $company->licenses()
             ->where('license_type', 'retention')
             ->where('status', 'active')
@@ -59,7 +57,6 @@ class LicenseChecker
                 'reason' => 'No active retention license.',
             ];
         }
-
         
         $allowedMonths = $retentionLicense->metadata['max_retention_months'] ?? 12;
 
@@ -86,14 +83,12 @@ class LicenseChecker
 
     public function canCreateUser(Company $company): array
     {
-        // Check if license enforcement is enabled
         $licenseEnforcement = $company->settings['licensing']['license_enforcement'] ?? false;
 
         if (!$licenseEnforcement) {
             return ['allowed' => true, 'reason' => null];
         }
 
-        // Find user license
         $userLicense = $company->licenses()
             ->where('license_type', 'users')
             ->where('status', 'active')
@@ -110,12 +105,10 @@ class LicenseChecker
             ];
         }
 
-        // Check if unlimited
         if ($userLicense->product_sku === 'unlimited' || $userLicense->quantity === null) {
             return ['allowed' => true, 'reason' => null];
         }
 
-        // Check current user count against license quantity
         $currentUserCount = $company->users()->count();
 
         if ($currentUserCount >= $userLicense->quantity) {

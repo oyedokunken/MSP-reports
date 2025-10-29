@@ -19,7 +19,6 @@ class AuthController extends Controller
     public function authLogin(LoginRequest $request)
     {
         $validated = $request->validated();
-
         
         $validated['email'] = trim(strtolower($validated['email']));
         $validated['auth_method'] = trim($validated['auth_method']);
@@ -63,7 +62,6 @@ class AuthController extends Controller
 
         $token = $user->createToken('api-token')->plainTextToken;
 
-        
         AuditLog::create([
             'company_id'  => $user->company_id,
             'event_type'  => 'login',
@@ -77,7 +75,6 @@ class AuthController extends Controller
             'ip_address'  => $request->ip(),
             'user_agent'  => $request->userAgent(),
         ]);
-
         
         $sanitisedUser = $user->makeHidden(['password', 'remember_token']);
 
@@ -118,7 +115,6 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         $user = $request->user()->load('role', 'company');
-
         
         $sanitisedUser = $user->makeHidden(['password', 'remember_token']);
 
@@ -139,7 +135,6 @@ class AuthController extends Controller
         $user = User::where('email', $email)
                     ->where('auth_method', 'local')
                     ->first();
-
         
         if (!$user) {
             return response()->json([
@@ -147,14 +142,11 @@ class AuthController extends Controller
                 'message' => 'If an account exists with this email, a password reset link has been sent.',
             ]);
         }
-
         
         PasswordResetToken::where('email', $email)->delete();
-
         
         $token = Str::random(64);
         $hashedToken = hash('sha256', $token);
-
         
         PasswordResetToken::create([
             'email' => $email,
@@ -204,7 +196,6 @@ class AuthController extends Controller
         $email = trim(strtolower($validated['email']));
         $hashedToken = hash('sha256', $validated['token']);
 
-        
         $resetToken = PasswordResetToken::where('email', $email)
                                         ->where('token', $hashedToken)
                                         ->valid()
@@ -216,7 +207,6 @@ class AuthController extends Controller
             ]);
         }
 
-        
         $user = User::where('email', $email)
                     ->where('auth_method', 'local')
                     ->first();
@@ -226,17 +216,13 @@ class AuthController extends Controller
                 'email' => ['User not found.'],
             ]);
         }
-
         
         $user->password = Hash::make($validated['password']);
         $user->save();
-
         
         $resetToken->delete();
 
-        
         $user->tokens()->delete();
-
         
         AuditLog::create([
             'company_id' => $user->company_id,
@@ -248,7 +234,7 @@ class AuthController extends Controller
                 'timestamp' => now()->toDateTimeString(),
             ]),
             'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'user_agent' => $request->userAgent(),  
         ]);
 
         return response()->json([
@@ -260,7 +246,6 @@ class AuthController extends Controller
     public function changePassword(Request $request)
     {
         $user = $request->user();
-
         
         if ($user->auth_method !== 'local') {
             return response()->json([
@@ -273,18 +258,15 @@ class AuthController extends Controller
             'current_password' => 'required|string',
             'new_password' => 'required|string|min:8|confirmed',
         ]);
-
         
         if (!Hash::check($validated['current_password'], $user->password)) {
             throw ValidationException::withMessages([
                 'current_password' => ['Current password is incorrect.'],
             ]);
         }
-
         
         $user->password = Hash::make($validated['new_password']);
         $user->save();
-
         
         AuditLog::create([
             'company_id' => $user->company_id,

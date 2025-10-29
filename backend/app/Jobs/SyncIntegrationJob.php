@@ -20,7 +20,8 @@ class SyncIntegrationJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
-    public $timeout = 300; 
+    public $timeout = 300;
+    public $backoff = [60, 300, 900]; // Exponential backoff: 1 min, 5 min, 15 min
 
     protected Integration $integration;
     protected SyncLog $syncLog;
@@ -87,15 +88,33 @@ class SyncIntegrationJob implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        Log::error('Integration sync job failed permanently', [
+        Log::error('Integration sync job failed permanently after all retries', [
             'integration_id' => $this->integration->integration_id,
+            'integration_type' => $this->integration->integration_type,
+            'company_id' => $this->integration->company_id,
+            'attempts' => $this->attempts(),
             'error' => $exception->getMessage(),
         ]);
 
+        // Update sync log
         $this->syncLog->update([
             'status' => 'failed',
             'error_messages' => [$exception->getMessage()],
+            'completed_at' => now(),
         ]);
+
+        // Mark integration as error after 3 failures
+        $this->integration->update([
+            'status' => 'error',
+            'last_sync_status' => 'failed',
+            'last_sync_at' => now(),
+            'error_message' => $exception->getMessage(),
+        ]);
+
+        // TODO: Send notification email to company admins
+        // Will be implemented in future update
+        // $company = $this->integration->company;
+        // $notificationEmails = $company->settings['integrations']['sync_failure_notifications'] ?? [];
     }
 
     private function loadIntegrationClass()

@@ -34,7 +34,6 @@ class AlertNotificationService
                 ]);
             }
         }
-
         return $status;
     }
 

@@ -22,6 +22,7 @@ class ImportHistoricalDataJob implements ShouldQueue
 
     public $tries = 3;
     public $timeout = 600;
+    public $backoff = [60, 300, 900]; // Exponential backoff: 1 min, 5 min, 15 min
 
     protected HistoricalImportJobModel $importJob;
     protected Carbon $chunkDate;
@@ -110,15 +111,32 @@ class ImportHistoricalDataJob implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        Log::error('Historical import job failed permanently', [
+        Log::error('Historical import job failed permanently after all retries', [
             'import_job_id' => $this->importJob->historical_import_job_id,
+            'integration_id' => $this->importJob->integration_id,
+            'company_id' => $this->importJob->company_id,
             'chunk_date' => $this->chunkDate->toDateString(),
+            'attempts' => $this->attempts(),
             'error' => $exception->getMessage(),
         ]);
 
+        // Mark import job as failed
         $this->importJob->update([
             'status' => 'failed',
         ]);
+
+        // Mark integration as error if historical import fails
+        $integration = $this->importJob->integration;
+        $integration->update([
+            'status' => 'error',
+            'historical_import_status' => 'failed',
+            'error_message' => "Historical import failed: {$exception->getMessage()}",
+        ]);
+
+        // TODO: Send notification email to company admins
+        // Will be implemented in future update
+        // $company = $integration->company;
+        // $notificationEmails = $company->settings['integrations']['sync_failure_notifications'] ?? [];
     }
 
     private function loadIntegrationClass(Integration $integration)

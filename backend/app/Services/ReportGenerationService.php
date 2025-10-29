@@ -11,10 +11,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportGenerationService
 {
-
     public function generateReport(ReportSchedule $schedule): GeneratedReport
     {
-        
         $generatedReport = GeneratedReport::create([
             'company_id' => $schedule->company_id,
             'customer_id' => $schedule->customer_id,
@@ -31,21 +29,16 @@ class ReportGenerationService
             if (!$reportClass) {
                 throw new \Exception("Report type {$schedule->report_type} not found.");
             }
-
             
             if (!$reportClass->validate($schedule->customer, $this->calculateReportPeriod($schedule))) {
                 throw new \Exception("Insufficient data to generate report.");
             }
-
             
             $reportData = $reportClass->generate($schedule->customer, $this->calculateReportPeriod($schedule));
-
             
             $reportData = $this->applyBranding($reportData, $schedule->company, $schedule->customer);
-
             
             $pdfPath = $this->generatePDF($reportData, $schedule);
-
             
             $generatedReport->update([
                 'status' => 'completed',
@@ -155,19 +148,15 @@ class ReportGenerationService
             now()->format('Y-m-d_His')
         );
 
-        // Generate HTML from template
         $html = $this->generateHTML($reportData, $schedule);
 
-        // Generate PDF from HTML using DomPDF
         $pdf = Pdf::loadHTML($html)
             ->setPaper('a4', 'portrait')
             ->setOption('isHtml5ParserEnabled', true)
-            ->setOption('isRemoteEnabled', true); // Allow external images/CSS
+            ->setOption('isRemoteEnabled', true);
 
-        // Save PDF to storage
         Storage::disk('reports')->put($filename, $pdf->output());
         
-        // Ensure file has correct permissions
         $fullPath = Storage::disk('reports')->path($filename);
         if (file_exists($fullPath)) {
             chmod($fullPath, 0644);
@@ -179,15 +168,12 @@ class ReportGenerationService
 
     private function generateHTML(array $reportData, ReportSchedule $schedule): string
     {
-        // Load the report class to get the correct template
         $reportClass = $this->loadReportClass($schedule->report_type);
         
         if ($reportClass && method_exists($reportClass, 'getTemplate')) {
             $templatePath = $reportClass->getTemplate();
             
-            // Check if the template file exists
             if (file_exists($templatePath)) {
-                // Render the specific report template
                 return view()->file($templatePath, [
                     'reportData' => $reportData,
                     'schedule' => $schedule,
@@ -201,7 +187,6 @@ class ReportGenerationService
             }
         }
         
-        // Fallback to generic template if specific template not found
         return view('reports.template', [
             'reportData' => $reportData,
             'schedule' => $schedule,

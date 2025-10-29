@@ -11,7 +11,6 @@ class SyncEngine
 {
     public function triggerSync(Integration $integration, string $syncType = 'current_state'): SyncLog
     {
-        
         $syncLog = SyncLog::create([
             'integration_id' => $integration->integration_id,
             'sync_type' => $syncType,
@@ -19,7 +18,6 @@ class SyncEngine
             'started_at' => now(),
         ]);
 
-        
         SyncIntegrationJob::dispatch($integration, $syncLog);
 
         return $syncLog;
@@ -33,7 +31,6 @@ class SyncEngine
             'skipped' => 0,
         ];
 
-        
         $integrations = Integration::where('status', 'active')->get();
 
         foreach ($integrations as $integration) {
@@ -59,12 +56,9 @@ class SyncEngine
         if (!$autoSyncEnabled) {
             return false;
         }
-
         
         $syncSchedule = $company->settings['integrations']['sync_schedule'] ?? '0 */4 * * *';
 
-        
-        
         if (!$integration->last_sync_at) {
             return true;
         }
@@ -86,8 +80,7 @@ class SyncEngine
             
             return max(1, (int) ($matches[1] / 60));
         }
-
-        
+   
         return 4;
     }
 
@@ -119,7 +112,6 @@ class SyncEngine
 
         $integration->save();
 
-        
         if ($status === 'failed') {
             $this->notifyFailure($integration, $syncLog);
         }
@@ -133,7 +125,6 @@ class SyncEngine
         if (empty($notificationEmails)) {
             return;
         }
-
         
         Log::warning('Integration sync failed', [
             'integration_id' => $integration->integration_id,
@@ -141,9 +132,6 @@ class SyncEngine
             'company_id' => $company->company_id,
             'sync_log_id' => $syncLog->sync_log_id,
             'errors' => $syncLog->error_messages,
-        ]);
-
-        
-        
+        ]); 
     }
 }

@@ -22,9 +22,6 @@ class AlertEngine
         $this->notificationService = $notificationService;
     }
 
-    /**
-     * Evaluate all active alert rules
-     */
     public function evaluateAllRules(): array
     {
         $results = [
@@ -61,9 +58,6 @@ class AlertEngine
         return $results;
     }
 
-    /**
-     * Evaluate a single alert rule
-     */
     protected function evaluateRule(AlertRule $rule): bool
     {
         $metricValue = $this->getMetricValue($rule->metric_type, $rule->company_id, $rule->condition);
@@ -75,9 +69,6 @@ class AlertEngine
         return $this->checkCondition($metricValue, $rule->condition);
     }
 
-    /**
-     * Get current value for a metric
-     */
     protected function getMetricValue(string $metricType, int $companyId, array $condition): ?float
     {
         $period = $condition['period'] ?? '1h';
@@ -96,9 +87,6 @@ class AlertEngine
         };
     }
 
-    /**
-     * Check if condition is met
-     */
     protected function checkCondition(float $value, array $condition): bool
     {
         $operator = $condition['operator'] ?? '>';
@@ -115,12 +103,8 @@ class AlertEngine
         };
     }
 
-    /**
-     * Trigger an alert
-     */
     protected function triggerAlert(AlertRule $rule): void
     {
-        // Create alert log
         $alertLog = AlertLog::create([
             'company_id' => $rule->company_id,
             'alert_rule_id' => $rule->alert_rule_id,
@@ -133,13 +117,10 @@ class AlertEngine
             'triggered_at' => now(),
         ]);
 
-        // Send notifications
         $notificationStatus = $this->notificationService->sendAlert($alertLog, $rule);
 
-        // Update alert log with notification status
         $alertLog->update(['notification_status' => $notificationStatus]);
 
-        // Update rule's last triggered timestamp
         $rule->update(['last_triggered_at' => now()]);
 
         Log::info('Alert triggered', [
@@ -149,9 +130,6 @@ class AlertEngine
         ]);
     }
 
-    /**
-     * Generate alert message
-     */
     protected function generateAlertMessage(AlertRule $rule): string
     {
         $metricValue = $this->getMetricValue($rule->metric_type, $rule->company_id, $rule->condition);
@@ -167,9 +145,6 @@ class AlertEngine
         );
     }
 
-    /**
-     * Get additional context for alert
-     */
     protected function getAlertContext(AlertRule $rule): array
     {
         return [
@@ -180,9 +155,6 @@ class AlertEngine
         ];
     }
 
-    /**
-     * Parse period string to Carbon instance
-     */
     protected function parsePeriod(string $period): Carbon
     {
         preg_match('/(\d+)([mhd])/', $period, $matches);
@@ -275,22 +247,16 @@ class AlertEngine
 
     protected function getRateLimitHitCount(int $companyId, Carbon $since): float
     {
-        // This would need to be tracked in your rate limiter
-        // For now, return 0
         return 0;
     }
 
     protected function getSecurityEventCount(int $companyId, Carbon $since): float
     {
-        // Count failed login attempts or unauthorized access
-        // This would come from AuditLog
         return 0;
     }
 
     protected function getSlowQueryCount(Carbon $since): float
     {
-        // This would need PostgreSQL slow query log integration
-        // For now, return 0
         return 0;
     }
 }

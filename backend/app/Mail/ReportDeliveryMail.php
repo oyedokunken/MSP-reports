@@ -30,12 +30,13 @@ class ReportDeliveryMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $fromAddress = $this->branding['email_from_address'] ?? config('mail.from.address');
-        $fromName = $this->branding['email_from_name'] ?? $this->branding['company_name'] ?? config('mail.from.name');
+        // Use config defaults for from address - Postal requires exact match
+        $fromAddress = config('mail.from.address');
         $subject = $this->branding['report_header_text'] ?? 'Your Monthly Service Report';
 
+        // Don't override sender name - use what's configured in .env
+        // Postal validates sender names strictly
         return new Envelope(
-            from: new \Illuminate\Mail\Mailables\Address($fromAddress, $fromName),
             subject: $subject,
         );
     }

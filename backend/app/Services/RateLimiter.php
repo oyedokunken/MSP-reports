@@ -10,15 +10,12 @@ class RateLimiter
     public function canMakeRequest(Integration $integration): bool
     {
         $limits = $this->getRateLimits($integration);
-        
-        
         $minuteKey = $this->getRedisKey($integration, 'minute');
         $minuteCount = Redis::get($minuteKey) ?? 0;
         
         if ($minuteCount >= $limits['requests_per_minute']) {
             return false;
         }
-        
         
         $hourKey = $this->getRedisKey($integration, 'hour');
         $hourCount = Redis::get($hourKey) ?? 0;
@@ -35,10 +32,8 @@ class RateLimiter
         $minuteKey = $this->getRedisKey($integration, 'minute');
         $hourKey = $this->getRedisKey($integration, 'hour');
         
-        
         Redis::incr($minuteKey);
         Redis::incr($hourKey);
-        
         
         if (Redis::ttl($minuteKey) === -1) {
             Redis::expire($minuteKey, 60);
@@ -52,7 +47,7 @@ class RateLimiter
     public function getStatus(Integration $integration): array
     {
         $limits = $this->getRateLimits($integration);
-        
+   
         $minuteKey = $this->getRedisKey($integration, 'minute');
         $hourKey = $this->getRedisKey($integration, 'hour');
         
