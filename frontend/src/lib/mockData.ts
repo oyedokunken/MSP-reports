@@ -42,6 +42,7 @@ export const MOCK_USER: User = {
   },
   last_login: new Date().toISOString(),
   created_at: '2025-01-01T00:00:00Z',
+  user_id: 0
 }
 
 // Mock login response

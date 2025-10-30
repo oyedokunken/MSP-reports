@@ -1,61 +1,61 @@
-import { useEffect, useState } from 'react'
-import FloatingLayout from '@/components/layout/FloatingLayout'
-import { useMonitoringStore } from '@/stores/useMonitoringStore'
-import {
-  MonitoringHeader,
-  SystemStatusCard,
-  MetricsCards,
-} from './components'
+import { useEffect, useState } from "react";
+import FloatingLayout from "@/components/layout/FloatingLayout";
+import { useMonitoringStore } from "@/stores/useMonitoringStore";
+import { MonitoringHeader, SystemStatusCard, MetricsCards } from "./components";
 
 export default function Monitoring() {
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  
-  // Zustand store - individual selectors for optimal performance
-  const systemStatus = useMonitoringStore(state => state.systemStatus)
-  const integrationMetrics = useMonitoringStore(state => state.integrationMetrics)
-  const reportMetrics = useMonitoringStore(state => state.reportMetrics)
-  const queueMetrics = useMonitoringStore(state => state.queueMetrics)
-  const isLoading = useMonitoringStore(state => state.isLoading)
-  const lastUpdated = useMonitoringStore(state => state.lastUpdated)
-  const fetchAllMetrics = useMonitoringStore(state => state.fetchAllMetrics)
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch data on mount
-  useEffect(() => {
-    fetchAllMetrics()
-  }, [fetchAllMetrics])
+    // Zustand store - individual selectors for optimal performance
+    const systemStatus = useMonitoringStore((state) => state.systemStatus);
+    const integrationMetrics = useMonitoringStore(
+        (state) => state.integrationMetrics
+    );
+    const reportMetrics = useMonitoringStore((state) => state.reportMetrics);
+    const queueMetrics = useMonitoringStore((state) => state.queueMetrics);
+    const isLoading = useMonitoringStore((state) => state.isLoading);
+    const lastUpdated = useMonitoringStore((state) => state.lastUpdated);
+    const fetchAllMetrics = useMonitoringStore(
+        (state) => state.fetchAllMetrics
+    );
 
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchAllMetrics()
-    }, 30000)
+    // Fetch data on mount
+    useEffect(() => {
+        fetchAllMetrics();
+    }, [fetchAllMetrics]);
 
-    return () => clearInterval(interval)
-  }, [fetchAllMetrics])
+    // Auto-refresh every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchAllMetrics();
+        }, 30000);
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true)
-    await fetchAllMetrics()
-    setIsRefreshing(false)
-  }
+        return () => clearInterval(interval);
+    }, [fetchAllMetrics]);
 
-  return (
-    <FloatingLayout>
-      <div className="space-y-6">
-        <MonitoringHeader
-          lastUpdated={lastUpdated}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing || isLoading}
-        />
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await fetchAllMetrics();
+        setIsRefreshing(false);
+    };
 
-        <SystemStatusCard status={systemStatus} />
+    return (
+        <FloatingLayout>
+            <div className="space-y-6">
+                <MonitoringHeader
+                    lastUpdated={lastUpdated}
+                    onRefresh={handleRefresh}
+                    isRefreshing={isRefreshing || isLoading}
+                />
 
-        <MetricsCards
-          integrationMetrics={integrationMetrics}
-          reportMetrics={reportMetrics}
-          queueMetrics={queueMetrics}
-        />
-      </div>
-    </FloatingLayout>
-  )
+                <SystemStatusCard status={systemStatus} />
+
+                <MetricsCards
+                    integrationMetrics={integrationMetrics}
+                    reportMetrics={reportMetrics}
+                    queueMetrics={queueMetrics}
+                />
+            </div>
+        </FloatingLayout>
+    );
 }
