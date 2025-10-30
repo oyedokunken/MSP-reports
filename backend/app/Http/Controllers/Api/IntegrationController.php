@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Integration;
 use App\Models\AuditLog;
+use App\Services\SyncEngine;
 use Illuminate\Validation\Rule;
 
 class IntegrationController extends Controller
@@ -145,85 +146,35 @@ class IntegrationController extends Controller
             ], 404);
         }
 
-        if (!$integration->is_source_of_truth) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Manual sync is only allowed for the source of truth integration. Please sync the source of truth integration first, then other integrations will sync automatically.',
-                'data' => [
-                    'integration_id' => $integration->integration_id,
-                    'integration_type' => $integration->integration_type,
-                    'display_name' => $integration->display_name,
-                    'is_source_of_truth' => false,
-                ]
-            ], 403);
-        }
+        // Remove the entire restriction block to continue syncing other integrations (isolation)
 
-        // Create sync log
-        $syncLog = $integration->syncLogs()->create([
-            'sync_type' => 'current_state',
-            'started_at' => now(),
-            'status' => 'running',
-        ]);
+        // if (!$integration->is_source_of_truth) {
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => 'Manual sync is only allowed for the source of truth integration. Please sync the source of truth integration first, then other integrations will sync automatically.',
+        //         'data' => [
+        //             'integration_id' => $integration->integration_id,
+        //             'integration_type' => $integration->integration_type,
+        //             'display_name' => $integration->display_name,
+        //             'is_source_of_truth' => false,
+        //         ]
+        //     ], 403);
+        // }
 
-        try {
-            // Get the integration class
-            $integrationClass = "App\\Integrations\\{$integration->integration_type}\\{$integration->integration_type}Integration";
-            
-            if (!class_exists($integrationClass)) {
-                throw new \Exception("Integration class not found: {$integrationClass}");
-            }
+        // Use SyncEngine to queue the sync (consistent with scheduled syncs)
+        $syncEngine = app(\App\Services\SyncEngine::class);
+        $syncLog = $syncEngine->triggerSync($integration);
 
-            // Instantiate and call sync
-            $integrationInstance = new $integrationClass($integration);
-            $result = $integrationInstance->sync();
-
-            // Update sync log with success
-            $syncLog->update([
-                'completed_at' => now(),
-                'status' => 'success',
-                'records_synced' => $result['records_synced'] ?? 0,
-                'records_failed' => $result['records_failed'] ?? 0,
-                'rate_limit_hits' => $result['rate_limit_hits'] ?? 0,
-                'customers_mapped' => $result['customers_mapped'] ?? [],
-            ]);
-
-            $integration->update([
-                'last_sync_at' => $syncLog->completed_at,
-                'last_sync_status' => 'success',
-            ]);
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Sync completed successfully.',
-                'data' => [
-                    'integration' => $integration->fresh(),
-                    'sync_log' => $syncLog,
-                    'result' => $result,
-                ]
-            ], 200);
-
-        } catch (\Exception $e) {
-            // Update sync log with failure
-            $syncLog->update([
-                'completed_at' => now(),
-                'status' => 'failed',
-                'error_messages' => [$e->getMessage()],
-            ]);
-
-            $integration->update([
-                'last_sync_at' => $syncLog->completed_at,
-                'last_sync_status' => 'failed',
-            ]);
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Sync failed: ' . $e->getMessage(),
-                'data' => [
-                    'integration' => $integration->fresh(),
-                    'sync_log' => $syncLog,
-                ]
-            ], 500);
-        }
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Sync queued successfully.',
+            'data' => [
+                'sync_log_id' => $syncLog->sync_id,
+                'status' => $syncLog->status,
+                'integration_id' => $integration->integration_id,
+                'integration_type' => $integration->integration_type,
+            ]
+        ], 202); // 202 Accepted (async processing)
     }
 
     public function getIntegrationCustomers(Request $request, $id)

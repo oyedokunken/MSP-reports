@@ -61,7 +61,6 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
         Route::patch('/customers/{id}', [CustomerMappingController::class, 'updateCustomer']);
         Route::post('/customers/{id}/merge', [CustomerMappingController::class, 'mergeCustomers']);
         Route::post('/customers/{id}/split', [CustomerMappingController::class, 'splitCustomer']);
-        Route::post('/customers/bulk-map', [CustomerMappingController::class, 'bulkMapCustomers']);
         Route::delete('/customers/{customerId}/mappings/{mappingId}', [CustomerMappingController::class, 'deleteMapping']);
     });
 

@@ -38,7 +38,8 @@ class EvaluateIntegrationSyncs extends Command
             
             if ($this->isSyncDue($integration, $syncSchedule, $now)) {
                 try {
-                    $syncLog = $syncEngine->queueSync($integration);
+                    // $syncLog = $syncEngine->queueSync($integration);
+                    $syncLog = $syncEngine->triggerSync($integration);
                     $syncsQueued++;
                     
                     $this->info("Queued sync for integration {$integration->integration_id} ({$integration->integration_type})");
