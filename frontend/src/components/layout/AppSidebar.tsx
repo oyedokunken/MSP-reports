@@ -13,7 +13,6 @@ import {
   Activity,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useBranding } from '@/contexts/BrandingContext'
 import {
   Sidebar,
   SidebarContent,
@@ -33,7 +32,6 @@ import { CreateUserModal } from '@/pages/users/modals/CreateUserModal'
 export default function AppSidebar() {
   const location = useLocation()
   const { user, logout } = useAuth()
-  const { branding } = useBranding()
   const [createUserOpen, setCreateUserOpen] = useState(false)
 
   const navItems = [
@@ -64,7 +62,7 @@ export default function AppSidebar() {
     .join('')
     .toUpperCase()
 
-  const companyName = branding?.company_name || 'Reporting'
+  const companyName = user?.company_name || 'Reporting'
   const companyInitial = companyName.charAt(0) || 'R'
   const MAX_MAIN = 22
   let companyMain = companyName

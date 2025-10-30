@@ -13,6 +13,9 @@ interface IntegrationState {
   // Sync state
   syncingId: number | null
   syncProgress: number
+  
+  // Source of truth setting state
+  settingSourceOfTruthId: number | null
 
   // Modal state
   modals: {
@@ -46,6 +49,7 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   isLoading: true,
   syncingId: null,
   syncProgress: 0,
+  settingSourceOfTruthId: null,
   modals: {
     add: false,
     viewCustomers: false,
@@ -85,12 +89,14 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
 
   // Set source of truth
   setSourceOfTruth: async (id: number) => {
+    set({ settingSourceOfTruthId: id })
     try {
       await api.patch('/company/source-integration', { integration_id: id })
-      set({ sourceOfTruthId: id })
+      set({ sourceOfTruthId: id, settingSourceOfTruthId: null })
       await get().fetchIntegrations(true) // refresh silently
       return { success: true }
     } catch (err: any) {
+      set({ settingSourceOfTruthId: null })
       return {
         success: false,
         error: err.response?.data?.message || err.message,

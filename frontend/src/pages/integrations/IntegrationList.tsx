@@ -27,6 +27,7 @@ export default function IntegrationList() {
     const isLoading = useIntegrationStore((state) => state.isLoading);
     const syncingId = useIntegrationStore((state) => state.syncingId);
     const syncProgress = useIntegrationStore((state) => state.syncProgress);
+    const settingSourceOfTruthId = useIntegrationStore((state) => state.settingSourceOfTruthId);
     const modals = useIntegrationStore((state) => state.modals);
     const selectedIntegration = useIntegrationStore(
         (state) => state.selectedIntegration
@@ -85,6 +86,7 @@ export default function IntegrationList() {
                     items={integrations}
                     syncingId={syncingId}
                     progress={syncProgress}
+                    settingSourceOfTruthId={settingSourceOfTruthId}
                     onSync={handleSync}
                     onEmptyAction={() => openModal("add")}
                     onViewCustomers={(id) => {

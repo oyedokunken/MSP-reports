@@ -54,8 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      setState((prev) => ({ ...prev, isLoading: true }))
-
       let user: User
       let token: string
 
@@ -87,7 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
       })
     } catch (error) {
-      setState((prev) => ({ ...prev, isLoading: false }))
       throw error
     }
   }

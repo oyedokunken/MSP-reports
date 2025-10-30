@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, BarChart3 } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Link } from "react-router-dom";
 import { useAuthForm } from "../hooks/useAuthForm";
 
@@ -130,19 +130,17 @@ const Signin = () => {
               </div>
 
               {error && (
-                <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-                  {error}
-                </div>
+                <div className="text-sm text-destructive">{error}</div>
               )}
 
               <Button type="submit" className="w-full h-11 text-base font-semibold text-white" style={{ backgroundColor: '#243f5f' }} disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
-                    <Spinner className="mr-2 h-4 w-4" />
+                    <Spinner variant="circle" size={16} className="mr-2" />
                     Signing in...
                   </>
                 ) : (
-                  "Sign In"
+                  "Continue →"
                 )}
               </Button>
             </form>

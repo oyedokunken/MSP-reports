@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
-import { useBranding } from "@/contexts/BrandingContext";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -18,7 +17,6 @@ interface HeaderProps {
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
   const { user, logout } = useAuth();
-  const { branding } = useBranding();
 
   const handleLogout = async () => {
     await logout();
@@ -38,11 +36,11 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-lg">
-              {branding?.company_name?.charAt(0) || 'T'}
+              {user?.company_name?.charAt(0) || 'R'}
             </span>
           </div>
           <span className="text-lg sm:text-xl font-semibold text-foreground hidden sm:block">
-            {branding?.company_name || 'Reporting Platform'}
+            {user?.company_name || 'Reporting Platform'}
           </span>
         </div>
 

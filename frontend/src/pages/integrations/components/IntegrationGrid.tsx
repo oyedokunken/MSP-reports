@@ -8,6 +8,7 @@ type IntegrationGridProps = {
     items: Integration[];
     syncingId: number | null;
     progress: number;
+    settingSourceOfTruthId: number | null;
     onSync: (id: number, name: string) => void;
     onEmptyAction: () => void;
     onViewCustomers: (id: number, name: string) => void;
@@ -26,6 +27,7 @@ export function IntegrationGrid({
     items,
     syncingId,
     progress,
+    settingSourceOfTruthId,
     onSync,
     onEmptyAction,
     onViewCustomers,
@@ -72,6 +74,7 @@ export function IntegrationGrid({
                             integration={integration}
                             isSyncing={syncingId === integration.id}
                             progress={progress}
+                            isSettingSourceOfTruth={settingSourceOfTruthId === integration.id}
                             onSync={onSync}
                             onViewCustomers={onViewCustomers}
                             onSetSourceOfTruth={onSetSourceOfTruth}

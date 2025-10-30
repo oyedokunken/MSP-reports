@@ -18,6 +18,7 @@ type IntegrationCardProps = {
   integration: Integration
   isSyncing: boolean
   progress: number
+  isSettingSourceOfTruth: boolean
   onSync: (id: number, name: string) => void
   onViewCustomers: (id: number, name: string) => void
   onSetSourceOfTruth: (id: number, name: string) => void
@@ -34,6 +35,7 @@ export function IntegrationCard ({
   integration,
   isSyncing,
   progress,
+  isSettingSourceOfTruth,
   onSync,
   onViewCustomers,
   onSetSourceOfTruth,
@@ -175,15 +177,21 @@ export function IntegrationCard ({
         </div>
         <button
           onClick={() => onSetSourceOfTruth(integration.id, integration.name)}
-          disabled={isSourceOfTruth}
+          disabled={isSourceOfTruth || isSettingSourceOfTruth}
           className={`w-full flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${
             isSourceOfTruth
               ? 'border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300 dark:border-blue-400 dark:bg-blue-500/20 cursor-not-allowed'
+              : isSettingSourceOfTruth
+              ? 'border-blue-500 bg-blue-500 text-white dark:border-blue-400 dark:bg-blue-600 cursor-wait'
               : 'border-border bg-background text-foreground hover:bg-muted'
           }`}
         >
-          <Crown className={`h-4 w-4 ${isSourceOfTruth ? 'fill-blue-500 dark:fill-blue-400' : ''}`} />
-          {isSourceOfTruth ? 'Master Customer List' : 'Use as Master Customer List'}
+          {isSettingSourceOfTruth ? (
+            <LoadingSpinner size="sm" className="border-white/30 border-t-white" />
+          ) : (
+            <Crown className={`h-4 w-4 ${isSourceOfTruth ? 'fill-blue-500 dark:fill-blue-400' : ''}`} />
+          )}
+          {isSettingSourceOfTruth ? 'Setting...' : isSourceOfTruth ? 'Master Customer List' : 'Use as Master Customer List'}
         </button>
       </div>
     </AnimatedCard>

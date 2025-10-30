@@ -44,7 +44,17 @@ export function useAuthForm(options: UseAuthFormOptions = {}) {
       // Navigate to dashboard or specified route
       navigate(redirectTo)
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to sign in'
+      // Handle different error scenarios
+      let errorMessage = 'Failed to sign in. Please try again.'
+      
+      if (err.message === 'Invalid credentials') {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.'
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
       setError(errorMessage)
       
       // Error callback
