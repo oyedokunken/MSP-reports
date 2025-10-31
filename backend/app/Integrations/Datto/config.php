@@ -6,17 +6,43 @@ return [
     'description' => 'Integrate with Datto for backup monitoring, device management, and uptime tracking.',
     
     'credentials' => [
-        'api_key' => [
+        // Datto RMM Credentials
+        'rmm_url' => [
             'type' => 'text',
-            'label' => 'API Key',
-            'required' => true,
-            'encrypted' => true,
-        ],
-        'base_url' => [
-            'type' => 'text',
-            'label' => 'API Base URL',
+            'label' => 'RMM API URL',
             'required' => false,
-            'default' => 'https://api.datto.com',
+            'placeholder' => 'https://syrah-api.centrastage.net',
+            'help' => 'Your Datto RMM API endpoint (e.g., https://syrah-api.centrastage.net)',
+        ],
+        'rmm_api_key' => [
+            'type' => 'text',
+            'label' => 'RMM API Key (Username)',
+            'required' => false,
+            'encrypted' => true,
+            'help' => 'Your Datto RMM API username',
+        ],
+        'rmm_api_secret' => [
+            'type' => 'password',
+            'label' => 'RMM API Secret (Password)',
+            'required' => false,
+            'encrypted' => true,
+            'help' => 'Your Datto RMM API password',
+        ],
+        
+        // Datto SaaS Protection Credentials
+        'saas_public_key' => [
+            'type' => 'text',
+            'label' => 'SaaS Public Key',
+            'required' => false,
+            'encrypted' => true,
+            'help' => 'Your Datto SaaS Protection public key',
+        ],
+        'saas_private_key' => [
+            'type' => 'password',
+            'label' => 'SaaS Private Key',
+            'required' => false,
+            'encrypted' => true,
+            'help' => 'Your Datto SaaS Protection private key',
         ],
     ],
     

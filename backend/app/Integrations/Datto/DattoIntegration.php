@@ -38,26 +38,43 @@ class DattoIntegration implements IntegrationInterface
     {
         $errors = [];
         $this->mappedDuringSync = [];
+        $totalProcessed = 0;
 
         try {
-            // Get customers from Datto
+            // Get all customers from Datto (RMM sites and/or SaaS domains)
             $dattoCustomers = $this->client->getCustomers();
+            
+            \Log::info('Datto Integration: Starting sync', [
+                'integration_id' => $this->integration->integration_id,
+                'customer_count' => count($dattoCustomers),
+            ]);
 
             foreach ($dattoCustomers as $customer) {
                 try {
-                    // Map to standardized format
+                    // Map to standardized format (auto-detects RMM vs SaaS)
                     $standardized = DattoMapper::mapCustomer($customer);
 
                     // Store in database
                     $this->storeCustomer($standardized);
+                    $totalProcessed++;
 
                 } catch (\Exception $e) {
-                    $errors[] = "Failed to process customer {$customer['id']}: {$e->getMessage()}";
+                    $customerId = $customer['id'] ?? $customer['uid'] ?? $customer['organizationId'] ?? 'unknown';
+                    $errors[] = "Failed to process customer {$customerId}: {$e->getMessage()}";
+                    \Log::error('Datto Integration: Failed to process customer', [
+                        'integration_id' => $this->integration->integration_id,
+                        'customer_id' => $customerId,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
 
         } catch (\Exception $e) {
             $errors[] = "Sync failed: {$e->getMessage()}";
+            \Log::error('Datto Integration: Sync failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         // Process existing unmapped customers from database
@@ -72,6 +89,14 @@ class DattoIntegration implements IntegrationInterface
         $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->count();
+        
+        \Log::info('Datto Integration: Sync completed', [
+            'integration_id' => $this->integration->integration_id,
+            'total_processed' => $totalProcessed,
+            'mapped_count' => $mappedCount,
+            'unmapped_count' => $unmappedCount,
+            'errors' => count($errors),
+        ]);
 
         return [
             'records_synced' => $mappedCount,        // Already mapped customers
@@ -165,8 +190,13 @@ class DattoIntegration implements IntegrationInterface
 
     public function disconnect(): void
     {
+        // Clear cached OAuth2 token
+        $cacheKey = 'datto_rmm_token_' . $this->integration->integration_id;
+        Cache::forget($cacheKey);
         
-        
+        Log::info('Datto Integration: Disconnected and cleared tokens', [
+            'integration_id' => $this->integration->integration_id,
+        ]);
     }
 
     public function healthCheck(): bool

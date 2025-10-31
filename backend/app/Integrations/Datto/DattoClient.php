@@ -4,6 +4,8 @@ namespace App\Integrations\Datto;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 
@@ -14,18 +16,118 @@ class DattoClient
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
     protected bool $useMockData = false;
+    protected ?string $accessToken = null;
+    
+    protected const TOKEN_CACHE_KEY_PREFIX = 'datto_rmm_token_';
+    protected const TOKEN_EXPIRY = 99 * 3600; // 99 hours (just under 100-hour limit)
 
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
-        $this->baseUrl = $credentials['base_url'] ?? 'https://api.datto.com';
         
-        // Enable mock mode if credentials contain 'test_' prefix
-        $this->useMockData = str_starts_with($credentials['api_key'] ?? '', 'test_');
+        // Determine if using RMM or SaaS API
+        if (!empty($credentials['rmm_url'])) {
+            $this->baseUrl = rtrim($credentials['rmm_url'], '/');
+            // Enable mock mode if RMM API key starts with 'test_'
+            $this->useMockData = str_starts_with($credentials['rmm_api_key'] ?? '', 'test_');
+        } elseif (!empty($credentials['base_url'])) {
+            $this->baseUrl = rtrim($credentials['base_url'], '/');
+            $this->useMockData = str_starts_with($credentials['api_key'] ?? '', 'test_');
+        } else {
+            $this->baseUrl = 'https://api.datto.com';
+            $this->useMockData = true;
+        }
+        
+        // Get access token for RMM if credentials provided
+        if ($this->hasRmmCredentials() && !$this->useMockData) {
+            $this->accessToken = $this->getAccessToken();
+        }
+    }
+    
+    protected function hasRmmCredentials(): bool
+    {
+        return !empty($this->credentials['rmm_url']) 
+            && !empty($this->credentials['rmm_api_key']) 
+            && !empty($this->credentials['rmm_api_secret']);
+    }
+    
+    protected function hasSaasCredentials(): bool
+    {
+        return !empty($this->credentials['saas_public_key']) 
+            && !empty($this->credentials['saas_private_key']);
     }
 
+    protected function getAccessToken(): string
+    {
+        $cacheKey = self::TOKEN_CACHE_KEY_PREFIX . $this->integration->integration_id;
+        
+        if ($token = Cache::get($cacheKey)) {
+            return $token;
+        }
+
+        try {
+            $key = $this->credentials['rmm_api_key'] ?? null;
+            $secret = $this->credentials['rmm_api_secret'] ?? null;
+
+            if (empty($key) || empty($secret)) {
+                throw new \RuntimeException('RMM API key or secret is empty');
+            }
+
+            $tokenUrl = $this->baseUrl . '/auth/oauth/token';
+            
+            Log::info('Datto RMM: Requesting access token', [
+                'integration_id' => $this->integration->integration_id,
+                'url' => $tokenUrl,
+            ]);
+            
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/x-www-form-urlencoded',
+            ])->withBasicAuth('public-client', 'public')
+              ->asForm()
+              ->post($tokenUrl, [
+                'grant_type' => 'password',
+                'username' => $key,
+                'password' => $secret
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('Datto RMM: Failed to obtain access token', [
+                    'integration_id' => $this->integration->integration_id,
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                throw new \RuntimeException('Failed to obtain access token: ' . $response->body());
+            }
+
+            $responseData = $response->json();
+            if (empty($responseData['access_token'])) {
+                Log::error('Datto RMM: Invalid token response', [
+                    'integration_id' => $this->integration->integration_id,
+                    'response' => $responseData
+                ]);
+                throw new \RuntimeException('Invalid token response from Datto RMM');
+            }
+
+            $token = $responseData['access_token'];
+            Cache::put($cacheKey, $token, self::TOKEN_EXPIRY);
+            
+            Log::info('Datto RMM: Access token obtained successfully', [
+                'integration_id' => $this->integration->integration_id,
+            ]);
+            
+            return $token;
+        } catch (\Exception $e) {
+            Log::error('Datto RMM: Error obtaining access token', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException('Failed to obtain access token: ' . $e->getMessage());
+        }
+    }
+    
     public function testConnection(): bool
     {
         if ($this->useMockData) {
@@ -33,9 +135,24 @@ class DattoClient
         }
         
         try {
-            $response = $this->makeRequest('GET', '/v1/account');
-            return $response->successful();
+            // Test RMM connection
+            if ($this->hasRmmCredentials()) {
+                $response = $this->makeRmmRequest('/account/sites', ['max' => 1]);
+                return !empty($response);
+            }
+            
+            // Test SaaS connection
+            if ($this->hasSaasCredentials()) {
+                $response = $this->makeSaasRequest('/saas/domains');
+                return !empty($response);
+            }
+            
+            return false;
         } catch (\Exception $e) {
+            Log::error('Datto: Connection test failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
             return false;
         }
     }
@@ -47,53 +164,226 @@ class DattoClient
             return $this->getMockCustomers();
         }
         
-        $response = $this->makeRequest('GET', '/v1/customers');
-
-        if ($response->successful()) {
-            return $response->json('data', []);
+        $customers = [];
+        
+        // Get RMM sites as customers
+        if ($this->hasRmmCredentials()) {
+            $sites = $this->getRmmSites();
+            $customers = array_merge($customers, $sites);
         }
-
-        throw new \Exception("Failed to fetch customers: " . $response->body());
+        
+        // Get SaaS domains as customers
+        if ($this->hasSaasCredentials()) {
+            $domains = $this->getSaasDomains();
+            $customers = array_merge($customers, $domains);
+        }
+        
+        return $customers;
+    }
+    
+    public function getRmmSites(): array
+    {
+        if ($this->useMockData) {
+            return $this->getMockCustomers();
+        }
+        
+        $allSites = [];
+        $page = 0;
+        $hasMore = true;
+        
+        while ($hasMore) {
+            $response = $this->makeRmmRequest('/account/sites', [
+                'max' => 250,
+                'page' => $page
+            ]);
+            
+            $sites = $response['sites'] ?? [];
+            $allSites = array_merge($allSites, $sites);
+            
+            $pageDetails = $response['pageDetails'] ?? [];
+            $hasMore = !empty($pageDetails['nextPageUrl']);
+            $page++;
+            
+            // Safety limit
+            if ($page > 100) {
+                Log::warning('Datto RMM: Reached page limit while fetching sites', [
+                    'integration_id' => $this->integration->integration_id,
+                ]);
+                break;
+            }
+        }
+        
+        Log::info('Datto RMM: Fetched sites', [
+            'integration_id' => $this->integration->integration_id,
+            'count' => count($allSites),
+        ]);
+        
+        return $allSites;
+    }
+    
+    public function getSaasDomains(): array
+    {
+        $response = $this->makeSaasRequest('/saas/domains');
+        return $response ?? [];
+    }
+    
+    public function getRmmDevices(string $siteUid): array
+    {
+        $allDevices = [];
+        $page = 0;
+        $hasMore = true;
+        
+        while ($hasMore) {
+            $response = $this->makeRmmRequest("/site/{$siteUid}/devices", [
+                'max' => 250,
+                'page' => $page
+            ]);
+            
+            $devices = $response['devices'] ?? [];
+            $allDevices = array_merge($allDevices, $devices);
+            
+            $pageDetails = $response['pageDetails'] ?? [];
+            $hasMore = !empty($pageDetails['nextPageUrl']);
+            $page++;
+            
+            // Safety limit
+            if ($page > 100) {
+                Log::warning('Datto RMM: Reached page limit while fetching devices', [
+                    'integration_id' => $this->integration->integration_id,
+                    'site_uid' => $siteUid,
+                ]);
+                break;
+            }
+        }
+        
+        return $allDevices;
+    }
+    
+    public function getRmmAlerts(string $siteUid, bool $openOnly = true): array
+    {
+        $endpoint = $openOnly 
+            ? "/site/{$siteUid}/alerts/open"
+            : "/site/{$siteUid}/alerts/resolved";
+            
+        $params = [];
+        if (!$openOnly) {
+            $params['resolvedSince'] = Carbon::now()->subHour()->format('Y-m-d\TH:i:s\Z');
+        }
+        
+        $response = $this->makeRmmRequest($endpoint, $params);
+        return $response['alerts'] ?? [];
     }
 
     public function getBackupHistory(Carbon $startDate, Carbon $endDate): array
     {
-        $response = $this->makeRequest('GET', '/v1/backups/history', [
-            'start_date' => $startDate->toIso8601String(),
-            'end_date' => $endDate->toIso8601String(),
-        ]);
-
-        if ($response->successful()) {
-            return $response->json('data', []);
+        // For now, return current SaaS backup status as historical data
+        // Real historical API would need different endpoint
+        if ($this->hasSaasCredentials()) {
+            return $this->getSaasDomains();
         }
-
-        throw new \Exception("Failed to fetch backup history: " . $response->body());
+        
+        return [];
     }
 
-    protected function makeRequest(string $method, string $endpoint, array $params = [])
+    protected function makeRmmRequest(string $endpoint, array $params = []): array
     {
-        // Skip rate limiting for mock data mode
-        if (!$this->useMockData) {
-            // Check rate limit BEFORE each API call
-            if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
-                throw new \Exception("Rate limit exceeded for Datto API, could not acquire slot within timeout.");
+        // Check rate limit BEFORE each API call
+        if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
+            throw new \Exception("Rate limit exceeded for Datto RMM API");
+        }
+
+        $url = $this->baseUrl . '/api/v2' . $endpoint;
+        
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->accessToken,
+                'Accept' => 'application/json',
+            ])->get($url, $params);
+
+            // Handle rate limiting
+            if ($response->status() === 429) {
+                Log::warning('Datto RMM: Rate limit hit, waiting 60 seconds', [
+                    'integration_id' => $this->integration->integration_id,
+                ]);
+                sleep(60);
+                return $this->makeRmmRequest($endpoint, $params);
             }
-        }
 
-        $url = $this->baseUrl . $endpoint;
+            // Handle token expiration
+            if ($response->status() === 401) {
+                Log::info('Datto RMM: Token expired, refreshing', [
+                    'integration_id' => $this->integration->integration_id,
+                ]);
+                Cache::forget(self::TOKEN_CACHE_KEY_PREFIX . $this->integration->integration_id);
+                $this->accessToken = $this->getAccessToken();
+                return $this->makeRmmRequest($endpoint, $params);
+            }
 
-        // Make the actual API call
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->credentials['api_key'],
-            'Accept' => 'application/json',
-        ])->$method($url, $params);
+            if (!$response->successful()) {
+                Log::error('Datto RMM: API request failed', [
+                    'integration_id' => $this->integration->integration_id,
+                    'endpoint' => $endpoint,
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                throw new \RuntimeException("API request failed: " . $response->body());
+            }
 
-        // Record this API call (skip for mock data)
-        if (!$this->useMockData) {
+            // Record this API call
             $this->rateLimiter->recordRequest($this->integration);
+            
+            return $response->json();
+        } catch (\Exception $e) {
+            Log::error('Datto RMM: API request error', [
+                'integration_id' => $this->integration->integration_id,
+                'endpoint' => $endpoint,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+    
+    protected function makeSaasRequest(string $endpoint, array $params = []): array
+    {
+        // Check rate limit BEFORE each API call
+        if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
+            throw new \Exception("Rate limit exceeded for Datto SaaS API");
         }
 
-        return $response;
+        $url = 'https://api.datto.com/v1' . $endpoint;
+        
+        $credentials = base64_encode(
+            $this->credentials['saas_public_key'] . ':' . $this->credentials['saas_private_key']
+        );
+        
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Basic ' . $credentials,
+                'Accept' => 'application/json',
+            ])->get($url, $params);
+
+            if (!$response->successful()) {
+                Log::error('Datto SaaS: API request failed', [
+                    'integration_id' => $this->integration->integration_id,
+                    'endpoint' => $endpoint,
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                throw new \RuntimeException("API request failed: " . $response->body());
+            }
+
+            // Record this API call
+            $this->rateLimiter->recordRequest($this->integration);
+            
+            return $response->json();
+        } catch (\Exception $e) {
+            Log::error('Datto SaaS: API request error', [
+                'integration_id' => $this->integration->integration_id,
+                'endpoint' => $endpoint,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     /**
