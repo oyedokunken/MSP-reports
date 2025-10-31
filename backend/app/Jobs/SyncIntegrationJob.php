@@ -9,11 +9,12 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Integration;
 use App\Models\SyncLog;
-use App\Services\RateLimiter;
 use App\Services\SyncEngine;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use App\Integrations\Autotask\AutotaskIntegration;
 use App\Integrations\Datto\DattoIntegration;
+use App\Mail\IntegrationSyncFailedMail;
 
 class SyncIntegrationJob implements ShouldQueue
 {
@@ -32,7 +33,7 @@ class SyncIntegrationJob implements ShouldQueue
         $this->syncLog = $syncLog;
     }
 
-    public function handle(RateLimiter $rateLimiter, SyncEngine $syncEngine): void
+    public function handle(SyncEngine $syncEngine): void
     {
         try {
 
@@ -44,23 +45,30 @@ class SyncIntegrationJob implements ShouldQueue
                 throw new \Exception("Integration type {$this->integration->integration_type} not found.");
             }
             
-            if (!$rateLimiter->waitForSlot($this->integration, 60)) {
-                throw new \Exception("Rate limit exceeded, could not acquire slot within timeout.");
-            }
+            // Rate limiting now handled at API client level (AutotaskClient, DattoClient)
+            // Each individual API call is rate-limited, providing accurate tracking
             
             $result = $integrationClass->sync();
             
-            $rateLimiter->recordRequest($this->integration);
+            $recordsSynced = $result['records_synced'] ?? 0;
+            $recordsFailed = $result['records_failed'] ?? 0;
+            $customersMapped = $result['customers_mapped'] ?? [];
             
-            $recordsSynced = count($result['customers'] ?? []);
-            $recordsFailed = count($result['errors'] ?? []);
+            Log::info('Integration sync result', [
+                'integration_id' => $this->integration->integration_id,
+                'records_synced' => $recordsSynced,
+                'records_failed' => $recordsFailed,
+                'customers_mapped_count' => count($customersMapped),
+                'customers_mapped' => $customersMapped,
+            ]);
             
             $syncEngine->completeSyncLog(
                 $this->syncLog,
                 'success',
                 $recordsSynced,
                 $recordsFailed,
-                $result['errors'] ?? []
+                $result['errors'] ?? [],
+                $customersMapped
             );
 
             Log::info('Integration sync completed', [
@@ -111,10 +119,34 @@ class SyncIntegrationJob implements ShouldQueue
             'error_message' => $exception->getMessage(),
         ]);
 
-        // TODO: Send notification email to company admins
-        // Will be implemented in future update
-        // $company = $this->integration->company;
-        // $notificationEmails = $company->settings['integrations']['sync_failure_notifications'] ?? [];
+        // Send notification email to company admins
+        $company = $this->integration->company;
+        $notificationEmails = $company->settings['integrations']['sync_failure_notifications'] ?? [];
+        
+        if (!empty($notificationEmails)) {
+            try {
+                foreach ($notificationEmails as $email) {
+                    Mail::to($email)->send(
+                        new IntegrationSyncFailedMail($this->integration, $exception, $this->attempts())
+                    );
+                }
+                
+                Log::info('Integration sync failure notifications sent', [
+                    'integration_id' => $this->integration->integration_id,
+                    'recipients' => $notificationEmails,
+                ]);
+            } catch (\Exception $mailException) {
+                Log::error('Failed to send integration sync failure notification', [
+                    'integration_id' => $this->integration->integration_id,
+                    'mail_error' => $mailException->getMessage(),
+                ]);
+            }
+        } else {
+            Log::warning('No notification emails configured for integration sync failure', [
+                'integration_id' => $this->integration->integration_id,
+                'company_id' => $company->company_id,
+            ]);
+        }
     }
 
     private function loadIntegrationClass()

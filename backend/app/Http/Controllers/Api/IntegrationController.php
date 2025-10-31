@@ -244,6 +244,9 @@ class IntegrationController extends Controller
         $integration->update(['is_source_of_truth' => true]);
 
         $settings = $company->settings ?? [];
+        if (!isset($settings['integrations'])) {
+            $settings['integrations'] = [];
+        }
         $settings['integrations']['source_of_truth_integration_id'] = $integration->integration_id;
         $company->settings = $settings;
         $company->save();

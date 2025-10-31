@@ -4,16 +4,22 @@ namespace App\Integrations\Datto;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
+use App\Services\RateLimiter;
+use App\Models\Integration;
 
 class DattoClient
 {
     protected array $credentials;
     protected string $baseUrl;
+    protected RateLimiter $rateLimiter;
+    protected Integration $integration;
     protected bool $useMockData = false;
 
-    public function __construct(array $credentials)
+    public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
+        $this->rateLimiter = $rateLimiter;
+        $this->integration = $integration;
         $this->baseUrl = $credentials['base_url'] ?? 'https://api.datto.com';
         
         // Enable mock mode if credentials contain 'test_' prefix
@@ -66,12 +72,28 @@ class DattoClient
 
     protected function makeRequest(string $method, string $endpoint, array $params = [])
     {
+        // Skip rate limiting for mock data mode
+        if (!$this->useMockData) {
+            // Check rate limit BEFORE each API call
+            if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
+                throw new \Exception("Rate limit exceeded for Datto API, could not acquire slot within timeout.");
+            }
+        }
+
         $url = $this->baseUrl . $endpoint;
 
-        return Http::withHeaders([
+        // Make the actual API call
+        $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $this->credentials['api_key'],
             'Accept' => 'application/json',
         ])->$method($url, $params);
+
+        // Record this API call (skip for mock data)
+        if (!$this->useMockData) {
+            $this->rateLimiter->recordRequest($this->integration);
+        }
+
+        return $response;
     }
 
     /**

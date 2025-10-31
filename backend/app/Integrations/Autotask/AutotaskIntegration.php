@@ -9,17 +9,22 @@ use App\Models\IntegrationData;
 use App\Models\Customer;
 use App\Models\CustomerMapping;
 use App\Jobs\AutoMatchCustomersJob;
+use App\Services\RateLimiter;
+use App\Services\CustomerMappingService;
 use Carbon\Carbon;
 
 class AutotaskIntegration implements IntegrationInterface
 {
     protected Integration $integration;
     protected AutotaskClient $client;
+    protected CustomerMappingService $mappingService;
 
     public function __construct(Integration $integration)
     {
         $this->integration = $integration;
-        $this->client = new AutotaskClient($integration->credentials);
+        $rateLimiter = app(RateLimiter::class);
+        $this->client = new AutotaskClient($integration->credentials, $rateLimiter, $integration);
+        $this->mappingService = app(CustomerMappingService::class);
     }
 
     public function authenticate(): bool
@@ -94,39 +99,7 @@ class AutotaskIntegration implements IntegrationInterface
         foreach ($unmappedCustomers as $integrationCustomer) {
             // If this integration is source of truth, auto-create unified customer
             if ($this->integration->is_source_of_truth) {
-                $unifiedCustomer = Customer::create([
-                    'company_id' => $this->integration->company_id,
-                    'canonical_name' => $integrationCustomer->name,
-                    'status' => 'active',
-                    'metadata' => [],
-                ]);
-
-                // Link integration customer to new unified customer
-                $integrationCustomer->customer_id = $unifiedCustomer->customer_id;
-                $integrationCustomer->save();
-
-                // Create mapping record
-                CustomerMapping::create([
-                    'customer_id' => $unifiedCustomer->customer_id,
-                    'integration_customer_id' => $integrationCustomer->integration_customer_id,
-                    'mapping_type' => 'auto',
-                    'confidence_score' => 100,
-                    'mapped_at' => now(),
-                    'notes' => 'Auto-created from source of truth integration',
-                ]);
-
-                $mappedList[] = [
-                    'external_id' => $integrationCustomer->external_id,
-                    'name' => $integrationCustomer->name,
-                    'unified_customer_id' => $unifiedCustomer->customer_id,
-                    'canonical_name' => $unifiedCustomer->canonical_name,
-                ];
-
-                \Log::info('Auto-created customer from source of truth', [
-                    'integration_type' => 'Autotask',
-                    'customer_name' => $integrationCustomer->name,
-                    'customer_id' => $unifiedCustomer->customer_id,
-                ]);
+                $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Autotask');
             } else {
                 // Not source of truth - try auto-matching
                 AutoMatchCustomersJob::dispatch($integrationCustomer);
@@ -252,40 +225,7 @@ class AutotaskIntegration implements IntegrationInterface
         if (!$integrationCustomer->customer_id) {
             // If this integration is source of truth, auto-create unified customer
             if ($this->integration->is_source_of_truth) {
-                $unifiedCustomer = Customer::create([
-                    'company_id' => $this->integration->company_id,
-                    'canonical_name' => $customer['name'],
-                    'status' => 'active',
-                    'metadata' => [],
-                ]);
-
-                // Link integration customer to new unified customer
-                $integrationCustomer->customer_id = $unifiedCustomer->customer_id;
-                $integrationCustomer->save();
-
-                // Create mapping record
-                CustomerMapping::create([
-                    'customer_id' => $unifiedCustomer->customer_id,
-                    'integration_customer_id' => $integrationCustomer->integration_customer_id,
-                    'mapping_type' => 'auto',
-                    'confidence_score' => 100,
-                    'mapped_at' => now(),
-                    'notes' => 'Auto-created from source of truth integration',
-                ]);
-
-                // Track this mapping
-                $this->mappedDuringSync[] = [
-                    'external_id' => $customer['external_id'],
-                    'name' => $customer['name'],
-                    'unified_customer_id' => $unifiedCustomer->customer_id,
-                    'canonical_name' => $unifiedCustomer->canonical_name,
-                ];
-
-                \Log::info('Auto-created customer from source of truth', [
-                    'integration_type' => 'Autotask',
-                    'customer_name' => $customer['name'],
-                    'customer_id' => $unifiedCustomer->customer_id,
-                ]);
+                $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Autotask');
             } else {
                 AutoMatchCustomersJob::dispatch($integrationCustomer);
             }

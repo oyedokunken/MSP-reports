@@ -164,6 +164,48 @@ class CustomerMappingService
         return array_slice($suggestions, 0, $limit);
     }
 
+    /**
+     * Create a unified customer from a source of truth integration customer
+     * This centralizes the logic previously duplicated in integration classes
+     */
+    public function createFromSourceOfTruth(IntegrationCustomer $integrationCustomer, string $integrationType): array
+    {
+        // Create unified customer
+        $unifiedCustomer = Customer::create([
+            'company_id' => $integrationCustomer->integration->company_id,
+            'canonical_name' => $integrationCustomer->name,
+            'status' => 'active',
+            'metadata' => [],
+        ]);
+
+        // Link integration customer to new unified customer
+        $integrationCustomer->customer_id = $unifiedCustomer->customer_id;
+        $integrationCustomer->save();
+
+        // Create mapping record
+        CustomerMapping::create([
+            'customer_id' => $unifiedCustomer->customer_id,
+            'integration_customer_id' => $integrationCustomer->integration_customer_id,
+            'mapping_type' => 'auto',
+            'confidence_score' => 100,
+            'mapped_at' => now(),
+            'notes' => 'Auto-created from source of truth integration',
+        ]);
+
+        \Log::info('Auto-created customer from source of truth', [
+            'integration_type' => $integrationType,
+            'customer_name' => $integrationCustomer->name,
+            'customer_id' => $unifiedCustomer->customer_id,
+        ]);
+
+        return [
+            'external_id' => $integrationCustomer->external_id,
+            'name' => $integrationCustomer->name,
+            'unified_customer_id' => $unifiedCustomer->customer_id,
+            'canonical_name' => $unifiedCustomer->canonical_name,
+        ];
+    }
+
     public function mergeCustomers(Customer $primary, Customer $duplicate, int $userId): Customer
     {
         

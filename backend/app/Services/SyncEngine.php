@@ -89,7 +89,8 @@ class SyncEngine
         string $status,
         int $recordsSynced = 0,
         int $recordsFailed = 0,
-        array $errors = []
+        array $errors = [],
+        array $customersMapped = []
     ): void {
         $syncLog->update([
             'status' => $status,
@@ -97,6 +98,7 @@ class SyncEngine
             'records_synced' => $recordsSynced,
             'records_failed' => $recordsFailed,
             'error_messages' => $errors,
+            'customers_mapped' => $customersMapped,
         ]);
 
         

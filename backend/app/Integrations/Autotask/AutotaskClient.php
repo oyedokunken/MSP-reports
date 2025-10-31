@@ -4,18 +4,24 @@ namespace App\Integrations\Autotask;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
+use App\Services\RateLimiter;
+use App\Models\Integration;
 
 class AutotaskClient
 {
     protected array $credentials;
     protected string $baseUrl;
     protected string $apiIntegrationCode;
+    protected RateLimiter $rateLimiter;
+    protected Integration $integration;
 
     protected bool $useMockData = false;
 
-    public function __construct(array $credentials)
+    public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
+        $this->rateLimiter = $rateLimiter;
+        $this->integration = $integration;
         
         // Enable mock mode if credentials contain 'test_' prefix
         $this->useMockData = str_starts_with($credentials['username'] ?? '', 'test_');
@@ -163,6 +169,14 @@ class AutotaskClient
 
     protected function makeRequest(string $method, string $endpoint, array $params = [])
     {
+        // Skip rate limiting for mock data mode
+        if (!$this->useMockData) {
+            // Check rate limit BEFORE each API call
+            if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
+                throw new \Exception("Rate limit exceeded for Autotask API, could not acquire slot within timeout.");
+            }
+        }
+
         $headers = [
             'ApiIntegrationCode' => $this->apiIntegrationCode,
             'UserName' => $this->credentials['username'] ?? '',
@@ -172,12 +186,20 @@ class AutotaskClient
 
         $url = $this->baseUrl . $endpoint;
 
+        // Make the actual API call
         if ($method === 'GET' && !empty($params)) {
             $url .= '?' . http_build_query($params);
-            return Http::withHeaders($headers)->get($url);
+            $response = Http::withHeaders($headers)->get($url);
+        } else {
+            $response = Http::withHeaders($headers)->$method($url, $params);
         }
 
-        return Http::withHeaders($headers)->$method($url, $params);
+        // Record this API call (skip for mock data)
+        if (!$this->useMockData) {
+            $this->rateLimiter->recordRequest($this->integration);
+        }
+
+        return $response;
     }
 
     /**

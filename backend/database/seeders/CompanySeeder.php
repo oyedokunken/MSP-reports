@@ -30,7 +30,7 @@ class CompanySeeder extends Seeder
                     'source_of_truth_integration_id' => null,
                     'auto_sync_enabled' => true,
                     'sync_schedule' => '0 */4 * * *',
-                    'sync_failure_notifications' => ['admin@tts.com.au'],
+                    'sync_failure_notifications' => ['admin@tts.com.au', 'kristianbas14@gmail.com'],
                 ],
                 'customer_mapping' => [
                     'auto_match_enabled' => true,
