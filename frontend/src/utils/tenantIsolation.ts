@@ -83,8 +83,8 @@ export function logIsolationViolation(
     console.error('🚨 TENANT ISOLATION VIOLATION:', violation)
   }
 
-  // TODO: Send to monitoring service in production
-  // sendToMonitoring('tenant_isolation_violation', violation)
+  // In production, this would be sent to a monitoring service
+  // Implementation depends on the monitoring solution chosen
 }
 
 /**

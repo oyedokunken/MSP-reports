@@ -8,7 +8,6 @@ import IntegrationList from '@/pages/integrations/IntegrationList'
 import CustomerList from '@/pages/customers/CustomerList'
 import ScheduleList from '@/pages/schedules/ScheduleList'
 import Settings from '@/pages/settings/Settings'
-import Signup from '@/pages/auth/pages/Signup'
 import ForgotPassword from '@/pages/auth/pages/ForgotPassword'
 import ResetPassword from '@/pages/auth/pages/ResetPassword'
 import AuthLayout from '@/pages/auth/Layout'
@@ -71,7 +70,6 @@ function AppRoutes() {
         <Route index element={<Navigate to="/login" replace />} />
         <Route path="login" element={<Login />} />
         <Route path="sign-in" element={<Login />} />
-        <Route path="sign-up" element={<Signup />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
       </Route>

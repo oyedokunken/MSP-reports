@@ -196,10 +196,10 @@ const ResetPassword = () => {
 
       {/* Secured by Footer */}
       <div className="relative">
-        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-60"></div>
+        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-60"></div>
         <div className="flex justify-center py-3">
           <p className="text-xs text-muted-foreground/70 font-medium tracking-wide">
-            Secured by <span className="text-blue-500 font-semibold">Athena Networks</span>
+            Secured by <span className="text-primary font-semibold">{import.meta.env.VITE_COMPANY_NAME || 'Athena Networks'}</span>
           </p>
         </div>
       </div>

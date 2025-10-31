@@ -1,10 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import type { User, LoginCredentials, LoginResponse, AuthState } from '@/types/auth'
 import { api } from '@/lib/api'
-import { mockLogin, MOCK_USER } from '@/lib/mockData'
-
-// Use real API authentication (set to false to use real backend)
-const USE_MOCK_AUTH = false
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>
@@ -54,25 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      let user: User
-      let token: string
+      const response = await api.post<LoginResponse>('/auth/login', credentials)
 
-      if (USE_MOCK_AUTH) {
-        // Use mock authentication in development
-        const mockResponse = await mockLogin(credentials.email, credentials.password)
-        user = mockResponse.user
-        token = mockResponse.token
-      } else {
-        // Use real API in production
-        const response = await api.post<LoginResponse>('/auth/login', credentials)
-
-        if (!response.data) {
-          throw new Error('Login failed')
-        }
-
-        user = response.data.user
-        token = response.data.token
+      if (!response.data) {
+        throw new Error('Login failed')
       }
+
+      const user = response.data.user
+      const token = response.data.token
 
       // Store in localStorage
       localStorage.setItem('auth_token', token)
@@ -111,9 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      if (USE_MOCK_AUTH) {
-        // Use mock user in development
-        const user = MOCK_USER
+      const response = await api.get<User>('/auth/me')
+
+      if (response.success && response.data) {
+        const user = response.data
         localStorage.setItem('user', JSON.stringify(user))
 
         setState((prev) => ({
@@ -121,26 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           user,
           isAuthenticated: true,
         }))
-      } else {
-        // Use real API in production
-        const response = await api.get<User>('/auth/me')
-
-        if (response.success && response.data) {
-          const user = response.data
-          localStorage.setItem('user', JSON.stringify(user))
-
-          setState((prev) => ({
-            ...prev,
-            user,
-            isAuthenticated: true,
-          }))
-        }
       }
     } catch (error) {
       console.error('Failed to refresh user:', error)
-      if (!USE_MOCK_AUTH) {
-        logout()
-      }
+      logout()
     }
   }
 

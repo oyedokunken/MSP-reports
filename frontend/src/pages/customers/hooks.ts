@@ -132,21 +132,19 @@ export const useMapCustomerModal = (
     setIsSubmitting(true)
 
     try {
-      if (createNew) {
-        await api.post('/customers/bulk-map', {
-          mappings: [{
-            integration_customer_id: integrationCustomer!.integration_customer_id,
-            create_new: true,
-            canonical_name: newCustomerName.trim(),
-            mapping_type: 'manual'
-          }]
-        })
-      } else {
-        await api.post('/customers/map', {
-          integration_customer_id: integrationCustomer!.integration_customer_id,
-          customer_id: selectedCustomerId
-        })
+      const payload: any = {
+        integration_customer_id: integrationCustomer!.integration_customer_id,
+        mapping_type: 'manual'
       }
+
+      if (createNew) {
+        payload.create_new = true
+        payload.canonical_name = newCustomerName.trim()
+      } else {
+        payload.customer_id = selectedCustomerId
+      }
+
+      await api.post('/customers/map', payload)
 
       setSuccess(true)
       setTimeout(() => {

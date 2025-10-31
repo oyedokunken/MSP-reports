@@ -31,7 +31,7 @@ const Signin = () => {
     return (
       <div className="flex h-screen w-full overflow-hidden">
         {/* Left Panel - Branding */}
-        <div className="relative hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-16 text-white overflow-hidden" style={{ backgroundColor: '#243f5f' }}>
+        <div className="relative hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-16 text-white overflow-hidden bg-primary">
           {/* Subtle Grid Pattern Background */}
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
@@ -53,7 +53,7 @@ const Signin = () => {
           <div className="relative z-10 flex flex-col gap-6 w-full max-w-lg">
             <div className="flex items-center gap-3">
               <BarChart3 className="h-8 w-8 text-emerald-400" />
-              <span className="text-xl font-bold">MSP Reports</span>
+              <span className="text-xl font-bold">{import.meta.env.VITE_APP_NAME || 'Reporting Platform'}</span>
             </div>
             <h1 className="text-5xl font-black leading-tight">
               Unlock Your Data Insights.
@@ -70,7 +70,7 @@ const Signin = () => {
             {/* Logo for Mobile */}
             <div className="flex items-center gap-3 lg:hidden">
               <BarChart3 className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold">MSP Reports</span>
+              <span className="text-xl font-bold">{import.meta.env.VITE_APP_NAME || 'Reporting Platform'}</span>
             </div>
 
             {/* Page Heading */}
@@ -133,7 +133,7 @@ const Signin = () => {
                 <div className="text-sm text-destructive">{error}</div>
               )}
 
-              <Button type="submit" className="w-full h-11 text-base font-semibold text-white" style={{ backgroundColor: '#243f5f' }} disabled={isSubmitting}>
+              <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Spinner variant="circle" size={16} className="mr-2" />
@@ -160,7 +160,7 @@ const Signin = () => {
                 <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-60"></div>
                 <div className="flex justify-center pt-4">
                   <p className="text-xs text-muted-foreground/70 font-medium tracking-wide">
-                    Secured by <span className="text-primary font-semibold">Athena Networks</span>
+                    Secured by <span className="text-primary font-semibold">{import.meta.env.VITE_COMPANY_NAME || 'Athena Networks'}</span>
                   </p>
                 </div>
               </div>

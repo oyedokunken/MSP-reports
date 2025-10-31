@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { Settings, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { useState, useRef, useEffect } from 'react'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'

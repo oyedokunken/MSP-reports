@@ -125,7 +125,17 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
 
       set({ syncingId: null, syncProgress: 0 })
 
-      // Refresh integrations silently
+      // Start polling for updates (sync is processed asynchronously in backend)
+      const pollInterval = setInterval(async () => {
+        await get().fetchIntegrations(true)
+      }, 2000) // Poll every 2 seconds
+
+      // Stop polling after 30 seconds
+      setTimeout(() => {
+        clearInterval(pollInterval)
+      }, 30000)
+
+      // Initial refresh
       await get().fetchIntegrations(true)
 
       return { success: true }
