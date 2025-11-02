@@ -7,10 +7,17 @@ use App\Models\GeneratedReport;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\GotenbergService;
 
 class ReportGenerationService
 {
+    protected GotenbergService $gotenberg;
+
+    public function __construct(GotenbergService $gotenberg)
+    {
+        $this->gotenberg = $gotenberg;
+    }
+
     public function generateReport(ReportSchedule $schedule): GeneratedReport
     {
         $generatedReport = GeneratedReport::create([
@@ -150,12 +157,19 @@ class ReportGenerationService
 
         $html = $this->generateHTML($reportData, $schedule);
 
-        $pdf = Pdf::loadHTML($html)
-            ->setPaper('a4', 'portrait')
-            ->setOption('isHtml5ParserEnabled', true)
-            ->setOption('isRemoteEnabled', true);
+        // Use Gotenberg to generate PDF
+        $pdfContent = $this->gotenberg->htmlToPdf($html, [
+            'paper_width' => '8.27',  // A4 width in inches
+            'paper_height' => '11.69', // A4 height in inches
+            'margin_top' => '0.39',
+            'margin_bottom' => '0.39',
+            'margin_left' => '0.39',
+            'margin_right' => '0.39',
+            'print_background' => true,
+            'prefer_css_page_size' => false,
+        ]);
 
-        Storage::disk('reports')->put($filename, $pdf->output());
+        Storage::disk('reports')->put($filename, $pdfContent);
         
         $fullPath = Storage::disk('reports')->path($filename);
         if (file_exists($fullPath)) {

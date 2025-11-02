@@ -14,6 +14,13 @@ use App\Services\ReportGenerationService;
 
 class ReportConfigController extends Controller
 {
+    protected ReportGenerationService $reportService;
+
+    public function __construct(ReportGenerationService $reportService)
+    {
+        $this->reportService = $reportService;
+    }
+
     public function getAvailableReports(Request $request)
     {
         $authUser = $request->user();
@@ -225,12 +232,11 @@ class ReportConfigController extends Controller
 
         $generatedReports = [];
         $errors = [];
-        $reportService = new ReportGenerationService();
 
         foreach ($schedules as $schedule) {
             try {
                 
-                $generatedReport = $reportService->generateReport($schedule);
+                $generatedReport = $this->reportService->generateReport($schedule);
                 
                 DeliverReportJob::dispatch($generatedReport);
                 
