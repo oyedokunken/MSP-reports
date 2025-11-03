@@ -10,7 +10,7 @@ return [
             'type' => 'text',
             'label' => 'API Username',
             'required' => true,
-            'help' => 'Your Autotask API username',
+            'help' => 'Your Autotask API username (email)',
         ],
         'secret' => [
             'type' => 'password',
@@ -24,19 +24,12 @@ return [
             'required' => true,
             'help' => 'Your Autotask API Integration Code',
         ],
-        'zone' => [
-            'type' => 'select',
-            'label' => 'API Zone',
+        'endpoint' => [
+            'type' => 'text',
+            'label' => 'API Endpoint',
             'required' => true,
-            'default' => 'webservices2',
-            'options' => [
-                'webservices' => 'Zone 1 (webservices.autotask.net)',
-                'webservices2' => 'Zone 2 (webservices2.autotask.net)',
-                'webservices3' => 'Zone 3 (webservices3.autotask.net)',
-                'webservices4' => 'Zone 4 (webservices4.autotask.net)',
-                'webservices5' => 'Zone 5 (webservices5.autotask.net)',
-            ],
-            'help' => 'Select your Autotask API zone',
+            'default' => 'https://webservices26.autotask.net/atservicesrest/v1.0',
+            'help' => 'Your Autotask API endpoint URL (e.g., https://webservices26.autotask.net/atservicesrest/v1.0)',
         ],
     ],
     

@@ -26,9 +26,8 @@ class AutotaskClient
         // Enable mock mode if credentials contain 'test_' prefix
         $this->useMockData = str_starts_with($credentials['username'] ?? '', 'test_');
         
-        // Autotask API endpoint (zone-specific)
-        $zone = $credentials['zone'] ?? 'webservices2';
-        $this->baseUrl = "https://{$zone}.autotask.net/ATServicesRest/v1.0";
+        // Autotask API endpoint (use provided endpoint or default)
+        $this->baseUrl = rtrim($credentials['endpoint'] ?? 'https://webservices26.autotask.net/atservicesrest/v1.0', '/');
         
         // API Integration Code (required for Autotask API)
         $this->apiIntegrationCode = $credentials['api_integration_code'] ?? '';
@@ -37,9 +36,16 @@ class AutotaskClient
     public function testConnection(): bool
     {
         try {
-            $response = $this->makeRequest('GET', '/CompanyInfo');
+            // Test connection by querying companies with minimal filter
+            $response = $this->makeRequest('POST', '/Companies/query', [
+                'filter' => [
+                    ['field' => 'id', 'op' => 'gt', 'value' => 0]
+                ],
+                'MaxRecords' => 1
+            ]);
             return $response->successful();
         } catch (\Exception $e) {
+            \Log::error('Autotask connection test failed', ['error' => $e->getMessage()]);
             return false;
         }
     }
@@ -51,33 +57,48 @@ class AutotaskClient
             return $this->getMockCompanies();
         }
 
+        $allCompanies = [];
+        $lastId = 0;
+        $hasMore = true;
+        $pageSize = 100;
+
         try {
-            $response = $this->makeRequest('GET', '/Companies/query', [
-                'search' => json_encode([
+            while ($hasMore) {
+                $response = $this->makeRequest('POST', '/Companies/query', [
                     'filter' => [
-                        ['field' => 'isActive', 'op' => 'eq', 'value' => true]
-                    ]
-                ])
-            ]);
+                        ['field' => 'id', 'op' => 'gt', 'value' => $lastId]
+                    ],
+                    'MaxRecords' => $pageSize
+                ]);
 
-            \Log::info('Autotask API getCompanies response', [
-                'status' => $response->status(),
-                'successful' => $response->successful(),
-                'body_preview' => substr($response->body(), 0, 500),
-            ]);
+                if (!$response->successful()) {
+                    \Log::warning('Autotask API getCompanies failed', [
+                        'status' => $response->status(),
+                        'body' => $response->body(),
+                    ]);
+                    break;
+                }
 
-            if ($response->successful()) {
                 $items = $response->json('items') ?? [];
-                \Log::info('Autotask API companies retrieved', ['count' => count($items)]);
-                return $items;
+                
+                if (empty($items)) {
+                    $hasMore = false;
+                    break;
+                }
+
+                $allCompanies = array_merge($allCompanies, $items);
+                $lastId = end($items)['id'];
+
+                \Log::info('Autotask API companies page retrieved', [
+                    'page_count' => count($items),
+                    'total_so_far' => count($allCompanies),
+                    'last_id' => $lastId
+                ]);
             }
 
-            \Log::warning('Autotask API getCompanies failed', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
+            \Log::info('Autotask API companies retrieval complete', ['total_count' => count($allCompanies)]);
+            return $allCompanies;
 
-            return [];
         } catch (\Exception $e) {
             \Log::error('Autotask API getCompanies exception', [
                 'error' => $e->getMessage(),
@@ -88,29 +109,42 @@ class AutotaskClient
 
     public function getTickets(Carbon $startDate, Carbon $endDate): array
     {
-        try {
-            $response = $this->makeRequest('GET', '/Tickets/query', [
-                'search' => json_encode([
-                    'filter' => [
-                        [
-                            'field' => 'createDate',
-                            'op' => 'gte',
-                            'value' => $startDate->toIso8601String()
-                        ],
-                        [
-                            'field' => 'createDate',
-                            'op' => 'lte',
-                            'value' => $endDate->toIso8601String()
-                        ]
-                    ]
-                ])
-            ]);
+        $allTickets = [];
+        $lastId = 0;
+        $hasMore = true;
+        $pageSize = 100;
 
-            if ($response->successful()) {
-                return $response->json('items') ?? [];
+        try {
+            while ($hasMore) {
+                $filters = [
+                    ['field' => 'id', 'op' => 'gt', 'value' => $lastId],
+                    ['field' => 'createDate', 'op' => 'gte', 'value' => $startDate->format('Y-m-d\TH:i:s\Z')],
+                    ['field' => 'createDate', 'op' => 'lt', 'value' => $endDate->format('Y-m-d\TH:i:s\Z')]
+                ];
+
+                $response = $this->makeRequest('POST', '/Tickets/query', [
+                    'filter' => $filters,
+                    'MaxRecords' => $pageSize,
+                    'SortBy' => 'createDate',
+                    'SortOrder' => 'ASC'
+                ]);
+
+                if (!$response->successful()) {
+                    break;
+                }
+
+                $items = $response->json('items') ?? [];
+                
+                if (empty($items)) {
+                    $hasMore = false;
+                    break;
+                }
+
+                $allTickets = array_merge($allTickets, $items);
+                $lastId = end($items)['id'];
             }
 
-            return [];
+            return $allTickets;
         } catch (\Exception $e) {
             throw new \Exception("Failed to fetch tickets: {$e->getMessage()}");
         }
@@ -118,29 +152,40 @@ class AutotaskClient
 
     public function getTimeEntries(Carbon $startDate, Carbon $endDate): array
     {
-        try {
-            $response = $this->makeRequest('GET', '/TimeEntries/query', [
-                'search' => json_encode([
-                    'filter' => [
-                        [
-                            'field' => 'dateWorked',
-                            'op' => 'gte',
-                            'value' => $startDate->toIso8601String()
-                        ],
-                        [
-                            'field' => 'dateWorked',
-                            'op' => 'lte',
-                            'value' => $endDate->toIso8601String()
-                        ]
-                    ]
-                ])
-            ]);
+        $allEntries = [];
+        $lastId = 0;
+        $hasMore = true;
+        $pageSize = 100;
 
-            if ($response->successful()) {
-                return $response->json('items') ?? [];
+        try {
+            while ($hasMore) {
+                $filters = [
+                    ['field' => 'id', 'op' => 'gt', 'value' => $lastId],
+                    ['field' => 'dateWorked', 'op' => 'gte', 'value' => $startDate->format('Y-m-d\TH:i:s\Z')],
+                    ['field' => 'dateWorked', 'op' => 'lt', 'value' => $endDate->format('Y-m-d\TH:i:s\Z')]
+                ];
+
+                $response = $this->makeRequest('POST', '/TimeEntries/query', [
+                    'filter' => $filters,
+                    'MaxRecords' => $pageSize
+                ]);
+
+                if (!$response->successful()) {
+                    break;
+                }
+
+                $items = $response->json('items') ?? [];
+                
+                if (empty($items)) {
+                    $hasMore = false;
+                    break;
+                }
+
+                $allEntries = array_merge($allEntries, $items);
+                $lastId = end($items)['id'];
             }
 
-            return [];
+            return $allEntries;
         } catch (\Exception $e) {
             throw new \Exception("Failed to fetch time entries: {$e->getMessage()}");
         }
@@ -148,20 +193,37 @@ class AutotaskClient
 
     public function getContracts(): array
     {
-        try {
-            $response = $this->makeRequest('GET', '/Contracts/query', [
-                'search' => json_encode([
-                    'filter' => [
-                        ['field' => 'status', 'op' => 'eq', 'value' => 1] // Active contracts
-                    ]
-                ])
-            ]);
+        $allContracts = [];
+        $lastId = 0;
+        $hasMore = true;
+        $pageSize = 100;
 
-            if ($response->successful()) {
-                return $response->json('items') ?? [];
+        try {
+            while ($hasMore) {
+                $response = $this->makeRequest('POST', '/Contracts/query', [
+                    'filter' => [
+                        ['field' => 'id', 'op' => 'gt', 'value' => $lastId],
+                        ['field' => 'status', 'op' => 'eq', 'value' => 1] // Active contracts
+                    ],
+                    'MaxRecords' => $pageSize
+                ]);
+
+                if (!$response->successful()) {
+                    break;
+                }
+
+                $items = $response->json('items') ?? [];
+                
+                if (empty($items)) {
+                    $hasMore = false;
+                    break;
+                }
+
+                $allContracts = array_merge($allContracts, $items);
+                $lastId = end($items)['id'];
             }
 
-            return [];
+            return $allContracts;
         } catch (\Exception $e) {
             throw new \Exception("Failed to fetch contracts: {$e->getMessage()}");
         }
@@ -178,21 +240,33 @@ class AutotaskClient
         }
 
         $headers = [
-            'ApiIntegrationCode' => $this->apiIntegrationCode,
-            'UserName' => $this->credentials['username'] ?? '',
+            'Username' => $this->credentials['username'] ?? '',
             'Secret' => $this->credentials['secret'] ?? '',
+            'APIIntegrationcode' => $this->apiIntegrationCode,
             'Content-Type' => 'application/json',
         ];
 
         $url = $this->baseUrl . $endpoint;
 
+        \Log::info('Autotask API Request', [
+            'method' => $method,
+            'url' => $url,
+            'headers' => array_merge($headers, ['Secret' => '***REDACTED***']),
+            'body' => $params
+        ]);
+
         // Make the actual API call
-        if ($method === 'GET' && !empty($params)) {
-            $url .= '?' . http_build_query($params);
-            $response = Http::withHeaders($headers)->get($url);
+        if ($method === 'GET') {
+            $response = Http::withHeaders($headers)->timeout(120)->get($url);
         } else {
-            $response = Http::withHeaders($headers)->$method($url, $params);
+            $response = Http::withHeaders($headers)->timeout(120)->post($url, $params);
         }
+
+        \Log::info('Autotask API Response', [
+            'status' => $response->status(),
+            'successful' => $response->successful(),
+            'body_preview' => substr($response->body(), 0, 500)
+        ]);
 
         // Record this API call (skip for mock data)
         if (!$this->useMockData) {

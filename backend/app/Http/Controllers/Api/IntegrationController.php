@@ -19,9 +19,8 @@ class IntegrationController extends Controller
         $availableTypes = [
             'Autotask',
             'Datto',
-            'ConnectWise',
-            'Microsoft365',
-            'Zendesk',
+            'Sendmarc',
+            'Barracuda',
         ];
 
         $configuredIntegrations = $company->integrations()
@@ -57,6 +56,8 @@ class IntegrationController extends Controller
         $availableTypes = [
             'Autotask', 
             'Datto',
+            'Sendmarc',
+            'Barracuda',
             'ConnectWise',
             'Microsoft365',
             'Zendesk',

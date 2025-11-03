@@ -12,6 +12,7 @@ use App\Jobs\AutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class DattoIntegration implements IntegrationInterface
 {
@@ -49,25 +50,36 @@ class DattoIntegration implements IntegrationInterface
                 'customer_count' => count($dattoCustomers),
             ]);
 
-            foreach ($dattoCustomers as $customer) {
-                try {
-                    // Map to standardized format (auto-detects RMM vs SaaS)
-                    $standardized = DattoMapper::mapCustomer($customer);
+            // Process in chunks of 50 to reduce memory usage (per performance-optimization.md)
+            $totalCustomers = count($dattoCustomers);
+            collect($dattoCustomers)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCustomers) {
+                foreach ($chunk as $customer) {
+                    try {
+                        // Map to standardized format (auto-detects RMM vs SaaS)
+                        $standardized = DattoMapper::mapCustomer($customer);
 
-                    // Store in database
-                    $this->storeCustomer($standardized);
-                    $totalProcessed++;
+                        // Store in database
+                        $this->storeCustomer($standardized);
+                        $totalProcessed++;
 
-                } catch (\Exception $e) {
-                    $customerId = $customer['id'] ?? $customer['uid'] ?? $customer['organizationId'] ?? 'unknown';
-                    $errors[] = "Failed to process customer {$customerId}: {$e->getMessage()}";
-                    \Log::error('Datto Integration: Failed to process customer', [
-                        'integration_id' => $this->integration->integration_id,
-                        'customer_id' => $customerId,
-                        'error' => $e->getMessage(),
-                    ]);
+                    } catch (\Exception $e) {
+                        $customerId = $customer['id'] ?? $customer['uid'] ?? $customer['organizationId'] ?? 'unknown';
+                        $errors[] = "Failed to process customer {$customerId}: {$e->getMessage()}";
+                        \Log::error('Datto Integration: Failed to process customer', [
+                            'integration_id' => $this->integration->integration_id,
+                            'customer_id' => $customerId,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
-            }
+                
+                // Log progress after each chunk
+                \Log::info('Datto Integration: Processed chunk', [
+                    'integration_id' => $this->integration->integration_id,
+                    'processed' => $totalProcessed,
+                    'total' => $totalCustomers,
+                ]);
+            });
 
         } catch (\Exception $e) {
             $errors[] = "Sync failed: {$e->getMessage()}";
@@ -82,6 +94,10 @@ class DattoIntegration implements IntegrationInterface
         $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
 
         // Count mapped and unmapped customers AFTER sync
+        // Cache results for 10 minutes (per performance-optimization.md: 5-15 min TTL)
+        $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
+        Cache::forget($cacheKey); // Clear cache after sync
+        
         $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNotNull('customer_id')
             ->count();
@@ -89,6 +105,13 @@ class DattoIntegration implements IntegrationInterface
         $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->count();
+
+        // Cache the counts
+        Cache::put($cacheKey, [
+            'mapped' => $mappedCount,
+            'unmapped' => $unmappedCount,
+            'last_sync' => now(),
+        ], now()->addMinutes(10));
         
         \Log::info('Datto Integration: Sync completed', [
             'integration_id' => $this->integration->integration_id,

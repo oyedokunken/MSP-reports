@@ -12,6 +12,7 @@ use App\Jobs\AutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class AutotaskIntegration implements IntegrationInterface
 {
@@ -38,6 +39,7 @@ class AutotaskIntegration implements IntegrationInterface
     {
         $errors = [];
         $this->mappedDuringSync = [];
+        $totalProcessed = 0;
 
         try {
             // Get companies (customers) from Autotask
@@ -48,21 +50,42 @@ class AutotaskIntegration implements IntegrationInterface
                 'integration_id' => $this->integration->integration_id,
             ]);
 
-            foreach ($autotaskCompanies as $company) {
-                try {
-                    // Map to standardized format
-                    $standardized = AutotaskMapper::mapCompany($company);
+            // Process in chunks of 50 to reduce memory usage (per performance-optimization.md)
+            $totalCompanies = count($autotaskCompanies);
+            collect($autotaskCompanies)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCompanies) {
+                foreach ($chunk as $company) {
+                    try {
+                        // Map to standardized format
+                        $standardized = AutotaskMapper::mapCompany($company);
 
-                    // Store in database
-                    $this->storeCustomer($standardized);
+                        // Store in database
+                        $this->storeCustomer($standardized);
+                        $totalProcessed++;
 
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to process company {$company['id']}: {$e->getMessage()}";
+                    } catch (\Exception $e) {
+                        $errors[] = "Failed to process company {$company['id']}: {$e->getMessage()}";
+                        \Log::error('Autotask sync: Failed to process company', [
+                            'integration_id' => $this->integration->integration_id,
+                            'company_id' => $company['id'] ?? 'unknown',
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
-            }
+                
+                // Log progress after each chunk
+                \Log::info('Autotask sync: Processed chunk', [
+                    'integration_id' => $this->integration->integration_id,
+                    'processed' => $totalProcessed,
+                    'total' => $totalCompanies,
+                ]);
+            });
 
         } catch (\Exception $e) {
             $errors[] = "Sync failed: {$e->getMessage()}";
+            \Log::error('Autotask sync: Failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         // Process existing unmapped customers from database
@@ -70,6 +93,10 @@ class AutotaskIntegration implements IntegrationInterface
         $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
 
         // Count mapped and unmapped customers AFTER sync
+        // Cache results for 10 minutes (per performance-optimization.md: 5-15 min TTL)
+        $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
+        Cache::forget($cacheKey); // Clear cache after sync
+        
         $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNotNull('customer_id')
             ->count();
@@ -77,6 +104,21 @@ class AutotaskIntegration implements IntegrationInterface
         $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->count();
+
+        // Cache the counts
+        Cache::put($cacheKey, [
+            'mapped' => $mappedCount,
+            'unmapped' => $unmappedCount,
+            'last_sync' => now(),
+        ], now()->addMinutes(10));
+
+        \Log::info('Autotask sync: Completed', [
+            'integration_id' => $this->integration->integration_id,
+            'total_processed' => $totalProcessed,
+            'mapped_count' => $mappedCount,
+            'unmapped_count' => $unmappedCount,
+            'errors' => count($errors),
+        ]);
 
         return [
             'records_synced' => $mappedCount,        // Already mapped customers
@@ -119,36 +161,67 @@ class AutotaskIntegration implements IntegrationInterface
     {
         $data = [];
         $errors = [];
+        $totalProcessed = 0;
 
         try {
+            // Fetch tickets
             $tickets = $this->client->getTickets($startDate, $endDate);
 
-            foreach ($tickets as $ticket) {
-                try {
-                    $standardized = AutotaskMapper::mapTicket($ticket);
-                    $data[] = $standardized;
-
-                    $this->storeHistoricalData($standardized);
-
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to process ticket: {$e->getMessage()}";
+            // Process tickets in chunks of 50 (per integration-framework.md)
+            collect($tickets)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed) {
+                foreach ($chunk as $ticket) {
+                    try {
+                        $standardized = AutotaskMapper::mapTicket($ticket);
+                        $data[] = $standardized;
+                        $this->storeHistoricalData($standardized);
+                        $totalProcessed++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Failed to process ticket: {$e->getMessage()}";
+                        \Log::error('Autotask historical: Failed to process ticket', [
+                            'integration_id' => $this->integration->integration_id,
+                            'ticket_id' => $ticket['id'] ?? 'unknown',
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
-            }
+            });
 
+            // Fetch time entries
             $timeEntries = $this->client->getTimeEntries($startDate, $endDate);
             
-            foreach ($timeEntries as $entry) {
-                try {
-                    $standardized = AutotaskMapper::mapTimeEntry($entry);
-                    $data[] = $standardized;
-                    $this->storeHistoricalData($standardized);
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to process time entry: {$e->getMessage()}";
+            // Process time entries in chunks of 50
+            collect($timeEntries)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed) {
+                foreach ($chunk as $entry) {
+                    try {
+                        $standardized = AutotaskMapper::mapTimeEntry($entry);
+                        $data[] = $standardized;
+                        $this->storeHistoricalData($standardized);
+                        $totalProcessed++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Failed to process time entry: {$e->getMessage()}";
+                        \Log::error('Autotask historical: Failed to process time entry', [
+                            'integration_id' => $this->integration->integration_id,
+                            'entry_id' => $entry['id'] ?? 'unknown',
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
-            }
+            });
+
+            \Log::info('Autotask historical: Completed', [
+                'integration_id' => $this->integration->integration_id,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+                'total_processed' => $totalProcessed,
+                'errors' => count($errors),
+            ]);
 
         } catch (\Exception $e) {
             $errors[] = "Historical data fetch failed: {$e->getMessage()}";
+            \Log::error('Autotask historical: Failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return [
