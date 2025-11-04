@@ -14,7 +14,7 @@ interface FloatingLayoutProps {
 
 export default function FloatingLayout({ children }: FloatingLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-background">
+    <div className="min-h-screen bg-gray-50 dark:bg-background overflow-x-hidden">
       <SidebarProvider>
         {/* Sidebar + Content */}
         <AppSidebar />
@@ -23,7 +23,7 @@ export default function FloatingLayout({ children }: FloatingLayoutProps) {
           <FloatingNav />
           {/* Page content */}
           <div className="flex-1 bg-gray-50 dark:bg-background">
-            <div className="p-7 md:p-8">
+            <div className="p-7 md:p-8 max-w-full overflow-x-hidden">
               {children}
             </div>
           </div>

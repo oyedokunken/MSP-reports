@@ -81,11 +81,11 @@ export function CustomerCard({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 pt-2">
+        <div className="flex flex-wrap gap-2 pt-2">
           <Button
             size="sm"
             variant="outline"
-            className="flex-1"
+            className="flex-1 min-w-[120px]"
             onClick={onSetupReports}
           >
             <Settings className="h-4 w-4 mr-2" />
@@ -94,7 +94,7 @@ export function CustomerCard({
           <Button
             size="sm"
             variant="outline"
-            className="flex-1"
+            className="flex-1 min-w-[120px]"
             onClick={onViewHistory}
           >
             <FileText className="h-4 w-4 mr-2" />
@@ -102,7 +102,7 @@ export function CustomerCard({
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="px-2">
+              <Button variant="outline" size="sm" className="px-2 flex-shrink-0">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

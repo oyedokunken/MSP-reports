@@ -1,8 +1,10 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import type { User, LoginCredentials, LoginResponse, AuthState } from '@/types/auth'
+import type { User, Company, LoginCredentials, LoginResponse, AuthState } from '@/types/auth'
 import { api } from '@/lib/api'
+import { useBranding } from './BrandingContext'
 
 interface AuthContextType extends AuthState {
+  company: Company | null
   login: (credentials: LoginCredentials) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -11,12 +13,14 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { setBranding } = useBranding()
   const [state, setState] = useState<AuthState>({
     user: null,
     token: null,
     isAuthenticated: false,
     isLoading: true,
   })
+  const [company, setCompany] = useState<Company | null>(null)
 
   // Initialize auth state from localStorage
   useEffect(() => {
@@ -58,10 +62,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const user = response.data.user
       const token = response.data.token
+      const companyData = response.data.company
 
       // Store in localStorage
       localStorage.setItem('auth_token', token)
       localStorage.setItem('user', JSON.stringify(user))
+      localStorage.setItem('company', JSON.stringify(companyData))
+
+      // Set branding from company settings
+      if (companyData?.settings?.white_label) {
+        setBranding(companyData.settings.white_label)
+      }
 
       setState({
         user,
@@ -69,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: true,
         isLoading: false,
       })
+      setCompany(companyData)
     } catch (error) {
       throw error
     }
@@ -84,6 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear local state regardless of API call success
       localStorage.removeItem('auth_token')
       localStorage.removeItem('user')
+      localStorage.removeItem('company')
+      setBranding(null)
 
       setState({
         user: null,
@@ -91,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: false,
         isLoading: false,
       })
+      setCompany(null)
     }
   }
 
@@ -118,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         ...state,
+        company,
         login,
         logout,
         refreshUser,

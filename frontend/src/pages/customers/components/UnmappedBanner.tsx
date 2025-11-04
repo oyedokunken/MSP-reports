@@ -13,8 +13,8 @@ export function UnmappedBanner({ count, onStartMapping }: UnmappedBannerProps) {
   return (
     <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30">
       <CardContent className="py-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3 flex-1">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex-shrink-0">
               <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
@@ -26,17 +26,17 @@ export function UnmappedBanner({ count, onStartMapping }: UnmappedBannerProps) {
                 Your integrations (Autotask, Datto, etc.) have synced customer data. 
                 Link them to your existing clients or create new client records to start generating reports.
               </p>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400"></div>
                   <span className="text-muted-foreground">Step 1: Review synced customers</span>
                 </div>
-                <span className="text-muted-foreground">→</span>
+                <span className="text-muted-foreground hidden sm:inline">→</span>
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400"></div>
                   <span className="text-muted-foreground">Step 2: Map to clients</span>
                 </div>
-                <span className="text-muted-foreground">→</span>
+                <span className="text-muted-foreground hidden sm:inline">→</span>
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></div>
                   <span className="text-muted-foreground">Step 3: Configure reports</span>
@@ -47,7 +47,7 @@ export function UnmappedBanner({ count, onStartMapping }: UnmappedBannerProps) {
           <Button 
             size="lg"
             onClick={onStartMapping}
-            className="flex-shrink-0"
+            className="flex-shrink-0 w-full sm:w-auto"
           >
             <MapPin className="h-4 w-4 mr-2" />
             Start Mapping ({count})

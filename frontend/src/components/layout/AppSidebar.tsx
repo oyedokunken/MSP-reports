@@ -6,7 +6,6 @@ import {
   Users,
   FileText,
   Settings as SettingsIcon,
-  LogOut,
   Calendar,
   UserPlus,
   Key,
@@ -24,14 +23,13 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   SidebarRail,
 } from '@/components/ui/sidebar'
 import { CreateUserModal } from '@/pages/users/modals/CreateUserModal'
 
 export default function AppSidebar() {
   const location = useLocation()
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const [createUserOpen, setCreateUserOpen] = useState(false)
 
   const navItems = [
@@ -76,15 +74,18 @@ export default function AppSidebar() {
 
   return (
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="p-2">
+      <SidebarHeader className="px-4 py-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-3 px-2 py-1.5">
-              <div className="flex aspect-square size-8 items-center justify-center">
-                <span className="font-semibold text-sidebar-primary">{companyInitial}</span>
+            <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
+              <div 
+                className="flex aspect-square size-8 items-center justify-center rounded-md text-primary-foreground group-data-[collapsible=icon]:size-9"
+                style={{ background: 'var(--brand-gradient)' }}
+              >
+                <span className="font-bold text-sm">{companyInitial}</span>
               </div>
-              <div className="flex min-w-0 flex-col gap-0.5 leading-none">
-                <span className="font-medium truncate" title={companyName}>{companyMain}</span>
+              <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
+                <span className="font-semibold text-base truncate" title={companyName}>{companyMain}</span>
                 {companySub ? (
                   <span className="text-xs text-muted-foreground truncate" title={companyName}>{companySub}</span>
                 ) : null}
@@ -93,21 +94,26 @@ export default function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarSeparator />
-      <SidebarContent>
+      <SidebarContent className="px-3 py-2 group-data-[collapsible=icon]:px-2">
         <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Platform</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon
                 const active = isActive(item.path)
                 return (
                   <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={active} 
+                      tooltip={item.label} 
+                      className="rounded-lg px-3 py-2.5 h-10"
+                      style={active ? { background: 'var(--brand-gradient)' } : undefined}
+                    >
                       <Link to={item.path}>
-                        <Icon />
-                        <span>{item.label}</span>
+                        <Icon className="h-4 w-4" />
+                        <span className="font-medium">{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -116,19 +122,25 @@ export default function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Admin</SidebarGroupLabel>
+        <SidebarGroup className="mt-4 group-data-[collapsible=icon]:mt-2">
+          <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Admin</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2">
               {adminNavItems.map((item) => {
                 const Icon = item.icon
                 const active = isActive(item.path)
                 return (
                   <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={active} 
+                      tooltip={item.label} 
+                      className="rounded-lg px-3 py-2.5 h-10"
+                      style={active ? { background: 'var(--brand-gradient)' } : undefined}
+                    >
                       <Link to={item.path}>
-                        <Icon />
-                        <span>{item.label}</span>
+                        <Icon className="h-4 w-4" />
+                        <span className="font-medium">{item.label}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -139,41 +151,34 @@ export default function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
-        <div className="flex items-center gap-3 px-2 pb-2">
-          <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center">
-            <span className="text-primary font-semibold text-sm">{initials}</span>
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{user?.name || 'User'}</p>
-            <p className="text-xs text-muted-foreground truncate">{user?.email || 'user@example.com'}</p>
-          </div>
-        </div>
-        <SidebarSeparator />
-        <SidebarMenu>
+      <SidebarFooter className="px-3 pb-3 group-data-[collapsible=icon]:px-2">
+        <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2">
           {bottomItems.map((item) => {
             const Icon = item.icon
             const active = isActive(item.path)
             return (
               <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+                <SidebarMenuButton asChild isActive={active} tooltip={item.label} className="rounded-lg px-3 py-2.5 h-10">
                   <Link to={item.path}>
-                    <Icon />
-                    <span>{item.label}</span>
+                    <Icon className="h-4 w-4" />
+                    <span className="font-medium">{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )
           })}
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Sign out">
-              <button onClick={logout} className="text-red-600 dark:text-red-400">
-                <LogOut />
-                <span>Sign out</span>
-              </button>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </SidebarMenu>
+        <div className="mt-3 pt-3 border-t border-sidebar-border group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:pt-2">
+          <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-sidebar-accent/50 cursor-pointer transition-colors group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-1">
+            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-primary font-semibold text-xs">{initials}</span>
+            </div>
+            <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+              <p className="text-sm font-medium text-foreground truncate">{user?.name || 'User'}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email || 'user@example.com'}</p>
+            </div>
+          </div>
+        </div>
       </SidebarFooter>
       {/* Collapsible rail to toggle icon mode */}
       <SidebarRail />

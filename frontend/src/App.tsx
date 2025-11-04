@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
+import { BrandingProvider } from '@/contexts/BrandingContext'
 import { ThemeProvider } from '@/components/ui/ThemeProvider'
 import { ToastProvider } from '@/components/ui/Toast'
 import Login from '@/pages/auth/pages/Signin'
@@ -15,7 +16,7 @@ import { UsersList, CreateUser } from '@/pages/users'
 import { ReportsList, CustomerReports, ConfigureReports } from '@/pages/reports'
 import Licenses from '@/pages/licenses/Licenses'
 import Monitoring from '@/pages/monitoring/Monitoring'
-import { HamsterLoader } from '@/components/ui/HamsterLoader'
+import { Loader2 } from 'lucide-react'
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -24,7 +25,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <HamsterLoader />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -43,7 +44,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <HamsterLoader />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -194,9 +195,11 @@ function App() {
     <BrowserRouter>
       <ThemeProvider defaultTheme="light" storageKey="reporting-theme">
         <ToastProvider>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
+          <BrandingProvider>
+            <AuthProvider>
+              <AppRoutes />
+            </AuthProvider>
+          </BrandingProvider>
         </ToastProvider>
       </ThemeProvider>
     </BrowserRouter>
