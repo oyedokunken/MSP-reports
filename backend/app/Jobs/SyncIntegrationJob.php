@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Integrations\Autotask\AutotaskIntegration;
 use App\Integrations\Datto\DattoIntegration;
 use App\Integrations\Sendmarc\SendmarcIntegration;
+use App\Integrations\ITGlue\ITGlueIntegration;
 use App\Mail\IntegrationSyncFailedMail;
 
 class SyncIntegrationJob implements ShouldQueue
@@ -156,6 +157,7 @@ class SyncIntegrationJob implements ShouldQueue
             'Autotask' => AutotaskIntegration::class,
             'Datto' => DattoIntegration::class,
             'Sendmarc' => SendmarcIntegration::class,
+            'ITGlue' => ITGlueIntegration::class,
         ];
 
         $className = $integrationClasses[$this->integration->integration_type] ?? null;

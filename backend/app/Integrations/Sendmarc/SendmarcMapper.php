@@ -6,15 +6,12 @@ use Carbon\Carbon;
 
 class SendmarcMapper
 {
-    /**
-     * Map Sendmarc domain to standardized customer format
-     */
     public static function mapDomain(array $domain): array
     {
         return [
             'external_id' => $domain['uuid'] ?? $domain['domain_name'] ?? 'unknown',
             'name' => $domain['domain_name'] ?? 'Unknown Domain',
-            'active' => true, // Sendmarc domains are active if returned by API
+            'active' => true,
             'metadata' => [
                 'uuid' => $domain['uuid'] ?? null,
                 'domain_name' => $domain['domain_name'] ?? null,
@@ -30,9 +27,6 @@ class SendmarcMapper
         ];
     }
 
-    /**
-     * Map Sendmarc sender statistics to historical data format
-     */
     public static function mapSenderStatistics(array $sender, string $domainUuid): array
     {
         return [
@@ -63,9 +57,6 @@ class SendmarcMapper
         ];
     }
 
-    /**
-     * Map Sendmarc volume totals to historical data format
-     */
     public static function mapVolumeTotals(array $volumeData, string $domainUuid): array
     {
         return [
@@ -86,9 +77,6 @@ class SendmarcMapper
         ];
     }
 
-    /**
-     * Map Sendmarc volume timeline to historical data format
-     */
     public static function mapVolumeTimeline(array $timelineData, string $domainUuid, int $index): array
     {
         return [
@@ -110,9 +98,6 @@ class SendmarcMapper
         ];
     }
 
-    /**
-     * Map Sendmarc IP address statistics to historical data format
-     */
     public static function mapIpAddressStatistics(array $ipData, string $domainUuid): array
     {
         return [

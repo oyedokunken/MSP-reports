@@ -23,20 +23,16 @@ class SendmarcClient
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
         
-        // Enable mock mode if credentials contain 'test_' prefix
         $this->useMockData = str_starts_with($credentials['bearer_token'] ?? '', 'test_');
         
-        // Sendmarc API endpoint
         $this->baseUrl = rtrim($credentials['endpoint'] ?? 'https://portal.sendmarc.com/api/v1', '/');
         
-        // Bearer Token (required for Sendmarc API)
         $this->bearerToken = $credentials['bearer_token'] ?? '';
     }
 
     public function testConnection(): bool
     {
         try {
-            // Test connection by querying accounts
             $response = $this->makeRequest('GET', '/accounts');
             return $response->successful();
         } catch (\Exception $e) {
@@ -47,7 +43,6 @@ class SendmarcClient
 
     public function getAccounts(): array
     {
-        // Return mock data for testing
         if ($this->useMockData) {
             return $this->getMockAccounts();
         }
@@ -206,9 +201,7 @@ class SendmarcClient
 
     protected function makeRequest(string $method, string $endpoint, array $params = [])
     {
-        // Skip rate limiting for mock data mode
         if (!$this->useMockData) {
-            // Check rate limit BEFORE each API call
             if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
                 throw new \Exception("Rate limit exceeded for Sendmarc API, could not acquire slot within timeout.");
             }
@@ -227,7 +220,6 @@ class SendmarcClient
             'headers' => array_merge($headers, ['Authorization' => 'Bearer ***REDACTED***']),
         ]);
 
-        // Make the actual API call
         if ($method === 'GET') {
             $response = Http::withHeaders($headers)
                 ->timeout(30)

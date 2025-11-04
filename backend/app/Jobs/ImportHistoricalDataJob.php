@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use App\Integrations\Autotask\AutotaskIntegration;
 use App\Integrations\Datto\DattoIntegration;
 use App\Integrations\Sendmarc\SendmarcIntegration;
+use App\Integrations\ITGlue\ITGlueIntegration;
 
 
 class ImportHistoricalDataJob implements ShouldQueue
@@ -146,6 +147,7 @@ class ImportHistoricalDataJob implements ShouldQueue
             'Autotask' => AutotaskIntegration::class,
             'Datto' => DattoIntegration::class,
             'Sendmarc' => SendmarcIntegration::class,
+            'ITGlue' => ITGlueIntegration::class,
         ];
 
         $className = $integrationClasses[$integration->integration_type] ?? null;

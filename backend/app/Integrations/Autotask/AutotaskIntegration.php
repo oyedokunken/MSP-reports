@@ -42,7 +42,6 @@ class AutotaskIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
-            // Get companies (customers) from Autotask
             $autotaskCompanies = $this->client->getCompanies();
             
             \Log::info('Autotask sync: Retrieved companies', [
@@ -50,15 +49,12 @@ class AutotaskIntegration implements IntegrationInterface
                 'integration_id' => $this->integration->integration_id,
             ]);
 
-            // Process in chunks of 50 to reduce memory usage (per performance-optimization.md)
             $totalCompanies = count($autotaskCompanies);
             collect($autotaskCompanies)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCompanies) {
                 foreach ($chunk as $company) {
                     try {
-                        // Map to standardized format
                         $standardized = AutotaskMapper::mapCompany($company);
 
-                        // Store in database
                         $this->storeCustomer($standardized);
                         $totalProcessed++;
 
@@ -72,7 +68,6 @@ class AutotaskIntegration implements IntegrationInterface
                     }
                 }
                 
-                // Log progress after each chunk
                 \Log::info('Autotask sync: Processed chunk', [
                     'integration_id' => $this->integration->integration_id,
                     'processed' => $totalProcessed,
@@ -88,14 +83,11 @@ class AutotaskIntegration implements IntegrationInterface
             ]);
         }
 
-        // Process existing unmapped customers from database
         $additionalMapped = $this->processUnmappedCustomers();
         $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
 
-        // Count mapped and unmapped customers AFTER sync
-        // Cache results for 10 minutes (per performance-optimization.md: 5-15 min TTL)
         $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
-        Cache::forget($cacheKey); // Clear cache after sync
+        Cache::forget($cacheKey);
         
         $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNotNull('customer_id')
@@ -105,7 +97,6 @@ class AutotaskIntegration implements IntegrationInterface
             ->whereNull('customer_id')
             ->count();
 
-        // Cache the counts
         Cache::put($cacheKey, [
             'mapped' => $mappedCount,
             'unmapped' => $unmappedCount,
@@ -121,9 +112,9 @@ class AutotaskIntegration implements IntegrationInterface
         ]);
 
         return [
-            'records_synced' => $mappedCount,        // Already mapped customers
-            'records_new' => $unmappedCount,         // Unmapped customers (need mapping)
-            'customers_mapped' => $mappedCustomers,  // Customers mapped during this sync
+            'records_synced' => $mappedCount,
+            'records_new' => $unmappedCount,
+            'customers_mapped' => $mappedCustomers,
             'records_failed' => count($errors),
             'errors' => $errors,
         ];
@@ -131,7 +122,6 @@ class AutotaskIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        // Get all unmapped customers for this integration
         $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->get();
@@ -139,11 +129,9 @@ class AutotaskIntegration implements IntegrationInterface
         $mappedList = [];
 
         foreach ($unmappedCustomers as $integrationCustomer) {
-            // If this integration is source of truth, auto-create unified customer
             if ($this->integration->is_source_of_truth) {
                 $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Autotask');
             } else {
-                // Not source of truth - try auto-matching
                 AutoMatchCustomersJob::dispatch($integrationCustomer);
             }
         }
@@ -164,10 +152,8 @@ class AutotaskIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
-            // Fetch tickets
             $tickets = $this->client->getTickets($startDate, $endDate);
 
-            // Process tickets in chunks of 50 (per integration-framework.md)
             collect($tickets)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed) {
                 foreach ($chunk as $ticket) {
                     try {
@@ -186,10 +172,8 @@ class AutotaskIntegration implements IntegrationInterface
                 }
             });
 
-            // Fetch time entries
             $timeEntries = $this->client->getTimeEntries($startDate, $endDate);
             
-            // Process time entries in chunks of 50
             collect($timeEntries)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed) {
                 foreach ($chunk as $entry) {
                     try {
@@ -232,7 +216,6 @@ class AutotaskIntegration implements IntegrationInterface
 
     public function getAvailableHistoryRange(): ?Carbon
     {
-        // Autotask typically allows 365 days of history
         return now()->subDays(365);
     }
 
@@ -291,12 +274,9 @@ class AutotaskIntegration implements IntegrationInterface
             ]
         );
 
-        // Refresh to get latest customer_id value
         $integrationCustomer->refresh();
 
-        // If unmapped, handle based on source of truth setting
         if (!$integrationCustomer->customer_id) {
-            // If this integration is source of truth, auto-create unified customer
             if ($this->integration->is_source_of_truth) {
                 $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Autotask');
             } else {

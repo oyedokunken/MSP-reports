@@ -21,6 +21,7 @@ class IntegrationController extends Controller
             'Datto',
             'Sendmarc',
             'Barracuda',
+            'ITGlue',
         ];
 
         $configuredIntegrations = $company->integrations()
@@ -58,6 +59,7 @@ class IntegrationController extends Controller
             'Datto',
             'Sendmarc',
             'Barracuda',
+            'ITGlue',
             'ConnectWise',
             'Microsoft365',
             'Zendesk',

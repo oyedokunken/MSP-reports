@@ -19,7 +19,7 @@ class DattoClient
     protected ?string $accessToken = null;
     
     protected const TOKEN_CACHE_KEY_PREFIX = 'datto_rmm_token_';
-    protected const TOKEN_EXPIRY = 99 * 3600; // 99 hours (just under 100-hour limit)
+    protected const TOKEN_EXPIRY = 99 * 3600;
 
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
@@ -27,10 +27,8 @@ class DattoClient
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
         
-        // Determine if using RMM or SaaS API
         if (!empty($credentials['rmm_url'])) {
             $this->baseUrl = rtrim($credentials['rmm_url'], '/');
-            // Enable mock mode if RMM API key starts with 'test_'
             $this->useMockData = str_starts_with($credentials['rmm_api_key'] ?? '', 'test_');
         } elseif (!empty($credentials['base_url'])) {
             $this->baseUrl = rtrim($credentials['base_url'], '/');
@@ -40,7 +38,6 @@ class DattoClient
             $this->useMockData = true;
         }
         
-        // Get access token for RMM if credentials provided
         if ($this->hasRmmCredentials() && !$this->useMockData) {
             $this->accessToken = $this->getAccessToken();
         }
@@ -135,13 +132,11 @@ class DattoClient
         }
         
         try {
-            // Test RMM connection
             if ($this->hasRmmCredentials()) {
                 $response = $this->makeRmmRequest('/account/sites', ['max' => 1]);
                 return !empty($response);
             }
             
-            // Test SaaS connection
             if ($this->hasSaasCredentials()) {
                 $response = $this->makeSaasRequest('/saas/domains');
                 return !empty($response);
@@ -159,20 +154,17 @@ class DattoClient
 
     public function getCustomers(): array
     {
-        // Return mock data for testing
         if ($this->useMockData) {
             return $this->getMockCustomers();
         }
         
         $customers = [];
         
-        // Get RMM sites as customers
         if ($this->hasRmmCredentials()) {
             $sites = $this->getRmmSites();
             $customers = array_merge($customers, $sites);
         }
         
-        // Get SaaS domains as customers
         if ($this->hasSaasCredentials()) {
             $domains = $this->getSaasDomains();
             $customers = array_merge($customers, $domains);
@@ -204,7 +196,6 @@ class DattoClient
             $hasMore = !empty($pageDetails['nextPageUrl']);
             $page++;
             
-            // Safety limit
             if ($page > 100) {
                 Log::warning('Datto RMM: Reached page limit while fetching sites', [
                     'integration_id' => $this->integration->integration_id,
@@ -246,7 +237,6 @@ class DattoClient
             $hasMore = !empty($pageDetails['nextPageUrl']);
             $page++;
             
-            // Safety limit
             if ($page > 100) {
                 Log::warning('Datto RMM: Reached page limit while fetching devices', [
                     'integration_id' => $this->integration->integration_id,
@@ -276,8 +266,6 @@ class DattoClient
 
     public function getBackupHistory(Carbon $startDate, Carbon $endDate): array
     {
-        // For now, return current SaaS backup status as historical data
-        // Real historical API would need different endpoint
         if ($this->hasSaasCredentials()) {
             return $this->getSaasDomains();
         }
@@ -287,7 +275,6 @@ class DattoClient
 
     protected function makeRmmRequest(string $endpoint, array $params = []): array
     {
-        // Check rate limit BEFORE each API call
         if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
             throw new \Exception("Rate limit exceeded for Datto RMM API");
         }
@@ -300,7 +287,6 @@ class DattoClient
                 'Accept' => 'application/json',
             ])->get($url, $params);
 
-            // Handle rate limiting
             if ($response->status() === 429) {
                 Log::warning('Datto RMM: Rate limit hit, waiting 60 seconds', [
                     'integration_id' => $this->integration->integration_id,
@@ -309,7 +295,6 @@ class DattoClient
                 return $this->makeRmmRequest($endpoint, $params);
             }
 
-            // Handle token expiration
             if ($response->status() === 401) {
                 Log::info('Datto RMM: Token expired, refreshing', [
                     'integration_id' => $this->integration->integration_id,
@@ -329,7 +314,6 @@ class DattoClient
                 throw new \RuntimeException("API request failed: " . $response->body());
             }
 
-            // Record this API call
             $this->rateLimiter->recordRequest($this->integration);
             
             return $response->json();
@@ -345,7 +329,6 @@ class DattoClient
     
     protected function makeSaasRequest(string $endpoint, array $params = []): array
     {
-        // Check rate limit BEFORE each API call
         if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
             throw new \Exception("Rate limit exceeded for Datto SaaS API");
         }
@@ -372,7 +355,6 @@ class DattoClient
                 throw new \RuntimeException("API request failed: " . $response->body());
             }
 
-            // Record this API call
             $this->rateLimiter->recordRequest($this->integration);
             
             return $response->json();
@@ -386,15 +368,10 @@ class DattoClient
         }
     }
 
-    /**
-     * Return mock customer data matching seeder (for testing)
-     */
     private function getMockCustomers(): array
     {
         \Log::info('Datto Client: Using mock data mode');
         
-        // Return the same customers that exist in the seeder
-        // This simulates the Datto API returning these customers
         return [
             [
                 'id' => 'DATTO-001',

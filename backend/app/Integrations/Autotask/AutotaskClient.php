@@ -23,20 +23,16 @@ class AutotaskClient
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
         
-        // Enable mock mode if credentials contain 'test_' prefix
         $this->useMockData = str_starts_with($credentials['username'] ?? '', 'test_');
         
-        // Autotask API endpoint (use provided endpoint or default)
         $this->baseUrl = rtrim($credentials['endpoint'] ?? 'https://webservices26.autotask.net/atservicesrest/v1.0', '/');
         
-        // API Integration Code (required for Autotask API)
         $this->apiIntegrationCode = $credentials['api_integration_code'] ?? '';
     }
 
     public function testConnection(): bool
     {
         try {
-            // Test connection by querying companies with minimal filter
             $response = $this->makeRequest('POST', '/Companies/query', [
                 'filter' => [
                     ['field' => 'id', 'op' => 'gt', 'value' => 0]
@@ -52,7 +48,6 @@ class AutotaskClient
 
     public function getCompanies(): array
     {
-        // Return mock data for testing
         if ($this->useMockData) {
             return $this->getMockCompanies();
         }
@@ -231,9 +226,7 @@ class AutotaskClient
 
     protected function makeRequest(string $method, string $endpoint, array $params = [])
     {
-        // Skip rate limiting for mock data mode
         if (!$this->useMockData) {
-            // Check rate limit BEFORE each API call
             if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
                 throw new \Exception("Rate limit exceeded for Autotask API, could not acquire slot within timeout.");
             }
@@ -255,7 +248,6 @@ class AutotaskClient
             'body' => $params
         ]);
 
-        // Make the actual API call
         if ($method === 'GET') {
             $response = Http::withHeaders($headers)->timeout(120)->get($url);
         } else {
@@ -268,7 +260,6 @@ class AutotaskClient
             'body_preview' => substr($response->body(), 0, 500)
         ]);
 
-        // Record this API call (skip for mock data)
         if (!$this->useMockData) {
             $this->rateLimiter->recordRequest($this->integration);
         }
@@ -276,16 +267,10 @@ class AutotaskClient
         return $response;
     }
 
-    /**
-     * Return mock company data matching seeder (for testing)
-     * This simulates what the real Autotask API would return
-     */
     private function getMockCompanies(): array
     {
         \Log::info('Autotask Client: Using mock data mode');
         
-        // Return the same companies that exist in the seeder
-        // This simulates the Autotask API returning these customers
         return [
             [
                 'id' => 'AT-1001',

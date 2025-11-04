@@ -42,7 +42,6 @@ class DattoIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
-            // Get all customers from Datto (RMM sites and/or SaaS domains)
             $dattoCustomers = $this->client->getCustomers();
             
             \Log::info('Datto Integration: Starting sync', [
@@ -50,15 +49,12 @@ class DattoIntegration implements IntegrationInterface
                 'customer_count' => count($dattoCustomers),
             ]);
 
-            // Process in chunks of 50 to reduce memory usage (per performance-optimization.md)
             $totalCustomers = count($dattoCustomers);
             collect($dattoCustomers)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCustomers) {
                 foreach ($chunk as $customer) {
                     try {
-                        // Map to standardized format (auto-detects RMM vs SaaS)
                         $standardized = DattoMapper::mapCustomer($customer);
 
-                        // Store in database
                         $this->storeCustomer($standardized);
                         $totalProcessed++;
 
@@ -73,7 +69,6 @@ class DattoIntegration implements IntegrationInterface
                     }
                 }
                 
-                // Log progress after each chunk
                 \Log::info('Datto Integration: Processed chunk', [
                     'integration_id' => $this->integration->integration_id,
                     'processed' => $totalProcessed,
@@ -89,14 +84,11 @@ class DattoIntegration implements IntegrationInterface
             ]);
         }
 
-        // Process existing unmapped customers from database
         $additionalMapped = $this->processUnmappedCustomers();
         $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
 
-        // Count mapped and unmapped customers AFTER sync
-        // Cache results for 10 minutes (per performance-optimization.md: 5-15 min TTL)
         $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
-        Cache::forget($cacheKey); // Clear cache after sync
+        Cache::forget($cacheKey);
         
         $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNotNull('customer_id')
@@ -106,7 +98,6 @@ class DattoIntegration implements IntegrationInterface
             ->whereNull('customer_id')
             ->count();
 
-        // Cache the counts
         Cache::put($cacheKey, [
             'mapped' => $mappedCount,
             'unmapped' => $unmappedCount,
@@ -122,9 +113,9 @@ class DattoIntegration implements IntegrationInterface
         ]);
 
         return [
-            'records_synced' => $mappedCount,        // Already mapped customers
-            'records_new' => $unmappedCount,         // Unmapped customers (need mapping)
-            'customers_mapped' => $mappedCustomers,  // Customers mapped during this sync
+            'records_synced' => $mappedCount,
+            'records_new' => $unmappedCount,
+            'customers_mapped' => $mappedCustomers,
             'records_failed' => count($errors),
             'errors' => $errors,
         ];
@@ -132,7 +123,6 @@ class DattoIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        // Get all unmapped customers for this integration
         $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->get();
@@ -140,11 +130,9 @@ class DattoIntegration implements IntegrationInterface
         $mappedList = [];
 
         foreach ($unmappedCustomers as $integrationCustomer) {
-            // If this integration is source of truth, auto-create unified customer
             if ($this->integration->is_source_of_truth) {
                 $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Datto');
             } else {
-                // Not source of truth - try auto-matching
                 AutoMatchCustomersJob::dispatch($integrationCustomer);
             }
         }
@@ -213,7 +201,6 @@ class DattoIntegration implements IntegrationInterface
 
     public function disconnect(): void
     {
-        // Clear cached OAuth2 token
         $cacheKey = 'datto_rmm_token_' . $this->integration->integration_id;
         Cache::forget($cacheKey);
         
@@ -254,16 +241,12 @@ class DattoIntegration implements IntegrationInterface
             ]
         );
 
-        // Refresh to get latest customer_id value
         $integrationCustomer->refresh();
 
-        // If unmapped, handle based on source of truth setting
         if (!$integrationCustomer->customer_id) {
-            // If this integration is source of truth, auto-create unified customer
             if ($this->integration->is_source_of_truth) {
                 $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Datto');
             } else {
-                // Not source of truth - try auto-matching
                 AutoMatchCustomersJob::dispatch($integrationCustomer);
             }
         }

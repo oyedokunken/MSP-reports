@@ -40,7 +40,6 @@ class SendmarcIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
-            // Get all accounts from Sendmarc
             $accounts = $this->client->getAccounts();
             
             \Log::info('Sendmarc sync: Retrieved accounts', [
@@ -48,7 +47,6 @@ class SendmarcIntegration implements IntegrationInterface
                 'integration_id' => $this->integration->integration_id,
             ]);
 
-            // Process each account
             foreach ($accounts as $account) {
                 $accountUuid = $account['uuid'] ?? null;
                 
@@ -57,7 +55,6 @@ class SendmarcIntegration implements IntegrationInterface
                     continue;
                 }
 
-                // Get domains for this account
                 $domains = $this->client->getAccountDomains($accountUuid);
                 
                 \Log::info('Sendmarc sync: Retrieved domains for account', [
@@ -65,14 +62,11 @@ class SendmarcIntegration implements IntegrationInterface
                     'domain_count' => count($domains),
                 ]);
 
-                // Process domains in chunks of 50 (per performance-optimization.md)
                 collect($domains)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed) {
                     foreach ($chunk as $domain) {
                         try {
-                            // Map to standardized format
                             $standardized = SendmarcMapper::mapDomain($domain);
 
-                            // Store in database
                             $this->storeCustomer($standardized);
                             $totalProcessed++;
 
@@ -87,7 +81,6 @@ class SendmarcIntegration implements IntegrationInterface
                         }
                     }
                     
-                    // Log progress after each chunk
                     \Log::info('Sendmarc sync: Processed chunk', [
                         'integration_id' => $this->integration->integration_id,
                         'processed' => $totalProcessed,
@@ -103,14 +96,11 @@ class SendmarcIntegration implements IntegrationInterface
             ]);
         }
 
-        // Process existing unmapped customers from database
         $additionalMapped = $this->processUnmappedCustomers();
         $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
 
-        // Count mapped and unmapped customers AFTER sync
-        // Cache results for 10 minutes (per performance-optimization.md: 5-15 min TTL)
         $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
-        Cache::forget($cacheKey); // Clear cache after sync
+        Cache::forget($cacheKey);
         
         $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNotNull('customer_id')
@@ -120,7 +110,6 @@ class SendmarcIntegration implements IntegrationInterface
             ->whereNull('customer_id')
             ->count();
 
-        // Cache the counts
         Cache::put($cacheKey, [
             'mapped' => $mappedCount,
             'unmapped' => $unmappedCount,
@@ -146,7 +135,6 @@ class SendmarcIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        // Get all unmapped customers for this integration
         $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->get();
@@ -154,11 +142,9 @@ class SendmarcIntegration implements IntegrationInterface
         $mappedList = [];
 
         foreach ($unmappedCustomers as $integrationCustomer) {
-            // If this integration is source of truth, auto-create unified customer
             if ($this->integration->is_source_of_truth) {
                 $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Sendmarc');
             } else {
-                // Not source of truth - try auto-matching
                 AutoMatchCustomersJob::dispatch($integrationCustomer);
             }
         }
@@ -195,24 +181,20 @@ class SendmarcIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
-            // Get all accounts
             $accounts = $this->client->getAccounts();
 
             foreach ($accounts as $account) {
                 $accountUuid = $account['uuid'] ?? null;
                 if (!$accountUuid) continue;
 
-                // Get domains for this account
                 $domains = $this->client->getAccountDomains($accountUuid);
 
-                // Process domains in chunks of 50
                 collect($domains)->chunk(50)->each(function ($chunk) use ($accountUuid, &$data, &$errors, &$totalProcessed) {
                     foreach ($chunk as $domain) {
                         $domainUuid = $domain['uuid'] ?? null;
                         if (!$domainUuid) continue;
 
                         try {
-                            // Get sender statistics
                             $senders = $this->client->getDomainSenders($accountUuid, $domainUuid);
                             foreach ($senders as $sender) {
                                 $standardized = SendmarcMapper::mapSenderStatistics($sender, $domainUuid);
@@ -221,7 +203,6 @@ class SendmarcIntegration implements IntegrationInterface
                                 $totalProcessed++;
                             }
 
-                            // Get volume totals
                             $volumeTotals = $this->client->getDomainVolumeTotals($accountUuid, $domainUuid);
                             if (!empty($volumeTotals)) {
                                 $standardized = SendmarcMapper::mapVolumeTotals($volumeTotals, $domainUuid);
@@ -230,7 +211,6 @@ class SendmarcIntegration implements IntegrationInterface
                                 $totalProcessed++;
                             }
 
-                            // Get volume timeline
                             $volumeTimeline = $this->client->getDomainVolumeTimeline($accountUuid, $domainUuid);
                             foreach ($volumeTimeline as $index => $timelineEntry) {
                                 $standardized = SendmarcMapper::mapVolumeTimeline($timelineEntry, $domainUuid, $index);
@@ -239,7 +219,6 @@ class SendmarcIntegration implements IntegrationInterface
                                 $totalProcessed++;
                             }
 
-                            // Get IP address statistics
                             $ipAddresses = $this->client->getDomainIpAddresses($accountUuid, $domainUuid);
                             foreach ($ipAddresses as $ipData) {
                                 $standardized = SendmarcMapper::mapIpAddressStatistics($ipData, $domainUuid);
@@ -284,7 +263,6 @@ class SendmarcIntegration implements IntegrationInterface
 
     public function getAvailableHistoryRange(): ?Carbon
     {
-        // Sendmarc typically allows 90 days of history
         return now()->subDays(90);
     }
 
@@ -343,12 +321,9 @@ class SendmarcIntegration implements IntegrationInterface
             ]
         );
 
-        // Refresh to get latest customer_id value
         $integrationCustomer->refresh();
 
-        // If unmapped, handle based on source of truth setting
         if (!$integrationCustomer->customer_id) {
-            // If this integration is source of truth, auto-create unified customer
             if ($this->integration->is_source_of_truth) {
                 $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Sendmarc');
             } else {
@@ -359,15 +334,13 @@ class SendmarcIntegration implements IntegrationInterface
 
     private function storeHistoricalData(array $data): void
     {
-        // Find the integration customer by domain UUID
         $domainUuid = $data['payload']['domain_uuid'] ?? null;
         
         if (!$domainUuid) {
             \Log::warning('Sendmarc historical: Missing domain UUID', ['data' => $data]);
             return;
         }
-
-        // Find integration customer with this domain UUID
+        
         $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereJsonContains('metadata->uuid', $domainUuid)
             ->first();

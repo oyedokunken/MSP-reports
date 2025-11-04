@@ -47,10 +47,42 @@ class ReportGenerationService
             
             $pdfPath = $this->generatePDF($reportData, $schedule);
             
+            // Verify file exists and get size
+            if (!Storage::disk('reports')->exists($pdfPath)) {
+                Log::error('PDF file not found after generation', [
+                    'pdf_path' => $pdfPath,
+                    'full_path' => Storage::disk('reports')->path($pdfPath),
+                    'disk_root' => Storage::disk('reports')->path(''),
+                ]);
+                throw new \Exception("Generated PDF file not found: {$pdfPath}");
+            }
+            
+            // Try to get file size, with fallback to direct file access
+            $fileSize = Storage::disk('reports')->size($pdfPath);
+            
+            if ($fileSize === false || $fileSize === null || $fileSize === 0) {
+                // Fallback: try getting size directly from filesystem
+                $fullPath = Storage::disk('reports')->path($pdfPath);
+                if (file_exists($fullPath)) {
+                    $fileSize = filesize($fullPath);
+                    Log::warning('Used fallback method to get file size', [
+                        'pdf_path' => $pdfPath,
+                        'file_size' => $fileSize,
+                    ]);
+                } else {
+                    Log::error('File size check failed', [
+                        'pdf_path' => $pdfPath,
+                        'full_path' => $fullPath,
+                        'exists' => file_exists($fullPath),
+                    ]);
+                    throw new \Exception("Unable to determine file size for: {$pdfPath}");
+                }
+            }
+            
             $generatedReport->update([
                 'status' => 'completed',
                 'file_path' => $pdfPath,
-                'file_size' => Storage::disk('reports')->size($pdfPath),
+                'file_size' => $fileSize,
                 'retention_until' => $this->calculateRetentionDate($schedule->company),
             ]);
 
@@ -169,11 +201,36 @@ class ReportGenerationService
             'prefer_css_page_size' => false,
         ]);
 
-        Storage::disk('reports')->put($filename, $pdfContent);
+        // Log PDF content size for debugging
+        Log::info('PDF generation completed', [
+            'filename' => $filename,
+            'content_size' => strlen($pdfContent),
+        ]);
         
+        // Write the PDF file
+        $written = Storage::disk('reports')->put($filename, $pdfContent);
+        
+        if (!$written) {
+            Log::error('Failed to write PDF to storage', [
+                'filename' => $filename,
+                'disk' => 'reports',
+                'root' => Storage::disk('reports')->path(''),
+            ]);
+            throw new \Exception("Failed to write PDF file to storage: {$filename}");
+        }
+        
+        // Ensure file exists before setting permissions
         $fullPath = Storage::disk('reports')->path($filename);
+        Log::info('Checking PDF file existence', [
+            'filename' => $filename,
+            'full_path' => $fullPath,
+            'exists' => file_exists($fullPath),
+        ]);
+        
         if (file_exists($fullPath)) {
             chmod($fullPath, 0644);
+        } else {
+            throw new \Exception("PDF file was written but not found at: {$fullPath}");
         }
 
         return $filename;

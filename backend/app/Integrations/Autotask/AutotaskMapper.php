@@ -51,7 +51,7 @@ class AutotaskMapper
     public static function mapTimeEntry(array $autotaskTimeEntry): array
     {
         return [
-            'integration_customer_id' => null, // Will be set by caller
+            'integration_customer_id' => null,
             'data_type' => 'time_entry',
             'timestamp' => $autotaskTimeEntry['dateWorked'] ?? now(),
             'payload' => [
@@ -73,7 +73,7 @@ class AutotaskMapper
     public static function mapContract(array $autotaskContract): array
     {
         return [
-            'integration_customer_id' => null, // Will be set by caller
+            'integration_customer_id' => null,
             'data_type' => 'contract',
             'timestamp' => $autotaskContract['startDate'] ?? now(),
             'payload' => [

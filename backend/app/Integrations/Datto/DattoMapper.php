@@ -7,22 +7,16 @@ use Illuminate\Support\Facades\Log;
 
 class DattoMapper
 {
-    /**
-     * Map generic customer data (backwards compatibility)
-     */
     public static function mapCustomer(array $dattoCustomer): array
     {
-        // Check if this is RMM site data
         if (isset($dattoCustomer['uid']) && isset($dattoCustomer['devicesStatus'])) {
             return self::mapRmmSite($dattoCustomer);
         }
         
-        // Check if this is SaaS domain data
         if (isset($dattoCustomer['organizationId']) && isset($dattoCustomer['backupStats'])) {
             return self::mapSaasBackupData($dattoCustomer);
         }
-        
-        // Fallback to generic mapping
+
         return [
             'external_id' => $dattoCustomer['id'] ?? null,
             'name' => $dattoCustomer['name'] ?? 'Unknown',
@@ -37,9 +31,6 @@ class DattoMapper
         ];
     }
     
-    /**
-     * Map Datto RMM Site to customer format
-     */
     public static function mapRmmSite(array $site): array
     {
         $devicesStatus = $site['devicesStatus'] ?? [];
@@ -65,9 +56,6 @@ class DattoMapper
         ];
     }
     
-    /**
-     * Map Datto SaaS Protection domain to customer format
-     */
     public static function mapSaasBackupData(array $domain): array
     {
         $stats = $domain['backupStats'] ?? [];
@@ -93,12 +81,8 @@ class DattoMapper
         ];
     }
 
-    /**
-     * Map backup data for historical storage
-     */
     public static function mapBackupData(array $dattoBackup): array
     {
-        // Handle SaaS backup stats
         if (isset($dattoBackup['backupStats'])) {
             $stats = $dattoBackup['backupStats'];
             return [
@@ -118,7 +102,6 @@ class DattoMapper
             ];
         }
         
-        // Fallback to generic backup format
         return [
             'integration_customer_id' => $dattoBackup['customer_id'] ?? null,
             'data_type' => 'backup_status',
@@ -135,9 +118,6 @@ class DattoMapper
         ];
     }
 
-    /**
-     * Map RMM device data for historical storage
-     */
     public static function mapDeviceData(array $device): array
     {
         return [
@@ -170,9 +150,6 @@ class DattoMapper
         ];
     }
     
-    /**
-     * Map RMM alert data for historical storage
-     */
     public static function mapAlertData(array $alert): array
     {
         return [
@@ -199,9 +176,6 @@ class DattoMapper
         ];
     }
     
-    /**
-     * Map uptime/availability data
-     */
     public static function mapUptimeData(array $dattoUptime): array
     {
         return [
