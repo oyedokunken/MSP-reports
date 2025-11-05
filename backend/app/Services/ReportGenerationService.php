@@ -148,6 +148,9 @@ class ReportGenerationService
             'uptime_report' => \App\Reports\UptimeReport\UptimeReport::class,
             'uptime_monthly' => \App\Reports\UptimeReport\UptimeReport::class,
             'security_summary' => \App\Reports\SecuritySummary\SecuritySummary::class,
+            'backup_status' => \App\Reports\BackupStatus\BackupStatus::class,
+            'ticket_summary' => \App\Reports\TicketSummary\TicketSummary::class,
+            'monthly_comprehensive' => \App\Reports\MonthlyComprehensive\MonthlyComprehensive::class,
         ];
 
         $className = $reportClasses[$reportType] ?? null;
