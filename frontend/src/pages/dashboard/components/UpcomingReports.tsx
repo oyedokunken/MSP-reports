@@ -11,7 +11,7 @@ type UpcomingReportsProps = {
 
 export function UpcomingReports ({ isLoading, reports, onInfo }: UpcomingReportsProps) {
   return (
-    <AnimatedCard className="p-6">
+    <AnimatedCard className="p-6 min-w-0">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Upcoming Reports</h2>
         <button
@@ -33,21 +33,21 @@ export function UpcomingReports ({ isLoading, reports, onInfo }: UpcomingReports
           <EmptyState icon={FileText} title="No upcoming reports" description="Create a report schedule to see it here." />
         ) : (
           reports.map((r) => (
-            <div key={r.id} className="flex items-center justify-between rounded-lg border border-border p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-primary/10 p-2">
+            <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg border border-border p-4">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
                   <FileText className="h-5 w-5 text-primary" />
                 </div>
-                <div>
-                  <p className="font-medium text-foreground">{r.name}</p>
-                  <p className="text-xs text-muted-foreground">{r.customer}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-foreground truncate">{r.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{r.customer}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="flex items-center gap-1 text-muted-foreground">
+              <div className="flex items-center gap-2 text-sm flex-shrink-0">
+                <div className="hidden sm:flex items-center gap-1 text-muted-foreground whitespace-nowrap">
                   <Calendar className="h-4 w-4" /> {r.nextRun}
                 </div>
-                <span className="text-xs rounded-full bg-muted px-2 py-1 capitalize">{r.status}</span>
+                <span className="text-xs rounded-full bg-muted px-2 py-1 capitalize whitespace-nowrap">{r.status}</span>
               </div>
             </div>
           ))

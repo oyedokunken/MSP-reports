@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ArrowLeft, CheckCircle2, BarChart3 } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 
@@ -31,61 +30,47 @@ const ForgotPassword = () => {
 
   if (success) {
     return (
-      <div className="flex h-screen w-full overflow-hidden">
-        {/* Left Panel - Branding */}
-        <div className="relative hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-16 text-white bg-primary">
-          <div className="relative z-10 flex flex-col gap-6 w-full max-w-lg">
-            <div className="flex items-center gap-3">
-              <BarChart3 className="h-8 w-8 text-emerald-400" />
-              <span className="text-xl font-bold">{import.meta.env.VITE_APP_NAME || 'Reporting Platform'}</span>
-            </div>
-            <h1 className="text-5xl font-black leading-tight">
-              Unlock Your Data Insights.
-            </h1>
-            <p className="text-lg text-slate-300">
-              Access, analyze, and share your managed services reports with confidence.
-            </p>
-          </div>
-        </div>
-
-        {/* Right Panel - Success Message */}
-        <div className="flex w-full lg:w-1/2 flex-col items-center justify-center bg-background p-6 sm:p-12 overflow-y-auto">
-          <div className="w-full max-w-md space-y-6">
-            <div className="flex items-center gap-3 lg:hidden">
-              <BarChart3 className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold">{import.meta.env.VITE_APP_NAME || 'Reporting Platform'}</span>
+      <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 p-4">
+        <div className="w-full max-w-md">
+          {/* Card Container */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-xl p-8">
+            {/* Logo */}
+            <div className="flex justify-center mb-3">
+              <img src="/logo.png" alt="Logo" className="h-24 w-auto" />
             </div>
 
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="mb-4 rounded-full bg-green-500/10 p-3">
-                <CheckCircle2 className="h-12 w-12 text-green-500" />
+            {/* Success Icon and Message */}
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="rounded-full bg-green-500/10 p-3">
+                <CheckCircle2 className="h-16 w-16 text-green-500" />
               </div>
-              <h2 className="text-2xl font-bold text-green-600 mb-2">Check Your Email</h2>
-              <p className="text-sm text-muted-foreground mb-6">
-                We've sent a password reset link to <strong>{email}</strong>
-              </p>
-              <p className="text-xs text-muted-foreground mb-4">
+              
+              <div className="space-y-2">
+                <h2 className="text-2xl font-semibold text-gray-900">Check Your Email</h2>
+                <p className="text-sm text-gray-600">
+                  We've sent a password reset link to<br />
+                  <strong className="text-gray-900">{email}</strong>
+                </p>
+              </div>
+
+              <p className="text-xs text-gray-500">
                 Didn't receive the email? Check your spam folder or try again.
               </p>
-              <Link to="/sign-in" className="w-full">
-                <Button variant="outline" className="w-full h-11">
+
+              <Link to="/login" className="w-full pt-2">
+                <Button variant="outline" className="w-full h-12 border-gray-300">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to Sign In
                 </Button>
               </Link>
             </div>
+          </div>
 
-            {/* Secured by Footer */}
-            <div className="space-y-4 pt-4">
-              <div className="relative">
-                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-60"></div>
-                <div className="flex justify-center pt-4">
-                  <p className="text-xs text-muted-foreground/70 font-medium tracking-wide">
-                    Secured by <span className="text-primary font-semibold">{import.meta.env.VITE_COMPANY_NAME || 'Athena Networks'}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
+          {/* Bottom Footer */}
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-500">
+              Secured by <span className="font-semibold text-gray-700">{import.meta.env.VITE_COMPANY_NAME || 'Athena Networks'}</span>
+            </p>
           </div>
         </div>
       </div>
@@ -93,65 +78,52 @@ const ForgotPassword = () => {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
-      {/* Left Panel - Branding */}
-      <div className="relative hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-16 text-white bg-primary">
-        <div className="relative z-10 flex flex-col gap-6 w-full max-w-lg">
-          <div className="flex items-center gap-3">
-            <BarChart3 className="h-8 w-8 text-emerald-400" />
-            <span className="text-xl font-bold">{import.meta.env.VITE_APP_NAME || 'Reporting Platform'}</span>
-          </div>
-          <h1 className="text-5xl font-black leading-tight">
-            Unlock Your Data Insights.
-          </h1>
-          <p className="text-lg text-slate-300">
-            Access, analyze, and share your managed services reports with confidence.
-          </p>
-        </div>
-      </div>
-
-      {/* Right Panel - Form */}
-      <div className="flex w-full lg:w-1/2 flex-col items-center justify-center bg-background p-6 sm:p-12 overflow-y-auto">
-        <div className="w-full max-w-md space-y-6">
-          <div className="flex items-center gap-3 lg:hidden">
-            <BarChart3 className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold">MSP Reports</span>
+    <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 p-4">
+      <div className="w-full max-w-md">
+        {/* Card Container */}
+        <div className="bg-white rounded-lg border border-gray-200 shadow-xl p-8">
+          {/* Logo */}
+          <div className="flex justify-center mb-3">
+            <img src="/logo.png" alt="Logo" className="h-24 w-auto" />
           </div>
 
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
+          {/* Heading */}
+          <div className="text-center space-y-1 mb-6">
+            <h1 className="text-2xl font-semibold text-gray-900">
               Forgot Password?
             </h1>
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-sm text-gray-600">
               Enter your email and we'll send you a reset link
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Email address*"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-11"
+                className="h-12 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                 required
                 disabled={isSubmitting}
               />
             </div>
 
             {error && (
-              <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-                {error}
-              </div>
+              <div className="text-sm text-red-600 text-center">{error}</div>
             )}
 
-            <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white" 
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <>
-                  <Spinner className="mr-2 h-4 w-4" />
+                  <Spinner variant="circle" size={16} className="mr-2" />
                   Sending...
                 </>
               ) : (
@@ -160,24 +132,20 @@ const ForgotPassword = () => {
             </Button>
           </form>
 
-          <div className="space-y-4 pt-4">
-            <div className="text-center">
-              <Link to="/sign-in" className="text-sm text-primary hover:underline flex items-center justify-center gap-1">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Sign In
-              </Link>
-            </div>
-
-            {/* Secured by Footer */}
-            <div className="relative">
-              <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-60"></div>
-              <div className="flex justify-center pt-4">
-                <p className="text-xs text-muted-foreground/70 font-medium tracking-wide">
-                  Secured by <span className="text-primary font-semibold">{import.meta.env.VITE_COMPANY_NAME || 'Athena Networks'}</span>
-                </p>
-              </div>
-            </div>
+          {/* Back to Sign In */}
+          <div className="mt-6 text-center">
+            <Link to="/login" className="text-sm text-blue-600 hover:underline inline-flex items-center gap-1">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Sign In
+            </Link>
           </div>
+        </div>
+
+        {/* Bottom Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-500">
+            Secured by <span className="font-semibold text-gray-700">{import.meta.env.VITE_COMPANY_NAME || 'Athena Networks'}</span>
+          </p>
         </div>
       </div>
     </div>

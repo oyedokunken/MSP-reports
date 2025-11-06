@@ -38,10 +38,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isLoading: false,
           })
 
-          // Optionally verify token with backend
-          await refreshUser()
+          // Optionally verify token with backend (non-blocking)
+          refreshUser().catch(() => {
+            // Silently fail - user can still use the app with cached data
+            console.warn('Failed to refresh user data')
+          })
         } catch (error) {
           console.error('Failed to parse stored user:', error)
+          setState((prev) => ({ ...prev, isLoading: false }))
           logout()
         }
       } else {
@@ -50,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     initializeAuth()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const login = async (credentials: LoginCredentials) => {

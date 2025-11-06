@@ -110,6 +110,13 @@ body {
     @apply bg-background text-foreground tracking-[-0.01em];
     
   }
+  
+  /* Force input fields to have white background */
+  input[type="email"],
+  input[type="password"],
+  input[type="text"] {
+    background-color: white !important;
+  }
 }
 
 @layer utilities {

@@ -11,6 +11,7 @@ import ScheduleList from '@/pages/schedules/ScheduleList'
 import Settings from '@/pages/settings/Settings'
 import ForgotPassword from '@/pages/auth/pages/ForgotPassword'
 import ResetPassword from '@/pages/auth/pages/ResetPassword'
+import ContactAdmin from '@/pages/auth/pages/ContactAdmin'
 import AuthLayout from '@/pages/auth/Layout'
 import { UsersList, CreateUser } from '@/pages/users'
 import { ReportsList, CustomerReports, ConfigureReports } from '@/pages/reports'
@@ -73,6 +74,7 @@ function AppRoutes() {
         <Route path="sign-in" element={<Login />} />
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
+        <Route path="contact-admin" element={<ContactAdmin />} />
       </Route>
 
       {/* Protected routes */}

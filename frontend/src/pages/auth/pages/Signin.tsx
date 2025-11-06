@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, BarChart3 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Link } from "react-router-dom";
 import { useAuthForm } from "../hooks/useAuthForm";
@@ -29,95 +28,56 @@ const Signin = () => {
     });
 
     return (
-      <div className="flex h-screen w-full overflow-hidden">
-        {/* Left Panel - Branding */}
-        <div className="relative hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-16 text-white overflow-hidden bg-primary">
-          {/* Subtle Grid Pattern Background */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0" style={{
-              backgroundImage: `
-                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)
-              `,
-              backgroundSize: '50px 50px'
-            }}></div>
-          </div>
-          
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/20"></div>
-          
-          {/* Decorative Circles */}
-          <div className="absolute top-20 right-20 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 left-20 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl"></div>
-          
-          <div className="relative z-10 flex flex-col gap-6 w-full max-w-lg">
-            <div className="flex items-center gap-3">
-              <BarChart3 className="h-8 w-8 text-emerald-400" />
-              <span className="text-xl font-bold">{import.meta.env.VITE_APP_NAME || 'Reporting Platform'}</span>
-            </div>
-            <h1 className="text-5xl font-black leading-tight">
-              Unlock Your Data Insights.
-            </h1>
-            <p className="text-lg text-slate-300">
-              Access, analyze, and share your managed services reports with confidence.
-            </p>
-          </div>
-        </div>
-
-        {/* Right Panel - Login Form */}
-        <div className="flex w-full lg:w-1/2 flex-col items-center justify-center bg-background p-6 sm:p-12 overflow-y-auto">
-          <div className="w-full max-w-md space-y-6">
-            {/* Logo for Mobile */}
-            <div className="flex items-center gap-3 lg:hidden">
-              <BarChart3 className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold">{import.meta.env.VITE_APP_NAME || 'Reporting Platform'}</span>
+      <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 p-4">
+        <div className="w-full max-w-md">
+          {/* Card Container */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-xl p-8">
+            {/* Logo */}
+            <div className="flex justify-center mb-3">
+              <img src="/logo.png" alt="Logo" className="h-24 w-auto" />
             </div>
 
-            {/* Page Heading */}
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                Sign In to Your Account
+            {/* Welcome Heading */}
+            <div className="text-center space-y-1 mb-6">
+              <h1 className="text-2xl font-semibold text-gray-900">
+                Welcome
               </h1>
+              <p className="text-sm text-gray-600">
+                Sign in to continue to Reporting Platform.
+              </p>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="Email address*"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-11"
+                  className="h-12 bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   required
                   disabled={isSubmitting}
                 />
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium">Password</Label>
-                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
-                    Forget Password?
-                  </Link>
-                </div>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder="Password*"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 pr-10"
+                    className="h-12 pr-10 bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     required
                     disabled={isSubmitting}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     tabIndex={-1}
                   >
                     {showPassword ? (
@@ -127,44 +87,85 @@ const Signin = () => {
                     )}
                   </button>
                 </div>
+                {/* Forgot Password Link */}
+                <div className="text-right">
+                  <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                    Forgot password?
+                  </Link>
+                </div>
               </div>
 
               {error && (
-                <div className="text-sm text-destructive">{error}</div>
+                <div className="text-sm text-red-600 text-center">{error}</div>
               )}
 
-              <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={isSubmitting}>
+              {/* Privacy Policy Notice */}
+              <div className="text-xs text-gray-600 text-center">
+                By proceeding, you agree to our{" "}
+                <Link to="/privacy-policy" className="text-blue-600 hover:underline">
+                  Privacy Policy
+                </Link>
+                .
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-shadow" 
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? (
                   <>
                     <Spinner variant="circle" size={16} className="mr-2" />
                     Signing in...
                   </>
                 ) : (
-                  "Continue →"
+                  "Continue"
                 )}
               </Button>
             </form>
 
-            {/* Footer */}
-            <div className="space-y-4 pt-4">
-              <div className="text-center text-sm text-muted-foreground">
+            {/* Footer Links */}
+            <div className="space-y-3">
+              <div className="text-center text-sm text-gray-600">
                 Don't have an account?{" "}
-                <Link to="/sign-up" className="text-primary font-semibold hover:underline">
+                <Link to="/contact-admin" className="text-blue-600 hover:underline font-medium">
                   Contact your administrator
                 </Link>
-                .
               </div>
-              
-              {/* Secured by Footer */}
+
+              {/* Divider */}
               <div className="relative">
-                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-60"></div>
-                <div className="flex justify-center pt-4">
-                  <p className="text-xs text-muted-foreground/70 font-medium tracking-wide">
-                    Secured by <span className="text-primary font-semibold">{import.meta.env.VITE_COMPANY_NAME || 'Athena Networks'}</span>
-                  </p>
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">OR</span>
                 </div>
               </div>
+
+              {/* SSO Button (Optional - can be removed if not needed) */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12 text-base font-medium border border-gray-300 hover:bg-gray-50 shadow-sm"
+                disabled
+              >
+                <svg className="w-5 h-5 mr-2" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0.5" y="0.5" width="9" height="9" fill="#F25022"/>
+                  <rect x="11.5" y="0.5" width="9" height="9" fill="#7FBA00"/>
+                  <rect x="0.5" y="11.5" width="9" height="9" fill="#00A4EF"/>
+                  <rect x="11.5" y="11.5" width="9" height="9" fill="#FFB900"/>
+                </svg>
+                Sign in with Microsoft
+              </Button>
             </div>
+          </div>
+
+          {/* Bottom Footer */}
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-500">
+              Secured by <span className="font-semibold text-gray-700">{import.meta.env.VITE_COMPANY_NAME || 'Athena Networks'}</span>
+            </p>
           </div>
         </div>
       </div>

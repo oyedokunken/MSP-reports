@@ -6,24 +6,26 @@ type DashboardHeaderActionsProps = {
   onToastInfo: (title: string, description?: string) => void
 }
 
-export function DashboardHeaderActions ({ onToastSuccess, onToastInfo }: DashboardHeaderActionsProps) {
+export function DashboardHeaderActions (_props: DashboardHeaderActionsProps) {
   const navigate = useNavigate()
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col sm:flex-row gap-2">
       <button
-        className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        className="flex items-center justify-center gap-2 rounded-md bg-primary px-3 sm:px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
         onClick={() => navigate('/schedules')}
       >
-        <Plus className="h-4 w-4 text-white" />
-        Create Schedule
+        <Plus className="h-4 w-4 text-white flex-shrink-0" />
+        <span className="hidden xs:inline">Create Schedule</span>
+        <span className="xs:hidden">Schedule</span>
       </button>
       <button
-        className="flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+        className="flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 sm:px-4 py-2 text-sm font-medium text-foreground hover:bg-muted whitespace-nowrap"
         onClick={() => navigate('/integrations')}
       >
-        <Cable className="h-4 w-4" />
-        Add Integration
+        <Cable className="h-4 w-4 flex-shrink-0" />
+        <span className="hidden xs:inline">Add Integration</span>
+        <span className="xs:hidden">Integration</span>
       </button>
     </div>
   )

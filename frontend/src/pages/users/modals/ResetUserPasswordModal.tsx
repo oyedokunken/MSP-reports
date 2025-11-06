@@ -39,6 +39,8 @@ export function ResetUserPasswordModal({
       return
     }
 
+    if (!user) return
+    
     setError('')
     setIsSubmitting(true)
 

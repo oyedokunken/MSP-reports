@@ -4,15 +4,26 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
-import { CheckCircle2, GitBranch, AlertCircle } from 'lucide-react'
+import { CheckCircle2, GitBranch, AlertCircle, History, Undo2 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { api } from '@/lib/api'
 import type { Customer } from '../types'
 
 interface IntegrationMapping {
   integration_customer_id: number
-  integration_name: string
-  external_name: string
+  display_name: string
+  name: string
+  integration_type?: string
+  external_id?: string
+  active?: boolean
+  last_seen_at?: string
+}
+
+interface MergeHistoryItem {
+  merged_at: string
+  merged_customer_name: string
+  merged_customer_id: number | null
+  integration_customers_moved: number
 }
 
 interface SplitCustomerModalProps {
@@ -35,6 +46,7 @@ export function SplitCustomerModal({
   const [newCustomerName, setNewCustomerName] = useState('')
   const [integrations, setIntegrations] = useState<IntegrationMapping[]>([])
   const [selectedIntegrations, setSelectedIntegrations] = useState<number[]>([])
+  const [mergeHistory, setMergeHistory] = useState<MergeHistoryItem[]>([])
 
   useEffect(() => {
     if (open && customer) {
@@ -42,7 +54,9 @@ export function SplitCustomerModal({
       setSelectedIntegrations([])
       setError('')
       setSuccess(false)
+      setMergeHistory([])
       fetchIntegrations()
+      fetchMergeHistory()
     }
   }, [open, customer])
 
@@ -58,6 +72,19 @@ export function SplitCustomerModal({
       setError('Failed to load integrations')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchMergeHistory = async () => {
+    if (!customer) return
+
+    try {
+      const response = await api.get(`/customers/${customer.customer_id}/merge-history`)
+      const data = (response as any).data || response
+      setMergeHistory(Array.isArray(data) ? data : [])
+    } catch (err: any) {
+      // Silently fail - merge history is optional
+      console.error('Failed to load merge history:', err)
     }
   }
 
@@ -145,6 +172,36 @@ export function SplitCustomerModal({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Merge History */}
+          {mergeHistory.length > 0 && (
+            <div className="rounded-lg border border-purple-500/50 bg-purple-500/10 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <History className="h-4 w-4 text-purple-700 dark:text-purple-400" />
+                <p className="text-sm font-medium text-purple-700 dark:text-purple-400">
+                  Merge History ({mergeHistory.length})
+                </p>
+              </div>
+              <div className="space-y-2">
+                {mergeHistory.map((merge, index) => (
+                  <div key={index} className="flex items-center justify-between text-xs bg-white dark:bg-gray-800 rounded p-2">
+                    <div>
+                      <p className="font-medium text-purple-900 dark:text-purple-300">
+                        "{merge.merged_customer_name}" was merged here
+                      </p>
+                      <p className="text-muted-foreground">
+                        {merge.integration_customers_moved} integration(s) • {new Date(merge.merged_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Undo2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+                💡 Tip: Select the integrations from a merged customer to undo the merge
+              </p>
+            </div>
+          )}
+
           {/* Info */}
           <div className="rounded-lg border border-blue-500/50 bg-blue-500/10 p-3">
             <p className="text-sm text-blue-700 dark:text-blue-400">
@@ -198,8 +255,11 @@ export function SplitCustomerModal({
                       htmlFor={`integration-${integration.integration_customer_id}`}
                       className="flex-1 text-sm cursor-pointer"
                     >
-                      <p className="font-medium">{integration.integration_name}</p>
-                      <p className="text-xs text-muted-foreground">{integration.external_name}</p>
+                      <p className="font-medium">{integration.display_name} - {integration.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {integration.integration_type && `${integration.integration_type} • `}
+                        {integration.external_id}
+                      </p>
                     </label>
                   </div>
                 ))}

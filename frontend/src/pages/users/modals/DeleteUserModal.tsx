@@ -24,6 +24,8 @@ export function DeleteUserModal({
   const [success, setSuccess] = useState(false)
 
   const handleDelete = async () => {
+    if (!user) return
+    
     setError('')
     setIsSubmitting(true)
 

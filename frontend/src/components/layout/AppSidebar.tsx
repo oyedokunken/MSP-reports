@@ -60,8 +60,7 @@ export default function AppSidebar() {
     .join('')
     .toUpperCase()
 
-  const companyName = user?.company_name || 'Reporting'
-  const companyInitial = companyName.charAt(0) || 'R'
+  const companyName = user?.company_name || ''
   const MAX_MAIN = 22
   let companyMain = companyName
   let companySub = ''
@@ -78,18 +77,26 @@ export default function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
-              <div 
-                className="flex aspect-square size-8 items-center justify-center rounded-md text-primary-foreground group-data-[collapsible=icon]:size-9"
-                style={{ background: 'var(--brand-gradient)' }}
-              >
-                <span className="font-bold text-sm">{companyInitial}</span>
-              </div>
-              <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                <span className="font-semibold text-base truncate" title={companyName}>{companyMain}</span>
-                {companySub ? (
-                  <span className="text-xs text-muted-foreground truncate" title={companyName}>{companySub}</span>
-                ) : null}
-              </div>
+              {/* Light mode logo */}
+              <img 
+                src="/logo.png" 
+                alt="Logo" 
+                className="h-14 w-auto object-contain group-data-[collapsible=icon]:h-10 dark:hidden"
+              />
+              {/* Dark mode logo */}
+              <img 
+                src="/logo-white.png" 
+                alt="Logo" 
+                className="h-14 w-auto object-contain group-data-[collapsible=icon]:h-10 hidden dark:block"
+              />
+              {companyName && (
+                <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
+                  <span className="font-semibold text-base truncate" title={companyName}>{companyMain}</span>
+                  {companySub ? (
+                    <span className="text-xs text-muted-foreground truncate" title={companyName}>{companySub}</span>
+                  ) : null}
+                </div>
+              )}
             </div>
           </SidebarMenuItem>
         </SidebarMenu>

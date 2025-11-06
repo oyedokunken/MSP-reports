@@ -65,13 +65,13 @@ export function IntegrationCard ({
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-foreground">{integration.name}</h3>
               {isSourceOfTruth && (
-                <Badge variant="default" className="bg-blue-500 text-white hover:bg-blue-600">
+                <Badge variant="default" className="bg-blue-500 text-white hover:bg-blue-600 whitespace-nowrap">
                   <Crown className="h-3 w-3 mr-1" />
-                  Master Customer List
+                  Master List
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">{integration.type}</p>
+            <p className="text-xs text-muted-foreground whitespace-nowrap">{integration.type}</p>
           </div>
         </div>
         <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${statusInfo.color}`}>
@@ -175,24 +175,24 @@ export function IntegrationCard ({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <button
-          onClick={() => onSetSourceOfTruth(integration.id, integration.name)}
-          disabled={isSourceOfTruth || isSettingSourceOfTruth}
-          className={`w-full flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${
-            isSourceOfTruth
-              ? 'border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300 dark:border-blue-400 dark:bg-blue-500/20 cursor-not-allowed'
-              : isSettingSourceOfTruth
-              ? 'border-blue-500 bg-blue-500 text-white dark:border-blue-400 dark:bg-blue-600 cursor-wait'
-              : 'border-border bg-background text-foreground hover:bg-muted'
-          }`}
-        >
-          {isSettingSourceOfTruth ? (
-            <LoadingSpinner size="sm" className="border-white/30 border-t-white" />
-          ) : (
-            <Crown className={`h-4 w-4 ${isSourceOfTruth ? 'fill-blue-500 dark:fill-blue-400' : ''}`} />
-          )}
-          {isSettingSourceOfTruth ? 'Setting...' : isSourceOfTruth ? 'Master Customer List' : 'Use as Master Customer List'}
-        </button>
+        {!isSourceOfTruth && (
+          <button
+            onClick={() => onSetSourceOfTruth(integration.id, integration.name)}
+            disabled={isSettingSourceOfTruth}
+            className={`w-full flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${
+              isSettingSourceOfTruth
+                ? 'border-blue-500 bg-blue-500 text-white dark:border-blue-400 dark:bg-blue-600 cursor-wait'
+                : 'border-border bg-background text-foreground hover:bg-muted'
+            }`}
+          >
+            {isSettingSourceOfTruth ? (
+              <LoadingSpinner size="sm" className="border-white/30 border-t-white" />
+            ) : (
+              <Crown className="h-4 w-4" />
+            )}
+            {isSettingSourceOfTruth ? 'Setting...' : 'Use as Master Customer List'}
+          </button>
+        )}
       </div>
     </AnimatedCard>
   )

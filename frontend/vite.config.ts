@@ -9,14 +9,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  server: {
-    host: true, 
-    proxy: {
-      '/api': {
-        target: 'http://reporting-nginx', 
-        changeOrigin: true,
-        secure: false,
-      },
-    },
-  },
 })

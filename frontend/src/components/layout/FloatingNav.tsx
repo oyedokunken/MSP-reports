@@ -32,8 +32,8 @@ export default function FloatingNav() {
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 dark:border-b-0 bg-background dark:bg-[hsl(var(--auth-card))] px-6">
       {/* Left: Sidebar trigger + Logo */}
       <div className="flex items-center gap-2">
-        <SidebarTrigger aria-label="Toggle sidebar" className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-6" />
+        <SidebarTrigger aria-label="Toggle sidebar" className="-ml-1 lg:hidden" />
+        <Separator orientation="vertical" className="mr-2 h-6 lg:hidden" />
         {/* Logo */}
      
       </div>
