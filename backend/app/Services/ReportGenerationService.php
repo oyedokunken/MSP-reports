@@ -183,12 +183,20 @@ class ReportGenerationService
 
     private function generatePDF(array $reportData, ReportSchedule $schedule): string
     {
+        // Organize by: company_id/report_type/customer_id_timestamp.pdf
         $filename = sprintf(
-            '%s/%s_%s.pdf',
+            '%s/%s/%s_%s.pdf',
             $schedule->company_id,
+            $schedule->report_type,
             $schedule->customer_id,
             now()->format('Y-m-d_His')
         );
+
+        // Ensure directory exists with proper permissions
+        $directory = sprintf('%s/%s', $schedule->company_id, $schedule->report_type);
+        if (!Storage::disk('reports')->exists($directory)) {
+            Storage::disk('reports')->makeDirectory($directory, 0755, true);
+        }
 
         $html = $this->generateHTML($reportData, $schedule);
 
@@ -246,6 +254,13 @@ class ReportGenerationService
         
         if ($reportClass && method_exists($reportClass, 'getTemplate')) {
             $templatePath = $reportClass->getTemplate();
+            
+            Log::info('Generating report HTML', [
+                'report_type' => $schedule->report_type,
+                'report_class' => get_class($reportClass),
+                'template_path' => $templatePath,
+                'file_exists' => file_exists($templatePath),
+            ]);
             
             if (file_exists($templatePath)) {
                 return view()->file($templatePath, [

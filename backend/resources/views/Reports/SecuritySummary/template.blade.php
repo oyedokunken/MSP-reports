@@ -27,6 +27,99 @@
             padding: 0;
             margin: 0 auto;
             background: white;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Cover Page */
+        .cover-page {
+            width: 210mm;
+            height: 297mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+            page-break-after: always;
+        }
+        
+        .cover-page::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+        }
+        
+        .cover-page::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -20%;
+            width: 800px;
+            height: 800px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 50%;
+        }
+        
+        .cover-content {
+            text-align: center;
+            z-index: 1;
+            padding: 50px;
+        }
+        
+        .cover-logo {
+            max-width: 300px;
+            max-height: 120px;
+            margin-bottom: 60px;
+            filter: brightness(0) invert(1);
+        }
+        
+        .cover-title {
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+        }
+        
+        .cover-subtitle {
+            font-size: 28px;
+            font-weight: 300;
+            margin-bottom: 60px;
+            opacity: 0.9;
+        }
+        
+        .cover-customer {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 40px;
+            padding: 20px 40px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .cover-meta {
+            font-size: 18px;
+            opacity: 0.85;
+            margin-bottom: 10px;
+        }
+        
+        .cover-footer-text {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.7;
         }
         
         /* Header with Security Theme */
@@ -407,7 +500,11 @@
             background: #0f172a;
             color: white;
             padding: 30px 50px;
-            margin-top: 40px;
+            margin-top: auto;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
         }
         
         .footer-content {
@@ -438,6 +535,11 @@
             opacity: 0.6;
         }
         
+        .page-number {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
         /* Print Optimization */
         @media print {
             body {
@@ -451,8 +553,17 @@
                 box-shadow: none;
             }
             
+            .cover-page {
+                page-break-after: always;
+            }
+            
             .content-section, .alerts-section {
                 page-break-inside: avoid;
+            }
+            
+            .footer-section {
+                position: fixed;
+                bottom: 0;
             }
         }
         
@@ -463,6 +574,30 @@
     </style>
 </head>
 <body>
+    <!-- Cover Page -->
+    <div class="cover-page">
+        <div class="cover-content">
+            @if(isset($branding['company_logo']) && $branding['company_logo'])
+                <img src="{{ $branding['company_logo'] }}" alt="Company Logo" class="cover-logo">
+            @else
+                <div style="font-size: 48px; font-weight: 700; margin-bottom: 60px;">{{ $branding['company_name'] ?? 'Company' }}</div>
+            @endif
+            
+            <h1 class="cover-title">Security Summary Report</h1>
+            <p class="cover-subtitle">Comprehensive Security Analysis</p>
+            
+            <div class="cover-customer">{{ $customer->canonical_name ?? $customer->name }}</div>
+            
+            <div class="cover-meta">Report Period: {{ $period['start'] ?? 'N/A' }} - {{ $period['end'] ?? 'N/A' }}</div>
+            <div class="cover-meta">Generated: {{ $reportData['generated_at'] ?? now()->format('F j, Y') }}</div>
+        </div>
+        
+        <div class="cover-footer-text">
+            {{ $branding['footer_text'] ?? 'Confidential Security Report' }}
+        </div>
+    </div>
+    
+    <!-- Report Content -->
     <div class="page">
         <!-- Header with Branding -->
         <div class="header-section">
@@ -589,6 +724,7 @@
                     </div>
                 </div>
                 <div class="footer-right">
+                    <div class="page-number">Page 2 of 2</div>
                     Generated on {{ now()->format('F j, Y \a\t g:i A') }}<br>
                     © {{ date('Y') }} {{ $branding['company_name'] ?? 'Company' }}. All rights reserved.
                 </div>

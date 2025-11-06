@@ -64,7 +64,7 @@ class UptimeReport implements ReportInterface
                     'unit' => 'minutes',
                 ],
             ],
-            'details' => $data,
+            'data' => $data,
         ];
     }
 

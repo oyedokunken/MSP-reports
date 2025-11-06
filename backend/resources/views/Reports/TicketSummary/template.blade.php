@@ -27,6 +27,99 @@
             padding: 0;
             margin: 0 auto;
             background: white;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Cover Page */
+        .cover-page {
+            width: 210mm;
+            height: 297mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, {{ $branding['primary_color'] ?? '#1e40af' }} 0%, {{ $branding['secondary_color'] ?? '#7c3aed' }} 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+            page-break-after: always;
+        }
+        
+        .cover-page::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+        }
+        
+        .cover-page::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -20%;
+            width: 800px;
+            height: 800px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 50%;
+        }
+        
+        .cover-content {
+            text-align: center;
+            z-index: 1;
+            padding: 50px;
+        }
+        
+        .cover-logo {
+            max-width: 300px;
+            max-height: 120px;
+            margin-bottom: 60px;
+            filter: brightness(0) invert(1);
+        }
+        
+        .cover-title {
+            font-size: 56px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+        }
+        
+        .cover-subtitle {
+            font-size: 28px;
+            font-weight: 300;
+            margin-bottom: 60px;
+            opacity: 0.9;
+        }
+        
+        .cover-customer {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 40px;
+            padding: 20px 40px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .cover-meta {
+            font-size: 18px;
+            opacity: 0.85;
+            margin-bottom: 10px;
+        }
+        
+        .cover-footer-text {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.7;
         }
         
         /* Header */
@@ -338,27 +431,87 @@
         
         /* Footer */
         .footer {
-            background: #f8fafc;
+            background: #0f172a;
+            color: white;
             padding: 30px 50px;
-            border-top: 1px solid #e2e8f0;
             margin-top: auto;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
         }
         
         .footer-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
-            color: #64748b;
         }
         
-        .footer-notes {
-            font-style: italic;
+        .footer-left {
+            flex: 1;
+        }
+        
+        .footer-company {
+            font-size: 16px;
+            font-weight: 600;
             margin-bottom: 8px;
+        }
+        
+        .footer-text {
+            font-size: 12px;
+            opacity: 0.7;
+            line-height: 1.6;
+        }
+        
+        .footer-right {
+            text-align: right;
+            font-size: 11px;
+            opacity: 0.6;
+        }
+        
+        .page-number {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        /* Print Optimization */
+        @media print {
+            .cover-page {
+                page-break-after: always;
+            }
+            
+            .footer {
+                position: fixed;
+                bottom: 0;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Cover Page -->
+    <div class="cover-page">
+        <div class="cover-content">
+            @if(!empty($branding['company_logo']))
+                <img src="{{ $branding['company_logo'] }}" alt="Company Logo" class="cover-logo">
+            @else
+                <div style="font-size: 48px; font-weight: 700; margin-bottom: 60px;">{{ $branding['company_name'] ?? 'Company' }}</div>
+            @endif
+            
+            <h1 class="cover-title">Ticket Summary Report</h1>
+            <p class="cover-subtitle">Support Ticket Analysis & Metrics</p>
+            
+            <div class="cover-customer">{{ $customer->canonical_name ?? $customer->name }}</div>
+            
+            <div class="cover-meta">Report Period: {{ $period['start'] ?? 'N/A' }} - {{ $period['end'] ?? 'N/A' }}</div>
+            <div class="cover-meta">Generated: {{ \Carbon\Carbon::parse($reportData['generated_at'])->format('F j, Y') }}</div>
+        </div>
+        
+        <div class="cover-footer-text">
+            {{ $branding['footer_text'] ?? 'Confidential Report' }}
+        </div>
+    </div>
+    
+    <!-- Report Content -->
     <div class="page">
         <!-- Header -->
         <div class="header-section">
@@ -516,12 +669,19 @@
         
         <!-- Footer -->
         <div class="footer">
-            @if(!empty($branding['footer_notes']))
-            <div class="footer-notes">{{ $branding['footer_notes'] }}</div>
-            @endif
             <div class="footer-content">
-                <div>{{ $branding['footer_text'] ?? '' }}</div>
-                <div>Page 1 of 1</div>
+                <div class="footer-left">
+                    <div class="footer-company">{{ $branding['company_name'] ?? 'Company' }}</div>
+                    <div class="footer-text">
+                        {{ $branding['footer_text'] ?? 'Confidential Report - For Internal Use Only' }}<br>
+                        {{ $branding['footer_notes'] ?? 'This report was automatically generated and contains support ticket analysis data.' }}
+                    </div>
+                </div>
+                <div class="footer-right">
+                    <div class="page-number">Page 2 of 2</div>
+                    Generated on {{ now()->format('F j, Y \a\t g:i A') }}<br>
+                    © {{ date('Y') }} {{ $branding['company_name'] ?? 'Company' }}. All rights reserved.
+                </div>
             </div>
         </div>
     </div>
