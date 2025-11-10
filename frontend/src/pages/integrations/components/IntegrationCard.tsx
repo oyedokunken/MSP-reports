@@ -1,18 +1,29 @@
-import { AnimatedCard } from '@/components/ui/AnimatedCard'
-import { Cable, RefreshCw, Users, Crown, Settings, FileText, Activity, Gauge, Database, Trash2 } from 'lucide-react'
-import { LoadingSpinner } from '@/components/ui/LoadingStates'
-import type { Integration } from '../types/integration'
-import { getStatusIcon, getStatusText } from '../utils/statusBadge'
-import { Badge } from '@/components/ui/badge'
+import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Button } from '@/components/ui/button'
-import { MoreVertical } from 'lucide-react'
+    Cable,
+    RefreshCw,
+    Users,
+    Crown,
+    Settings,
+    FileText,
+    Activity,
+    Gauge,
+    Database,
+    Trash2,
+} from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/LoadingStates";
+import type { Integration } from "../types/integration";
+import { getStatusIcon, getStatusText } from "../utils/statusBadge";
+import { Badge } from "@/components/ui/badge";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { MoreVertical } from "lucide-react";
 
 type IntegrationCardProps = {
   integration: Integration
@@ -47,7 +58,10 @@ export function IntegrationCard ({
   onDelete,
   isSourceOfTruth = false,
 }: IntegrationCardProps) {
-  const statusInfo = getStatusText(integration.status, integration.syncStatus)
+    const statusInfo = getStatusText(
+        integration.status,
+        integration.syncStatus
+    );
 
   return (
     <AnimatedCard
