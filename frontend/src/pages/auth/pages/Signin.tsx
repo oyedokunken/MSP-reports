@@ -33,44 +33,50 @@ const Signin = () => {
           {/* Card Container */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-xl p-8">
             {/* Logo */}
-            <div className="flex justify-center mb-3">
-              <img src="/logo.png" alt="Logo" className="h-24 w-auto" />
+            <div className="flex justify-center mb-10">
+              <img src="/logo.png" alt="Logo" className="h-8 w-auto opacity-90" />
             </div>
 
             {/* Welcome Heading */}
-            <div className="text-center space-y-1 mb-6">
-              <h1 className="text-2xl font-semibold text-gray-900">
-                Welcome
+            <div className="text-center space-y-2 mb-10">
+              <h1 className="text-3xl font-bold text-gray-900">
+                Welcome Back
               </h1>
-              <p className="text-sm text-gray-600">
-                Sign in to continue to Reporting Platform.
+              <p className="text-base text-gray-600">
+                Sign in to continue to Reporting Platform
               </p>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email Address
+                </label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Email address*"
+                  placeholder="your.email@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="h-11 bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={isSubmitting}
                 />
               </div>
 
               <div className="space-y-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Password*"
+                    placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 pr-10 bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="h-11 pr-10 bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                     required
                     disabled={isSubmitting}
                   />
@@ -88,29 +94,22 @@ const Signin = () => {
                   </button>
                 </div>
                 {/* Forgot Password Link */}
-                <div className="text-right">
-                  <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                <div className="text-right pt-1">
+                  <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 hover:underline">
                     Forgot password?
                   </Link>
                 </div>
               </div>
 
               {error && (
-                <div className="text-sm text-red-600 text-center">{error}</div>
+                <div className="rounded-md bg-red-50 border border-red-200 p-3">
+                  <p className="text-sm text-red-800 text-center">{error}</p>
+                </div>
               )}
-
-              {/* Privacy Policy Notice */}
-              <div className="text-xs text-gray-600 text-center">
-                By proceeding, you agree to our{" "}
-                <Link to="/privacy-policy" className="text-blue-600 hover:underline">
-                  Privacy Policy
-                </Link>
-                .
-              </div>
 
               <Button 
                 type="submit" 
-                className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-shadow" 
+                className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all" 
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -119,16 +118,24 @@ const Signin = () => {
                     Signing in...
                   </>
                 ) : (
-                  "Continue"
+                  "Sign In"
                 )}
               </Button>
+
+              {/* Privacy Policy Notice */}
+              <div className="text-xs text-gray-500 text-center pt-2">
+                By continuing, you agree to our{" "}
+                <Link to="/privacy-policy" className="text-blue-600 hover:underline">
+                  Privacy Policy
+                </Link>
+              </div>
             </form>
 
             {/* Footer Links */}
-            <div className="space-y-3">
+            <div className="mt-6 space-y-4">
               <div className="text-center text-sm text-gray-600">
                 Don't have an account?{" "}
-                <Link to="/contact-admin" className="text-blue-600 hover:underline font-medium">
+                <Link to="/contact-admin" className="text-blue-600 hover:text-blue-700 hover:underline font-medium">
                   Contact your administrator
                 </Link>
               </div>
@@ -136,10 +143,10 @@ const Signin = () => {
               {/* Divider */}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
+                  <div className="w-full border-t border-gray-200"></div>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">OR</span>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-3 bg-white text-gray-500 uppercase tracking-wide">Or</span>
                 </div>
               </div>
 
@@ -147,7 +154,7 @@ const Signin = () => {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full h-12 text-base font-medium border border-gray-300 hover:bg-gray-50 shadow-sm"
+                className="w-full h-11 text-sm font-medium border border-gray-300 hover:bg-gray-50 shadow-sm transition-colors"
                 disabled
               >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">

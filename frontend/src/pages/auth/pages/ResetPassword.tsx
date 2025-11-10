@@ -65,7 +65,12 @@ const ResetPassword = () => {
   if (success) {
     return (
       <Card className="w-full max-w-[400px] border-border bg-[hsl(var(--auth-card))] shadow-2xl">
-        <CardContent className="pt-6">
+        {/* Logo */}
+        <div className="flex justify-center pt-8 pb-4">
+          <img src="/logo.png" alt="Logo" className="h-8 w-auto opacity-90" />
+        </div>
+        
+        <CardContent className="pt-2">
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="mb-4 rounded-full bg-green-500/10 p-3">
               <CheckCircle2 className="h-12 w-12 text-green-500" />
@@ -85,7 +90,12 @@ const ResetPassword = () => {
 
   return (
     <Card className="w-full max-w-[400px] border-border bg-[hsl(var(--auth-card))] shadow-2xl">
-      <CardHeader className="space-y-0.5 text-center">
+      {/* Logo */}
+      <div className="flex justify-center pt-8 pb-6">
+        <img src="/logo.png" alt="Logo" className="h-8 w-auto opacity-90" />
+      </div>
+      
+      <CardHeader className="space-y-0.5 text-center pt-0">
         <CardTitle className="text-lg font-bold">
           Reset Your Password
         </CardTitle>

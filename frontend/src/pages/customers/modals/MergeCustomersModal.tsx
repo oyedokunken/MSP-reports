@@ -117,33 +117,6 @@ export function MergeCustomersModal({
     }
 
     if (!customer) return null;
-
-    try {
-      await api.post(`/customers/${customer?.customer_id}/merge`, {
-        merge_customer_id: selectedCustomerId,
-      })
-
-      setSuccess(true)
-      setTimeout(() => {
-        setSuccess(false)
-        onOpenChange(false)
-        onSuccess?.()
-      }, 2000)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to merge customers'
-      setError(errorMessage)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleClose = () => {
-    if (!isSubmitting) {
-      onOpenChange(false)
-    }
-  }
-
-  if (success) {
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">

@@ -35,12 +35,12 @@ const ForgotPassword = () => {
           {/* Card Container */}
           <div className="bg-white rounded-lg border border-gray-200 shadow-xl p-8">
             {/* Logo */}
-            <div className="flex justify-center mb-3">
-              <img src="/logo.png" alt="Logo" className="h-24 w-auto" />
+            <div className="flex justify-center mb-10">
+              <img src="/logo.png" alt="Logo" className="h-8 w-auto opacity-90" />
             </div>
 
             {/* Success Icon and Message */}
-            <div className="flex flex-col items-center text-center space-y-4">
+            <div className="flex flex-col items-center text-center space-y-5">
               <div className="rounded-full bg-green-500/10 p-3">
                 <CheckCircle2 className="h-16 w-16 text-green-500" />
               </div>
@@ -83,37 +83,42 @@ const ForgotPassword = () => {
         {/* Card Container */}
         <div className="bg-white rounded-lg border border-gray-200 shadow-xl p-8">
           {/* Logo */}
-          <div className="flex justify-center mb-3">
-            <img src="/logo.png" alt="Logo" className="h-24 w-auto" />
+          <div className="flex justify-center mb-10">
+            <img src="/logo.png" alt="Logo" className="h-8 w-auto opacity-90" />
           </div>
 
           {/* Heading */}
-          <div className="text-center space-y-1 mb-6">
-            <h1 className="text-2xl font-semibold text-gray-900">
+          <div className="text-center space-y-2 mb-10">
+            <h1 className="text-3xl font-bold text-gray-900">
               Forgot Password?
             </h1>
-            <p className="text-sm text-gray-600">
+            <p className="text-base text-gray-600">
               Enter your email and we'll send you a reset link
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email Address
+              </label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Email address*"
+                placeholder="your.email@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-12 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                className="h-11 bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={isSubmitting}
               />
             </div>
 
             {error && (
-              <div className="text-sm text-red-600 text-center">{error}</div>
+              <div className="rounded-md bg-red-50 border border-red-200 p-3">
+                <p className="text-sm text-red-800 text-center">{error}</p>
+              </div>
             )}
 
             <Button 

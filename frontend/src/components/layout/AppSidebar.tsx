@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home,
   Cable,
@@ -24,12 +24,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar'
 import { CreateUserModal } from '@/pages/users/modals/CreateUserModal'
 
 export default function AppSidebar() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { user } = useAuth()
+  const { state } = useSidebar()
   const [createUserOpen, setCreateUserOpen] = useState(false)
 
   const navItems = [
@@ -52,6 +55,16 @@ export default function AppSidebar() {
   ]
 
   const isActive = (path: string) => location.pathname === path
+  
+  // Handler to navigate without expanding sidebar when collapsed
+  const handleNavClick = (e: React.MouseEvent, path: string) => {
+    if (state === 'collapsed') {
+      e.preventDefault()
+      navigate(path)
+    }
+    // If expanded, let the Link component handle navigation normally
+  }
+  
   const initials = (user?.name ?? 'User')
     .split(' ')
     .filter(Boolean)
@@ -118,7 +131,7 @@ export default function AppSidebar() {
                       className="rounded-lg px-3 py-2.5 h-10"
                       style={active ? { background: 'var(--brand-gradient)' } : undefined}
                     >
-                      <Link to={item.path}>
+                      <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)}>
                         <Icon className="h-4 w-4" />
                         <span className="font-medium">{item.label}</span>
                       </Link>
@@ -145,7 +158,7 @@ export default function AppSidebar() {
                       className="rounded-lg px-3 py-2.5 h-10"
                       style={active ? { background: 'var(--brand-gradient)' } : undefined}
                     >
-                      <Link to={item.path}>
+                      <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)}>
                         <Icon className="h-4 w-4" />
                         <span className="font-medium">{item.label}</span>
                       </Link>
@@ -166,7 +179,7 @@ export default function AppSidebar() {
             return (
               <SidebarMenuItem key={item.path}>
                 <SidebarMenuButton asChild isActive={active} tooltip={item.label} className="rounded-lg px-3 py-2.5 h-10">
-                  <Link to={item.path}>
+                  <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)}>
                     <Icon className="h-4 w-4" />
                     <span className="font-medium">{item.label}</span>
                   </Link>

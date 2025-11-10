@@ -68,34 +68,8 @@ export function useAuthForm(options: UseAuthFormOptions = {}) {
         // Form state
         email,
         password,
-        auth_method: 'local' // Default to local auth
-      })
-      
-      // Success callback
-      onSuccess?.()
-      
-      // Navigate to dashboard or specified route
-      navigate(redirectTo)
-    } catch (err: any) {
-      // Handle different error scenarios
-      let errorMessage = 'Failed to sign in. Please try again.'
-      
-      if (err.message === 'Invalid credentials') {
-        errorMessage = 'Invalid email or password. Please check your credentials and try again.'
-      } else if (err.response?.data?.message) {
-        errorMessage = err.response.data.message
-      } else if (err.message) {
-        errorMessage = err.message
-      }
-      
-      setError(errorMessage)
-      
-      // Error callback
-      onError?.(err)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+        error,
+        isSubmitting,
 
         // Form handlers
         setEmail,
