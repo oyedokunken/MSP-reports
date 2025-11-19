@@ -13,8 +13,11 @@ return new class extends Migration
     {
         Schema::create('active_directory_group_memberships', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('integration_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedBigInteger('company_id');
+            $table->unsignedBigInteger('integration_id')->nullable();
+            
+            $table->foreign('company_id')->references('company_id')->on('companies')->cascadeOnDelete();
+            $table->foreign('integration_id')->references('integration_id')->on('integrations')->nullOnDelete();
             
             // Group reference
             $table->string('group_name');
