@@ -31,10 +31,27 @@ class ActiveDirectoryController extends Controller
         $startTime = microtime(true);
         
         try {
+            // Get company and customer context from API key middleware
+            $companyId = $request->input('_company_id');
+            $customerId = $request->input('_customer_id');
+            
+            if (!$companyId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid API key context. Company ID not found.',
+                ], 401);
+            }
+            
+            // Require customer context for Active Directory agent keys
+            if (!$customerId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Active Directory sync requires a customer-scoped API key. Please use an API key created for a specific customer.',
+                ], 403);
+            }
+            
             // Validate request payload
             $validated = $request->validate([
-                'companyId' => 'required|integer|exists:companies,id',
-                'integrationId' => 'nullable|integer|exists:integrations,id',
                 'syncType' => 'required|in:full,delta',
                 'syncTimestamp' => 'required|date',
                 'domain' => 'required|string|max:255',
@@ -48,24 +65,10 @@ class ActiveDirectoryController extends Controller
                 'statistics.membershipCount' => 'required|integer',
             ]);
 
-            // Verify company context matches API key's company
-            // API key middleware injects _company_id into request
-            $apiKeyCompanyId = $request->input('_company_id');
-            
-            if ($apiKeyCompanyId && $validated['companyId'] != $apiKeyCompanyId) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Company ID mismatch. API key belongs to a different company.',
-                ], 403);
-            }
-
             DB::beginTransaction();
             
-            // Get or create integration
-            $integration = $this->syncService->getOrCreateIntegration(
-                $validated['companyId'],
-                $validated['domain']
-            );
+            // Get or create single Active Directory integration for this company
+            $integration = $this->syncService->getOrCreateIntegration($companyId);
             
             // Create sync log
             $syncLog = SyncLog::create([
@@ -75,27 +78,31 @@ class ActiveDirectoryController extends Controller
                 'status' => 'running',
             ]);
             
-            // Process users
+            // Process users (with customer context)
             $usersProcessed = $this->syncService->processUsers(
                 $integration,
+                $customerId,
                 $validated['data']['users']
             );
             
-            // Process groups
+            // Process groups (with customer context)
             $groupsProcessed = $this->syncService->processGroups(
                 $integration,
+                $customerId,
                 $validated['data']['securityGroups']
             );
             
-            // Process memberships
+            // Process memberships (with customer context)
             $membershipsProcessed = $this->syncService->processMemberships(
                 $integration,
+                $customerId,
                 $validated['data']['groupMemberships']
             );
             
-            // Clean up orphans (only on full sync)
+            // Clean up orphans for this customer only (on full sync)
             $orphansRemoved = $this->syncService->cleanupOrphans(
                 $integration,
+                $customerId,
                 $validated['syncType']
             );
             
@@ -176,7 +183,8 @@ class ActiveDirectoryController extends Controller
             DB::rollBack();
             
             Log::error('Active Directory sync failed', [
-                'company_id' => $validated['companyId'] ?? null,
+                'company_id' => $companyId ?? null,
+                'customer_id' => $customerId ?? null,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);

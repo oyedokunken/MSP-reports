@@ -72,9 +72,6 @@ try {
     if (-not $Config.platform.apiUrl) {
         throw "API URL not configured"
     }
-    if (-not $Config.platform.companyId) {
-        throw "Company ID not configured"
-    }
     
     # Get API key from secure store or config
     $ApiKey = $null
@@ -130,8 +127,6 @@ try {
     # Prepare payload
     Write-Log "INFO" "Preparing sync payload..."
     $Payload = @{
-        companyId = $Config.platform.companyId
-        integrationId = $Config.platform.integrationId
         syncType = if ($IsDeltaSync) { "delta" } else { "full" }
         syncTimestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
         domain = $Config.activeDirectory.domain

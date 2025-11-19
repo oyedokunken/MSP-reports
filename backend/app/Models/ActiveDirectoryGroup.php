@@ -12,6 +12,7 @@ class ActiveDirectoryGroup extends Model
     protected $fillable = [
         'company_id',
         'integration_id',
+        'customer_id',
         'name',
         'sam_account_name',
         'group_category',
@@ -48,6 +49,14 @@ class ActiveDirectoryGroup extends Model
     public function integration(): BelongsTo
     {
         return $this->belongsTo(Integration::class);
+    }
+
+    /**
+     * Get the customer this group belongs to
+     */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     /**

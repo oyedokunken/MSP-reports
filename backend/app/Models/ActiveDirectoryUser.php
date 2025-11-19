@@ -11,6 +11,7 @@ class ActiveDirectoryUser extends Model
     protected $fillable = [
         'company_id',
         'integration_id',
+        'customer_id',
         'user_principal_name',
         'sam_account_name',
         'display_name',
@@ -67,6 +68,14 @@ class ActiveDirectoryUser extends Model
     public function integration(): BelongsTo
     {
         return $this->belongsTo(Integration::class);
+    }
+
+    /**
+     * Get the customer this user belongs to
+     */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     /**

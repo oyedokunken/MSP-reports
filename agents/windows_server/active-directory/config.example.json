@@ -2,8 +2,6 @@
   "platform": {
     "apiUrl": "https://reports.yourmsp.com/api",
     "apiKey": "",
-    "companyId": 1,
-    "integrationId": null,
     "timeout": 300
   },
   "sync": {

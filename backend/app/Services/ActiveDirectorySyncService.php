@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\Log;
 class ActiveDirectorySyncService
 {
     /**
-     * Get or create Active Directory integration
+     * Get or create single Active Directory integration for this company
      */
-    public function getOrCreateIntegration(int $companyId, string $domain): Integration
+    public function getOrCreateIntegration(int $companyId): Integration
     {
         return Integration::firstOrCreate(
             [
@@ -23,11 +23,9 @@ class ActiveDirectorySyncService
                 'integration_type' => 'ActiveDirectory',
             ],
             [
-                'display_name' => "Active Directory - {$domain}",
+                'display_name' => "Active Directory",
                 'status' => 'active',
-                'configuration' => [
-                    'domain' => $domain,
-                ],
+                'configuration' => [],
             ]
         );
     }
@@ -35,7 +33,7 @@ class ActiveDirectorySyncService
     /**
      * Process users from sync payload
      */
-    public function processUsers(Integration $integration, array $users): int
+    public function processUsers(Integration $integration, int $customerId, array $users): int
     {
         $processed = 0;
         
@@ -44,6 +42,7 @@ class ActiveDirectorySyncService
                 ActiveDirectoryUser::updateOrCreate(
                     [
                         'company_id' => $integration->company_id,
+                        'customer_id' => $customerId,
                         'user_principal_name' => $userData['userPrincipalName'],
                     ],
                     [
@@ -89,7 +88,7 @@ class ActiveDirectorySyncService
     /**
      * Process groups from sync payload
      */
-    public function processGroups(Integration $integration, array $groups): int
+    public function processGroups(Integration $integration, int $customerId, array $groups): int
     {
         $processed = 0;
         
@@ -98,6 +97,7 @@ class ActiveDirectorySyncService
                 ActiveDirectoryGroup::updateOrCreate(
                     [
                         'company_id' => $integration->company_id,
+                        'customer_id' => $customerId,
                         'distinguished_name' => $groupData['distinguishedName'],
                     ],
                     [
@@ -129,14 +129,15 @@ class ActiveDirectorySyncService
     /**
      * Process group memberships from sync payload
      */
-    public function processMemberships(Integration $integration, array $memberships): int
+    public function processMemberships(Integration $integration, int $customerId, array $memberships): int
     {
         $processed = 0;
         
-        // For full sync, remove all existing memberships first
+        // For full sync, remove all existing memberships for this customer first
         // This handles removed memberships
         ActiveDirectoryGroupMembership::where('company_id', $integration->company_id)
             ->where('integration_id', $integration->id)
+            ->where('customer_id', $customerId)
             ->delete();
         
         foreach ($memberships as $membershipData) {
@@ -144,6 +145,7 @@ class ActiveDirectorySyncService
                 ActiveDirectoryGroupMembership::create([
                     'company_id' => $integration->company_id,
                     'integration_id' => $integration->id,
+                    'customer_id' => $customerId,
                     'group_name' => $membershipData['groupName'],
                     'group_dn' => $membershipData['groupDN'],
                     'user_sam_account_name' => $membershipData['userSamAccountName'],
@@ -166,9 +168,9 @@ class ActiveDirectorySyncService
 
     /**
      * Clean up orphaned records (users/groups that no longer exist in AD)
-     * Only runs on full syncs
+     * Only runs on full syncs, scoped to specific customer
      */
-    public function cleanupOrphans(Integration $integration, string $syncType): array
+    public function cleanupOrphans(Integration $integration, int $customerId, string $syncType): array
     {
         if ($syncType !== 'full') {
             return ['users' => 0, 'groups' => 0];
@@ -177,6 +179,7 @@ class ActiveDirectorySyncService
         // Mark users not seen in this sync as disabled
         // (Agent should send all users in full sync, so missing = deleted)
         // We don't delete them to preserve historical references
+        // Scoped to this customer only
         
         $stats = [
             'users' => 0,
@@ -185,6 +188,7 @@ class ActiveDirectorySyncService
         
         // Could implement orphan detection by comparing modified_at_ad with sync timestamp
         // For now, we rely on the agent sending accurate data
+        // Note: cleanup is scoped to customer_id to avoid affecting other customers
         
         return $stats;
     }

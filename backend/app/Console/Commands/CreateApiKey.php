@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Company;
+use App\Models\Customer;
 use App\Models\ApiKey;
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -17,6 +18,7 @@ class CreateApiKey extends Command
      */
     protected $signature = 'apikey:create 
                             {--company-id= : The company ID}
+                            {--customer-id= : The customer ID (for customer-scoped keys)}
                             {--name= : Display name for the API key}
                             {--integrations-sync : Grant integrations sync permission}';
 
@@ -50,10 +52,38 @@ class CreateApiKey extends Command
         $this->info("Selected Company: {$company->name} (ID: {$company->company_id})");
         $this->newLine();
 
-        // Step 2: Display Name
+        // Step 2: Select Customer (optional - for customer-scoped keys like AD agents)
+        $customerId = $this->option('customer-id');
+        $customer = null;
+        
+        if (!$customerId) {
+            if ($this->confirm('Is this API key for a specific customer? (e.g., Active Directory agent)', false)) {
+                $customer = $this->selectCustomer($company);
+                $customerId = $customer->customer_id;
+            }
+        } else {
+            $customer = Customer::where('company_id', $company->company_id)
+                ->where('customer_id', $customerId)
+                ->first();
+            
+            if (!$customer) {
+                $this->error("Customer with ID {$customerId} not found for this company.");
+                return 1;
+            }
+        }
+
+        if ($customer) {
+            $this->info("Customer: {$customer->canonical_name} (ID: {$customer->customer_id})");
+            $this->newLine();
+        }
+
+        // Step 3: Display Name
         $displayName = $this->option('name');
         if (!$displayName) {
-            $displayName = $this->ask('Display name for this API key', 'API Key');
+            $defaultName = $customer 
+                ? "{$customer->canonical_name} - AD Agent" 
+                : 'API Key';
+            $displayName = $this->ask('Display name for this API key', $defaultName);
         }
 
         // Step 3: Set Permissions
@@ -122,16 +152,21 @@ class CreateApiKey extends Command
         // Step 6: Review and Create
         $this->newLine();
         $this->info('Summary:');
-        $this->table(
-            ['Property', 'Value'],
-            [
-                ['Company', $company->name],
-                ['Display Name', $displayName],
-                ['Integrations Sync', $permissions['integrations']['sync'] ?? false ? 'Yes' : 'No'],
-                ['IP Whitelist', $ipWhitelist ? implode(', ', $ipWhitelist) : 'None'],
-                ['Endpoint Restrictions', $allowedEndpoints ? implode(', ', $allowedEndpoints) : 'None'],
-            ]
-        );
+        
+        $summaryRows = [
+            ['Company', $company->name],
+        ];
+        
+        if ($customer) {
+            $summaryRows[] = ['Customer', $customer->canonical_name];
+        }
+        
+        $summaryRows[] = ['Display Name', $displayName];
+        $summaryRows[] = ['Integrations Sync', $permissions['integrations']['sync'] ?? false ? 'Yes' : 'No'];
+        $summaryRows[] = ['IP Whitelist', $ipWhitelist ? implode(', ', $ipWhitelist) : 'None'];
+        $summaryRows[] = ['Endpoint Restrictions', $allowedEndpoints ? implode(', ', $allowedEndpoints) : 'None'];
+        
+        $this->table(['Property', 'Value'], $summaryRows);
 
         $this->newLine();
         if (!$this->confirm('Create this API key?', true)) {
@@ -149,6 +184,7 @@ class CreateApiKey extends Command
         // Create API key
         $apiKey = ApiKey::create([
             'company_id' => $company->company_id,
+            'customer_id' => $customerId,
             'created_by_user_id' => $systemUser?->user_id,
             'display_name' => $displayName,
             'key_hash' => $keyHash,
@@ -190,17 +226,18 @@ class CreateApiKey extends Command
             $this->line('Active Directory Agent (config.json):');
             $this->line('  "platform": {');
             $this->line('    "apiUrl": "https://your-platform-url/api",');
-            $this->line('    "apiKey": "' . $plainTextKey . '",');
-            $this->line('    "companyId": ' . $company->company_id);
+            $this->line('    "apiKey": "' . $plainTextKey . '"');
             $this->line('  }');
+            $this->newLine();
+            $this->line('<fg=yellow>Note: Company and customer context are derived from the API key.</>');
             $this->newLine();
         }
 
-        $this->line('cURL Request:');
+        $this->line('cURL Request (Active Directory):');
         $this->line('  curl -X POST https://your-platform-url/api/integrations/active-directory/push \\');
         $this->line('    -H "Authorization: Bearer ' . $plainTextKey . '" \\');
         $this->line('    -H "Content-Type: application/json" \\');
-        $this->line('    -d \'{"companyId": ' . $company->company_id . ', ...}\'');
+        $this->line('    -d \'{"syncType": "full", "domain": "customer.local", "data": {...}}\'');
 
         return 0;
     }
@@ -232,5 +269,35 @@ class CreateApiKey extends Command
         $companyId = $matches[1];
 
         return Company::find($companyId);
+    }
+
+    /**
+     * Select a customer interactively
+     */
+    protected function selectCustomer(Company $company): Customer
+    {
+        $customers = Customer::where('company_id', $company->company_id)
+            ->get(['customer_id', 'canonical_name', 'status']);
+
+        if ($customers->isEmpty()) {
+            $this->error('No customers found for this company! Please add customers via Source of Truth integration first.');
+            exit(1);
+        }
+
+        if ($customers->count() === 1) {
+            return $customers->first();
+        }
+
+        $choices = $customers->map(function ($customer) {
+            return "{$customer->canonical_name} (ID: {$customer->customer_id}) - {$customer->status}";
+        })->toArray();
+
+        $selected = $this->choice('Select a customer', $choices);
+
+        // Extract customer ID from selection
+        preg_match('/\(ID: (\d+)\)/', $selected, $matches);
+        $customerId = $matches[1];
+
+        return Customer::find($customerId);
     }
 }

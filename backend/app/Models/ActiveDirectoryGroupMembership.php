@@ -11,6 +11,7 @@ class ActiveDirectoryGroupMembership extends Model
     protected $fillable = [
         'company_id',
         'integration_id',
+        'customer_id',
         'group_name',
         'group_dn',
         'user_sam_account_name',
@@ -37,6 +38,14 @@ class ActiveDirectoryGroupMembership extends Model
     public function integration(): BelongsTo
     {
         return $this->belongsTo(Integration::class);
+    }
+
+    /**
+     * Get the customer this membership belongs to
+     */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     /**
