@@ -6,36 +6,15 @@ return [
     'description' => 'Integrate with on-premise Active Directory to sync users, security groups, and memberships via PowerShell agent.',
     
     'credentials' => [
-        // Active Directory uses an API key (created separately)
+        // Active Directory uses customer-scoped API keys (created separately)
         // The agent stores the API key in Windows Credential Manager
         // No credentials needed in the integration config itself
     ],
     
     'configuration' => [
-        'domain' => [
-            'type' => 'text',
-            'label' => 'Active Directory Domain',
-            'required' => true,
-            'help' => 'Your Active Directory domain (e.g., customer.local)',
-        ],
-        'sync_interval' => [
-            'type' => 'number',
-            'label' => 'Agent Sync Interval (minutes)',
-            'default' => 240,
-            'help' => 'How often the agent syncs data (configured on the Windows Server, shown here for reference)',
-        ],
-        'include_disabled_users' => [
-            'type' => 'boolean',
-            'label' => 'Include Disabled Users',
-            'default' => false,
-            'help' => 'Whether to sync disabled AD user accounts',
-        ],
-        'exclude_system_groups' => [
-            'type' => 'boolean',
-            'label' => 'Exclude System Groups',
-            'default' => true,
-            'help' => 'Exclude built-in Windows system groups from sync',
-        ],
+        // No configuration needed at integration level
+        // Settings are per-customer and configured in each agent's config.json
+        // Each customer's AD agent is configured independently with their domain, sync options, etc.
     ],
     
     'data_types' => [
@@ -61,12 +40,14 @@ return [
     'documentation_url' => '/docs/integrations/active-directory',
     
     'setup_instructions' => [
-        'Create an API key in the MSP Reports Platform',
-        'Download the Active Directory agent from /agents/windows_server/active-directory',
-        'Copy the agent to your Windows Server (Domain Controller recommended)',
-        'Configure config.json with your API URL and company ID',
-        'Store the API key securely using install.ps1 -StoreCredentials',
-        'Install the agent as a scheduled task: install.ps1 -InstallScheduledTask',
-        'Verify sync in Integration dashboard',
+        'Step 1: Create ONE Active Directory integration for your company (this step - only do once)',
+        'Step 2: For each customer, create a customer-scoped API key: php artisan apikey:create --customer-id=X',
+        'Step 3: Download the AD agent from /agents/windows_server/active-directory',
+        'Step 4: Copy the agent to the customer\'s Windows Server (Domain Controller recommended)',
+        'Step 5: Configure config.json with platform API URL and customer\'s API key',
+        'Step 6: Store the API key securely: install.ps1 -StoreCredentials',
+        'Step 7: Install as scheduled task: install.ps1 -InstallScheduledTask',
+        'Step 8: Verify sync in Integration dashboard',
+        'Repeat steps 2-8 for each additional customer',
     ],
 ];
