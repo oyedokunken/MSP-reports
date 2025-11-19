@@ -73,6 +73,16 @@ try {
         throw "API URL not configured"
     }
     
+    # Auto-detect domain from Active Directory
+    Write-Log "INFO" "Auto-detecting Active Directory domain..."
+    try {
+        $Domain = (Get-ADDomain).DNSRoot
+        Write-Log "INFO" "Detected domain: $Domain"
+    } catch {
+        Write-Log "ERROR" "Failed to auto-detect domain. Ensure this server is joined to an Active Directory domain."
+        throw "Unable to determine Active Directory domain"
+    }
+    
     # Get API key from secure store or config
     $ApiKey = $null
     if ($Config.advanced.useSecureCredentialStore) {
@@ -129,7 +139,7 @@ try {
     $Payload = @{
         syncType = if ($IsDeltaSync) { "delta" } else { "full" }
         syncTimestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-        domain = $Config.activeDirectory.domain
+        domain = $Domain
         data = @{
             users = $Users
             securityGroups = $Groups

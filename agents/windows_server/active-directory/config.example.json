@@ -12,7 +12,6 @@
     "compressionEnabled": true
   },
   "activeDirectory": {
-    "domain": "",
     "includeDisabledUsers": false,
     "includeDisabledComputers": false,
     "filterOUs": [],
