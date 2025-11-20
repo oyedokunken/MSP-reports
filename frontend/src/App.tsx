@@ -15,10 +15,10 @@ import ContactAdmin from '@/pages/auth/pages/ContactAdmin'
 import AuthLayout from '@/pages/auth/Layout'
 import { UsersList, CreateUser } from '@/pages/users'
 import { ReportsList, CustomerReports, ConfigureReports } from '@/pages/reports'
+import { ApiKeysList } from '@/pages/api-keys'
 import Licenses from '@/pages/licenses/Licenses'
 import Monitoring from '@/pages/monitoring/Monitoring'
 import { Loader2 } from 'lucide-react'
-
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
@@ -173,6 +173,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Licenses />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/api-keys"
+        element={
+          <ProtectedRoute>
+            <ApiKeysList />
           </ProtectedRoute>
         }
       />
