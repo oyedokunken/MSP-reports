@@ -1,31 +1,31 @@
 export function HamsterLoader() {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div 
-          className="wheel-and-hamster relative"
-          role="img" 
-          aria-label="Orange and tan hamster running in a metal wheel"
-          style={{ width: '12em', height: '12em', fontSize: '14px' }}
-        >
-          <div className="wheel" />
-          <div className="hamster">
-            <div className="hamster__body">
-              <div className="hamster__head">
-                <div className="hamster__ear" />
-                <div className="hamster__eye" />
-                <div className="hamster__nose" />
-              </div>
-              <div className="hamster__limb hamster__limb--fr" />
-              <div className="hamster__limb hamster__limb--fl" />
-              <div className="hamster__limb hamster__limb--br" />
-              <div className="hamster__limb hamster__limb--bl" />
-              <div className="hamster__tail" />
+        <div className="flex min-h-screen items-center justify-center bg-background">
+            <div
+                className="wheel-and-hamster relative"
+                role="img"
+                aria-label="Orange and tan hamster running in a metal wheel"
+                style={{ width: "12em", height: "12em", fontSize: "14px" }}
+            >
+                <div className="wheel" />
+                <div className="hamster">
+                    <div className="hamster__body">
+                        <div className="hamster__head">
+                            <div className="hamster__ear" />
+                            <div className="hamster__eye" />
+                            <div className="hamster__nose" />
+                        </div>
+                        <div className="hamster__limb hamster__limb--fr" />
+                        <div className="hamster__limb hamster__limb--fl" />
+                        <div className="hamster__limb hamster__limb--br" />
+                        <div className="hamster__limb hamster__limb--bl" />
+                        <div className="hamster__tail" />
+                    </div>
+                </div>
+                <div className="spoke" />
             </div>
-          </div>
-          <div className="spoke" />
-        </div>
-  
-        <style>{`
+
+            <style>{`
           .wheel-and-hamster { --dur: 1s; }
           .wheel, .hamster, .hamster div, .spoke { position: absolute; }
           .wheel, .spoke { border-radius: 50%; top: 0; left: 0; width: 100%; height: 100%; }
@@ -56,6 +56,6 @@ export function HamsterLoader() {
           @keyframes hamsterTail { from, 25%, 50%, 75%, to { transform: rotate(30deg) translateZ(-1px); } 12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(10deg) translateZ(-1px); } }
           @keyframes spoke { from { transform: rotate(0); } to { transform: rotate(-1turn); } }
         `}</style>
-      </div>
-    )
-  }
+        </div>
+    );
+}
