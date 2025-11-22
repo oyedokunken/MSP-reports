@@ -10,6 +10,8 @@ import {
   UserPlus,
   Key,
   Activity,
+  Shield,
+  Mail,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -38,6 +40,8 @@ export default function AppSidebar() {
   const navItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/integrations', icon: Cable, label: 'Integrations' },
+    { path: '/active-directory', icon: Shield, label: 'Active Directory' },
+    { path: '/exchange', icon: Mail, label: 'Exchange' },
     { path: '/customers', icon: Users, label: 'Customers' },
     { path: '/reports', icon: FileText, label: 'Reports' },
     { path: '/schedules', icon: Calendar, label: 'Schedules' },

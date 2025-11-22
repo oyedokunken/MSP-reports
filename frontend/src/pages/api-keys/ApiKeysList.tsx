@@ -18,11 +18,6 @@ export default function ApiKeysList() {
 
   const { apiKeys, isLoading, fetchApiKeys } = useApiKeysStore()
 
-  const handleCopyKey = (key: string) => {
-    navigator.clipboard.writeText(key)
-    toast.success('Copied!', 'API key copied to clipboard')
-  }
-
   const toggleKeyVisibility = (keyId: number) => {
     setVisibleKeys(prev => {
       const newSet = new Set(prev)
@@ -163,7 +158,7 @@ export default function ApiKeysList() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleCopyKey(apiKey.key_preview)}
+                          
                         >
                           <Copy className="h-4 w-4" />
                         </Button>

@@ -16,6 +16,18 @@ import AuthLayout from '@/pages/auth/Layout'
 import { UsersList, CreateUser } from '@/pages/users'
 import { ReportsList, CustomerReports, ConfigureReports } from '@/pages/reports'
 import { ApiKeysList } from '@/pages/api-keys'
+import { 
+  ActiveDirectoryDashboard, 
+  UsersList as ADUsersList, 
+  UserDetail as ADUserDetail,
+  GroupsList as ADGroupsList,
+  GroupDetail as ADGroupDetail
+} from '@/pages/active-directory'
+import {
+  ExchangeDashboard,
+  MailboxesList,
+  MailboxDetail
+} from '@/pages/exchange'
 import Licenses from '@/pages/licenses/Licenses'
 import Monitoring from '@/pages/monitoring/Monitoring'
 import { Loader2 } from 'lucide-react'
@@ -92,6 +104,78 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <IntegrationList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/active-directory"
+        element={
+          <ProtectedRoute>
+            <ActiveDirectoryDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/active-directory/users"
+        element={
+          <ProtectedRoute>
+            <ADUsersList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/active-directory/users/:id"
+        element={
+          <ProtectedRoute>
+            <ADUserDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/active-directory/groups"
+        element={
+          <ProtectedRoute>
+            <ADGroupsList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/active-directory/groups/:id"
+        element={
+          <ProtectedRoute>
+            <ADGroupDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/exchange"
+        element={
+          <ProtectedRoute>
+            <ExchangeDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/exchange/mailboxes"
+        element={
+          <ProtectedRoute>
+            <MailboxesList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/exchange/mailboxes/:id"
+        element={
+          <ProtectedRoute>
+            <MailboxDetail />
           </ProtectedRoute>
         }
       />

@@ -3,17 +3,41 @@
  * Provides visual feedback during data loading
  */
 
+import { Skeleton } from './skeleton'
+
 export function StatCardSkeleton() {
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[hsl(var(--auth-card))] p-6 shadow-sm animate-pulse">
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
-          <div className="mt-2 h-8 w-16 bg-gray-200 dark:bg-gray-700 rounded" />
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[hsl(var(--auth-card))] p-6 shadow-sm">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-gray-100 dark:bg-gray-800 p-2">
+            <Skeleton className="h-6 w-6" />
+          </div>
+          <div>
+            <Skeleton className="h-5 w-32 mb-1" />
+            <Skeleton className="h-3 w-24" />
+          </div>
         </div>
-        <div className="rounded-lg bg-gray-100 dark:bg-gray-800 p-3">
-          <div className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded" />
+        <Skeleton className="h-6 w-16 rounded-full" />
+      </div>
+
+      {/* Content */}
+      <div className="mt-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-32" />
         </div>
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-16" />
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="mt-6 flex gap-2">
+        <Skeleton className="h-9 flex-1" />
+        <Skeleton className="h-9 w-9" />
       </div>
     </div>
   )
@@ -21,19 +45,19 @@ export function StatCardSkeleton() {
 
 export function ActivityCardSkeleton() {
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[hsl(var(--auth-card))] p-6 shadow-sm animate-pulse">
-      <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[hsl(var(--auth-card))] p-6 shadow-sm">
+      <Skeleton className="h-6 w-32 mb-4" />
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
           <div key={i} className="flex items-center justify-between py-2">
             <div className="flex items-center gap-3 flex-1">
-              <div className="h-2 w-2 rounded-full bg-gray-200 dark:bg-gray-700" />
+              <Skeleton className="h-2 w-2 rounded-full" />
               <div className="flex-1">
-                <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
-                <div className="h-3 w-24 bg-gray-200 dark:bg-gray-700 rounded" />
+                <Skeleton className="h-4 w-32 mb-2" />
+                <Skeleton className="h-3 w-24" />
               </div>
             </div>
-            <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded-full" />
+            <Skeleton className="h-6 w-16 rounded-full" />
           </div>
         ))}
       </div>
