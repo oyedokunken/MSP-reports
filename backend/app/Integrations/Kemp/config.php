@@ -19,6 +19,7 @@ return [
             'type' => 'password',
             'label' => 'API Key',
             'required' => false,
+            'encrypted' => true,
             'placeholder' => 'Enter Kemp API key (optional for now)',
             'help' => 'Placeholder credential until real Kemp API details are defined.',
         ],

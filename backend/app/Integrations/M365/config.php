@@ -25,6 +25,7 @@ return [
             'type' => 'password',
             'label' => 'Client Secret',
             'required' => false,
+            'encrypted' => true,
             'placeholder' => 'Enter Client Secret (optional for now)',
             'help' => 'Client secret from Azure AD app registration. Placeholder credential until real API details are defined.',
         ],

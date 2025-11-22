@@ -19,6 +19,7 @@ return [
             'type' => 'password',
             'label' => 'API Key',
             'required' => false,
+            'encrypted' => true,
             'placeholder' => 'Enter WatchGuard AuthPoint API key (optional for now)',
             'help' => 'Placeholder credential until real WatchGuard AuthPoint API details are defined.',
         ],

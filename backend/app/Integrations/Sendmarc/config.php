@@ -10,6 +10,7 @@ return [
             'type' => 'password',
             'label' => 'Bearer Token',
             'required' => true,
+            'encrypted' => true,
             'placeholder' => 'Enter your Sendmarc API bearer token',
             'help' => 'Found in Sendmarc Portal under API Settings',
         ],

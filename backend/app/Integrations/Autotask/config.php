@@ -10,18 +10,21 @@ return [
             'type' => 'text',
             'label' => 'API Username',
             'required' => true,
+            'encrypted' => true,
             'help' => 'Your Autotask API username (email)',
         ],
         'secret' => [
             'type' => 'password',
             'label' => 'API Secret',
             'required' => true,
+            'encrypted' => true,
             'help' => 'Your Autotask API secret key',
         ],
         'api_integration_code' => [
             'type' => 'text',
             'label' => 'API Integration Code',
             'required' => true,
+            'encrypted' => true,
             'help' => 'Your Autotask API Integration Code',
         ],
         'endpoint' => [

@@ -19,6 +19,7 @@ return [
             'type' => 'password',
             'label' => 'API Key',
             'required' => false,
+            'encrypted' => true,
             'placeholder' => 'Enter ThreatLocker API key (optional for now)',
             'help' => 'Placeholder credential until real ThreatLocker API details are defined.',
         ],

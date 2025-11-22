@@ -19,6 +19,7 @@ return [
             'type' => 'password',
             'label' => 'API Key',
             'required' => false,
+            'encrypted' => true,
             'placeholder' => 'Enter Vonahi API key (optional for now)',
             'help' => 'Placeholder credential until real Vonahi API details are defined.',
         ],
