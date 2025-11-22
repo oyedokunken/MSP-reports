@@ -1,0 +1,40 @@
+{
+  "platform": {
+    "apiUrl": "https://reports.yourmsp.com/api",
+    "apiKey": "",
+    "timeout": 300
+  },
+  "sync": {
+    "intervalMinutes": 240,
+    "enableDeltaSync": false,
+    "maxRetries": 3,
+    "retryDelaySeconds": 30,
+    "compressionEnabled": true
+  },
+  "exchange": {
+    "includeSharedMailboxes": true,
+    "includeResourceMailboxes": true,
+    "includeArchivedMailboxes": true,
+    "collectPermissions": true,
+    "collectStatistics": true,
+    "collectEmailAliases": true,
+    "maxMailboxesPerSync": 5000,
+    "filterDatabases": [],
+    "excludeDatabases": []
+  },
+  "logging": {
+    "level": "Info",
+    "logPath": "C:\\Logs\\MSPReports\\Exchange",
+    "maxLogSizeMB": 100,
+    "retentionDays": 30,
+    "enableEventLog": true,
+    "enableConsole": true
+  },
+  "advanced": {
+    "batchSize": 500,
+    "throttleDelayMs": 0,
+    "useSecureCredentialStore": true,
+    "validateSSL": true,
+    "collectExtendedProperties": true
+  }
+}

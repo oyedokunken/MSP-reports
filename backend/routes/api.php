@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ReportAnalyticsController;
 use App\Http\Controllers\Api\LicenseController;
 use App\Http\Controllers\Api\HealthCheckController;
 use App\Http\Controllers\Api\ActiveDirectoryController;
+use App\Http\Controllers\Api\ExchangeController;
 
 // All routes are automatically prefixed with /api
 
@@ -56,6 +57,13 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
     // Active Directory Push Routes (from agent)
     Route::middleware([\App\Http\Middleware\ApiKeyAuthentication::class])->group(function () {
         Route::post('/integrations/active-directory/push', [ActiveDirectoryController::class, 'push']);
+        Route::get('/integrations/active-directory/status', [ActiveDirectoryController::class, 'status']);
+    });
+
+    // Exchange Push Routes (from agent)
+    Route::middleware([\App\Http\Middleware\ApiKeyAuthentication::class])->group(function () {
+        Route::post('/integrations/exchange/push', [ExchangeController::class, 'push']);
+        Route::get('/integrations/exchange/status', [ExchangeController::class, 'status']);
     });
 
     // Customer Mapping Routes
