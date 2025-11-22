@@ -98,6 +98,7 @@ class ApiKeyAuthentication
         $request->merge([
             '_api_key' => $apiKeyModel,
             '_company_id' => $apiKeyModel->company_id,
+            '_customer_id' => $apiKeyModel->customer_id,
             '_permissions' => $apiKeyModel->permissions,
         ]);
 

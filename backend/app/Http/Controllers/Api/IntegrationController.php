@@ -11,18 +11,58 @@ use Illuminate\Validation\Rule;
 
 class IntegrationController extends Controller
 {
+    /**
+     * Scan available integrations from filesystem
+     */
+    protected function scanAvailableIntegrations(): array
+    {
+        $integrationsPath = app_path('Integrations');
+        $integrations = [];
+
+        if (!is_dir($integrationsPath)) {
+            return [];
+        }
+
+        $directories = array_filter(glob($integrationsPath . '/*'), 'is_dir');
+
+        foreach ($directories as $dir) {
+            $integrationName = basename($dir);
+            
+            // Skip Contracts directory
+            if ($integrationName === 'Contracts') {
+                continue;
+            }
+
+            $configFile = $dir . '/config.php';
+            
+            if (file_exists($configFile)) {
+                $integrations[] = $integrationName;
+            }
+        }
+
+        return $integrations;
+    }
+
+    /**
+     * Get configuration for a specific integration type
+     */
+    protected function getIntegrationConfig(string $integrationType): ?array
+    {
+        $configFile = app_path("Integrations/{$integrationType}/config.php");
+        
+        if (!file_exists($configFile)) {
+            return null;
+        }
+
+        return require $configFile;
+    }
+
     public function getIntegrations(Request $request)
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $availableTypes = [
-            'Autotask',
-            'Datto',
-            'Sendmarc',
-            'Barracuda',
-            'ITGlue',
-        ];
+        $availableTypes = $this->scanAvailableIntegrations();
 
         $configuredIntegrations = $company->integrations()
             ->withCount(['integrationCustomers as unmapped_customers_count' => function ($query) {
@@ -54,16 +94,7 @@ class IntegrationController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $availableTypes = [
-            'Autotask', 
-            'Datto',
-            'Sendmarc',
-            'Barracuda',
-            'ITGlue',
-            'ConnectWise',
-            'Microsoft365',
-            'Zendesk',
-        ];
+        $availableTypes = $this->scanAvailableIntegrations();
         
         $request->merge([
             'integration_type' => trim($request->integration_type),
@@ -495,15 +526,15 @@ class IntegrationController extends Controller
         $totalHits = $recentLogs->sum('rate_limit_hits');
         $requestsLastHour = $recentLogs->count();
 
-        $limits = [
-            'Autotask' => ['per_minute' => 100, 'per_hour' => 5000],
-            'Datto' => ['per_minute' => 60, 'per_hour' => 1000],
-            'ConnectWise' => ['per_minute' => 120, 'per_hour' => 6000],
-            'Microsoft365' => ['per_minute' => 200, 'per_hour' => 10000],
-            'Zendesk' => ['per_minute' => 100, 'per_hour' => 5000],
+        // Get rate limits from integration config
+        $integrationConfig = $this->getIntegrationConfig($integration->integration_type);
+        $rateLimits = $integrationConfig['rate_limits'] ?? [];
+        
+        $limit = [
+            'per_minute' => $rateLimits['requests_per_minute'] ?? 60,
+            'per_hour' => $rateLimits['requests_per_hour'] ?? 1000,
+            'burst_allowance' => $rateLimits['burst_allowance'] ?? 10,
         ];
-
-        $limit = $limits[$integration->integration_type] ?? ['per_minute' => 60, 'per_hour' => 1000];
 
         $rateLimitStatus = [
             'integration_type' => $integration->integration_type,

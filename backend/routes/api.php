@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\ReportConfigController;
 use App\Http\Controllers\Api\ReportAnalyticsController;
 use App\Http\Controllers\Api\LicenseController;
 use App\Http\Controllers\Api\HealthCheckController;
+use App\Http\Controllers\Api\ActiveDirectoryController;
 
 // All routes are automatically prefixed with /api
 
@@ -50,6 +51,11 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
         Route::get('/integrations/{id}/rate-limit', [IntegrationController::class, 'getRateLimitStatus']);
         Route::post('/integrations/{id}/historical-import', [IntegrationController::class, 'startHistoricalImport']);
         Route::patch('/company/source-integration', [IntegrationController::class, 'setSourceIntegration']);
+    });
+
+    // Active Directory Push Routes (from agent)
+    Route::middleware([\App\Http\Middleware\ApiKeyAuthentication::class])->group(function () {
+        Route::post('/integrations/active-directory/push', [ActiveDirectoryController::class, 'push']);
     });
 
     // Customer Mapping Routes

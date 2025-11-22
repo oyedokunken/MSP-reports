@@ -1,0 +1,20 @@
+# Configuration files with sensitive data
+config.json
+*.state.json
+
+# Log files
+*.log
+logs/
+
+# Backup files
+*.bak
+*.backup
+
+# Windows specific
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+~$*

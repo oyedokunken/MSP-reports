@@ -22,6 +22,7 @@ class ApiKey extends Model
 
     protected $fillable = [
         'company_id',
+        'customer_id',
         'created_by_user_id',
         'display_name',
         'key_hash',
@@ -47,6 +48,11 @@ class ApiKey extends Model
     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
     }
 
     public function createdBy()

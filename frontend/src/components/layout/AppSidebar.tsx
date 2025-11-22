@@ -45,6 +45,7 @@ export default function AppSidebar() {
 
   const adminNavItems = [
     { path: '/users', icon: UserPlus, label: 'Users' },
+    { path: '/api-keys', icon: Key, label: 'API Keys' },
     { path: '/licenses', icon: Key, label: 'Licenses' },
     { path: '/monitoring', icon: Activity, label: 'Monitoring' },
   ]
