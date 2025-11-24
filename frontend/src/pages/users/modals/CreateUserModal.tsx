@@ -7,6 +7,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Mail, Lock, User as UserIcon, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useToast } from '@/components/ui/Toast'
 
 interface CreateUserModalProps {
   open: boolean
@@ -24,6 +25,7 @@ interface CreateUserForm {
 }
 
 export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserModalProps) {
+  const toast = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -48,7 +50,8 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
 
       if (response.data) {
         setSuccess(true)
-        // Reset form after 2 seconds and close
+        toast.success('User Created', `${formData.name} has been created successfully`)
+        // Reset form after 1 second and close
         setTimeout(() => {
           setSuccess(false)
           setFormData({
@@ -61,7 +64,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
           })
           onOpenChange(false)
           onSuccess?.()
-        }, 2000)
+        }, 1000)
       }
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Failed to create user'

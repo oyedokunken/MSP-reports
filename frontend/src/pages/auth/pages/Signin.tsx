@@ -3,8 +3,10 @@ import { MdSecurity, MdStorage } from 'react-icons/md';
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Link } from "react-router-dom";
 import { useAuthForm } from "../hooks/useAuthForm";
+import { useToast } from "@/components/ui/Toast";
 
 const Signin = () => {
+    const toast = useToast();
     const [rememberMe, setRememberMe] = useState(false);
     const [showAuthOptions, setShowAuthOptions] = useState(false);
     
@@ -19,7 +21,7 @@ const Signin = () => {
     } = useAuthForm({
       redirectTo: '/dashboard',
       onSuccess: () => {
-        console.log('Login successful!')
+        toast.success('Login Successful', 'Welcome back!')
       },
       onError: (err) => {
         console.error('Login failed:', err)

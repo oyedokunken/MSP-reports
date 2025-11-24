@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Spinner } from '@/components/ui/spinner'
 import { CheckCircle2, Lock, AlertCircle } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useToast } from '@/components/ui/Toast'
 
 interface ResetUserPasswordModalProps {
   open: boolean
@@ -21,6 +22,7 @@ export function ResetUserPasswordModal({
   user,
   onSuccess 
 }: ResetUserPasswordModalProps) {
+  const toast = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -50,12 +52,13 @@ export function ResetUserPasswordModal({
       })
 
       setSuccess(true)
+      toast.success('Password Reset', `Password for ${user.name} has been reset successfully`)
       setTimeout(() => {
         setSuccess(false)
         setNewPassword('')
         onOpenChange(false)
         onSuccess?.()
-      }, 2000)
+      }, 1000)
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Failed to reset password'
       setError(errorMessage)

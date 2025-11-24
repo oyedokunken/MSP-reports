@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/contexts/AuthContext'
@@ -9,6 +9,7 @@ import { EditPermissionsModal } from './modals/EditPermissionsModal'
 import { EditUserModal } from './modals/EditUserModal'
 import { ResetUserPasswordModal } from './modals/ResetUserPasswordModal'
 import { DeleteUserModal } from './modals/DeleteUserModal'
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import type { UserWithPermissions } from './types'
 
 export default function UsersList() {
@@ -28,27 +29,44 @@ export default function UsersList() {
   const closeModal = useUsersStore(state => state.closeModal)
   const setSelectedUser = useUsersStore(state => state.setSelectedUser)
 
+  // Local state for confirmation modals
+  const [deactivateConfirm, setDeactivateConfirm] = useState<UserWithPermissions | null>(null)
+  const [reactivateConfirm, setReactivateConfirm] = useState<UserWithPermissions | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+
   // Fetch users on mount
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
 
   // Handler functions
-  const handleDeactivate = async (user: UserWithPermissions) => {
+  const handleDeactivate = async () => {
+    if (!deactivateConfirm) return
+    
+    setIsProcessing(true)
     try {
-      await deactivateUser(user.user_id)
-      toast.success('User Deactivated', `${user.name} has been deactivated`)
+      await deactivateUser(deactivateConfirm.user_id)
+      toast.success('User Deactivated', `${deactivateConfirm.name} has been deactivated`)
+      setDeactivateConfirm(null)
     } catch (err: any) {
       toast.error('Error', err.response?.data?.message || err.message)
+    } finally {
+      setIsProcessing(false)
     }
   }
 
-  const handleReactivate = async (user: UserWithPermissions) => {
+  const handleReactivate = async () => {
+    if (!reactivateConfirm) return
+    
+    setIsProcessing(true)
     try {
-      await reactivateUser(user.user_id)
-      toast.success('User Reactivated', `${user.name} has been reactivated`)
+      await reactivateUser(reactivateConfirm.user_id)
+      toast.success('User Reactivated', `${reactivateConfirm.name} has been reactivated`)
+      setReactivateConfirm(null)
     } catch (err: any) {
       toast.error('Error', err.response?.data?.message || err.message)
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -75,8 +93,8 @@ export default function UsersList() {
             setSelectedUser(user)
             openModal('resetPassword')
           }}
-          onDeactivate={handleDeactivate}
-          onReactivate={handleReactivate}
+          onDeactivate={(user) => setDeactivateConfirm(user)}
+          onReactivate={(user) => setReactivateConfirm(user)}
           onDelete={(user) => {
             setSelectedUser(user)
             openModal('delete')
@@ -131,6 +149,31 @@ export default function UsersList() {
             fetchUsers()
             closeModal('delete')
           }}
+        />
+
+        {/* Confirmation Modals */}
+        <ConfirmationModal
+          isOpen={deactivateConfirm !== null}
+          onClose={() => setDeactivateConfirm(null)}
+          onConfirm={handleDeactivate}
+          title="Deactivate User"
+          description={`Are you sure you want to deactivate ${deactivateConfirm?.name}? The user will no longer be able to log in, but their data will be preserved.`}
+          confirmText="Deactivate"
+          cancelText="Cancel"
+          type="warning"
+          isLoading={isProcessing}
+        />
+
+        <ConfirmationModal
+          isOpen={reactivateConfirm !== null}
+          onClose={() => setReactivateConfirm(null)}
+          onConfirm={handleReactivate}
+          title="Reactivate User"
+          description={`Are you sure you want to reactivate ${reactivateConfirm?.name}? The user will be able to log in again.`}
+          confirmText="Reactivate"
+          cancelText="Cancel"
+          type="success"
+          isLoading={isProcessing}
         />
       </div>
     </FloatingLayout>

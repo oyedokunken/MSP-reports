@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useNotificationStore, type Notification } from '@/stores/useNotificationStore'
 import { PulsingDot } from '@/components/ui/AnimatedCard'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import { useToast } from '@/components/ui/Toast'
 
 /**
  * Floating Top Navbar
@@ -16,6 +17,7 @@ import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
  */
 
 export default function FloatingNav() {
+  const toast = useToast()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
@@ -35,6 +37,7 @@ export default function FloatingNav() {
 
   const handleLogout = () => {
     logout()
+    toast.success('Logged Out', 'You have been successfully logged out')
     setShowLogoutConfirm(false)
     navigate('/login')
   }
