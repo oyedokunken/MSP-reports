@@ -66,7 +66,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/platform/dashboard" replace />
   }
 
   return <>{children}</>
@@ -94,7 +94,7 @@ function AppRoutes() {
 
       {/* Protected routes */}
       <Route
-        path="/dashboard"
+        path="/platform/dashboard"
         element={
           <ProtectedRoute>
             <Dashboard />
@@ -103,7 +103,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/integrations"
+        path="/platform/integrations"
         element={
           <ProtectedRoute>
             <IntegrationList />
@@ -112,7 +112,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/active-directory"
+        path="/platform/active-directory"
         element={
           <ProtectedRoute>
             <ActiveDirectoryDashboard />
@@ -121,7 +121,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/active-directory/users"
+        path="/platform/active-directory/users"
         element={
           <ProtectedRoute>
             <ADUsersList />
@@ -130,7 +130,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/active-directory/users/:id"
+        path="/platform/active-directory/users/:id"
         element={
           <ProtectedRoute>
             <ADUserDetail />
@@ -139,7 +139,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/active-directory/groups"
+        path="/platform/active-directory/groups"
         element={
           <ProtectedRoute>
             <ADGroupsList />
@@ -148,7 +148,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/active-directory/groups/:id"
+        path="/platform/active-directory/groups/:id"
         element={
           <ProtectedRoute>
             <ADGroupDetail />
@@ -157,7 +157,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/exchange"
+        path="/platform/exchange"
         element={
           <ProtectedRoute>
             <ExchangeDashboard />
@@ -166,7 +166,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/exchange/mailboxes"
+        path="/platform/exchange/mailboxes"
         element={
           <ProtectedRoute>
             <MailboxesList />
@@ -175,7 +175,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/exchange/mailboxes/:id"
+        path="/platform/exchange/mailboxes/:id"
         element={
           <ProtectedRoute>
             <MailboxDetail />
@@ -184,7 +184,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/customers"
+        path="/platform/customers"
         element={
           <ProtectedRoute>
             <CustomerList />
@@ -193,7 +193,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/customers/:id/configure-reports"
+        path="/platform/customers/:id/configure-reports"
         element={
           <ProtectedRoute>
             <ConfigureReports />
@@ -202,7 +202,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/customers/:id/reports"
+        path="/platform/customers/:id/reports"
         element={
           <ProtectedRoute>
             <CustomerReports />
@@ -211,7 +211,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/reports"
+        path="/platform/reports"
         element={
           <ProtectedRoute>
             <ReportsList />
@@ -220,7 +220,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/schedules"
+        path="/platform/schedules"
         element={
           <ProtectedRoute>
             <ScheduleList />
@@ -229,7 +229,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/settings"
+        path="/admin/settings"
         element={
           <ProtectedRoute>
             <Settings />
@@ -238,7 +238,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/users"
+        path="/admin/users"
         element={
           <ProtectedRoute>
             <UsersList />
@@ -247,7 +247,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/users/create"
+        path="/admin/users/create"
         element={
           <ProtectedRoute>
             <CreateUser />
@@ -256,7 +256,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/licenses"
+        path="/admin/licenses"
         element={
           <ProtectedRoute>
             <Licenses />
@@ -265,7 +265,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/api-keys"
+        path="/admin/api-keys"
         element={
           <ProtectedRoute>
             <ApiKeysList />
@@ -274,7 +274,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/monitoring"
+        path="/admin/monitoring"
         element={
           <ProtectedRoute>
             <Monitoring />
@@ -283,7 +283,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="/notifications"
+        path="/platform/notifications"
         element={
           <ProtectedRoute>
             <NotificationsPage />
@@ -292,7 +292,7 @@ function AppRoutes() {
       />
 
       {/* Default redirect for unknown routes */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/platform/dashboard" replace />} />
     </Routes>
   )
 }

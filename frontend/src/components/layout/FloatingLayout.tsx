@@ -14,21 +14,22 @@ interface FloatingLayoutProps {
 
 export default function FloatingLayout({ children }: FloatingLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-background overflow-x-hidden">
-      <SidebarProvider>
-        {/* Sidebar + Content */}
+    <SidebarProvider>
+      <div className="flex h-screen w-full bg-gray-50 dark:bg-background">
+        {/* Sidebar */}
         <AppSidebar />
-        <SidebarInset>
-          {/* Inset header/nav area */}
+        {/* Main content area */}
+        <SidebarInset className="flex flex-col flex-1 overflow-hidden">
+          {/* Sticky header */}
           <FloatingNav />
-          {/* Page content */}
-          <div className="flex-1 bg-gray-50 dark:bg-background">
-            <div className="p-7 md:p-8 max-w-full overflow-x-hidden">
+          {/* Scrollable content */}
+          <main className="flex-1 overflow-y-auto">
+            <div className="p-7 md:p-8 max-w-full">
               {children}
             </div>
-          </div>
+          </main>
         </SidebarInset>
-      </SidebarProvider>
-    </div>
+      </div>
+    </SidebarProvider>
   )
 }

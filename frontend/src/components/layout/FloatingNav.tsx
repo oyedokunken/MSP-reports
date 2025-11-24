@@ -24,6 +24,7 @@ export default function FloatingNav() {
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
+  const [isScrolled, setIsScrolled] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const notificationMenuRef = useRef<HTMLDivElement>(null)
 
@@ -58,6 +59,19 @@ export default function FloatingNav() {
     setIsNotificationMenuOpen(false)
   }
 
+  // Handle scroll for header shadow effect
+  useEffect(() => {
+    const mainElement = document.querySelector('main')
+    if (!mainElement) return
+
+    const handleScroll = () => {
+      setIsScrolled(mainElement.scrollTop > 10)
+    }
+
+    mainElement.addEventListener('scroll', handleScroll)
+    return () => mainElement.removeEventListener('scroll', handleScroll)
+  }, [])
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -74,7 +88,11 @@ export default function FloatingNav() {
   }, [])
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+    <header className={`
+      flex shrink-0 items-center gap-2 border-b bg-background px-4
+      transition-all duration-300 ease-in-out
+      ${isScrolled ? 'h-12 shadow-md' : 'h-14'}
+    `}>
       <div className="flex flex-1 items-center gap-2">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4" />

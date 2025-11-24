@@ -7,6 +7,7 @@ import {
   FileText,
   Settings as SettingsIcon,
   Calendar,
+  Bell,
   UserPlus,
   Key,
   Activity,
@@ -14,6 +15,7 @@ import {
   Mail,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useNotificationStore } from '@/stores/useNotificationStore'
 import {
   Sidebar,
   SidebarContent,
@@ -36,27 +38,30 @@ export default function AppSidebar() {
   const { user } = useAuth()
   const { state } = useSidebar()
   const [createUserOpen, setCreateUserOpen] = useState(false)
+  const getUnreadCount = useNotificationStore((state) => state.getUnreadCount)
+  const unreadCount = getUnreadCount()
 
   const navItems = [
-    { path: '/dashboard', icon: Home, label: 'Dashboard' },
-    { path: '/integrations', icon: Cable, label: 'Integrations' },
-    { path: '/active-directory', icon: Shield, label: 'Active Directory' },
-    { path: '/exchange', icon: Mail, label: 'Exchange' },
-    { path: '/customers', icon: Users, label: 'Customers' },
-    { path: '/reports', icon: FileText, label: 'Reports' },
-    { path: '/schedules', icon: Calendar, label: 'Schedules' },
+    { path: '/platform/dashboard', icon: Home, label: 'Dashboard' },
+    { path: '/platform/integrations', icon: Cable, label: 'Integrations' },
+    { path: '/platform/active-directory', icon: Shield, label: 'Active Directory' },
+    { path: '/platform/exchange', icon: Mail, label: 'Exchange' },
+    { path: '/platform/customers', icon: Users, label: 'Customers' },
+    { path: '/platform/reports', icon: FileText, label: 'Reports' },
+    { path: '/platform/schedules', icon: Calendar, label: 'Schedules' },
+    { path: '/platform/notifications', icon: Bell, label: 'Notifications' },
   ]
 
   const adminNavItems = [
-    { path: '/users', icon: UserPlus, label: 'Users' },
-    { path: '/api-keys', icon: Key, label: 'API Keys' },
-    { path: '/licenses', icon: Key, label: 'Licenses' },
-    { path: '/monitoring', icon: Activity, label: 'Monitoring' },
+    { path: '/admin/users', icon: UserPlus, label: 'Users' },
+    { path: '/admin/api-keys', icon: Key, label: 'API Keys' },
+    { path: '/admin/licenses', icon: Key, label: 'Licenses' },
+    { path: '/admin/monitoring', icon: Activity, label: 'Monitoring' },
   ]
 
 
   const bottomItems = [
-    { path: '/settings', icon: SettingsIcon, label: 'Settings' },
+    { path: '/admin/settings', icon: SettingsIcon, label: 'Settings' },
   ]
 
   const isActive = (path: string) => location.pathname === path
@@ -94,7 +99,11 @@ export default function AppSidebar() {
       <SidebarHeader className="px-4 py-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
+            <Link 
+              to="/platform/dashboard"
+              className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 hover:opacity-80 transition-opacity"
+              onClick={(e) => handleNavClick(e, '/platform/dashboard')}
+            >
               {/* Expanded state - full logos */}
               <img 
                 src="/logo.png" 
@@ -122,7 +131,7 @@ export default function AppSidebar() {
                   ) : null}
                 </div>
               )}
-            </div>
+            </Link>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -134,6 +143,7 @@ export default function AppSidebar() {
               {navItems.map((item) => {
                 const Icon = item.icon
                 const active = isActive(item.path)
+                const showBadge = item.path === '/notifications' && unreadCount > 0
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton 
@@ -144,8 +154,16 @@ export default function AppSidebar() {
                       style={active ? { background: 'var(--brand-gradient)' } : undefined}
                     >
                       <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
-                        <Icon className="h-4 w-4 flex-shrink-0" />
-                        <span className="font-medium group-data-[collapsible=icon]:hidden">{item.label}</span>
+                        <div className="relative flex-shrink-0">
+                          <Icon className="h-4 w-4" />
+                          {showBadge && (
+                            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
+                          )}
+                        </div>
+                        <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">{item.label}</span>
+                        {showBadge && (
+                          <span className="ml-auto h-2 w-2 rounded-full bg-red-500 group-data-[collapsible=icon]:hidden" />
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
