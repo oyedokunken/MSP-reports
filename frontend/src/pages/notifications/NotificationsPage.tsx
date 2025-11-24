@@ -2,19 +2,28 @@ import { useState } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { AnimatedCard, PulsingDot } from '@/components/ui/AnimatedCard'
 import { Button } from '@/components/ui/button'
-import { Bell, CheckCheck, X, Clock, Tag } from 'lucide-react'
+import { Bell, CheckCheck, X, Clock, Tag, Trash2 } from 'lucide-react'
 import { useNotificationStore, type Notification } from '@/stores/useNotificationStore'
 import { EmptyState } from '@/components/ui/LoadingStates'
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import { useToast } from '@/components/ui/Toast'
 
 export default function NotificationsPage() {
+  const toast = useToast()
   const notifications = useNotificationStore((state) => state.notifications)
   const markAsRead = useNotificationStore((state) => state.markAsRead)
   const markAllAsRead = useNotificationStore((state) => state.markAllAsRead)
+  const deleteNotification = useNotificationStore((state) => state.deleteNotification)
+  const deleteAllRead = useNotificationStore((state) => state.deleteAllRead)
   const getUnreadCount = useNotificationStore((state) => state.getUnreadCount)
 
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
+  const [showMarkAllConfirm, setShowMarkAllConfirm] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null)
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false)
 
   const unreadCount = getUnreadCount()
+  const readCount = notifications.filter(n => n.read).length
 
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id)
@@ -27,6 +36,20 @@ export default function NotificationsPage() {
 
   const handleMarkAllAsRead = () => {
     markAllAsRead()
+    setShowMarkAllConfirm(false)
+    toast.success('All notifications marked as read')
+  }
+
+  const handleDeleteNotification = (id: number) => {
+    deleteNotification(id)
+    setShowDeleteConfirm(null)
+    toast.success('Notification deleted')
+  }
+
+  const handleDeleteAllRead = () => {
+    deleteAllRead()
+    setShowDeleteAllConfirm(false)
+    toast.success('All read notifications deleted')
   }
 
   return (
@@ -39,17 +62,30 @@ export default function NotificationsPage() {
               Stay updated with your system activities and events
             </p>
           </div>
-          {unreadCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleMarkAllAsRead}
-              className="gap-2"
-            >
-              <CheckCheck className="h-4 w-4" />
-              Mark all as read
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {unreadCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMarkAllConfirm(true)}
+                className="gap-2"
+              >
+                <CheckCheck className="h-4 w-4" />
+                Mark all as read
+              </Button>
+            )}
+            {readCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteAllConfirm(true)}
+                className="gap-2 text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete read
+              </Button>
+            )}
+          </div>
         </div>
 
         <AnimatedCard className="p-0 overflow-hidden">
@@ -66,8 +102,7 @@ export default function NotificationsPage() {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`p-4 hover:bg-muted/50 transition-colors cursor-pointer ${
+                  className={`p-4 hover:bg-muted/50 transition-colors group ${
                     !notification.read ? 'bg-primary/5' : ''
                   }`}
                 >
@@ -75,7 +110,10 @@ export default function NotificationsPage() {
                     <div className="flex-shrink-0 mt-1">
                       <PulsingDot color={notification.severity} />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div 
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => handleNotificationClick(notification)}
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="text-sm font-medium text-foreground">
                           {notification.title}
@@ -98,6 +136,17 @@ export default function NotificationsPage() {
                         Click to view details
                       </p>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setShowDeleteConfirm(notification.id)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -238,6 +287,40 @@ export default function NotificationsPage() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modals */}
+      <ConfirmationModal
+        isOpen={showMarkAllConfirm}
+        onClose={() => setShowMarkAllConfirm(false)}
+        onConfirm={handleMarkAllAsRead}
+        title="Mark All as Read"
+        description={`Are you sure you want to mark all ${unreadCount} unread notifications as read? This action cannot be undone.`}
+        confirmText="Mark All as Read"
+        cancelText="Cancel"
+        type="info"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteConfirm !== null}
+        onClose={() => setShowDeleteConfirm(null)}
+        onConfirm={() => showDeleteConfirm && handleDeleteNotification(showDeleteConfirm)}
+        title="Delete Notification"
+        description="Are you sure you want to delete this notification? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteAllConfirm}
+        onClose={() => setShowDeleteAllConfirm(false)}
+        onConfirm={handleDeleteAllRead}
+        title="Delete All Read Notifications"
+        description={`Are you sure you want to delete all ${readCount} read notifications? This action cannot be undone.`}
+        confirmText="Delete All"
+        cancelText="Cancel"
+        type="danger"
+      />
     </FloatingLayout>
   )
 }
