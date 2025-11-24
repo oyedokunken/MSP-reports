@@ -352,6 +352,18 @@ git push origin main
 
 The following integration scaffolds have been created:
 
+### AdminDroid
+- **Directory:** `app/Integrations/AdminDroid/`
+- **Purpose:** Microsoft 365 reporting and analytics
+- **Data Types:** m365_reports, user_activity, mailbox_reports, license_reports, security_reports
+- **Status:** Scaffold only, awaiting API credentials
+
+### Kaseya
+- **Directory:** `app/Integrations/Kaseya/`
+- **Purpose:** Kaseya GRC (Governance, Risk, and Compliance) monitoring
+- **Data Types:** compliance_assessments, risk_assessments, policy_compliance, audit_reports, vulnerability_assessments, remediation_tasks
+- **Status:** Scaffold only, awaiting API credentials
+
 ### Kemp Load Balancer
 - **Directory:** `app/Integrations/Kemp/`
 - **Purpose:** Load balancer monitoring and statistics
@@ -370,6 +382,12 @@ The following integration scaffolds have been created:
 - **Data Types:** allowlist_policies, ringfencing_policies, blocked_applications, security_events
 - **Status:** Scaffold only, awaiting API credentials
 
+### Veeam
+- **Directory:** `app/Integrations/Veeam/`
+- **Purpose:** Veeam Service Provider Console backup and recovery monitoring
+- **Data Types:** backup_jobs, backup_sessions, restore_sessions, protected_vms, backup_repositories, job_statistics
+- **Status:** Scaffold only, awaiting API credentials
+
 ### BitDefender
 - **Directory:** `app/Integrations/BitDefender/`
 - **Purpose:** Endpoint security and antivirus protection
@@ -382,6 +400,24 @@ The following integration scaffolds have been created:
 - **Data Types:** audit_logs, security_alerts, user_activity, mailbox_activity, sharepoint_activity
 - **Status:** Scaffold only, awaiting API credentials
 - **Note:** Requires Azure AD app registration with tenant_id, client_id, and client_secret
+
+### RocketCyber
+- **Directory:** `app/Integrations/RocketCyber/`
+- **Purpose:** Security monitoring and threat detection
+- **Data Types:** security_incidents, threat_detections, security_alerts, endpoint_events, vulnerability_scans
+- **Status:** Scaffold only, awaiting API credentials
+
+### SAT
+- **Directory:** `app/Integrations/SAT/`
+- **Purpose:** Security Awareness Training platform monitoring
+- **Data Types:** training_completions, phishing_simulations, user_scores, course_enrollments, compliance_status
+- **Status:** Scaffold only, awaiting API credentials
+
+### SaaS
+- **Directory:** `app/Integrations/SaaS/`
+- **Purpose:** SaaS application monitoring and management
+- **Data Types:** application_usage, license_management, user_access, subscription_status, cost_tracking
+- **Status:** Scaffold only, awaiting API credentials
 
 ### WatchguardAuthPoint
 - **Directory:** `app/Integrations/WatchguardAuthPoint/`
