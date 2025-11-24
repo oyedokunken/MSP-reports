@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import FloatingLayout from "@/components/layout/FloatingLayout";
 import { useToast } from "@/components/ui/Toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { FileText, Cable, Users, Activity, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,7 @@ import { useNotificationStore } from "@/stores/useNotificationStore";
 
 export default function Dashboard() {
     const toast = useToast();
+    const { isAuthenticated } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -54,11 +56,19 @@ export default function Dashboard() {
 
     // Fetch all data on mount
     useEffect(() => {
-        loadDashboardData();
+        // Only load data if user is authenticated
+        if (isAuthenticated) {
+            loadDashboardData();
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [isAuthenticated]);
 
     const loadDashboardData = async () => {
+        // Guard against loading when not authenticated
+        if (!isAuthenticated) {
+            return;
+        }
+        
         setIsLoading(true);
         try {
             await Promise.all([
@@ -68,9 +78,12 @@ export default function Dashboard() {
                 fetchReportMetrics(),
                 fetchSchedules(),
             ]);
-        } catch (err) {
-            console.error("Failed to load dashboard data:", err);
-            toast.error("Failed to load dashboard data");
+        } catch (err: any) {
+            // Only show error if we're still authenticated (not during logout)
+            if (isAuthenticated) {
+                console.error("Failed to load dashboard data:", err);
+                toast.error("Failed to load dashboard data");
+            }
         } finally {
             setIsLoading(false);
         }

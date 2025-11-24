@@ -32,11 +32,20 @@ apiClient.interceptors.response.use(
     return response
   },
   (error: AxiosError<ApiError>) => {
-    // Handle 401 Unauthorized - redirect to login
+    // Handle 401 Unauthorized - redirect to login (except during logout)
     if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
+      const isLogoutRequest = error.config?.url?.includes('/auth/logout')
+      
+      if (!isLogoutRequest) {
+        localStorage.removeItem('auth_token')
+        localStorage.removeItem('user')
+        localStorage.removeItem('company')
+        
+        // Use replace to prevent back button issues
+        if (window.location.pathname !== '/login') {
+          window.location.replace('/login')
+        }
+      }
     }
 
     // Handle 403 Forbidden

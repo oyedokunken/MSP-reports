@@ -35,11 +35,21 @@ export default function FloatingNav() {
   const unreadCount = getUnreadCount()
   const hasUnread = unreadCount > 0
 
-  const handleLogout = () => {
-    logout()
-    toast.success('Logged Out', 'You have been successfully logged out')
-    setShowLogoutConfirm(false)
-    navigate('/login')
+  const handleLogout = async () => {
+    try {
+      setShowLogoutConfirm(false)
+      // Perform logout first
+      await logout()
+      // Then navigate
+      navigate('/login', { replace: true })
+      // Show toast after navigation
+      setTimeout(() => {
+        toast.success('Logged Out', 'You have been successfully logged out')
+      }, 100)
+    } catch (error) {
+      console.error('Logout error:', error)
+      toast.error('Logout Failed', 'An error occurred during logout')
+    }
   }
 
   const handleNotificationClick = (notification: Notification) => {
