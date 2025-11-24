@@ -76,6 +76,11 @@ export default {
   				'Inter',
   				'system-ui',
   				'sans-serif'
+  			],
+  			athletics: [
+  				'Athletics',
+  				'system-ui',
+  				'sans-serif'
   			]
   		},
   		borderRadius: {
