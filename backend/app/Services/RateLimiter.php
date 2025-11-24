@@ -3,74 +3,103 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use App\Models\Integration;
 
 class RateLimiter
 {
+    private bool $useRedis;
+
+    public function __construct()
+    {
+        // Fallback to cache if Redis is not available
+        $this->useRedis = config('cache.default') === 'redis';
+    }
+
     public function canMakeRequest(Integration $integration): bool
     {
-        $limits = $this->getRateLimits($integration);
-        $minuteKey = $this->getRedisKey($integration, 'minute');
-        $minuteCount = Redis::get($minuteKey) ?? 0;
-        
-        if ($minuteCount >= $limits['requests_per_minute']) {
-            return false;
+        try {
+            $limits = $this->getRateLimits($integration);
+            $minuteKey = $this->getKey($integration, 'minute');
+            $minuteCount = $this->get($minuteKey) ?? 0;
+            
+            if ($minuteCount >= $limits['requests_per_minute']) {
+                return false;
+            }
+            
+            $hourKey = $this->getKey($integration, 'hour');
+            $hourCount = $this->get($hourKey) ?? 0;
+            
+            if ($hourCount >= $limits['requests_per_hour']) {
+                return false;
+            }
+            
+            return true;
+        } catch (\Exception $e) {
+            Log::warning('Rate limiter check failed, allowing request', [
+                'integration_id' => $integration->integration_id,
+                'error' => $e->getMessage()
+            ]);
+            return true; // Fail open to not block legitimate requests
         }
-        
-        $hourKey = $this->getRedisKey($integration, 'hour');
-        $hourCount = Redis::get($hourKey) ?? 0;
-        
-        if ($hourCount >= $limits['requests_per_hour']) {
-            return false;
-        }
-        
-        return true;
     }
 
     public function recordRequest(Integration $integration): void
     {
-        $minuteKey = $this->getRedisKey($integration, 'minute');
-        $hourKey = $this->getRedisKey($integration, 'hour');
-        
-        Redis::incr($minuteKey);
-        Redis::incr($hourKey);
-        
-        if (Redis::ttl($minuteKey) === -1) {
-            Redis::expire($minuteKey, 60);
-        }
-        
-        if (Redis::ttl($hourKey) === -1) {
-            Redis::expire($hourKey, 3600);
+        try {
+            $minuteKey = $this->getKey($integration, 'minute');
+            $hourKey = $this->getKey($integration, 'hour');
+            
+            $this->increment($minuteKey, 60);
+            $this->increment($hourKey, 3600);
+        } catch (\Exception $e) {
+            Log::error('Failed to record rate limit', [
+                'integration_id' => $integration->integration_id,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
     public function getStatus(Integration $integration): array
     {
-        $limits = $this->getRateLimits($integration);
-   
-        $minuteKey = $this->getRedisKey($integration, 'minute');
-        $hourKey = $this->getRedisKey($integration, 'hour');
-        
-        $minuteCount = Redis::get($minuteKey) ?? 0;
-        $hourCount = Redis::get($hourKey) ?? 0;
-        
-        $minuteTtl = Redis::ttl($minuteKey);
-        $hourTtl = Redis::ttl($hourKey);
-        
-        return [
-            'per_minute' => [
-                'limit' => $limits['requests_per_minute'],
-                'used' => (int) $minuteCount,
-                'remaining' => max(0, $limits['requests_per_minute'] - $minuteCount),
-                'resets_in_seconds' => $minuteTtl > 0 ? $minuteTtl : 0,
-            ],
-            'per_hour' => [
-                'limit' => $limits['requests_per_hour'],
-                'used' => (int) $hourCount,
-                'remaining' => max(0, $limits['requests_per_hour'] - $hourCount),
-                'resets_in_seconds' => $hourTtl > 0 ? $hourTtl : 0,
-            ],
-        ];
+        try {
+            $limits = $this->getRateLimits($integration);
+       
+            $minuteKey = $this->getKey($integration, 'minute');
+            $hourKey = $this->getKey($integration, 'hour');
+            
+            $minuteCount = $this->get($minuteKey) ?? 0;
+            $hourCount = $this->get($hourKey) ?? 0;
+            
+            $minuteTtl = $this->useRedis ? Redis::ttl($minuteKey) : 60;
+            $hourTtl = $this->useRedis ? Redis::ttl($hourKey) : 3600;
+            
+            return [
+                'per_minute' => [
+                    'limit' => $limits['requests_per_minute'],
+                    'used' => (int) $minuteCount,
+                    'remaining' => max(0, $limits['requests_per_minute'] - $minuteCount),
+                    'resets_in_seconds' => $minuteTtl > 0 ? $minuteTtl : 0,
+                ],
+                'per_hour' => [
+                    'limit' => $limits['requests_per_hour'],
+                    'used' => (int) $hourCount,
+                    'remaining' => max(0, $limits['requests_per_hour'] - $hourCount),
+                    'resets_in_seconds' => $hourTtl > 0 ? $hourTtl : 0,
+                ],
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to get rate limit status', [
+                'integration_id' => $integration->integration_id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'per_minute' => ['limit' => 60, 'used' => 0, 'remaining' => 60, 'resets_in_seconds' => 0],
+                'per_hour' => ['limit' => 1000, 'used' => 0, 'remaining' => 1000, 'resets_in_seconds' => 0],
+            ];
+        }
     }
 
     public function waitForSlot(Integration $integration, int $maxWaitSeconds = 60): bool
@@ -99,8 +128,29 @@ class RateLimiter
         ];
     }
 
-    private function getRedisKey(Integration $integration, string $period): string
+    private function getKey(Integration $integration, string $period): string
     {
         return "rate_limit:integration:{$integration->integration_id}:{$period}";
+    }
+
+    private function get(string $key)
+    {
+        if ($this->useRedis) {
+            return Redis::get($key);
+        }
+        return Cache::get($key);
+    }
+
+    private function increment(string $key, int $ttl): void
+    {
+        if ($this->useRedis) {
+            Redis::incr($key);
+            if (Redis::ttl($key) === -1) {
+                Redis::expire($key, $ttl);
+            }
+        } else {
+            $current = (int) Cache::get($key, 0);
+            Cache::put($key, $current + 1, $ttl);
+        }
     }
 }

@@ -9,6 +9,8 @@ use App\Models\AuditLog;
 use App\Models\PasswordResetToken;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\LoginRequest;
@@ -23,14 +25,29 @@ class AuthController extends Controller
         $validated['email'] = trim(strtolower($validated['email']));
         $validated['auth_method'] = trim($validated['auth_method']);
 
+        // Check for too many failed login attempts
+        $lockoutKey = 'login_attempts:' . $request->ip();
+        $attempts = (int) Cache::get($lockoutKey, 0);
+        
+        if ($attempts >= 5) {
+            Log::warning('Login attempt blocked due to too many failed attempts', [
+                'ip' => $request->ip(),
+                'email' => $validated['email']
+            ]);
+            throw ValidationException::withMessages([
+                'email' => ['Too many failed login attempts. Please try again in 15 minutes.'],
+            ]);
+        }
+
         $user = User::where('email', $validated['email'])
                     ->where('auth_method', $validated['auth_method'])
                     ->with('company', 'role')
                     ->first();
 
         if (!$user) {
+            $this->recordFailedAttempt($request, $validated['email']);
             throw ValidationException::withMessages([
-                'email' => ['User not found or auth method mismatch.'],
+                'email' => ['Invalid credentials.'],
             ]);
         }
 
@@ -51,12 +68,16 @@ class AuthController extends Controller
                 empty($validated['password']) ||
                 !Hash::check($validated['password'], $user->password)
             ) {
+                $this->recordFailedAttempt($request, $validated['email'], $user->company_id);
                 throw ValidationException::withMessages([
-                    'password' => ['Invalid password.'],
+                    'password' => ['Invalid credentials.'],
                 ]);
             }
         }
 
+        // Clear failed login attempts on successful login
+        Cache::forget('login_attempts:' . $request->ip());
+        
         $user->last_login_at = now();
         $user->save();
 
@@ -284,5 +305,38 @@ class AuthController extends Controller
             'status' => 'success',
             'message' => 'Password changed successfully.',
         ]);
+    }
+
+    /**
+     * Record failed login attempt and implement rate limiting
+     */
+    private function recordFailedAttempt(Request $request, string $email, ?int $companyId = null): void
+    {
+        $lockoutKey = 'login_attempts:' . $request->ip();
+        $attempts = (int) Cache::get($lockoutKey, 0) + 1;
+        Cache::put($lockoutKey, $attempts, now()->addMinutes(15));
+
+        Log::warning('Failed login attempt', [
+            'ip' => $request->ip(),
+            'email' => $email,
+            'attempts' => $attempts,
+            'user_agent' => $request->userAgent()
+        ]);
+
+        if ($companyId) {
+            AuditLog::create([
+                'company_id' => $companyId,
+                'event_type' => 'failed_login_attempt',
+                'actor_type' => 'System',
+                'actor_id' => null,
+                'event_data' => json_encode([
+                    'email' => $email,
+                    'attempts' => $attempts,
+                    'timestamp' => now()->toDateTimeString(),
+                ]),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        }
     }
 }
