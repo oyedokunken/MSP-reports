@@ -95,18 +95,25 @@ export default function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0">
-              {/* Light mode logo */}
+              {/* Expanded state - full logos */}
               <img 
                 src="/logo.png" 
                 alt="Logo" 
-                className="h-14 w-auto object-contain group-data-[collapsible=icon]:h-10 dark:hidden"
+                className="h-14 w-auto object-contain dark:hidden group-data-[collapsible=icon]:hidden"
               />
-              {/* Dark mode logo */}
               <img 
                 src="/logo-white.png" 
                 alt="Logo" 
-                className="h-14 w-auto object-contain group-data-[collapsible=icon]:h-10 hidden dark:block"
+                className="h-14 w-auto object-contain hidden dark:block group-data-[collapsible=icon]:hidden"
               />
+              
+              {/* Collapsed state - icon logo */}
+              <img 
+                src="/msp-logo-icon.png" 
+                alt="Logo Icon" 
+                className="h-10 w-10 object-contain hidden group-data-[collapsible=icon]:block"
+              />
+              
               {companyName && (
                 <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                   <span className="font-semibold text-base truncate" title={companyName}>{companyMain}</span>

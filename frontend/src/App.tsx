@@ -30,9 +30,11 @@ import {
 } from '@/pages/exchange'
 import Licenses from '@/pages/licenses/Licenses'
 import Monitoring from '@/pages/monitoring/Monitoring'
+import NotificationsPage from '@/pages/notifications/NotificationsPage'
 import { Loader2 } from 'lucide-react'
 
-// Protected route wrapper
+
+// Protected route wrapper 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
 
@@ -51,7 +53,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-// Public route wrapper (redirects to dashboard if already logged in)
+// Public route wrapper (redirects to dashboard if already logged in) 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
 
@@ -276,6 +278,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Monitoring />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <NotificationsPage />
           </ProtectedRoute>
         }
       />

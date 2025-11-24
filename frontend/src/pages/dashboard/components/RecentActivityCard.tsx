@@ -2,6 +2,7 @@ import { AnimatedCard, PulsingDot } from '@/components/ui/AnimatedCard'
 import { Activity } from 'lucide-react'
 import { ActivityCardSkeleton, EmptyState } from '@/components/ui/LoadingStates'
 import type { RecentActivity } from '../types'
+import { useNavigate } from 'react-router-dom'
 
 type RecentActivityCardProps = {
   isLoading: boolean
@@ -9,11 +10,16 @@ type RecentActivityCardProps = {
 }
 
 export function RecentActivityCard ({ isLoading, items }: RecentActivityCardProps) {
+  const navigate = useNavigate()
+
   return (
     <AnimatedCard className="p-6 min-w-0">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Recent Activity</h2>
-        <button className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+        <button 
+          onClick={() => navigate('/notifications')}
+          className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
+        >
           View all
         </button>
       </div>

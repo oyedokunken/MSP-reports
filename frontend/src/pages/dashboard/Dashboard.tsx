@@ -25,6 +25,7 @@ import { useIntegrationStore } from "@/stores/useIntegrationStore";
 import { useCustomersStore } from "@/stores/useCustomersStore";
 import { useMonitoringStore } from "@/stores/useMonitoringStore";
 import { useSchedulesStore } from "@/stores/useSchedulesStore";
+import { useNotificationStore } from "@/stores/useNotificationStore";
 
 export default function Dashboard() {
     const toast = useToast();
@@ -49,6 +50,7 @@ export default function Dashboard() {
         (state) => state.fetchReportMetrics
     );
     const fetchSchedules = useSchedulesStore((state) => state.fetchSchedules);
+    const setNotifications = useNotificationStore((state) => state.setNotifications);
 
     // Fetch all data on mount
     useEffect(() => {
@@ -128,6 +130,19 @@ export default function Dashboard() {
 
         return activities.slice(0, 5);
     })();
+
+    // Sync notifications with recent activity
+    useEffect(() => {
+        const notifications = recentActivity.map((activity, index) => ({
+            id: Date.now() + index, // Unique ID based on timestamp
+            title: activity.title,
+            time: activity.time,
+            read: false, // All new activities are unread
+            type: activity.type as any,
+            severity: activity.severity,
+        }));
+        setNotifications(notifications);
+    }, [integrations, reportMetrics, setNotifications]);
 
     // Transform integrations data (already transformed from store)
     const dashboardIntegrations: Integration[] = integrations.map(
