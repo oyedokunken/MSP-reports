@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import FloatingLayout from "@/components/layout/FloatingLayout";
 import { useToast } from "@/components/ui/Toast";
-import { FileText, Cable, Users, Activity } from "lucide-react";
+import { FileText, Cable, Users, Activity, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
     getIntegrationStatusBadge,
     getIntegrationStatusIcon,
@@ -28,6 +29,7 @@ import { useSchedulesStore } from "@/stores/useSchedulesStore";
 export default function Dashboard() {
     const toast = useToast();
     const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Store data
     const integrations = useIntegrationStore((state) => state.integrations);
@@ -50,26 +52,39 @@ export default function Dashboard() {
 
     // Fetch all data on mount
     useEffect(() => {
-        const loadDashboardData = async () => {
-            setIsLoading(true);
-            try {
-                await Promise.all([
-                    fetchIntegrations(),
-                    fetchCustomers(),
-                    fetchSystemStatus(),
-                    fetchReportMetrics(),
-                    fetchSchedules(),
-                ]);
-            } catch (err) {
-                console.error("Failed to load dashboard data:", err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         loadDashboardData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const loadDashboardData = async () => {
+        setIsLoading(true);
+        try {
+            await Promise.all([
+                fetchIntegrations(),
+                fetchCustomers(),
+                fetchSystemStatus(),
+                fetchReportMetrics(),
+                fetchSchedules(),
+            ]);
+        } catch (err) {
+            console.error("Failed to load dashboard data:", err);
+            toast.error("Failed to load dashboard data");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            await loadDashboardData();
+            toast.success("Dashboard refreshed");
+        } catch (err) {
+            toast.error("Failed to refresh dashboard");
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
 
     // Generate recent activity reactively from store data
     const recentActivity: RecentActivity[] = (() => {
@@ -221,10 +236,26 @@ export default function Dashboard() {
                             integrations
                         </p>
                     </div>
-                    <DashboardHeaderActions
-                        onToastSuccess={toast.success}
-                        onToastInfo={toast.info}
-                    />
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRefresh}
+                            disabled={isRefreshing || isLoading}
+                            className="gap-2"
+                        >
+                            <RefreshCw
+                                className={`h-4 w-4 ${
+                                    isRefreshing ? "animate-spin" : ""
+                                }`}
+                            />
+                            Refresh
+                        </Button>
+                        <DashboardHeaderActions
+                            onToastSuccess={toast.success}
+                            onToastInfo={toast.info}
+                        />
+                    </div>
                 </div>
 
                 <StatsGrid isLoading={isLoading} stats={stats} />

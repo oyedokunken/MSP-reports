@@ -13,6 +13,8 @@ use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class DattoIntegration implements IntegrationInterface
 {
@@ -228,28 +230,38 @@ class DattoIntegration implements IntegrationInterface
 
     private function storeCustomer(array $customer): void
     {
-        $integrationCustomer = IntegrationCustomer::updateOrCreate(
-            [
-                'integration_id' => $this->integration->integration_id,
-                'external_id' => $customer['external_id'],
-            ],
-            [
-                'name' => $customer['name'],
-                'metadata' => $customer['metadata'],
-                'active' => $customer['active'],
-                'last_seen_at' => now(),
-            ]
-        );
-
-        $integrationCustomer->refresh();
-
-        if (!$integrationCustomer->customer_id) {
-            if ($this->integration->is_source_of_truth) {
-                $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Datto');
-            } else {
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
+        // Validate required fields
+        if (empty($customer['external_id']) || empty($customer['name'])) {
+            Log::warning('Datto: Skipping customer with missing required fields', [
+                'customer' => $customer
+            ]);
+            return;
         }
+
+        DB::transaction(function () use ($customer) {
+            $integrationCustomer = IntegrationCustomer::updateOrCreate(
+                [
+                    'integration_id' => $this->integration->integration_id,
+                    'external_id' => $customer['external_id'],
+                ],
+                [
+                    'name' => $customer['name'],
+                    'metadata' => $customer['metadata'],
+                    'active' => $customer['active'],
+                    'last_seen_at' => now(),
+                ]
+            );
+
+            $integrationCustomer->refresh();
+
+            if (!$integrationCustomer->customer_id) {
+                if ($this->integration->is_source_of_truth) {
+                    $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Datto');
+                } else {
+                    AutoMatchCustomersJob::dispatch($integrationCustomer);
+                }
+            }
+        });
     }
 
     private function storeHistoricalData(array $data): void
