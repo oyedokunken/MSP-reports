@@ -1,10 +1,12 @@
 import { Link } from 'react-router'
-import { Settings, ChevronDown } from 'lucide-react'
+import { Settings, ChevronDown, Bell } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { useState, useRef, useEffect } from 'react'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 /**
  * Floating Top Navbar
@@ -14,13 +16,27 @@ import { Separator } from '@/components/ui/separator'
 export default function FloatingNav() {
   const { user, logout } = useAuth()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const notificationMenuRef = useRef<HTMLDivElement>(null)
+
+  // Mock notifications - in production, this would come from an API/store
+  const [notifications] = useState([
+    { id: 1, title: 'Autotask PSA sync completed', time: '5 min ago', read: false, type: 'success' },
+    { id: 2, title: 'DattoRMM sync completed', time: '10 min ago', read: false, type: 'success' },
+    { id: 3, title: 'New customer mapped automatically', time: '1 hour ago', read: true, type: 'info' },
+  ])
+
+  const unreadCount = notifications.filter(n => !n.read).length
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false)
+      }
+      if (notificationMenuRef.current && !notificationMenuRef.current.contains(event.target as Node)) {
+        setIsNotificationMenuOpen(false)
       }
     }
     
@@ -32,14 +48,87 @@ export default function FloatingNav() {
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 dark:border-b-0 bg-background dark:bg-[hsl(var(--auth-card))] px-6">
       {/* Left: Sidebar trigger + Logo */}
       <div className="flex items-center gap-2">
-        <SidebarTrigger aria-label="Toggle sidebar" className="-ml-1 lg:hidden" />
-        <Separator orientation="vertical" className="mr-2 h-6 lg:hidden" />
+        <SidebarTrigger aria-label="Toggle sidebar" className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-6" />
         {/* Logo */}
      
       </div>
 
       {/* Right Side Actions */}
       <div className="flex items-center gap-3">
+            {/* Notifications */}
+            <div className="relative" ref={notificationMenuRef}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsNotificationMenuOpen(!isNotificationMenuOpen)}
+                className="relative h-9 w-9 p-0"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </Button>
+
+              {/* Notifications Dropdown */}
+              {isNotificationMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-gray-200 dark:border-gray-800 bg-background dark:bg-[hsl(var(--auth-card))] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 max-h-96 overflow-hidden">
+                  <div className="p-4 border-b border-border">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-foreground">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <Badge variant="secondary" className="text-xs">
+                          {unreadCount} new
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center text-sm text-muted-foreground">
+                        No notifications
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={`p-4 border-b border-border hover:bg-muted/50 transition-colors cursor-pointer ${
+                            !notification.read ? 'bg-primary/5' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`mt-1 h-2 w-2 rounded-full flex-shrink-0 ${
+                              !notification.read ? 'bg-red-500' : 'bg-gray-400 dark:bg-gray-600'
+                            }`} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground">{notification.title}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  
+                  {notifications.length > 0 && (
+                    <div className="p-2 border-t border-border">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => setIsNotificationMenuOpen(false)}
+                      >
+                        View all notifications
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Theme Toggle */}
             <ThemeToggle />
 

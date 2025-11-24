@@ -70,25 +70,25 @@ export function IntegrationCard ({
         isSyncing ? 'ring-2 ring-primary/50 shadow-lg bg-primary/5' : ''
       } ${isSourceOfTruth ? 'border-2 border-blue-500 dark:border-blue-400' : ''}`}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-primary/10 p-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
             <Cable className="h-6 w-6 text-primary" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-foreground">{integration.name}</h3>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-foreground break-words max-w-full">{integration.name}</h3>
               {isSourceOfTruth && (
-                <Badge variant="default" className="bg-blue-500 text-white hover:bg-blue-600 whitespace-nowrap">
+                <Badge variant="default" className="bg-blue-500 text-white hover:bg-blue-600 whitespace-nowrap flex-shrink-0">
                   <Crown className="h-3 w-3 mr-1" />
                   Master List
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground whitespace-nowrap">{integration.type}</p>
+            <p className="text-xs text-muted-foreground truncate">{integration.type}</p>
           </div>
         </div>
-        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${statusInfo.color}`}>
+        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium flex-shrink-0 ${statusInfo.color}`}>
           {statusInfo.text}
         </span>
       </div>
