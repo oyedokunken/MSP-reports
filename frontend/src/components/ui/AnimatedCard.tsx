@@ -106,12 +106,13 @@ export function AnimatedStatCard({
 export function PulsingDot({
     color = "green",
 }: {
-    color?: "green" | "yellow" | "red";
+    color?: "green" | "yellow" | "red" | "blue";
 }) {
     const colorClasses = {
         green: "bg-green-500",
         yellow: "bg-yellow-500",
         red: "bg-red-500",
+        blue: "bg-blue-500",
     };
 
     return (

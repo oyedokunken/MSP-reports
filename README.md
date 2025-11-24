@@ -20,8 +20,10 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 - 🎨 **White-Label Ready** - Per-tenant branding and customization
 - 🚀 **Production Ready** - Battle-tested with enterprise-grade security
 - 📱 **Modern UI** - Beautiful, responsive React interface with dark mode
-- 🔔 **Real-time Notifications** - In-app notification system with badge indicators
-- 📲 **Responsive Design** - Collapsible sidebar with mobile-first approach
+- 🔔 **Real-time Notifications** - In-app notification system with detailed views
+- 📲 **Responsive Design** - Collapsible sidebar with persistent state across navigation
+- 🎯 **Interactive UI** - Clickable notifications with full detail modals
+- 💾 **State Persistence** - UI preferences saved across sessions
 
 ---
 
@@ -179,6 +181,53 @@ Each report must implement: `generate()`, `getRequiredData()`, `getTemplate()`, 
 - Secure session management
 - Input validation and sanitisation on all endpoints
 - Regular security scanning in CI/CD pipeline
+
+---
+
+## Notification System
+
+The platform features a comprehensive in-app notification system that keeps users informed of all system activities:
+
+### Features
+- **Real-time Updates** - Notifications sync automatically with dashboard activities
+- **Bell Icon Indicator** - Red dot appears when new notifications are available
+- **Dropdown Preview** - Quick view of recent notifications from any page
+- **Dedicated Page** - Full notification list at `/notifications` with search and filtering
+- **Click to View Details** - Each notification opens a detailed modal with complete information
+- **Status Tracking** - Visual indicators for read/unread status
+- **Contextual Information** - Type-specific details (sync, report, alert, info)
+- **Mark as Read** - Individual or bulk actions to manage notification status
+
+### Notification Types
+- **Sync Events** - Integration synchronization completions and failures
+- **Report Events** - Report generation and delivery status
+- **Alerts** - System alerts requiring attention
+- **Info** - General system information and updates
+
+### User Experience
+- Notifications automatically created from Recent Activity on dashboard
+- Persistent across page navigation
+- Modal detail view shows event type, severity, timestamp, and contextual help
+- "View All Notifications" button in dropdown for quick access
+- Recent Activity section links directly to notifications page
+
+---
+
+## UI/UX Features
+
+### Sidebar Navigation
+- **Persistent State** - Sidebar collapsed/expanded state saved in localStorage
+- **Cross-page Memory** - State maintained when navigating between pages
+- **Keyboard Shortcut** - `Ctrl+B` (or `Cmd+B` on Mac) to toggle sidebar
+- **Responsive Icons** - Collapsed state shows icon-only view with logo icon
+- **Smooth Animations** - Polished transitions for expand/collapse
+- **Mobile Optimized** - Dedicated mobile menu with sheet overlay
+
+### Logo & Branding
+- **Custom Favicon** - Configurable site icon (msp-logo-icon.png)
+- **Dynamic Logos** - Different logos for light/dark themes
+- **Collapsed View** - Icon logo when sidebar is collapsed
+- **Expanded View** - Full logo with company name when expanded
 
 ---
 
