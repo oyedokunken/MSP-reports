@@ -20,6 +20,8 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 - 🎨 **White-Label Ready** - Per-tenant branding and customization
 - 🚀 **Production Ready** - Battle-tested with enterprise-grade security
 - 📱 **Modern UI** - Beautiful, responsive React interface with dark mode
+- 🔔 **Real-time Notifications** - In-app notification system with badge indicators
+- 📲 **Responsive Design** - Collapsible sidebar with mobile-first approach
 
 ---
 
