@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
   ArrowLeft, User, Mail, Briefcase, Calendar, Shield, Key, 
-  CheckCircle, XCircle, Clock, Building, Phone, MapPin, RefreshCw
+  CheckCircle, XCircle, Clock, Building, Phone, MapPin
 } from 'lucide-react'
 // import { api } from '@/lib/api' // TODO: Uncomment when API endpoints are implemented
 // import { useToast } from '@/components/ui/Toast' // TODO: Uncomment when API endpoints are implemented

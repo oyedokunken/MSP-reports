@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, FileText, Mail, Save, Play } from 'lucide-react'
 import { api } from '@/lib/api'
+import { Spinner } from '@/components/ui/spinner'
 
 interface ReportConfig {
   enabled_reports: Array<{

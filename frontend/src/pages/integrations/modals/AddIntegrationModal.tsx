@@ -17,18 +17,45 @@ interface AddIntegrationModalProps {
   onSuccess?: () => void
 }
 
+interface CredentialField {
+  type: string
+  label: string
+  required: boolean
+  placeholder?: string
+  help?: string
+  encrypted?: boolean
+}
+
+interface IntegrationConfig {
+  name: string
+  display_name: string
+  description: string
+  credentials: Record<string, CredentialField>
+  configuration?: Record<string, any>
+}
+
 export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSuccess }: AddIntegrationModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [integrationConfig, setIntegrationConfig] = useState<IntegrationConfig | null>(null)
+  const [loadingConfig, setLoadingConfig] = useState(false)
   
   // Get fetchIntegrations from store
   const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    integration_type: string
+    display_name: string
+    status: string
+    credentials: Record<string, any>
+    configuration: Record<string, any>
+  }>({
     integration_type: '',
     display_name: '',
     status: 'active',
+    credentials: {},
+    configuration: {},
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,7 +78,10 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
             integration_type: '',
             display_name: '',
             status: 'active',
+            credentials: {},
+            configuration: {},
           })
+          setIntegrationConfig(null)
           onOpenChange(false)
           onSuccess?.()
         }, 2000)
@@ -68,10 +98,25 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  const handleCredentialChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      credentials: { ...prev.credentials, [field]: value }
+    }))
+  }
+
   const handleClose = () => {
     if (!isSubmitting) {
       setError('')
       setSuccess(false)
+      setIntegrationConfig(null)
+      setFormData({
+        integration_type: '',
+        display_name: '',
+        status: 'active',
+        credentials: {},
+        configuration: {},
+      })
       onOpenChange(false)
     }
   }
@@ -154,6 +199,43 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
               </SelectContent>
             </Select>
           </div>
+
+          {/* Credential Fields - Dynamic based on integration type */}
+          {loadingConfig && (
+            <div className="flex items-center justify-center py-4">
+              <Spinner className="h-6 w-6" />
+              <span className="ml-2 text-sm text-muted-foreground">Loading configuration...</span>
+            </div>
+          )}
+
+          {integrationConfig && integrationConfig.credentials && Object.keys(integrationConfig.credentials).length > 0 && (
+            <div className="space-y-4 pt-4 border-t">
+              <div>
+                <h4 className="text-sm font-semibold mb-1">Credentials</h4>
+                <p className="text-xs text-muted-foreground">{integrationConfig.description}</p>
+              </div>
+              
+              {Object.entries(integrationConfig.credentials).map(([key, field]) => (
+                <div key={key} className="space-y-2">
+                  <Label htmlFor={key}>
+                    {field.label} {field.required && '*'}
+                  </Label>
+                  <Input
+                    id={key}
+                    type={field.type === 'password' ? 'password' : field.type === 'number' ? 'number' : 'text'}
+                    placeholder={field.placeholder || ''}
+                    value={formData.credentials[key] || ''}
+                    onChange={(e) => handleCredentialChange(key, e.target.value)}
+                    required={field.required}
+                    disabled={isSubmitting}
+                  />
+                  {field.help && (
+                    <p className="text-xs text-muted-foreground">{field.help}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">

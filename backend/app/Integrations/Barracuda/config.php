@@ -10,22 +10,27 @@ return [
             'type' => 'text',
             'label' => 'API URL',
             'required' => false,
-            'placeholder' => 'https://api.barracuda.com',
-            'help' => 'Your Barracuda API endpoint',
+            'placeholder' => 'https://data.barracudanetworks.com/b1',
+            'help' => 'BarracudaONE API endpoint (default: https://data.barracudanetworks.com/b1)',
         ],
-        'api_key' => [
+        'client_id' => [
             'type' => 'text',
-            'label' => 'API Key',
-            'required' => false,
-            'encrypted' => true,
-            'help' => 'Your Barracuda API key',
+            'label' => 'Client ID',
+            'required' => true,
+            'help' => 'Your BarracudaONE App Client ID (from Settings > Apps & Credentials)',
         ],
-        'api_secret' => [
+        'client_secret' => [
             'type' => 'password',
-            'label' => 'API Secret',
-            'required' => false,
+            'label' => 'Client Secret',
+            'required' => true,
             'encrypted' => true,
-            'help' => 'Your Barracuda API secret',
+            'help' => 'Your BarracudaONE App Client Secret',
+        ],
+        'parent_account_id' => [
+            'type' => 'number',
+            'label' => 'Parent Account ID',
+            'required' => true,
+            'help' => 'Your Partner Account ID (found in Settings > Apps & Credentials)',
         ],
     ],
     

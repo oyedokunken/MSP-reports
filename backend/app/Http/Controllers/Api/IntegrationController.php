@@ -89,6 +89,23 @@ class IntegrationController extends Controller
         ]);
     }
 
+    /**
+     * Get configuration for a specific integration type
+     */
+    public function getConfig(Request $request, string $integrationType)
+    {
+        $config = $this->getIntegrationConfig($integrationType);
+        
+        if (!$config) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration type not found'
+            ], 404);
+        }
+
+        return response()->json($config);
+    }
+
     public function createIntegration(Request $request)
     {
         $authUser = $request->user();
