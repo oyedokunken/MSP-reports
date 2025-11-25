@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 use App\Models\Integration;
 use App\Models\AuditLog;
 use App\Services\SyncEngine;
@@ -90,23 +92,60 @@ class IntegrationController extends Controller
     }
 
     /**
-     * Get configuration for a specific integration type
+     * Get configuration and credential fields for a specific integration type
      */
-    public function getConfig(Request $request, string $integrationType)
+    public function getIntegrationTypeConfig(string $integrationType): JsonResponse
     {
-        $config = $this->getIntegrationConfig($integrationType);
-        
-        if (!$config) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Integration type not found'
-            ], 404);
-        }
+        try {
+            // Get credential fields from the integration class (new method)
+            $className = "App\\Integrations\\{$integrationType}\\{$integrationType}Integration";
+            if (!class_exists($className)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Integration type not found',
+                ], 404);
+            }
 
-        return response()->json($config);
+            // Create a temporary instance to get credential fields
+            $tempIntegration = new \App\Models\Integration([
+                'integration_type' => $integrationType,
+                'credentials' => [],
+            ]);
+            $instance = new $className($tempIntegration);
+            
+            // Get metadata and credential fields
+            $metadata = $instance->getMetadata();
+            $credentialFields = $instance->getCredentialFields();
+
+            return response()->json([
+                'success' => true,
+                'config' => [
+                    'name' => $metadata['name'] ?? $integrationType,
+                    'description' => $metadata['description'] ?? '',
+                    'credential_fields' => $credentialFields,
+                    'data_types' => $metadata['data_types'] ?? [],
+                    'supports_historical' => $metadata['supports_historical'] ?? false,
+                    'historical_range_days' => $metadata['historical_range_days'] ?? 0,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get integration config', [
+                'integration_type' => $integrationType,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get integration configuration: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
-    public function createIntegration(Request $request)
+    /**
+     * Create a new integration
+     */
+    public function createIntegration(Request $request): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -114,7 +153,7 @@ class IntegrationController extends Controller
         $availableTypes = $this->scanAvailableIntegrations();
         
         $request->merge([
-            'integration_type' => trim($request->integration_type),
+            'integration_type' => trim(strip_tags($request->integration_type)),
             'display_name' => trim(strip_tags($request->display_name)),
         ]);
 
@@ -160,13 +199,103 @@ class IntegrationController extends Controller
             ], 403);
         }
 
+        // Process credentials - map region selectors to URLs
+        $credentials = $validated['credentials'] ?? [];
+        
+        // Datto: map rmm_region to rmm_url
+        if ($validated['integration_type'] === 'Datto' && isset($credentials['rmm_region'])) {
+            $credentials['rmm_url'] = $credentials['rmm_region'];
+            unset($credentials['rmm_region']);
+        }
+        
+        // Autotask: map zone to endpoint
+        if ($validated['integration_type'] === 'Autotask' && isset($credentials['zone'])) {
+            $credentials['endpoint'] = $credentials['zone'];
+            unset($credentials['zone']);
+        }
+        
+        // ITGlue: base_url is already the region URL from select
+        // Sendmarc: add default base_url
+        if ($validated['integration_type'] === 'Sendmarc' && !isset($credentials['base_url'])) {
+            $credentials['base_url'] = 'https://api.sendmarc.com';
+        }
+        
+        // Barracuda: add default base_url
+        if ($validated['integration_type'] === 'Barracuda' && !isset($credentials['base_url'])) {
+            $credentials['base_url'] = 'https://api.barracuda.com';
+        }
+
+        // Create temporary integration to test credentials
+        $tempIntegration = new Integration([
+            'company_id' => $company->company_id,
+            'integration_type' => $validated['integration_type'],
+            'display_name' => $validated['display_name'],
+            'status' => 'disconnected',
+            'credentials' => $credentials,
+            'configuration' => $validated['configuration'] ?? [],
+        ]);
+
+        // Test authentication if credentials provided
+        if (!empty($credentials)) {
+            try {
+                $className = "App\\Integrations\\{$validated['integration_type']}\\{$validated['integration_type']}Integration";
+                
+                if (!class_exists($className)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Integration class not found.'
+                    ], 500);
+                }
+
+                $instance = new $className($tempIntegration);
+                $authResult = $instance->authenticate();
+
+                if (!$authResult) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Authentication failed. Please verify your credentials and try again.'
+                    ], 422); // 422 Unprocessable Entity - validation failed
+                }
+
+                // Authentication successful, set status to active
+                $validated['status'] = 'active';
+            } catch (\Exception $e) {
+                Log::error('Integration authentication failed', [
+                    'integration_type' => $validated['integration_type'],
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Authentication failed: ' . $e->getMessage()
+                ], 422); // 422 Unprocessable Entity - validation failed
+            }
+        }
+
+        // Create the integration with processed credentials
         $integration = $company->integrations()->create([
             'integration_type' => $validated['integration_type'],
             'display_name' => $validated['display_name'],
             'status' => $validated['status'],
-            'credentials' => $validated['credentials'] ?? null,
+            'credentials' => $credentials,
             'configuration' => $validated['configuration'] ?? null,
             'is_source_of_truth' => $validated['is_source_of_truth'] ?? false,
+        ]);
+
+        // Log the creation
+        AuditLog::create([
+            'company_id' => $company->company_id,
+            'event_type' => 'integration_created',
+            'actor_type' => 'User',
+            'actor_id' => $authUser->user_id,
+            'target_type' => 'Integration',
+            'target_id' => $integration->integration_id,
+            'event_data' => [
+                'integration_type' => $integration->integration_type,
+                'display_name' => $integration->display_name,
+            ],
+            'ip_address' => $request->ip(),
         ]);
 
         return response()->json([

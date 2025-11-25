@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use App\Models\Integration;
 use App\Models\SyncLog;
 use App\Services\SyncEngine;
@@ -16,6 +17,7 @@ use App\Integrations\Autotask\AutotaskIntegration;
 use App\Integrations\Datto\DattoIntegration;
 use App\Integrations\Sendmarc\SendmarcIntegration;
 use App\Integrations\ITGlue\ITGlueIntegration;
+use App\Integrations\BitDefender\BitDefenderIntegration;
 use App\Mail\IntegrationSyncFailedMail;
 
 class SyncIntegrationJob implements ShouldQueue
@@ -33,6 +35,18 @@ class SyncIntegrationJob implements ShouldQueue
     {
         $this->integration = $integration;
         $this->syncLog = $syncLog;
+    }
+
+    /**
+     * Get the middleware the job should pass through.
+     */
+    public function middleware(): array
+    {
+        return [
+            (new WithoutOverlapping($this->integration->integration_id))
+                ->releaseAfter(60) // Release lock after 60 seconds if job fails
+                ->expireAfter(300) // Expire lock after 5 minutes (job timeout)
+        ];
     }
 
     public function handle(SyncEngine $syncEngine): void
@@ -158,6 +172,7 @@ class SyncIntegrationJob implements ShouldQueue
             'Datto' => DattoIntegration::class,
             'Sendmarc' => SendmarcIntegration::class,
             'ITGlue' => ITGlueIntegration::class,
+            'BitDefender' => BitDefenderIntegration::class,
         ];
 
         $className = $integrationClasses[$this->integration->integration_type] ?? null;

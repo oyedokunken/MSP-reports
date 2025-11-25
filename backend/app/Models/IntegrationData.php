@@ -11,6 +11,8 @@ class IntegrationData extends Model
     use HasFactory;
 
     protected $primaryKey = 'integration_data_id';
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     protected static function booted(): void
     {

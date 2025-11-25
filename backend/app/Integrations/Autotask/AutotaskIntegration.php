@@ -3,6 +3,7 @@
 namespace App\Integrations\Autotask;
 
 use App\Integrations\Contracts\IntegrationInterface;
+use App\Integrations\Traits\HasDefaultPreview;
 use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\DB;
 
 class AutotaskIntegration implements IntegrationInterface
 {
+    use HasDefaultPreview;
+    
     protected Integration $integration;
     protected AutotaskClient $client;
     protected CustomerMappingService $mappingService;
@@ -261,6 +264,68 @@ class AutotaskIntegration implements IntegrationInterface
         ];
     }
 
+    public function getCredentialFields(): array
+    {
+        return [
+            [
+                'name' => 'username',
+                'label' => 'Username',
+                'type' => 'email',
+                'required' => true,
+                'placeholder' => 'your-email@company.com',
+                'help' => 'Your Autotask API username (usually an email)',
+            ],
+            [
+                'name' => 'secret',
+                'label' => 'API Secret',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your API secret',
+                'help' => 'Generated from Autotask Admin > Resources > API Users',
+            ],
+            [
+                'name' => 'api_integration_code',
+                'label' => 'API Integration Code',
+                'type' => 'text',
+                'required' => true,
+                'placeholder' => 'XXXXXXXXXXXXXXXXXX',
+                'help' => 'Your unique integration tracking identifier',
+            ],
+            [
+                'name' => 'zone',
+                'label' => 'API Zone',
+                'type' => 'select',
+                'required' => true,
+                'options' => [
+                    'https://webservices1.autotask.net/atservicesrest/v1.0' => 'Zone 1',
+                    'https://webservices2.autotask.net/atservicesrest/v1.0' => 'Zone 2',
+                    'https://webservices3.autotask.net/atservicesrest/v1.0' => 'Zone 3',
+                    'https://webservices4.autotask.net/atservicesrest/v1.0' => 'Zone 4',
+                    'https://webservices5.autotask.net/atservicesrest/v1.0' => 'Zone 5',
+                    'https://webservices6.autotask.net/atservicesrest/v1.0' => 'Zone 6',
+                    'https://webservices11.autotask.net/atservicesrest/v1.0' => 'Zone 11',
+                    'https://webservices12.autotask.net/atservicesrest/v1.0' => 'Zone 12',
+                    'https://webservices13.autotask.net/atservicesrest/v1.0' => 'Zone 13',
+                    'https://webservices14.autotask.net/atservicesrest/v1.0' => 'Zone 14',
+                    'https://webservices15.autotask.net/atservicesrest/v1.0' => 'Zone 15',
+                    'https://webservices16.autotask.net/atservicesrest/v1.0' => 'Zone 16',
+                    'https://webservices17.autotask.net/atservicesrest/v1.0' => 'Zone 17',
+                    'https://webservices18.autotask.net/atservicesrest/v1.0' => 'Zone 18',
+                    'https://webservices19.autotask.net/atservicesrest/v1.0' => 'Zone 19',
+                    'https://webservices20.autotask.net/atservicesrest/v1.0' => 'Zone 20',
+                    'https://webservices21.autotask.net/atservicesrest/v1.0' => 'Zone 21',
+                    'https://webservices22.autotask.net/atservicesrest/v1.0' => 'Zone 22',
+                    'https://webservices23.autotask.net/atservicesrest/v1.0' => 'Zone 23',
+                    'https://webservices24.autotask.net/atservicesrest/v1.0' => 'Zone 24',
+                    'https://webservices25.autotask.net/atservicesrest/v1.0' => 'Zone 25',
+                    'https://webservices26.autotask.net/atservicesrest/v1.0' => 'Zone 26',
+                ],
+                'default' => 'https://webservices26.autotask.net/atservicesrest/v1.0',
+                'help' => 'Select your Autotask zone (check your Autotask login URL)',
+            ],
+        ];
+    }
+
     private function storeCustomer(array $customer): void
     {
         // Validate required fields
@@ -309,189 +374,5 @@ class AutotaskIntegration implements IntegrationInterface
             'imported_at' => now(),
             'data_version' => 1,
         ]);
-    }
-
-    public function getDisplayTemplate(): array
-    {
-        return [
-            'version' => '1.0',
-            'metadata' => [
-                'integration_type' => 'autotask',
-                'display_name' => 'Autotask PSA',
-                'description' => 'Autotask Professional Services Automation data',
-            ],
-            'sections' => [
-                [
-                    'id' => 'companies',
-                    'title' => 'Companies',
-                    'description' => 'All companies in Autotask',
-                    'component' => 'table',
-                    'icon' => 'Building2',
-                    'order' => 1,
-                    'dataPath' => 'companies',
-                    'emptyMessage' => 'No companies found',
-                    'collapsible' => false,
-                    'config' => [
-                        'columns' => [
-                            [
-                                'key' => 'name',
-                                'label' => 'Company Name',
-                                'sortable' => true,
-                                'filterable' => true,
-                                'width' => '250px',
-                            ],
-                            [
-                                'key' => 'phone',
-                                'label' => 'Phone',
-                                'sortable' => false,
-                                'filterable' => false,
-                            ],
-                            [
-                                'key' => 'city',
-                                'label' => 'City',
-                                'sortable' => true,
-                                'filterable' => true,
-                            ],
-                            [
-                                'key' => 'state',
-                                'label' => 'State',
-                                'sortable' => true,
-                                'filterable' => true,
-                            ],
-                            [
-                                'key' => 'active',
-                                'label' => 'Status',
-                                'sortable' => true,
-                                'filterable' => true,
-                                'format' => 'status',
-                                'colorMap' => [
-                                    'true' => 'success',
-                                    'false' => 'error',
-                                ],
-                            ],
-                        ],
-                        'sortable' => true,
-                        'filterable' => true,
-                        'paginated' => true,
-                        'pageSize' => 25,
-                        'selectable' => true,
-                        'exportable' => true,
-                    ],
-                ],
-                [
-                    'id' => 'metrics',
-                    'title' => 'Key Metrics',
-                    'component' => 'grid',
-                    'icon' => 'BarChart3',
-                    'order' => 2,
-                    'dataPath' => 'metrics',
-                    'config' => [
-                        'columns' => 4,
-                        'metrics' => [
-                            [
-                                'id' => 'total_companies',
-                                'label' => 'Total Companies',
-                                'valuePath' => 'total_companies',
-                                'format' => 'number',
-                                'icon' => 'Building2',
-                                'color' => 'blue',
-                            ],
-                            [
-                                'id' => 'active_companies',
-                                'label' => 'Active Companies',
-                                'valuePath' => 'active_companies',
-                                'format' => 'number',
-                                'icon' => 'CheckCircle',
-                                'color' => 'green',
-                            ],
-                            [
-                                'id' => 'total_tickets',
-                                'label' => 'Total Tickets',
-                                'valuePath' => 'total_tickets',
-                                'format' => 'number',
-                                'icon' => 'Ticket',
-                                'color' => 'purple',
-                            ],
-                            [
-                                'id' => 'open_tickets',
-                                'label' => 'Open Tickets',
-                                'valuePath' => 'open_tickets',
-                                'format' => 'number',
-                                'icon' => 'AlertCircle',
-                                'color' => 'orange',
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-        ];
-    }
-
-    public function getPreviewData(?int $integrationCustomerId = null): array
-    {
-        try {
-            $customer = null;
-            if ($integrationCustomerId) {
-                $customer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-                    ->where('id', $integrationCustomerId)
-                    ->first();
-                
-                if (!$customer) {
-                    return [
-                        'success' => false,
-                        'error' => 'Customer not found',
-                    ];
-                }
-            }
-
-            // Get companies from Autotask
-            $companies = $this->client->getCompanies();
-            $companiesData = collect($companies)->map(function ($company) {
-                return [
-                    'id' => $company['id'] ?? null,
-                    'name' => $company['companyName'] ?? 'Unknown',
-                    'phone' => $company['phone'] ?? 'N/A',
-                    'city' => $company['city'] ?? 'N/A',
-                    'state' => $company['state'] ?? 'N/A',
-                    'active' => ($company['isActive'] ?? true) ? 'true' : 'false',
-                ];
-            })->toArray();
-
-            // Calculate metrics
-            $totalCompanies = count($companiesData);
-            $activeCompanies = collect($companiesData)->where('active', 'true')->count();
-
-            return [
-                'success' => true,
-                'customer' => $customer ? [
-                    'id' => $customer->id,
-                    'name' => $customer->name,
-                    'external_id' => $customer->external_id,
-                ] : null,
-                'data' => [
-                    'companies' => $companiesData,
-                    'metrics' => [
-                        'total_companies' => $totalCompanies,
-                        'active_companies' => $activeCompanies,
-                        'total_tickets' => 0, // Would need to fetch from tickets endpoint
-                        'open_tickets' => 0,  // Would need to fetch from tickets endpoint
-                    ],
-                ],
-                'timestamp' => now()->toIso8601String(),
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Autotask Integration: Failed to get preview data', [
-                'integration_id' => $this->integration->integration_id,
-                'customer_id' => $integrationCustomerId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-            ];
-        }
     }
 }

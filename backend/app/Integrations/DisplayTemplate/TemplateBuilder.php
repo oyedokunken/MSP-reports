@@ -168,6 +168,38 @@ class SectionBuilder
         return $this;
     }
 
+    // Grid-specific helpers
+    public function gridColumns(int $columns): self
+    {
+        $this->section['config']['columns'] = $columns;
+        return $this;
+    }
+
+    public function addMetric(string $id, string $label, string $valuePath, string $format = 'number', ?string $icon = null, ?string $color = null): self
+    {
+        if (!isset($this->section['config']['metrics'])) {
+            $this->section['config']['metrics'] = [];
+        }
+
+        $metric = [
+            'id' => $id,
+            'label' => $label,
+            'valuePath' => $valuePath,
+            'format' => $format,
+        ];
+
+        if ($icon) {
+            $metric['icon'] = $icon;
+        }
+
+        if ($color) {
+            $metric['color'] = $color;
+        }
+
+        $this->section['config']['metrics'][] = $metric;
+        return $this;
+    }
+
     // Metric-specific helpers
     public function metricValue(string $valuePath, string $format = 'number'): self
     {

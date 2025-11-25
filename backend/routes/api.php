@@ -43,7 +43,7 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
     // Integrations Routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/integrations', [IntegrationController::class, 'getIntegrations']);
-        Route::get('/integrations/config/{integrationType}', [IntegrationController::class, 'getConfig']);
+        Route::get('/integrations/config/{integrationType}', [IntegrationController::class, 'getIntegrationTypeConfig']);
         Route::post('/integrations', [IntegrationController::class, 'createIntegration']);
         Route::get('/integrations/{id}/sync', [IntegrationController::class, 'triggerSync']);
         Route::get('/integrations/{id}/customers', [IntegrationController::class, 'getIntegrationCustomers']);

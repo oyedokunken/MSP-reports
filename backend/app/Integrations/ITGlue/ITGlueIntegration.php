@@ -3,6 +3,7 @@
 namespace App\Integrations\ITGlue;
 
 use App\Integrations\Contracts\IntegrationInterface;
+use App\Integrations\Traits\HasDefaultPreview;
 use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 
 class ITGlueIntegration implements IntegrationInterface
 {
+    use HasDefaultPreview;
     protected Integration $integration;
     protected ITGlueClient $client;
     protected CustomerMappingService $mappingService;
@@ -25,6 +27,33 @@ class ITGlueIntegration implements IntegrationInterface
         $rateLimiter = app(RateLimiter::class);
         $this->client = new ITGlueClient($integration->credentials, $rateLimiter, $integration);
         $this->mappingService = app(CustomerMappingService::class);
+    }
+
+    public function getCredentialFields(): array
+    {
+        return [
+            [
+                'name' => 'api_key',
+                'label' => 'API Key',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'ITG.xxxxxxxx...',
+                'help' => 'Your IT Glue API key from Account > Settings > API Keys',
+            ],
+            [
+                'name' => 'base_url',
+                'label' => 'Region',
+                'type' => 'select',
+                'required' => true,
+                'options' => [
+                    'https://api.au.itglue.com' => 'Australia',
+                    'https://api.itglue.com' => 'United States',
+                    'https://api.eu.itglue.com' => 'Europe',
+                ],
+                'default' => 'https://api.au.itglue.com',
+                'help' => 'Select your IT Glue region',
+            ],
+        ];
     }
 
     public function authenticate(): bool

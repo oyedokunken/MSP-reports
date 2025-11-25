@@ -3,6 +3,7 @@
 namespace App\Integrations\SaaS;
 
 use App\Integrations\Contracts\IntegrationInterface;
+use App\Integrations\Traits\HasDefaultPreview;
 use App\Models\Integration;
 use App\Services\RateLimiter;
 use Carbon\Carbon;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 class SaaSIntegration implements IntegrationInterface
 {
+    use HasDefaultPreview;
     protected Integration $integration;
     protected SaaSClient $client;
 

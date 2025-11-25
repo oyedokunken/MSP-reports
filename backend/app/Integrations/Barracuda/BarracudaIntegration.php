@@ -3,6 +3,7 @@
 namespace App\Integrations\Barracuda;
 
 use App\Integrations\Contracts\IntegrationInterface;
+use App\Integrations\Traits\HasDefaultPreview;
 use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 
 class BarracudaIntegration implements IntegrationInterface
 {
+    use HasDefaultPreview;
     protected Integration $integration;
     protected BarracudaClient $client;
     protected CustomerMappingService $mappingService;
@@ -207,6 +209,28 @@ class BarracudaIntegration implements IntegrationInterface
         return [
             'requests_per_minute' => 60,
             'requests_per_hour' => 1000,
+        ];
+    }
+
+    public function getCredentialFields(): array
+    {
+        return [
+            [
+                'name' => 'client_id',
+                'label' => 'Client ID',
+                'type' => 'text',
+                'required' => true,
+                'placeholder' => 'Enter your Barracuda Client ID',
+                'help' => 'Found in your Barracuda account API settings',
+            ],
+            [
+                'name' => 'client_secret',
+                'label' => 'Client Secret',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your Barracuda Client Secret',
+                'help' => 'Keep this secret secure',
+            ],
         ];
     }
 

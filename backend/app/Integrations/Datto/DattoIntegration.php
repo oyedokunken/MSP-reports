@@ -31,6 +31,42 @@ class DattoIntegration implements IntegrationInterface
         $this->mappingService = app(CustomerMappingService::class);
     }
 
+    public function getCredentialFields(): array
+    {
+        return [
+            [
+                'name' => 'rmm_region',
+                'label' => 'RMM Region',
+                'type' => 'select',
+                'required' => true,
+                'options' => [
+                    'https://syrah-api.centrastage.net' => 'Syrah (Default)',
+                    'https://pinotage-api.centrastage.net' => 'Pinotage',
+                    'https://concord-api.centrastage.net' => 'Concord',
+                    'https://merlot-api.centrastage.net' => 'Merlot',
+                ],
+                'default' => 'https://syrah-api.centrastage.net',
+                'help' => 'Select your Datto RMM API region',
+            ],
+            [
+                'name' => 'rmm_api_key',
+                'label' => 'API Key',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your Datto RMM API Key',
+                'help' => 'Found in Datto RMM under Setup > API Credentials',
+            ],
+            [
+                'name' => 'rmm_api_secret',
+                'label' => 'API Secret',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your Datto RMM API Secret',
+                'help' => 'Keep this secret secure',
+            ],
+        ];
+    }
+
     public function authenticate(): bool
     {
         return $this->client->testConnection();

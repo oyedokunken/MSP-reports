@@ -3,6 +3,7 @@
 namespace App\Integrations\Sendmarc;
 
 use App\Integrations\Contracts\IntegrationInterface;
+use App\Integrations\Traits\HasDefaultPreview;
 use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Cache;
 
 class SendmarcIntegration implements IntegrationInterface
 {
+    use HasDefaultPreview;
     protected Integration $integration;
     protected SendmarcClient $client;
     protected CustomerMappingService $mappingService;
@@ -24,6 +26,20 @@ class SendmarcIntegration implements IntegrationInterface
         $rateLimiter = app(RateLimiter::class);
         $this->client = new SendmarcClient($integration->credentials, $rateLimiter, $integration);
         $this->mappingService = app(CustomerMappingService::class);
+    }
+
+    public function getCredentialFields(): array
+    {
+        return [
+            [
+                'name' => 'api_token',
+                'label' => 'API Token',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your Sendmarc API token',
+                'help' => 'Found in Sendmarc under Settings > API Tokens',
+            ],
+        ];
     }
 
     public function authenticate(): bool
