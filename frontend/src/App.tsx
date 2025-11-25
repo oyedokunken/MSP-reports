@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/ui/Toast'
 import Login from '@/pages/auth/pages/Signin'
 import Dashboard from '@/pages/dashboard/Dashboard'
 import IntegrationList from '@/pages/integrations/IntegrationList'
+import { IntegrationPreview } from '@/pages/integrations/IntegrationPreview'
 import CustomerList from '@/pages/customers/CustomerList'
 import ScheduleList from '@/pages/schedules/ScheduleList'
 import Settings from '@/pages/settings/Settings'
@@ -107,6 +108,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <IntegrationList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/platform/integrations/:integrationId/preview"
+        element={
+          <ProtectedRoute>
+            <IntegrationPreview />
           </ProtectedRoute>
         }
       />

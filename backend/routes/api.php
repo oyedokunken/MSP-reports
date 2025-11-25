@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\IntegrationController;
+use App\Http\Controllers\Api\IntegrationPreviewController;
 use App\Http\Controllers\Api\CustomerMappingController;
 use App\Http\Controllers\Api\ReportConfigController;
 use App\Http\Controllers\Api\ReportAnalyticsController;
@@ -53,6 +54,11 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
         Route::get('/integrations/{id}/rate-limit', [IntegrationController::class, 'getRateLimitStatus']);
         Route::post('/integrations/{id}/historical-import', [IntegrationController::class, 'startHistoricalImport']);
         Route::patch('/company/source-integration', [IntegrationController::class, 'setSourceIntegration']);
+        
+        // Integration Preview Routes
+        Route::get('/integrations/{integration}/preview/template', [IntegrationPreviewController::class, 'getTemplate']);
+        Route::get('/integrations/{integration}/preview/data', [IntegrationPreviewController::class, 'getPreviewData']);
+        Route::get('/integrations/{integration}/preview', [IntegrationPreviewController::class, 'getPreview']);
     });
 
     // Active Directory Push Routes (from agent)

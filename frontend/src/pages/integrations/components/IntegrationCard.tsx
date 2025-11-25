@@ -10,6 +10,7 @@ import {
     Gauge,
     Database,
     Trash2,
+    Eye,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingStates";
 import type { Integration } from "../types/integration";
@@ -39,6 +40,7 @@ type IntegrationCardProps = {
   onRateLimit: (integration: Integration) => void
   onHistoricalImport: (integration: Integration) => void
   onDelete: (integration: Integration) => void
+  onPreviewData: (integration: Integration) => void
   isSourceOfTruth?: boolean
 }
 
@@ -56,6 +58,7 @@ export function IntegrationCard ({
   onRateLimit,
   onHistoricalImport,
   onDelete,
+  onPreviewData,
   isSourceOfTruth = false,
 }: IntegrationCardProps) {
     const statusInfo = getStatusText(
@@ -161,6 +164,11 @@ export function IntegrationCard ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onPreviewData(integration)}>
+                <Eye className="mr-2 h-4 w-4" />
+                Preview Data
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onEdit(integration)}>
                 <Settings className="mr-2 h-4 w-4" />
                 Edit Settings

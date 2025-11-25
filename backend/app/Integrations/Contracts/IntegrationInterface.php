@@ -23,4 +23,16 @@ interface IntegrationInterface
     public function healthCheck(): bool;
 
     public function getRateLimits(): array;
+
+    /**
+     * Get the display template for rendering integration data in the frontend
+     * Returns a structured template describing sections, components, and formatting
+     */
+    public function getDisplayTemplate(): array;
+
+    /**
+     * Get preview data for a specific customer or integration instance
+     * Returns both the data and any customer-specific context
+     */
+    public function getPreviewData(?int $integrationCustomerId = null): array;
 }

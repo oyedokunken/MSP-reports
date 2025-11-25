@@ -19,6 +19,7 @@ type IntegrationGridProps = {
     onRateLimit: (integration: Integration) => void;
     onHistoricalImport: (integration: Integration) => void;
     onDelete: (integration: Integration) => void;
+    onPreviewData: (integration: Integration) => void;
     sourceOfTruthId: number | null;
 };
 
@@ -38,6 +39,7 @@ export function IntegrationGrid({
     onRateLimit,
     onHistoricalImport,
     onDelete,
+    onPreviewData,
     sourceOfTruthId,
 }: IntegrationGridProps) {
     return (
@@ -84,6 +86,7 @@ export function IntegrationGrid({
                             onRateLimit={onRateLimit}
                             onHistoricalImport={onHistoricalImport}
                             onDelete={onDelete}
+                            onPreviewData={onPreviewData}
                             isSourceOfTruth={sourceOfTruthId === integration.id}
                         />
                     ))

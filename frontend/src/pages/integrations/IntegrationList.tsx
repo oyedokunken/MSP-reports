@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import FloatingLayout from "@/components/layout/FloatingLayout";
 import { useToast } from "@/components/ui/Toast";
 import { useIntegrationStore } from "@/stores/useIntegrationStore";
@@ -17,6 +18,7 @@ import {
 
 export default function IntegrationList() {
     const toast = useToast();
+    const navigate = useNavigate();
 
     // Zustand store - select only what we need to prevent unnecessary rerenders
     const integrations = useIntegrationStore((state) => state.integrations);
@@ -102,6 +104,7 @@ export default function IntegrationList() {
                         openModal("historicalImport", int)
                     }
                     onDelete={(int) => openModal("delete", int)}
+                    onPreviewData={(int) => navigate(`/platform/integrations/${int.id}/preview`)}
                     sourceOfTruthId={sourceOfTruthId}
                 />
 
