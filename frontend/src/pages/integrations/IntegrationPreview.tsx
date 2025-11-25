@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { IntegrationPreview as IntegrationPreviewType } from '@/types/displayTemplate'
+import type { IntegrationPreview as IntegrationPreviewType } from '@/types/displayTemplate'
 import { DynamicSection } from '@/components/dynamic/DynamicSection'
 import { ArrowLeft, RefreshCw, Download, Settings, AlertCircle } from 'lucide-react'
 import axios from 'axios'
