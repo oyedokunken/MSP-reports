@@ -378,9 +378,10 @@ The following integrations are **fully implemented** with real API credentials a
 - **Purpose:** DMARC email security and monitoring
 - **Data Types:** domains, sender_statistics, volume_totals, volume_timeline, ip_address_statistics
 - **Status:** ✅ **Fully Implemented**
-- **Credentials Required:** Bearer Token, API Endpoint (optional)
+- **Credentials Required:** API Token (or Bearer Token), Base URL (defaults to https://portal.sendmarc.com/api/v1)
 - **Features:** Historical data support (90 days), customer mapping, configurable data sync
 - **Rate Limits:** 60/min, 1000/hour
+- **Note:** Supports both `api_token`/`base_url` and legacy `bearer_token`/`endpoint` credential formats
 
 ### IT Glue
 - **Directory:** `app/Integrations/ITGlue/`
@@ -391,6 +392,17 @@ The following integrations are **fully implemented** with real API credentials a
 - **Features:** SSL certificate monitoring, domain expiration tracking, flexible asset monitoring
 - **Rate Limits:** 60/min, 1000/hour
 - **Note:** No historical data support (current state only)
+
+### BitDefender GravityZone
+- **Directory:** `app/Integrations/BitDefender/`
+- **Purpose:** Endpoint security and antivirus protection
+- **Data Types:** bitdefender_endpoint, bitdefender_threat_detection, endpoint_protection, malware_incident
+- **Status:** ✅ **Fully Implemented**
+- **Credentials Required:** API URL, API Key
+- **Features:** Customer mapping (companies as customers), endpoint device tracking, real-time sync
+- **Rate Limits:** 60/min, 1000/hour
+- **Note:** Uses JSON-RPC API, companies are mapped as IntegrationCustomers, endpoints stored as time-series data
+- **Documentation:** [BitDefender GravityZone API](https://www.bitdefender.com/business/support/en/77209-128840-getting-started.html)
 
 ---
 
@@ -432,12 +444,6 @@ The following integration scaffolds have been created (awaiting API credentials 
 - **Directory:** `app/Integrations/Veeam/`
 - **Purpose:** Veeam Service Provider Console backup and recovery monitoring
 - **Data Types:** backup_jobs, backup_sessions, restore_sessions, protected_vms, backup_repositories, job_statistics
-- **Status:** Scaffold only, awaiting API credentials
-
-### BitDefender
-- **Directory:** `app/Integrations/BitDefender/`
-- **Purpose:** Endpoint security and antivirus protection
-- **Data Types:** endpoint_protection, threat_detections, malware_incidents, security_events, device_status
 - **Status:** Scaffold only, awaiting API credentials
 
 ### M365
