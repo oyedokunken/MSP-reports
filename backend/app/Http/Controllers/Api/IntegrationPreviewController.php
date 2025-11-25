@@ -36,8 +36,8 @@ class IntegrationPreviewController extends Controller
                 'template' => $template,
                 'integration' => [
                     'id' => $integration->integration_id,
-                    'name' => $integration->name,
-                    'type' => $integration->type,
+                    'name' => $integration->display_name,
+                    'type' => $integration->integration_type,
                 ],
             ]);
 
@@ -122,8 +122,8 @@ class IntegrationPreviewController extends Controller
                 'success' => true,
                 'integration' => [
                     'id' => $integration->integration_id,
-                    'name' => $integration->name,
-                    'type' => $integration->type,
+                    'name' => $integration->display_name,
+                    'type' => $integration->integration_type,
                 ],
                 'template' => $template,
                 'preview' => $previewData,
@@ -147,11 +147,11 @@ class IntegrationPreviewController extends Controller
      */
     private function getIntegrationClass(Integration $integration): string
     {
-        $type = $integration->type;
-        $namespace = "App\\Integrations\\{$type}";
-        $className = "{$type}Integration";
+        // Get the integration type (e.g., "Datto", "M365", "ActiveDirectory")
+        $type = $integration->integration_type;
         
-        $fullClassName = "{$namespace}\\{$className}";
+        // Build the fully qualified class name
+        $fullClassName = "App\\Integrations\\{$type}\\{$type}Integration";
 
         if (!class_exists($fullClassName)) {
             throw new \Exception("Integration class not found: {$fullClassName}");
