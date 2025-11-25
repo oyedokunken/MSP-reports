@@ -109,14 +109,28 @@ class IntegrationPreviewController extends Controller
 
             // Get integration instance
             $integrationClass = $this->getIntegrationClass($integration);
+            
+            Log::info('Creating integration instance', [
+                'class' => $integrationClass,
+                'integration_id' => $integration->integration_id,
+            ]);
+            
             $integrationInstance = new $integrationClass($integration);
 
             // Get optional customer filter
             $integrationCustomerId = $request->query('customer_id');
 
             // Get both template and data
+            Log::info('Getting template');
             $template = $integrationInstance->getDisplayTemplate();
+            
+            Log::info('Getting preview data', ['customer_id' => $integrationCustomerId]);
             $previewData = $integrationInstance->getPreviewData($integrationCustomerId);
+            
+            Log::info('Preview data retrieved', [
+                'has_data' => isset($previewData['data']),
+                'success' => $previewData['success'] ?? false,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -133,11 +147,13 @@ class IntegrationPreviewController extends Controller
             Log::error('Failed to get integration preview', [
                 'integration_id' => $integration->integration_id,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to load preview: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null,
             ], 500);
         }
     }

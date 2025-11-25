@@ -22,3 +22,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+dev-watch.sh
+DOCKER_SCRIPTS.md
+quick-restart.sh
+rebuild.sh
