@@ -151,11 +151,11 @@ export function IntegrationCard ({
             {isSyncing ? 'Syncing...' : 'Sync Now'}
           </button>
           <button
-            onClick={() => onViewCustomers(integration.id, integration.name)}
+            onClick={() => onPreviewData(integration)}
             className="flex-1 flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
           >
-            <Users className="h-4 w-4" />
-            View Customers
+            <Eye className="h-4 w-4" />
+            Preview Data
           </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -164,9 +164,9 @@ export function IntegrationCard ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onPreviewData(integration)}>
-                <Eye className="mr-2 h-4 w-4" />
-                Preview Data
+              <DropdownMenuItem onClick={() => onViewCustomers(integration.id, integration.name)}>
+                <Users className="mr-2 h-4 w-4" />
+                View Customers
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onEdit(integration)}>

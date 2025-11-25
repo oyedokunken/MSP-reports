@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import type { IntegrationPreview as IntegrationPreviewType } from '@/types/displayTemplate'
 import { DynamicSection } from '@/components/dynamic/DynamicSection'
-import { ArrowLeft, RefreshCw, Download, Settings, AlertCircle } from 'lucide-react'
-import axios from 'axios'
+import { RefreshCw, Download, AlertCircle } from 'lucide-react'
+import { api } from '@/lib/api'
+import FloatingLayout from '@/components/layout/FloatingLayout'
 
 export const IntegrationPreview: React.FC = () => {
   const { integrationId } = useParams<{ integrationId: string }>()
@@ -27,19 +28,29 @@ export const IntegrationPreview: React.FC = () => {
       setLoading(true)
       setError(null)
 
+      console.log('Loading preview for integration:', integrationId)
+      console.log('Auth token:', localStorage.getItem('auth_token'))
+
       const params = customerId ? { customer_id: customerId } : {}
-      const response = await axios.get(
-        `/api/integrations/${integrationId}/preview`,
-        { params }
+      const response = await api.get<any>(
+        `/integrations/${integrationId}/preview`,
+        params
       )
 
-      if (response.data.success) {
-        setPreview(response.data)
+      console.log('Preview response:', response)
+
+      // api.get returns the data directly (unwrapped from response.data)
+      // The response IS the preview data
+      const data = response as any
+      
+      if (data.success) {
+        setPreview(data)
       } else {
-        setError(response.data.error || 'Failed to load preview')
+        setError(data.error || 'Failed to load preview')
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to load preview')
+      console.error('Preview error:', err)
+      setError(err.message || 'Failed to load preview')
     } finally {
       setLoading(false)
     }
@@ -133,67 +144,46 @@ export const IntegrationPreview: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => navigate('/integrations')}
-                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    {preview.template.metadata.display_name}
-                  </h1>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {preview.template.metadata.description}
-                  </p>
-                  {preview.preview.customer && (
-                    <p className="mt-1 text-sm font-medium text-blue-600">
-                      Customer: {preview.preview.customer.name}
-                    </p>
-                  )}
-                </div>
-              </div>
+    <FloatingLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {preview.template.metadata.display_name}
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              {preview.template.metadata.description}
+            </p>
+            {preview.preview.customer && (
+              <p className="mt-1 text-sm font-medium text-blue-600">
+                Customer: {preview.preview.customer.name}
+              </p>
+            )}
+          </div>
 
-              <div className="flex items-center gap-2">
-                {hasSelectedData && (
-                  <button
-                    onClick={handleExportSelected}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
-                    <Download className="w-4 h-4" />
-                    Export Selected
-                  </button>
-                )}
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
-                <button
-                  onClick={() => navigate(`/integrations/${integrationId}/settings`)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                >
-                  <Settings className="w-4 h-4" />
-                  Settings
-                </button>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            {hasSelectedData && (
+              <button
+                onClick={handleExportSelected}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                <Download className="w-4 h-4" />
+                Export Selected
+              </button>
+            )}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Sections */}
         <div className="space-y-6">
           {preview.template.sections.map((section) => (
             <DynamicSection
@@ -206,7 +196,7 @@ export const IntegrationPreview: React.FC = () => {
         </div>
 
         {/* Footer Info */}
-        <div className="mt-8 p-4 bg-white border border-gray-200 rounded-lg">
+        <div className="p-4 bg-white border border-gray-200 rounded-lg">
           <div className="flex items-center justify-between text-sm text-gray-500">
             <span>
               Last updated: {new Date(preview.preview.timestamp).toLocaleString()}
@@ -217,6 +207,6 @@ export const IntegrationPreview: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </FloatingLayout>
   )
 }

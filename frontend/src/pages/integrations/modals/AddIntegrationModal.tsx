@@ -9,6 +9,8 @@ import { Cable } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useIntegrationStore } from '@/stores/useIntegrationStore'
 import { SuccessDialog } from '@/components/modals/SuccessDialog'
+import { DynamicCredentialForm } from '@/components/integrations/DynamicCredentialForm'
+import { useIntegrationConfig } from '@/hooks/useIntegrationConfig'
 
 interface AddIntegrationModalProps {
   open: boolean
@@ -17,29 +19,11 @@ interface AddIntegrationModalProps {
   onSuccess?: () => void
 }
 
-interface CredentialField {
-  type: string
-  label: string
-  required: boolean
-  placeholder?: string
-  help?: string
-  encrypted?: boolean
-}
-
-interface IntegrationConfig {
-  name: string
-  display_name: string
-  description: string
-  credentials: Record<string, CredentialField>
-  configuration?: Record<string, any>
-}
 
 export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSuccess }: AddIntegrationModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [integrationConfig, setIntegrationConfig] = useState<IntegrationConfig | null>(null)
-  const [loadingConfig, setLoadingConfig] = useState(false)
   
   // Get fetchIntegrations from store
   const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
@@ -53,10 +37,13 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
   }>({
     integration_type: '',
     display_name: '',
-    status: 'active',
+    status: 'disconnected', // Start as disconnected until credentials are verified
     credentials: {},
     configuration: {},
   })
+
+  // Fetch integration config when type changes
+  const { config, loading: loadingConfig } = useIntegrationConfig(formData.integration_type || null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,11 +64,10 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
           setFormData({
             integration_type: '',
             display_name: '',
-            status: 'active',
+            status: 'disconnected',
             credentials: {},
             configuration: {},
           })
-          setIntegrationConfig(null)
           onOpenChange(false)
           onSuccess?.()
         }, 2000)
@@ -109,11 +95,10 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
     if (!isSubmitting) {
       setError('')
       setSuccess(false)
-      setIntegrationConfig(null)
       setFormData({
         integration_type: '',
         display_name: '',
-        status: 'active',
+        status: 'disconnected',
         credentials: {},
         configuration: {},
       })
@@ -208,32 +193,23 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
             </div>
           )}
 
-          {integrationConfig && integrationConfig.credentials && Object.keys(integrationConfig.credentials).length > 0 && (
+          {/* Debug info */}
+          {console.log('Config:', config)}
+          {console.log('Loading:', loadingConfig)}
+          {console.log('Integration Type:', formData.integration_type)}
+
+          {config && config.credential_fields && config.credential_fields.length > 0 && (
             <div className="space-y-4 pt-4 border-t">
               <div>
                 <h4 className="text-sm font-semibold mb-1">Credentials</h4>
-                <p className="text-xs text-muted-foreground">{integrationConfig.description}</p>
+                <p className="text-xs text-muted-foreground">{config.description}</p>
               </div>
               
-              {Object.entries(integrationConfig.credentials).map(([key, field]) => (
-                <div key={key} className="space-y-2">
-                  <Label htmlFor={key}>
-                    {field.label} {field.required && '*'}
-                  </Label>
-                  <Input
-                    id={key}
-                    type={field.type === 'password' ? 'password' : field.type === 'number' ? 'number' : 'text'}
-                    placeholder={field.placeholder || ''}
-                    value={formData.credentials[key] || ''}
-                    onChange={(e) => handleCredentialChange(key, e.target.value)}
-                    required={field.required}
-                    disabled={isSubmitting}
-                  />
-                  {field.help && (
-                    <p className="text-xs text-muted-foreground">{field.help}</p>
-                  )}
-                </div>
-              ))}
+              <DynamicCredentialForm
+                fields={config.credential_fields}
+                values={formData.credentials}
+                onChange={handleCredentialChange}
+              />
             </div>
           )}
 

@@ -31,8 +31,13 @@ interface IntegrationInterface
     public function getDisplayTemplate(): array;
 
     /**
-     * Get preview data for a specific customer or integration instance
-     * Returns both the data and any customer-specific context
+     * Get preview data for this integration
      */
     public function getPreviewData(?int $integrationCustomerId = null): array;
+
+    /**
+     * Get credential fields required for this integration
+     * Returns array of field definitions for dynamic form generation
+     */
+    public function getCredentialFields(): array;
 }
