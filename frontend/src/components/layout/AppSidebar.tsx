@@ -11,8 +11,6 @@ import {
   UserPlus,
   Key,
   Activity,
-  Shield,
-  Mail,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNotificationStore } from '@/stores/useNotificationStore'
@@ -44,8 +42,6 @@ export default function AppSidebar() {
   const navItems = [
     { path: '/platform/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/platform/integrations', icon: Cable, label: 'Integrations' },
-    { path: '/platform/active-directory', icon: Shield, label: 'Active Directory' },
-    { path: '/platform/exchange', icon: Mail, label: 'Exchange' },
     { path: '/platform/customers', icon: Users, label: 'Customers' },
     { path: '/platform/reports', icon: FileText, label: 'Reports' },
     { path: '/platform/schedules', icon: Calendar, label: 'Schedules' },
