@@ -23,11 +23,14 @@ class SendmarcClient
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
         
-        $this->useMockData = str_starts_with($credentials['bearer_token'] ?? '', 'test_');
+        // Support both 'api_token' and 'bearer_token' for backwards compatibility
+        $token = $credentials['api_token'] ?? $credentials['bearer_token'] ?? '';
+        $this->useMockData = str_starts_with($token, 'test_');
         
-        $this->baseUrl = rtrim($credentials['endpoint'] ?? 'https://portal.sendmarc.com/api/v1', '/');
+        // Support both 'base_url' and 'endpoint' for backwards compatibility
+        $this->baseUrl = rtrim($credentials['base_url'] ?? $credentials['endpoint'] ?? 'https://portal.sendmarc.com/api/v1', '/');
         
-        $this->bearerToken = $credentials['bearer_token'] ?? '';
+        $this->bearerToken = $token;
     }
 
     public function testConnection(): bool
