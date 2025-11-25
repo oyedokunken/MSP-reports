@@ -348,9 +348,55 @@ git commit -m "Add Kemp integration scaffold"
 git push origin main
 ```
 
+## Fully Implemented Integrations
+
+The following integrations are **fully implemented** with real API credentials and working functionality:
+
+### Datto RMM & Backup
+- **Directory:** `app/Integrations/Datto/`
+- **Purpose:** Backup monitoring, device management, and uptime tracking
+- **Data Types:** backup_status, device_status, uptime_metrics
+- **Status:** ✅ **Fully Implemented**
+- **Credentials Required:** 
+  - RMM API URL, API Key, API Secret
+  - SaaS Public Key, Private Key (optional)
+- **Features:** Historical data support (90 days), customer mapping, real-time sync
+- **Rate Limits:** 60/min, 1000/hour
+
+### Autotask PSA
+- **Directory:** `app/Integrations/Autotask/`
+- **Purpose:** Ticket management, time tracking, billing, and customer data
+- **Data Types:** tickets, time_entries, contracts, billing, service_calls
+- **Status:** ✅ **Fully Implemented**
+- **Credentials Required:** API Username, API Secret, API Integration Code, API Endpoint
+- **Features:** Historical data support (365 days), customer mapping, configurable sync options
+- **Rate Limits:** 100/min, 5000/hour
+- **Documentation:** [Autotask REST API](https://ww4.autotask.net/help/DeveloperHelp/Content/APIs/REST/API_Calls/REST_API_Calls.htm)
+
+### Sendmarc
+- **Directory:** `app/Integrations/Sendmarc/`
+- **Purpose:** DMARC email security and monitoring
+- **Data Types:** domains, sender_statistics, volume_totals, volume_timeline, ip_address_statistics
+- **Status:** ✅ **Fully Implemented**
+- **Credentials Required:** Bearer Token, API Endpoint (optional)
+- **Features:** Historical data support (90 days), customer mapping, configurable data sync
+- **Rate Limits:** 60/min, 1000/hour
+
+### IT Glue
+- **Directory:** `app/Integrations/ITGlue/`
+- **Purpose:** Documentation, asset management, SSL certificate monitoring, domain expiration tracking
+- **Data Types:** organization_info, ssl_certificate, domain, flexible_asset
+- **Status:** ✅ **Fully Implemented**
+- **Credentials Required:** API Key (starts with ITG.), Region selection (US/AU/EU)
+- **Features:** SSL certificate monitoring, domain expiration tracking, flexible asset monitoring
+- **Rate Limits:** 60/min, 1000/hour
+- **Note:** No historical data support (current state only)
+
+---
+
 ## Existing Integration Scaffolds
 
-The following integration scaffolds have been created:
+The following integration scaffolds have been created (awaiting API credentials for full implementation):
 
 ### AdminDroid
 - **Directory:** `app/Integrations/AdminDroid/`
