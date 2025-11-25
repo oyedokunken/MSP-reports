@@ -62,9 +62,9 @@ const Signin = () => {
             {/* Sign In Form */}
             <div
               aria-hidden={showAuthOptions}
-              className={`overflow-hidden transform transition-all duration-300 ease-in-out ${
+              className={`transform transition-all duration-300 ease-in-out ${
                 showAuthOptions
-                  ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'
+                  ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none overflow-hidden'
                   : 'max-h-[1000px] opacity-100 translate-y-0'
               }`}
             >
@@ -84,7 +84,7 @@ const Signin = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isSubmitting}
                     className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out"
-                    placeholder="Enter your email"
+                    placeholder="admin@example.com"
                   />
                 </div>
 
@@ -104,12 +104,12 @@ const Signin = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={isSubmitting}
                       className="appearance-none relative block w-full px-4 py-3 pr-12 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out"
-                      placeholder="Enter your password"
+                      placeholder="*******"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                       tabIndex={-1}
                     >
                       {showPassword ? (
