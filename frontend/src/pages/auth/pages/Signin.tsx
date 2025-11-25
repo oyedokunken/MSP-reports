@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { MdSecurity, MdStorage } from 'react-icons/md';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Shield, BarChart3, Zap } from 'lucide-react';
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Link } from "react-router-dom";
 import { useAuthForm } from "../hooks/useAuthForm";
@@ -41,23 +41,106 @@ const Signin = () => {
     }, [showAuthOptions]);
 
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full">
-          {/* Main Container */}
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            {/* Logo and Header */}
-            <div className="text-center mb-8">
-              <div className="flex justify-center">
-                <img 
-                  src="/logo.png" 
-                  alt="MSP Logo" 
-                  className="h-16 w-auto"
-                />
-              </div>
-              <p className="mt-2 text-sm text-gray-600 font-athletics">
-                Sign in to your MSP account
-              </p>
+      <div className="min-h-screen flex">
+        {/* Left Panel - Branding */}
+        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 relative overflow-hidden">
+          {/* Animated Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 -left-4 w-72 h-72 bg-white rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
+            <div className="absolute top-0 -right-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"></div>
+            <div className="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"></div>
+          </div>
+
+          {/* Content */}
+          <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
+            {/* Logo */}
+            <div>
+              <img 
+                src="/logo.png" 
+                alt="MSP Logo" 
+                className="h-12 w-auto brightness-0 invert"
+              />
             </div>
+
+            {/* Center Dashboard Image */}
+            <div className="flex items-center justify-center">
+              <img 
+                src="/web-programming.png" 
+                alt="Dashboard Preview" 
+                className="w-full max-w-lg"
+              />
+            </div>
+
+            {/* Bottom Content */}
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-3xl font-bold font-athletics mb-2 leading-tight">
+                  Welcome to MSP Reports Platform
+                </h1>
+                <p className="text-base text-indigo-100 font-athletics">
+                  Centralized insights, automated reports, and seamless integration management.
+                </p>
+              </div>
+
+              {/* Features - Compact */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center">
+                  <div className="flex justify-center mb-2">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                      <BarChart3 className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <h3 className="font-semibold font-athletics text-xs">Real-Time Analytics</h3>
+                </div>
+
+                <div className="text-center">
+                  <div className="flex justify-center mb-2">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                      <Shield className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <h3 className="font-semibold font-athletics text-xs">Enterprise Security</h3>
+                </div>
+
+                <div className="text-center">
+                  <div className="flex justify-center mb-2">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <h3 className="font-semibold font-athletics text-xs">Automated Workflows</h3>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="text-indigo-200 text-xs font-athletics text-center pt-2 border-t border-white/10">
+                © 2024 {import.meta.env.VITE_COMPANY_NAME || 'MSP'}. All rights reserved.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Panel - Form */}
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-12 bg-gray-50">
+          <div className="max-w-md w-full">
+            {/* Mobile Logo */}
+            <div className="lg:hidden text-center mb-8">
+              <img 
+                src="/logo.png" 
+                alt="MSP Logo" 
+                className="h-12 w-auto mx-auto"
+              />
+            </div>
+
+            {/* Form Container */}
+            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 font-athletics">Sign In</h2>
+                <p className="mt-2 text-sm text-gray-600 font-athletics">
+                  Access your reporting dashboard
+                </p>
+              </div>
 
             {/* Sign In Form */}
             <div
@@ -169,7 +252,16 @@ const Signin = () => {
                   </button>
                 </div>
               </form>
-        
+
+              {/* Sign Up Link */}
+              <div className="mt-6 text-center">
+                <p className="text-sm text-gray-600 font-athletics">
+                  Don't have an account?{' '}
+                  <Link to="/contact-admin" className="font-medium text-indigo-600 hover:text-indigo-500 transition duration-150 font-athletics">
+                    Contact your administrator
+                  </Link>
+                </p>
+              </div>
             </div>
 
             {/* Divider with Toggle Button */}
@@ -184,7 +276,8 @@ const Signin = () => {
                     onClick={() => setShowAuthOptions(!showAuthOptions)}
                     className="px-4 py-1.5 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-150 ease-in-out flex items-center gap-2 font-athletics"
                   >
-                    <span>Or</span>
+                    {/* <span>Or</span> */}
+                    <span>Others</span>
                     <svg 
                       className={`w-4 h-4 transition-transform duration-200 ${showAuthOptions ? 'rotate-180' : ''}`} 
                       fill="none" 
@@ -236,17 +329,18 @@ const Signin = () => {
                     <span>Sign in with Active Directory/LDAP</span>
                   </button>
                 </div>
-              </div>
-            </div>
 
-            {/* Sign Up Link */}
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600 font-athletics">
-                Don't have an account?{' '}
-                <Link to="/contact-admin" className="font-medium text-indigo-600 hover:text-indigo-500 transition duration-150 font-athletics">
-                  Contact your administrator
-                </Link>
-              </p>
+                {/* Sign Up Link Inside Collapsible Drawer */}
+                <div className="mt-6 text-center">
+                  <p className="text-sm text-gray-600 font-athletics">
+                    Don't have an account?{' '}
+                    <Link to="/contact-admin" className="font-medium text-indigo-600 hover:text-indigo-500 transition duration-150 font-athletics">
+                      Contact your administrator
+                    </Link>
+                  </p>
+                </div>
+
+              </div>
             </div>
 
             {/* Footer */}
@@ -261,9 +355,7 @@ const Signin = () => {
                   Terms of Service
                 </a>
               </p>
-              <p className="text-center text-xs text-gray-500 font-athletics">
-                © 2024 {import.meta.env.VITE_COMPANY_NAME || 'MSP'}. All rights reserved.
-              </p>
+            </div>
             </div>
           </div>
         </div>
