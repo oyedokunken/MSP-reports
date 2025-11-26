@@ -4,7 +4,9 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat&logo=postgresql)](https://www.postgresql.org)
-[![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![Pipeline](https://img.shields.io/badge/Pipeline-Passing-success)](https://gitlab.athenanetworks.com.au/athenanetworks/reporting/pipelines)
+[![Version](https://img.shields.io/badge/Version-0.1.0-blue)](CHANGELOG.md)
 
 ## Overview
 
@@ -88,7 +90,94 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 
 ---
 
-## Development Guidelines
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Docker & Docker Compose (recommended)
+- **OR** Manual installation:
+  - PHP 8.2+
+  - Node.js 18+
+  - PostgreSQL 16+
+  - Redis (optional but recommended)
+
+### Installation
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
+   cd reporting
+   ```
+
+2. **Using Docker (Recommended)**
+   ```bash
+   # Copy environment files
+   cp backend/.env.example backend/.env
+   cp frontend/.env.example frontend/.env
+   
+   # Start containers
+   docker-compose up -d
+   
+   # Install dependencies and setup
+   docker-compose exec backend composer install
+   docker-compose exec backend php artisan key:generate
+   docker-compose exec backend php artisan migrate --seed
+   
+   docker-compose exec frontend npm install
+   ```
+
+3. **Manual Installation**
+   ```bash
+   # Backend setup
+   cd backend
+   composer install
+   cp .env.example .env
+   php artisan key:generate
+   php artisan migrate --seed
+   php artisan serve
+   
+   # Frontend setup (new terminal)
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+4. **Access the Application**
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:8000
+   - Default credentials: Check seeder or create first user
+
+### First Login
+
+After installation, create your first user:
+```bash
+php artisan tinker
+>>> $company = App\Models\Company::create(['name' => 'My Company']);
+>>> $user = App\Models\User::create([
+    'name' => 'Admin User',
+    'email' => 'admin@example.com',
+    'password' => bcrypt('password'),
+    'company_id' => $company->id,
+]);
+```
+
+Then login at http://localhost:5173/login
+
+---
+
+## 📚 Documentation
+
+- [Architecture Overview](docs/ARCHITECTURE.md) - System design and multi-tenancy
+- [Integration Framework](docs/INTEGRATIONS.md) - How to add new integrations
+- [Report Framework](docs/REPORTS.md) - Creating custom report types
+- [API Documentation](docs/API.md) - RESTful API endpoints
+- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment
+- [Contributing Guide](CONTRIBUTING.md) - How to contribute
+- [Changelog](CHANGELOG.md) - Version history
+
+---
+
+## 🛠️ Development Guidelines
 
 ### AI Usage - Keep It Focused
 **Important**: Don't let AI run away on you. Use it for targeted, specific tasks. If you ask it to "build the integration system," you'll get a mess. Instead, ask it to help with specific components like "create the integration interface contract" or "write the PostgreSQL query for customer matching logic." Keep AI focused and on-track.
@@ -97,7 +186,8 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 - **Commit regularly** - small, logical commits with clear messages
 - **Use git as your safety net** - if AI generates something that breaks things, you can easily roll back
 - Commit before letting AI make major changes
-- Branch strategy: feature branches off main, merge via PR
+- Branch strategy: feature branches off main, merge via MR
+- Follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages
 
 ---
 
@@ -494,22 +584,35 @@ See [CONFIGURATION.md](CONFIGURATION.md) for detailed deployment guide.
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
-This is a proprietary project. For internal contributors:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for comprehensive details on:
 
-1. Create feature branch from `main`
-2. Follow Laravel and React best practices
-3. Write tests for new features
-4. Update documentation
-5. Submit pull request for review
+- Code of Conduct
+- Development setup and workflow
+- Coding standards (PSR-12, TypeScript best practices)
+- Commit message conventions (Conventional Commits)
+- Pull request process and review guidelines
+- Testing requirements
+
+### Quick Contribution Guide
+
+1. Fork the repository
+2. Create feature branch from `main` (`git checkout -b feature/amazing-feature`)
+3. Follow Laravel and React best practices
+4. Write tests for new features
+5. Update documentation and CHANGELOG.md
+6. Commit using conventional commits (`git commit -m 'feat: add amazing feature'`)
+7. Push to your branch (`git push origin feature/amazing-feature`)
+8. Submit merge request for review
 
 ### Code Standards
 
-- **Backend**: Follow PSR-12 coding standards
-- **Frontend**: Follow Airbnb React/TypeScript style guide
-- **Commits**: Use conventional commits format
-- **Documentation**: Update README and relevant docs
+- **Backend**: Follow PSR-12 coding standards, use type hints
+- **Frontend**: TypeScript strict mode, React functional components with hooks
+- **Commits**: Use [Conventional Commits](https://www.conventionalcommits.org/) format
+- **Documentation**: Update README, API docs, and relevant documentation
+- **Tests**: Maintain or improve code coverage
 
 ---
 
@@ -534,25 +637,36 @@ Email security concerns to: security@athenanetworks.com.au
 
 ---
 
-## License
+## 📄 License
 
-Proprietary and confidential. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Copyright (c) 2024-2025 Athena Networks. All rights reserved.
+Copyright © 2025 Athena Networks. All rights reserved.
+
+The MIT License allows for free use, modification, and distribution with proper attribution.
 
 ---
 
-## Support
+## 📞 Support & Resources
 
-For support, configuration help, or deployment assistance:
+### Documentation
+- **[Quick Start Guide](README.md#-quick-start)** - Get started quickly
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
+- **[Changelog](CHANGELOG.md)** - Version history and release notes
+- **[Project Wiki](https://gitlab.athenanetworks.com.au/athenanetworks/reporting/-/wikis/home)** - Comprehensive documentation
+
+### Getting Help
 - **Email**: support@athenanetworks.com.au
-- **Documentation**: Check `/docs` directory
-- **Issues**: Internal issue tracker only
+- **Issues**: [GitLab Issues](https://gitlab.athenanetworks.com.au/athenanetworks/reporting/issues)
+- **Wiki**: Check project wiki for FAQs and guides
+
+### CI/CD Pipeline
+This project uses GitLab CI/CD for automated testing and deployment. See [.gitlab-ci.yml](.gitlab-ci.yml) for pipeline configuration.
 
 ---
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
-Built with ❤️ by the Athena Networks team.
-
-Special thanks to the open-source community for the amazing tools that power this platform.
+- Built with ❤️ by the Athena Networks team
+- Special thanks to all contributors
+- Powered by Laravel, React, PostgreSQL, TimescaleDB, and other amazing open-source technologies

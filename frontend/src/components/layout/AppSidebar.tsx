@@ -211,7 +211,13 @@ export default function AppSidebar() {
             const active = isActive(item.path)
             return (
               <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton asChild isActive={active} tooltip={item.label} className="rounded-lg group-data-[collapsible=icon]:!p-0">
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={active} 
+                  tooltip={item.label} 
+                  className="rounded-lg group-data-[collapsible=icon]:!p-0"
+                  style={active ? { background: 'var(--brand-gradient)' } : undefined}
+                >
                   <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
                     <Icon className="h-4 w-4 flex-shrink-0" />
                     <span className="font-medium group-data-[collapsible=icon]:hidden">{item.label}</span>
