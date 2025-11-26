@@ -1,26 +1,29 @@
 <?php
 
 return [
-    'name' => 'SaaS',
-    'description' => 'SaaS application monitoring and management integration (placeholder configuration)',
+    'name' => 'SaaS Alerts',
+    'description' => 'SaaS Alerts - Security monitoring and alerting for SaaS applications',
     'version' => '1.0.0',
 
-    // Placeholder credential fields – update once real API details are known
     'credentials' => [
-        'api_url' => [
-            'type' => 'text',
-            'label' => 'API URL',
-            'required' => false,
-            'default' => 'https://api.saasmanagement.com',
-            'placeholder' => 'https://api.saasmanagement.com',
-            'help' => 'SaaS management API base URL. Use a real endpoint when available.',
-        ],
         'api_key' => [
             'type' => 'password',
             'label' => 'API Key',
-            'required' => false,
-            'placeholder' => 'Enter SaaS API key (optional for now)',
-            'help' => 'Placeholder credential until real SaaS API details are defined.',
+            'required' => true,
+            'placeholder' => 'Enter your SaaS Alerts API key',
+            'help' => 'Found in SaaS Alerts Partner Portal. Used in api_key header for authentication.',
+        ],
+        'base_url' => [
+            'type' => 'select',
+            'label' => 'Environment',
+            'required' => true,
+            'options' => [
+                'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1' => 'Production',
+                'https://us-central1-saas-alerts-qa.cloudfunctions.net/reportApi/api/v1' => 'QA',
+                'https://us-central1-saas-alerts-dev.cloudfunctions.net/reportApi/api/v1' => 'Development',
+            ],
+            'default' => 'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1',
+            'help' => 'Select the SaaS Alerts API environment',
         ],
     ],
 
@@ -34,21 +37,20 @@ return [
     ],
 
     'data_types' => [
-        // These are speculative; adjust once real use-cases are known
-        'application_usage' => 'SaaS Application Usage (placeholder)',
-        'license_management' => 'SaaS License Management (placeholder)',
-        'user_access' => 'SaaS User Access (placeholder)',
-        'subscription_status' => 'SaaS Subscription Status (placeholder)',
-        'cost_tracking' => 'SaaS Cost Tracking (placeholder)',
+        'customers' => 'SaaS Alerts Customers/Organizations',
+        'users' => 'SaaS Alerts Users/Accounts',
+        'security_events' => 'SaaS Alerts Security Events',
+        'billing' => 'SaaS Alerts Billing Data',
+        'devices' => 'SaaS Alerts Device Mapping',
     ],
 
     'rate_limits' => [
-        'requests_per_minute' => 60,
-        'requests_per_hour' => 1000,
-        'burst_allowance' => 10,
-        'min_request_interval_ms' => 100,
-        'concurrent_requests' => 3,
-        'historical_import_multiplier' => 0.5,
+        'requests_per_minute' => 100,
+        'requests_per_hour' => 2000,
+        'burst_allowance' => 20,
+        'min_request_interval_ms' => 50,
+        'concurrent_requests' => 5,
+        'historical_import_multiplier' => 0.7,
     ],
 
     'sync_frequency' => [
@@ -58,15 +60,15 @@ return [
     ],
 
     'historical_data' => [
-        'supports_historical' => false,
-        'max_range_days' => 0,
-        'recommended_range_days' => 0,
+        'supports_historical' => true,
+        'max_range_days' => 365,
+        'recommended_range_days' => 90,
     ],
 
     'features' => [
-        'customer_mapping' => false,
-        'historical_import' => false,
-        'real_time_sync' => false,
+        'customer_mapping' => true,
+        'historical_import' => true,
+        'real_time_sync' => true,
         'webhooks' => false,
     ],
 ];

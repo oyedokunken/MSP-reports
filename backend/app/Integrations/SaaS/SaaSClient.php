@@ -4,6 +4,7 @@ namespace App\Integrations\SaaS;
 
 use App\Services\RateLimiter;
 use App\Models\Integration;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SaaSClient
@@ -19,40 +20,99 @@ class SaaSClient
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
 
-        $this->baseUrl = rtrim($credentials['api_url'] ?? 'https://api.saasmanagement.com', '/');
+        $this->baseUrl = rtrim($credentials['base_url'] ?? 'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1', '/');
     }
 
     public function testConnection(): bool
     {
-        Log::info('SaaSClient::testConnection called - SaaS integration not yet implemented', [
-            'integration_id' => $this->integration->integration_id,
-        ]);
-
-        // Always return true for now so UI doesn't block while SaaS is a stub
-        return true;
+        try {
+            $response = $this->makeRequest('GET', '/reports/partners/profile');
+            return $response->successful();
+        } catch (\Exception $e) {
+            Log::error('SaaS Alerts connection test failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage()
+            ]);
+            return false;
+        }
     }
 
     /**
-     * Placeholder for future SaaS API calls.
+     * Get all customers for the authenticated partner.
      */
-    public function getApplicationUsage(): array
+    public function getCustomers(): array
     {
-        Log::info('SaaSClient::getApplicationUsage called - returning placeholder data', [
-            'integration_id' => $this->integration->integration_id,
-        ]);
+        try {
+            $response = $this->makeRequest('GET', '/customers');
 
-        return [];
+            if (!$response->successful()) {
+                Log::warning('SaaS Alerts API getCustomers failed', [
+                    'integration_id' => $this->integration->integration_id,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return [];
+            }
+
+            $customers = $response->json();
+
+            Log::info('SaaS Alerts API customers retrieval complete', [
+                'integration_id' => $this->integration->integration_id,
+                'total_count' => count($customers)
+            ]);
+
+            return $customers;
+
+        } catch (\Exception $e) {
+            Log::error('SaaS Alerts API getCustomers exception', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+            throw new \Exception("Failed to fetch customers: {$e->getMessage()}");
+        }
     }
 
     /**
-     * Placeholder for future SaaS license management.
+     * Make an authenticated request to the SaaS Alerts API.
      */
-    public function getLicenseManagement(): array
+    protected function makeRequest(string $method, string $endpoint, array $params = [])
     {
-        Log::info('SaaSClient::getLicenseManagement called - returning placeholder data', [
+        // Wait for rate limiter slot
+        if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
+            throw new \Exception("Rate limit exceeded for SaaS Alerts API, could not acquire slot within timeout.");
+        }
+
+        $headers = [
+            'api_key' => $this->credentials['api_key'] ?? '',
+            'Content-Type' => 'application/json',
+        ];
+
+        $url = $this->baseUrl . $endpoint;
+
+        Log::info('SaaS Alerts API Request', [
             'integration_id' => $this->integration->integration_id,
+            'method' => $method,
+            'url' => $url,
+            'headers' => array_merge($headers, ['api_key' => '***REDACTED***']),
+            'params' => $params
         ]);
 
-        return [];
+        if ($method === 'GET') {
+            $response = Http::withHeaders($headers)->timeout(120)->get($url, $params);
+        } else {
+            $response = Http::withHeaders($headers)->timeout(120)->post($url, $params);
+        }
+
+        Log::info('SaaS Alerts API Response', [
+            'integration_id' => $this->integration->integration_id,
+            'status' => $response->status(),
+            'successful' => $response->successful(),
+            'body_preview' => substr($response->body(), 0, 500)
+        ]);
+
+        // Record request for rate limiting
+        $this->rateLimiter->recordRequest($this->integration);
+
+        return $response;
     }
 }

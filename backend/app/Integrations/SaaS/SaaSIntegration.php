@@ -5,21 +5,31 @@ namespace App\Integrations\SaaS;
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\Traits\HasDefaultPreview;
 use App\Models\Integration;
+use App\Models\IntegrationCustomer;
+use App\Models\IntegrationData;
+use App\Jobs\AutoMatchCustomersJob;
 use App\Services\RateLimiter;
+use App\Services\CustomerMappingService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class SaaSIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
+    
     protected Integration $integration;
     protected SaaSClient $client;
+    protected CustomerMappingService $mappingService;
+    protected array $mappedDuringSync = [];
 
     public function __construct(Integration $integration)
     {
         $this->integration = $integration;
         $rateLimiter = app(RateLimiter::class);
         $this->client = new SaaSClient($integration->credentials ?? [], $rateLimiter, $integration);
+        $this->mappingService = app(CustomerMappingService::class);
     }
 
     public function authenticate(): bool
@@ -29,71 +39,297 @@ class SaaSIntegration implements IntegrationInterface
 
     public function sync(): array
     {
-        Log::info('SaaSIntegration::sync called - not yet implemented', [
+        $errors = [];
+        $this->mappedDuringSync = [];
+        $totalProcessed = 0;
+
+        try {
+            $saasCustomers = $this->client->getCustomers();
+            
+            Log::info('SaaS Alerts sync: Retrieved customers', [
+                'count' => count($saasCustomers),
+                'integration_id' => $this->integration->integration_id,
+            ]);
+
+            $totalCustomers = count($saasCustomers);
+            collect($saasCustomers)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCustomers) {
+                foreach ($chunk as $customer) {
+                    try {
+                        $standardized = SaaSMapper::mapCustomer($customer);
+                        $this->storeCustomer($standardized);
+                        $totalProcessed++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Failed to process customer {$customer['id']}: {$e->getMessage()}";
+                        Log::error('SaaS Alerts sync: Failed to process customer', [
+                            'integration_id' => $this->integration->integration_id,
+                            'customer_id' => $customer['id'] ?? 'unknown',
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+                
+                Log::info('SaaS Alerts sync: Processed chunk', [
+                    'integration_id' => $this->integration->integration_id,
+                    'processed' => $totalProcessed,
+                    'total' => $totalCustomers,
+                ]);
+            });
+
+        } catch (\Exception $e) {
+            $errors[] = "Sync failed: {$e->getMessage()}";
+            Log::error('SaaS Alerts sync: Failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Process unmapped customers
+        $additionalMapped = $this->processUnmappedCustomers();
+        $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
+
+        // Update cache with customer counts
+        $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
+        Cache::forget($cacheKey);
+        
+        $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNotNull('customer_id')
+            ->count();
+        
+        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
+
+        Cache::put($cacheKey, [
+            'mapped' => $mappedCount,
+            'unmapped' => $unmappedCount,
+            'last_sync' => now(),
+        ], now()->addMinutes(10));
+
+        Log::info('SaaS Alerts sync: Completed', [
             'integration_id' => $this->integration->integration_id,
+            'total_processed' => $totalProcessed,
+            'mapped_count' => $mappedCount,
+            'unmapped_count' => $unmappedCount,
+            'errors' => count($errors),
         ]);
 
         return [
-            'records_synced' => 0,
-            'records_new' => 0,
-            'customers_mapped' => [],
-            'records_failed' => 0,
-            'errors' => ['SaaS integration not implemented yet'],
+            'records_synced' => $mappedCount,
+            'records_new' => $unmappedCount,
+            'customers_mapped' => $mappedCustomers,
+            'records_failed' => count($errors),
+            'errors' => $errors,
         ];
+    }
+
+    private function processUnmappedCustomers(): array
+    {
+        $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->get();
+
+        $mappedList = [];
+
+        foreach ($unmappedCustomers as $integrationCustomer) {
+            if ($this->integration->is_source_of_truth) {
+                $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'SaaS Alerts');
+            } else {
+                AutoMatchCustomersJob::dispatch($integrationCustomer);
+            }
+        }
+
+        return $mappedList;
     }
 
     public function getCustomers(): array
     {
-        // No customer concept defined for SaaS yet
-        return [];
+        $saasCustomers = $this->client->getCustomers();
+        return array_map(fn($customer) => SaaSMapper::mapCustomer($customer), $saasCustomers);
     }
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
+        $data = [];
+        $errors = [];
+        $totalProcessed = 0;
+
+        try {
+            // Get all mapped customers for this integration
+            $integrationCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                ->whereNotNull('customer_id')
+                ->get();
+
+            Log::info('SaaS Alerts historical: Starting event import', [
+                'integration_id' => $this->integration->integration_id,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+                'customer_count' => $integrationCustomers->count(),
+            ]);
+
+            foreach ($integrationCustomers as $integrationCustomer) {
+                try {
+                    // Fetch events for this customer
+                    $events = $this->client->getEvents([
+                        'customerId' => $integrationCustomer->external_id,
+                        'start' => $startDate->format('Y-m-d'),
+                        'end' => $endDate->format('Y-m-d'),
+                        'size' => 1000, // Larger batch for historical import
+                    ]);
+
+                    // Process events in chunks
+                    collect($events)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed, $integrationCustomer) {
+                        foreach ($chunk as $event) {
+                            try {
+                                $standardized = SaaSMapper::mapEvent($event, $integrationCustomer->id);
+                                $data[] = $standardized;
+                                $this->storeHistoricalData($standardized);
+                                $totalProcessed++;
+                            } catch (\Exception $e) {
+                                $errors[] = "Failed to process event: {$e->getMessage()}";
+                                Log::error('SaaS Alerts historical: Failed to process event', [
+                                    'integration_id' => $this->integration->integration_id,
+                                    'customer_id' => $integrationCustomer->external_id,
+                                    'event_id' => $event['eventId'] ?? $event['_id'] ?? 'unknown',
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }
+                    });
+
+                    Log::info('SaaS Alerts historical: Processed customer events', [
+                        'integration_id' => $this->integration->integration_id,
+                        'customer_id' => $integrationCustomer->external_id,
+                        'customer_name' => $integrationCustomer->name,
+                        'events_count' => count($events),
+                    ]);
+
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to fetch events for customer {$integrationCustomer->name}: {$e->getMessage()}";
+                    Log::error('SaaS Alerts historical: Failed to fetch customer events', [
+                        'integration_id' => $this->integration->integration_id,
+                        'customer_id' => $integrationCustomer->external_id,
+                        'customer_name' => $integrationCustomer->name,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            Log::info('SaaS Alerts historical: Completed', [
+                'integration_id' => $this->integration->integration_id,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+                'total_processed' => $totalProcessed,
+                'errors' => count($errors),
+            ]);
+
+        } catch (\Exception $e) {
+            $errors[] = "Historical data fetch failed: {$e->getMessage()}";
+            Log::error('SaaS Alerts historical: Failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return [
-            'data' => [],
-            'errors' => ['SaaS historical data not implemented yet'],
+            'data' => $data,
+            'errors' => $errors,
         ];
     }
 
     public function getAvailableHistoryRange(): ?Carbon
     {
-        return null;
+        return now()->subDays(365);
     }
 
     public function getMetadata(): array
     {
         return [
-            'name' => 'SaaS',
-            'description' => 'SaaS application monitoring and management integration (placeholder)',
+            'name' => 'SaaS Alerts',
+            'description' => 'SaaS Alerts - Security monitoring and alerting for SaaS applications',
             'data_types' => [
-                'saas_application_usage',
-                'saas_license_management',
-                'user_access',
-                'subscription_status',
+                'customers',
+                'users',
+                'security_events',
+                'billing',
+                'devices',
             ],
-            'supports_historical' => false,
-            'historical_range_days' => 0,
+            'supports_historical' => true,
+            'historical_range_days' => 365,
         ];
     }
 
     public function disconnect(): void
     {
-        Log::info('SaaSIntegration::disconnect called - nothing to do for placeholder integration', [
-            'integration_id' => $this->integration->integration_id,
-        ]);
+        // Clean up any cached data
+        $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
+        Cache::forget($cacheKey);
     }
 
     public function healthCheck(): bool
     {
-        return $this->authenticate();
+        try {
+            return $this->client->testConnection();
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     public function getRateLimits(): array
     {
         return [
-            'requests_per_minute' => 60,
-            'requests_per_hour' => 1000,
+            'requests_per_minute' => 100,
+            'requests_per_hour' => 2000,
         ];
+    }
+
+    private function storeCustomer(array $customer): void
+    {
+        // Validate required fields
+        if (empty($customer['external_id']) || empty($customer['name'])) {
+            Log::warning('SaaS Alerts: Skipping customer with missing required fields', [
+                'customer' => $customer
+            ]);
+            return;
+        }
+
+        DB::transaction(function () use ($customer) {
+            $integrationCustomer = IntegrationCustomer::updateOrCreate(
+                [
+                    'integration_id' => $this->integration->integration_id,
+                    'external_id' => $customer['external_id'],
+                ],
+                [
+                    'name' => $customer['name'],
+                    'metadata' => $customer['metadata'],
+                    'active' => $customer['active'],
+                    'last_seen_at' => now(),
+                ]
+            );
+
+            $integrationCustomer->refresh();
+
+            // Trigger customer mapping if not already mapped
+            if (!$integrationCustomer->customer_id) {
+                if ($this->integration->is_source_of_truth) {
+                    $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'SaaS Alerts');
+                } else {
+                    AutoMatchCustomersJob::dispatch($integrationCustomer);
+                }
+            }
+        });
+    }
+
+    private function storeHistoricalData(array $data): void
+    {
+        IntegrationData::create([
+            'company_id' => $this->integration->company_id,
+            'integration_id' => $this->integration->integration_id,
+            'integration_customer_id' => $data['integration_customer_id'],
+            'data_type' => $data['data_type'],
+            'data_timestamp' => $data['timestamp'],
+            'data_payload' => $data['payload'],
+            'imported_at' => now(),
+            'data_version' => 1,
+        ]);
     }
 }
