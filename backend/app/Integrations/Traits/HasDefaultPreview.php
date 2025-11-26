@@ -27,6 +27,7 @@ trait HasDefaultPreview
         $builder->addSection('customers', 'Customers', 'table')
             ->description('Synced customers from ' . $integrationName)
             ->icon('Users')
+            ->dataPath('customers')
             ->tableColumns([
                 ['key' => 'name', 'label' => 'Customer Name', 'sortable' => true, 'filterable' => true, 'width' => '300px'],
                 ['key' => 'external_id', 'label' => 'External ID', 'sortable' => true, 'filterable' => true],
@@ -53,6 +54,7 @@ trait HasDefaultPreview
         // Overview metrics
         $builder->addSection('metrics', 'Overview', 'grid')
             ->icon('BarChart3')
+            ->dataPath('metrics')
             ->gridColumns(3)
             ->addMetric('total_customers', 'Total Customers', 'total_customers', 'number', 'Users', 'blue')
             ->addMetric('active_customers', 'Active Customers', 'active_customers', 'number', 'CheckCircle', 'green')

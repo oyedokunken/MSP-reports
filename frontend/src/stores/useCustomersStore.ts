@@ -26,6 +26,12 @@ interface CustomersState {
   customers: MappedCustomer[]
   isLoading: boolean
   
+  // Pagination
+  currentPage: number
+  totalPages: number
+  perPage: number
+  total: number
+  
   // Filters
   searchQuery: string
   statusFilter: string
@@ -43,7 +49,7 @@ interface CustomersState {
   selectedCustomer: any | null
   
   // Actions
-  fetchCustomers: () => Promise<void>
+  fetchCustomers: (page?: number) => Promise<void>
   
   // Filter actions
   setSearchQuery: (query: string) => void
@@ -72,23 +78,35 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   modals: {
     map: false,
     edit: false,
-    integrations: false,
     merge: false,
     split: false,
   },
   selectedUnmappedCustomer: null,
   selectedCustomer: null,
+  
+  // Pagination state
+  currentPage: 1,
+  totalPages: 1,
+  perPage: 15,
+  total: 0,
 
   // Fetch customers
-  fetchCustomers: async () => {
+  fetchCustomers: async (page: number = 1) => {
     set({ isLoading: true })
     try {
-      const response = await api.get('/customers')
-      const data = (response as any).data || response
-      const customerData = data.data || data
+      const response = await api.get(`/customers?page=${page}`)
+      const data = (response as any)
+      
+      // Handle pagination data from nested pagination object or root level
+      const pagination = data.pagination || data
+      const customerData = data.data || []
       
       set({
         customers: customerData,
+        currentPage: pagination.current_page || page,
+        totalPages: pagination.last_page || 1,
+        perPage: pagination.per_page || 20,
+        total: pagination.total || customerData.length,
         isLoading: false,
       })
     } catch (err: any) {
@@ -100,7 +118,6 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
 
   // Filter actions
   setSearchQuery: (query: string) => set({ searchQuery: query }),
-  setStatusFilter: (status: string) => set({ statusFilter: status }),
   setReportFilter: (filter: string) => set({ reportFilter: filter }),
 
   // Modal actions

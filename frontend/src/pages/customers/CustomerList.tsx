@@ -10,6 +10,7 @@ import {
     UnmappedBanner,
     CustomersGrid,
     MapCustomerModal,
+    Pagination,
 } from "./components";
 
 import { EditCustomerModal } from "./modals/EditCustomerModal";
@@ -30,6 +31,11 @@ export default function CustomerList() {
     const modals = useCustomersStore((state) => state.modals);
     const selectedUnmappedCustomer = useCustomersStore((state) => state.selectedUnmappedCustomer);
     const selectedCustomer = useCustomersStore((state) => state.selectedCustomer);
+    
+    // Pagination
+    const currentPage = useCustomersStore((state) => state.currentPage);
+    const totalPages = useCustomersStore((state) => state.totalPages);
+    const total = useCustomersStore((state) => state.total);
 
     const fetchCustomers = useCustomersStore((state) => state.fetchCustomers);
     const setSearchQuery = useCustomersStore((state) => state.setSearchQuery);
@@ -142,6 +148,16 @@ export default function CustomerList() {
                         openModal("split");
                     }}
                 />
+
+                {/* Pagination */}
+                {total > 0 && (
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        total={total}
+                        onPageChange={(page) => fetchCustomers(page)}
+                    />
+                )}
 
                 {/* ---------------- MODALS ---------------- */}
 
