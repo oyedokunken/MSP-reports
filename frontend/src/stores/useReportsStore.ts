@@ -61,9 +61,14 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
       const url = customerId 
         ? `/reports/history?customer_id=${customerId}`
         : '/reports/history'
-      const response = await api.get<{ reports: GeneratedReport[] }>(url)
-      const data = (response as any).data || response
-      const reportsList = data.reports || []
+      const response = await api.get<any>(url)
+      
+      // Handle nested response structure from API
+      // API returns: { status: 'success', data: { reports: [...], pagination: {...} } }
+      const responseData = (response as any).data || response
+      const reportsList = responseData.data?.reports || responseData.reports || []
+      
+      console.log('Reports fetched:', reportsList)
       
       // Set customer name from first report if filtering by customer
       const customerName = customerId && reportsList.length > 0 
@@ -77,7 +82,7 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
       })
     } catch (err: any) {
       console.error('Failed to fetch reports:', err)
-      set({ isLoading: false })
+      set({ isLoading: false, reports: [] })
       throw err
     }
   },

@@ -124,84 +124,351 @@ export const IntegrationPreview: React.FC = () => {
   const handleExportPDF = async () => {
     try {
       setIsExporting(true)
-      toast.info('Generating PDF', 'Preparing print preview...')
+      toast.info('Generating PDF', 'Preparing professional PDF export...')
       
-      // Create a printable HTML document
-      const printContent = document.createElement('div')
-      printContent.className = 'print-container'
-      
-      // Build the HTML content
+      // Build enhanced HTML content with professional styling
       let htmlContent = `
-        <style>
-          @media print {
-            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
-            .print-container { max-width: 100%; }
-            h1 { color: #1a56db; margin-bottom: 10px; }
-            h2 { color: #374151; margin-top: 20px; margin-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f3f4f6; font-weight: bold; }
-            .section { margin-bottom: 30px; page-break-inside: avoid; }
-            .metadata { color: #6b7280; font-size: 12px; margin-bottom: 20px; }
-          }
-        </style>
-        <h1>${preview?.template.metadata.display_name || 'Integration Preview'}</h1>
-        <p class="metadata">Generated: ${new Date().toLocaleString()}</p>
-        ${preview?.preview.customer ? `<p class="metadata">Customer: ${preview.preview.customer.name}</p>` : ''}
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${preview?.template.metadata.display_name || 'Integration Preview'}</title>
+          <style>
+            @page {
+              margin: 2cm;
+              size: A4;
+            }
+            
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              color: #1f2937;
+              line-height: 1.6;
+              background: white;
+            }
+            
+            .header {
+              border-bottom: 4px solid #1a56db;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            
+            .logo-area {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              margin-bottom: 15px;
+            }
+            
+            .company-name {
+              font-size: 24px;
+              font-weight: 700;
+              color: #1a56db;
+              margin-bottom: 5px;
+            }
+            
+            .report-title {
+              font-size: 32px;
+              font-weight: 700;
+              color: #111827;
+              margin-bottom: 10px;
+            }
+            
+            .metadata {
+              display: flex;
+              gap: 30px;
+              flex-wrap: wrap;
+              color: #6b7280;
+              font-size: 14px;
+              margin-top: 15px;
+            }
+            
+            .metadata-item {
+              display: flex;
+              gap: 8px;
+            }
+            
+            .metadata-label {
+              font-weight: 600;
+              color: #374151;
+            }
+            
+            .section {
+              margin-bottom: 40px;
+              page-break-inside: avoid;
+            }
+            
+            .section-header {
+              background: linear-gradient(135deg, #1a56db 0%, #1e40af 100%);
+              color: white;
+              padding: 15px 20px;
+              border-radius: 8px 8px 0 0;
+              margin-bottom: 0;
+            }
+            
+            .section-title {
+              font-size: 20px;
+              font-weight: 600;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+            
+            .section-description {
+              font-size: 14px;
+              opacity: 0.9;
+              margin-top: 5px;
+            }
+            
+            .section-content {
+              border: 1px solid #e5e7eb;
+              border-top: none;
+              border-radius: 0 0 8px 8px;
+              padding: 20px;
+              background: #fafafa;
+            }
+            
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              background: white;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+              border-radius: 6px;
+              overflow: hidden;
+            }
+            
+            thead {
+              background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+              color: white;
+            }
+            
+            th {
+              padding: 14px 16px;
+              text-align: left;
+              font-weight: 600;
+              font-size: 13px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            
+            td {
+              padding: 12px 16px;
+              border-bottom: 1px solid #e5e7eb;
+              font-size: 14px;
+            }
+            
+            tbody tr:nth-child(even) {
+              background: #f9fafb;
+            }
+            
+            tbody tr:hover {
+              background: #f3f4f6;
+            }
+            
+            tbody tr:last-child td {
+              border-bottom: none;
+            }
+            
+            .key-value-table td:first-child {
+              font-weight: 600;
+              color: #374151;
+              width: 30%;
+              background: #f3f4f6;
+            }
+            
+            .empty-state {
+              text-align: center;
+              padding: 40px;
+              color: #9ca3af;
+              font-style: italic;
+            }
+            
+            .badge {
+              display: inline-block;
+              padding: 4px 12px;
+              border-radius: 12px;
+              font-size: 12px;
+              font-weight: 600;
+            }
+            
+            .badge-success { background: #d1fae5; color: #065f46; }
+            .badge-warning { background: #fed7aa; color: #92400e; }
+            .badge-error { background: #fee2e2; color: #991b1b; }
+            .badge-info { background: #dbeafe; color: #1e40af; }
+            
+            .footer {
+              margin-top: 50px;
+              padding-top: 20px;
+              border-top: 2px solid #e5e7eb;
+              text-align: center;
+              color: #6b7280;
+              font-size: 12px;
+            }
+            
+            .page-number {
+              position: fixed;
+              bottom: 20px;
+              right: 20px;
+              color: #9ca3af;
+              font-size: 12px;
+            }
+            
+            @media print {
+              .no-print { display: none; }
+              body { background: white; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo-area">
+              <div>
+                <div class="company-name">Territory Technology Solutions</div>
+                <div class="report-title">${preview?.template.metadata.display_name || 'Integration Data Preview'}</div>
+              </div>
+            </div>
+            <div class="metadata">
+              <div class="metadata-item">
+                <span class="metadata-label">Generated:</span>
+                <span>${new Date().toLocaleDateString('en-AU', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}</span>
+              </div>
+              ${preview?.preview.customer ? `
+                <div class="metadata-item">
+                  <span class="metadata-label">Customer:</span>
+                  <span>${preview.preview.customer.name}</span>
+                </div>
+              ` : ''}
+              <div class="metadata-item">
+                <span class="metadata-label">Integration:</span>
+                <span>${preview?.template.metadata.display_name}</span>
+              </div>
+            </div>
+          </div>
       `
       
-      // Add each section
-      preview?.template.sections.forEach(section => {
-        const sectionData = section.dataPath ? preview.preview.data[section.dataPath] : null
+      // Add each section with improved styling
+      preview?.template.sections.forEach((section, index) => {
+        const sectionData = section.dataPath ? preview.preview.data[section.dataPath] : preview.preview.data
         
-        htmlContent += `<div class="section"><h2>${section.title}</h2>`
+        htmlContent += `
+          <div class="section">
+            <div class="section-header">
+              <div class="section-title">
+                ${section.icon ? `<span>${section.icon}</span>` : ''}
+                ${section.title}
+              </div>
+              ${section.description ? `<div class="section-description">${section.description}</div>` : ''}
+            </div>
+            <div class="section-content">
+        `
         
-        if (section.type === 'table' && Array.isArray(sectionData) && sectionData.length > 0) {
-          const columns = section.columns || Object.keys(sectionData[0])
+        if (!sectionData || (Array.isArray(sectionData) && sectionData.length === 0)) {
+          htmlContent += `<div class="empty-state">No data available for this section</div>`
+        } else if (section.component === 'table' && Array.isArray(sectionData) && sectionData.length > 0) {
+          const config = section.config as any
+          const columns = config?.columns || Object.keys(sectionData[0])
+          
           htmlContent += '<table><thead><tr>'
-          columns.forEach(col => {
-            htmlContent += `<th>${col.replace(/_/g, ' ').toUpperCase()}</th>`
+          columns.forEach((col: any) => {
+            const label = typeof col === 'object' ? col.label : col.toString().replace(/_/g, ' ')
+            htmlContent += `<th>${label}</th>`
           })
           htmlContent += '</tr></thead><tbody>'
-          sectionData.forEach(row => {
+          
+          sectionData.slice(0, 100).forEach(row => { // Limit to first 100 rows for PDF
             htmlContent += '<tr>'
-            columns.forEach(col => {
-              htmlContent += `<td>${row[col] || '-'}</td>`
+            columns.forEach((col: any) => {
+              const key = typeof col === 'object' ? col.key : col
+              let value = row[key]
+              
+              // Format value
+              if (value === null || value === undefined) value = '-'
+              else if (typeof value === 'boolean') value = value ? '✓' : '✗'
+              else if (typeof value === 'object') value = JSON.stringify(value)
+              
+              htmlContent += `<td>${value}</td>`
             })
             htmlContent += '</tr>'
           })
+          
           htmlContent += '</tbody></table>'
-        } else if (section.type === 'key-value' && sectionData) {
-          htmlContent += '<table>'
-          Object.entries(sectionData).forEach(([key, value]) => {
-            htmlContent += `<tr><th>${key.replace(/_/g, ' ').toUpperCase()}</th><td>${value}</td></tr>`
+          
+          if (sectionData.length > 100) {
+            htmlContent += `<div style="margin-top: 10px; color: #6b7280; font-size: 12px; font-style: italic;">Showing first 100 of ${sectionData.length} rows</div>`
+          }
+        } else if (section.component === 'keyvalue' && typeof sectionData === 'object') {
+          const config = section.config as any
+          const pairs = config?.pairs || Object.entries(sectionData).map(([key, value]) => ({
+            label: key.replace(/_/g, ' ').toUpperCase(),
+            valuePath: key
+          }))
+          
+          htmlContent += '<table class="key-value-table">'
+          pairs.forEach((pair: any) => {
+            const value = sectionData[pair.valuePath] || '-'
+            htmlContent += `<tr><td>${pair.label}</td><td>${value}</td></tr>`
           })
           htmlContent += '</table>'
-        } else if (section.type === 'list' && Array.isArray(sectionData)) {
-          htmlContent += '<ul>'
+        } else if (section.component === 'list' && Array.isArray(sectionData)) {
+          htmlContent += '<table><tbody>'
           sectionData.forEach(item => {
-            htmlContent += `<li>${typeof item === 'object' ? JSON.stringify(item) : item}</li>`
+            const displayValue = typeof item === 'object' 
+              ? (item.name || item.title || JSON.stringify(item))
+              : item
+            htmlContent += `<tr><td>${displayValue}</td></tr>`
           })
-          htmlContent += '</ul>'
+          htmlContent += '</tbody></table>'
+        } else if (section.component === 'grid') {
+          const config = section.config as any
+          const metrics = config?.metrics || []
+          
+          htmlContent += '<table><tbody>'
+          metrics.forEach((metric: any) => {
+            const value = sectionData[metric.valuePath] || '-'
+            htmlContent += `<tr><td style="font-weight: 600;">${metric.label}</td><td>${value}</td></tr>`
+          })
+          htmlContent += '</tbody></table>'
         }
         
-        htmlContent += '</div>'
+        htmlContent += `
+            </div>
+          </div>
+        `
       })
       
-      printContent.innerHTML = htmlContent
+      htmlContent += `
+          <div class="footer">
+            <p>This report was automatically generated by Territory Technology Solutions</p>
+            <p style="margin-top: 5px;">© ${new Date().getFullYear()} Territory Technology Solutions. All rights reserved.</p>
+          </div>
+        </body>
+        </html>
+      `
       
-      // Open print dialog
-      const printWindow = window.open('', '_blank')
+      // Open print dialog with enhanced content
+      const printWindow = window.open('', '_blank', 'width=1200,height=800')
       if (printWindow) {
         printWindow.document.write(htmlContent)
         printWindow.document.close()
         printWindow.focus()
         
-        // Wait a bit for content to load, then print
+        // Wait for content to load, then print
         setTimeout(() => {
           printWindow.print()
-          toast.success('PDF Export Ready', 'Print dialog opened. Save as PDF to export.')
-        }, 500)
+          toast.success('PDF Export Ready', 'Professional PDF preview opened. Save as PDF to export.')
+        }, 750)
       } else {
         toast.error('Popup Blocked', 'Please allow popups to export as PDF')
       }

@@ -28,6 +28,8 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 - 💾 **State Persistence** - UI preferences saved across sessions
 - 🔍 **Integration Data Preview** - View live data from any integration before generating reports
 - 📋 **Enhanced Company Settings** - Email, phone, and address included in report generation
+- 📄 **Professional PDF Export** - Enhanced integration preview exports with company branding and styling
+- 📊 **Report History** - Track all generated reports with filtering and download capabilities
 
 ---
 
