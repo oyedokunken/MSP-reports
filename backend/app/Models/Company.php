@@ -22,6 +22,7 @@ class Company extends Model
         'abn',
         'contact_email',
         'contact_phone',
+        'address',
         'status',
         'subscription_tier',
         'settings',

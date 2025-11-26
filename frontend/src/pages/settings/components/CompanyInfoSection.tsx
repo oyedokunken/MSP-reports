@@ -3,18 +3,30 @@ import { Button } from '@/components/ui/button'
 interface CompanyInfoSectionProps {
   companyName: string
   primaryHex: string
+  contactEmail: string
+  contactPhone: string
+  address: string
   isValidHex: boolean
   onCompanyNameChange: (name: string) => void
   onPrimaryHexChange: (hex: string) => void
+  onContactEmailChange: (email: string) => void
+  onContactPhoneChange: (phone: string) => void
+  onAddressChange: (address: string) => void
   onSave: () => void
 }
 
 export function CompanyInfoSection({
   companyName,
   primaryHex,
+  contactEmail,
+  contactPhone,
+  address,
   isValidHex,
   onCompanyNameChange,
   onPrimaryHexChange,
+  onContactEmailChange,
+  onContactPhoneChange,
+  onAddressChange,
   onSave,
 }: CompanyInfoSectionProps) {
   return (
@@ -31,6 +43,39 @@ export function CompanyInfoSection({
             value={companyName}
             onChange={(e) => onCompanyNameChange(e.target.value)}
             className="mt-1 w-full rounded-md border border-input bg-background dark:bg-muted/20 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground">Contact Email</label>
+          <input
+            type="email"
+            placeholder="contact@company.com"
+            value={contactEmail}
+            onChange={(e) => onContactEmailChange(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background dark:bg-muted/20 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground">Contact Phone</label>
+          <input
+            type="tel"
+            placeholder="+61 2 1234 5678"
+            value={contactPhone}
+            onChange={(e) => onContactPhoneChange(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background dark:bg-muted/20 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium text-foreground">Address</label>
+          <textarea
+            placeholder="Company address"
+            value={address}
+            onChange={(e) => onAddressChange(e.target.value)}
+            rows={3}
+            className="mt-1 w-full rounded-md border border-input bg-background dark:bg-muted/20 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring resize-none"
           />
         </div>
 

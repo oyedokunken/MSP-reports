@@ -24,6 +24,8 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 - 📲 **Responsive Design** - Collapsible sidebar with persistent state across navigation
 - 🎯 **Interactive UI** - Clickable notifications with full detail modals
 - 💾 **State Persistence** - UI preferences saved across sessions
+- 🔍 **Integration Data Preview** - View live data from any integration before generating reports
+- 📋 **Enhanced Company Settings** - Email, phone, and address included in report generation
 
 ---
 
@@ -107,11 +109,19 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 - `POST /api/users` - Create user with permissions
 - `PATCH /api/users/{id}/permissions` - Update user permissions
 
+### Company Settings
+- `GET /api/company/settings` - Get company settings and contact information
+- `PATCH /api/company/settings` - Update company details (name, email, phone, address)
+- `PATCH /api/company/branding` - Update white-label branding (colors, logos)
+
 ### Integration Management
 - `GET /api/integrations` - List available integration types
 - `POST /api/integrations` - Add integration to company
 - `GET /api/integrations/{id}/sync` - Trigger manual sync
 - `GET /api/integrations/{id}/customers` - List customers from specific integration
+- `GET /api/integrations/{id}/preview/template` - Get display template for integration
+- `GET /api/integrations/{id}/preview/data` - Get preview data from integration
+- `GET /api/integrations/{id}/preview` - Get template and data in single request
 - `PATCH /api/company/source-integration` - Set source of truth integration
 
 ### Customer Mapping
@@ -151,7 +161,7 @@ app/Integrations/
     └── config.php
 ```
 
-Each integration must implement: `sync()`, `getCustomers()`, `authenticate()`, `disconnect()`
+Each integration must implement: `sync()`, `getCustomers()`, `authenticate()`, `disconnect()`, `getDisplayTemplate()`, `getPreviewData()`
 
 ### Report Module Structure
 ```
@@ -210,6 +220,62 @@ The platform features a comprehensive in-app notification system that keeps user
 - Modal detail view shows event type, severity, timestamp, and contextual help
 - "View All Notifications" button in dropdown for quick access
 - Recent Activity section links directly to notifications page
+
+---
+
+## Integration Data Visualization
+
+The platform features a comprehensive data preview system that allows users to view integration data before generating reports:
+
+### Features
+- **Live Data Preview** - View real-time data from any integration without generating a full report
+- **Standardized Display** - Each integration defines its own template for presenting data
+- **Flexible Rendering** - Supports tables, key-value pairs, and list formats
+- **Customer-Specific Filtering** - Option to filter data by specific customers
+- **Accessible from Customer View** - Easy access through the customer integrations modal
+
+### Display Template Types
+Each integration can define custom display templates with the following section types:
+
+- **Table View** - Tabular data with customizable columns (e.g., Active Directory users)
+- **Key-Value Pairs** - Configuration or metadata display (e.g., Exchange server settings)
+- **List View** - Simple lists of items (e.g., security groups, mailboxes)
+
+### How It Works
+1. Navigate to a customer's integrations view
+2. Click the "View Data" (eye icon) button next to any integration
+3. See live data pulled directly from the integration
+4. Review data accuracy before scheduling reports
+5. Verify customer mappings are correct
+
+This feature helps clients validate data quality and troubleshoot integration issues before committing to automated report generation.
+
+---
+
+## Company Settings & Branding
+
+### Enhanced Settings
+Company settings now include comprehensive contact information that appears on all generated reports:
+
+- **Company Name** - Your organization's display name
+- **Contact Email** - Primary contact email for reports
+- **Contact Phone** - Support phone number
+- **Physical Address** - Company address (multi-line support)
+- **Primary Brand Color** - Hex color for report theming
+
+### Report Integration
+All contact details are automatically included in:
+- PDF report headers and footers
+- Email delivery notifications
+- White-labeled report templates
+- Customer-facing documentation
+
+### Settings API
+```
+GET  /api/company/settings        # Retrieve company settings
+PATCH /api/company/settings        # Update company details
+PATCH /api/company/branding        # Update branding and colors
+```
 
 ---
 

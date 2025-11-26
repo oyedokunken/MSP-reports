@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\IntegrationController;
 use App\Http\Controllers\Api\IntegrationPreviewController;
 use App\Http\Controllers\Api\CustomerMappingController;
@@ -27,6 +28,13 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
     Route::post('/auth/password/request', [AuthController::class, 'requestPasswordReset']);
     Route::post('/auth/password/reset', [AuthController::class, 'resetPassword']);
     Route::post('/auth/password/change', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');
+
+    // Company Routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/company/settings', [CompanyController::class, 'getSettings']);
+        Route::patch('/company/settings', [CompanyController::class, 'updateSettings']);
+        Route::patch('/company/branding', [CompanyController::class, 'updateBranding']);
+    });
 
     // Users Routes
     Route::middleware('auth:sanctum')->group(function () {

@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
-import { Cable, Trash2 } from "lucide-react";
+import { Cable, Trash2, Eye } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Customer } from "../types";
+import { ViewIntegrationDataModal } from "./ViewIntegrationDataModal";
 
 interface IntegrationMapping {
     integration_customer_id: number;
@@ -41,6 +42,8 @@ export function ViewCustomerIntegrationsModal({
     const [integrations, setIntegrations] = useState<IntegrationMapping[]>([]);
     const [error, setError] = useState("");
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [viewDataModalOpen, setViewDataModalOpen] = useState(false);
+    const [selectedIntegration, setSelectedIntegration] = useState<IntegrationMapping | null>(null);
 
     useEffect(() => {
         if (open && customer) {
@@ -93,6 +96,11 @@ export function ViewCustomerIntegrationsModal({
 
     const handleClose = () => {
         onOpenChange(false);
+    };
+
+    const handleViewData = (integration: IntegrationMapping) => {
+        setSelectedIntegration(integration);
+        setViewDataModalOpen(true);
     };
 
     if (!customer) return null;
@@ -159,28 +167,38 @@ export function ViewCustomerIntegrationsModal({
                                                 {integration.external_id}
                                             </p>
                                         </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                                handleDeleteMapping(
-                                                    customer.customer_id,
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleViewData(integration)}
+                                                className="text-primary hover:text-primary hover:bg-primary/10"
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() =>
+                                                    handleDeleteMapping(
+                                                        customer.customer_id,
+                                                        integration.mapping_id
+                                                    )
+                                                }
+                                                disabled={
+                                                    deletingId ===
                                                     integration.mapping_id
-                                                )
-                                            }
-                                            disabled={
-                                                deletingId ===
-                                                integration.mapping_id
-                                            }
-                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                        >
-                                            {deletingId ===
-                                            integration.mapping_id ? (
-                                                <Spinner className="h-4 w-4" />
-                                            ) : (
-                                                <Trash2 className="h-4 w-4" />
-                                            )}
-                                        </Button>
+                                                }
+                                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            >
+                                                {deletingId ===
+                                                integration.mapping_id ? (
+                                                    <Spinner className="h-4 w-4" />
+                                                ) : (
+                                                    <Trash2 className="h-4 w-4" />
+                                                )}
+                                            </Button>
+                                        </div>
                                     </div>
                                     <div className="text-xs text-muted-foreground">
                                         Mapped:{" "}
@@ -200,6 +218,14 @@ export function ViewCustomerIntegrationsModal({
                     </Button>
                 </div>
             </DialogContent>
+
+            <ViewIntegrationDataModal
+                open={viewDataModalOpen}
+                onOpenChange={setViewDataModalOpen}
+                integrationId={selectedIntegration?.integration_id ?? null}
+                integrationName={selectedIntegration?.integration_name ?? ""}
+                integrationCustomerId={selectedIntegration?.integration_customer_id}
+            />
         </Dialog>
     );
 }
