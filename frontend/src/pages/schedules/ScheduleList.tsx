@@ -1,13 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { useSchedulesStore } from '@/stores/useSchedulesStore'
 import { SchedulesHeader, SchedulesGrid } from './components'
+import { SelectCustomerModal } from './modals/SelectCustomerModal'
 
 export default function ScheduleList() {
   const navigate = useNavigate()
   const toast = useToast()
+  const [selectCustomerOpen, setSelectCustomerOpen] = useState(false)
   
   const schedules = useSchedulesStore(state => state.schedules)
   const isLoading = useSchedulesStore(state => state.isLoading)
@@ -20,7 +22,7 @@ export default function ScheduleList() {
   }, [fetchSchedules])
 
   const handleCreateSchedule = () => {
-    navigate('/platform/customers')
+    setSelectCustomerOpen(true)
   }
 
   const handleConfigure = (customerId: number) => {
@@ -39,6 +41,11 @@ export default function ScheduleList() {
           onCreateSchedule={handleCreateSchedule}
         />
       </div>
+      
+      <SelectCustomerModal 
+        open={selectCustomerOpen}
+        onOpenChange={setSelectCustomerOpen}
+      />
     </FloatingLayout>
   )
 }

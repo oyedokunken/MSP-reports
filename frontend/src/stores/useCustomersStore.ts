@@ -87,14 +87,15 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   // Pagination state
   currentPage: 1,
   totalPages: 1,
-  perPage: 15,
+  perPage: 21,
   total: 0,
 
   // Fetch customers
   fetchCustomers: async (page: number = 1) => {
     set({ isLoading: true })
     try {
-      const response = await api.get(`/customers?page=${page}`)
+      const perPage = get().perPage
+      const response = await api.get(`/customers?page=${page}&per_page=${perPage}`)
       const data = (response as any)
       
       // Handle pagination data from nested pagination object or root level

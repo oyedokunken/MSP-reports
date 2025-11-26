@@ -124,17 +124,87 @@ export const IntegrationPreview: React.FC = () => {
   const handleExportPDF = async () => {
     try {
       setIsExporting(true)
-      toast.info('Generating PDF', 'Creating PDF report...')
+      toast.info('Generating PDF', 'Preparing print preview...')
       
-      // TODO: Call backend API to generate PDF
-      // const response = await api.post(`/integrations/${integrationId}/preview/export-pdf`, {
-      //   customer_id: customerId,
-      //   sections: preview?.template.sections.map(s => s.id)
-      // })
+      // Create a printable HTML document
+      const printContent = document.createElement('div')
+      printContent.className = 'print-container'
       
-      // For now, show a message that PDF generation is coming soon
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      toast.success('PDF Export', 'PDF generation will be available soon')
+      // Build the HTML content
+      let htmlContent = `
+        <style>
+          @media print {
+            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+            .print-container { max-width: 100%; }
+            h1 { color: #1a56db; margin-bottom: 10px; }
+            h2 { color: #374151; margin-top: 20px; margin-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f3f4f6; font-weight: bold; }
+            .section { margin-bottom: 30px; page-break-inside: avoid; }
+            .metadata { color: #6b7280; font-size: 12px; margin-bottom: 20px; }
+          }
+        </style>
+        <h1>${preview?.template.metadata.display_name || 'Integration Preview'}</h1>
+        <p class="metadata">Generated: ${new Date().toLocaleString()}</p>
+        ${preview?.preview.customer ? `<p class="metadata">Customer: ${preview.preview.customer.name}</p>` : ''}
+      `
+      
+      // Add each section
+      preview?.template.sections.forEach(section => {
+        const sectionData = section.dataPath ? preview.preview.data[section.dataPath] : null
+        
+        htmlContent += `<div class="section"><h2>${section.title}</h2>`
+        
+        if (section.type === 'table' && Array.isArray(sectionData) && sectionData.length > 0) {
+          const columns = section.columns || Object.keys(sectionData[0])
+          htmlContent += '<table><thead><tr>'
+          columns.forEach(col => {
+            htmlContent += `<th>${col.replace(/_/g, ' ').toUpperCase()}</th>`
+          })
+          htmlContent += '</tr></thead><tbody>'
+          sectionData.forEach(row => {
+            htmlContent += '<tr>'
+            columns.forEach(col => {
+              htmlContent += `<td>${row[col] || '-'}</td>`
+            })
+            htmlContent += '</tr>'
+          })
+          htmlContent += '</tbody></table>'
+        } else if (section.type === 'key-value' && sectionData) {
+          htmlContent += '<table>'
+          Object.entries(sectionData).forEach(([key, value]) => {
+            htmlContent += `<tr><th>${key.replace(/_/g, ' ').toUpperCase()}</th><td>${value}</td></tr>`
+          })
+          htmlContent += '</table>'
+        } else if (section.type === 'list' && Array.isArray(sectionData)) {
+          htmlContent += '<ul>'
+          sectionData.forEach(item => {
+            htmlContent += `<li>${typeof item === 'object' ? JSON.stringify(item) : item}</li>`
+          })
+          htmlContent += '</ul>'
+        }
+        
+        htmlContent += '</div>'
+      })
+      
+      printContent.innerHTML = htmlContent
+      
+      // Open print dialog
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        printWindow.document.write(htmlContent)
+        printWindow.document.close()
+        printWindow.focus()
+        
+        // Wait a bit for content to load, then print
+        setTimeout(() => {
+          printWindow.print()
+          toast.success('PDF Export Ready', 'Print dialog opened. Save as PDF to export.')
+        }, 500)
+      } else {
+        toast.error('Popup Blocked', 'Please allow popups to export as PDF')
+      }
     } catch (err: any) {
       console.error('PDF export error:', err)
       toast.error('PDF Export Failed', err.message || 'Failed to generate PDF')
