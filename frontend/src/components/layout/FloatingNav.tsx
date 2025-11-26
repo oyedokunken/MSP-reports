@@ -170,7 +170,7 @@ export default function FloatingNav() {
                         className="w-full text-xs"
                         onClick={() => {
                           setIsNotificationMenuOpen(false)
-                          navigate('/notifications')
+                          navigate('/platform/notifications')
                         }}
                       >
                         View all notifications
@@ -212,7 +212,7 @@ export default function FloatingNav() {
                   </div>
                   <div className="p-2">
                     <Link
-                      to="/settings"
+                      to="/admin/settings"
                       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
