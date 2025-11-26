@@ -19,6 +19,11 @@ class CustomerMappingController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
+        // Get pagination parameters
+        $perPage = 20;
+        $page = $request->input('page', 1);
+
+        // Get all customers for this company
         $customers = Customer::with([
             'integrationCustomers.integration:integration_id,display_name,integration_type',
             'reportSchedules'
@@ -26,6 +31,7 @@ class CustomerMappingController extends Controller
             ->where('company_id', $company->company_id)
             ->get();
 
+        // Get all unmapped integration customers
         $unmappedIntegrationCustomers = IntegrationCustomer::with(
             'integration:integration_id,display_name,integration_type'
         )
@@ -35,6 +41,7 @@ class CustomerMappingController extends Controller
             ->whereNull('customer_id')
             ->get();
 
+        // Map customers to response format
         $merged = $customers->map(function ($customer) {
             return [
                 'customer_id' => $customer->customer_id,
@@ -64,6 +71,7 @@ class CustomerMappingController extends Controller
             ];
         });
 
+        // Add unmapped integration customers
         foreach ($unmappedIntegrationCustomers as $ic) {
             $merged->push([
                 'customer_id' => null,
@@ -83,9 +91,25 @@ class CustomerMappingController extends Controller
             ]);
         }
 
+        // Calculate pagination
+        $total = $merged->count();
+        $lastPage = (int) ceil($total / $perPage);
+        $from = ($page - 1) * $perPage;
+        
+        // Slice the collection for current page
+        $paginatedData = $merged->slice($from, $perPage)->values();
+
         return response()->json([
             'status' => 'success',
-            'data' => $merged->values(),
+            'data' => $paginatedData,
+            'pagination' => [
+                'current_page' => (int) $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => $lastPage,
+                'from' => $total > 0 ? $from + 1 : null,
+                'to' => $total > 0 ? min($from + $perPage, $total) : null,
+            ],
         ]);
     }
 
