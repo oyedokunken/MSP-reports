@@ -34,11 +34,11 @@ export function CustomerCard({
     <Card className="flex flex-col overflow-hidden">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <CardTitle className="text-base truncate break-words">
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <CardTitle className="text-base break-words line-clamp-2 leading-tight">
               {customer.canonical_name}
             </CardTitle>
-            <CardDescription className="text-xs mt-1">
+            <CardDescription className="text-xs mt-1 truncate">
               {customer.integrations.length} integration{customer.integrations.length !== 1 ? 's' : ''}
             </CardDescription>
           </div>
@@ -52,14 +52,14 @@ export function CustomerCard({
       </CardHeader>
       <CardContent className="flex-1 space-y-3">
         {/* Integrations */}
-        <div className="space-y-2">
+        <div className="space-y-2 overflow-hidden">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Link2 className="h-3 w-3" />
+            <Link2 className="h-3 w-3 flex-shrink-0" />
             <span>Linked Integrations</span>
           </div>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1 overflow-hidden">
             {customer.integrations.map((integration) => (
-              <Badge key={integration.integration_customer_id} variant="outline" className="text-xs">
+              <Badge key={integration.integration_customer_id} variant="outline" className="text-xs truncate max-w-full">
                 {integration.integration_type}
               </Badge>
             ))}
@@ -85,20 +85,20 @@ export function CustomerCard({
           <Button
             size="sm"
             variant="outline"
-            className="flex-1 min-w-[120px]"
+            className="flex-1 min-w-[120px] overflow-hidden"
             onClick={onSetupReports}
           >
-            <Settings className="h-4 w-4 mr-2" />
-            Setup Reports
+            <Settings className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span className="truncate">Setup Reports</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className="flex-1 min-w-[120px]"
+            className="flex-1 min-w-[120px] overflow-hidden"
             onClick={onViewHistory}
           >
-            <FileText className="h-4 w-4 mr-2" />
-            View History
+            <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span className="truncate">View History</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

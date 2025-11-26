@@ -86,7 +86,7 @@ export default function CustomerList() {
 
     return (
         <FloatingLayout>
-            <div className="space-y-6 max-w-full overflow-x-hidden">
+            <div className="space-y-6 max-w-full overflow-hidden">
                 <CustomersHeader />
 
                 <CustomersFilters

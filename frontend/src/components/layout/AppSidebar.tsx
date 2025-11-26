@@ -60,7 +60,14 @@ export default function AppSidebar() {
     { path: '/admin/settings', icon: SettingsIcon, label: 'Settings' },
   ]
 
-  const isActive = (path: string) => location.pathname === path
+  const isActive = (path: string) => {
+    // For exact match paths (dashboard, settings)
+    if (path === '/platform/dashboard' || path === '/admin/settings') {
+      return location.pathname === path
+    }
+    // For section paths, check if current path starts with the section path
+    return location.pathname.startsWith(path)
+  }
   
   // Handler to navigate without expanding sidebar when collapsed
   const handleNavClick = (e: React.MouseEvent, path: string) => {

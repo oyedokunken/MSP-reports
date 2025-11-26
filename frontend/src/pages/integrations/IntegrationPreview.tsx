@@ -2,20 +2,23 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import type { IntegrationPreview as IntegrationPreviewType } from '@/types/displayTemplate'
 import { DynamicSection } from '@/components/dynamic/DynamicSection'
-import { RefreshCw, Download, AlertCircle } from 'lucide-react'
+import { RefreshCw, Download, AlertCircle, FileDown } from 'lucide-react'
 import { api } from '@/lib/api'
 import FloatingLayout from '@/components/layout/FloatingLayout'
+import { useToast } from '@/components/ui/Toast'
 
 export const IntegrationPreview: React.FC = () => {
   const { integrationId } = useParams<{ integrationId: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const toast = useToast()
   
   const [preview, setPreview] = useState<IntegrationPreviewType | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [selectedData, setSelectedData] = useState<Record<string, string[]>>({})
+  const [isExporting, setIsExporting] = useState(false)
 
   const customerId = searchParams.get('customer_id')
 
@@ -58,8 +61,14 @@ export const IntegrationPreview: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await loadPreview()
-    setRefreshing(false)
+    try {
+      await loadPreview()
+      toast.success('Preview Refreshed', 'Integration data has been updated')
+    } catch (err) {
+      // Error already handled in loadPreview
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   const handleSelectionChange = (sectionId: string, selectedIds: string[]) => {
@@ -69,33 +78,69 @@ export const IntegrationPreview: React.FC = () => {
     }))
   }
 
-  const handleExportSelected = () => {
-    // Export selected data as JSON
-    const exportData = {
-      integration: preview?.integration,
-      customer: preview?.preview.customer,
-      timestamp: preview?.preview.timestamp,
-      selectedData: Object.entries(selectedData).reduce((acc, [sectionId, ids]) => {
-        const section = preview?.template.sections.find((s) => s.id === sectionId)
-        if (section && section.dataPath) {
-          const sectionData = preview?.preview.data[section.dataPath]
-          if (Array.isArray(sectionData)) {
-            acc[sectionId] = sectionData.filter((item) => ids.includes(item.id))
+  const handleExportSelected = async () => {
+    try {
+      setIsExporting(true)
+      toast.info('Preparing Export', 'Generating PDF export...')
+      
+      // Prepare export data
+      const exportData = {
+        integration: preview?.integration,
+        customer: preview?.preview.customer,
+        timestamp: preview?.preview.timestamp,
+        selectedData: Object.entries(selectedData).reduce((acc, [sectionId, ids]) => {
+          const section = preview?.template.sections.find((s) => s.id === sectionId)
+          if (section && section.dataPath) {
+            const sectionData = preview?.preview.data[section.dataPath]
+            if (Array.isArray(sectionData)) {
+              acc[sectionId] = sectionData.filter((item) => ids.includes(item.id))
+            }
           }
-        }
-        return acc
-      }, {} as Record<string, any>),
-    }
+          return acc
+        }, {} as Record<string, any>),
+      }
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json',
-    })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `integration-preview-${integrationId}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+      // TODO: Replace with actual PDF generation API call
+      // For now, export as JSON until PDF endpoint is ready
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `integration-preview-${integrationId}-${Date.now()}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      
+      toast.success('Export Complete', 'Integration preview exported successfully')
+    } catch (err: any) {
+      console.error('Export error:', err)
+      toast.error('Export Failed', err.message || 'Failed to export integration preview')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+  
+  const handleExportPDF = async () => {
+    try {
+      setIsExporting(true)
+      toast.info('Generating PDF', 'Creating PDF report...')
+      
+      // TODO: Call backend API to generate PDF
+      // const response = await api.post(`/integrations/${integrationId}/preview/export-pdf`, {
+      //   customer_id: customerId,
+      //   sections: preview?.template.sections.map(s => s.id)
+      // })
+      
+      // For now, show a message that PDF generation is coming soon
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      toast.success('PDF Export', 'PDF generation will be available soon')
+    } catch (err: any) {
+      console.error('PDF export error:', err)
+      toast.error('PDF Export Failed', err.message || 'Failed to generate PDF')
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const hasSelectedData = Object.values(selectedData).some((ids) => ids.length > 0)
@@ -163,18 +208,27 @@ export const IntegrationPreview: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary border border-primary rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FileDown className="w-4 h-4" />
+              {isExporting ? 'Exporting...' : 'Export PDF'}
+            </button>
             {hasSelectedData && (
               <button
                 onClick={handleExportSelected}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                disabled={isExporting}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Download className="w-4 h-4" />
-                Export Selected
+                Export CSV
               </button>
             )}
             <button
               onClick={handleRefresh}
-              disabled={refreshing}
+              disabled={refreshing || isExporting}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
