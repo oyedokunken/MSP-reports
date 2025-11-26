@@ -20,11 +20,11 @@ export default function ScheduleList() {
   }, [fetchSchedules])
 
   const handleCreateSchedule = () => {
-    navigate('/customers')
+    navigate('/platform/customers')
   }
 
   const handleConfigure = (customerId: number) => {
-    navigate(`/customers/${customerId}/configure-reports`)
+    navigate(`/platform/customers/${customerId}/configure-reports`)
   }
 
   return (

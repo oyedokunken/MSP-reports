@@ -31,11 +31,11 @@ export function CustomerCard({
   onSplit,
 }: CustomerCardProps) {
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col overflow-hidden">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <CardTitle className="text-base truncate">
+            <CardTitle className="text-base truncate break-words">
               {customer.canonical_name}
             </CardTitle>
             <CardDescription className="text-xs mt-1">

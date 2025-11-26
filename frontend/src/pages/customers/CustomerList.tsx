@@ -109,8 +109,8 @@ export default function CustomerList() {
                     customers={mappedCustomers}
                     isLoading={isLoading}
                     hasUnmapped={unmappedCustomers.length > 0}
-                    onSetupReports={(id) => navigate(`/customers/${id}/configure-reports`)}
-                    onViewHistory={(id) => navigate(`/reports?customer=${id}`)}
+                    onSetupReports={(id) => navigate(`/platform/customers/${id}/configure-reports`)}
+                    onViewHistory={(id) => navigate(`/platform/reports?customer=${id}`)}
                     onEdit={(customer) => {
                         setSelectedCustomer({
                             customer_id: customer.customer_id!,

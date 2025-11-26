@@ -93,7 +93,10 @@ export function IntegrationGrid({
             )}
 
             {!isLoading && items.length > 0 && (
-                <button className="rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-800 bg-white dark:bg-[hsl(var(--auth-card))] p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center min-h-[250px]">
+                <button 
+                    onClick={onEmptyAction}
+                    className="rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-800 bg-white dark:bg-[hsl(var(--auth-card))] p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center min-h-[250px]"
+                >
                     <Cable className="h-12 w-12 text-muted-foreground mb-3" />
                     <p className="text-sm font-medium text-foreground">
                         Add New Integration

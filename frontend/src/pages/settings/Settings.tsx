@@ -15,7 +15,7 @@ import {
 export default function Settings() {
   const toast = useToast()
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [, setSaving] = useState(false)
 
   const companyName = useSettingsStore(state => state.companyName)
   const primaryHex = useSettingsStore(state => state.primaryHex)
@@ -44,7 +44,7 @@ export default function Settings() {
         setLoading(true)
         const response = await api.get<any>('/company/settings')
         
-        if (response.status === 'success') {
+        if (response && response.data) {
           const data = response.data
           setCompanyName(data.name || '')
           setContactEmail(data.contact_email || '')

@@ -30,7 +30,7 @@ import { useNotificationStore } from "@/stores/useNotificationStore";
 
 export default function Dashboard() {
     const toast = useToast();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -257,7 +257,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-foreground">
-                            Dashboard
+                            {user?.name ? `Welcome back, ${user.name.split(' ')[0]}` : 'Dashboard'}
                         </h1>
                         <p className="mt-2 text-muted-foreground">
                             Overview of your environment, reports and

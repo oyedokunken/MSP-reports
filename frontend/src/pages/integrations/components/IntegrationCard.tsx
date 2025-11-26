@@ -137,19 +137,19 @@ export function IntegrationCard ({
       </div>
 
       <div className="mt-4 space-y-2 border-t border-border pt-4">
+        <button
+          onClick={() => onSync(integration.id, integration.name)}
+          disabled={isSyncing}
+          className={`w-full flex items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium transition-all ${
+            isSyncing
+              ? 'bg-primary text-primary-foreground border-primary'
+              : 'bg-background text-foreground hover:bg-muted'
+          } disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+          {isSyncing ? <LoadingSpinner size="sm" /> : <RefreshCw className="h-4 w-4" />}
+          {isSyncing ? 'Syncing...' : 'Sync Now'}
+        </button>
         <div className="flex gap-2">
-          <button
-            onClick={() => onSync(integration.id, integration.name)}
-            disabled={isSyncing}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium transition-all ${
-              isSyncing
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-background text-foreground hover:bg-muted'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {isSyncing ? <LoadingSpinner size="sm" /> : <RefreshCw className="h-4 w-4" />}
-            {isSyncing ? 'Syncing...' : 'Sync Now'}
-          </button>
           <button
             onClick={() => onPreviewData(integration)}
             className="flex-1 flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"

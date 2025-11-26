@@ -8,7 +8,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { Database, Download } from "lucide-react";
+import { Database } from "lucide-react";
 import { api } from "@/lib/api";
 
 interface ViewIntegrationDataModalProps {
