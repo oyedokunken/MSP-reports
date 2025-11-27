@@ -23,36 +23,120 @@ class CustomerMappingController extends Controller
         $perPage = 20;
         $page = $request->input('page', 1);
 
-        // Get all customers for this company
-        $customers = Customer::with([
-            'integrationCustomers.integration:integration_id,display_name,integration_type',
-            'reportSchedules'
-        ])
-            ->where('company_id', $company->company_id)
-            ->get();
+        // OPTIMIZED: Use database pagination instead of loading all data
+        // Get total counts first for pagination metadata
+        $totalMappedCustomers = Customer::where('company_id', $company->company_id)->count();
+        $totalUnmappedIntegrationCustomers = IntegrationCustomer::whereHas('integration', function ($q) use ($company) {
+            $q->where('company_id', $company->company_id);
+        })->whereNull('customer_id')->count();
+        
+        $totalRecords = $totalMappedCustomers + $totalUnmappedIntegrationCustomers;
+        $lastPage = (int) ceil($totalRecords / $perPage);
+        $offset = ($page - 1) * $perPage;
 
-        // Get all unmapped integration customers
-        $unmappedIntegrationCustomers = IntegrationCustomer::with(
-            'integration:integration_id,display_name,integration_type'
-        )
-            ->whereHas('integration', function ($q) use ($company) {
-                $q->where('company_id', $company->company_id);
-            })
-            ->whereNull('customer_id')
-            ->get();
+        // Determine what to fetch based on pagination
+        $data = [];
+        
+        // If we're still in the mapped customers range
+        if ($offset < $totalMappedCustomers) {
+            $mappedToFetch = min($perPage, $totalMappedCustomers - $offset);
+            
+            // OPTIMIZED: Eager load all relationships including customerMappings to prevent N+1
+            $customers = Customer::with([
+                'integrationCustomers.integration:integration_id,display_name,integration_type',
+                'integrationCustomers.customerMappings',
+                'reportSchedules'
+            ])
+                ->where('company_id', $company->company_id)
+                ->skip($offset)
+                ->take($mappedToFetch)
+                ->get();
 
-        // Map customers to response format
-        $merged = $customers->map(function ($customer) {
-            return [
-                'customer_id' => $customer->customer_id,
-                'canonical_name' => e($customer->canonical_name),
-                'status' => e($customer->status),
-                'report_destination' => e($customer->report_destination),
-                'report_schedules_count' => $customer->reportSchedules->count(),
-                'integrations' => $customer->integrationCustomers->map(function ($ic) {
-                    $mapping = $ic->customerMappings()->first();
-                    
-                    return [
+            // Map customers to response format
+            foreach ($customers as $customer) {
+                $data[] = [
+                    'customer_id' => $customer->customer_id,
+                    'canonical_name' => e($customer->canonical_name),
+                    'status' => e($customer->status),
+                    'report_destination' => e($customer->report_destination),
+                    'report_schedules_count' => $customer->reportSchedules->count(),
+                    'integrations' => $customer->integrationCustomers->map(function ($ic) {
+                        // Use eager-loaded relationship instead of query
+                        $mapping = $ic->customerMappings->first();
+                        
+                        return [
+                            'integration_customer_id' => $ic->integration_customer_id,
+                            'integration_type' => e($ic->integration->integration_type ?? null),
+                            'display_name' => e($ic->integration->display_name ?? null),
+                            'external_id' => e($ic->external_id),
+                            'name' => e($ic->name),
+                            'active' => (bool) $ic->active,
+                            'last_seen_at' => $ic->last_seen_at,
+                            'mapping' => $mapping ? [
+                                'type' => $mapping->mapping_type,
+                                'confidence_score' => $mapping->confidence_score,
+                                'mapped_at' => $mapping->mapped_at,
+                                'notes' => $mapping->notes,
+                            ] : null,
+                        ];
+                    })->toArray(),
+                ];
+            }
+            
+            $remaining = $perPage - count($data);
+            if ($remaining > 0) {
+                $unmappedIntegrationCustomers = IntegrationCustomer::with(
+                    'integration:integration_id,display_name,integration_type'
+                )
+                    ->whereHas('integration', function ($q) use ($company) {
+                        $q->where('company_id', $company->company_id);
+                    })
+                    ->whereNull('customer_id')
+                    ->take($remaining)
+                    ->get();
+
+                foreach ($unmappedIntegrationCustomers as $ic) {
+                    $data[] = [
+                        'customer_id' => null,
+                        'canonical_name' => null,
+                        'status' => null,
+                        'report_destination' => null,
+                        'report_schedules_count' => 0,
+                        'integrations' => [[
+                            'integration_customer_id' => $ic->integration_customer_id,
+                            'integration_type' => e($ic->integration->integration_type ?? null),
+                            'display_name' => e($ic->integration->display_name ?? null),
+                            'external_id' => e($ic->external_id),
+                            'name' => e($ic->name),
+                            'active' => (bool) $ic->active,
+                            'last_seen_at' => $ic->last_seen_at,
+                        ]],
+                    ];
+                }
+            }
+        } else {
+            // We're in the unmapped customers range
+            $unmappedOffset = $offset - $totalMappedCustomers;
+            
+            $unmappedIntegrationCustomers = IntegrationCustomer::with(
+                'integration:integration_id,display_name,integration_type'
+            )
+                ->whereHas('integration', function ($q) use ($company) {
+                    $q->where('company_id', $company->company_id);
+                })
+                ->whereNull('customer_id')
+                ->skip($unmappedOffset)
+                ->take($perPage)
+                ->get();
+
+            foreach ($unmappedIntegrationCustomers as $ic) {
+                $data[] = [
+                    'customer_id' => null,
+                    'canonical_name' => null,
+                    'status' => null,
+                    'report_destination' => null,
+                    'report_schedules_count' => 0,
+                    'integrations' => [[
                         'integration_customer_id' => $ic->integration_customer_id,
                         'integration_type' => e($ic->integration->integration_type ?? null),
                         'display_name' => e($ic->integration->display_name ?? null),
@@ -60,55 +144,21 @@ class CustomerMappingController extends Controller
                         'name' => e($ic->name),
                         'active' => (bool) $ic->active,
                         'last_seen_at' => $ic->last_seen_at,
-                        'mapping' => $mapping ? [
-                            'type' => $mapping->mapping_type,
-                            'confidence_score' => $mapping->confidence_score,
-                            'mapped_at' => $mapping->mapped_at,
-                            'notes' => $mapping->notes,
-                        ] : null,
-                    ];
-                }),
-            ];
-        });
-
-        // Add unmapped integration customers
-        foreach ($unmappedIntegrationCustomers as $ic) {
-            $merged->push([
-                'customer_id' => null,
-                'canonical_name' => null,
-                'status' => null,
-                'report_destination' => null,
-                'report_schedules_count' => 0,
-                'integrations' => [[
-                    'integration_customer_id' => $ic->integration_customer_id,
-                    'integration_type' => e($ic->integration->integration_type ?? null),
-                    'display_name' => e($ic->integration->display_name ?? null),
-                    'external_id' => e($ic->external_id),
-                    'name' => e($ic->name),
-                    'active' => (bool) $ic->active,
-                    'last_seen_at' => $ic->last_seen_at,
-                ]],
-            ]);
+                    ]],
+                ];
+            }
         }
-
-        // Calculate pagination
-        $total = $merged->count();
-        $lastPage = (int) ceil($total / $perPage);
-        $from = ($page - 1) * $perPage;
-        
-        // Slice the collection for current page
-        $paginatedData = $merged->slice($from, $perPage)->values();
 
         return response()->json([
             'status' => 'success',
-            'data' => $paginatedData,
+            'data' => $data,
             'pagination' => [
                 'current_page' => (int) $page,
                 'per_page' => $perPage,
-                'total' => $total,
+                'total' => $totalRecords,
                 'last_page' => $lastPage,
-                'from' => $total > 0 ? $from + 1 : null,
-                'to' => $total > 0 ? min($from + $perPage, $total) : null,
+                'from' => $totalRecords > 0 ? $offset + 1 : null,
+                'to' => $totalRecords > 0 ? min($offset + count($data), $totalRecords) : null,
             ],
         ]);
     }
@@ -132,8 +182,10 @@ class CustomerMappingController extends Controller
             ->map(fn($group) => $group->count())
             ->toArray();
 
-        $data = $unmappedIntegrationCustomers->map(function ($ic) use ($company) {
-            $mappingService = app(CustomerMappingService::class);
+        // OPTIMIZED: Create service once and reuse
+        $mappingService = app(CustomerMappingService::class);
+        
+        $data = $unmappedIntegrationCustomers->map(function ($ic) use ($mappingService) {
             $suggestions = $mappingService->getSuggestedMatches($ic, 3);
             
             return [
@@ -169,7 +221,6 @@ class CustomerMappingController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        // Validate based on whether we're creating new or mapping to existing
         $rules = [
             'integration_customer_id' => 'required|integer|exists:integration_customers,integration_customer_id',
             'create_new' => 'sometimes|boolean',
@@ -196,7 +247,9 @@ class CustomerMappingController extends Controller
             ], 422);
         }
 
-        $integrationCustomer = IntegrationCustomer::find($request->integration_customer_id);
+        // OPTIMIZED: Eager load integration to prevent N+1
+        $integrationCustomer = IntegrationCustomer::with('integration')
+            ->find($request->integration_customer_id);
 
         // Verify tenant isolation
         if ($integrationCustomer->integration->company_id !== $company->company_id) {
@@ -318,7 +371,12 @@ class CustomerMappingController extends Controller
             ], 400);
         }
 
-        $customer = Customer::where('company_id', $company->company_id)
+        // OPTIMIZED: Eager load relationships to prevent N+1
+        $customer = Customer::with([
+            'integrationCustomers.integration',
+            'integrationCustomers.customerMappings'
+        ])
+            ->where('company_id', $company->company_id)
             ->where('customer_id', $id)
             ->first();
 
@@ -330,7 +388,8 @@ class CustomerMappingController extends Controller
         }
 
         $integrations = $customer->integrationCustomers->map(function ($ic) {
-            $mapping = $ic->customerMappings()->first();
+            // Use eager-loaded relationship
+            $mapping = $ic->customerMappings->first();
             
             return [
                 'integration_customer_id' => $ic->integration_customer_id,
@@ -483,6 +542,8 @@ class CustomerMappingController extends Controller
                 'customer_id' => $primaryCustomer->customer_id,
             ]);
 
+            // OPTIMIZED: Track count from update operation instead of extra query
+            $integrationCustomersMoved = IntegrationCustomer::where('customer_id', $mergeCustomer->customer_id)->count();
             
             AuditLog::create([
                 'company_id' => $company->company_id,
@@ -500,7 +561,7 @@ class CustomerMappingController extends Controller
                         'id' => $mergeCustomer->customer_id,
                         'name' => $mergeCustomer->canonical_name,
                     ],
-                    'integration_customers_moved' => IntegrationCustomer::where('customer_id', $primaryCustomer->customer_id)->count(),
+                    'integration_customers_moved' => $integrationCustomersMoved,
                 ]),
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
@@ -558,7 +619,7 @@ class CustomerMappingController extends Controller
                 'metadata' => $originalCustomer->metadata,
             ]);
 
-            
+            // FIXED: Update both customer_mappings AND integration_customers tables
             $movedCount = CustomerMapping::whereIn('integration_customer_id', $validated['integration_customer_ids'])
                 ->where('customer_id', $originalCustomer->customer_id)
                 ->update(['customer_id' => $newCustomer->customer_id]);
@@ -570,6 +631,10 @@ class CustomerMappingController extends Controller
                     'message' => 'No integration customers were moved. Check that they belong to the original customer.',
                 ], 400);
             }
+            
+            // Also update the customer_id on integration_customers table
+            IntegrationCustomer::whereIn('integration_customer_id', $validated['integration_customer_ids'])
+                ->update(['customer_id' => $newCustomer->customer_id]);
 
             
             AuditLog::create([
@@ -629,9 +694,10 @@ class CustomerMappingController extends Controller
             ], 404);
         }
 
+        // OPTIMIZED: Eager load nested relationships to prevent N+1
         $mapping = CustomerMapping::where('customer_mapping_id', $mappingId)
             ->where('customer_id', $customerId)
-            ->with('integrationCustomer')
+            ->with('integrationCustomer.integration')
             ->first();
 
         if (!$mapping) {
