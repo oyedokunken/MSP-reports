@@ -19,17 +19,38 @@ class CustomerMappingController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        // Get pagination parameters
+        // Get pagination and filter parameters
         $perPage = 15;
+        $search = $request->input('search');
+        $status = $request->input('status');
+        $reportFilter = $request->input('report_filter');
 
-        // OPTIMIZED: Only return mapped customers with pagination
-        $customers = Customer::with([
+        // OPTIMIZED: Server-side filtering and pagination
+        $query = Customer::with([
             'integrationCustomers.integration:integration_id,display_name,integration_type',
             'integrationCustomers.customerMappings',
             'reportSchedules'
         ])
-            ->where('company_id', $company->company_id)
-            ->orderBy('canonical_name', 'asc')
+            ->where('company_id', $company->company_id);
+
+        // Apply search filter
+        if ($search) {
+            $query->where('canonical_name', 'ILIKE', '%' . $search . '%');
+        }
+
+        // Apply status filter
+        if ($status && $status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        // Apply report filter
+        if ($reportFilter === 'configured') {
+            $query->has('reportSchedules');
+        } elseif ($reportFilter === 'not-configured') {
+            $query->doesntHave('reportSchedules');
+        }
+
+        $customers = $query->orderBy('canonical_name', 'asc')
             ->paginate($perPage);
 
         // Map customers to response format

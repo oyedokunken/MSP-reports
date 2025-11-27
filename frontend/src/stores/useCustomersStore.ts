@@ -46,7 +46,7 @@ interface CustomersState {
     split: boolean
   }
   selectedUnmappedCustomer: IntegrationCustomer | null
-  selectedCustomer: any | null
+  selectedCustomer: MappedCustomer | null
   
   // Actions
   fetchCustomers: (page?: number) => Promise<void>
@@ -57,13 +57,12 @@ interface CustomersState {
   setReportFilter: (filter: string) => void
   
   // Modal actions
-  openModal: (modal: keyof CustomersState['modals'], customer?: any) => void
+  openModal: (modal: keyof CustomersState['modals'], customer?: MappedCustomer) => void
   closeModal: (modal: keyof CustomersState['modals']) => void
   setSelectedUnmappedCustomer: (customer: IntegrationCustomer | null) => void
-  setSelectedCustomer: (customer: any | null) => void
+  setSelectedCustomer: (customer: MappedCustomer | null) => void
   
   // Computed
-  getFilteredCustomers: () => MappedCustomer[]
   getMappedCustomers: () => MappedCustomer[]
   getUnmappedCustomers: () => MappedCustomer[]
 }
@@ -71,13 +70,14 @@ interface CustomersState {
 export const useCustomersStore = create<CustomersState>((set, get) => ({
   // Initial state
   customers: [],
-  isLoading: true,
+  isLoading: false,
   searchQuery: '',
   statusFilter: 'all',
   reportFilter: 'all',
   modals: {
     map: false,
     edit: false,
+    integrations: false,
     merge: false,
     split: false,
   },
@@ -94,11 +94,15 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   fetchCustomers: async (page: number = 1) => {
     set({ isLoading: true })
     try {
-      const perPage = get().perPage
-      const response = await api.get(`/customers?page=${page}&per_page=${perPage}`)
-      const data = (response as any)
+      const { searchQuery, statusFilter, reportFilter } = get()
       
-      // Handle pagination data from nested pagination object or root level
+      const params = new URLSearchParams({ page: page.toString() })
+      if (searchQuery) params.append('search', searchQuery)
+      if (statusFilter !== 'all') params.append('status', statusFilter)
+      if (reportFilter !== 'all') params.append('report_filter', reportFilter)
+      
+      const response = await api.get(`/customers?${params.toString()}`)
+      const data = response as any
       const pagination = data.pagination || data
       const customerData = data.data || []
       
@@ -106,81 +110,46 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
         customers: customerData,
         currentPage: pagination.current_page || page,
         totalPages: pagination.last_page || 1,
-        perPage: pagination.per_page || 20,
+        perPage: pagination.per_page || get().perPage,
         total: pagination.total || customerData.length,
         isLoading: false,
       })
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to fetch customers:', err)
       set({ isLoading: false })
-      throw err
     }
   },
 
   // Filter actions
-  setSearchQuery: (query: string) => set({ searchQuery: query }),
-  setReportFilter: (filter: string) => set({ reportFilter: filter }),
+  setSearchQuery: (query: string) => {
+    set({ searchQuery: query, currentPage: 1 })
+    get().fetchCustomers(1)
+  },
+  setStatusFilter: (status: string) => {
+    set({ statusFilter: status, currentPage: 1 })
+    get().fetchCustomers(1)
+  },
+  setReportFilter: (filter: string) => {
+    set({ reportFilter: filter, currentPage: 1 })
+    get().fetchCustomers(1)
+  },
 
   // Modal actions
   openModal: (modal, customer) => {
     set(state => ({
       modals: { ...state.modals, [modal]: true },
-      selectedCustomer: customer || state.selectedCustomer,
+      selectedCustomer: customer ?? state.selectedCustomer,
     }))
   },
-
   closeModal: modal => {
     set(state => ({
       modals: { ...state.modals, [modal]: false },
     }))
   },
+  setSelectedUnmappedCustomer: customer => set({ selectedUnmappedCustomer: customer }),
+  setSelectedCustomer: customer => set({ selectedCustomer: customer }),
 
-  setSelectedUnmappedCustomer: (customer: IntegrationCustomer | null) => {
-    set({ selectedUnmappedCustomer: customer })
-  },
-
-  setSelectedCustomer: (customer: any | null) => {
-    set({ selectedCustomer: customer })
-  },
-
-  // Computed - get filtered customers
-  getFilteredCustomers: () => {
-    const { customers, searchQuery, statusFilter, reportFilter } = get()
-    
-    return customers.filter(c => {
-      // Only show mapped customers
-      if (c.customer_id === null) return false
-      
-      // Search filter
-      if (searchQuery && !c.canonical_name?.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false
-      }
-      
-      // Status filter
-      if (statusFilter !== 'all' && c.status !== statusFilter) {
-        return false
-      }
-      
-      // Report configuration filter
-      if (reportFilter === 'configured' && (!c.report_schedules_count || c.report_schedules_count === 0)) {
-        return false
-      }
-      if (reportFilter === 'not-configured' && c.report_schedules_count && c.report_schedules_count > 0) {
-        return false
-      }
-      
-      return true
-    })
-  },
-
-  // Computed - get mapped customers
-  getMappedCustomers: () => {
-    return get().getFilteredCustomers()
-  },
-
-  // Computed - get unmapped customers
-  getUnmappedCustomers: () => {
-    const { customers } = get()
-    return customers.filter(c => c.customer_id === null)
-  },
+  // Computed
+  getMappedCustomers: () => get().customers.filter(c => c.customer_id !== null),
+  getUnmappedCustomers: () => get().customers.filter(c => c.customer_id === null),
 }))
