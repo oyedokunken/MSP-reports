@@ -110,6 +110,10 @@ class SyncEngine
             $integration->error_message = json_encode($errors);
         } else {
             $integration->error_message = null;
+            // Reset status to active when sync succeeds
+            if ($status === 'success' && $integration->status === 'error') {
+                $integration->status = 'active';
+            }
         }
 
         $integration->save();
