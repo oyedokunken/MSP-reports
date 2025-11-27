@@ -18,6 +18,7 @@ use App\Integrations\Datto\DattoIntegration;
 use App\Integrations\Sendmarc\SendmarcIntegration;
 use App\Integrations\ITGlue\ITGlueIntegration;
 use App\Integrations\BitDefender\BitDefenderIntegration;
+use App\Integrations\SaaS\SaaSIntegration;
 use App\Mail\IntegrationSyncFailedMail;
 
 class SyncIntegrationJob implements ShouldQueue
@@ -173,6 +174,7 @@ class SyncIntegrationJob implements ShouldQueue
             'Sendmarc' => SendmarcIntegration::class,
             'ITGlue' => ITGlueIntegration::class,
             'BitDefender' => BitDefenderIntegration::class,
+            'SaaS' => SaaSIntegration::class,
         ];
 
         $className = $integrationClasses[$this->integration->integration_type] ?? null;
