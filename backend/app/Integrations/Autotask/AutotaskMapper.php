@@ -132,11 +132,29 @@ class AutotaskMapper
                 'date_worked' => $autotaskTimeEntry['dateWorked'] ?? null,
                 'hours_worked' => $autotaskTimeEntry['hoursWorked'] ?? 0,
                 'hours_to_bill' => $autotaskTimeEntry['hoursToBill'] ?? 0,
-                'billable' => $autotaskTimeEntry['isBillable'] ?? false,
+                'billable' => !($autotaskTimeEntry['isNonBillable'] ?? false),
                 'internal_notes' => $autotaskTimeEntry['internalNotes'] ?? null,
                 'summary_notes' => $autotaskTimeEntry['summaryNotes'] ?? null,
                 'role_id' => $autotaskTimeEntry['roleID'] ?? null,
                 'task_id' => $autotaskTimeEntry['taskID'] ?? null,
+            ],
+        ];
+    }
+
+    public static function mapResource(array $autotaskResource): array
+    {
+        return [
+            'integration_customer_id' => null, // Resources are not customer-specific
+            'data_type' => 'resource',
+            'timestamp' => now(),
+            'payload' => [
+                'resource_id' => $autotaskResource['id'],
+                'first_name' => $autotaskResource['firstName'] ?? '',
+                'last_name' => $autotaskResource['lastName'] ?? '',
+                'email' => $autotaskResource['email'] ?? null,
+                'title' => $autotaskResource['title'] ?? '',
+                'is_active' => $autotaskResource['isActive'] ?? false,
+                'user_name' => $autotaskResource['userName'] ?? null,
             ],
         ];
     }

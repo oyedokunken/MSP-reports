@@ -227,6 +227,33 @@ class AutotaskIntegration implements IntegrationInterface
                 }
             });
 
+            // Fetch and store resources (technicians)
+            try {
+                $resources = $this->client->getResources();
+                
+                foreach ($resources as $resource) {
+                    try {
+                        $standardized = AutotaskMapper::mapResource($resource);
+                        $data[] = $standardized;
+                        $this->storeHistoricalData($standardized);
+                        $totalProcessed++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Failed to process resource: {$e->getMessage()}";
+                        \Log::error('Autotask historical: Failed to process resource', [
+                            'integration_id' => $this->integration->integration_id,
+                            'resource_id' => $resource['id'] ?? 'unknown',
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                $errors[] = "Failed to fetch resources: {$e->getMessage()}";
+                \Log::warning('Autotask historical: Could not fetch resources', [
+                    'integration_id' => $this->integration->integration_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             \Log::info('Autotask historical: Completed', [
                 'integration_id' => $this->integration->integration_id,
                 'start_date' => $startDate->toDateString(),

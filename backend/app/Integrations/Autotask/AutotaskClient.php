@@ -237,6 +237,39 @@ class AutotaskClient
         }
     }
 
+    public function getResources(): array
+    {
+        $allResources = [];
+        $pageSize = 500;
+
+        try {
+            $filters = [
+                ['field' => 'isActive', 'op' => 'eq', 'value' => true]
+            ];
+
+            $response = $this->makeRequest('POST', '/Resources/query', [
+                'filter' => $filters,
+                'MaxRecords' => $pageSize,
+            ]);
+
+            if ($response->successful()) {
+                $items = $response->json('items') ?? [];
+                $allResources = array_merge($allResources, $items);
+                
+                \Log::info('Autotask: Fetched resources', [
+                    'count' => count($items),
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Autotask: Failed to fetch resources', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $allResources;
+    }
+
     protected function makeRequest(string $method, string $endpoint, array $params = [])
     {
         if (!$this->useMockData) {

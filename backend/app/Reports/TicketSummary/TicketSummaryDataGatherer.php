@@ -63,6 +63,14 @@ class TicketSummaryDataGatherer
                 return $this->getEmptyData();
             }
 
+            // Fetch resources (technicians) from IntegrationData
+            $resourceRecords = IntegrationData::query()
+                ->where('company_id', $this->customer->company_id)
+                ->where('data_type', 'resource')
+                ->get();
+
+            $resources = $this->extractResources($resourceRecords);
+
             // Process the data
             $tickets = $this->extractTickets($ticketRecords);
             $timeEntries = $this->extractTimeEntries($timeEntryRecords);
@@ -73,7 +81,7 @@ class TicketSummaryDataGatherer
                 'time_entries' => $this->processTimeEntries($timeEntries),
                 'summary' => $this->calculateSummary($tickets, $timeEntries),
                 'top_issues' => $this->getTopIssues($tickets),
-                'technicians' => $this->getTechnicianActivity($timeEntries),
+                'technicians' => $this->getTechnicianActivity($timeEntries, $resources),
             ];
 
         } catch (\Exception $e) {
@@ -118,6 +126,25 @@ class TicketSummaryDataGatherer
                 'summaryNotes' => $payload['summary_notes'] ?? '',
             ];
         });
+    }
+
+    protected function extractResources($records)
+    {
+        $resources = [];
+        foreach ($records as $record) {
+            $payload = $record->data_payload;
+            $resourceId = $payload['resource_id'] ?? null;
+            if ($resourceId) {
+                $resources[$resourceId] = [
+                    'id' => $resourceId,
+                    'first_name' => $payload['first_name'] ?? '',
+                    'last_name' => $payload['last_name'] ?? '',
+                    'title' => $payload['title'] ?? 'Technician',
+                    'email' => $payload['email'] ?? null,
+                ];
+            }
+        }
+        return $resources;
     }
 
     protected function processTickets($tickets): array
@@ -206,17 +233,29 @@ class TicketSummaryDataGatherer
             ->toArray();
     }
 
-    protected function getTechnicianActivity($timeEntries): array
+    protected function getTechnicianActivity($timeEntries, $resources): array
     {
         return $timeEntries
             ->groupBy('resourceID')
-            ->map(function ($group) {
+            ->map(function ($group) use ($resources) {
                 $resourceId = $group->first()['resourceID'] ?? null;
+                $resource = $resources[$resourceId] ?? null;
+                
+                $name = 'Resource ' . ($resourceId ?? 'Unknown');
+                $title = 'Technician';
+                
+                if ($resource) {
+                    $name = trim(($resource['first_name'] ?? '') . ' ' . ($resource['last_name'] ?? ''));
+                    if (empty($name)) {
+                        $name = 'Resource ' . $resourceId;
+                    }
+                    $title = $resource['title'] ?? 'Technician';
+                }
                 
                 return [
                     'resource_id' => $resourceId,
-                    'name' => 'Resource ' . ($resourceId ?? 'Unknown'),
-                    'title' => 'Technician',
+                    'name' => $name,
+                    'title' => $title,
                     'total_hours' => round($group->sum('hoursWorked'), 1),
                     'billable_hours' => round($group->where('isNonBillable', false)->sum('hoursToBill'), 1),
                 ];
