@@ -24,6 +24,7 @@ export default function CustomerList() {
 
     // Zustand selectors
     const customers = useCustomersStore((state) => state.customers);
+    const unmappedCount = useCustomersStore((state) => state.unmappedCount);
     const isLoading = useCustomersStore((state) => state.isLoading);
     const searchQuery = useCustomersStore((state) => state.searchQuery);
     const statusFilter = useCustomersStore((state) => state.statusFilter);
@@ -66,18 +67,36 @@ export default function CustomerList() {
     // Start mapping
     const handleStartMapping = () => {
         if (unmappedCustomers.length > 0) {
-            setSelectedUnmappedCustomer(unmappedCustomers[0].integrations[0]);
+            // Convert UnmappedCustomer to IntegrationCustomer format
+            const firstUnmapped = unmappedCustomers[0];
+            setSelectedUnmappedCustomer({
+                integration_customer_id: firstUnmapped.integration_customer_id,
+                integration_type: firstUnmapped.integration_type,
+                display_name: firstUnmapped.display_name,
+                external_id: firstUnmapped.external_id,
+                name: firstUnmapped.name,
+                active: firstUnmapped.active,
+                last_seen_at: firstUnmapped.last_seen_at,
+            });
             openModal("map");
         }
     };
 
-    // 🟢 FIXED: This replaces the invalid JSX block
     const handleMapSuccess = async () => {
         await fetchCustomers();
         const updatedUnmapped = getUnmappedCustomers();
 
         if (updatedUnmapped.length > 0) {
-            setSelectedUnmappedCustomer(updatedUnmapped[0].integrations[0]);
+            const nextUnmapped = updatedUnmapped[0];
+            setSelectedUnmappedCustomer({
+                integration_customer_id: nextUnmapped.integration_customer_id,
+                integration_type: nextUnmapped.integration_type,
+                display_name: nextUnmapped.display_name,
+                external_id: nextUnmapped.external_id,
+                name: nextUnmapped.name,
+                active: nextUnmapped.active,
+                last_seen_at: nextUnmapped.last_seen_at,
+            });
         } else {
             closeModal("map");
             toast.success("All Done!", "All customers have been mapped");
@@ -101,7 +120,7 @@ export default function CustomerList() {
                 />
 
                 <UnmappedBanner
-                    count={unmappedCustomers.length}
+                    count={unmappedCount}
                     onStartMapping={handleStartMapping}
                 />
 

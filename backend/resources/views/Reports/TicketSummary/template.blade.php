@@ -558,26 +558,54 @@
             <!-- Key Metrics -->
             <div class="metrics-grid">
                 <div class="metric-card info">
-                    <div class="metric-label">Tickets Opened</div>
-                    <div class="metric-value">{{ $data['tickets_opened'] ?? '0' }}</div>
+                    <div class="metric-label">Total Tickets</div>
+                    <div class="metric-value">{{ $reportData['summary']['total_tickets'] ?? '0' }}</div>
                     <div class="metric-unit">tickets</div>
                 </div>
                 
                 <div class="metric-card success">
-                    <div class="metric-label">Tickets Closed</div>
-                    <div class="metric-value">{{ $data['tickets_closed'] ?? '0' }}</div>
+                    <div class="metric-label">Tickets Completed</div>
+                    <div class="metric-value">{{ $reportData['summary']['completed_tickets'] ?? '0' }}</div>
+                    <div class="metric-unit">tickets</div>
+                </div>
+                
+                <div class="metric-card warning">
+                    <div class="metric-label">Tickets Open</div>
+                    <div class="metric-value">{{ $reportData['summary']['open_tickets'] ?? '0' }}</div>
                     <div class="metric-unit">tickets</div>
                 </div>
                 
                 <div class="metric-card info">
-                    <div class="metric-label">Avg Response Time</div>
-                    <div class="metric-value">{{ $data['avg_response_time_hours'] ?? '0' }}</div>
+                    <div class="metric-label">Avg Resolution Time</div>
+                    <div class="metric-value">{{ $reportData['summary']['avg_resolution_hours'] ?? '0' }}</div>
+                    <div class="metric-unit">hours</div>
+                </div>
+            </div>
+            
+            <!-- Support Hours -->
+            <h2 class="section-header">Support Hours</h2>
+            <div class="metrics-grid">
+                <div class="metric-card info">
+                    <div class="metric-label">Total Hours</div>
+                    <div class="metric-value">{{ $reportData['summary']['total_hours'] ?? '0' }}</div>
                     <div class="metric-unit">hours</div>
                 </div>
                 
                 <div class="metric-card success">
-                    <div class="metric-label">SLA Compliance</div>
-                    <div class="metric-value">{{ $data['sla_compliance_rate'] ?? '0' }}<span class="metric-unit">%</span></div>
+                    <div class="metric-label">Billable Hours</div>
+                    <div class="metric-value">{{ $reportData['summary']['billable_hours'] ?? '0' }}</div>
+                    <div class="metric-unit">hours</div>
+                </div>
+                
+                <div class="metric-card warning">
+                    <div class="metric-label">Non-Billable Hours</div>
+                    <div class="metric-value">{{ $reportData['summary']['non_billable_hours'] ?? '0' }}</div>
+                    <div class="metric-unit">hours</div>
+                </div>
+                
+                <div class="metric-card info">
+                    <div class="metric-label">Billing Efficiency</div>
+                    <div class="metric-value">{{ $reportData['summary']['billing_efficiency'] ?? '0' }}<span class="metric-unit">%</span></div>
                 </div>
             </div>
             
@@ -611,31 +639,56 @@
                 </div>
             </div>
             
-            <!-- Top Categories -->
-            @if(!empty($data['top_categories']))
-            <h2 class="section-header">Top Ticket Categories</h2>
+            <!-- Top Issues -->
+            @if(!empty($reportData['top_issues']) && count($reportData['top_issues']) > 0)
+            <h2 class="section-header">Top Issues</h2>
             <table class="categories-table">
                 <thead>
                     <tr>
-                        <th>Category</th>
+                        <th>Issue</th>
                         <th style="text-align: right;">Count</th>
                         <th style="width: 40%;">Distribution</th>
                     </tr>
                 </thead>
                 <tbody>
                     @php
-                        $maxCount = max(array_values($data['top_categories']));
+                        $maxCount = count($reportData['top_issues']) > 0 ? max(array_column($reportData['top_issues'], 'count')) : 1;
                     @endphp
-                    @foreach($data['top_categories'] as $category => $count)
+                    @foreach($reportData['top_issues'] as $issue)
                     <tr>
-                        <td><strong>{{ $category }}</strong></td>
-                        <td style="text-align: right;">{{ $count }}</td>
+                        <td><strong>{{ $issue['title'] }}</strong></td>
+                        <td style="text-align: right;">{{ $issue['count'] }}</td>
                         <td>
                             @php
-                                $percentage = $maxCount > 0 ? ($count / $maxCount) * 100 : 0;
+                                $percentage = $maxCount > 0 ? ($issue['count'] / $maxCount) * 100 : 0;
                             @endphp
                             <div class="category-bar" style="width: {{ $percentage }}%;"></div>
                         </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            @endif
+            
+            <!-- Technician Activity -->
+            @if(!empty($reportData['technicians']) && count($reportData['technicians']) > 0)
+            <h2 class="section-header">Technician Activity</h2>
+            <table class="categories-table">
+                <thead>
+                    <tr>
+                        <th>Technician</th>
+                        <th>Role</th>
+                        <th style="text-align: right;">Total Hours</th>
+                        <th style="text-align: right;">Billable Hours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($reportData['technicians'] as $tech)
+                    <tr>
+                        <td><strong>{{ $tech['name'] }}</strong></td>
+                        <td>{{ $tech['title'] ?? 'N/A' }}</td>
+                        <td style="text-align: right;">{{ $tech['total_hours'] }}</td>
+                        <td style="text-align: right;">{{ $tech['billable_hours'] }}</td>
                     </tr>
                     @endforeach
                 </tbody>

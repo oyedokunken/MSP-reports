@@ -162,7 +162,19 @@ class AutotaskIntegration implements IntegrationInterface
             collect($tickets)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed) {
                 foreach ($chunk as $ticket) {
                     try {
+                        // Find the IntegrationCustomer for this ticket's company
+                        $companyId = $ticket['companyID'] ?? null;
+                        $integrationCustomer = null;
+                        
+                        if ($companyId) {
+                            $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                                ->where('external_id', (string)$companyId)
+                                ->first();
+                        }
+                        
                         $standardized = AutotaskMapper::mapTicket($ticket);
+                        $standardized['integration_customer_id'] = $integrationCustomer?->integration_customer_id;
+                        
                         $data[] = $standardized;
                         $this->storeHistoricalData($standardized);
                         $totalProcessed++;
@@ -179,10 +191,28 @@ class AutotaskIntegration implements IntegrationInterface
 
             $timeEntries = $this->client->getTimeEntries($startDate, $endDate);
             
-            collect($timeEntries)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed) {
+            collect($timeEntries)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed, $tickets) {
                 foreach ($chunk as $entry) {
                     try {
+                        // Find the IntegrationCustomer by looking up the ticket's company
+                        $ticketId = $entry['ticketID'] ?? null;
+                        $integrationCustomer = null;
+                        
+                        if ($ticketId) {
+                            // Find the ticket to get its companyID
+                            $ticket = collect($tickets)->firstWhere('id', $ticketId);
+                            $companyId = $ticket['companyID'] ?? null;
+                            
+                            if ($companyId) {
+                                $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                                    ->where('external_id', (string)$companyId)
+                                    ->first();
+                            }
+                        }
+                        
                         $standardized = AutotaskMapper::mapTimeEntry($entry);
+                        $standardized['integration_customer_id'] = $integrationCustomer?->integration_customer_id;
+                        
                         $data[] = $standardized;
                         $this->storeHistoricalData($standardized);
                         $totalProcessed++;

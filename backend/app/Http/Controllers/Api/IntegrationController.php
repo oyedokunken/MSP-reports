@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Integration;
 use App\Models\AuditLog;
 use App\Services\SyncEngine;
+use App\Services\LicenseChecker;
 use Illuminate\Validation\Rule;
 
 class IntegrationController extends Controller

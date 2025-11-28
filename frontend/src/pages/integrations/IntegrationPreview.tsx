@@ -359,7 +359,7 @@ export const IntegrationPreview: React.FC = () => {
       `
       
       // Add each section with improved styling
-      preview?.template.sections.forEach((section, index) => {
+      preview?.template.sections.forEach((section) => {
         const sectionData = section.dataPath ? preview.preview.data[section.dataPath] : preview.preview.data
         
         htmlContent += `
@@ -410,7 +410,7 @@ export const IntegrationPreview: React.FC = () => {
           }
         } else if (section.component === 'keyvalue' && typeof sectionData === 'object') {
           const config = section.config as any
-          const pairs = config?.pairs || Object.entries(sectionData).map(([key, value]) => ({
+          const pairs = config?.pairs || Object.entries(sectionData).map(([key]) => ({
             label: key.replace(/_/g, ' ').toUpperCase(),
             valuePath: key
           }))

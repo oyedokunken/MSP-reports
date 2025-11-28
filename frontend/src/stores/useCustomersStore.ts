@@ -21,9 +21,26 @@ export interface MappedCustomer {
   has_reports_configured?: boolean
 }
 
+export interface UnmappedCustomer {
+  integration_customer_id: number
+  integration_type: string
+  display_name: string
+  external_id: string
+  name: string
+  active: boolean
+  last_seen_at: string | null
+  suggested_matches?: Array<{
+    customer_id: number
+    canonical_name: string
+    confidence_score: number
+  }>
+}
+
 interface CustomersState {
   // Data
   customers: MappedCustomer[]
+  unmappedCustomers: UnmappedCustomer[]
+  unmappedCount: number
   isLoading: boolean
   
   // Pagination
@@ -46,10 +63,16 @@ interface CustomersState {
     split: boolean
   }
   selectedUnmappedCustomer: IntegrationCustomer | null
-  selectedCustomer: MappedCustomer | null
+  selectedCustomer: {
+    customer_id: number
+    name: string
+    status: string
+    integration_count: number
+  } | null
   
   // Actions
   fetchCustomers: (page?: number) => Promise<void>
+  fetchUnmappedCustomers: () => Promise<void>
   
   // Filter actions
   setSearchQuery: (query: string) => void
@@ -57,19 +80,21 @@ interface CustomersState {
   setReportFilter: (filter: string) => void
   
   // Modal actions
-  openModal: (modal: keyof CustomersState['modals'], customer?: MappedCustomer) => void
+  openModal: (modal: keyof CustomersState['modals'], customer?: CustomersState['selectedCustomer']) => void
   closeModal: (modal: keyof CustomersState['modals']) => void
   setSelectedUnmappedCustomer: (customer: IntegrationCustomer | null) => void
-  setSelectedCustomer: (customer: MappedCustomer | null) => void
+  setSelectedCustomer: (customer: CustomersState['selectedCustomer']) => void
   
   // Computed
   getMappedCustomers: () => MappedCustomer[]
-  getUnmappedCustomers: () => MappedCustomer[]
+  getUnmappedCustomers: () => UnmappedCustomer[]
 }
 
 export const useCustomersStore = create<CustomersState>((set, get) => ({
   // Initial state
   customers: [],
+  unmappedCustomers: [],
+  unmappedCount: 0,
   isLoading: false,
   searchQuery: '',
   statusFilter: 'all',
@@ -114,9 +139,28 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
         total: pagination.total || customerData.length,
         isLoading: false,
       })
+      
+      // Also fetch unmapped customers count
+      await get().fetchUnmappedCustomers()
     } catch (err) {
       console.error('Failed to fetch customers:', err)
       set({ isLoading: false })
+    }
+  },
+
+  // Fetch unmapped customers
+  fetchUnmappedCustomers: async () => {
+    try {
+      const response = await api.get('/customers/unmapped')
+      const data = response as any
+      
+      set({
+        unmappedCustomers: data.data || [],
+        unmappedCount: data.summary?.total_unmapped || 0,
+      })
+    } catch (err) {
+      console.error('Failed to fetch unmapped customers:', err)
+      set({ unmappedCustomers: [], unmappedCount: 0 })
     }
   },
 
@@ -151,5 +195,5 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
 
   // Computed
   getMappedCustomers: () => get().customers.filter(c => c.customer_id !== null),
-  getUnmappedCustomers: () => get().customers.filter(c => c.customer_id === null),
+  getUnmappedCustomers: () => get().unmappedCustomers,
 }))
