@@ -42,7 +42,10 @@ interface ReportConfig {
 const AVAILABLE_REPORT_TYPES: ReportType[] = [
   { id: 'uptime_report', name: 'Uptime Report', description: 'System uptime statistics and availability' },
   { id: 'uptime_monthly', name: 'Monthly Uptime Report', description: 'Monthly uptime statistics and availability' },
+  { id: 'ticket_summary', name: 'Ticket Summary', description: 'Support ticket analysis and metrics' },
   { id: 'security_summary', name: 'Security Summary', description: 'Security events and threat analysis' },
+  { id: 'backup_status', name: 'Backup Status', description: 'Backup health and compliance status' },
+  { id: 'monthly_comprehensive', name: 'Monthly Comprehensive', description: 'Complete monthly service report' },
 ]
 
 const FREQUENCIES = [
