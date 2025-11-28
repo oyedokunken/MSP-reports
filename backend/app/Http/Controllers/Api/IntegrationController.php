@@ -167,6 +167,15 @@ class IntegrationController extends Controller
             'is_source_of_truth' => 'nullable|boolean',
         ]);
 
+        // Log the raw request for debugging
+        Log::info('Integration creation request received', [
+            'integration_type' => $validated['integration_type'],
+            'display_name' => $validated['display_name'],
+            'status' => $validated['status'],
+            'credentials_keys' => array_keys($validated['credentials'] ?? []),
+            'credentials_values_present' => array_map(function($v) { return !empty($v); }, $validated['credentials'] ?? []),
+        ]);
+
         $exists = $company->integrations()
             ->where('integration_type', $validated['integration_type'])
             ->exists();
@@ -203,6 +212,11 @@ class IntegrationController extends Controller
         // Process credentials - map region selectors to URLs
         $credentials = $validated['credentials'] ?? [];
         
+        // Filter out empty credential values (empty strings, null, etc.)
+        $credentials = array_filter($credentials, function($value) {
+            return $value !== null && $value !== '';
+        });
+        
         // Datto: map rmm_region to rmm_url
         if ($validated['integration_type'] === 'Datto' && isset($credentials['rmm_region'])) {
             $credentials['rmm_url'] = $credentials['rmm_region'];
@@ -236,7 +250,15 @@ class IntegrationController extends Controller
             'configuration' => $validated['configuration'] ?? [],
         ]);
 
-        // Test authentication if credentials provided
+        // Always test authentication if credentials provided (ignore user's status selection)
+        // Status will be set based on authentication result
+        Log::info('Integration creation - checking credentials', [
+            'integration_type' => $validated['integration_type'],
+            'credentials_empty' => empty($credentials),
+            'credentials_count' => count($credentials),
+            'user_selected_status' => $validated['status'],
+        ]);
+
         if (!empty($credentials)) {
             try {
                 $className = "App\\Integrations\\{$validated['integration_type']}\\{$validated['integration_type']}Integration";
@@ -248,8 +270,18 @@ class IntegrationController extends Controller
                     ], 500);
                 }
 
+                Log::info('Testing integration authentication', [
+                    'integration_type' => $validated['integration_type'],
+                    'display_name' => $validated['display_name'],
+                ]);
+
                 $instance = new $className($tempIntegration);
                 $authResult = $instance->authenticate();
+                
+                Log::info('Integration authentication result', [
+                    'integration_type' => $validated['integration_type'],
+                    'result' => $authResult ? 'success' : 'failed',
+                ]);
 
                 if (!$authResult) {
                     return response()->json([
