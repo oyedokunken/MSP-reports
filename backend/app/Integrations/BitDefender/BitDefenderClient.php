@@ -2,10 +2,11 @@
 
 namespace App\Integrations\BitDefender;
 
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
+use App\Integrations\Exceptions\AuthenticationException;
 use Exception;
 
 class BitDefenderClient
@@ -33,17 +34,30 @@ class BitDefenderClient
             // Test connection by fetching companies list
             $response = $this->makeRequest('getCompaniesList', [], 'network');
 
+            if (!isset($response['result'])) {
+                throw new AuthenticationException(
+                    'BitDefender authentication failed - invalid response',
+                    401
+                );
+            }
+
             Log::info('BitDefenderClient::testConnection successful', [
                 'integration_id' => $this->integration->integration_id,
             ]);
 
-            return isset($response['result']);
+            return true;
+        } catch (AuthenticationException $e) {
+            throw $e;
         } catch (Exception $e) {
             Log::error('BitDefenderClient::testConnection failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
-            return false;
+            
+            throw new AuthenticationException(
+                'BitDefender authentication failed: ' . $e->getMessage(),
+                400
+            );
         }
     }
 

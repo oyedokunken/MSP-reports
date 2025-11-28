@@ -2,14 +2,15 @@
 
 namespace App\Integrations\Kaseya;
 
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
-use Illuminate\Support\Facades\Log;
+use App\Integrations\Exceptions\AuthenticationException;
 
 class KaseyaClient
 {
     protected array $credentials;
-    protected string $baseUrl;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
 

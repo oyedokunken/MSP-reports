@@ -2,10 +2,11 @@
 
 namespace App\Integrations\SaaS;
 
-use App\Services\RateLimiter;
-use App\Models\Integration;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Services\RateLimiter;
+use App\Models\Integration;
+use App\Integrations\Exceptions\AuthenticationException;
 
 class SaaSClient
 {
@@ -27,13 +28,37 @@ class SaaSClient
     {
         try {
             $response = $this->makeRequest('GET', '/reports/partners/profile');
-            return $response->successful();
+            
+            if (!$response->successful()) {
+                $statusCode = $response->status();
+                $body = $response->body();
+                
+                Log::error('SaaS Alerts connection test failed', [
+                    'integration_id' => $this->integration->integration_id,
+                    'status' => $statusCode,
+                    'body' => $body
+                ]);
+                
+                throw new AuthenticationException(
+                    'SaaS Alerts authentication failed',
+                    $statusCode,
+                    $body
+                );
+            }
+            
+            return true;
+        } catch (AuthenticationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('SaaS Alerts connection test failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage()
             ]);
-            return false;
+            
+            throw new AuthenticationException(
+                'SaaS Alerts authentication failed: ' . $e->getMessage(),
+                400
+            );
         }
     }
 

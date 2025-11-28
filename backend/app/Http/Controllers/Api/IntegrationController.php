@@ -259,7 +259,21 @@ class IntegrationController extends Controller
 
                 // Authentication successful, set status to active
                 $validated['status'] = 'active';
+            } catch (\App\Integrations\Exceptions\AuthenticationException $e) {
+                // Handle authentication-specific errors with user-friendly messages
+                Log::error('Integration authentication failed', [
+                    'integration_type' => $validated['integration_type'],
+                    'status_code' => $e->getStatusCode(),
+                    'error' => $e->getMessage(),
+                    'response_body' => $e->getResponseBody(),
+                ]);
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $e->getUserMessage()
+                ], 422); // 422 Unprocessable Entity - validation failed
             } catch (\Exception $e) {
+                // Handle other unexpected errors
                 Log::error('Integration authentication failed', [
                     'integration_type' => $validated['integration_type'],
                     'error' => $e->getMessage(),

@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use App\Services\RateLimiter;
 use App\Models\Integration;
+use App\Integrations\Exceptions\AuthenticationException;
 
 class AutotaskClient
 {
@@ -32,18 +33,30 @@ class AutotaskClient
 
     public function testConnection(): bool
     {
-        try {
-            $response = $this->makeRequest('POST', '/Companies/query', [
-                'filter' => [
-                    ['field' => 'id', 'op' => 'gt', 'value' => 0]
-                ],
-                'MaxRecords' => 1
+        $response = $this->makeRequest('POST', '/Companies/query', [
+            'filter' => [
+                ['field' => 'id', 'op' => 'gt', 'value' => 0]
+            ],
+            'MaxRecords' => 1
+        ]);
+        
+        if (!$response->successful()) {
+            $statusCode = $response->status();
+            $body = $response->body();
+            
+            \Log::error('Autotask connection test failed', [
+                'status' => $statusCode,
+                'body' => $body
             ]);
-            return $response->successful();
-        } catch (\Exception $e) {
-            \Log::error('Autotask connection test failed', ['error' => $e->getMessage()]);
-            return false;
+            
+            throw new AuthenticationException(
+                'Autotask authentication failed',
+                $statusCode,
+                $body
+            );
         }
+        
+        return true;
     }
 
     public function getCompanies(): array

@@ -2,17 +2,17 @@
 
 namespace App\Integrations\Barracuda;
 
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
+use App\Integrations\Exceptions\AuthenticationException;
 
 class BarracudaClient
 {
     protected array $credentials;
     protected string $baseUrl;
+{{ ... }}
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
     protected bool $useMockData = false;
@@ -99,13 +99,27 @@ class BarracudaClient
         try {
             // Test by getting access token
             $token = $this->getAccessToken();
-            return !empty($token);
+            
+            if (empty($token)) {
+                throw new AuthenticationException(
+                    'Barracuda authentication failed - unable to obtain access token',
+                    401
+                );
+            }
+            
+            return true;
+        } catch (AuthenticationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Barracuda: Connection test failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
-            return false;
+            
+            throw new AuthenticationException(
+                'Barracuda authentication failed: ' . $e->getMessage(),
+                400
+            );
         }
     }
 

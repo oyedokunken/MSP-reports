@@ -2,10 +2,11 @@
 
 namespace App\Integrations\Sendmarc;
 
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
+use App\Integrations\Exceptions\AuthenticationException;
 
 class SendmarcClient
 {
@@ -37,10 +38,33 @@ class SendmarcClient
     {
         try {
             $response = $this->makeRequest('GET', '/accounts');
-            return $response->successful();
+            
+            if (!$response->successful()) {
+                $statusCode = $response->status();
+                $body = $response->body();
+                
+                \Log::error('Sendmarc connection test failed', [
+                    'status' => $statusCode,
+                    'body' => $body
+                ]);
+                
+                throw new AuthenticationException(
+                    'Sendmarc authentication failed',
+                    $statusCode,
+                    $body
+                );
+            }
+            
+            return true;
+        } catch (AuthenticationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Sendmarc connection test failed', ['error' => $e->getMessage()]);
-            return false;
+            
+            throw new AuthenticationException(
+                'Sendmarc authentication failed: ' . $e->getMessage(),
+                400
+            );
         }
     }
 

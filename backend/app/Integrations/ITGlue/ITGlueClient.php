@@ -2,11 +2,11 @@
 
 namespace App\Integrations\ITGlue;
 
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
+use App\Integrations\Exceptions\AuthenticationException;
 
 class ITGlueClient
 {
@@ -37,13 +37,28 @@ class ITGlueClient
         
         try {
             $response = $this->makeRequest('/organizations', ['page' => ['size' => 1]]);
-            return !empty($response);
+            
+            if (empty($response)) {
+                throw new AuthenticationException(
+                    'ITGlue authentication failed - empty response',
+                    401
+                );
+            }
+            
+            return true;
+        } catch (AuthenticationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('ITGlue: Connection test failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
-            return false;
+            
+            // Convert generic exception to AuthenticationException
+            throw new AuthenticationException(
+                'ITGlue authentication failed: ' . $e->getMessage(),
+                400
+            );
         }
     }
 

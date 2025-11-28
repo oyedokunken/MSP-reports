@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
+use App\Integrations\Exceptions\AuthenticationException;
 
 class DattoClient
 {
@@ -134,21 +135,46 @@ class DattoClient
         try {
             if ($this->hasRmmCredentials()) {
                 $response = $this->makeRmmRequest('/account/sites', ['max' => 1]);
-                return !empty($response);
+                
+                if (empty($response)) {
+                    throw new AuthenticationException(
+                        'Datto RMM authentication failed - empty response',
+                        401
+                    );
+                }
+                
+                return true;
             }
             
             if ($this->hasSaasCredentials()) {
                 $response = $this->makeSaasRequest('/saas/domains');
-                return !empty($response);
+                
+                if (empty($response)) {
+                    throw new AuthenticationException(
+                        'Datto SaaS authentication failed - empty response',
+                        401
+                    );
+                }
+                
+                return true;
             }
             
-            return false;
+            throw new AuthenticationException(
+                'Datto authentication failed - no valid credentials provided',
+                400
+            );
+        } catch (AuthenticationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Datto: Connection test failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
-            return false;
+            
+            throw new AuthenticationException(
+                'Datto authentication failed: ' . $e->getMessage(),
+                400
+            );
         }
     }
 
