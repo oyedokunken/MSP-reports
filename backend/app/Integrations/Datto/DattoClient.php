@@ -90,22 +90,53 @@ class DattoClient
                 'password' => $secret
             ]);
 
-            if (!$response->successful()) {
-                Log::error('Datto RMM: Failed to obtain access token', [
+            $responseData = $response->json();
+            
+            // Check for error in response body (Datto returns 200 with error object)
+            if (isset($responseData['error'])) {
+                $errorMessage = $responseData['error_description'] ?? $responseData['error'] ?? 'Authentication failed';
+                
+                Log::error('Datto RMM: Authentication error', [
                     'integration_id' => $this->integration->integration_id,
-                    'status' => $response->status(),
-                    'body' => $response->body()
+                    'error' => $responseData['error'],
+                    'error_description' => $responseData['error_description'] ?? null,
                 ]);
-                throw new \RuntimeException('Failed to obtain access token: ' . $response->body());
+                
+                throw new AuthenticationException(
+                    'Datto RMM authentication failed: ' . $errorMessage,
+                    401
+                );
             }
 
-            $responseData = $response->json();
+            // Check HTTP status
+            if (!$response->successful()) {
+                $statusCode = $response->status();
+                $body = $response->body();
+                
+                Log::error('Datto RMM: Failed to obtain access token', [
+                    'integration_id' => $this->integration->integration_id,
+                    'status' => $statusCode,
+                    'body' => $body
+                ]);
+                
+                throw new AuthenticationException(
+                    'Datto RMM authentication failed',
+                    $statusCode,
+                    $body
+                );
+            }
+
+            // Check for access token in response
             if (empty($responseData['access_token'])) {
                 Log::error('Datto RMM: Invalid token response', [
                     'integration_id' => $this->integration->integration_id,
                     'response' => $responseData
                 ]);
-                throw new \RuntimeException('Invalid token response from Datto RMM');
+                
+                throw new AuthenticationException(
+                    'Datto RMM authentication failed - invalid token response',
+                    401
+                );
             }
 
             $token = $responseData['access_token'];
@@ -116,12 +147,19 @@ class DattoClient
             ]);
             
             return $token;
+        } catch (AuthenticationException $e) {
+            // Re-throw AuthenticationException as-is
+            throw $e;
         } catch (\Exception $e) {
             Log::error('Datto RMM: Error obtaining access token', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
-            throw new \RuntimeException('Failed to obtain access token: ' . $e->getMessage());
+            
+            throw new AuthenticationException(
+                'Datto RMM authentication failed: ' . $e->getMessage(),
+                400
+            );
         }
     }
     
