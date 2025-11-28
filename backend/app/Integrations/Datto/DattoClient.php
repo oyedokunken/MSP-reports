@@ -39,9 +39,8 @@ class DattoClient
             $this->useMockData = true;
         }
         
-        if ($this->hasRmmCredentials() && !$this->useMockData) {
-            $this->accessToken = $this->getAccessToken();
-        }
+        // Don't get token in constructor - let it fail in testConnection() instead
+        // This allows proper error handling in the authentication flow
     }
     
     protected function hasRmmCredentials(): bool
@@ -303,6 +302,11 @@ class DattoClient
     {
         if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
             throw new \Exception("Rate limit exceeded for Datto RMM API");
+        }
+
+        // Get access token lazily if not already set
+        if (empty($this->accessToken)) {
+            $this->accessToken = $this->getAccessToken();
         }
 
         $url = $this->baseUrl . '/api/v2' . $endpoint;
