@@ -273,6 +273,13 @@ class IntegrationController extends Controller
             }
         }
 
+        // Check if this is the first integration for the company
+        $isFirstIntegration = $company->integrations()->count() === 0;
+        
+        // If first integration, automatically set as source of truth
+        // Otherwise, respect the provided value or default to false
+        $isSourceOfTruth = $isFirstIntegration ? true : ($validated['is_source_of_truth'] ?? false);
+
         // Create the integration with processed credentials
         $integration = $company->integrations()->create([
             'integration_type' => $validated['integration_type'],
@@ -280,8 +287,19 @@ class IntegrationController extends Controller
             'status' => $validated['status'],
             'credentials' => $credentials,
             'configuration' => $validated['configuration'] ?? null,
-            'is_source_of_truth' => $validated['is_source_of_truth'] ?? false,
+            'is_source_of_truth' => $isSourceOfTruth,
         ]);
+
+        // Update company settings if this is source of truth
+        if ($isSourceOfTruth) {
+            $settings = $company->settings ?? [];
+            if (!isset($settings['integrations'])) {
+                $settings['integrations'] = [];
+            }
+            $settings['integrations']['source_of_truth_integration_id'] = $integration->integration_id;
+            $company->settings = $settings;
+            $company->save();
+        }
 
         // Log the creation
         AuditLog::create([
@@ -294,6 +312,8 @@ class IntegrationController extends Controller
             'event_data' => [
                 'integration_type' => $integration->integration_type,
                 'display_name' => $integration->display_name,
+                'is_source_of_truth' => $isSourceOfTruth,
+                'is_first_integration' => $isFirstIntegration,
             ],
             'ip_address' => $request->ip(),
         ]);

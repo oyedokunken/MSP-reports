@@ -194,8 +194,29 @@ class ReportGenerationService
 
         // Ensure directory exists with proper permissions
         $directory = sprintf('%s/%s', $schedule->company_id, $schedule->report_type);
-        if (!Storage::disk('reports')->exists($directory)) {
-            Storage::disk('reports')->makeDirectory($directory, 0755, true);
+        $fullDirPath = Storage::disk('reports')->path($directory);
+        
+        if (!file_exists($fullDirPath)) {
+            // Use native PHP mkdir for better control and error handling
+            if (!mkdir($fullDirPath, 0775, true)) {
+                Log::error('Failed to create report directory', [
+                    'directory' => $directory,
+                    'full_path' => $fullDirPath,
+                    'parent_exists' => file_exists(dirname($fullDirPath)),
+                    'parent_writable' => is_writable(dirname($fullDirPath)),
+                ]);
+                throw new \Exception("Failed to create directory: {$fullDirPath}");
+            }
+            
+            // Ensure proper ownership (www user in container)
+            @chown($fullDirPath, 'www');
+            @chgrp($fullDirPath, 'www');
+            
+            Log::info('Created report directory', [
+                'directory' => $directory,
+                'full_path' => $fullDirPath,
+                'permissions' => decoct(fileperms($fullDirPath) & 0777),
+            ]);
         }
 
         $html = $this->generateHTML($reportData, $schedule);
@@ -218,31 +239,42 @@ class ReportGenerationService
             'content_size' => strlen($pdfContent),
         ]);
         
-        // Write the PDF file
-        $written = Storage::disk('reports')->put($filename, $pdfContent);
-        
-        if (!$written) {
-            Log::error('Failed to write PDF to storage', [
-                'filename' => $filename,
-                'disk' => 'reports',
-                'root' => Storage::disk('reports')->path(''),
-            ]);
-            throw new \Exception("Failed to write PDF file to storage: {$filename}");
-        }
-        
-        // Ensure file exists before setting permissions
+        // Write the PDF file using native PHP for better error handling
         $fullPath = Storage::disk('reports')->path($filename);
-        Log::info('Checking PDF file existence', [
+        
+        Log::info('Attempting to write PDF file', [
             'filename' => $filename,
             'full_path' => $fullPath,
-            'exists' => file_exists($fullPath),
+            'directory_exists' => file_exists(dirname($fullPath)),
+            'directory_writable' => is_writable(dirname($fullPath)),
+            'content_size' => strlen($pdfContent),
         ]);
         
-        if (file_exists($fullPath)) {
-            chmod($fullPath, 0644);
-        } else {
-            throw new \Exception("PDF file was written but not found at: {$fullPath}");
+        $bytesWritten = file_put_contents($fullPath, $pdfContent);
+        
+        if ($bytesWritten === false) {
+            Log::error('Failed to write PDF file', [
+                'filename' => $filename,
+                'full_path' => $fullPath,
+                'directory' => dirname($fullPath),
+                'directory_exists' => file_exists(dirname($fullPath)),
+                'directory_writable' => is_writable(dirname($fullPath)),
+                'disk_free_space' => disk_free_space(dirname($fullPath)),
+            ]);
+            throw new \Exception("Failed to write PDF file: {$filename}");
         }
+        
+        Log::info('PDF file written successfully', [
+            'filename' => $filename,
+            'full_path' => $fullPath,
+            'bytes_written' => $bytesWritten,
+            'file_exists' => file_exists($fullPath),
+        ]);
+        
+        // Set proper permissions and ownership
+        chmod($fullPath, 0644);
+        @chown($fullPath, 'www');
+        @chgrp($fullPath, 'www');
 
         return $filename;
     }
