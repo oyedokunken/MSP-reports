@@ -13,6 +13,13 @@ return [
             'placeholder' => 'Enter your SaaS Alerts API key',
             'help' => 'Found in SaaS Alerts Partner Portal. Used in api_key header for authentication.',
         ],
+        'partner_id' => [
+            'type' => 'text',
+            'label' => 'Partner ID',
+            'required' => true,
+            'placeholder' => 'Enter SaaS Alerts Partner ID',
+            'help' => 'Your SaaS Alerts Partner ID. Found in Partner Portal.',
+        ],
         'base_url' => [
             'type' => 'select',
             'label' => 'Environment',

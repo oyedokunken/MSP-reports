@@ -73,6 +73,68 @@ class SaaSClient
     }
 
     /**
+     * Get events for a specific customer.
+     */
+    public function getEvents(array $params = []): array
+    {
+        try {
+            $partnerId = $this->credentials['partner_id'] ?? null;
+            
+            if (!$partnerId) {
+                throw new \Exception('Partner ID is required to fetch events');
+            }
+
+            // Build query parameters
+            $queryParams = [
+                'partnerId' => $partnerId,
+            ];
+
+            if (isset($params['customerId'])) {
+                $queryParams['customerId'] = $params['customerId'];
+            }
+            if (isset($params['start'])) {
+                $queryParams['start'] = $params['start'];
+            }
+            if (isset($params['end'])) {
+                $queryParams['end'] = $params['end'];
+            }
+            if (isset($params['size'])) {
+                $queryParams['size'] = $params['size'];
+            }
+
+            $response = $this->makeRequest('GET', '/events', $queryParams);
+
+            if (!$response->successful()) {
+                Log::warning('SaaS Alerts API getEvents failed', [
+                    'integration_id' => $this->integration->integration_id,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                    'params' => $queryParams,
+                ]);
+                return [];
+            }
+
+            $events = $response->json();
+
+            Log::info('SaaS Alerts API events retrieval complete', [
+                'integration_id' => $this->integration->integration_id,
+                'total_count' => count($events),
+                'params' => $queryParams,
+            ]);
+
+            return $events;
+
+        } catch (\Exception $e) {
+            Log::error('SaaS Alerts API getEvents exception', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+                'params' => $params,
+            ]);
+            throw new \Exception("Failed to fetch events: {$e->getMessage()}");
+        }
+    }
+
+    /**
      * Make an authenticated request to the SaaS Alerts API.
      */
     protected function makeRequest(string $method, string $endpoint, array $params = [])

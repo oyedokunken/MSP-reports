@@ -32,6 +32,41 @@ class SaaSIntegration implements IntegrationInterface
         $this->mappingService = app(CustomerMappingService::class);
     }
 
+    public function getCredentialFields(): array
+    {
+        return [
+            [
+                'name' => 'api_key',
+                'label' => 'API Key',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your SaaS Alerts API key',
+                'help' => 'Found in SaaS Alerts Partner Portal. Used in api_key header for authentication.',
+            ],
+            [
+                'name' => 'partner_id',
+                'label' => 'Partner ID',
+                'type' => 'text',
+                'required' => true,
+                'placeholder' => 'eu1-Y675j1foFxorQyATsx9U',
+                'help' => 'Your SaaS Alerts Partner ID. Found in Partner Portal.',
+            ],
+            [
+                'name' => 'base_url',
+                'label' => 'Environment',
+                'type' => 'select',
+                'required' => true,
+                'options' => [
+                    'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1' => 'Production',
+                    'https://us-central1-saas-alerts-qa.cloudfunctions.net/reportApi/api/v1' => 'QA',
+                    'https://us-central1-saas-alerts-dev.cloudfunctions.net/reportApi/api/v1' => 'Development',
+                ],
+                'default' => 'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1',
+                'help' => 'Select the SaaS Alerts API environment',
+            ],
+        ];
+    }
+
     public function authenticate(): bool
     {
         return $this->client->testConnection();
