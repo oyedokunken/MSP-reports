@@ -39,6 +39,7 @@ type IntegrationCardProps = {
   onHealthCheck: (integration: Integration) => void
   onRateLimit: (integration: Integration) => void
   onHistoricalImport: (integration: Integration) => void
+  onViewHistoricalJobs: (integration: Integration) => void
   onDelete: (integration: Integration) => void
   onPreviewData: (integration: Integration) => void
   isSourceOfTruth?: boolean
@@ -57,6 +58,7 @@ export function IntegrationCard ({
   onHealthCheck,
   onRateLimit,
   onHistoricalImport,
+  onViewHistoricalJobs,
   onDelete,
   onPreviewData,
   isSourceOfTruth = false,
@@ -188,6 +190,10 @@ export function IntegrationCard ({
               <DropdownMenuItem onClick={() => onHistoricalImport(integration)}>
                 <Database className="mr-2 h-4 w-4" />
                 Import Historical Data
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onViewHistoricalJobs(integration)}>
+                <FileText className="mr-2 h-4 w-4" />
+                View Import Jobs
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onDelete(integration)} className="text-destructive">

@@ -42,6 +42,24 @@ class LicenseChecker
 
     public function canExtendRetention(Company $company, int $requestedMonths): array
     { 
+        // Check for unlimited license first
+        $unlimitedLicense = $company->licenses()
+            ->where('status', 'active')
+            ->where(function ($query) {
+                $query->where('product_sku', 'unlimited')
+                      ->orWhere('license_type', 'unlimited');
+            })
+            ->where(function ($query) {
+                $query->whereNull('expiry_date')
+                      ->orWhere('expiry_date', '>', now());
+            })
+            ->first();
+
+        if ($unlimitedLicense) {
+            return ['allowed' => true, 'reason' => null];
+        }
+
+        // Check for specific retention license
         $retentionLicense = $company->licenses()
             ->where('license_type', 'retention')
             ->where('status', 'active')

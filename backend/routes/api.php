@@ -61,6 +61,7 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
         Route::get('/integrations/{id}/health', [IntegrationController::class, 'healthCheck']);
         Route::get('/integrations/{id}/rate-limit', [IntegrationController::class, 'getRateLimitStatus']);
         Route::post('/integrations/{id}/historical-import', [IntegrationController::class, 'startHistoricalImport']);
+        Route::get('/integrations/{id}/historical-import-jobs', [IntegrationController::class, 'getHistoricalImportJobs']);
         Route::patch('/company/source-integration', [IntegrationController::class, 'setSourceIntegration']);
         
         // Integration Preview Routes

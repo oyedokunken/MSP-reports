@@ -27,6 +27,7 @@ interface IntegrationState {
     health: boolean
     rateLimit: boolean
     historicalImport: boolean
+    viewHistoricalJobs: boolean
   }
   selectedIntegration: Integration | null
 
@@ -59,6 +60,7 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
     health: false,
     rateLimit: false,
     historicalImport: false,
+    viewHistoricalJobs: false,
   },
   selectedIntegration: null,
 

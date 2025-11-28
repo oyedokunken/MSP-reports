@@ -14,6 +14,7 @@ import {
     IntegrationHealthModal,
     RateLimitStatusModal,
     HistoricalImportModal,
+    ViewHistoricalImportJobsModal,
 } from "./modals";
 
 export default function IntegrationList() {
@@ -102,6 +103,9 @@ export default function IntegrationList() {
                     onRateLimit={(int) => openModal("rateLimit", int)}
                     onHistoricalImport={(int) =>
                         openModal("historicalImport", int)
+                    }
+                    onViewHistoricalJobs={(int) =>
+                        openModal("viewHistoricalJobs", int)
                     }
                     onDelete={(int) => openModal("delete", int)}
                     onPreviewData={(int) => navigate(`/platform/integrations/${int.id}/preview`)}
@@ -201,6 +205,16 @@ export default function IntegrationList() {
                             "Historical data import has been queued"
                         );
                     }}
+                />
+
+                <ViewHistoricalImportJobsModal
+                    open={modals.viewHistoricalJobs}
+                    onOpenChange={(open) =>
+                        open
+                            ? openModal("viewHistoricalJobs")
+                            : closeModal("viewHistoricalJobs")
+                    }
+                    integration={selectedIntegration}
                 />
             </div>
         </FloatingLayout>

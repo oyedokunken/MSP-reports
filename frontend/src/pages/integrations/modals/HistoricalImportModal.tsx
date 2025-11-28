@@ -46,8 +46,17 @@ export function HistoricalImportModal({
     setIsSubmitting(true)
 
     try {
+      // Calculate dates based on days
+      const endDate = new Date()
+      endDate.setHours(0, 0, 0, 0) // Start of today
+      
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - daysNum)
+      startDate.setHours(0, 0, 0, 0)
+      
       await api.post(`/integrations/${integration.id}/historical-import`, {
-        days: daysNum,
+        start_date: startDate.toISOString().split('T')[0], // Format: YYYY-MM-DD
+        end_date: endDate.toISOString().split('T')[0],
       })
 
       setSuccess(true)

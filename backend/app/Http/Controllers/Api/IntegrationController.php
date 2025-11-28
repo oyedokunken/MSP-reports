@@ -790,6 +790,9 @@ class IntegrationController extends Controller
             'historical_import_progress' => 0,
         ]);
 
+        // Dispatch job for the first chunk (start date)
+        \App\Jobs\ImportHistoricalDataJob::dispatch($job, $startDate);
+
         AuditLog::create([
             'company_id' => $company->company_id,
             'event_type' => 'historical_import_started',
@@ -812,6 +815,35 @@ class IntegrationController extends Controller
             'data' => [
                 'job_id' => $job->id,
                 'integration' => $integration,
+            ]
+        ]);
+    }
+
+    public function getHistoricalImportJobs(Request $request, $id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $integration = $company->integrations()
+            ->where('integration_id', $id)
+            ->first();
+
+        if (!$integration) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration not found for this company.'
+            ], 404);
+        }
+
+        $jobs = $integration->historicalImportJobs()
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'integration' => $integration,
+                'jobs' => $jobs,
             ]
         ]);
     }
