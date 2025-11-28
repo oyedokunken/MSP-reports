@@ -355,12 +355,14 @@ class CustomerMappingController extends Controller
             
             return [
                 'integration_customer_id' => $ic->integration_customer_id,
+                'integration_id' => $ic->integration_id,
                 'integration_type' => e($ic->integration->integration_type ?? null),
                 'display_name' => e($ic->integration->display_name ?? null),
                 'external_id' => e($ic->external_id),
                 'name' => e($ic->name),
                 'active' => (bool) $ic->active,
                 'last_seen_at' => $ic->last_seen_at,
+                'metadata' => $ic->metadata,
                 'mapping' => $mapping ? [
                     'type' => $mapping->mapping_type,
                     'confidence_score' => $mapping->confidence_score,
