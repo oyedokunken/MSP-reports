@@ -114,6 +114,8 @@ export function ViewCustomerIntegrationsModal({
     const [viewDataModalOpen, setViewDataModalOpen] = useState(false);
     const [selectedIntegration, setSelectedIntegration] = useState<IntegrationMapping | null>(null);
     const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({});
+    const [stats, setStats] = useState<{[key: number]: any}>({});
+    const [loadingStats, setLoadingStats] = useState<{[key: number]: boolean}>({});
 
     useEffect(() => {
         if (open && customer) {
@@ -173,12 +175,37 @@ export function ViewCustomerIntegrationsModal({
         setViewDataModalOpen(true);
     };
 
+    const fetchStats = async (integrationCustomerId: number) => {
+        if (!customer || stats[integrationCustomerId] || loadingStats[integrationCustomerId]) return;
+
+        setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: true }));
+
+        try {
+            const response = await api.get(
+                `/customers/${customer.customer_id}/integrations/${integrationCustomerId}/stats`
+            );
+            const data = (response as any).data || response;
+            setStats(prev => ({ ...prev, [integrationCustomerId]: data }));
+        } catch (err: any) {
+            console.error('Failed to load stats:', err);
+        } finally {
+            setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: false }));
+        }
+    };
+
     const toggleSection = (integrationId: number, section: string) => {
         const key = `${integrationId}-${section}`;
+        const isExpanding = !expandedSections[key];
+        
         setExpandedSections(prev => ({
             ...prev,
-            [key]: !prev[key]
+            [key]: isExpanding
         }));
+
+        // Fetch stats when expanding the stats section
+        if (isExpanding && section === 'stats') {
+            fetchStats(integrationId);
+        }
     };
 
     const isSectionExpanded = (integrationId: number, section: string) => {
@@ -270,9 +297,158 @@ export function ViewCustomerIntegrationsModal({
                                             </div>
                                         </div>
 
+                                        {/* Connected Data Stats Section */}
+                                        <div className="p-4 border-b">
+                                            <button
+                                                onClick={() => toggleSection(integration.integration_customer_id, 'stats')}
+                                                className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors rounded-lg"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <TrendingUp className="h-4 w-4 text-primary" />
+                                                    <span className="font-semibold">Connected Data</span>
+                                                </div>
+                                                {isSectionExpanded(integration.integration_customer_id, 'stats') ? (
+                                                    <ChevronUp className="h-4 w-4" />
+                                                ) : (
+                                                    <ChevronDown className="h-4 w-4" />
+                                                )}
+                                            </button>
+                                            {isSectionExpanded(integration.integration_customer_id, 'stats') && (
+                                                <div className="mt-3">
+                                                    {loadingStats[integration.integration_customer_id] ? (
+                                                        <div className="flex items-center justify-center py-8">
+                                                            <Spinner className="h-6 w-6" />
+                                                        </div>
+                                                    ) : stats[integration.integration_customer_id] ? (
+                                                        <div className="grid grid-cols-3 gap-4">
+                                                            {/* Tickets */}
+                                                            <div className="p-4 rounded-lg bg-muted/50 border">
+                                                                <div className="flex items-center gap-2 mb-3">
+                                                                    <FileText className="h-5 w-5 text-primary" />
+                                                                    <h4 className="font-semibold">Tickets</h4>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-sm text-muted-foreground">Total</span>
+                                                                        <span className="text-lg font-bold">
+                                                                            {stats[integration.integration_customer_id].tickets?.total || 0}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-sm text-muted-foreground">Open</span>
+                                                                        <span className="text-sm font-medium">
+                                                                            {stats[integration.integration_customer_id].tickets?.open || 0}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-sm text-muted-foreground">Completed</span>
+                                                                        <span className="text-sm font-medium">
+                                                                            {stats[integration.integration_customer_id].tickets?.completed || 0}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Time Entries */}
+                                                            <div className="p-4 rounded-lg bg-muted/50 border">
+                                                                <div className="flex items-center gap-2 mb-3">
+                                                                    <Calendar className="h-5 w-5 text-primary" />
+                                                                    <h4 className="font-semibold">Time Entries</h4>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-sm text-muted-foreground">Total</span>
+                                                                        <span className="text-lg font-bold">
+                                                                            {stats[integration.integration_customer_id].time_entries?.total || 0}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-sm text-muted-foreground">Total Hours</span>
+                                                                        <span className="text-sm font-medium">
+                                                                            {(stats[integration.integration_customer_id].time_entries?.total_hours || 0).toFixed(2)}h
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-sm text-muted-foreground">Billable</span>
+                                                                        <span className="text-sm font-medium">
+                                                                            {(stats[integration.integration_customer_id].time_entries?.billable_hours || 0).toFixed(2)}h
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Contracts */}
+                                                            <div className="p-4 rounded-lg bg-muted/50 border">
+                                                                <div className="flex items-center gap-2 mb-3">
+                                                                    <Briefcase className="h-5 w-5 text-primary" />
+                                                                    <h4 className="font-semibold">Contracts</h4>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-sm text-muted-foreground">Total</span>
+                                                                        <span className="text-lg font-bold">
+                                                                            {stats[integration.integration_customer_id].contracts?.total || 0}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-sm text-muted-foreground">Active</span>
+                                                                        <span className="text-sm font-medium">
+                                                                            {stats[integration.integration_customer_id].contracts?.active || 0}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-sm text-muted-foreground text-center py-4">
+                                                            No data available
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
                                         {/* Metadata Sections */}
                                         {integration.metadata && Object.keys(integration.metadata).length > 0 && (
                                             <div className="p-4 space-y-3">
+                                                {/* Technicians Section */}
+                                                {stats[integration.integration_customer_id]?.tickets?.top_technicians?.length > 0 && (
+                                                    <div className="border rounded-lg overflow-hidden">
+                                                        <button
+                                                            onClick={() => toggleSection(integration.integration_customer_id, 'technicians')}
+                                                            className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <Users className="h-4 w-4 text-primary" />
+                                                                <span className="font-semibold">Assigned Technicians</span>
+                                                                <Badge variant="secondary" className="ml-2">
+                                                                    {stats[integration.integration_customer_id].tickets.top_technicians.length}
+                                                                </Badge>
+                                                            </div>
+                                                            {isSectionExpanded(integration.integration_customer_id, 'technicians') ? (
+                                                                <ChevronUp className="h-4 w-4" />
+                                                            ) : (
+                                                                <ChevronDown className="h-4 w-4" />
+                                                            )}
+                                                        </button>
+                                                        {isSectionExpanded(integration.integration_customer_id, 'technicians') && (
+                                                            <div className="p-3 grid grid-cols-2 gap-3">
+                                                                {stats[integration.integration_customer_id].tickets.top_technicians.map((tech: any, idx: number) => (
+                                                                    <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                                                                        <Users className="h-4 w-4 text-primary mt-0.5" />
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <p className="text-sm font-medium truncate">{tech.name}</p>
+                                                                            <p className="text-xs text-muted-foreground">
+                                                                                {tech.ticket_count} {tech.ticket_count === 1 ? 'ticket' : 'tickets'}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
                                                 {/* Contact Information Section */}
                                                 <div className="border rounded-lg overflow-hidden">
                                                     <button

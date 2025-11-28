@@ -8,6 +8,7 @@ use App\Services\CustomerMappingService;
 use App\Models\Customer;
 use App\Models\IntegrationCustomer;
 use App\Models\CustomerMapping;
+use App\Models\IntegrationData;
 use App\Models\AuditLog;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -375,6 +376,111 @@ class CustomerMappingController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $integrations,
+        ]);
+    }
+
+    public function getCustomerIntegrationStats(Request $request, $customerId, $integrationCustomerId)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $customer = Customer::where('company_id', $company->company_id)
+            ->where('customer_id', $customerId)
+            ->first();
+
+        if (!$customer) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Customer not found in your company.',
+            ], 404);
+        }
+
+        $integrationCustomer = IntegrationCustomer::where('integration_customer_id', $integrationCustomerId)
+            ->with('integration')
+            ->first();
+
+        if (!$integrationCustomer) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration customer not found.',
+            ], 404);
+        }
+
+        // Get stats from integration_data table
+        $integrationId = $integrationCustomer->integration_id;
+        
+        // Get all technicians from tickets
+        $topTechnicians = IntegrationData::where('integration_customer_id', $integrationCustomerId)
+            ->where('data_type', 'ticket')
+            ->whereNotNull(\DB::raw("data_payload->>'assigned_resource'"))
+            ->select(\DB::raw("data_payload->>'assigned_resource' as resource_id"), \DB::raw('COUNT(*) as ticket_count'))
+            ->groupBy(\DB::raw("data_payload->>'assigned_resource'"))
+            ->orderByDesc('ticket_count')
+            ->get();
+
+        // Get resource names for these technicians
+        $resourceIds = $topTechnicians->pluck('resource_id')->toArray();
+        $resources = IntegrationData::where('integration_id', $integrationId)
+            ->where('data_type', 'resource')
+            ->whereIn(\DB::raw("CAST(data_payload->>'resource_id' AS TEXT)"), $resourceIds)
+            ->get()
+            ->keyBy(function($item) {
+                return $item->data_payload['resource_id'];
+            });
+
+        $technicianStats = $topTechnicians->map(function($tech) use ($resources) {
+            $resource = $resources->get($tech->resource_id);
+            $firstName = $resource ? ($resource->data_payload['first_name'] ?? '') : '';
+            $lastName = $resource ? ($resource->data_payload['last_name'] ?? '') : '';
+            $fullName = trim("$firstName $lastName") ?: "Resource #{$tech->resource_id}";
+            
+            return [
+                'name' => $fullName,
+                'ticket_count' => $tech->ticket_count,
+            ];
+        })->toArray();
+
+        $stats = [
+            'tickets' => [
+                'total' => IntegrationData::where('integration_customer_id', $integrationCustomerId)
+                    ->where('data_type', 'ticket')
+                    ->count(),
+                'open' => IntegrationData::where('integration_customer_id', $integrationCustomerId)
+                    ->where('data_type', 'ticket')
+                    ->whereRaw("(data_payload->>'status')::int != 5")
+                    ->count(),
+                'completed' => IntegrationData::where('integration_customer_id', $integrationCustomerId)
+                    ->where('data_type', 'ticket')
+                    ->whereRaw("(data_payload->>'status')::int = 5")
+                    ->count(),
+                'top_technicians' => $technicianStats,
+            ],
+            'time_entries' => [
+                'total' => IntegrationData::where('integration_customer_id', $integrationCustomerId)
+                    ->where('data_type', 'time_entry')
+                    ->count(),
+                'total_hours' => IntegrationData::where('integration_customer_id', $integrationCustomerId)
+                    ->where('data_type', 'time_entry')
+                    ->sum(\DB::raw("CAST(data_payload->>'hoursWorked' AS DECIMAL)")),
+                'billable_hours' => IntegrationData::where('integration_customer_id', $integrationCustomerId)
+                    ->where('data_type', 'time_entry')
+                    ->whereRaw("(data_payload->>'isNonBillable')::boolean = false")
+                    ->sum(\DB::raw("CAST(data_payload->>'hoursWorked' AS DECIMAL)")),
+            ],
+            'contracts' => [
+                'total' => IntegrationData::where('integration_customer_id', $integrationCustomerId)
+                    ->where('data_type', 'contract')
+                    ->count(),
+                'active' => IntegrationData::where('integration_customer_id', $integrationCustomerId)
+                    ->where('data_type', 'contract')
+                    ->whereRaw("(data_payload->>'status')::int = 1")
+                    ->count(),
+            ],
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $stats,
         ]);
     }
 

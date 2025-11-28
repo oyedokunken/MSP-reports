@@ -88,6 +88,7 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
         Route::get('/customers/unmapped', [CustomerMappingController::class, 'getUnmappedCustomers']);
         Route::post('/customers/map', [CustomerMappingController::class, 'mapCustomer']);
         Route::get('/customers/{id}/integrations', [CustomerMappingController::class, 'getCustomerIntegrations']);
+        Route::get('/customers/{customerId}/integrations/{integrationCustomerId}/stats', [CustomerMappingController::class, 'getCustomerIntegrationStats']);
         Route::patch('/customers/{id}', [CustomerMappingController::class, 'updateCustomer']);
         Route::post('/customers/{id}/merge', [CustomerMappingController::class, 'mergeCustomers']);
         Route::post('/customers/{id}/split', [CustomerMappingController::class, 'splitCustomer']);
