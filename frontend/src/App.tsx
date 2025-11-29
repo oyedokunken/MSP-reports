@@ -8,6 +8,7 @@ import Dashboard from '@/pages/dashboard/Dashboard'
 import IntegrationList from '@/pages/integrations/IntegrationList'
 import { IntegrationPreview } from '@/pages/integrations/IntegrationPreview'
 import CustomerList from '@/pages/customers/CustomerList'
+import CustomerIntegrationDetails from '@/pages/customers/CustomerIntegrationDetails'
 import ScheduleList from '@/pages/schedules/ScheduleList'
 import Settings from '@/pages/settings/Settings'
 import ForgotPassword from '@/pages/auth/pages/ForgotPassword'
@@ -198,6 +199,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <CustomerList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/platform/customers/:customerId/integrations"
+        element={
+          <ProtectedRoute>
+            <CustomerIntegrationDetails />
           </ProtectedRoute>
         }
       />

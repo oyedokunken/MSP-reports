@@ -14,6 +14,7 @@ interface CustomersGridProps {
   onViewIntegrations: (customer: MappedCustomer) => void
   onMerge: (customer: MappedCustomer) => void
   onSplit: (customer: MappedCustomer) => void
+  onMoreInfo: (customerId: number) => void
 }
 
 export function CustomersGrid({
@@ -26,6 +27,7 @@ export function CustomersGrid({
   onViewIntegrations,
   onMerge,
   onSplit,
+  onMoreInfo,
 }: CustomersGridProps) {
   if (isLoading) {
     return (
@@ -86,6 +88,7 @@ export function CustomersGrid({
           onViewIntegrations={() => onViewIntegrations(customer)}
           onMerge={() => onMerge(customer)}
           onSplit={() => onSplit(customer)}
+          onMoreInfo={() => onMoreInfo(customer.customer_id!)}
         />
       ))}
     </div>

@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { FileText, Settings, Link2, MoreVertical, Edit, Cable, GitMerge, GitBranch } from 'lucide-react'
+import { FileText, Settings, Link2, MoreVertical, Edit, Cable, GitMerge, GitBranch, Info } from 'lucide-react'
 import type { MappedCustomer } from '@/stores/useCustomersStore'
 
 interface CustomerCardProps {
@@ -19,6 +19,7 @@ interface CustomerCardProps {
   onViewIntegrations: () => void
   onMerge: () => void
   onSplit: () => void
+  onMoreInfo: () => void
 }
 
 export function CustomerCard({
@@ -29,6 +30,7 @@ export function CustomerCard({
   onViewIntegrations,
   onMerge,
   onSplit,
+  onMoreInfo,
 }: CustomerCardProps) {
   return (
     <Card className="flex flex-col overflow-hidden">
@@ -99,6 +101,15 @@ export function CustomerCard({
           >
             <FileText className="h-4 w-4 mr-2 flex-shrink-0" />
             <span className="truncate">View History</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 min-w-[120px] overflow-hidden"
+            onClick={onMoreInfo}
+          >
+            <Info className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span className="truncate">More Info</span>
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

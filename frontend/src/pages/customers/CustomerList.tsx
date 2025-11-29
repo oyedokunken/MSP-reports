@@ -166,6 +166,7 @@ export default function CustomerList() {
                         });
                         openModal("split");
                     }}
+                    onMoreInfo={(id) => navigate(`/platform/customers/${id}/integrations`)}
                 />
 
                 {/* Pagination */}

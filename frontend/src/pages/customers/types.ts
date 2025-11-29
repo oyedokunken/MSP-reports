@@ -62,3 +62,29 @@ export interface Customer {
   report_schedules_count?: number
   has_reports_configured?: boolean
 }
+
+export interface CustomerIntegrationMapping {
+  type: 'auto' | 'manual'
+  confidence_score: number
+  mapped_at: string
+  notes?: string
+  mapped_by?: string
+}
+
+export interface CustomerIntegrationDetail {
+  integration_customer_id: number
+  integration_id: number
+  integration_type: string
+  display_name: string
+  external_id: string
+  name: string
+  active: boolean
+  last_seen_at: string
+  metadata: Record<string, any>
+  mapping: CustomerIntegrationMapping
+}
+
+export interface CustomerIntegrationsResponse {
+  status: string
+  data: CustomerIntegrationDetail[]
+}
