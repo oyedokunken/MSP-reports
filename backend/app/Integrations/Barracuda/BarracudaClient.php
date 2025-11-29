@@ -12,7 +12,6 @@ class BarracudaClient
 {
     protected array $credentials;
     protected string $baseUrl;
-{{ ... }}
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
     protected bool $useMockData = false;
@@ -92,10 +91,7 @@ class BarracudaClient
 
     public function testConnection(): bool
     {
-        if ($this->useMockData) {
-            return true;
-        }
-        
+        // Don't skip authentication check even in mock mode - always validate credentials
         try {
             // Test by getting access token
             $token = $this->getAccessToken();

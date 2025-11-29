@@ -31,10 +31,7 @@ class ITGlueClient
 
     public function testConnection(): bool
     {
-        if ($this->useMockData) {
-            return true;
-        }
-        
+        // Don't skip authentication check even in mock mode - always validate credentials
         try {
             $response = $this->makeRequest('/organizations', ['page' => ['size' => 1]]);
             

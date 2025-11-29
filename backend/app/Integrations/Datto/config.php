@@ -6,14 +6,7 @@ return [
     'description' => 'Integrate with Datto for backup monitoring, device management, and uptime tracking.',
     
     'credentials' => [
-        // Datto RMM Credentials
-        'rmm_url' => [
-            'type' => 'text',
-            'label' => 'RMM API URL',
-            'required' => false,
-            'placeholder' => 'https://syrah-api.centrastage.net',
-            'help' => 'Your Datto RMM API endpoint (e.g., https://syrah-api.centrastage.net)',
-        ],
+        // Datto RMM Credentials (Region defaults to Syrah)
         'rmm_api_key' => [
             'type' => 'text',
             'label' => 'RMM API Key (Username)',

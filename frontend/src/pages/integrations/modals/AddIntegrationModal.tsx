@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -45,10 +45,33 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
   // Fetch integration config when type changes
   const { config, loading: loadingConfig } = useIntegrationConfig(formData.integration_type || null)
 
+  // Initialize default credential values when config loads
+  useEffect(() => {
+    if (config && config.credential_fields) {
+      const defaultCredentials: Record<string, string> = {}
+      config.credential_fields.forEach((field: any) => {
+        if (field.default && !formData.credentials[field.name]) {
+          defaultCredentials[field.name] = field.default
+        }
+      })
+      
+      if (Object.keys(defaultCredentials).length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          credentials: { ...prev.credentials, ...defaultCredentials }
+        }))
+      }
+    }
+  }, [config])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsSubmitting(true)
+
+    console.log('=== SUBMITTING INTEGRATION ===')
+    console.log('Form Data:', JSON.stringify(formData, null, 2))
+    console.log('Credentials:', formData.credentials)
 
     try {
       const response = await api.post('/integrations', formData)
@@ -192,11 +215,6 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
               <span className="ml-2 text-sm text-muted-foreground">Loading configuration...</span>
             </div>
           )}
-
-          {/* Debug info */}
-          {console.log('Config:', config)}
-          {console.log('Loading:', loadingConfig)}
-          {console.log('Integration Type:', formData.integration_type)}
 
           {config && config.credential_fields && config.credential_fields.length > 0 && (
             <div className="space-y-4 pt-4 border-t">

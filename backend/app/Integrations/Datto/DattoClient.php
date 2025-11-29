@@ -165,10 +165,6 @@ class DattoClient
     
     public function testConnection(): bool
     {
-        if ($this->useMockData) {
-            return true;
-        }
-        
         try {
             if ($this->hasRmmCredentials()) {
                 $response = $this->makeRmmRequest('/account/sites', ['max' => 1]);

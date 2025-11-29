@@ -54,19 +54,21 @@ class IntegrationController extends Controller
         $configFile = app_path("Integrations/{$integrationType}/config.php");
         
         if (!file_exists($configFile)) {
-            return null;
         }
 
         return require $configFile;
     }
 
-    public function getIntegrations(Request $request)
+    /**
+     * Get all available integrations and configured integrations
+     */
+    public function getIntegrations(Request $request): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
         $availableTypes = $this->scanAvailableIntegrations();
-
+        
         $configuredIntegrations = $company->integrations()
             ->withCount(['integrationCustomers as unmapped_customers_count' => function ($query) {
                 $query->whereNull('customer_id');
@@ -167,15 +169,6 @@ class IntegrationController extends Controller
             'is_source_of_truth' => 'nullable|boolean',
         ]);
 
-        // Log the raw request for debugging
-        Log::info('Integration creation request received', [
-            'integration_type' => $validated['integration_type'],
-            'display_name' => $validated['display_name'],
-            'status' => $validated['status'],
-            'credentials_keys' => array_keys($validated['credentials'] ?? []),
-            'credentials_values_present' => array_map(function($v) { return !empty($v); }, $validated['credentials'] ?? []),
-        ]);
-
         $exists = $company->integrations()
             ->where('integration_type', $validated['integration_type'])
             ->exists();
@@ -209,38 +202,46 @@ class IntegrationController extends Controller
             ], 403);
         }
 
-        // Process credentials - map region selectors to URLs
         $credentials = $validated['credentials'] ?? [];
         
-        // Filter out empty credential values (empty strings, null, etc.)
+        Log::info('Credentials received', [
+            'integration_type' => $validated['integration_type'],
+            'credentials' => $credentials,
+        ]);
+        
         $credentials = array_filter($credentials, function($value) {
             return $value !== null && $value !== '';
         });
         
-        // Datto: map rmm_region to rmm_url
-        if ($validated['integration_type'] === 'Datto' && isset($credentials['rmm_region'])) {
-            $credentials['rmm_url'] = $credentials['rmm_region'];
-            unset($credentials['rmm_region']);
+        Log::info('Credentials after filtering', [
+            'credentials' => $credentials,
+        ]);
+        
+        // Datto: map rmm_region to rmm_url, or use default if not provided
+        if ($validated['integration_type'] === 'Datto') {
+            if (isset($credentials['rmm_region'])) {
+                $credentials['rmm_url'] = $credentials['rmm_region'];
+                unset($credentials['rmm_region']);
+            } elseif (!isset($credentials['rmm_url']) && (isset($credentials['rmm_api_key']) || isset($credentials['rmm_api_secret']))) {
+                // If RMM credentials provided but no URL, use default Syrah region
+                $credentials['rmm_url'] = 'https://syrah-api.centrastage.net';
+            }
         }
         
-        // Autotask: map zone to endpoint
         if ($validated['integration_type'] === 'Autotask' && isset($credentials['zone'])) {
             $credentials['endpoint'] = $credentials['zone'];
             unset($credentials['zone']);
         }
         
-        // ITGlue: base_url is already the region URL from select
-        // Sendmarc: add default base_url
         if ($validated['integration_type'] === 'Sendmarc' && !isset($credentials['base_url'])) {
             $credentials['base_url'] = 'https://api.sendmarc.com';
         }
         
-        // Barracuda: add default base_url
         if ($validated['integration_type'] === 'Barracuda' && !isset($credentials['base_url'])) {
             $credentials['base_url'] = 'https://api.barracuda.com';
         }
 
-        // Create temporary integration to test credentials
+        // Test credentials before creating integration
         $tempIntegration = new Integration([
             'company_id' => $company->company_id,
             'integration_type' => $validated['integration_type'],
@@ -248,15 +249,6 @@ class IntegrationController extends Controller
             'status' => 'disconnected',
             'credentials' => $credentials,
             'configuration' => $validated['configuration'] ?? [],
-        ]);
-
-        // Always test authentication if credentials provided (ignore user's status selection)
-        // Status will be set based on authentication result
-        Log::info('Integration creation - checking credentials', [
-            'integration_type' => $validated['integration_type'],
-            'credentials_empty' => empty($credentials),
-            'credentials_count' => count($credentials),
-            'user_selected_status' => $validated['status'],
         ]);
 
         if (!empty($credentials)) {
@@ -270,30 +262,18 @@ class IntegrationController extends Controller
                     ], 500);
                 }
 
-                Log::info('Testing integration authentication', [
-                    'integration_type' => $validated['integration_type'],
-                    'display_name' => $validated['display_name'],
-                ]);
-
                 $instance = new $className($tempIntegration);
                 $authResult = $instance->authenticate();
-                
-                Log::info('Integration authentication result', [
-                    'integration_type' => $validated['integration_type'],
-                    'result' => $authResult ? 'success' : 'failed',
-                ]);
 
                 if (!$authResult) {
                     return response()->json([
                         'status' => 'error',
                         'message' => 'Authentication failed. Please verify your credentials and try again.'
-                    ], 422); // 422 Unprocessable Entity - validation failed
+                    ], 422);
                 }
 
-                // Authentication successful, set status to active
                 $validated['status'] = 'active';
             } catch (\App\Integrations\Exceptions\AuthenticationException $e) {
-                // Handle authentication-specific errors with user-friendly messages
                 Log::error('Integration authentication failed', [
                     'integration_type' => $validated['integration_type'],
                     'status_code' => $e->getStatusCode(),
@@ -304,9 +284,8 @@ class IntegrationController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => $e->getUserMessage()
-                ], 422); // 422 Unprocessable Entity - validation failed
+                ], 422);
             } catch (\Exception $e) {
-                // Handle other unexpected errors
                 Log::error('Integration authentication failed', [
                     'integration_type' => $validated['integration_type'],
                     'error' => $e->getMessage(),
@@ -316,18 +295,12 @@ class IntegrationController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Authentication failed: ' . $e->getMessage()
-                ], 422); // 422 Unprocessable Entity - validation failed
+                ], 422);
             }
         }
 
-        // Check if this is the first integration for the company
         $isFirstIntegration = $company->integrations()->count() === 0;
-        
-        // If first integration, automatically set as source of truth
-        // Otherwise, respect the provided value or default to false
         $isSourceOfTruth = $isFirstIntegration ? true : ($validated['is_source_of_truth'] ?? false);
-
-        // Create the integration with processed credentials
         $integration = $company->integrations()->create([
             'integration_type' => $validated['integration_type'],
             'display_name' => $validated['display_name'],
@@ -337,7 +310,6 @@ class IntegrationController extends Controller
             'is_source_of_truth' => $isSourceOfTruth,
         ]);
 
-        // Update company settings if this is source of truth
         if ($isSourceOfTruth) {
             $settings = $company->settings ?? [];
             if (!isset($settings['integrations'])) {
