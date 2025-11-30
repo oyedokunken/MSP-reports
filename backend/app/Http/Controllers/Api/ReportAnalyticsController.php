@@ -104,7 +104,7 @@ class ReportAnalyticsController extends Controller
 
         $report = GeneratedReport::where('generated_report_id', $id)
             ->where('company_id', $authUser->company_id)
-            ->with(['customer:customer_id,canonical_name'])
+            ->with(['customer:customer_id,canonical_name', 'reportSchedule:report_schedule_id,report_type'])
             ->first();
 
         if (!$report) {
@@ -125,7 +125,7 @@ class ReportAnalyticsController extends Controller
         
         $customerName = str_replace(' ', '_', $report->customer->canonical_name ?? 'Customer');
         $generatedDate = $report->generated_at->format('Y-m-d');
-        $reportType = str_replace('_', ' ', $report->reportSchedule->report_type ?? 'Report');
+        $reportType = $report->reportSchedule ? str_replace('_', ' ', $report->reportSchedule->report_type) : 'Report';
         $downloadFilename = "{$customerName}_{$reportType}_{$generatedDate}.pdf";
 
         return Storage::disk('reports')->download($report->file_path, $downloadFilename, [

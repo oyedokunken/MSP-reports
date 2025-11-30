@@ -130,12 +130,12 @@
             color: #999;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            padding: 2mm 0;
+            padding: 2mm 2mm;
             border-bottom: 1px solid #e5e5e5;
         }
         
         td {
-            padding: 3mm 0;
+            padding: 3mm 2mm;
             font-size: 9pt;
             color: #1a1a1a;
             border-bottom: 1px solid #f5f5f5;

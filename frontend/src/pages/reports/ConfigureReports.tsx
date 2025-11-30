@@ -175,13 +175,27 @@ export default function ConfigureReports() {
         .map(email => email.trim())
         .filter(email => email.length > 0)
 
-      const schedules = enabledReports.map(report => ({
-        report_type: report.report_type,
-        frequency: report.frequency || 'monthly',
-        time_of_day: report.time_of_day || '09:00',
-        active: report.active !== false,
-        schedule_config: null
-      }))
+      const schedules = enabledReports.map(report => {
+        const scheduleConfig: any = {}
+        
+        // Add day_of_month for monthly reports
+        if (report.frequency === 'monthly' && (report as any).day_of_month) {
+          scheduleConfig.day_of_month = (report as any).day_of_month
+        }
+        
+        // Add day_of_week for weekly reports
+        if (report.frequency === 'weekly' && (report as any).day_of_week !== undefined) {
+          scheduleConfig.day_of_week = (report as any).day_of_week
+        }
+        
+        return {
+          report_type: report.report_type,
+          frequency: report.frequency || 'monthly',
+          time_of_day: report.time_of_day || '09:00',
+          active: report.active !== false,
+          schedule_config: Object.keys(scheduleConfig).length > 0 ? scheduleConfig : null
+        }
+      })
 
       await api.patch(`/customers/${id}/reports`, {
         schedules: schedules
@@ -216,7 +230,7 @@ export default function ConfigureReports() {
       toast.success('Report Generated!', `Successfully generated ${data.data?.length || 1} report(s)`)
       
       setTimeout(() => {
-        navigate('/reports')
+        navigate('/platform/reports')
       }, 1500)
     } catch (err: any) {
       toast.error('Generation Failed', err.response?.data?.message || err.message)
@@ -373,6 +387,50 @@ export default function ConfigureReports() {
                               onChange={(e) => handleUpdateReport(index, 'time_of_day', e.target.value)}
                               className="mt-1"
                             />
+                          </div>
+                        )}
+
+                        {report.frequency === 'monthly' && (
+                          <div>
+                            <Label htmlFor={`day-${index}`}>Day of Month</Label>
+                            <Select
+                              value={String((report as any).day_of_month || '1')}
+                              onValueChange={(value) => handleUpdateReport(index, 'day_of_month', parseInt(value))}
+                            >
+                              <SelectTrigger id={`day-${index}`} className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                                  <SelectItem key={day} value={String(day)}>
+                                    {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {report.frequency === 'weekly' && (
+                          <div>
+                            <Label htmlFor={`weekday-${index}`}>Day of Week</Label>
+                            <Select
+                              value={String((report as any).day_of_week || '1')}
+                              onValueChange={(value) => handleUpdateReport(index, 'day_of_week', parseInt(value))}
+                            >
+                              <SelectTrigger id={`weekday-${index}`} className="mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">Monday</SelectItem>
+                                <SelectItem value="2">Tuesday</SelectItem>
+                                <SelectItem value="3">Wednesday</SelectItem>
+                                <SelectItem value="4">Thursday</SelectItem>
+                                <SelectItem value="5">Friday</SelectItem>
+                                <SelectItem value="6">Saturday</SelectItem>
+                                <SelectItem value="0">Sunday</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         )}
 

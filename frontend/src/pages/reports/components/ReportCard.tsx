@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Download, RefreshCw, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react'
+import { Download, RefreshCw, CheckCircle2, XCircle, AlertCircle, Clock, Eye } from 'lucide-react'
 import { formatDate, formatFileSize } from '../utils/formatters'
 import type { GeneratedReport } from '../types/report'
+import { ReportPreviewModal } from '@/components/reports/ReportPreviewModal'
 
 interface ReportCardProps {
   report: GeneratedReport
@@ -12,6 +14,8 @@ interface ReportCardProps {
 }
 
 export function ReportCard({ report, downloading, onDownload }: ReportCardProps) {
+  const [showPreview, setShowPreview] = useState(false)
+
   const getStatusBadge = (status: string) => {
     const variants = {
       completed: { variant: 'default' as const, icon: CheckCircle2 },
@@ -78,25 +82,45 @@ export function ReportCard({ report, downloading, onDownload }: ReportCardProps)
           </div>
         )}
 
-        <Button
-          size="sm"
-          className="w-full"
-          onClick={onDownload}
-          disabled={downloading || report.status !== 'completed'}
-        >
-          {downloading ? (
-            <>
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              Downloading...
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1"
+            onClick={() => setShowPreview(true)}
+            disabled={report.status !== 'completed'}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Preview
+          </Button>
+          <Button
+            size="sm"
+            className="flex-1"
+            onClick={onDownload}
+            disabled={downloading || report.status !== 'completed'}
+          >
+            {downloading ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Downloading...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </>
+            )}
+          </Button>
+        </div>
       </CardContent>
+
+      {/* Preview Modal */}
+      <ReportPreviewModal
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        reportId={report.generated_report_id}
+        reportName={`${report.customer_name} - ${report.report_type}`}
+      />
     </Card>
   )
 }
