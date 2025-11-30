@@ -2,583 +2,235 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Uptime Report - {{ $customer->canonical_name ?? $customer->name }}</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
         
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #ffffff;
-            color: #1e293b;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
+            font-family: 'Inter', sans-serif;
+            background: #fff;
+            color: #1a1a1a;
+            font-size: 10pt;
+            line-height: 1.5;
         }
         
         .page {
             width: 210mm;
             min-height: 297mm;
-            padding: 0;
+            padding: 20mm;
             margin: 0 auto;
-            background: white;
-            position: relative;
-            display: flex;
-            flex-direction: column;
         }
         
-        /* Cover Page */
-        .cover-page {
-            width: 210mm;
-            height: 297mm;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, {{ $branding['primary_color'] ?? '#1e40af' }} 0%, {{ $branding['secondary_color'] ?? '#7c3aed' }} 100%);
-            color: white;
-            position: relative;
-            overflow: hidden;
-            page-break-after: always;
-        }
-        
-        .cover-page::before {
-            content: '';
-            position: absolute;
-            top: -20%;
-            right: -20%;
-            width: 600px;
-            height: 600px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
-        }
-        
-        .cover-page::after {
-            content: '';
-            position: absolute;
-            bottom: -30%;
-            left: -20%;
-            width: 800px;
-            height: 800px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 50%;
-        }
-        
-        .cover-content {
-            text-align: center;
-            z-index: 1;
-            padding: 50px;
-        }
-        
-        .cover-logo {
-            max-width: 300px;
-            max-height: 120px;
-            margin-bottom: 60px;
-            filter: brightness(0) invert(1);
-        }
-        
-        .cover-title {
-            font-size: 56px;
-            font-weight: 700;
-            margin-bottom: 20px;
-            letter-spacing: -1px;
-        }
-        
-        .cover-subtitle {
-            font-size: 28px;
-            font-weight: 300;
-            margin-bottom: 60px;
-            opacity: 0.9;
-        }
-        
-        .cover-customer {
-            font-size: 32px;
-            font-weight: 600;
-            margin-bottom: 40px;
-            padding: 20px 40px;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .cover-meta {
-            font-size: 18px;
-            opacity: 0.85;
-            margin-bottom: 10px;
-        }
-        
-        .cover-footer {
-            position: absolute;
-            bottom: 50px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 14px;
-            opacity: 0.7;
-        }
-        
-        /* Header with Logos */
-        .header-section {
-            background: linear-gradient(135deg, {{ $branding['primary_color'] ?? '#1e40af' }} 0%, {{ $branding['secondary_color'] ?? '#7c3aed' }} 100%);
-            color: white;
-            padding: 40px 50px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .header-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 400px;
-            height: 400px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-        }
-        
-        .header-logos {
+        /* Header */
+        .header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            position: relative;
-            z-index: 1;
+            align-items: flex-start;
+            padding-bottom: 15mm;
+            border-bottom: 1px solid #e5e5e5;
+            margin-bottom: 10mm;
         }
         
-        .company-logo, .customer-logo {
-            max-height: 50px;
-            max-width: 180px;
-            object-fit: contain;
+        .header-left h1 {
+            font-size: 24pt;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 3mm;
         }
         
-        .header-content {
-            position: relative;
-            z-index: 1;
-        }
-        
-        .report-title {
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
-        }
-        
-        .report-subtitle {
-            font-size: 16px;
-            opacity: 0.95;
+        .header-left .subtitle {
+            font-size: 11pt;
+            color: #666;
             font-weight: 400;
         }
         
-        /* Report Metadata Bar */
-        .metadata-bar {
-            background: #f8fafc;
-            border-left: 4px solid {{ $branding['primary_color'] ?? '#1e40af' }};
-            padding: 25px 50px;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+        .header-right {
+            text-align: right;
+            font-size: 9pt;
+            color: #666;
         }
         
-        .meta-item {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .meta-label {
-            font-size: 11px;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-bottom: 6px;
-        }
-        
-        .meta-value {
-            font-size: 15px;
-            font-weight: 600;
-            color: #0f172a;
-        }
-        
-        /* Key Metrics Dashboard */
-        .metrics-dashboard {
-            padding: 40px 50px;
-            background: white;
-        }
-        
-        .section-header {
-            font-size: 20px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .section-header::before {
-            content: '';
-            width: 4px;
-            height: 24px;
-            background: {{ $branding['primary_color'] ?? '#1e40af' }};
-            border-radius: 2px;
-        }
-        
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .metric-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 25px;
-            border-radius: 12px;
-            color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .metric-card::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-        }
-        
-        .metric-card:nth-child(1) {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .metric-card:nth-child(2) {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        
-        .metric-card:nth-child(3) {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-        
-        .metric-card:nth-child(4) {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-        
-        .metric-label {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.9;
-            margin-bottom: 12px;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .metric-value {
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 4px;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .metric-unit {
-            font-size: 13px;
-            opacity: 0.85;
+        .header-right .label {
             font-weight: 500;
-            position: relative;
-            z-index: 1;
-        }
-        
-        /* Content Section */
-        .content-section {
-            padding: 40px 50px;
-            background: white;
-        }
-        
-        /* Modern Table */
-        .data-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            margin-top: 20px;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .data-table thead {
-            background: {{ $branding['primary_color'] ?? '#1e40af' }};
-            color: white;
-        }
-        
-        .data-table th {
-            padding: 16px 20px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 13px;
+            color: #999;
             text-transform: uppercase;
+            font-size: 7pt;
             letter-spacing: 0.5px;
         }
         
-        .data-table td {
-            padding: 16px 20px;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 14px;
+        .header-right .value {
+            color: #1a1a1a;
+            margin-bottom: 2mm;
         }
         
-        .data-table tbody tr {
-            background: white;
-            transition: background 0.2s;
+        /* Summary Stats */
+        .summary {
+            background: #fafafa;
+            padding: 5mm;
+            border-radius: 2mm;
+            margin-bottom: 10mm;
+            display: flex;
+            justify-content: space-around;
         }
         
-        .data-table tbody tr:nth-child(even) {
-            background: #f8fafc;
+        .summary-item {
+            text-align: center;
         }
         
-        .data-table tbody tr:hover {
-            background: #f1f5f9;
+        .summary-label {
+            font-size: 8pt;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2mm;
+            font-weight: 500;
         }
         
-        .data-table tbody tr:last-child td {
+        .summary-value {
+            font-size: 20pt;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        
+        .summary-unit {
+            font-size: 9pt;
+            color: #666;
+            font-weight: 400;
+        }
+        
+        /* Section */
+        .section {
+            margin-bottom: 8mm;
+        }
+        
+        .section-title {
+            font-size: 12pt;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4mm;
+            padding-bottom: 2mm;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 3mm;
+        }
+        
+        th {
+            text-align: left;
+            font-size: 8pt;
+            font-weight: 500;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2mm 0;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        
+        td {
+            padding: 3mm 0;
+            font-size: 9pt;
+            color: #1a1a1a;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        
+        tr:last-child td {
             border-bottom: none;
         }
         
-        /* Status Badges */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.3px;
+        /* Status Badge */
+        .status {
+            display: inline-block;
+            padding: 1mm 3mm;
+            border-radius: 1mm;
+            font-size: 8pt;
+            font-weight: 500;
         }
         
-        .status-excellent {
-            background: #dcfce7;
-            color: #166534;
-        }
-        
-        .status-good {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-        
-        .status-warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        
-        .status-critical {
-            background: #fee2e2;
-            color: #991b1b;
-        }
+        .status-excellent { background: #d1fae5; color: #065f46; }
+        .status-good { background: #dbeafe; color: #1e40af; }
+        .status-warning { background: #fef3c7; color: #92400e; }
+        .status-critical { background: #fee2e2; color: #991b1b; }
         
         /* Footer */
-        .footer-section {
-            background: #0f172a;
-            color: white;
-            padding: 30px 50px;
-            margin-top: auto;
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-        }
-        
-        .footer-content {
+        .footer {
+            margin-top: 15mm;
+            padding-top: 3mm;
+            border-top: 1px solid #e5e5e5;
+            font-size: 8pt;
+            color: #999;
             display: flex;
             justify-content: space-between;
-            align-items: center;
         }
         
-        .footer-left {
-            flex: 1;
-        }
-        
-        .footer-company {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        
-        .footer-text {
-            font-size: 12px;
-            opacity: 0.7;
-            line-height: 1.6;
-        }
-        
-        .footer-right {
-            text-align: right;
-            font-size: 11px;
-            opacity: 0.6;
-        }
-        
-        .page-number {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        
-        /* Print Optimization */
         @media print {
-            body {
-                margin: 0;
-                padding: 0;
-            }
-            
-            .page {
-                margin: 0;
-                border: none;
-                box-shadow: none;
-            }
-            
-            .cover-page {
-                page-break-after: always;
-            }
-            
-            .content-section {
-                page-break-inside: avoid;
-            }
-            
-            .footer-section {
-                position: fixed;
-                bottom: 0;
-            }
+            .page { page-break-after: always; }
         }
-        
-        /* Utility Classes */
-        .text-center { text-align: center; }
-        .font-bold { font-weight: 700; }
-        .text-muted { color: #64748b; }
     </style>
 </head>
 <body>
-    <!-- Cover Page -->
-    <div class="cover-page">
-        <div class="cover-content">
-            @if(isset($branding['company_logo']) && $branding['company_logo'])
-                <img src="{{ $branding['company_logo'] }}" alt="Company Logo" class="cover-logo">
-            @else
-                <div style="font-size: 48px; font-weight: 700; margin-bottom: 60px;">{{ $branding['company_name'] ?? 'Company' }}</div>
-            @endif
-            
-            <h1 class="cover-title">Uptime & Performance Report</h1>
-            <p class="cover-subtitle">Comprehensive System Availability Analysis</p>
-            
-            <div class="cover-customer">{{ $customer->canonical_name ?? $customer->name }}</div>
-            
-            <div class="cover-meta">Report Period: {{ $period['start'] ?? 'N/A' }} - {{ $period['end'] ?? 'N/A' }}</div>
-            <div class="cover-meta">Generated: {{ $reportData['generated_at'] ?? now()->format('F j, Y') }}</div>
-        </div>
-        
-        <div class="cover-footer">
-            {{ $branding['footer_text'] ?? 'Confidential Report' }}
-        </div>
-    </div>
-    
-    <!-- Report Content -->
     <div class="page">
-        <!-- Header with Branding -->
-        <div class="header-section">
-            <div class="header-logos">
-                @if(isset($branding['company_logo']) && $branding['company_logo'])
-                    <img src="{{ $branding['company_logo'] }}" alt="Company Logo" class="company-logo">
-                @else
-                    <div style="font-size: 20px; font-weight: 700;">{{ $branding['company_name'] ?? 'Company' }}</div>
-                @endif
-                
-                @if(isset($branding['customer_logo']) && $branding['customer_logo'])
-                    <img src="{{ $branding['customer_logo'] }}" alt="Customer Logo" class="customer-logo">
-                @endif
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1>Uptime Report</h1>
+                <div class="subtitle">{{ $customer->canonical_name ?? $customer->name }}</div>
             </div>
-            
-            <div class="header-content">
-                <h1 class="report-title">Uptime & Performance Report</h1>
-                <p class="report-subtitle">Comprehensive system availability and performance analysis</p>
+            <div class="header-right">
+                <div><span class="label">Period</span></div>
+                <div class="value">{{ $period['start'] ?? 'N/A' }} - {{ $period['end'] ?? 'N/A' }}</div>
+                <div><span class="label">Generated</span></div>
+                <div class="value">{{ \Carbon\Carbon::parse($generated_at)->format('M j, Y') }}</div>
             </div>
         </div>
         
-        <!-- Report Metadata -->
-        <div class="metadata-bar">
-            <div class="meta-item">
-                <span class="meta-label">Customer</span>
-                <span class="meta-value">{{ $customer->canonical_name ?? $customer->name }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Report Period</span>
-                <span class="meta-value">{{ $period['start'] ?? 'N/A' }} - {{ $period['end'] ?? 'N/A' }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Generated</span>
-                <span class="meta-value">{{ $reportData['generated_at'] ?? now()->format('M j, Y') }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Report Type</span>
-                <span class="meta-value">Uptime Analysis</span>
-            </div>
-        </div>
-        
-        <!-- Key Metrics Dashboard -->
-        <div class="metrics-dashboard">
-            <h2 class="section-header">Key Performance Indicators</h2>
-            <div class="metrics-grid">
-                @foreach($metrics as $metric)
-                <div class="metric-card">
-                    <div class="metric-label">{{ $metric['label'] ?? 'Metric' }}</div>
-                    <div class="metric-value">{{ $metric['value'] ?? '0' }}</div>
-                    <div class="metric-unit">{{ $metric['unit'] ?? '' }}</div>
-                </div>
-                @endforeach
-            </div>
-        </div>
-        
-        <!-- Detailed Performance Data -->
+        <!-- Summary -->
         @if(isset($data['devices']) && count($data['devices']) > 0)
-        <div class="content-section">
-            <h2 class="section-header">Device Performance Details</h2>
-            <div class="summary-stats" style="margin-bottom: 30px; padding: 20px; background: #f8fafc; border-radius: 8px;">
-                <p style="font-size: 16px; color: #64748b; margin-bottom: 10px;">
-                    <strong>Total Devices Monitored:</strong> {{ count($data['devices']) }}
-                </p>
-                @php
-                    $onlineDevices = collect($data['devices'])->filter(function($device) {
-                        return data_get($device, 'average_uptime', 0) > 0;
-                    })->count();
-                @endphp
-                <p style="font-size: 16px; color: #64748b;">
-                    <strong>Active Devices:</strong> {{ $onlineDevices }} ({{ count($data['devices']) > 0 ? round(($onlineDevices / count($data['devices'])) * 100, 1) : 0 }}%)
-                </p>
+        @php
+            $totalDevices = count($data['devices']);
+            $activeDevices = collect($data['devices'])->filter(fn($d) => ($d['average_uptime'] ?? 0) > 0)->count();
+            $avgUptime = collect($data['devices'])->avg('average_uptime') ?? 0;
+        @endphp
+        <div class="summary">
+            <div class="summary-item">
+                <div class="summary-label">Total Devices</div>
+                <div class="summary-value">{{ $totalDevices }}</div>
             </div>
-            
-            <table class="data-table">
+            <div class="summary-item">
+                <div class="summary-label">Active Devices</div>
+                <div class="summary-value">{{ $activeDevices }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Average Uptime</div>
+                <div class="summary-value">{{ number_format($avgUptime, 1) }}<span class="summary-unit">%</span></div>
+            </div>
+        </div>
+        
+        <!-- Device Performance -->
+        <div class="section">
+            <h2 class="section-title">Device Performance</h2>
+            <table>
                 <thead>
                     <tr>
                         <th>Device Name</th>
-                        <th>Device ID</th>
-                        <th>Average Uptime</th>
-                        <th>Total Downtime</th>
-                        <th>Measurements</th>
-                        <th>Status</th>
+                        <th style="text-align: right; width: 80px;">Uptime</th>
+                        <th style="text-align: right; width: 80px;">Downtime</th>
+                        <th style="text-align: right; width: 80px;">Checks</th>
+                        <th style="width: 100px;">Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($data['devices'] as $device)
+                    @foreach($data['devices'] as $device)
                     <tr>
-                        <td><span class="font-bold">{{ $device['device_name'] ?? 'Unknown' }}</span></td>
-                        <td style="font-size: 11px; color: #64748b;">{{ substr($device['device_id'] ?? 'N/A', 0, 8) }}...</td>
-                        <td>{{ number_format($device['average_uptime'] ?? 0, 2) }}%</td>
-                        <td>{{ round($device['total_downtime_minutes'] ?? 0, 1) }} min</td>
-                        <td>{{ $device['measurement_count'] ?? 0 }}</td>
+                        <td>{{ $device['device_name'] ?? 'Unknown' }}</td>
+                        <td style="text-align: right;">{{ number_format($device['average_uptime'] ?? 0, 1) }}%</td>
+                        <td style="text-align: right;">{{ round($device['total_downtime_minutes'] ?? 0, 1) }}m</td>
+                        <td style="text-align: right;">{{ $device['measurement_count'] ?? 0 }}</td>
                         <td>
                             @php
                                 $uptime = $device['average_uptime'] ?? 0;
@@ -596,7 +248,7 @@
                                     $statusText = 'Critical';
                                 }
                             @endphp
-                            <span class="status-badge {{ $statusClass }}">{{ $statusText }}</span>
+                            <span class="status {{ $statusClass }}">{{ $statusText }}</span>
                         </td>
                     </tr>
                     @endforeach
@@ -604,30 +256,18 @@
             </table>
         </div>
         @else
-        <div class="content-section">
-            <div style="padding: 40px; text-align: center; color: #64748b;">
-                <p style="font-size: 18px; margin-bottom: 10px;">No device data available for this period.</p>
-                <p style="font-size: 14px;">Please ensure devices are being monitored and data is being collected.</p>
+        <div class="summary">
+            <div class="summary-item">
+                <div class="summary-label">No Data Available</div>
+                <div class="summary-value" style="font-size: 12pt; color: #999;">—</div>
             </div>
         </div>
         @endif
         
         <!-- Footer -->
-        <div class="footer-section">
-            <div class="footer-content">
-                <div class="footer-left">
-                    <div class="footer-company">{{ $branding['company_name'] ?? 'Company' }}</div>
-                    <div class="footer-text">
-                        {{ $branding['footer_text'] ?? 'Confidential Report - For Internal Use Only' }}<br>
-                        {{ $branding['footer_notes'] ?? 'This report was automatically generated and contains sensitive performance data.' }}
-                    </div>
-                </div>
-                <div class="footer-right">
-                    <div class="page-number">Page 2 of 2</div>
-                    Generated on {{ now()->format('F j, Y \a\t g:i A') }}<br>
-                    © {{ date('Y') }} {{ $branding['company_name'] ?? 'Company' }}. All rights reserved.
-                </div>
-            </div>
+        <div class="footer">
+            <div>{{ $branding['company_name'] ?? 'Company' }} • {{ $branding['footer_text'] ?? 'Confidential' }}</div>
+            <div>{{ now()->format('F j, Y') }}</div>
         </div>
     </div>
 </body>

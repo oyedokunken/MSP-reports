@@ -321,6 +321,7 @@ class ReportGenerationService
                     'period' => $reportData['period'] ?? [],
                     'data' => $reportData['data'] ?? [],
                     'alerts' => $reportData['alerts'] ?? [],
+                    'generated_at' => $reportData['generated_at'] ?? now()->toDateTimeString(),
                 ])->render();
             }
         }

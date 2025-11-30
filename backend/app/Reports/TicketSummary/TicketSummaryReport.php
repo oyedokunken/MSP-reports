@@ -10,7 +10,7 @@ class TicketSummaryReport extends BaseReport
 {
     public function getRequiredDataTypes(): array
     {
-        return ['ticket_event', 'time_entry'];
+        return ['ticket', 'time_entry'];
     }
 
     public function getRequiredHistoricalRange(): int
@@ -20,10 +20,17 @@ class TicketSummaryReport extends BaseReport
 
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
-        // TODO: Update to use BaseDataGatherer
+        // Use TicketSummaryDataGatherer to get real data
+        $dataGatherer = new TicketSummaryDataGatherer($customer);
+        $reportData = $dataGatherer->getReportData([
+            'start' => $startDate,
+            'end' => $endDate,
+        ]);
+
         return [
             'generated_at' => now()->toDateTimeString(),
-            'customer' => [
+            'customer' => $customer, // Pass full customer object
+            'customer_data' => [
                 'id' => $customer->customer_id,
                 'name' => $customer->canonical_name,
             ],
@@ -33,29 +40,8 @@ class TicketSummaryReport extends BaseReport
                 'formatted' => $this->formatDateRange($startDate, $endDate),
             ],
             'branding' => $this->getBranding(),
-            'metrics' => [
-                [
-                    'label' => 'Tickets Opened',
-                    'value' => '25',
-                    'unit' => 'tickets',
-                ],
-                [
-                    'label' => 'Tickets Closed',
-                    'value' => '22',
-                    'unit' => 'tickets',
-                ],
-                [
-                    'label' => 'Avg Response Time',
-                    'value' => '2.5',
-                    'unit' => 'hours',
-                ],
-                [
-                    'label' => 'SLA Compliance',
-                    'value' => '95%',
-                    'unit' => 'percentage',
-                ],
-            ],
-            'data' => [],
+            'reportData' => $reportData, // Real ticket data
+            'data' => $reportData, // Also pass as 'data' for template compatibility
         ];
     }
 
