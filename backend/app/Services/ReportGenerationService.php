@@ -8,42 +8,65 @@ use App\Models\Customer;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Services\GotenbergService;
+use App\Services\ReportRegistry;
+use Carbon\Carbon;
 
 class ReportGenerationService
 {
     protected GotenbergService $gotenberg;
+    protected ReportRegistry $registry;
 
-    public function __construct(GotenbergService $gotenberg)
+    public function __construct(GotenbergService $gotenberg, ReportRegistry $registry)
     {
         $this->gotenberg = $gotenberg;
+        $this->registry = $registry;
     }
 
-    public function generateReport(ReportSchedule $schedule): GeneratedReport
+    public function generateReport(ReportSchedule $schedule, ?Carbon $customStartDate = null, ?Carbon $customEndDate = null): GeneratedReport
     {
+        // Use custom dates if provided, otherwise calculate from schedule
+        if ($customStartDate && $customEndDate) {
+            $period = [
+                'start' => $customStartDate,
+                'end' => $customEndDate,
+            ];
+        } else {
+            $period = $this->calculateReportPeriod($schedule);
+        }
+        
         $generatedReport = GeneratedReport::create([
             'company_id' => $schedule->company_id,
             'customer_id' => $schedule->customer_id,
             'report_schedule_id' => $schedule->report_schedule_id,
             'generated_at' => now(),
-            'report_period' => $this->calculateReportPeriod($schedule),
+            'report_period' => $period,
             'status' => 'generating',
         ]);
 
         try {
-            
-            $reportClass = $this->loadReportClass($schedule->report_type);
+            // Load report class with company_id
+            $reportClass = $this->loadReportClass($schedule->report_type, $schedule->company_id);
 
             if (!$reportClass) {
                 throw new \Exception("Report type {$schedule->report_type} not found.");
             }
             
-            if (!$reportClass->validate($schedule->customer, $this->calculateReportPeriod($schedule))) {
+            // Get report period
+            $startDate = $period['start'];
+            $endDate = $period['end'];
+            
+            // Validate data availability
+            if (!$reportClass->validate($schedule->customer, $startDate, $endDate)) {
                 throw new \Exception("Insufficient data to generate report.");
             }
             
-            $reportData = $reportClass->generate($schedule->customer, $this->calculateReportPeriod($schedule));
+            // Generate report with Carbon dates
+            $reportData = $reportClass->generate($schedule->customer, $startDate, $endDate);
             
-            $reportData = $this->applyBranding($reportData, $schedule->company, $schedule->customer);
+            // Apply branding (if not already in report data)
+            if (!isset($reportData['branding'])) {
+                $reportData = $this->applyBranding($reportData, $schedule->company, $schedule->customer);
+            }
             
             $pdfPath = $this->generatePDF($reportData, $schedule);
             
@@ -141,32 +164,26 @@ class ReportGenerationService
         }
     }
 
-    private function loadReportClass(string $reportType)
+    private function loadReportClass(string $reportType, int $companyId)
     {
-        
-        $reportClasses = [
-            'uptime_report' => \App\Reports\UptimeReport\UptimeReport::class,
-            'uptime_monthly' => \App\Reports\UptimeReport\UptimeReport::class,
-            'ticket_summary' => \App\Reports\TicketSummary\TicketSummaryReport::class,
-            'security_summary' => \App\Reports\SecuritySummary\SecuritySummary::class,
-            'backup_status' => \App\Reports\BackupStatus\BackupStatus::class,
-            'monthly_comprehensive' => \App\Reports\MonthlyComprehensive\MonthlyComprehensive::class,
-        ];
+        // Use registry to get report instance
+        $report = $this->registry->get($reportType, $companyId);
 
-        $className = $reportClasses[$reportType] ?? null;
-
-        if ($className && class_exists($className)) {
-            return new $className();
+        if (!$report) {
+            Log::warning("Report type not found in registry", [
+                'report_type' => $reportType,
+                'company_id' => $companyId,
+                'available_reports' => array_keys($this->registry->all()),
+            ]);
         }
 
-        return null;
+        return $report;
     }
 
     private function applyBranding(array $reportData, $company, Customer $customer): array
     {
         $whiteLabel = $company->settings['white_label'] ?? [];
         $customerBranding = $customer->report_configuration['report_branding'] ?? [];
-
         $reportData['branding'] = [
             'company_name' => $whiteLabel['company_name'] ?? $company->name,
             'company_logo' => $whiteLabel['logo_url'] ?? null,
@@ -282,7 +299,7 @@ class ReportGenerationService
 
     private function generateHTML(array $reportData, ReportSchedule $schedule): string
     {
-        $reportClass = $this->loadReportClass($schedule->report_type);
+        $reportClass = $this->loadReportClass($schedule->report_type, $schedule->company_id);
         
         if ($reportClass && method_exists($reportClass, 'getTemplate')) {
             $templatePath = $reportClass->getTemplate();

@@ -1,0 +1,144 @@
+<?php
+
+namespace App\Reports\Contracts;
+
+use App\Models\Company;
+use App\Models\Customer;
+use Carbon\Carbon;
+
+abstract class BaseReport implements ReportInterface
+{
+    protected int $companyId;
+
+    public function __construct(int $companyId)
+    {
+        $this->companyId = $companyId;
+    }
+
+    /**
+     * Default validation - can be overridden by specific reports
+     */
+    public function validate(Customer $customer, Carbon $startDate, Carbon $endDate): bool
+    {
+        // Default implementation - always valid for testing
+        // In production, specific reports should override this to check for required data
+        \Log::info("Validating report", [
+            'report_class' => get_class($this),
+            'customer_id' => $customer->customer_id,
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+        ]);
+        
+        return true;
+    }
+
+    /**
+     * Helper to get company instance
+     */
+    protected function getCompany(): Company
+    {
+        return Company::findOrFail($this->companyId);
+    }
+
+    /**
+     * Helper to get company's white-label settings
+     */
+    protected function getBranding(): array
+    {
+        $company = $this->getCompany();
+        return $company->settings['white_label'] ?? [];
+    }
+
+    /**
+     * Helper to format dates consistently
+     */
+    protected function formatDate(Carbon $date): string
+    {
+        return $date->format('F j, Y');
+    }
+
+    /**
+     * Helper to format date ranges
+     */
+    protected function formatDateRange(Carbon $start, Carbon $end): string
+    {
+        return $this->formatDate($start) . ' - ' . $this->formatDate($end);
+    }
+
+    /**
+     * Helper to format time consistently
+     */
+    protected function formatTime(Carbon $time): string
+    {
+        return $time->format('g:i A');
+    }
+
+    /**
+     * Helper to format datetime
+     */
+    protected function formatDateTime(Carbon $dateTime): string
+    {
+        return $dateTime->format('F j, Y g:i A');
+    }
+
+    /**
+     * Helper to calculate percentage
+     */
+    protected function calculatePercentage(float $value, float $total): float
+    {
+        if ($total == 0) {
+            return 0;
+        }
+        return round(($value / $total) * 100, 2);
+    }
+
+    /**
+     * Helper to format file size
+     */
+    protected function formatFileSize(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        $bytes /= (1 << (10 * $pow));
+        
+        return round($bytes, 2) . ' ' . $units[$pow];
+    }
+
+    /**
+     * Helper to format duration in minutes to human readable
+     */
+    protected function formatDuration(int $minutes): string
+    {
+        if ($minutes < 60) {
+            return $minutes . ' minute' . ($minutes != 1 ? 's' : '');
+        }
+        
+        $hours = floor($minutes / 60);
+        $mins = $minutes % 60;
+        
+        $result = $hours . ' hour' . ($hours != 1 ? 's' : '');
+        if ($mins > 0) {
+            $result .= ' ' . $mins . ' minute' . ($mins != 1 ? 's' : '');
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Get default metadata structure (can be overridden)
+     */
+    public function getMetadata(): array
+    {
+        return [
+            'id' => 'unknown',
+            'name' => 'Unknown Report',
+            'description' => 'No description provided',
+            'category' => 'general',
+            'data_types' => $this->getRequiredDataTypes(),
+            'frequencies' => ['monthly'],
+            'formats' => ['pdf'],
+        ];
+    }
+}

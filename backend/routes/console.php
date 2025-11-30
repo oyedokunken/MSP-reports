@@ -8,7 +8,13 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Schedule report evaluation to run every hour
+// Schedule report processing to run every hour
+Schedule::command('reports:process-scheduled')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Legacy command (can be removed after migration)
 Schedule::command('reports:evaluate-schedules')
     ->hourly()
     ->withoutOverlapping()
@@ -23,6 +29,12 @@ Schedule::command('integrations:evaluate-syncs')
 // Schedule data cleanup to run nightly at 2am
 Schedule::command('data:cleanup')
     ->dailyAt('02:00')
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Schedule old reports cleanup to run nightly at 3am
+Schedule::command('reports:cleanup')
+    ->dailyAt('03:00')
     ->withoutOverlapping()
     ->runInBackground();
 

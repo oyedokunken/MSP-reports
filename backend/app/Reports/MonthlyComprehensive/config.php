@@ -1,18 +1,16 @@
 <?php
 
 return [
+    'id' => 'monthly_comprehensive',
     'name' => 'Monthly Comprehensive Report',
-    'description' => 'Complete monthly overview combining uptime, tickets, backups, and security metrics.',
-    'required_data' => ['uptime', 'tickets', 'backup_status', 'security_alerts'],
-    'optional_data' => ['device_health', 'storage_usage', 'vulnerabilities'],
-    'supported_frequencies' => ['monthly'],
-    'output_formats' => ['pdf', 'html'],
+    'description' => 'Complete monthly overview combining uptime, tickets, backups, and security metrics',
+    'class' => \App\Reports\MonthlyComprehensive\MonthlyComprehensive::class,
+    'category' => 'executive',
+    'data_types' => ['uptime_metric', 'ticket_event', 'backup_status', 'security_alert'],
+    'frequencies' => ['monthly'],
+    'formats' => ['pdf', 'html'],
+    'default_frequency' => 'monthly',
     'default_format' => 'pdf',
-    'metrics' => [
-        'overall_health_score' => true,
-        'uptime_percentage' => true,
-        'tickets_resolved' => true,
-        'backup_success_rate' => true,
-        'security_incidents' => true,
-    ],
+    'icon' => 'file-text',
+    'enabled' => true,
 ];

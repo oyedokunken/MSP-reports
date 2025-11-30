@@ -2,69 +2,68 @@
 
 namespace App\Reports\UptimeReport;
 
-use App\Models\Company;
 use App\Models\Customer;
-use App\Reports\Contracts\ReportInterface;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\ReportDeliveryMail;
+use App\Reports\Contracts\BaseReport;
+use Carbon\Carbon;
 
-class UptimeReport implements ReportInterface
+class UptimeReport extends BaseReport
 {
-    public static function getRequiredDataSources(): array
+    public function getRequiredDataTypes(): array
     {
-        return ['uptime', 'device_health'];
+        return ['uptime_metric'];
     }
 
-    public static function getRequiredHistoricalRange(): int
+    public function getRequiredHistoricalRange(): int
     {
-        return 30; 
+        return 30;
     }
 
-    public function validate(Customer $customer): bool
+    public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
-        
-        return true;
-    }
-
-    public function generate(Customer $customer, $period): array
-    {
-        $dataGatherer = new UptimeDataGatherer($customer);
-        $data = $dataGatherer->getAggregatedData($period);
+        $dataGatherer = new UptimeDataGatherer($customer, $startDate, $endDate);
+        $metrics = $dataGatherer->getUptimeMetrics();
+        $deviceBreakdown = $dataGatherer->getDeviceBreakdown();
 
         return [
             'generated_at' => now()->toDateTimeString(),
-            'customer' => [
+            'customer' => $customer, // Pass the full customer object for template
+            'customer_data' => [
                 'id' => $customer->customer_id,
                 'name' => $customer->canonical_name,
             ],
             'period' => [
-                'start' => is_array($period) ? $period['start']->format('F j, Y') : $period,
-                'end' => is_array($period) ? $period['end']->format('F j, Y') : now()->format('F j, Y'),
+                'start' => $this->formatDate($startDate),
+                'end' => $this->formatDate($endDate),
+                'formatted' => $this->formatDateRange($startDate, $endDate),
             ],
+            'branding' => $this->getBranding(),
             'metrics' => [
                 [
                     'label' => 'Average Uptime',
-                    'value' => $data['avg_uptime'] ?? '99.9%',
+                    'value' => $this->formatPercentage($metrics['average_uptime']),
                     'unit' => 'percentage',
                 ],
                 [
                     'label' => 'Total Downtime',
-                    'value' => $data['total_downtime'] ?? '2',
+                    'value' => round($metrics['total_downtime_minutes'] / 60, 1),
                     'unit' => 'hours',
                 ],
                 [
-                    'label' => 'Incidents',
-                    'value' => $data['incident_count'] ?? '3',
-                    'unit' => 'events',
+                    'label' => 'Worst Day',
+                    'value' => $this->formatPercentage($metrics['worst_day_uptime']),
+                    'unit' => 'percentage',
                 ],
                 [
-                    'label' => 'MTTR',
-                    'value' => $data['mttr'] ?? '45',
-                    'unit' => 'minutes',
+                    'label' => 'Best Day',
+                    'value' => $this->formatPercentage($metrics['best_day_uptime']),
+                    'unit' => 'percentage',
                 ],
             ],
-            'data' => $data,
+            'data' => [
+                'metrics' => $metrics,
+                'devices' => $deviceBreakdown,
+                'daily_breakdown' => $metrics['daily_breakdown'] ?? [],
+            ],
         ];
     }
 
@@ -73,8 +72,21 @@ class UptimeReport implements ReportInterface
         return resource_path('views/Reports/UptimeReport/template.blade.php');
     }
 
-    public function deliver(Company $company, Customer $customer, string $filePath): void
+    public function getMetadata(): array
     {
-        // TODO: Implement deliver method   
+        return [
+            'id' => 'uptime_monthly',
+            'name' => 'Monthly Uptime Report',
+            'description' => 'Device uptime metrics and availability tracking across all monitoring systems',
+            'category' => 'infrastructure',
+            'data_types' => $this->getRequiredDataTypes(),
+            'frequencies' => ['daily', 'weekly', 'monthly'],
+            'formats' => ['pdf', 'html'],
+        ];
+    }
+
+    private function formatPercentage(float $value): string
+    {
+        return round($value, 2) . '%';
     }
 }

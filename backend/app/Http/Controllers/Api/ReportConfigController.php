@@ -11,14 +11,17 @@ use App\Models\ReportSchedule;
 use App\Models\GeneratedReport;
 use Carbon\Carbon;
 use App\Services\ReportGenerationService;
+use App\Services\ReportRegistry;
 
 class ReportConfigController extends Controller
 {
     protected ReportGenerationService $reportService;
+    protected ReportRegistry $registry;
 
-    public function __construct(ReportGenerationService $reportService)
+    public function __construct(ReportGenerationService $reportService, ReportRegistry $registry)
     {
         $this->reportService = $reportService;
+        $this->registry = $registry;
     }
 
     public function getAvailableReports(Request $request)
@@ -26,30 +29,22 @@ class ReportConfigController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $reportsPath = app_path('Reports');
-        $availableReports = [];
-
-        if (is_dir($reportsPath)) {
-            $directories = array_diff(scandir($reportsPath), ['.', '..', 'Contracts']);
-            
-            foreach ($directories as $reportDir) {
-                $configPath = $reportsPath . '/' . $reportDir . '/config.php';
-                
-                if (file_exists($configPath)) {
-                    $config = include $configPath;
-                    
-                    
-                    $reportType = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $reportDir));
-                    
-                    $availableReports[] = [
-                        'report_type' => $reportType,
-                        'name' => $config['name'] ?? ucwords(str_replace('_', ' ', $reportType)),
-                        'description' => $config['description'] ?? '',
-                        'frequency_options' => $config['supported_frequencies'] ?? ['on-demand'],
-                    ];
-                }
-            }
-        }
+        // Use ReportRegistry instead of manual scanning
+        $reports = $this->registry->getAvailable($company->company_id);
+        
+        $availableReports = collect($reports)->map(function ($report) {
+            return [
+                'report_type' => $report['id'],
+                'name' => $report['name'],
+                'description' => $report['description'],
+                'category' => $report['category'] ?? 'general',
+                'frequency_options' => $report['frequencies'] ?? ['on-demand'],
+                'formats' => $report['formats'] ?? ['pdf'],
+                'icon' => $report['icon'] ?? 'file-text',
+                'enabled' => $report['enabled'] ?? true,
+                'data_types' => $report['data_types'] ?? [],
+            ];
+        })->values()->all();
 
         return response()->json([
             'status' => 'success',
@@ -217,11 +212,21 @@ class ReportConfigController extends Controller
             ->where('company_id', $company->company_id)
             ->firstOrFail();
 
+        // Get custom date range from request if provided
+        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date')) : null;
+        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date')) : null;
+        $reportType = $request->input('report_type');
         
         $schedules = ReportSchedule::where('customer_id', $customer->customer_id)
             ->where('company_id', $company->company_id)
-            ->where('active', true)
-            ->get();
+            ->where('active', true);
+        
+        // Filter by report type if specified
+        if ($reportType) {
+            $schedules->where('report_type', $reportType);
+        }
+        
+        $schedules = $schedules->get();
 
         if ($schedules->isEmpty()) {
             return response()->json([
@@ -235,8 +240,12 @@ class ReportConfigController extends Controller
 
         foreach ($schedules as $schedule) {
             try {
-                
-                $generatedReport = $this->reportService->generateReport($schedule);
+                // Generate report with custom dates if provided
+                if ($startDate && $endDate) {
+                    $generatedReport = $this->reportService->generateReport($schedule, $startDate, $endDate);
+                } else {
+                    $generatedReport = $this->reportService->generateReport($schedule);
+                }
                 
                 DeliverReportJob::dispatch($generatedReport);
                 

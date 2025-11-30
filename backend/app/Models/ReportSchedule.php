@@ -34,9 +34,10 @@ class ReportSchedule extends Model
         'schedule_config' => 'array',
         'last_generated_at' => 'datetime',
         'next_scheduled_at' => 'datetime',
+        'active' => 'boolean',
     ];
 
-    
+    // Relationships
     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
@@ -50,5 +51,63 @@ class ReportSchedule extends Model
     public function generatedReports()
     {
         return $this->hasMany(GeneratedReport::class, 'report_schedule_id', 'report_schedule_id');
+    }
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('active', true);
+    }
+
+    public function scopeDue($query)
+    {
+        return $query->where('active', true)
+            ->where(function ($q) {
+                $q->where('next_scheduled_at', '<=', now())
+                    ->orWhereNull('next_scheduled_at');
+            });
+    }
+
+    public function scopeOverdue($query, int $hours = 24)
+    {
+        return $query->where('active', true)
+            ->where('next_scheduled_at', '<', now()->subHours($hours));
+    }
+
+    public function scopeUpcoming($query, int $hours = 24)
+    {
+        return $query->where('active', true)
+            ->whereBetween('next_scheduled_at', [now(), now()->addHours($hours)]);
+    }
+
+    // Helper methods
+    public function isDue(): bool
+    {
+        if (!$this->active) {
+            return false;
+        }
+
+        return $this->next_scheduled_at === null || $this->next_scheduled_at->isPast();
+    }
+
+    public function isOverdue(int $hours = 24): bool
+    {
+        if (!$this->active || !$this->next_scheduled_at) {
+            return false;
+        }
+
+        return $this->next_scheduled_at->lt(now()->subHours($hours));
+    }
+
+    public function getFrequencyLabel(): string
+    {
+        return match($this->frequency) {
+            'daily' => 'Daily',
+            'weekly' => 'Weekly',
+            'monthly' => 'Monthly',
+            'yearly' => 'Yearly',
+            'on-demand' => 'On Demand',
+            default => ucfirst($this->frequency),
+        };
     }
 }

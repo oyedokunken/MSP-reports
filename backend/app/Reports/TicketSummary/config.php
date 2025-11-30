@@ -1,18 +1,16 @@
 <?php
 
 return [
+    'id' => 'ticket_summary',
     'name' => 'Ticket Summary Report',
-    'description' => 'Shows ticket statistics, response times, and SLA compliance for the reporting period.',
-    'required_data' => ['tickets', 'ticket_events'],
-    'optional_data' => ['time_entries', 'sla_metrics'],
-    'supported_frequencies' => ['weekly', 'monthly'],
-    'output_formats' => ['pdf', 'html', 'csv'],
+    'description' => 'Ticket statistics, response times, and SLA compliance metrics from PSA systems',
+    'class' => \App\Reports\TicketSummary\TicketSummaryReport::class,
+    'category' => 'service_desk',
+    'data_types' => ['ticket_event', 'time_entry'],
+    'frequencies' => ['weekly', 'monthly'],
+    'formats' => ['pdf', 'html'],
+    'default_frequency' => 'monthly',
     'default_format' => 'pdf',
-    'metrics' => [
-        'tickets_opened' => true,
-        'tickets_closed' => true,
-        'avg_response_time' => true,
-        'sla_compliance' => true,
-        'ticket_backlog' => true,
-    ],
+    'icon' => 'ticket',
+    'enabled' => true,
 ];

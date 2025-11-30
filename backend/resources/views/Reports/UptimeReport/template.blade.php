@@ -543,27 +543,45 @@
         </div>
         
         <!-- Detailed Performance Data -->
-        @if(isset($data) && count($data) > 0)
+        @if(isset($data['devices']) && count($data['devices']) > 0)
         <div class="content-section">
             <h2 class="section-header">Device Performance Details</h2>
+            <div class="summary-stats" style="margin-bottom: 30px; padding: 20px; background: #f8fafc; border-radius: 8px;">
+                <p style="font-size: 16px; color: #64748b; margin-bottom: 10px;">
+                    <strong>Total Devices Monitored:</strong> {{ count($data['devices']) }}
+                </p>
+                @php
+                    $onlineDevices = collect($data['devices'])->filter(function($device) {
+                        return data_get($device, 'average_uptime', 0) > 0;
+                    })->count();
+                @endphp
+                <p style="font-size: 16px; color: #64748b;">
+                    <strong>Active Devices:</strong> {{ $onlineDevices }} ({{ count($data['devices']) > 0 ? round(($onlineDevices / count($data['devices'])) * 100, 1) : 0 }}%)
+                </p>
+            </div>
+            
             <table class="data-table">
                 <thead>
                     <tr>
+                        <th>Device Name</th>
                         <th>Device ID</th>
                         <th>Average Uptime</th>
-                        <th>Max Downtime</th>
-                        <th>Performance Status</th>
+                        <th>Total Downtime</th>
+                        <th>Measurements</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($data as $deviceId => $stats)
+                    @foreach ($data['devices'] as $device)
                     <tr>
-                        <td><span class="font-bold">{{ $deviceId }}</span></td>
-                        <td>{{ number_format($stats['avg_uptime'] ?? 0, 2) }}%</td>
-                        <td>{{ $stats['max_downtime'] ?? 0 }} minutes</td>
+                        <td><span class="font-bold">{{ $device['device_name'] ?? 'Unknown' }}</span></td>
+                        <td style="font-size: 11px; color: #64748b;">{{ substr($device['device_id'] ?? 'N/A', 0, 8) }}...</td>
+                        <td>{{ number_format($device['average_uptime'] ?? 0, 2) }}%</td>
+                        <td>{{ round($device['total_downtime_minutes'] ?? 0, 1) }} min</td>
+                        <td>{{ $device['measurement_count'] ?? 0 }}</td>
                         <td>
                             @php
-                                $uptime = $stats['avg_uptime'] ?? 0;
+                                $uptime = $device['average_uptime'] ?? 0;
                                 if ($uptime >= 99.9) {
                                     $statusClass = 'status-excellent';
                                     $statusText = 'Excellent';
@@ -584,6 +602,13 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+        @else
+        <div class="content-section">
+            <div style="padding: 40px; text-align: center; color: #64748b;">
+                <p style="font-size: 18px; margin-bottom: 10px;">No device data available for this period.</p>
+                <p style="font-size: 14px;">Please ensure devices are being monitored and data is being collected.</p>
+            </div>
         </div>
         @endif
         

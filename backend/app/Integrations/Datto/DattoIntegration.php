@@ -123,6 +123,10 @@ class DattoIntegration implements IntegrationInterface
             ]);
         }
 
+        // NOTE: Device syncing is done via historical import, not regular sync
+        // This matches Autotask pattern where sync() only pulls customers
+        // and getHistoricalData() pulls the actual data (tickets, devices, etc.)
+
         $additionalMapped = $this->processUnmappedCustomers();
         $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
 
@@ -191,24 +195,62 @@ class DattoIntegration implements IntegrationInterface
         $errors = [];
 
         try {
-            
-            $backupData = $this->client->getBackupHistory($startDate, $endDate);
+            \Log::info('Datto Integration: Starting historical data import', [
+                'integration_id' => $this->integration->integration_id,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+            ]);
 
-            foreach ($backupData as $record) {
+            // For Datto RMM, historical data means current device status
+            // We'll sync devices and store them as historical uptime metrics
+            $sites = $this->client->getRmmSites();
+            $totalDevices = 0;
+
+            foreach ($sites as $site) {
                 try {
-                    $standardized = DattoMapper::mapBackupData($record);
-                    $data[] = $standardized;
-
+                    $siteUid = $site['uid'];
+                    $devices = $this->client->getRmmDevices($siteUid);
                     
-                    $this->storeHistoricalData($standardized);
-
+                    foreach ($devices as $device) {
+                        try {
+                            $this->storeDeviceData($device, $site);
+                            $data[] = [
+                                'device_name' => $device['hostname'] ?? 'Unknown',
+                                'site_name' => $site['name'] ?? 'Unknown',
+                                'online' => $device['online'] ?? false,
+                            ];
+                            $totalDevices++;
+                        } catch (\Exception $e) {
+                            $errors[] = "Failed to store device {$device['hostname']}: {$e->getMessage()}";
+                        }
+                    }
+                    
+                    // Delay to respect Datto's 60/min rate limit
+                    // 2 seconds per site = max 30 sites/min
+                    sleep(2);
+                    
                 } catch (\Exception $e) {
-                    $errors[] = "Failed to process historical record: {$e->getMessage()}";
+                    $errors[] = "Failed to fetch devices for site {$site['name']}: {$e->getMessage()}";
+                    
+                    // Stop if rate limited
+                    if (str_contains($e->getMessage(), 'Rate limit')) {
+                        \Log::warning('Datto Integration: Rate limit hit during historical import');
+                        break;
+                    }
                 }
             }
 
+            \Log::info('Datto Integration: Historical data import completed', [
+                'integration_id' => $this->integration->integration_id,
+                'devices_imported' => $totalDevices,
+                'errors' => count($errors),
+            ]);
+
         } catch (\Exception $e) {
             $errors[] = "Historical data fetch failed: {$e->getMessage()}";
+            \Log::error('Datto Integration: Historical import failed', [
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return [
@@ -656,6 +698,122 @@ class DattoIntegration implements IntegrationInterface
             'low' => 'Info',
             default => 'Bell',
         };
+    }
+
+    public function syncDevices(): void
+    {
+        \Log::info('Datto Integration: Starting device sync', [
+            'integration_id' => $this->integration->integration_id,
+        ]);
+
+        try {
+            $sites = $this->client->getRmmSites();
+            $totalDevices = 0;
+            $totalSites = count($sites);
+            $processedSites = 0;
+
+            foreach ($sites as $site) {
+                $processedSites++;
+                
+                try {
+                    $siteUid = $site['uid'];
+                    $devices = $this->client->getRmmDevices($siteUid);
+                    
+                    foreach ($devices as $device) {
+                        $this->storeDeviceData($device, $site);
+                        $totalDevices++;
+                    }
+                    
+                    // Add delay between sites to respect Datto's 60/min rate limit
+                    // With 111 sites, we need ~2 seconds per site to stay under 60/min
+                    if ($processedSites < $totalSites) {
+                        sleep(2); // 2 second delay = max 30 sites/min
+                    }
+                    
+                } catch (\Exception $e) {
+                    // Log error but continue with other sites
+                    \Log::warning('Datto Integration: Failed to sync devices for site', [
+                        'integration_id' => $this->integration->integration_id,
+                        'site_uid' => $site['uid'] ?? 'unknown',
+                        'site_name' => $site['name'] ?? 'unknown',
+                        'error' => $e->getMessage(),
+                    ]);
+                    
+                    // If rate limited, stop processing more sites
+                    if (str_contains($e->getMessage(), 'Rate limit')) {
+                        \Log::warning('Datto Integration: Rate limit hit, stopping device sync', [
+                            'processed_sites' => $processedSites,
+                            'total_sites' => $totalSites,
+                            'devices_synced' => $totalDevices,
+                        ]);
+                        break;
+                    }
+                }
+            }
+
+            \Log::info('Datto Integration: Device sync completed', [
+                'integration_id' => $this->integration->integration_id,
+                'total_devices' => $totalDevices,
+                'sites_processed' => $processedSites,
+                'sites_total' => $totalSites,
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Datto Integration: Device sync failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+            // Don't throw - let sync continue even if device sync fails
+        }
+    }
+
+    protected function storeDeviceData(array $device, array $site): void
+    {
+        // Find the integration customer for this site
+        // Datto uses 'uid' as the unique identifier, not 'id'
+        $siteUid = $site['uid'] ?? $site['id'] ?? null;
+        
+        if (!$siteUid) {
+            \Log::warning('Datto Integration: Site missing UID', ['site' => $site]);
+            return;
+        }
+        
+        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('external_id', $siteUid)
+            ->first();
+        
+        if (!$integrationCustomer) {
+            \Log::debug('Datto Integration: No integration customer found for site', [
+                'site_uid' => $siteUid,
+                'site_name' => $site['name'] ?? 'Unknown',
+            ]);
+            return; // Skip if customer not mapped
+        }
+        
+        // Calculate uptime percentage based on online status
+        $isOnline = $device['online'] ?? false;
+        $uptimePercentage = $isOnline ? 100.0 : 0.0;
+        
+        // Store as uptime_metric for reports
+        IntegrationData::create([
+            'company_id' => $this->integration->company_id,
+            'integration_id' => $this->integration->integration_id,
+            'integration_customer_id' => $integrationCustomer->integration_customer_id,
+            'data_type' => 'uptime_metric',
+            'data_timestamp' => now(),
+            'data_payload' => [
+                'device_name' => $device['hostname'] ?? 'Unknown',
+                'device_id' => $device['uid'],
+                'uptime_percentage' => $uptimePercentage,
+                'downtime_minutes' => $isOnline ? 0 : 60,
+                'online' => $isOnline,
+                'last_seen' => isset($device['lastSeen']) ? Carbon::createFromTimestampMs($device['lastSeen'])->toDateTimeString() : null,
+                'operating_system' => $device['operatingSystem'] ?? null,
+                'device_type' => $device['deviceType']['type'] ?? 'Unknown',
+                'site_name' => $site['name'] ?? 'Unknown',
+            ],
+            'imported_at' => now(),
+        ]);
     }
 
     private function getSeverityColor(string $severity): string

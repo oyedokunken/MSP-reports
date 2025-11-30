@@ -1,17 +1,16 @@
 <?php
 
 return [
+    'id' => 'backup_status',
     'name' => 'Backup Status Report',
-    'description' => 'Shows backup success rates, failures, and storage usage for the reporting period.',
-    'required_data' => ['backup_status', 'backup_jobs'],
-    'optional_data' => ['storage_usage', 'backup_alerts'],
-    'supported_frequencies' => ['daily', 'weekly', 'monthly'],
-    'output_formats' => ['pdf', 'html'],
+    'description' => 'Backup success rates, failures, and storage metrics from backup solutions',
+    'class' => \App\Reports\BackupStatus\BackupStatus::class,
+    'category' => 'backup',
+    'data_types' => ['backup_status'],
+    'frequencies' => ['daily', 'weekly', 'monthly'],
+    'formats' => ['pdf', 'html'],
+    'default_frequency' => 'monthly',
     'default_format' => 'pdf',
-    'metrics' => [
-        'success_rate' => true,
-        'failed_backups' => true,
-        'storage_used' => true,
-        'backup_duration' => true,
-    ],
+    'icon' => 'database',
+    'enabled' => true,
 ];

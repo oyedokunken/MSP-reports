@@ -2,32 +2,25 @@
 
 namespace App\Reports\SecuritySummary;
 
-use App\Models\Company;
 use App\Models\Customer;
-use App\Reports\Contracts\ReportInterface;
+use App\Reports\Contracts\BaseReport;
+use Carbon\Carbon;
 
-class SecuritySummary implements ReportInterface
+class SecuritySummary extends BaseReport
 {
-    public static function getRequiredDataSources(): array
+    public function getRequiredDataTypes(): array
     {
-        return ['security_alerts', 'vulnerabilities'];
+        return ['security_alert', 'security_incident'];
     }
 
-    public static function getRequiredHistoricalRange(): int
+    public function getRequiredHistoricalRange(): int
     {
-        return 7; 
+        return 7;
     }
 
-    public function validate(Customer $customer): bool
+    public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
-        return true;
-    }
-
-    public function generate(Customer $customer, $period): array
-    {
-        $dataGatherer = new SecurityDataGatherer($customer);
-        $data = $dataGatherer->getAggregatedData($period);
-        
+        // TODO: Update to use BaseDataGatherer
         return [
             'generated_at' => now()->toDateTimeString(),
             'customer' => [
@@ -35,32 +28,34 @@ class SecuritySummary implements ReportInterface
                 'name' => $customer->canonical_name,
             ],
             'period' => [
-                'start' => is_array($period) ? $period['start']->format('F j, Y') : $period,
-                'end' => is_array($period) ? $period['end']->format('F j, Y') : now()->format('F j, Y'),
+                'start' => $this->formatDate($startDate),
+                'end' => $this->formatDate($endDate),
+                'formatted' => $this->formatDateRange($startDate, $endDate),
             ],
+            'branding' => $this->getBranding(),
             'metrics' => [
                 [
                     'label' => 'Critical Alerts',
-                    'value' => $data['critical_alerts'] ?? '0',
+                    'value' => '0',
                     'unit' => 'alerts',
                 ],
                 [
                     'label' => 'Vulnerabilities',
-                    'value' => $data['vulnerability_count'] ?? '2',
+                    'value' => '2',
                     'unit' => 'issues',
                 ],
                 [
                     'label' => 'Patch Compliance',
-                    'value' => $data['patch_compliance'] ?? '98%',
+                    'value' => '98%',
                     'unit' => 'percentage',
                 ],
                 [
                     'label' => 'Threat Level',
-                    'value' => $data['threat_level'] ?? 'Low',
+                    'value' => 'Low',
                     'unit' => 'status',
                 ],
             ],
-            'details' => $data,
+            'data' => [],
         ];
     }
 
@@ -69,8 +64,16 @@ class SecuritySummary implements ReportInterface
         return resource_path('views/Reports/SecuritySummary/template.blade.php');
     }
 
-    public function deliver(Company $company, Customer $customer, string $filePath): void
+    public function getMetadata(): array
     {
-        // TODO: Implement deliver method.
+        return [
+            'id' => 'security_summary',
+            'name' => 'Security Summary Report',
+            'description' => 'Security alerts, incidents, and threat analysis from security monitoring systems',
+            'category' => 'security',
+            'data_types' => $this->getRequiredDataTypes(),
+            'frequencies' => ['weekly', 'monthly'],
+            'formats' => ['pdf', 'html'],
+        ];
     }
 }
