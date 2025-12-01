@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { LogoUpload } from '@/components/settings/LogoUpload'
 
 interface CompanyInfoSectionProps {
   companyName: string
@@ -6,12 +7,16 @@ interface CompanyInfoSectionProps {
   contactEmail: string
   contactPhone: string
   address: string
+  logoUrl: string | null
+  profileLogoUrl: string | null
   isValidHex: boolean
   onCompanyNameChange: (name: string) => void
   onPrimaryHexChange: (hex: string) => void
   onContactEmailChange: (email: string) => void
   onContactPhoneChange: (phone: string) => void
   onAddressChange: (address: string) => void
+  onLogoUrlChange: (url: string | null) => void
+  onProfileLogoUrlChange: (url: string | null) => void
   onSave: () => void
 }
 

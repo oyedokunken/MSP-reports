@@ -27,6 +27,8 @@ class CompanyController extends Controller
                     'contact_email' => $company->contact_email,
                     'contact_phone' => $company->contact_phone,
                     'address' => $company->address,
+                    'logo_url' => $company->logo_url,
+                    'profile_logo_url' => $company->profile_logo_url,
                     'status' => $company->status,
                     'subscription_tier' => $company->subscription_tier,
                     'settings' => $company->settings ?? [],
@@ -179,6 +181,156 @@ class CompanyController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to update company branding: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload company logo
+     */
+    public function uploadLogo(Request $request): JsonResponse
+    {
+        try {
+            $authUser = $request->user();
+            $company = $authUser->company;
+
+            // Validate image
+            $request->validate([
+                'logo' => 'required|image|mimes:jpeg,jpg,png,svg|max:2048', // Max 2MB
+                'type' => 'required|in:company,profile',
+            ]);
+
+            $type = $request->input('type');
+            $file = $request->file('logo');
+
+            // Validate image dimensions
+            $image = getimagesize($file->getRealPath());
+            if ($image) {
+                $width = $image[0];
+                $height = $image[1];
+
+                // Recommended size: 400x400 for company logo, 200x200 for profile
+                if ($type === 'company' && ($width > 800 || $height > 800)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Company logo dimensions should not exceed 800x800 pixels',
+                    ], 422);
+                }
+
+                if ($type === 'profile' && ($width > 400 || $height > 400)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Profile logo dimensions should not exceed 400x400 pixels',
+                    ], 422);
+                }
+            }
+
+            // Delete old logo if exists
+            $oldLogoPath = $type === 'company' ? $company->logo_url : $company->profile_logo_url;
+            if ($oldLogoPath && Storage::disk('public')->exists($oldLogoPath)) {
+                Storage::disk('public')->delete($oldLogoPath);
+            }
+
+            // Generate unique filename
+            $extension = $file->getClientOriginalExtension();
+            $filename = 'company_' . $company->company_id . '_' . $type . '_' . Str::random(10) . '.' . $extension;
+            
+            // Store file in public/logos directory
+            $path = $file->storeAs('logos', $filename, 'public');
+
+            // Update company record
+            if ($type === 'company') {
+                $company->logo_url = $path;
+            } else {
+                $company->profile_logo_url = $path;
+            }
+            $company->save();
+
+            // Log the upload
+            Log::info('Company logo uploaded', [
+                'company_id' => $company->company_id,
+                'type' => $type,
+                'filename' => $filename,
+                'user_id' => $authUser->user_id,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => ucfirst($type) . ' logo uploaded successfully',
+                'data' => [
+                    'logo_url' => $type === 'company' ? $company->logo_url : $company->profile_logo_url,
+                    'full_url' => Storage::disk('public')->url($path),
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to upload company logo', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to upload logo: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete company logo
+     */
+    public function deleteLogo(Request $request): JsonResponse
+    {
+        try {
+            $authUser = $request->user();
+            $company = $authUser->company;
+
+            $request->validate([
+                'type' => 'required|in:company,profile',
+            ]);
+
+            $type = $request->input('type');
+            $logoPath = $type === 'company' ? $company->logo_url : $company->profile_logo_url;
+
+            // Delete file if exists
+            if ($logoPath && Storage::disk('public')->exists($logoPath)) {
+                Storage::disk('public')->delete($logoPath);
+            }
+
+            // Update company record
+            if ($type === 'company') {
+                $company->logo_url = null;
+            } else {
+                $company->profile_logo_url = null;
+            }
+            $company->save();
+
+            // Log the deletion
+            Log::info('Company logo deleted', [
+                'company_id' => $company->company_id,
+                'type' => $type,
+                'user_id' => $authUser->user_id,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => ucfirst($type) . ' logo deleted successfully',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to delete company logo', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete logo: ' . $e->getMessage(),
             ], 500);
         }
     }

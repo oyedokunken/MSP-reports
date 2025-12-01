@@ -34,6 +34,8 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
         Route::get('/company/settings', [CompanyController::class, 'getSettings']);
         Route::patch('/company/settings', [CompanyController::class, 'updateSettings']);
         Route::patch('/company/branding', [CompanyController::class, 'updateBranding']);
+        Route::post('/company/logo/upload', [CompanyController::class, 'uploadLogo']);
+        Route::delete('/company/logo/delete', [CompanyController::class, 'deleteLogo']);
     });
 
     // Users Routes

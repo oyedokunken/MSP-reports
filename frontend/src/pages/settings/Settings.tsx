@@ -15,7 +15,9 @@ import {
 export default function Settings() {
   const toast = useToast()
   const [loading, setLoading] = useState(true)
-  const [, setSaving] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [profileLogoUrl, setProfileLogoUrl] = useState<string | null>(null)
 
   const companyName = useSettingsStore(state => state.companyName)
   const primaryHex = useSettingsStore(state => state.primaryHex)
