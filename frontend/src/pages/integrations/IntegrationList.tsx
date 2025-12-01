@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useIntegrationStore } from "@/stores/useIntegrationStore";
 import { IntegrationHeader } from "./components/IntegrationHeader";
 import { IntegrationGrid } from "./components/IntegrationGrid";
+import { Pagination } from "@/pages/customers/components/Pagination";
 import {
     AddIntegrationModal,
     ViewIntegrationCustomersModal,
@@ -216,6 +217,16 @@ export default function IntegrationList() {
                     }
                     integration={selectedIntegration}
                 />
+
+                {/* Pagination */}
+                {integrations.length > 10 && (
+                    <Pagination
+                        currentPage={1}
+                        totalPages={Math.ceil(integrations.length / 10)}
+                        total={integrations.length}
+                        onPageChange={(page) => console.log(page)}
+                    />
+                )}
             </div>
         </FloatingLayout>
     );

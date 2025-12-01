@@ -6,10 +6,15 @@ import type { Integration } from '@/pages/integrations/types/integration'
 interface IntegrationState {
   // Data
   integrations: Integration[]
+  allIntegrations: Integration[] // Store all for client-side pagination
   availableTypes: string[]
   sourceOfTruthId: number | null
   isLoading: boolean
 
+  // Pagination (client-side)
+  currentPage: number
+  perPage: number
+  
   // Sync state
   syncingId: number | null
   syncProgress: number
@@ -35,6 +40,7 @@ interface IntegrationState {
   fetchIntegrations: (silent?: boolean) => Promise<void>
   setSourceOfTruth: (id: number) => Promise<{ success: boolean; error?: string }>
   syncIntegration: (id: number) => Promise<{ success: boolean; error?: string }>
+  setPage: (page: number) => void
 
   // Modal actions
   openModal: (modal: keyof IntegrationState['modals'], integration?: Integration) => void
@@ -45,9 +51,12 @@ interface IntegrationState {
 export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   // Initial state
   integrations: [],
+  allIntegrations: [],
   availableTypes: [],
   sourceOfTruthId: null,
   isLoading: true,
+  currentPage: 1,
+  perPage: 21,
   syncingId: null,
   syncProgress: 0,
   settingSourceOfTruthId: null,
@@ -77,8 +86,14 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
       const sourceOfTruth = data.configured?.find((int: any) => int.is_source_of_truth)
       const sourceOfTruthId = sourceOfTruth ? sourceOfTruth.integration_id : null
 
+      const { currentPage, perPage } = get()
+      const startIndex = (currentPage - 1) * perPage
+      const endIndex = startIndex + perPage
+      const paginatedIntegrations = transformed.slice(startIndex, endIndex)
+
       set({
-        integrations: transformed,
+        integrations: paginatedIntegrations,
+        allIntegrations: transformed,
         availableTypes,
         sourceOfTruthId,
         isLoading: false,
