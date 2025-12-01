@@ -37,7 +37,7 @@ export function CustomerCard({
       <CardHeader className="pb-3 space-y-2">
         {/* Customer Name - Full Width, 2 Lines */}
         <div>
-          <CardTitle className="text-base leading-snug line-clamp-2" title={customer.canonical_name}>
+          <CardTitle className="text-base leading-snug line-clamp-2" title={customer.canonical_name || undefined}>
             {customer.canonical_name}
           </CardTitle>
         </div>

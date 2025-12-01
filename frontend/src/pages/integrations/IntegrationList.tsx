@@ -24,11 +24,14 @@ export default function IntegrationList() {
 
     // Zustand store - select only what we need to prevent unnecessary rerenders
     const integrations = useIntegrationStore((state) => state.integrations);
+    const allIntegrations = useIntegrationStore((state) => state.allIntegrations);
     const availableTypes = useIntegrationStore((state) => state.availableTypes);
     const sourceOfTruthId = useIntegrationStore(
         (state) => state.sourceOfTruthId
     );
     const isLoading = useIntegrationStore((state) => state.isLoading);
+    const currentPage = useIntegrationStore((state) => state.currentPage);
+    const perPage = useIntegrationStore((state) => state.perPage);
     const syncingId = useIntegrationStore((state) => state.syncingId);
     const syncProgress = useIntegrationStore((state) => state.syncProgress);
     const settingSourceOfTruthId = useIntegrationStore((state) => state.settingSourceOfTruthId);
@@ -45,6 +48,7 @@ export default function IntegrationList() {
     const syncIntegration = useIntegrationStore(
         (state) => state.syncIntegration
     );
+    const setPage = useIntegrationStore((state) => state.setPage);
     const openModal = useIntegrationStore((state) => state.openModal);
     const closeModal = useIntegrationStore((state) => state.closeModal);
 
