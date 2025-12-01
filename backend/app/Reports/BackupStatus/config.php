@@ -7,6 +7,7 @@ return [
     'class' => \App\Reports\BackupStatus\BackupStatus::class,
     'category' => 'backup',
     'data_types' => ['backup_status'],
+    'required_integrations' => ['Datto', 'Veeam'], // Backup solutions
     'frequencies' => ['daily', 'weekly', 'monthly'],
     'formats' => ['pdf', 'html'],
     'default_frequency' => 'monthly',

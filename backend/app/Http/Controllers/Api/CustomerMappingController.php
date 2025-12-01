@@ -598,22 +598,27 @@ class CustomerMappingController extends Controller
 
         DB::beginTransaction();
         try {
+            // Count records before moving them
+            $integrationCustomersMoved = IntegrationCustomer::where('customer_id', $mergeCustomer->customer_id)->count();
+            $reportSchedulesMoved = $mergeCustomer->reportSchedules()->count();
             
+            // Move CustomerMapping records first (before updating IntegrationCustomer)
+            CustomerMapping::where('customer_id', $mergeCustomer->customer_id)
+                ->update(['customer_id' => $primaryCustomer->customer_id]);
+            
+            // Move IntegrationCustomer records
             IntegrationCustomer::where('customer_id', $mergeCustomer->customer_id)
                 ->update(['customer_id' => $primaryCustomer->customer_id]);
 
-            
+            // Move ReportSchedules
             $mergeCustomer->reportSchedules()->update([
                 'customer_id' => $primaryCustomer->customer_id,
             ]);
 
-            
+            // Move GeneratedReports
             $mergeCustomer->generatedReports()->update([
                 'customer_id' => $primaryCustomer->customer_id,
             ]);
-
-            // OPTIMIZED: Track count from update operation instead of extra query
-            $integrationCustomersMoved = IntegrationCustomer::where('customer_id', $mergeCustomer->customer_id)->count();
             
             AuditLog::create([
                 'company_id' => $company->company_id,
@@ -632,6 +637,7 @@ class CustomerMappingController extends Controller
                         'name' => $mergeCustomer->canonical_name,
                     ],
                     'integration_customers_moved' => $integrationCustomersMoved,
+                    'report_schedules_moved' => $reportSchedulesMoved,
                 ]),
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),

@@ -60,8 +60,14 @@ class ReportGenerationService
                 throw new \Exception("Insufficient data to generate report.");
             }
             
-            // Generate report with Carbon dates
-            $reportData = $reportClass->generate($schedule->customer, $startDate, $endDate);
+            // Prepare options from schedule_config
+            $options = [];
+            if ($schedule->schedule_config) {
+                $options = is_array($schedule->schedule_config) ? $schedule->schedule_config : json_decode($schedule->schedule_config, true);
+            }
+            
+            // Generate report with Carbon dates and options
+            $reportData = $reportClass->generate($schedule->customer, $startDate, $endDate, $options);
             
             // Apply branding (if not already in report data)
             if (!isset($reportData['branding'])) {
@@ -242,10 +248,10 @@ class ReportGenerationService
         $pdfContent = $this->gotenberg->htmlToPdf($html, [
             'paper_width' => '8.27',  // A4 width in inches
             'paper_height' => '11.69', // A4 height in inches
-            'margin_top' => '0.39',
-            'margin_bottom' => '0.39',
-            'margin_left' => '0.39',
-            'margin_right' => '0.39',
+            'margin_top' => '0',
+            'margin_bottom' => '0',
+            'margin_left' => '0',
+            'margin_right' => '0',
             'print_background' => true,
             'prefer_css_page_size' => false,
         ]);
@@ -322,6 +328,7 @@ class ReportGenerationService
                     'data' => $reportData['data'] ?? [],
                     'alerts' => $reportData['alerts'] ?? [],
                     'generated_at' => $reportData['generated_at'] ?? now()->toDateTimeString(),
+                    'included_reports' => $reportData['included_reports'] ?? [],
                 ])->render();
             }
         }

@@ -7,6 +7,7 @@ return [
     'class' => \App\Reports\SecuritySummary\SecuritySummary::class,
     'category' => 'security',
     'data_types' => ['security_alert', 'security_incident'],
+    'required_integrations' => ['Datto', 'BitDefender', 'RocketCyber', 'ThreatLocker', 'Barracuda', 'WatchguardAuthPoint'], // Security tools
     'frequencies' => ['weekly', 'monthly'],
     'formats' => ['pdf', 'html'],
     'default_frequency' => 'monthly',

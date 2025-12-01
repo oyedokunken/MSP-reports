@@ -569,24 +569,6 @@
             </div>
             @endif
         </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-            <div class="footer-content">
-                <div class="footer-left">
-                    <div class="footer-company">{{ $branding['company_name'] ?? 'Company' }}</div>
-                    <div class="footer-text">
-                        {{ $branding['footer_text'] ?? 'Confidential Report - For Internal Use Only' }}<br>
-                        {{ $branding['footer_notes'] ?? 'This report was automatically generated and contains backup status information.' }}
-                    </div>
-                </div>
-                <div class="footer-right">
-                    <div class="page-number">Page 2 of 2</div>
-                    Generated on {{ now()->format('F j, Y \a\t g:i A') }}<br>
-                    © {{ date('Y') }} {{ $branding['company_name'] ?? 'Company' }}. All rights reserved.
-                </div>
-            </div>
-        </div>
     </div>
 </body>
 </html>

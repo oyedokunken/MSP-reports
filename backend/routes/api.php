@@ -98,6 +98,7 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
     // Report Configuration Routes
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports', [ReportConfigController::class, 'getAvailableReports']);
+        Route::get('/customers/{id}/available-reports', [ReportConfigController::class, 'getAvailableReportsForCustomer']);
         Route::get('/customers/{id}/reports', [ReportConfigController::class, 'getCustomerReports']);
         Route::patch('/customers/{id}/reports', [ReportConfigController::class, 'updateCustomerReports']);
         Route::patch('/customers/{id}/report-destination', [ReportConfigController::class, 'updateCustomerReportDestination']);

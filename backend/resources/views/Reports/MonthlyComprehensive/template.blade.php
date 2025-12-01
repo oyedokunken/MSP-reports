@@ -7,10 +7,23 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
+        @page {
+            margin: 0;
+            padding: 0;
+            size: A4;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
         }
         
         body {
@@ -22,29 +35,32 @@
         }
         
         .page {
-            width: 210mm;
+            width: 100%;
             min-height: 297mm;
             padding: 0;
-            margin: 0 auto;
+            margin: 0;
             background: white;
             position: relative;
             display: flex;
             flex-direction: column;
+            box-sizing: border-box;
         }
         
         /* Cover Page */
         .cover-page {
-            width: 210mm;
+            width: 100%;
             height: 297mm;
+            margin: 0;
+            padding: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             background: linear-gradient(135deg, {{ $branding['primary_color'] ?? '#1e40af' }} 0%, {{ $branding['secondary_color'] ?? '#7c3aed' }} 100%);
             color: white;
-            position: relative;
             overflow: hidden;
             page-break-after: always;
+            box-sizing: border-box;
         }
         
         .cover-page::before {
@@ -207,7 +223,45 @@
         
         /* Content */
         .content {
-            padding: 40px 50px;
+            padding: 0;
+        }
+        
+        /* Override individual report padding when included */
+        .content .page,
+        .content > * .page,
+        .page .page {
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Override any fixed widths in included reports */
+        .content * {
+            max-width: 100% !important;
+        }
+        
+        /* Hide cover pages from included reports */
+        .content .cover-page {
+            display: none !important;
+        }
+        
+        /* Hide only footers from included reports - keep headers visible */
+        .content .footer,
+        .content .footer-section {
+            display: none !important;
+        }
+        
+        /* Remove page breaks inside included reports */
+        .content .page-break,
+        .content [style*="page-break"] {
+            display: none !important;
+        }
+        
+        /* Remove padding from nested page containers */
+        .content .page > .page {
+            padding: 0 !important;
         }
         
         /* Health Score Hero */
@@ -406,51 +460,6 @@
             color: #991b1b;
         }
         
-        /* Footer */
-        .footer {
-            background: #0f172a;
-            color: white;
-            padding: 30px 50px;
-            margin-top: auto;
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-        }
-        
-        .footer-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .footer-left {
-            flex: 1;
-        }
-        
-        .footer-company {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-        
-        .footer-text {
-            font-size: 12px;
-            opacity: 0.7;
-            line-height: 1.6;
-        }
-        
-        .footer-right {
-            text-align: right;
-            font-size: 11px;
-            opacity: 0.6;
-        }
-        
-        .page-number {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        
         /* Page Break */
         .page-break {
             page-break-after: always;
@@ -460,11 +469,6 @@
         @media print {
             .cover-page {
                 page-break-after: always;
-            }
-            
-            .footer {
-                position: fixed;
-                bottom: 0;
             }
         }
     </style>
@@ -493,212 +497,57 @@
         </div>
     </div>
     
-    <!-- Report Content -->
+    <!-- Reports Section -->
     <div class="page">
-        <!-- Header -->
-        <div class="header-section">
-            <div class="header-logos">
-                @if(!empty($branding['company_logo']))
-                    <img src="{{ $branding['company_logo'] }}" alt="Company Logo" class="company-logo">
-                @else
-                    <div style="color: white; font-size: 20px; font-weight: 700;">{{ $branding['company_name'] ?? 'Company' }}</div>
-                @endif
-                
-                @if(!empty($branding['customer_logo']))
-                    <img src="{{ $branding['customer_logo'] }}" alt="Customer Logo" class="customer-logo">
-                @endif
-            </div>
-            
-            <div class="header-content">
-                <h1 class="report-title">{{ $branding['report_title'] ?? 'Monthly Comprehensive Report' }}</h1>
-                <p class="report-subtitle">{{ $customer->canonical_name ?? $customer->name }}</p>
-            </div>
-        </div>
-        
-        <!-- Metadata Bar -->
-        <div class="metadata-bar">
-            <div class="meta-item">
-                <span class="meta-label">Report Period</span>
-                <span class="meta-value">{{ $period['start'] ?? 'N/A' }} - {{ $period['end'] ?? 'N/A' }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Generated</span>
-                <span class="meta-value">{{ \Carbon\Carbon::parse($reportData['generated_at'])->format('M j, Y H:i') }}</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Report Type</span>
-                <span class="meta-value">Comprehensive</span>
-            </div>
-            <div class="meta-item">
-                <span class="meta-label">Customer ID</span>
-                <span class="meta-value">#{{ $customer->customer_id }}</span>
-            </div>
-        </div>
-        
         <!-- Content -->
-        <div class="content">
-            <!-- Health Score Hero -->
-            <div class="health-score-hero">
-                <div class="health-score-value">{{ $data['health_score'] ?? '0' }}/100</div>
-                <div class="health-score-label">Overall Health Score</div>
-            </div>
-            
-            <!-- Summary Cards -->
-            <div class="summary-grid">
-                <div class="summary-card uptime">
-                    <div class="summary-label">Average Uptime</div>
-                    <div class="summary-value">{{ $data['summary']['avg_uptime'] ?? '0%' }}</div>
-                </div>
+        <div class="content" style="position: relative;">
+            <style>
+                /* Force hide only footers and cover pages from included reports */
+                .content .footer,
+                .content .footer-section,
+                .content .cover-page {
+                    display: none !important;
+                    visibility: hidden !important;
+                    height: 0 !important;
+                    overflow: hidden !important;
+                }
                 
-                <div class="summary-card tickets">
-                    <div class="summary-label">Tickets Resolved</div>
-                    <div class="summary-value">{{ $data['summary']['tickets_resolved'] ?? '0' }}</div>
-                </div>
+                /* Remove page breaks from inside individual report pages */
+                .content .page * {
+                    page-break-before: auto !important;
+                    page-break-after: auto !important;
+                }
                 
-                <div class="summary-card backups">
-                    <div class="summary-label">Backup Success</div>
-                    <div class="summary-value">{{ $data['summary']['backup_success_rate'] ?? '0' }}%</div>
-                </div>
+                /* Remove ALL padding and margins from nested pages */
+                .content .page {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    min-height: auto !important;
+                }
                 
-                <div class="summary-card security">
-                    <div class="summary-label">Security Incidents</div>
-                    <div class="summary-value">{{ $data['summary']['security_incidents'] ?? '0' }}</div>
-                </div>
-            </div>
-            
-            <!-- Uptime Section -->
-            @if(!empty($data['uptime']))
-            <h2 class="section-header">
-                <span class="section-icon uptime">📊</span>
-                Uptime & Performance
-            </h2>
-            <div class="section-content">
-                <div class="metric-row">
-                    <div class="metric-item">
-                        <span class="metric-item-label">Average Uptime</span>
-                        <span class="metric-item-value">{{ $data['uptime']['avg_uptime'] ?? '0%' }}</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-item-label">Total Downtime</span>
-                        <span class="metric-item-value">{{ $data['uptime']['total_downtime'] ?? '0' }} hrs</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-item-label">Incidents</span>
-                        <span class="metric-item-value">{{ $data['uptime']['incident_count'] ?? '0' }}</span>
-                    </div>
-                </div>
-            </div>
-            @endif
-            
-            <!-- Tickets Section -->
-            @if(!empty($data['tickets']))
-            <h2 class="section-header">
-                <span class="section-icon tickets">🎫</span>
-                Support Tickets
-            </h2>
-            <div class="section-content">
-                <div class="metric-row">
-                    <div class="metric-item">
-                        <span class="metric-item-label">Tickets Opened</span>
-                        <span class="metric-item-value">{{ $data['tickets']['tickets_opened'] ?? '0' }}</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-item-label">Tickets Closed</span>
-                        <span class="metric-item-value">{{ $data['tickets']['tickets_closed'] ?? '0' }}</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-item-label">Avg Response Time</span>
-                        <span class="metric-item-value">{{ $data['tickets']['avg_response_time_hours'] ?? '0' }} hrs</span>
-                    </div>
-                </div>
-                <div class="metric-row">
-                    <div class="metric-item">
-                        <span class="metric-item-label">SLA Compliance</span>
-                        <span class="metric-item-value">{{ $data['tickets']['sla_compliance_rate'] ?? '0' }}%</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-item-label">Backlog</span>
-                        <span class="metric-item-value">{{ $data['tickets']['tickets_backlog'] ?? '0' }}</span>
-                    </div>
-                </div>
-            </div>
-            @endif
-            
-            <!-- Backups Section -->
-            @if(!empty($data['backups']))
-            <h2 class="section-header">
-                <span class="section-icon backups">💾</span>
-                Backup Status
-            </h2>
-            <div class="section-content">
-                <div class="metric-row">
-                    <div class="metric-item">
-                        <span class="metric-item-label">Success Rate</span>
-                        <span class="metric-item-value">{{ $data['backups']['success_rate'] ?? '0' }}%</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-item-label">Total Backups</span>
-                        <span class="metric-item-value">{{ $data['backups']['total_backups'] ?? '0' }}</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-item-label">Failed Backups</span>
-                        <span class="metric-item-value">{{ $data['backups']['failed_backups'] ?? '0' }}</span>
-                    </div>
-                </div>
-                <div class="metric-row">
-                    <div class="metric-item">
-                        <span class="metric-item-label">Storage Used</span>
-                        <span class="metric-item-value">{{ $data['backups']['storage_used_gb'] ?? '0' }} GB</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-item-label">Avg Duration</span>
-                        <span class="metric-item-value">{{ $data['backups']['avg_duration_minutes'] ?? '0' }} min</span>
-                    </div>
-                </div>
-            </div>
-            @endif
-            
-            <!-- Security Section -->
-            @if(!empty($data['security']))
-            <h2 class="section-header">
-                <span class="section-icon security">🔒</span>
-                Security Summary
-            </h2>
-            <div class="section-content">
-                <div class="metric-row">
-                    <div class="metric-item">
-                        <span class="metric-item-label">Critical Alerts</span>
-                        <span class="metric-item-value">{{ $data['security']['critical_alerts'] ?? '0' }}</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-item-label">Vulnerabilities</span>
-                        <span class="metric-item-value">{{ $data['security']['vulnerability_count'] ?? '0' }}</span>
-                    </div>
-                    <div class="metric-item">
-                        <span class="metric-item-label">Patch Compliance</span>
-                        <span class="metric-item-value">{{ $data['security']['patch_compliance'] ?? '0%' }}</span>
-                    </div>
-                </div>
-            </div>
-            @endif
-        </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-            <div class="footer-content">
-                <div class="footer-left">
-                    <div class="footer-company">{{ $branding['company_name'] ?? 'Company' }}</div>
-                    <div class="footer-text">
-                        {{ $branding['footer_text'] ?? 'Confidential Report - For Internal Use Only' }}<br>
-                        {{ $branding['footer_notes'] ?? 'This comprehensive report was automatically generated and contains complete system performance data.' }}
-                    </div>
-                </div>
-                <div class="footer-right">
-                    <div class="page-number">Page 2 of 2</div>
-                    Generated on {{ now()->format('F j, Y \a\t g:i A') }}<br>
-                    © {{ date('Y') }} {{ $branding['company_name'] ?? 'Company' }}. All rights reserved.
-                </div>
-            </div>
+                /* Remove body and html tags styling if they exist */
+                .content body,
+                .content html {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+            </style>
+            <!-- Include each individual report -->
+            @foreach($included_reports ?? [] as $index => $report)
+                @if($index > 0)
+                    <div style="page-break-before: always !important; height: 0; margin: 0; padding: 0;"></div>
+                @endif
+                
+                @include($report['template'], [
+                    'customer' => $customer,
+                    'branding' => $report['data']['branding'] ?? $branding,
+                    'period' => $report['data']['period'] ?? $period,
+                    'generated_at' => $report['data']['generated_at'] ?? $generated_at,
+                    'data' => $report['data']['data'] ?? [],
+                    'metrics' => $report['data']['metrics'] ?? [],
+                    'reportData' => $report['data']
+                ])
+            @endforeach
         </div>
     </div>
 </body>

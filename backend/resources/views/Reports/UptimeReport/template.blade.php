@@ -263,12 +263,6 @@
             </div>
         </div>
         @endif
-        
-        <!-- Footer -->
-        <div class="footer">
-            <div>{{ $branding['company_name'] ?? 'Company' }} • {{ $branding['footer_text'] ?? 'Confidential' }}</div>
-            <div>{{ now()->format('F j, Y') }}</div>
-        </div>
     </div>
 </body>
 </html>

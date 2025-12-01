@@ -70,7 +70,7 @@ export function MergeCustomersModal({
 
         try {
             await api.post(`/customers/${customer?.customer_id}/merge`, {
-                target_customer_id: selectedCustomerId,
+                merge_customer_id: selectedCustomerId,
             });
 
             setSuccess(true);

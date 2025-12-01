@@ -18,6 +18,7 @@ interface ReportType {
   id: string
   name: string
   description: string
+  integration_source?: string
 }
 
 interface EnabledReport {
@@ -26,6 +27,8 @@ interface EnabledReport {
   frequency?: string
   time_of_day?: string
   active?: boolean
+  _old_schedule_id?: number // Track old schedule ID when report_type changes
+  include_sections?: string[] // For comprehensive reports
 }
 
 interface ReportConfig {
@@ -39,14 +42,6 @@ interface ReportConfig {
   retention_days: number | null
 }
 
-const AVAILABLE_REPORT_TYPES: ReportType[] = [
-  { id: 'uptime_report', name: 'Uptime Report', description: 'System uptime statistics and availability' },
-  { id: 'uptime_monthly', name: 'Monthly Uptime Report', description: 'Monthly uptime statistics and availability' },
-  { id: 'ticket_summary', name: 'Ticket Summary', description: 'Support ticket analysis and metrics' },
-  { id: 'security_summary', name: 'Security Summary', description: 'Security events and threat analysis' },
-  { id: 'backup_status', name: 'Backup Status', description: 'Backup health and compliance status' },
-  { id: 'monthly_comprehensive', name: 'Monthly Comprehensive', description: 'Complete monthly service report' },
-]
 
 const FREQUENCIES = [
   { value: 'daily', label: 'Daily' },
@@ -68,10 +63,56 @@ export default function ConfigureReports() {
   const [enabledReports, setEnabledReports] = useState<EnabledReport[]>([])
   const [destination, setDestination] = useState('')
   const [ccEmails, setCcEmails] = useState('')
+  const [availableReportTypes, setAvailableReportTypes] = useState<ReportType[]>([])
 
   useEffect(() => {
+    fetchAvailableReports()
     fetchReportConfig()
   }, [id])
+
+  // Validate and fix invalid report types when availableReportTypes loads
+  useEffect(() => {
+    if (availableReportTypes.length > 0 && enabledReports.length > 0) {
+      const validReportIds = availableReportTypes.map(r => r.id)
+      const needsUpdate = enabledReports.some(report => !validReportIds.includes(report.report_type))
+      
+      if (needsUpdate) {
+        const updatedReports = enabledReports.map(report => {
+          // If report type is invalid, use first available
+          if (!validReportIds.includes(report.report_type)) {
+            return {
+              ...report,
+              report_type: availableReportTypes[0].id
+            }
+          }
+          return report
+        })
+        setEnabledReports(updatedReports)
+      }
+    }
+  }, [availableReportTypes, enabledReports])
+
+  const fetchAvailableReports = async () => {
+    try {
+      const response = await api.get(`/customers/${id}/available-reports`)
+      const data = (response as any).data || response
+      const reportData = data.data || data
+      
+      console.log('Available reports for customer:', reportData)
+      
+      const reports = (reportData.available_reports || []).map((r: any) => ({
+        id: r.report_type,
+        name: r.name,
+        description: r.description,
+        integration_source: r.integration_source
+      }))
+      
+      setAvailableReportTypes(reports)
+    } catch (error) {
+      console.error('Failed to fetch available reports:', error)
+      toast.error('Failed to load available reports')
+    }
+  }
 
   const fetchReportConfig = async () => {
     try {
@@ -132,14 +173,26 @@ export default function ConfigureReports() {
   }
 
   const handleAddReport = () => {
+    // If only one report available, use it as default
+    const defaultReportType = availableReportTypes.length === 1 
+      ? availableReportTypes[0].id 
+      : (availableReportTypes.find(r => r.id === 'uptime_monthly')?.id || availableReportTypes[0]?.id || 'uptime_monthly');
+    
+    const newReport: any = {
+      report_type: defaultReportType,
+      frequency: 'monthly',
+      time_of_day: '09:00',
+      active: true
+    };
+    
+    // If it's a comprehensive report, set default sections
+    if (defaultReportType === 'monthly_comprehensive') {
+      newReport.include_sections = ['uptime', 'tickets', 'backups', 'security'];
+    }
+    
     setEnabledReports([
       ...enabledReports,
-      {
-        report_type: 'uptime_monthly',
-        frequency: 'monthly',
-        time_of_day: '09:00',
-        active: true
-      }
+      newReport
     ])
   }
 
@@ -162,13 +215,45 @@ export default function ConfigureReports() {
 
   const handleUpdateReport = (index: number, field: string, value: any) => {
     const updated = [...enabledReports]
-    updated[index] = { ...updated[index], [field]: value }
+    
+    // If changing report_type, remove the old schedule_id so it creates a new one
+    if (field === 'report_type' && updated[index].schedule_id) {
+      const oldScheduleId = updated[index].schedule_id
+      updated[index] = { 
+        ...updated[index], 
+        [field]: value,
+        schedule_id: undefined, // Remove schedule_id so backend creates new one
+        _old_schedule_id: oldScheduleId // Track old ID for deletion
+      }
+      
+      // If changing TO comprehensive report, set default sections
+      if (value === 'monthly_comprehensive') {
+        updated[index].include_sections = ['uptime', 'tickets', 'backups', 'security']
+      }
+    } else {
+      updated[index] = { ...updated[index], [field]: value }
+    }
+    
     setEnabledReports(updated)
   }
 
   const handleSaveConfiguration = async () => {
     try {
       setIsSaving(true)
+      
+      // Delete old schedules if report_type was changed
+      const oldSchedulesToDelete = enabledReports
+        .filter(report => (report as any)._old_schedule_id)
+        .map(report => (report as any)._old_schedule_id)
+      
+      for (const oldScheduleId of oldSchedulesToDelete) {
+        try {
+          await api.delete(`/reports/schedules/${oldScheduleId}`)
+        } catch (err) {
+          console.error('Failed to delete old schedule:', err)
+          // Continue anyway
+        }
+      }
       
       const ccArray = ccEmails
         .split(',')
@@ -186,6 +271,11 @@ export default function ConfigureReports() {
         // Add day_of_week for weekly reports
         if (report.frequency === 'weekly' && (report as any).day_of_week !== undefined) {
           scheduleConfig.day_of_week = (report as any).day_of_week
+        }
+        
+        // Add include_sections for comprehensive reports
+        if (report.report_type === 'monthly_comprehensive' && (report as any).include_sections) {
+          scheduleConfig.include_sections = (report as any).include_sections
         }
         
         return {
@@ -342,18 +432,33 @@ export default function ConfigureReports() {
                         <div>
                           <Label htmlFor={`report-type-${index}`}>Report Type</Label>
                           <Select
-                            value={report.report_type}
+                            value={report.report_type || ''}
                             onValueChange={(value) => handleUpdateReport(index, 'report_type', value)}
                           >
                             <SelectTrigger id={`report-type-${index}`} className="mt-1">
-                              <SelectValue placeholder="Select report type" />
+                              <SelectValue placeholder="Select report type">
+                                {report.report_type && availableReportTypes.find(t => t.id === report.report_type)?.name}
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                              {AVAILABLE_REPORT_TYPES.map((type) => (
-                                <SelectItem key={type.id} value={type.id}>
-                                  {type.name}
-                                </SelectItem>
-                              ))}
+                              {availableReportTypes.length === 0 ? (
+                                <div className="p-2 text-sm text-muted-foreground">
+                                  No reports available. Please link an integration first.
+                                </div>
+                              ) : (
+                                availableReportTypes.map((type) => (
+                                  <SelectItem key={type.id} value={type.id}>
+                                    <div className="flex items-center justify-between w-full">
+                                      <span>{type.name}</span>
+                                      {type.integration_source && (
+                                        <Badge variant="outline" className="ml-2 text-xs">
+                                          {type.integration_source}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         </div>
@@ -457,8 +562,51 @@ export default function ConfigureReports() {
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                      {AVAILABLE_REPORT_TYPES.find(t => t.id === report.report_type)?.description}
+                      {availableReportTypes.find(t => t.id === report.report_type)?.description}
                     </p>
+
+                    {/* Section selector for Monthly Comprehensive Report */}
+                    {report.report_type === 'monthly_comprehensive' && (
+                      <div className="mt-4 p-3 bg-muted/50 rounded-md">
+                        <Label className="text-sm font-medium mb-2 block">Include Sections:</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: 'uptime', label: 'System Uptime', icon: '📊' },
+                            { id: 'tickets', label: 'Support Tickets', icon: '🎫' },
+                            { id: 'backups', label: 'Backup Status', icon: '💾' },
+                            { id: 'security', label: 'Security Alerts', icon: '🔒' },
+                          ].map((section) => {
+                            const includeSections = (report as any).include_sections || ['uptime', 'tickets', 'backups', 'security'];
+                            const isChecked = includeSections.includes(section.id);
+                            
+                            return (
+                              <div key={section.id} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`section-${index}-${section.id}`}
+                                  checked={isChecked}
+                                  onChange={(e) => {
+                                    const currentSections = (report as any).include_sections || ['uptime', 'tickets', 'backups', 'security'];
+                                    const newSections = e.target.checked
+                                      ? [...currentSections, section.id]
+                                      : currentSections.filter((s: string) => s !== section.id);
+                                    handleUpdateReport(index, 'include_sections', newSections);
+                                  }}
+                                  className="h-4 w-4 rounded border-gray-300"
+                                />
+                                <Label 
+                                  htmlFor={`section-${index}-${section.id}`}
+                                  className="text-sm cursor-pointer flex items-center gap-1"
+                                >
+                                  <span>{section.icon}</span>
+                                  <span>{section.label}</span>
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {report.schedule_id && (
                       <Badge variant="secondary" className="text-xs text-white">

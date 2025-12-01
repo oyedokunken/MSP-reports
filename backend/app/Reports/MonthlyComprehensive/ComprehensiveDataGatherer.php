@@ -2,76 +2,121 @@
 
 namespace App\Reports\MonthlyComprehensive;
 
-use App\Models\Customer;
+use App\Reports\Contracts\BaseDataGatherer;
 use App\Reports\UptimeReport\UptimeDataGatherer;
 use App\Reports\TicketSummary\TicketDataGatherer;
 use App\Reports\BackupStatus\BackupDataGatherer;
 use App\Reports\SecuritySummary\SecurityDataGatherer;
 
-class ComprehensiveDataGatherer
+class ComprehensiveDataGatherer extends BaseDataGatherer
 {
-    protected Customer $customer;
-
-    public function __construct(Customer $customer)
+    /**
+     * Get Uptime section data
+     */
+    public function getUptimeSection(): array
     {
-        $this->customer = $customer;
+        try {
+            $uptimeGatherer = new UptimeDataGatherer($this->customer, $this->startDate, $this->endDate);
+            $metrics = $uptimeGatherer->getUptimeMetrics();
+            
+            if (empty($metrics) || ($metrics['average_uptime'] ?? 0) == 0) {
+                return [];
+            }
+            
+            return [
+                'title' => 'System Uptime',
+                'metrics' => $metrics,
+                'devices' => $uptimeGatherer->getDeviceBreakdown(),
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Failed to get uptime section: ' . $e->getMessage());
+            return [];
+        }
     }
-
-    public function getAggregatedData(array $period): array
+    
+    /**
+     * Get Tickets section data
+     */
+    public function getTicketSection(): array
     {
-        // Gather data from all report types
-        $uptimeGatherer = new UptimeDataGatherer($this->customer);
-        $ticketGatherer = new TicketDataGatherer($this->customer);
-        $backupGatherer = new BackupDataGatherer($this->customer);
-        $securityGatherer = new SecurityDataGatherer($this->customer);
-
-        $uptimeData = $uptimeGatherer->getAggregatedData($period);
-        $ticketData = $ticketGatherer->getAggregatedData($period);
-        $backupData = $backupGatherer->getAggregatedData($period);
-        $securityData = $securityGatherer->getAggregatedData($period);
-
-        // Calculate overall health score (0-100)
-        $healthScore = $this->calculateHealthScore($uptimeData, $ticketData, $backupData, $securityData);
-
-        return [
-            'health_score' => $healthScore,
-            'uptime' => $uptimeData,
-            'tickets' => $ticketData,
-            'backups' => $backupData,
-            'security' => $securityData,
-            'summary' => [
-                'total_devices' => $uptimeData['device_count'] ?? 0,
-                'avg_uptime' => $uptimeData['avg_uptime'] ?? '0%',
-                'tickets_resolved' => $ticketData['tickets_closed'] ?? 0,
-                'backup_success_rate' => $backupData['success_rate'] ?? 0,
-                'security_incidents' => $securityData['critical_alerts'] ?? 0,
-            ],
-        ];
+        try {
+            $ticketGatherer = new TicketDataGatherer($this->customer);
+            $period = [
+                'start' => $this->startDate,
+                'end' => $this->endDate,
+            ];
+            $data = $ticketGatherer->getAggregatedData($period);
+            
+            if (empty($data) || ($data['tickets_opened'] ?? 0) == 0) {
+                return [];
+            }
+            
+            return [
+                'title' => 'Support Tickets',
+                'summary' => $data,
+                'by_priority' => $data['priority_breakdown'] ?? [],
+                'by_status' => $data['status_breakdown'] ?? [],
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Failed to get ticket section: ' . $e->getMessage());
+            return [];
+        }
     }
-
-    private function calculateHealthScore(array $uptime, array $tickets, array $backups, array $security): int
+    
+    /**
+     * Get Backups section data
+     */
+    public function getBackupSection(): array
     {
-        $scores = [];
-
-        // Uptime score (30% weight)
-        $uptimePercent = floatval(str_replace('%', '', $uptime['avg_uptime'] ?? '0'));
-        $scores[] = ($uptimePercent / 100) * 30;
-
-        // Backup score (25% weight)
-        $backupRate = $backups['success_rate'] ?? 0;
-        $scores[] = ($backupRate / 100) * 25;
-
-        // Ticket score (25% weight) - based on closure rate
-        $ticketsOpened = $tickets['tickets_opened'] ?? 1;
-        $ticketsClosed = $tickets['tickets_closed'] ?? 0;
-        $ticketRate = $ticketsOpened > 0 ? ($ticketsClosed / $ticketsOpened) * 100 : 100;
-        $scores[] = ($ticketRate / 100) * 25;
-
-        // Security score (20% weight) - inverse of critical alerts
-        $criticalAlerts = $security['critical_alerts'] ?? 0;
-        $securityScore = max(0, 100 - ($criticalAlerts * 10)); // Each critical alert reduces score by 10
-        $scores[] = ($securityScore / 100) * 20;
-
-        return (int) round(array_sum($scores));
+        try {
+            $backupGatherer = new BackupDataGatherer($this->customer);
+            $period = [
+                'start' => $this->startDate,
+                'end' => $this->endDate,
+            ];
+            $data = $backupGatherer->getAggregatedData($period);
+            
+            if (empty($data) || ($data['total_backups'] ?? 0) == 0) {
+                return [];
+            }
+            
+            return [
+                'title' => 'Backup Status',
+                'summary' => $data,
+                'devices' => $data['device_breakdown'] ?? [],
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Failed to get backup section: ' . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * Get Security section data
+     */
+    public function getSecuritySection(): array
+    {
+        try {
+            $securityGatherer = new SecurityDataGatherer($this->customer);
+            $period = [
+                'start' => $this->startDate,
+                'end' => $this->endDate,
+            ];
+            $data = $securityGatherer->getAggregatedData($period);
+            
+            if (empty($data) || ($data['total_alerts'] ?? 0) == 0) {
+                return [];
+            }
+            
+            return [
+                'title' => 'Security Alerts',
+                'summary' => $data,
+                'by_severity' => $data['severity_breakdown'] ?? [],
+                'by_type' => $data['type_breakdown'] ?? [],
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Failed to get security section: ' . $e->getMessage());
+            return [];
+        }
     }
 }

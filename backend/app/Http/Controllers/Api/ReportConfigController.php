@@ -43,12 +43,86 @@ class ReportConfigController extends Controller
                 'icon' => $report['icon'] ?? 'file-text',
                 'enabled' => $report['enabled'] ?? true,
                 'data_types' => $report['data_types'] ?? [],
+                'required_integrations' => $report['required_integrations'] ?? [],
             ];
         })->values()->all();
 
         return response()->json([
             'status' => 'success',
             'data' => $availableReports
+        ]);
+    }
+
+    public function getAvailableReportsForCustomer(Request $request, $customerId)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $customer = Customer::where('customer_id', $customerId)
+            ->where('company_id', $company->company_id)
+            ->first();
+
+        if (!$customer) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Customer not found.'
+            ], 404);
+        }
+
+        // Get customer's linked integrations
+        $customerIntegrations = $customer->integrationCustomers()
+            ->with('integration')
+            ->get()
+            ->pluck('integration.integration_type')
+            ->unique()
+            ->values()
+            ->all();
+
+        // Get all reports
+        $allReports = $this->registry->getAvailable($company->company_id);
+
+        // Filter reports based on customer's integrations
+        $availableReports = collect($allReports)->filter(function ($report) use ($customerIntegrations) {
+            $requiredIntegrations = $report['required_integrations'] ?? [];
+            
+            // If no required integrations specified, report is always available
+            if (empty($requiredIntegrations)) {
+                return true;
+            }
+            
+            // Special case: 'multiple' means customer needs more than one integration
+            if (in_array('multiple', $requiredIntegrations)) {
+                return count($customerIntegrations) > 1;
+            }
+            
+            // Check if customer has at least one of the required integrations
+            return !empty(array_intersect($requiredIntegrations, $customerIntegrations));
+        })->map(function ($report) use ($customerIntegrations) {
+            $requiredIntegrations = $report['required_integrations'] ?? [];
+            $matchedIntegrations = array_intersect($requiredIntegrations, $customerIntegrations);
+            
+            return [
+                'report_type' => $report['id'],
+                'name' => $report['name'],
+                'description' => $report['description'],
+                'category' => $report['category'] ?? 'general',
+                'frequency_options' => $report['frequencies'] ?? ['on-demand'],
+                'formats' => $report['formats'] ?? ['pdf'],
+                'icon' => $report['icon'] ?? 'file-text',
+                'enabled' => $report['enabled'] ?? true,
+                'data_types' => $report['data_types'] ?? [],
+                'integration_source' => !empty($matchedIntegrations) ? reset($matchedIntegrations) : 'Multiple',
+            ];
+        })->values()->all();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'customer_id' => $customer->customer_id,
+                'customer_name' => $customer->canonical_name,
+                'linked_integrations' => $customerIntegrations,
+                'available_reports' => $availableReports,
+            ]
         ]);
     }
 
@@ -217,11 +291,18 @@ class ReportConfigController extends Controller
         $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date')) : null;
         $reportType = $request->input('report_type');
         
-        // If no custom dates provided and this is a manual generation, use current month
-        $useCurrentMonth = $request->input('use_current_month', true);
-        if (!$startDate && !$endDate && $useCurrentMonth) {
-            $startDate = Carbon::now()->startOfMonth();
-            $endDate = Carbon::now()->endOfMonth();
+        // If no custom dates provided and this is a manual generation, use previous month
+        // (current month likely has incomplete data)
+        $useCurrentMonth = $request->input('use_current_month', false);
+        if (!$startDate && !$endDate) {
+            if ($useCurrentMonth) {
+                $startDate = Carbon::now()->startOfMonth();
+                $endDate = Carbon::now()->endOfMonth();
+            } else {
+                // Default to previous month (complete data)
+                $startDate = Carbon::now()->subMonth()->startOfMonth();
+                $endDate = Carbon::now()->subMonth()->endOfMonth();
+            }
         }
         
         $schedules = ReportSchedule::where('customer_id', $customer->customer_id)

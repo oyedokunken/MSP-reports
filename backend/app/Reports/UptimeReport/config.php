@@ -7,6 +7,7 @@ return [
     'class' => \App\Reports\UptimeReport\UptimeReport::class,
     'category' => 'infrastructure',
     'data_types' => ['uptime_metric'],
+    'required_integrations' => ['Datto', 'Kaseya'], // RMM/Monitoring systems
     'frequencies' => ['daily', 'weekly', 'monthly'],
     'formats' => ['pdf', 'html'],
     'default_frequency' => 'monthly',
