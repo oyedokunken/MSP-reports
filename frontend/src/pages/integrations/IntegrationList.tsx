@@ -117,6 +117,16 @@ export default function IntegrationList() {
                     sourceOfTruthId={sourceOfTruthId}
                 />
 
+                {/* Pagination */}
+                {!isLoading && allIntegrations.length > perPage && (
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={Math.ceil(allIntegrations.length / perPage)}
+                        total={allIntegrations.length}
+                        onPageChange={setPage}
+                    />
+                )}
+
                 {/* Modals */}
                 <AddIntegrationModal
                     open={modals.add}

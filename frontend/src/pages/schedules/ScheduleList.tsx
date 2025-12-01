@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useSchedulesStore } from '@/stores/useSchedulesStore'
 import { SchedulesHeader, SchedulesGrid } from './components'
 import { SelectCustomerModal } from './modals/SelectCustomerModal'
+import { Pagination } from '@/pages/customers/components/Pagination'
 
 export default function ScheduleList() {
   const navigate = useNavigate()
