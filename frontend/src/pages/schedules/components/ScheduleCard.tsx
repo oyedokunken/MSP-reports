@@ -29,7 +29,7 @@ export function ScheduleCard({ schedule, onConfigure }: ScheduleCardProps) {
                         <CardTitle className="text-base truncate" title={schedule.customer_name}>
                             {schedule.customer_name}
                         </CardTitle>
-                        <CardDescription className="text-xs mt-1 truncate">
+                        <CardDescription className="text-xs mt-1 truncate" title={formatReportType(schedule.report_type)}>
                             {formatReportType(schedule.report_type)}
                         </CardDescription>
                     </div>
