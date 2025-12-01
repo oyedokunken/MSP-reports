@@ -43,3 +43,10 @@ Thumbs.db
 /frontend/.env
 /frontend/.env.local
 /frontend/.env.production
+
+# Frontend build output in backend/public (ignore everything except index.php, .htaccess, robots.txt, favicon.ico)
+/backend/public/*
+!/backend/public/index.php
+!/backend/public/.htaccess
+!/backend/public/robots.txt
+!/backend/public/favicon.ico
