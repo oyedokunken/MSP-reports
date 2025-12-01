@@ -22,6 +22,7 @@ export default function ReportsList() {
   const currentPage = useReportsStore(state => state.currentPage)
   const totalPages = useReportsStore(state => state.totalPages)
   const total = useReportsStore(state => state.total)
+  const perPage = useReportsStore(state => state.perPage)
   const fetchReports = useReportsStore(state => state.fetchReports)
   const downloadReport = useReportsStore(state => state.downloadReport)
   const setSearchQuery = useReportsStore(state => state.setSearchQuery)
@@ -76,6 +77,16 @@ export default function ReportsList() {
           downloading={downloading}
           onDownload={handleDownload}
         />
+
+        {/* Pagination */}
+        {!isLoading && total > perPage && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            total={total}
+            onPageChange={(page) => fetchReports(customerId, page)}
+          />
+        )}
       </div>
     </FloatingLayout>
   )
