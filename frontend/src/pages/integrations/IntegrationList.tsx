@@ -221,16 +221,6 @@ export default function IntegrationList() {
                     }
                     integration={selectedIntegration}
                 />
-
-                {/* Pagination */}
-                {allIntegrations.length > perPage && (
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={Math.ceil(allIntegrations.length / perPage)}
-                        total={allIntegrations.length}
-                        onPageChange={setPage}
-                    />
-                )}
             </div>
         </FloatingLayout>
     );
