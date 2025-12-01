@@ -35,11 +35,11 @@ export function ScheduleCard({ schedule, onConfigure }: ScheduleCardProps) {
                     </div>
                     <Badge
                         variant={schedule.active ? "default" : "secondary"}
-                        className={
+                        className={`flex-shrink-0 whitespace-nowrap ${
                             !schedule.active
                                 ? "bg-purple-600 text-white hover:bg-purple-700"
                                 : ""
-                        }
+                        }`}
                     >
                         {schedule.active ? "Active" : "Inactive"}
                     </Badge>
