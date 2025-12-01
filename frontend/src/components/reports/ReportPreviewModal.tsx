@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
+import apiClient from '@/lib/api'
 
 interface ReportPreviewModalProps {
   open: boolean
@@ -45,40 +46,29 @@ export function ReportPreviewModal({
       setLoading(true)
       setError(null)
 
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8081/api'
-      const fetchUrl = `${apiUrl}/reports/${reportId}/download`
-      const token = localStorage.getItem('auth_token')
-      
-      console.log('Fetching PDF:', fetchUrl)
-      console.log('Report ID:', reportId)
-      console.log('Token exists:', !!token)
+      console.log('Fetching PDF for report ID:', reportId)
 
-      // Fetch the PDF as a blob
-      const response = await fetch(fetchUrl, {
-        method: 'GET',
+      // Use apiClient which handles the correct base URL and auth headers automatically
+      const response = await apiClient.get(`/reports/${reportId}/download`, {
+        responseType: 'blob',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Accept': 'application/pdf',
         },
       })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('API Error Response:', errorText)
-        console.error('Status:', response.status, response.statusText)
-        throw new Error(`Failed to fetch PDF: ${response.statusText} (${response.status})`)
-      }
-
-      const blob = await response.blob()
-      console.log('PDF Blob:', blob.type, blob.size)
+      console.log('PDF Blob received:', response.data.type, response.data.size)
       
-      // Create object URL
-      const url = URL.createObjectURL(blob)
-      console.log('PDF URL:', url)
+      // Create object URL from the blob
+      const url = URL.createObjectURL(response.data)
+      console.log('PDF URL created successfully')
       setPdfUrl(url)
     } catch (err: any) {
       console.error('Failed to load PDF preview:', err)
-      setError(err.message || 'Failed to load PDF preview')
+      const errorMessage = err.response?.data?.message 
+        || err.response?.statusText 
+        || err.message 
+        || 'Failed to load PDF preview'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
