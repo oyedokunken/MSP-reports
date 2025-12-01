@@ -21,8 +21,16 @@ Schedule::command('reports:evaluate-schedules')
     ->runInBackground();
 
 // Schedule integration sync evaluation to run every 4 hours
+// This syncs customer lists only (fast, lightweight)
 Schedule::command('integrations:evaluate-syncs')
     ->everyFourHours()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Schedule recent data sync to run daily at 1am
+// This pulls last 7 days of data (tickets, devices, etc.) to keep IntegrationData current
+Schedule::command('integrations:sync-recent-data --days=7')
+    ->dailyAt('01:00')
     ->withoutOverlapping()
     ->runInBackground();
 

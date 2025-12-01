@@ -37,8 +37,8 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
         ip_whitelist: ipWhitelist ? ipWhitelist.split(',').map(ip => ip.trim()) : null,
       })
 
-      if (response.data?.api_key) {
-        setGeneratedKey(response.data.api_key)
+      if (response.data && typeof response.data === 'object' && 'api_key' in response.data) {
+        setGeneratedKey((response.data as { api_key: string }).api_key)
         setStep('success')
       }
     } catch (error: any) {
@@ -68,12 +68,12 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
     onOpenChange(false)
   }
 
-  const togglePermission = (category: string, action: string) => {
+  const togglePermission = (category: keyof typeof permissions, action: string) => {
     setPermissions(prev => ({
       ...prev,
       [category]: {
-        ...prev[category as keyof typeof prev],
-        [action]: !prev[category as keyof typeof prev][action as keyof typeof prev.integrations]
+        ...prev[category],
+        [action]: !(prev[category] as any)[action]
       }
     }))
   }

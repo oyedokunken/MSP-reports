@@ -42,11 +42,12 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
     { key: 'description', label: 'Description' },
   ]
 
-  const deviceFields = [
-    { key: 'devices_total', label: 'Total Devices' },
-    { key: 'devices_online', label: 'Online' },
-    { key: 'devices_offline', label: 'Offline' },
-  ]
+  // Device fields are rendered inline in the UI, not in a table
+  // const deviceFields = [
+  //   { key: 'devices_total', label: 'Total Devices' },
+  //   { key: 'devices_online', label: 'Online' },
+  //   { key: 'devices_offline', label: 'Offline' },
+  // ]
 
   const autotaskFields = [
     { key: 'autotask_company_id', label: 'Autotask Company ID' },

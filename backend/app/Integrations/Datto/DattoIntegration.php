@@ -123,10 +123,6 @@ class DattoIntegration implements IntegrationInterface
             ]);
         }
 
-        // NOTE: Device syncing is done via historical import, not regular sync
-        // This matches Autotask pattern where sync() only pulls customers
-        // and getHistoricalData() pulls the actual data (tickets, devices, etc.)
-
         $additionalMapped = $this->processUnmappedCustomers();
         $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
 
