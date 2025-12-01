@@ -36,8 +36,8 @@ export function CustomerCard({
     <Card className="flex flex-col overflow-hidden">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1 overflow-hidden">
-            <CardTitle className="text-base break-words line-clamp-2 leading-tight">
+          <div className="min-w-0 flex-1 overflow-hidden" style={{maxWidth: 'calc(100% - 80px)'}}>
+            <CardTitle className="text-base truncate leading-tight" title={customer.canonical_name}>
               {customer.canonical_name}
             </CardTitle>
             <CardDescription className="text-xs mt-1 truncate">

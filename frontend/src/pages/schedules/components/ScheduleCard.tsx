@@ -25,8 +25,8 @@ export function ScheduleCard({ schedule, onConfigure }: ScheduleCardProps) {
         <Card className="flex flex-col">
             <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                        <CardTitle className="text-base truncate">
+                    <div className="min-w-0 flex-1 overflow-hidden" style={{maxWidth: 'calc(100% - 80px)'}}>
+                        <CardTitle className="text-base truncate" title={schedule.customer_name}>
                             {schedule.customer_name}
                         </CardTitle>
                         <CardDescription className="text-xs mt-1 truncate">

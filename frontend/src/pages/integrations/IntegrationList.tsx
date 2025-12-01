@@ -219,12 +219,12 @@ export default function IntegrationList() {
                 />
 
                 {/* Pagination */}
-                {integrations.length > 10 && (
+                {allIntegrations.length > perPage && (
                     <Pagination
-                        currentPage={1}
-                        totalPages={Math.ceil(integrations.length / 10)}
-                        total={integrations.length}
-                        onPageChange={(page) => console.log(page)}
+                        currentPage={currentPage}
+                        totalPages={Math.ceil(allIntegrations.length / perPage)}
+                        total={allIntegrations.length}
+                        onPageChange={setPage}
                     />
                 )}
             </div>

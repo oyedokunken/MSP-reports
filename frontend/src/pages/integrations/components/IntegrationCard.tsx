@@ -81,8 +81,8 @@ export function IntegrationCard ({
             <Cable className="h-6 w-6 text-primary" />
           </div>
           <div className="min-w-0 flex-1 overflow-hidden">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-foreground truncate max-w-full" title={integration.name}>{integration.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-foreground truncate" style={{maxWidth: 'calc(100% - 120px)'}} title={integration.name}>{integration.name}</h3>
               {isSourceOfTruth && (
                 <Badge variant="default" className="bg-blue-500 text-white hover:bg-blue-600 whitespace-nowrap flex-shrink-0">
                   <Crown className="h-3 w-3 mr-1 flex-shrink-0" />

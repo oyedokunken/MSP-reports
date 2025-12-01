@@ -39,7 +39,7 @@ export function ReportCard({ report, downloading, onDownload }: ReportCardProps)
     <Card className="flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1 overflow-hidden">
+          <div className="min-w-0 flex-1 overflow-hidden" style={{maxWidth: 'calc(100% - 100px)'}}>
             <CardTitle className="text-base truncate" title={report.customer_name || 'Unknown Customer'}>
               {report.customer_name || 'Unknown Customer'}
             </CardTitle>

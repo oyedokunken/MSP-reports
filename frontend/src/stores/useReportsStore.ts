@@ -55,26 +55,33 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
   reports: [],
   isLoading: true,
   customerName: '',
+  currentPage: 1,
+  totalPages: 1,
+  perPage: 21,
+  total: 0,
   searchQuery: '',
   statusFilter: 'all',
   reportTypeFilter: 'all',
   downloading: null,
 
   // Fetch reports
-  fetchReports: async (customerId = null) => {
+  fetchReports: async (customerId = null, page = 1) => {
     set({ isLoading: true })
     try {
-      const url = customerId 
-        ? `/reports/history?customer_id=${customerId}`
-        : '/reports/history'
+      const params = new URLSearchParams({ page: page.toString(), per_page: '21' })
+      if (customerId) params.append('customer_id', customerId)
+      
+      const url = `/reports/history?${params.toString()}`
       const response = await api.get<any>(url)
       
       // Handle nested response structure from API
       // API returns: { status: 'success', data: { reports: [...], pagination: {...} } }
       const responseData = (response as any).data || response
       const reportsList = responseData.data?.reports || responseData.reports || []
+      const pagination = responseData.data?.pagination || responseData.pagination || {}
       
       console.log('Reports fetched:', reportsList)
+      console.log('Pagination:', pagination)
       
       // Set customer name from first report if filtering by customer
       const customerName = customerId && reportsList.length > 0 
@@ -84,11 +91,15 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
       set({
         reports: reportsList,
         customerName,
+        currentPage: pagination.current_page || page,
+        totalPages: pagination.last_page || 1,
+        total: pagination.total || reportsList.length,
+        perPage: pagination.per_page || 21,
         isLoading: false,
       })
     } catch (err: any) {
       console.error('Failed to fetch reports:', err)
-      set({ isLoading: false, reports: [] })
+      set({ isLoading: false, reports: [], currentPage: 1, totalPages: 1, total: 0 })
       throw err
     }
   },
