@@ -34,22 +34,25 @@ export function CustomerCard({
 }: CustomerCardProps) {
   return (
     <Card className="flex flex-col overflow-hidden">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1 overflow-hidden" style={{maxWidth: 'calc(100% - 80px)'}}>
-            <CardTitle className="text-base truncate leading-tight" title={customer.canonical_name}>
-              {customer.canonical_name}
-            </CardTitle>
-            <CardDescription className="text-xs mt-1 truncate">
-              {customer.integrations.length} integration{customer.integrations.length !== 1 ? 's' : ''}
-            </CardDescription>
-          </div>
+      <CardHeader className="pb-3 space-y-2">
+        {/* Customer Name - Full Width, 2 Lines */}
+        <div>
+          <CardTitle className="text-base leading-snug line-clamp-2" title={customer.canonical_name}>
+            {customer.canonical_name}
+          </CardTitle>
+        </div>
+        
+        {/* Status and Integration Count */}
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge 
             variant={customer.status === 'active' ? 'default' : 'secondary'}
-            className={customer.status !== 'active' ? 'bg-purple-600 text-white hover:bg-purple-700' : ''}
+            className={`flex-shrink-0 ${customer.status !== 'active' ? 'bg-purple-600 text-white hover:bg-purple-700' : ''}`}
           >
             {customer.status === 'active' ? 'Active' : 'Inactive'}
           </Badge>
+          <CardDescription className="text-xs">
+            {customer.integrations.length} integration{customer.integrations.length !== 1 ? 's' : ''}
+          </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="flex-1 space-y-3">

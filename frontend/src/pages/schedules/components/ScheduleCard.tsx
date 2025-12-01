@@ -23,19 +23,22 @@ interface ScheduleCardProps {
 export function ScheduleCard({ schedule, onConfigure }: ScheduleCardProps) {
     return (
         <Card className="flex flex-col">
-            <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1 overflow-hidden" style={{maxWidth: 'calc(100% - 80px)'}}>
-                        <CardTitle className="text-base truncate" title={schedule.customer_name}>
-                            {schedule.customer_name}
-                        </CardTitle>
-                        <CardDescription className="text-xs mt-1 truncate" title={formatReportType(schedule.report_type)}>
-                            {formatReportType(schedule.report_type)}
-                        </CardDescription>
-                    </div>
+            <CardHeader className="pb-3 space-y-2">
+                {/* Customer Name - Full Width, 2 Lines */}
+                <div>
+                    <CardTitle className="text-base leading-snug line-clamp-2" title={schedule.customer_name}>
+                        {schedule.customer_name}
+                    </CardTitle>
+                    <CardDescription className="text-xs mt-1" title={formatReportType(schedule.report_type)}>
+                        {formatReportType(schedule.report_type)}
+                    </CardDescription>
+                </div>
+                
+                {/* Status Badge - Separate Line */}
+                <div>
                     <Badge
                         variant={schedule.active ? "default" : "secondary"}
-                        className={`flex-shrink-0 whitespace-nowrap ${
+                        className={`flex-shrink-0 ${
                             !schedule.active
                                 ? "bg-purple-600 text-white hover:bg-purple-700"
                                 : ""

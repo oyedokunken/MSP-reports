@@ -37,19 +37,20 @@ export function ReportCard({ report, downloading, onDownload }: ReportCardProps)
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1 overflow-hidden" style={{maxWidth: 'calc(100% - 100px)'}}>
-            <CardTitle className="text-base truncate" title={report.customer_name || 'Unknown Customer'}>
-              {report.customer_name || 'Unknown Customer'}
-            </CardTitle>
-            <CardDescription className="text-xs mt-1 truncate" title={report.report_type || 'Custom Report'}>
-              {report.report_type || 'Custom Report'}
-            </CardDescription>
-          </div>
-          <div className="flex-shrink-0">
-            {getStatusBadge(report.status)}
-          </div>
+      <CardHeader className="pb-3 space-y-2">
+        {/* Customer Name - Full Width, 2 Lines */}
+        <div>
+          <CardTitle className="text-base leading-snug line-clamp-2" title={report.customer_name || 'Unknown Customer'}>
+            {report.customer_name || 'Unknown Customer'}
+          </CardTitle>
+          <CardDescription className="text-xs mt-1" title={report.report_type || 'Custom Report'}>
+            {report.report_type || 'Custom Report'}
+          </CardDescription>
+        </div>
+        
+        {/* Status Badge - Separate Line */}
+        <div>
+          {getStatusBadge(report.status)}
         </div>
       </CardHeader>
       <CardContent className="flex-1 space-y-3">
