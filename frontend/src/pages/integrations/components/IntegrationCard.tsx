@@ -76,32 +76,32 @@ export function IntegrationCard ({
       } ${isSourceOfTruth ? 'border-2 border-blue-500 dark:border-blue-400' : ''}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
           <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
             <Cable className="h-6 w-6 text-primary" />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 overflow-hidden">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-foreground break-words max-w-full">{integration.name}</h3>
+              <h3 className="font-semibold text-foreground truncate max-w-full" title={integration.name}>{integration.name}</h3>
               {isSourceOfTruth && (
                 <Badge variant="default" className="bg-blue-500 text-white hover:bg-blue-600 whitespace-nowrap flex-shrink-0">
-                  <Crown className="h-3 w-3 mr-1" />
-                  Master List
+                  <Crown className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span className="truncate">Master List</span>
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground truncate">{integration.type}</p>
+            <p className="text-xs text-muted-foreground truncate" title={integration.type}>{integration.type}</p>
           </div>
         </div>
-        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium flex-shrink-0 ${statusInfo.color}`}>
-          {statusInfo.text}
+        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium flex-shrink-0 whitespace-nowrap ${statusInfo.color}`}>
+          <span className="truncate">{statusInfo.text}</span>
         </span>
       </div>
 
       <div className="mt-6 space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Last Sync</span>
-          <span className="font-medium text-foreground">{integration.lastSync}</span>
+        <div className="flex items-center justify-between text-sm gap-2">
+          <span className="text-muted-foreground flex-shrink-0">Last Sync</span>
+          <span className="font-medium text-foreground truncate" title={integration.lastSync}>{integration.lastSync}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Unmapped Customers</span>

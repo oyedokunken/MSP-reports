@@ -61,8 +61,8 @@ export function CustomerCard({
           </div>
           <div className="flex flex-wrap gap-1 overflow-hidden">
             {customer.integrations.map((integration) => (
-              <Badge key={integration.integration_customer_id} variant="outline" className="text-xs truncate max-w-full">
-                {integration.integration_type}
+              <Badge key={integration.integration_customer_id} variant="outline" className="text-xs truncate max-w-full whitespace-nowrap" title={integration.integration_type}>
+                <span className="truncate">{integration.integration_type}</span>
               </Badge>
             ))}
           </div>
@@ -75,7 +75,7 @@ export function CustomerCard({
             : 'bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900'
         }`}>
           <FileText className="h-3 w-3" />
-          <span className="font-medium">
+          <span className="font-medium truncate">
             {customer.report_schedules_count && customer.report_schedules_count > 0 
               ? `${customer.report_schedules_count} report${customer.report_schedules_count !== 1 ? 's' : ''} configured`
               : 'No reports configured'}

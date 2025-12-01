@@ -28,9 +28,9 @@ export function ReportCard({ report, downloading, onDownload }: ReportCardProps)
     const Icon = config.icon
 
     return (
-      <Badge variant={config.variant} className="flex items-center gap-1 w-fit">
-        <Icon className="h-3 w-3" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <Badge variant={config.variant} className="flex items-center gap-1 w-fit whitespace-nowrap">
+        <Icon className="h-3 w-3 flex-shrink-0" />
+        <span className="truncate">{status.charAt(0).toUpperCase() + status.slice(1)}</span>
       </Badge>
     )
   }
@@ -39,15 +39,17 @@ export function ReportCard({ report, downloading, onDownload }: ReportCardProps)
     <Card className="flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <CardTitle className="text-base truncate">
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <CardTitle className="text-base truncate" title={report.customer_name || 'Unknown Customer'}>
               {report.customer_name || 'Unknown Customer'}
             </CardTitle>
-            <CardDescription className="text-xs mt-1 truncate">
+            <CardDescription className="text-xs mt-1 truncate" title={report.report_type || 'Custom Report'}>
               {report.report_type || 'Custom Report'}
             </CardDescription>
           </div>
-          {getStatusBadge(report.status)}
+          <div className="flex-shrink-0">
+            {getStatusBadge(report.status)}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex-1 space-y-3">
