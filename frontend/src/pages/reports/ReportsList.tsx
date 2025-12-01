@@ -4,6 +4,7 @@ import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { useReportsStore } from '@/stores/useReportsStore'
 import { ReportsHeader, ReportsFilters, ReportsGrid } from './components'
+import { Pagination } from '@/pages/customers/components/Pagination'
 
 export default function ReportsList() {
   const toast = useToast()
@@ -18,6 +19,9 @@ export default function ReportsList() {
   const searchQuery = useReportsStore(state => state.searchQuery)
   const statusFilter = useReportsStore(state => state.statusFilter)
   const reportTypeFilter = useReportsStore(state => state.reportTypeFilter)
+  const currentPage = useReportsStore(state => state.currentPage)
+  const totalPages = useReportsStore(state => state.totalPages)
+  const total = useReportsStore(state => state.total)
   const fetchReports = useReportsStore(state => state.fetchReports)
   const downloadReport = useReportsStore(state => state.downloadReport)
   const setSearchQuery = useReportsStore(state => state.setSearchQuery)
@@ -28,7 +32,7 @@ export default function ReportsList() {
 
   // Fetch reports on mount or when customerId changes
   useEffect(() => {
-    fetchReports(customerId).catch(err => {
+    fetchReports(customerId, 1).catch(err => {
       toast.error('Failed to load report history', err.response?.data?.message || err.message)
     })
   }, [customerId, fetchReports])

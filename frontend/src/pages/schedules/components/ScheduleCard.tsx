@@ -47,37 +47,37 @@ export function ScheduleCard({ schedule, onConfigure }: ScheduleCardProps) {
             </CardHeader>
             <CardContent className="flex-1 space-y-3">
                 <div className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground flex items-center gap-1">
+                    <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground flex items-center gap-1 flex-shrink-0">
                             <Calendar className="h-3 w-3" />
                             Frequency
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium truncate" title={formatFrequency(schedule.frequency)}>
                             {formatFrequency(schedule.frequency)}
                         </span>
                     </div>
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground flex items-center gap-1">
+                    <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground flex items-center gap-1 flex-shrink-0">
                             <Clock className="h-3 w-3" />
                             Time
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium truncate">
                             {schedule.time_of_day || "On-demand"}
                         </span>
                     </div>
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">
+                    <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground flex-shrink-0">
                             Last Generated
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium truncate" title={formatDate(schedule.last_generated_at)}>
                             {formatDate(schedule.last_generated_at)}
                         </span>
                     </div>
-                    <div className="flex justify-between">
-                        <span className="text-muted-foreground">
+                    <div className="flex justify-between gap-2">
+                        <span className="text-muted-foreground flex-shrink-0">
                             Next Scheduled
                         </span>
-                        <span className="font-medium">
+                        <span className="font-medium truncate" title={formatDate(schedule.next_scheduled_at)}>
                             {formatDate(schedule.next_scheduled_at)}
                         </span>
                     </div>

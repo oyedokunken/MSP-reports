@@ -22,6 +22,12 @@ interface ReportsState {
   isLoading: boolean
   customerName: string
   
+  // Pagination
+  currentPage: number
+  totalPages: number
+  perPage: number
+  total: number
+  
   // Filters
   searchQuery: string
   statusFilter: string
@@ -31,7 +37,7 @@ interface ReportsState {
   downloading: number | null
   
   // Actions
-  fetchReports: (customerId?: string | null) => Promise<void>
+  fetchReports: (customerId?: string | null, page?: number) => Promise<void>
   downloadReport: (reportId: number) => Promise<{ success: boolean; error?: string }>
   
   // Filter actions
