@@ -34,7 +34,7 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
   allSchedules: [],
   isLoading: true,
   currentPage: 1,
-  perPage: 21,
+  perPage: 9,
 
   // Fetch schedules
   fetchSchedules: async () => {

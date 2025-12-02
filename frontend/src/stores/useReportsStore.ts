@@ -57,7 +57,7 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
   customerName: '',
   currentPage: 1,
   totalPages: 1,
-  perPage: 21,
+  perPage: 9,
   total: 0,
   searchQuery: '',
   statusFilter: 'all',
@@ -68,7 +68,7 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
   fetchReports: async (customerId = null, page = 1) => {
     set({ isLoading: true })
     try {
-      const params = new URLSearchParams({ page: page.toString(), per_page: '21' })
+      const params = new URLSearchParams({ page: page.toString(), per_page: '9' })
       if (customerId) params.append('customer_id', customerId)
       
       const url = `/reports/history?${params.toString()}`
