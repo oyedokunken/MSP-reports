@@ -7,13 +7,11 @@ import { useNavigate } from "react-router-dom";
 type UpcomingReportsProps = {
     isLoading: boolean;
     reports: UpcomingReport[];
-    onInfo: (title: string, description?: string) => void;
 };
 
 export function UpcomingReports({
     isLoading,
     reports,
-    onInfo,
 }: UpcomingReportsProps) {
     const navigate = useNavigate();
 
