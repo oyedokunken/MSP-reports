@@ -93,7 +93,7 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
         currentPage: pagination.current_page || page,
         totalPages: pagination.last_page || 1,
         total: pagination.total || reportsList.length,
-        perPage: pagination.per_page || 21,
+        perPage: pagination.per_page || 9,
         isLoading: false,
       })
     } catch (err: any) {

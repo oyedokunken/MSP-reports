@@ -176,6 +176,7 @@ export default function CustomerList() {
                         totalPages={totalPages}
                         total={total}
                         onPageChange={(page) => fetchCustomers(page)}
+                        itemLabel="customers"
                     />
                 )}
 

@@ -53,6 +53,8 @@ export default function ScheduleList() {
             totalPages={Math.ceil(allSchedules.length / perPage)}
             total={allSchedules.length}
             onPageChange={setPage}
+            itemLabel="schedules"
+            perPage={perPage}
           />
         )}
       </div>

@@ -85,6 +85,8 @@ export default function ReportsList() {
             totalPages={totalPages}
             total={total}
             onPageChange={(page) => fetchReports(customerId, page)}
+            itemLabel="reports"
+            perPage={perPage}
           />
         )}
       </div>

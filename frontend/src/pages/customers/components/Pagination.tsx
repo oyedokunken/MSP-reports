@@ -5,11 +5,13 @@ interface PaginationProps {
   totalPages: number
   total: number
   onPageChange: (page: number) => void
+  itemLabel?: string
+  perPage?: number
 }
 
-export function Pagination({ currentPage, totalPages, total, onPageChange }: PaginationProps) {
-  const startItem = (currentPage - 1) * 15 + 1
-  const endItem = Math.min(currentPage * 15, total)
+export function Pagination({ currentPage, totalPages, total, onPageChange, itemLabel = 'items', perPage = 9 }: PaginationProps) {
+  const startItem = (currentPage - 1) * perPage + 1
+  const endItem = Math.min(currentPage * perPage, total)
 
   const handlePrevious = () => {
     if (currentPage > 1) {
@@ -63,7 +65,7 @@ export function Pagination({ currentPage, totalPages, total, onPageChange }: Pag
       <p className="text-sm text-gray-700">
         Showing <span className="font-medium">{startItem}</span> to{' '}
         <span className="font-medium">{endItem}</span> of{' '}
-        <span className="font-medium">{total}</span> customers
+        <span className="font-medium">{total}</span> {itemLabel}
       </p>
       
       <div className="flex items-center gap-2">

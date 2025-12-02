@@ -49,6 +49,9 @@ export default function IntegrationList() {
         (state) => state.syncIntegration
     );
     const setPage = useIntegrationStore((state) => state.setPage);
+    const searchQuery = useIntegrationStore((state) => state.searchQuery);
+    const setSearchQuery = useIntegrationStore((state) => state.setSearchQuery);
+    const getFilteredIntegrations = useIntegrationStore((state) => state.getFilteredIntegrations);
     const openModal = useIntegrationStore((state) => state.openModal);
     const closeModal = useIntegrationStore((state) => state.closeModal);
 
@@ -87,7 +90,11 @@ export default function IntegrationList() {
     return (
         <FloatingLayout>
             <div className="space-y-6">
-                <IntegrationHeader onAdd={() => openModal("add")} />
+                <IntegrationHeader 
+                    onAdd={() => openModal("add")} 
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                />
 
                 <IntegrationGrid
                     isLoading={isLoading}
@@ -118,12 +125,14 @@ export default function IntegrationList() {
                 />
 
                 {/* Pagination */}
-                {!isLoading && allIntegrations.length > perPage && (
+                {!isLoading && getFilteredIntegrations().length > perPage && (
                     <Pagination
                         currentPage={currentPage}
-                        totalPages={Math.ceil(allIntegrations.length / perPage)}
-                        total={allIntegrations.length}
+                        totalPages={Math.ceil(getFilteredIntegrations().length / perPage)}
+                        total={getFilteredIntegrations().length}
                         onPageChange={setPage}
+                        itemLabel="integrations"
+                        perPage={perPage}
                     />
                 )}
 

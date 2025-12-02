@@ -11,7 +11,8 @@ interface IntegrationState {
   sourceOfTruthId: number | null
   isLoading: boolean
 
-  // Pagination (client-side)
+  // Search & Pagination (client-side)
+  searchQuery: string
   currentPage: number
   perPage: number
   
@@ -41,6 +42,8 @@ interface IntegrationState {
   setSourceOfTruth: (id: number) => Promise<{ success: boolean; error?: string }>
   syncIntegration: (id: number) => Promise<{ success: boolean; error?: string }>
   setPage: (page: number) => void
+  setSearchQuery: (query: string) => void
+  getFilteredIntegrations: () => Integration[]
 
   // Modal actions
   openModal: (modal: keyof IntegrationState['modals'], integration?: Integration) => void
@@ -55,8 +58,9 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   availableTypes: [],
   sourceOfTruthId: null,
   isLoading: true,
+  searchQuery: '',
   currentPage: 1,
-  perPage: 21,
+  perPage: 9,
   syncingId: null,
   syncProgress: 0,
   settingSourceOfTruthId: null,
@@ -182,5 +186,42 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
 
   setSelectedIntegration: integration => {
     set({ selectedIntegration: integration })
+  },
+
+  // Pagination action
+  setPage: (page: number) => {
+    const { perPage } = get()
+    const filtered = get().getFilteredIntegrations()
+    const startIndex = (page - 1) * perPage
+    const endIndex = startIndex + perPage
+    const paginatedIntegrations = filtered.slice(startIndex, endIndex)
+    
+    set({ 
+      currentPage: page,
+      integrations: paginatedIntegrations
+    })
+  },
+
+  // Search action
+  setSearchQuery: (query: string) => {
+    set({ searchQuery: query, currentPage: 1 })
+    // Re-paginate with filtered results
+    const { perPage } = get()
+    const filtered = get().getFilteredIntegrations()
+    const paginatedIntegrations = filtered.slice(0, perPage)
+    set({ integrations: paginatedIntegrations })
+  },
+
+  // Get filtered integrations based on search
+  getFilteredIntegrations: () => {
+    const { allIntegrations, searchQuery } = get()
+    if (!searchQuery.trim()) return allIntegrations
+    
+    const query = searchQuery.toLowerCase()
+    return allIntegrations.filter(int => 
+      int.name.toLowerCase().includes(query) ||
+      int.type.toLowerCase().includes(query) ||
+      int.status.toLowerCase().includes(query)
+    )
   },
 }))
