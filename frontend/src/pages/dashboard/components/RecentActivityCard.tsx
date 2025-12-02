@@ -25,7 +25,7 @@ export function RecentActivityCard({
                     Recent Activity
                 </h2>
                 <button
-                    onClick={() => navigate("/notifications")}
+                    onClick={() => navigate("/platform/notifications")}
                     className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
                 >
                     View all
