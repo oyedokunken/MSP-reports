@@ -1,5 +1,7 @@
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { ReportsHeader, ReportsFilters, ReportsGrid } from './components'
+import { Pagination } from '@/pages/customers/components/Pagination'
+import { useReportsStore } from '@/stores/useReportsStore'
 import { useReportsList } from './hooks'
 
 export default function ReportsList() {
@@ -19,6 +21,13 @@ export default function ReportsList() {
     setReportTypeFilter,
     handleDownload
   } = useReportsList()
+
+  // Pagination from store
+  const currentPage = useReportsStore(state => state.currentPage)
+  const totalPages = useReportsStore(state => state.totalPages)
+  const total = useReportsStore(state => state.total)
+  const perPage = useReportsStore(state => state.perPage)
+  const fetchReports = useReportsStore(state => state.fetchReports)
 
   return (
     <FloatingLayout>

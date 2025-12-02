@@ -17,8 +17,11 @@ export default function ScheduleList() {
   const isLoading = useSchedulesStore(state => state.isLoading)
   const currentPage = useSchedulesStore(state => state.currentPage)
   const perPage = useSchedulesStore(state => state.perPage)
+  const searchQuery = useSchedulesStore(state => state.searchQuery)
   const fetchSchedules = useSchedulesStore(state => state.fetchSchedules)
   const setPage = useSchedulesStore(state => state.setPage)
+  const setSearchQuery = useSchedulesStore(state => state.setSearchQuery)
+  const getFilteredSchedules = useSchedulesStore(state => state.getFilteredSchedules)
 
   useEffect(() => {
     fetchSchedules().catch(err => {
@@ -37,7 +40,11 @@ export default function ScheduleList() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        <SchedulesHeader onCreateSchedule={handleCreateSchedule} />
+        <SchedulesHeader 
+          onCreateSchedule={handleCreateSchedule}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
         
         <SchedulesGrid
           schedules={schedules}
@@ -47,11 +54,11 @@ export default function ScheduleList() {
         />
 
         {/* Pagination */}
-        {!isLoading && allSchedules.length > perPage && (
+        {!isLoading && getFilteredSchedules().length > perPage && (
           <Pagination
             currentPage={currentPage}
-            totalPages={Math.ceil(allSchedules.length / perPage)}
-            total={allSchedules.length}
+            totalPages={Math.ceil(getFilteredSchedules().length / perPage)}
+            total={getFilteredSchedules().length}
             onPageChange={setPage}
             itemLabel="schedules"
             perPage={perPage}

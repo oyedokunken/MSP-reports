@@ -19,13 +19,16 @@ interface SchedulesState {
   allSchedules: ReportSchedule[]
   isLoading: boolean
   
-  // Pagination
+  // Search & Pagination
+  searchQuery: string
   currentPage: number
   perPage: number
   
   // Actions
   fetchSchedules: () => Promise<void>
   setPage: (page: number) => void
+  setSearchQuery: (query: string) => void
+  getFilteredSchedules: () => ReportSchedule[]
 }
 
 export const useSchedulesStore = create<SchedulesState>((set, get) => ({
@@ -33,6 +36,7 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
   schedules: [],
   allSchedules: [],
   isLoading: true,
+  searchQuery: '',
   currentPage: 1,
   perPage: 9,
 
@@ -63,14 +67,37 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
 
   // Pagination action
   setPage: (page: number) => {
-    const { allSchedules, perPage } = get()
+    const { perPage } = get()
+    const filtered = get().getFilteredSchedules()
     const startIndex = (page - 1) * perPage
     const endIndex = startIndex + perPage
-    const paginatedSchedules = allSchedules.slice(startIndex, endIndex)
+    const paginatedSchedules = filtered.slice(startIndex, endIndex)
     
     set({ 
       currentPage: page,
       schedules: paginatedSchedules
     })
+  },
+
+  // Search action
+  setSearchQuery: (query: string) => {
+    set({ searchQuery: query, currentPage: 1 })
+    const { perPage } = get()
+    const filtered = get().getFilteredSchedules()
+    const paginatedSchedules = filtered.slice(0, perPage)
+    set({ schedules: paginatedSchedules })
+  },
+
+  // Get filtered schedules based on search
+  getFilteredSchedules: () => {
+    const { allSchedules, searchQuery } = get()
+    if (!searchQuery.trim()) return allSchedules
+    
+    const query = searchQuery.toLowerCase()
+    return allSchedules.filter(schedule => 
+      schedule.customer_name.toLowerCase().includes(query) ||
+      schedule.report_type.toLowerCase().includes(query) ||
+      schedule.frequency.toLowerCase().includes(query)
+    )
   },
 }))
