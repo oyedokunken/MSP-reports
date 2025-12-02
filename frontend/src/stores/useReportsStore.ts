@@ -87,7 +87,6 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
       const customerName = customerId && reportsList.length > 0 
         ? reportsList[0].customer_name 
         : ''
-      
       set({
         reports: reportsList,
         customerName,

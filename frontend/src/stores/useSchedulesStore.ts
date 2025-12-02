@@ -16,10 +16,16 @@ export interface ReportSchedule {
 interface SchedulesState {
   // Data
   schedules: ReportSchedule[]
+  allSchedules: ReportSchedule[]
   isLoading: boolean
+  
+  // Pagination
+  currentPage: number
+  perPage: number
   
   // Actions
   fetchSchedules: () => Promise<void>
+  setPage: (page: number) => void
 }
 
 export const useSchedulesStore = create<SchedulesState>((set, get) => ({

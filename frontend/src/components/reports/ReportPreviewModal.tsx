@@ -8,7 +8,8 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
+import { ZoomIn, ZoomOut, Maximize2, Mail } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 import apiClient from '@/lib/api'
 
 interface ReportPreviewModalProps {
@@ -24,10 +25,12 @@ export function ReportPreviewModal({
   reportId,
   reportName,
 }: ReportPreviewModalProps) {
+  const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [zoom, setZoom] = useState(100)
+  const [sendingEmail, setSendingEmail] = useState(false)
 
   useEffect(() => {
     if (open && reportId) {
@@ -86,6 +89,25 @@ export function ReportPreviewModal({
     setZoom(100)
   }
 
+  const handleEmailReport = async () => {
+    try {
+      setSendingEmail(true)
+      console.log('Sending email for report ID:', reportId)
+
+      await apiClient.post(`/reports/${reportId}/email`)
+
+      toast.success('Email Sent!', 'Report has been emailed successfully')
+    } catch (err: any) {
+      console.error('Failed to email report:', err)
+      const errorMessage = err.response?.data?.message 
+        || err.message 
+        || 'Failed to send email'
+      toast.error('Email Failed', errorMessage)
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
@@ -98,7 +120,7 @@ export function ReportPreviewModal({
           </div>
 
           {/* Toolbar */}
-          <div className="flex items-center gap-2 mt-4">
+          <div className="flex items-center justify-between gap-2 mt-4">
             <div className="flex items-center gap-1 border rounded-md">
               <Button
                 variant="ghost"
@@ -130,6 +152,26 @@ export function ReportPreviewModal({
                 <Maximize2 className="h-4 w-4" />
               </Button>
             </div>
+
+            {/* Email Report Button */}
+            <Button
+              onClick={handleEmailReport}
+              disabled={sendingEmail || loading || !!error}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {sendingEmail ? (
+                <>
+                  <Spinner className="h-4 w-4 mr-2" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email Report
+                </>
+              )}
+            </Button>
           </div>
         </DialogHeader>
 

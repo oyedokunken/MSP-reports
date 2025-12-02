@@ -112,6 +112,7 @@ Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
         Route::get('/reports/scheduled', [ReportAnalyticsController::class, 'getScheduledReports']);
         Route::get('/reports/history', [ReportAnalyticsController::class, 'getReportHistory']);
         Route::get('/reports/{id}/download', [ReportAnalyticsController::class, 'downloadReport']);
+        Route::post('/reports/{id}/email', [ReportAnalyticsController::class, 'emailReport']);
         Route::delete('/reports/schedules/{id}', [ReportAnalyticsController::class, 'deleteSchedule']);
     });
 

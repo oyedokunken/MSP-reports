@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use App\Models\ReportSchedule;
 use App\Models\GeneratedReport;
+use App\Jobs\DeliverReportJob;
 
 class ReportAnalyticsController extends Controller
 {

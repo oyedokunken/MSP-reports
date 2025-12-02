@@ -13,8 +13,12 @@ export default function ScheduleList() {
   const [selectCustomerOpen, setSelectCustomerOpen] = useState(false)
   
   const schedules = useSchedulesStore(state => state.schedules)
+  const allSchedules = useSchedulesStore(state => state.allSchedules)
   const isLoading = useSchedulesStore(state => state.isLoading)
+  const currentPage = useSchedulesStore(state => state.currentPage)
+  const perPage = useSchedulesStore(state => state.perPage)
   const fetchSchedules = useSchedulesStore(state => state.fetchSchedules)
+  const setPage = useSchedulesStore(state => state.setPage)
 
   useEffect(() => {
     fetchSchedules().catch(err => {
@@ -41,6 +45,16 @@ export default function ScheduleList() {
           onConfigure={handleConfigure}
           onCreateSchedule={handleCreateSchedule}
         />
+
+        {/* Pagination */}
+        {!isLoading && allSchedules.length > perPage && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(allSchedules.length / perPage)}
+            total={allSchedules.length}
+            onPageChange={setPage}
+          />
+        )}
       </div>
       
       <SelectCustomerModal 
