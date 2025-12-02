@@ -1,227 +1,239 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Uptime Report - {{ $customer->canonical_name ?? $customer->name }}</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
-            padding: 20px;
-            color: #2c3e50;
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #fff;
+            color: #1a1a1a;
+            font-size: 10pt;
+            line-height: 1.5;
         }
-        .container {
-            max-width: 1000px;
+        
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
             margin: 0 auto;
-            background: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
+        
+        /* Header */
         .header {
-            background: {{ $branding['primary_color'] ?? '#1a56db' }};
-            color: white;
-            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 15mm;
+            border-bottom: 1px solid #e5e5e5;
+            margin-bottom: 10mm;
+        }
+        
+        .header-left h1 {
+            font-size: 24pt;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 3mm;
+        }
+        
+        .header-left .subtitle {
+            font-size: 11pt;
+            color: #666;
+            font-weight: 400;
+        }
+        
+        .header-right {
+            text-align: right;
+            font-size: 9pt;
+            color: #666;
+        }
+        
+        .header-right .label {
+            font-weight: 500;
+            color: #999;
+            text-transform: uppercase;
+            font-size: 7pt;
+            letter-spacing: 0.5px;
+        }
+        
+        .header-right .value {
+            color: #1a1a1a;
+            margin-bottom: 2mm;
+        }
+        
+        /* Summary Stats */
+        .summary {
+            background: #fafafa;
+            padding: 5mm;
+            border-radius: 2mm;
+            margin-bottom: 10mm;
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        .summary-item {
             text-align: center;
         }
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        .header .company {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        .report-info {
-            background: #f8f9fa;
-            padding: 20px 30px;
-            border-bottom: 3px solid {{ $branding['primary_color'] ?? '#1a56db' }};
-        }
-        .report-info h2 {
-            font-size: 18px;
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }
-        .info-item {
-            display: flex;
-            flex-direction: column;
-        }
-        .info-label {
-            font-size: 12px;
-            color: #6c757d;
+        
+        .summary-label {
+            font-size: 8pt;
+            color: #999;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 5px;
+            margin-bottom: 2mm;
+            font-weight: 500;
         }
-        .info-value {
-            font-size: 16px;
+        
+        .summary-value {
+            font-size: 20pt;
             font-weight: 600;
-            color: #2c3e50;
+            color: #1a1a1a;
         }
-        .metrics {
-            padding: 30px;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+        
+        .summary-unit {
+            font-size: 9pt;
+            color: #666;
+            font-weight: 400;
         }
-        .metric-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            color: white;
+        
+        /* Section */
+        .section {
+            margin-bottom: 8mm;
         }
-        .metric-card:nth-child(2) {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-        .metric-card:nth-child(3) {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-        .metric-card:nth-child(4) {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-        .metric-label {
-            font-size: 12px;
-            opacity: 0.9;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-        }
-        .metric-value {
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .metric-unit {
-            font-size: 14px;
-            opacity: 0.8;
-        }
-        .content {
-            padding: 30px;
-        }
+        
         .section-title {
-            font-size: 20px;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid {{ $branding['primary_color'] ?? '#1a56db' }};
+            font-size: 12pt;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4mm;
+            padding-bottom: 2mm;
+            border-bottom: 1px solid #e5e5e5;
         }
+        
+        /* Table */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 3mm;
         }
-        thead {
-            background: {{ $branding['primary_color'] ?? '#1a56db' }};
-            color: white;
-        }
+        
         th {
-            padding: 12px;
             text-align: left;
-            font-weight: 600;
-            font-size: 14px;
+            font-size: 8pt;
+            font-weight: 500;
+            color: #999;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            padding: 2mm 2mm;
+            border-bottom: 1px solid #e5e5e5;
         }
+        
         td {
-            padding: 12px;
-            border-bottom: 1px solid #e9ecef;
+            padding: 3mm 2mm;
+            font-size: 9pt;
+            color: #1a1a1a;
+            border-bottom: 1px solid #f5f5f5;
         }
-        tbody tr:hover {
-            background: #f8f9fa;
+        
+        tr:last-child td {
+            border-bottom: none;
         }
-        .status-badge {
+        
+        /* Status Badge */
+        .status {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
+            padding: 1mm 3mm;
+            border-radius: 1mm;
+            font-size: 8pt;
+            font-weight: 500;
         }
-        .status-excellent { background: #d4edda; color: #155724; }
-        .status-good { background: #d1ecf1; color: #0c5460; }
-        .status-warning { background: #fff3cd; color: #856404; }
-        .status-critical { background: #f8d7da; color: #721c24; }
+        
+        .status-excellent { background: #d1fae5; color: #065f46; }
+        .status-good { background: #dbeafe; color: #1e40af; }
+        .status-warning { background: #fef3c7; color: #92400e; }
+        .status-critical { background: #fee2e2; color: #991b1b; }
+        
+        /* Footer */
         .footer {
-            background: #2c3e50;
-            color: white;
-            padding: 20px 30px;
-            text-align: center;
-            font-size: 12px;
+            margin-top: 15mm;
+            padding-top: 3mm;
+            border-top: 1px solid #e5e5e5;
+            font-size: 8pt;
+            color: #999;
+            display: flex;
+            justify-content: space-between;
         }
-        .footer p {
-            margin: 5px 0;
-            opacity: 0.8;
+        
+        @media print {
+            .page { page-break-after: always; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="page">
         <!-- Header -->
         <div class="header">
-            <h1>Uptime & Performance Report</h1>
-            <div class="company">{{ $branding['company_name'] ?? 'Company' }}</div>
-        </div>
-
-        <!-- Report Info -->
-        <div class="report-info">
-            <h2>Report Information</h2>
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">Customer</span>
-                    <span class="info-value">{{ $customer->canonical_name ?? $customer->name }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Report Period</span>
-                    <span class="info-value">{{ $period['start'] ?? 'N/A' }} to {{ $period['end'] ?? 'N/A' }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Generated</span>
-                    <span class="info-value">{{ $reportData['generated_at'] ?? now()->format('F j, Y') }}</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Report Type</span>
-                    <span class="info-value">Uptime Report</span>
-                </div>
+            <div class="header-left">
+                <h1>Uptime Report</h1>
+                <div class="subtitle">{{ $customer->canonical_name ?? $customer->name }}</div>
+            </div>
+            <div class="header-right">
+                <div><span class="label">Period</span></div>
+                <div class="value">{{ $period['start'] ?? 'N/A' }} - {{ $period['end'] ?? 'N/A' }}</div>
+                <div><span class="label">Generated</span></div>
+                <div class="value">{{ \Carbon\Carbon::parse($generated_at)->format('M j, Y') }}</div>
             </div>
         </div>
-
-        <!-- Metrics -->
-        <div class="metrics">
-            @foreach($metrics as $key => $metric)
-            <div class="metric-card">
-                <div class="metric-label">{{ $metric['label'] ?? 'Metric' }}</div>
-                <div class="metric-value">{{ $metric['value'] ?? '0' }}</div>
-                <div class="metric-unit">{{ $metric['unit'] ?? '' }}</div>
+        
+        <!-- Summary -->
+        @if(isset($data['devices']) && count($data['devices']) > 0)
+        @php
+            $totalDevices = count($data['devices']);
+            $activeDevices = collect($data['devices'])->filter(fn($d) => ($d['average_uptime'] ?? 0) > 0)->count();
+            $avgUptime = collect($data['devices'])->avg('average_uptime') ?? 0;
+        @endphp
+        <div class="summary">
+            <div class="summary-item">
+                <div class="summary-label">Total Devices</div>
+                <div class="summary-value">{{ $totalDevices }}</div>
             </div>
-            @endforeach
+            <div class="summary-item">
+                <div class="summary-label">Active Devices</div>
+                <div class="summary-value">{{ $activeDevices }}</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-label">Average Uptime</div>
+                <div class="summary-value">{{ number_format($avgUptime, 1) }}<span class="summary-unit">%</span></div>
+            </div>
         </div>
-
-        <!-- Device Details -->
-        @if(isset($data) && count($data) > 0)
-        <div class="content">
-            <h2 class="section-title">Device Performance Details</h2>
+        
+        <!-- Device Performance -->
+        <div class="section">
+            <h2 class="section-title">Device Performance</h2>
             <table>
                 <thead>
                     <tr>
-                        <th>Device ID</th>
-                        <th>Average Uptime</th>
-                        <th>Max Downtime</th>
-                        <th>Status</th>
+                        <th>Device Name</th>
+                        <th style="text-align: right; width: 80px;">Uptime</th>
+                        <th style="text-align: right; width: 80px;">Downtime</th>
+                        <th style="text-align: right; width: 80px;">Checks</th>
+                        <th style="width: 100px;">Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($data as $deviceId => $stats)
+                    @foreach($data['devices'] as $device)
                     <tr>
-                        <td><strong>{{ $deviceId }}</strong></td>
-                        <td>{{ number_format($stats['avg_uptime'] ?? 0, 2) }}%</td>
-                        <td>{{ $stats['max_downtime'] ?? 0 }} minutes</td>
+                        <td>{{ $device['device_name'] ?? 'Unknown' }}</td>
+                        <td style="text-align: right;">{{ number_format($device['average_uptime'] ?? 0, 1) }}%</td>
+                        <td style="text-align: right;">{{ round($device['total_downtime_minutes'] ?? 0, 1) }}m</td>
+                        <td style="text-align: right;">{{ $device['measurement_count'] ?? 0 }}</td>
                         <td>
                             @php
-                                $uptime = $stats['avg_uptime'] ?? 0;
+                                $uptime = $device['average_uptime'] ?? 0;
                                 if ($uptime >= 99.9) {
                                     $statusClass = 'status-excellent';
                                     $statusText = 'Excellent';
@@ -236,20 +248,21 @@
                                     $statusText = 'Critical';
                                 }
                             @endphp
-                            <span class="status-badge {{ $statusClass }}">{{ $statusText }}</span>
+                            <span class="status {{ $statusClass }}">{{ $statusText }}</span>
                         </td>
                     </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
-        @endif
-
-        <!-- Footer -->
-        <div class="footer">
-            <p>{{ $branding['footer_text'] ?? '© ' . date('Y') . ' ' . ($branding['company_name'] ?? 'Company') }}</p>
-            <p>This report was automatically generated by {{ $branding['company_name'] ?? 'Company' }}</p>
+        @else
+        <div class="summary">
+            <div class="summary-item">
+                <div class="summary-label">No Data Available</div>
+                <div class="summary-value" style="font-size: 12pt; color: #999;">—</div>
+            </div>
         </div>
+        @endif
     </div>
 </body>
 </html>

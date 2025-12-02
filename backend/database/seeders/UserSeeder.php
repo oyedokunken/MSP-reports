@@ -28,7 +28,7 @@ class UserSeeder extends Seeder
             ['description' => 'Full system administrator']
         );
 
-        // Create admin user (if not exists)
+        // Create admin user (if not exists) - Light theme
         User::firstOrCreate(
             ['email' => 'admin@tts.com.au'],
             [
@@ -65,18 +65,25 @@ class UserSeeder extends Seeder
                     'edit' => true,
                 ],
             ],
+            'settings' => [
+                'theme' => 'light',
+                'notifications' => [
+                    'email' => true,
+                    'browser' => true,
+                ],
+            ],
             'email_verified_at' => now(),
             ]
         );
 
-        // Create test user (Kristian) - if not exists
+        // Create test user (Kristian) - Dark theme
         User::firstOrCreate(
             ['email' => 'kristianbas14@gmail.com'],
             [
             'company_id' => $company->company_id,
             'role_id' => $adminRole->id,
-            'name' => 'Kristian Bas',
-            'email' => 'kristianbas14@gmail.com',
+            'name' => 'User',
+            'email' => 'user@tts.com.au',
             'password' => Hash::make('password123'),
             'status' => 'active',
             'auth_method' => 'local',
@@ -104,6 +111,13 @@ class UserSeeder extends Seeder
                 'company_settings' => [
                     'view' => true,
                     'edit' => true,
+                ],
+            ],
+            'settings' => [
+                'theme' => 'dark',
+                'notifications' => [
+                    'email' => true,
+                    'browser' => false,
                 ],
             ],
             'email_verified_at' => now(),

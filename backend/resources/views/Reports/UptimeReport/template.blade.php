@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Uptime Report - {{ $customer->canonical_name ?? $customer->name }}</title>
+    <title>{{ $branding['report_title'] ?? 'Uptime Report' }} - {{ $customer->canonical_name ?? $customer->name }}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        
+        :root {
+            --primary-color: {{ $branding['primary_color'] ?? '#1a56db' }};
+            --secondary-color: {{ $branding['secondary_color'] ?? '#7c3aed' }};
+            --primary-rgb: {{ \App\Helpers\ColorHelper::hexToRgb($branding['primary_color'] ?? '#1a56db') }};
+            --secondary-rgb: {{ \App\Helpers\ColorHelper::hexToRgb($branding['secondary_color'] ?? '#7c3aed') }};
+        }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -23,56 +30,15 @@
             margin: 0 auto;
         }
         
-        /* Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding-bottom: 15mm;
-            border-bottom: 1px solid #e5e5e5;
-            margin-bottom: 10mm;
-        }
-        
-        .header-left h1 {
-            font-size: 24pt;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 3mm;
-        }
-        
-        .header-left .subtitle {
-            font-size: 11pt;
-            color: #666;
-            font-weight: 400;
-        }
-        
-        .header-right {
-            text-align: right;
-            font-size: 9pt;
-            color: #666;
-        }
-        
-        .header-right .label {
-            font-weight: 500;
-            color: #999;
-            text-transform: uppercase;
-            font-size: 7pt;
-            letter-spacing: 0.5px;
-        }
-        
-        .header-right .value {
-            color: #1a1a1a;
-            margin-bottom: 2mm;
-        }
-        
         /* Summary Stats */
         .summary {
-            background: #fafafa;
+            background: rgba(var(--primary-rgb), 0.05);
             padding: 5mm;
             border-radius: 2mm;
             margin-bottom: 10mm;
             display: flex;
             justify-content: space-around;
+            border: 1px solid rgba(var(--primary-rgb), 0.1);
         }
         
         .summary-item {
@@ -91,7 +57,7 @@
         .summary-value {
             font-size: 20pt;
             font-weight: 600;
-            color: #1a1a1a;
+            color: var(--primary-color);
         }
         
         .summary-unit {
@@ -108,10 +74,10 @@
         .section-title {
             font-size: 12pt;
             font-weight: 600;
-            color: #1a1a1a;
+            color: var(--primary-color);
             margin-bottom: 4mm;
             padding-bottom: 2mm;
-            border-bottom: 1px solid #e5e5e5;
+            border-bottom: 2px solid var(--primary-color);
         }
         
         /* Table */
@@ -153,20 +119,9 @@
         }
         
         .status-excellent { background: #d1fae5; color: #065f46; }
-        .status-good { background: #dbeafe; color: #1e40af; }
+        .status-good { background: rgba(var(--primary-rgb), 0.1); color: var(--primary-color); }
         .status-warning { background: #fef3c7; color: #92400e; }
         .status-critical { background: #fee2e2; color: #991b1b; }
-        
-        /* Footer */
-        .footer {
-            margin-top: 15mm;
-            padding-top: 3mm;
-            border-top: 1px solid #e5e5e5;
-            font-size: 8pt;
-            color: #999;
-            display: flex;
-            justify-content: space-between;
-        }
         
         @media print {
             .page { page-break-after: always; }
@@ -175,19 +130,12 @@
 </head>
 <body>
     <div class="page">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-left">
-                <h1>Uptime Report</h1>
-                <div class="subtitle">{{ $customer->canonical_name ?? $customer->name }}</div>
-            </div>
-            <div class="header-right">
-                <div><span class="label">Period</span></div>
-                <div class="value">{{ $period['start'] ?? 'N/A' }} - {{ $period['end'] ?? 'N/A' }}</div>
-                <div><span class="label">Generated</span></div>
-                <div class="value">{{ \Carbon\Carbon::parse($generated_at)->format('M j, Y') }}</div>
-            </div>
-        </div>
+        <!-- Header Partial -->
+        @include('reports.partials.header', [
+            'branding' => $branding,
+            'customer' => $customer,
+            'reportDate' => \Carbon\Carbon::parse($generated_at)->format('F j, Y')
+        ])
         
         <!-- Summary -->
         @if(isset($data['devices']) && count($data['devices']) > 0)
@@ -263,6 +211,11 @@
             </div>
         </div>
         @endif
+        
+        <!-- Footer Partial -->
+        @include('reports.partials.footer', [
+            'branding' => $branding
+        ])
     </div>
 </body>
 </html>

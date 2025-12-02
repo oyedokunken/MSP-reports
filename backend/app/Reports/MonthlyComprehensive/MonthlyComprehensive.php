@@ -36,7 +36,7 @@ class MonthlyComprehensive extends BaseReport
                 'end' => $this->formatDate($endDate),
                 'formatted' => $this->formatDateRange($startDate, $endDate),
             ],
-            'branding' => $this->getBranding(),
+            // Branding is now handled by ReportGenerationService::applyBranding()
             'included_reports' => [],
         ];
         

@@ -7,6 +7,13 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
+        :root {
+            --primary-color: {{ $branding['primary_color'] ?? '#dc2626' }};
+            --secondary-color: {{ $branding['secondary_color'] ?? '#991b1b' }};
+            --primary-rgb: {{ \App\Helpers\ColorHelper::hexToRgb($branding['primary_color'] ?? '#dc2626') }};
+            --secondary-rgb: {{ \App\Helpers\ColorHelper::hexToRgb($branding['secondary_color'] ?? '#991b1b') }};
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -40,7 +47,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
             position: relative;
             overflow: hidden;

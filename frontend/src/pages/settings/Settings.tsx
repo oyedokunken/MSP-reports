@@ -48,10 +48,24 @@ export default function Settings() {
         
         if (response && response.data) {
           const data = response.data
+          console.log('Settings API response:', data)
+          console.log('Logo URL from API:', data.logo_url)
+          console.log('Profile Logo URL from API:', data.profile_logo_url)
+          
           setCompanyName(data.name || '')
           setContactEmail(data.contact_email || '')
           setContactPhone(data.contact_phone || '')
           setAddress(data.address || '')
+          
+          // Load logo URLs from root level (already converted to full URLs by backend)
+          if (data.logo_url) {
+            console.log('Setting logoUrl to:', data.logo_url)
+            setLogoUrl(data.logo_url)
+          }
+          if (data.profile_logo_url) {
+            console.log('Setting profileLogoUrl to:', data.profile_logo_url)
+            setProfileLogoUrl(data.profile_logo_url)
+          }
           
           // Load branding from settings
           if (data.settings?.white_label) {
@@ -137,6 +151,9 @@ export default function Settings() {
     )
   }
 
+  console.log('Settings render - logoUrl state:', logoUrl)
+  console.log('Settings render - profileLogoUrl state:', profileLogoUrl)
+
   return (
     <FloatingLayout>
       <div className="space-y-8">
@@ -148,12 +165,16 @@ export default function Settings() {
           contactEmail={contactEmail}
           contactPhone={contactPhone}
           address={address}
+          logoUrl={logoUrl}
+          profileLogoUrl={profileLogoUrl}
           isValidHex={isValidHex()}
           onCompanyNameChange={setCompanyName}
           onPrimaryHexChange={setPrimaryHex}
           onContactEmailChange={setContactEmail}
           onContactPhoneChange={setContactPhone}
           onAddressChange={setAddress}
+          onLogoUrlChange={setLogoUrl}
+          onProfileLogoUrlChange={setProfileLogoUrl}
           onSave={handleSaveBranding}
         />
 

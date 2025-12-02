@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
@@ -21,6 +21,13 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
   const maxSize = type === 'company' ? '800x800' : '400x400'
   const maxFileSizeMB = 2
   const title = type === 'company' ? 'Company Logo' : 'Profile Logo'
+  
+  // Clear preview when currentLogoUrl updates (after successful upload)
+  useEffect(() => {
+    if (currentLogoUrl && preview) {
+      setPreview(null)
+    }
+  }, [currentLogoUrl])
 
   const validateImage = (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -100,9 +107,12 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
       })
 
       if (response.data.status === 'success') {
+        console.log('Upload response:', response.data)
+        console.log('Logo URL:', response.data.data.logo_url)
         toast.success('Upload Successful', response.data.message)
         onUploadSuccess(response.data.data.logo_url)
-        setPreview(null)
+        // Don't clear preview immediately - let the currentLogoUrl prop update first
+        // The preview will be replaced by currentLogoUrl on next render
       } else {
         toast.error('Upload Failed', response.data.message || 'Failed to upload logo')
       }
@@ -146,7 +156,9 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
     }
   }
 
-  const displayImageUrl = preview || (currentLogoUrl ? `/storage/${currentLogoUrl}` : null)
+  const displayImageUrl = preview || currentLogoUrl
+  
+  console.log('LogoUpload render:', { type, preview, currentLogoUrl, displayImageUrl })
 
   return (
     <div className="space-y-3">

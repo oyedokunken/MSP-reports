@@ -7,6 +7,7 @@ use App\Models\GeneratedReport;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use App\Services\GotenbergService;
 use App\Services\ReportRegistry;
 use Carbon\Carbon;
@@ -190,15 +191,29 @@ class ReportGenerationService
     {
         $whiteLabel = $company->settings['white_label'] ?? [];
         $customerBranding = $customer->report_configuration['report_branding'] ?? [];
+        
+        // Convert logo URLs to base64 for PDF embedding
+        $companyLogo = null;
+        if (isset($whiteLabel['logo_url']) && $whiteLabel['logo_url']) {
+            $companyLogo = $this->imageToBase64($whiteLabel['logo_url']);
+        }
+        
+        $customerLogo = null;
+        if (isset($customerBranding['customer_logo_url']) && $customerBranding['customer_logo_url']) {
+            $customerLogo = $this->imageToBase64($customerBranding['customer_logo_url']);
+        }
+        
         $reportData['branding'] = [
             'company_name' => $whiteLabel['company_name'] ?? $company->name,
-            'company_logo' => $whiteLabel['logo_url'] ?? null,
-            'customer_logo' => $customerBranding['customer_logo_url'] ?? null,
+            'company_logo' => $companyLogo,
+            'customer_logo' => $customerLogo,
             'primary_color' => $whiteLabel['primary_color'] ?? '#1a56db',
             'secondary_color' => $whiteLabel['secondary_color'] ?? '#7c3aed',
-            'report_title' => $customerBranding['report_title'] ?? 'Monthly Service Report',
+            'report_title' => $customerBranding['report_title'] ?? ($whiteLabel['report_header_text'] ?? 'Monthly Service Report'),
             'footer_text' => $whiteLabel['footer_text'] ?? '',
             'footer_notes' => $customerBranding['footer_notes'] ?? '',
+            'support_email' => $whiteLabel['support_email'] ?? null,
+            'support_phone' => $whiteLabel['support_phone'] ?? null,
         ];
 
         return $reportData;
@@ -346,5 +361,73 @@ class ReportGenerationService
     {
         $retentionDays = $company->settings['data_retention']['generated_reports_months'] ?? 36;
         return now()->addMonths($retentionDays);
+    }
+
+    /**
+     * Convert image URL or path to base64 data URI for PDF embedding
+     * 
+     * @param string $url Image URL or storage path
+     * @return string|null Base64 data URI or null on failure
+     */
+    private function imageToBase64(string $url): ?string
+    {
+        $cacheKey = 'logo_base64_' . md5($url);
+        
+        return Cache::remember($cacheKey, 3600, function () use ($url) {
+            try {
+                $content = null;
+                $mimeType = null;
+                
+                // Check if it's a storage path (relative path)
+                if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                    // Try public disk first (for logos)
+                    if (Storage::disk('public')->exists($url)) {
+                        $content = Storage::disk('public')->get($url);
+                        $mimeType = Storage::disk('public')->mimeType($url);
+                    } 
+                    // Fallback to default disk
+                    elseif (Storage::exists($url)) {
+                        $content = Storage::get($url);
+                        $mimeType = Storage::mimeType($url);
+                    } else {
+                        Log::warning('Logo file not found in storage', ['path' => $url]);
+                        return null;
+                    }
+                } 
+                // It's a full URL
+                else {
+                    $content = @file_get_contents($url);
+                    if ($content === false) {
+                        Log::warning('Failed to fetch logo from URL', ['url' => $url]);
+                        return null;
+                    }
+                    
+                    $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                    $mimeType = $finfo->buffer($content);
+                }
+                
+                if (!$content) {
+                    return null;
+                }
+                
+                // Validate it's an image
+                if (!str_starts_with($mimeType, 'image/')) {
+                    Log::warning('File is not an image', [
+                        'url' => $url,
+                        'mime_type' => $mimeType,
+                    ]);
+                    return null;
+                }
+                
+                return 'data:' . $mimeType . ';base64,' . base64_encode($content);
+                
+            } catch (\Exception $e) {
+                Log::error('Failed to convert image to base64', [
+                    'url' => $url,
+                    'error' => $e->getMessage(),
+                ]);
+                return null;
+            }
+        });
     }
 }

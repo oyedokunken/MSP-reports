@@ -7,6 +7,13 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
+        :root {
+            --primary-color: {{ $branding['primary_color'] ?? '#1e40af' }};
+            --secondary-color: {{ $branding['secondary_color'] ?? '#7c3aed' }};
+            --primary-rgb: {{ \App\Helpers\ColorHelper::hexToRgb($branding['primary_color'] ?? '#1e40af') }};
+            --secondary-rgb: {{ \App\Helpers\ColorHelper::hexToRgb($branding['secondary_color'] ?? '#7c3aed') }};
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -40,7 +47,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, {{ $branding['primary_color'] ?? '#1e40af' }} 0%, {{ $branding['secondary_color'] ?? '#7c3aed' }} 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
             position: relative;
             overflow: hidden;
@@ -124,7 +131,7 @@
         
         /* Header with Logos */
         .header-section {
-            background: linear-gradient(135deg, {{ $branding['primary_color'] ?? '#1e40af' }} 0%, {{ $branding['secondary_color'] ?? '#7c3aed' }} 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
             padding: 40px 50px;
             position: relative;
@@ -177,8 +184,8 @@
         
         /* Report Metadata Bar */
         .metadata-bar {
-            background: #f8fafc;
-            border-left: 4px solid {{ $branding['primary_color'] ?? '#1e40af' }};
+            background: rgba(var(--primary-rgb), 0.05);
+            border-left: 4px solid var(--primary-color);
             padding: 25px 50px;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -353,7 +360,7 @@
         .trend-bar {
             width: 100%;
             max-width: 60px;
-            background: linear-gradient(180deg, {{ $branding['primary_color'] ?? '#1e40af' }} 0%, {{ $branding['secondary_color'] ?? '#7c3aed' }} 100%);
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             border-radius: 4px 4px 0 0;
             position: relative;
         }

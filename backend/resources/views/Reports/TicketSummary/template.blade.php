@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Ticket Summary - {{ $customer->canonical_name ?? $customer->name }}</title>
+    <title>{{ $branding['report_title'] ?? 'Ticket Summary' }} - {{ $customer->canonical_name ?? $customer->name }}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        
+        :root {
+            --primary-color: {{ $branding['primary_color'] ?? '#1a56db' }};
+            --secondary-color: {{ $branding['secondary_color'] ?? '#7c3aed' }};
+            --primary-rgb: {{ \App\Helpers\ColorHelper::hexToRgb($branding['primary_color'] ?? '#1a56db') }};
+            --secondary-rgb: {{ \App\Helpers\ColorHelper::hexToRgb($branding['secondary_color'] ?? '#7c3aed') }};
+        }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -205,19 +212,13 @@
 </head>
 <body>
     <div class="page">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-left">
-                <h1>Ticket Summary</h1>
-                <div class="subtitle">{{ $customer->canonical_name ?? $customer->name }}</div>
-            </div>
-            <div class="header-right">
-                <div><span class="label">Period</span></div>
-                <div class="value">{{ $period['start'] ?? 'N/A' }} - {{ $period['end'] ?? 'N/A' }}</div>
-                <div><span class="label">Generated</span></div>
-                <div class="value">{{ \Carbon\Carbon::parse($generated_at)->format('M j, Y') }}</div>
-            </div>
-        </div>
+        <!-- Header Partial -->
+        @include('reports.partials.header', [
+            'branding' => $branding,
+            'customer' => $customer,
+            'reportDate' => \Carbon\Carbon::parse($generated_at)->format('F j, Y'),
+            'period' => $period
+        ])
         
         <!-- Key Metrics -->
         <div class="metrics">
@@ -349,11 +350,10 @@
         </div>
         @endif
         
-        <!-- Footer -->
-        <div class="footer">
-            <div>{{ $branding['company_name'] ?? 'Company' }} • {{ $branding['footer_text'] ?? 'Confidential' }}</div>
-            <div>{{ now()->format('F j, Y') }}</div>
-        </div>
+        <!-- Footer Partial -->
+        @include('reports.partials.footer', [
+            'branding' => $branding
+        ])
     </div>
 </body>
 </html>

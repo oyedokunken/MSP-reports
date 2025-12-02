@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CompanyController extends Controller
 {
@@ -17,6 +19,14 @@ class CompanyController extends Controller
         try {
             $authUser = $request->user();
             $company = $authUser->company;
+            
+            // Get logo URLs from settings with full URLs
+            $settings = $company->settings ?? [];
+            $logoPath = $settings['white_label']['logo_url'] ?? null;
+            $faviconPath = $settings['white_label']['favicon_url'] ?? null;
+            
+            $logoUrl = $logoPath ? Storage::disk('public')->url($logoPath) : null;
+            $faviconUrl = $faviconPath ? Storage::disk('public')->url($faviconPath) : null;
 
             return response()->json([
                 'status' => 'success',
@@ -27,11 +37,11 @@ class CompanyController extends Controller
                     'contact_email' => $company->contact_email,
                     'contact_phone' => $company->contact_phone,
                     'address' => $company->address,
-                    'logo_url' => $company->logo_url,
-                    'profile_logo_url' => $company->profile_logo_url,
+                    'logo_url' => $logoUrl,
+                    'profile_logo_url' => $faviconUrl,
                     'status' => $company->status,
                     'subscription_tier' => $company->subscription_tier,
-                    'settings' => $company->settings ?? [],
+                    'settings' => $settings,
                 ]
             ]);
 
@@ -225,8 +235,17 @@ class CompanyController extends Controller
                 }
             }
 
+            // Get current settings
+            $settings = $company->settings ?? [];
+            if (!isset($settings['white_label'])) {
+                $settings['white_label'] = [];
+            }
+            
             // Delete old logo if exists
-            $oldLogoPath = $type === 'company' ? $company->logo_url : $company->profile_logo_url;
+            $oldLogoPath = $type === 'company' 
+                ? ($settings['white_label']['logo_url'] ?? null)
+                : ($settings['white_label']['favicon_url'] ?? null);
+                
             if ($oldLogoPath && Storage::disk('public')->exists($oldLogoPath)) {
                 Storage::disk('public')->delete($oldLogoPath);
             }
@@ -238,12 +257,14 @@ class CompanyController extends Controller
             // Store file in public/logos directory
             $path = $file->storeAs('logos', $filename, 'public');
 
-            // Update company record
+            // Update company settings
             if ($type === 'company') {
-                $company->logo_url = $path;
+                $settings['white_label']['logo_url'] = $path;
             } else {
-                $company->profile_logo_url = $path;
+                $settings['white_label']['favicon_url'] = $path;
             }
+            
+            $company->settings = $settings;
             $company->save();
 
             // Log the upload
@@ -258,8 +279,9 @@ class CompanyController extends Controller
                 'status' => 'success',
                 'message' => ucfirst($type) . ' logo uploaded successfully',
                 'data' => [
-                    'logo_url' => $type === 'company' ? $company->logo_url : $company->profile_logo_url,
-                    'full_url' => Storage::disk('public')->url($path),
+                    'logo_path' => $path,
+                    'logo_url' => Storage::disk('public')->url($path),
+                    'settings_key' => $type === 'company' ? 'white_label.logo_url' : 'white_label.favicon_url',
                 ]
             ]);
 
@@ -296,19 +318,31 @@ class CompanyController extends Controller
             ]);
 
             $type = $request->input('type');
-            $logoPath = $type === 'company' ? $company->logo_url : $company->profile_logo_url;
+            
+            // Get current settings
+            $settings = $company->settings ?? [];
+            if (!isset($settings['white_label'])) {
+                $settings['white_label'] = [];
+            }
+            
+            // Get logo path from settings
+            $logoPath = $type === 'company' 
+                ? ($settings['white_label']['logo_url'] ?? null)
+                : ($settings['white_label']['favicon_url'] ?? null);
 
             // Delete file if exists
             if ($logoPath && Storage::disk('public')->exists($logoPath)) {
                 Storage::disk('public')->delete($logoPath);
             }
 
-            // Update company record
+            // Update settings
             if ($type === 'company') {
-                $company->logo_url = null;
+                unset($settings['white_label']['logo_url']);
             } else {
-                $company->profile_logo_url = null;
+                unset($settings['white_label']['favicon_url']);
             }
+            
+            $company->settings = $settings;
             $company->save();
 
             // Log the deletion

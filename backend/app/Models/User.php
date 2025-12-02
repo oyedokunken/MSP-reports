@@ -31,6 +31,7 @@ class User extends Authenticatable
         'status',
         'auth_method',
         'permissions',
+        'settings',
         'last_login_at',
         'email_verified_at',
         'remember_token',
@@ -43,6 +44,7 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
         'email_verified_at' => 'datetime',
         'permissions' => 'array',
+        'settings' => 'array',
     ];
 
     
