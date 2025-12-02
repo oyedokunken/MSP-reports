@@ -30,6 +30,10 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 - 📋 **Enhanced Company Settings** - Email, phone, and address included in report generation
 - 📄 **Professional PDF Export** - Enhanced integration preview exports with company branding and styling
 - 📊 **Report History** - Track all generated reports with filtering and download capabilities
+- 📧 **Email Reports** - Send reports directly via email with success confirmation
+- ✅ **Form Validation** - Smart validation modals for required fields
+- 🔍 **Search & Filter** - Search functionality across integrations, reports, and schedules
+- 📄 **Smart Pagination** - 9 items per page with dynamic labels
 
 ---
 
@@ -228,6 +232,7 @@ Then login at http://localhost:5173/login
 - `PATCH /api/customers/{id}/reports` - Update which reports to generate
 - `PATCH /api/customers/{id}/report-destination` - Set delivery destination
 - `POST /api/reports/generate/{customer_id}` - Manual report generation trigger
+- `POST /api/reports/{id}/email` - Email report to specified recipients
 
 ### Reporting & Analytics
 - `GET /api/reports/scheduled` - View scheduled report queue
