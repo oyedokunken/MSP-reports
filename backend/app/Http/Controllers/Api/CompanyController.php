@@ -134,8 +134,15 @@ class CompanyController extends Controller
             $validated = $request->validate([
                 'company_name' => 'sometimes|string|max:255',
                 'primary_color' => 'sometimes|string|regex:/^#[0-9a-f]{6}$/i',
+                'secondary_color' => 'sometimes|string|regex:/^#[0-9a-f]{6}$/i',
+                'logo_url' => 'sometimes|nullable|url|max:500',
+                'favicon_url' => 'sometimes|nullable|url|max:500',
                 'email_from_address' => 'sometimes|nullable|email|max:255',
                 'email_from_name' => 'sometimes|nullable|string|max:255',
+                'support_email' => 'sometimes|nullable|email|max:255',
+                'support_phone' => 'sometimes|nullable|string|max:50',
+                'footer_text' => 'sometimes|nullable|string|max:500',
+                'report_header_text' => 'sometimes|nullable|string|max:255',
             ]);
 
             // Get current settings or initialize empty array
@@ -147,17 +154,39 @@ class CompanyController extends Controller
             }
 
             // Map frontend field names to backend structure
-            if (isset($validated['company_name'])) {
+            // Use array_key_exists to allow null values
+            if (array_key_exists('company_name', $validated)) {
                 $settings['white_label']['company_name'] = $validated['company_name'];
             }
-            if (isset($validated['primary_color'])) {
+            if (array_key_exists('primary_color', $validated)) {
                 $settings['white_label']['primary_color'] = $validated['primary_color'];
             }
-            if (isset($validated['email_from_address'])) {
+            if (array_key_exists('secondary_color', $validated)) {
+                $settings['white_label']['secondary_color'] = $validated['secondary_color'];
+            }
+            if (array_key_exists('logo_url', $validated)) {
+                $settings['white_label']['logo_url'] = $validated['logo_url'];
+            }
+            if (array_key_exists('favicon_url', $validated)) {
+                $settings['white_label']['favicon_url'] = $validated['favicon_url'];
+            }
+            if (array_key_exists('email_from_address', $validated)) {
                 $settings['white_label']['email_from_address'] = $validated['email_from_address'];
             }
-            if (isset($validated['email_from_name'])) {
+            if (array_key_exists('email_from_name', $validated)) {
                 $settings['white_label']['email_from_name'] = $validated['email_from_name'];
+            }
+            if (array_key_exists('support_email', $validated)) {
+                $settings['white_label']['support_email'] = $validated['support_email'];
+            }
+            if (array_key_exists('support_phone', $validated)) {
+                $settings['white_label']['support_phone'] = $validated['support_phone'];
+            }
+            if (array_key_exists('footer_text', $validated)) {
+                $settings['white_label']['footer_text'] = $validated['footer_text'];
+            }
+            if (array_key_exists('report_header_text', $validated)) {
+                $settings['white_label']['report_header_text'] = $validated['report_header_text'];
             }
 
             // Update company settings

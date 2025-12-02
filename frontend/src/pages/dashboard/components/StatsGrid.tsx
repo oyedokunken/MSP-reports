@@ -7,14 +7,14 @@ type StatsGridProps = {
   stats: Stat[]
 }
 
-export function StatsGrid ({ isLoading, stats }: StatsGridProps) {
+export function StatsGrid({ isLoading, stats }: StatsGridProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {isLoading
         ? [1, 2, 3, 4].map((i) => <StatCardSkeleton key={i} />)
         : stats.map((s) => (
-            <AnimatedStatCard key={s.label} name={s.label} value={s.value} icon={s.icon} trend={s.trend} />
-          ))}
+          <AnimatedStatCard key={s.label} name={s.label} value={s.value} icon={s.icon} trend={s.trend} />
+        ))}
     </div>
   )
 }

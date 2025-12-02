@@ -24,4 +24,12 @@ export const getStatusBadge = (status: ReportStatus): string => {
   return styles[status]
 }
 
+export const FREQUENCIES = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: 'Yearly' },
+  { value: 'on-demand', label: 'On-Demand Only' },
+]
+
 

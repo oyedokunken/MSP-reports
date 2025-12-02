@@ -1,13 +1,9 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
 import FloatingLayout from '@/components/layout/FloatingLayout'
-import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft, Calendar, Clock, Mail, Save, Plus, Trash2, Bell, Play, Zap, AlertTriangle } from 'lucide-react'
@@ -378,36 +374,7 @@ export default function ConfigureReports() {
   if (isLoading) {
     return (
       <FloatingLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Skeleton className="h-9 w-20" />
-              <div>
-                <Skeleton className="h-8 w-64" />
-                <Skeleton className="h-4 w-48 mt-2" />
-              </div>
-            </div>
-          </div>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-full mt-2" />
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="space-y-4 p-4 border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="h-5 w-40" />
-                    <Skeleton className="h-6 w-12" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                  </div>
-                </div>
-              ))}\n            </CardContent>
-          </Card>
-        </div>
+        <ConfigureReportsLoading />
       </FloatingLayout>
     )
   }
@@ -415,13 +382,7 @@ export default function ConfigureReports() {
   if (!config) {
     return (
       <FloatingLayout>
-        <div className="flex flex-col items-center justify-center h-64">
-          <p className="text-lg font-medium text-muted-foreground">Customer not found</p>
-          <Button onClick={() => navigate(-1)} className="mt-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Go Back1
-          </Button>
-        </div>
+        <ConfigureReportsNotFound onBack={() => navigate(-1)} />
       </FloatingLayout>
     )
   }
@@ -611,7 +572,6 @@ export default function ConfigureReports() {
                       {availableReportTypes.find(t => t.id === report.report_type)?.description}
                     </p>
 
-                    {/* Section selector for Monthly Comprehensive Report */}
                     {report.report_type === 'monthly_comprehensive' && (
                       <div className="mt-4 p-3 bg-muted/50 rounded-md">
                         <Label className="text-sm font-medium mb-2 block">Include Sections:</Label>
@@ -624,7 +584,7 @@ export default function ConfigureReports() {
                           ].map((section) => {
                             const includeSections = (report as any).include_sections || ['uptime', 'tickets', 'backups', 'security'];
                             const isChecked = includeSections.includes(section.id);
-                            
+
                             return (
                               <div key={section.id} className="flex items-center space-x-2">
                                 <input
@@ -640,7 +600,7 @@ export default function ConfigureReports() {
                                   }}
                                   className="h-4 w-4 rounded border-gray-300"
                                 />
-                                <Label 
+                                <Label
                                   htmlFor={`section-${index}-${section.id}`}
                                   className="text-sm cursor-pointer flex items-center gap-1"
                                 >
@@ -757,9 +717,9 @@ export default function ConfigureReports() {
                   </>
                 )}
               </Button>
-              
-              <Button 
-                onClick={handleGenerateNow} 
+
+              <Button
+                onClick={handleGenerateNow}
                 disabled={isGenerating || isSaving || enabledReports.length === 0}
                 variant="secondary"
                 size="lg"
@@ -777,12 +737,12 @@ export default function ConfigureReports() {
                   </>
                 )}
               </Button>
-              
+
               <Button variant="outline" onClick={() => navigate('/schedules')} size="lg">
                 Cancel
               </Button>
             </div>
-            
+
             {enabledReports.length === 0 && (
               <p className="text-xs text-muted-foreground mt-3">
                 💡 Add at least one report to enable immediate generation

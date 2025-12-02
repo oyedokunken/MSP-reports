@@ -8,7 +8,6 @@ import { IntegrationGrid } from "./components/IntegrationGrid";
 import { Pagination } from "@/pages/customers/components/Pagination";
 import {
     AddIntegrationModal,
-    ViewIntegrationCustomersModal,
     EditIntegrationModal,
     DeleteIntegrationModal,
     ViewSyncLogsModal,
@@ -106,7 +105,7 @@ export default function IntegrationList() {
                     onEmptyAction={() => openModal("add")}
                     onViewCustomers={(id) => {
                         const int = integrations.find((i) => i.id === id);
-                        if (int) openModal("viewCustomers", int);
+                        if (int) navigate(`/platform/integrations/${int.id}/preview`);
                     }}
                     onSetSourceOfTruth={handleSetSourceOfTruth}
                     onEdit={(int) => openModal("edit", int)}
@@ -147,17 +146,6 @@ export default function IntegrationList() {
                         closeModal("add");
                         toast.success("Integration added successfully");
                     }}
-                />
-
-                <ViewIntegrationCustomersModal
-                    open={modals.viewCustomers}
-                    onOpenChange={(open) =>
-                        open
-                            ? openModal("viewCustomers")
-                            : closeModal("viewCustomers")
-                    }
-                    integrationId={selectedIntegration?.id || null}
-                    integrationName={selectedIntegration?.name || ""}
                 />
 
                 <EditIntegrationModal

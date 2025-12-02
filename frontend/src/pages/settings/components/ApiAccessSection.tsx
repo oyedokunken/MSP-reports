@@ -22,7 +22,7 @@ export function ApiAccessSection({
           type="password"
           readOnly
           value={apiKeyMasked}
-          className="mt-1 w-full rounded-md border border-input bg-background dark:bg-muted/20 px-3 py-2 text-sm text-foreground"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
         />
       </div>
 

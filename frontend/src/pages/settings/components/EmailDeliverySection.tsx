@@ -28,7 +28,7 @@ export function EmailDeliverySection({
             placeholder="reports@yourcompany.com"
             value={fromEmail}
             onChange={(e) => onFromEmailChange(e.target.value)}
-            className="mt-1 w-full rounded-md border border-input bg-background dark:bg-muted/20 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
         <div>
@@ -38,7 +38,7 @@ export function EmailDeliverySection({
             placeholder="Your Company Reports"
             value={fromName}
             onChange={(e) => onFromNameChange(e.target.value)}
-            className="mt-1 w-full rounded-md border border-input bg-background dark:bg-muted/20 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       </div>

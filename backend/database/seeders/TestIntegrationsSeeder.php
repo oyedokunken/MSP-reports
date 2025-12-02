@@ -53,8 +53,8 @@ class TestIntegrationsSeeder extends Seeder
                 'display_name' => 'Sendmarc Email Security',
                 'status' => 'disconnected',
                 'credentials' => [
-                    'api_key' => 'YOUR_SENDMARC_API_KEY',
-                    'base_url' => 'https://api.sendmarc.com',
+                    'api_token' => 'YOUR_SENDMARC_API_TOKEN',
+                    'base_url' => 'https://portal.sendmarc.com/api/v1',
                 ],
                 'configuration' => [
                     'sync_enabled' => false,

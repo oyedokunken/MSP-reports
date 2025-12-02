@@ -53,23 +53,41 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     const primaryHSL = hexToHSL(primaryColor)
     const secondaryHSL = hexToHSL(secondaryColor)
     
+    // Calculate contrast colors for text
+    const primaryForeground = getContrastColor(primaryColor)
+    const secondaryForeground = getContrastColor(secondaryColor)
+    
+    // Convert foreground colors to HSL
+    const primaryForegroundHSL = hexToHSL(primaryForeground)
+    const secondaryForegroundHSL = hexToHSL(secondaryForeground)
+    
     // Update Tailwind's primary and secondary colors
     root.style.setProperty('--primary', primaryHSL)
+    root.style.setProperty('--primary-foreground', primaryForegroundHSL)
     root.style.setProperty('--secondary', secondaryHSL)
+    root.style.setProperty('--secondary-foreground', secondaryForegroundHSL)
     
     // Update sidebar colors (for active/hover states)
     root.style.setProperty('--sidebar-primary', primaryHSL)
+    root.style.setProperty('--sidebar-primary-foreground', primaryForegroundHSL)
     root.style.setProperty('--sidebar-accent', primaryHSL)
+    root.style.setProperty('--sidebar-accent-foreground', primaryForegroundHSL)
     root.style.setProperty('--sidebar-ring', primaryHSL)
     
-    // Create gradient for active states
-    const gradient = `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`
+    // Also update dark mode sidebar colors
+    root.style.setProperty('--sidebar-primary-dark', primaryHSL)
+    root.style.setProperty('--sidebar-accent-dark', primaryHSL)
+    
+    // Create gradient using only primary color (lighter to darker)
+    const gradient = `linear-gradient(135deg, ${primaryColor} 0%, ${adjustBrightness(primaryColor, -20)} 100%)`
     root.style.setProperty('--brand-gradient', gradient)
     
     console.log('🎨 Branding applied:', {
       companyName: currentBranding.company_name,
       primaryColor,
+      primaryForeground,
       secondaryColor,
+      secondaryForeground,
       primaryHSL,
       secondaryHSL,
       gradient
@@ -97,6 +115,47 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
       document.head.appendChild(metaTheme)
     }
     metaTheme.content = currentBranding.primary_color
+  }
+
+  // Helper function to calculate luminance and determine if text should be black or white
+  const getContrastColor = (hex: string): string => {
+    // Remove # if present
+    hex = hex.replace('#', '')
+    
+    // Convert to RGB
+    const r = parseInt(hex.substring(0, 2), 16) / 255
+    const g = parseInt(hex.substring(2, 4), 16) / 255
+    const b = parseInt(hex.substring(4, 6), 16) / 255
+    
+    // Calculate relative luminance using WCAG formula
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    
+    // Return black for light backgrounds, white for dark backgrounds
+    // Threshold of 0.5 works well for most cases
+    return luminance > 0.5 ? '#000000' : '#ffffff'
+  }
+
+  // Helper function to adjust brightness of a hex color
+  const adjustBrightness = (hex: string, percent: number): string => {
+    // Remove # if present
+    hex = hex.replace('#', '')
+    
+    // Convert to RGB
+    let r = parseInt(hex.substring(0, 2), 16)
+    let g = parseInt(hex.substring(2, 4), 16)
+    let b = parseInt(hex.substring(4, 6), 16)
+    
+    // Adjust brightness
+    r = Math.max(0, Math.min(255, r + (r * percent / 100)))
+    g = Math.max(0, Math.min(255, g + (g * percent / 100)))
+    b = Math.max(0, Math.min(255, b + (b * percent / 100)))
+    
+    // Convert back to hex
+    const rr = Math.round(r).toString(16).padStart(2, '0')
+    const gg = Math.round(g).toString(16).padStart(2, '0')
+    const bb = Math.round(b).toString(16).padStart(2, '0')
+    
+    return `#${rr}${gg}${bb}`
   }
 
   // Helper function to convert hex to HSL format for Tailwind

@@ -39,7 +39,7 @@ body {
     --brand-primary: #1a56db;
     --brand-secondary: #7c3aed;
     
-    --background: 0 0% 100%;
+    --background: 0 0% 98.5%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;
@@ -96,7 +96,7 @@ body {
     --muted-foreground: 0 0% 74%;
     --accent: 220 6% 21.5%;
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 6% 26%;
     --input: 220 6% 26%;
@@ -128,13 +128,6 @@ body {
   body {
     @apply bg-background text-foreground tracking-[-0.01em];
     
-  }
-  
-  /* Force input fields to have white background */
-  input[type="email"],
-  input[type="password"],
-  input[type="text"] {
-    background-color: white !important;
   }
 }
 

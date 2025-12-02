@@ -1,66 +1,26 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { api } from "@/lib/api";
+import { useResetPassword } from "../hooks";
 
 const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const token = searchParams.get("token");
-  const email = searchParams.get("email");
-
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (!token || !email) {
-      setError("Invalid reset link");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      await api.post("/auth/password/reset", {
-        token,
-        email,
-        password,
-        password_confirmation: confirmPassword,
-      });
-      setSuccess(true);
-      setTimeout(() => {
-        navigate("/sign-in");
-      }, 3000);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || "Failed to reset password";
-      setError(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const {
+    password,
+    confirmPassword,
+    showPassword,
+    showConfirmPassword,
+    error,
+    isSubmitting,
+    success,
+    setPassword,
+    setConfirmPassword,
+    setShowPassword,
+    setShowConfirmPassword,
+    handleSubmit
+  } = useResetPassword();
 
   if (success) {
     return (
@@ -69,7 +29,7 @@ const ResetPassword = () => {
         <div className="flex justify-center pt-8 pb-4">
           <img src="/logo.png" alt="Logo" className="h-8 w-auto opacity-90" />
         </div>
-        
+
         <CardContent className="pt-2">
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="mb-4 rounded-full bg-green-500/10 p-3">
@@ -94,7 +54,7 @@ const ResetPassword = () => {
       <div className="flex justify-center pt-8 pb-6">
         <img src="/logo.png" alt="Logo" className="h-8 w-auto opacity-90" />
       </div>
-      
+
       <CardHeader className="space-y-0.5 text-center pt-0">
         <CardTitle className="text-lg font-bold">
           Reset Your Password
@@ -187,9 +147,9 @@ const ResetPassword = () => {
             <div className="text-sm text-destructive">{error}</div>
           )}
 
-          <Button 
-            type="submit" 
-            className="w-full text-white" 
+          <Button
+            type="submit"
+            className="w-full text-white"
             disabled={isSubmitting || password.length < 8 || password !== confirmPassword}
           >
             {isSubmitting ? (

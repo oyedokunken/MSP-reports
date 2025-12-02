@@ -1,9 +1,6 @@
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { Cable, RefreshCw } from "lucide-react";
-import {
-    StatCardSkeleton,
-    LoadingSpinner,
-} from "@/components/ui/LoadingStates";
+import { StatCardSkeleton, LoadingSpinner } from "@/components/ui/LoadingStates";
 import type { Integration } from "../types";
 import { useNavigate } from "react-router-dom";
 
@@ -57,11 +54,10 @@ export function IntegrationsSummary({
                     integrations.map((intg) => (
                         <div
                             key={intg.id}
-                            className={`rounded-lg border border-border p-4 ${
-                                isSyncingId === intg.id
-                                    ? "bg-primary/5 ring-1 ring-primary/40"
-                                    : ""
-                            }`}
+                            className={`rounded-lg border border-border p-4 ${isSyncingId === intg.id
+                                ? "bg-primary/5 ring-1 ring-primary/40"
+                                : ""
+                                }`}
                         >
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -98,11 +94,10 @@ export function IntegrationsSummary({
                                 <button
                                     onClick={() => onSync(intg.id, intg.name)}
                                     disabled={isSyncingId === intg.id}
-                                    className={`inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-xs font-medium transition-all flex-shrink-0 ${
-                                        isSyncingId === intg.id
-                                            ? "bg-primary text-primary-foreground border-primary"
-                                            : "bg-background text-foreground hover:bg-muted"
-                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    className={`inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-xs font-medium transition-all flex-shrink-0 ${isSyncingId === intg.id
+                                        ? "bg-primary text-primary-foreground border-primary"
+                                        : "bg-background text-foreground hover:bg-muted"
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
                                     {isSyncingId === intg.id ? (
                                         <LoadingSpinner size="sm" />

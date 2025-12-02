@@ -12,7 +12,7 @@ export function CustomersSearchBar ({ onFilterClick }: SearchBarProps) {
         <input
           type="text"
           placeholder="Search customers..."
-          className="w-full rounded-md border border-input bg-background dark:bg-muted/20 pl-10 pr-4 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full rounded-md border border-input bg-background pl-10 pr-4 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
       <button className="flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted" onClick={onFilterClick}>

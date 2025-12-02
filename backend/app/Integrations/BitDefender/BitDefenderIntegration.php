@@ -36,14 +36,6 @@ class BitDefenderIntegration implements IntegrationInterface
     {
         return [
             [
-                'name' => 'api_url',
-                'label' => 'API URL',
-                'type' => 'text',
-                'required' => true,
-                'default' => 'https://cloud.gravityzone.bitdefender.com/api/v1.0/jsonrpc',
-                'help' => 'BitDefender GravityZone API URL',
-            ],
-            [
                 'name' => 'api_key',
                 'label' => 'API Key',
                 'type' => 'password',

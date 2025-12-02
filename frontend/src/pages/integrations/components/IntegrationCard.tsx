@@ -10,7 +10,6 @@ import {
     Gauge,
     Database,
     Trash2,
-    Eye,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingStates";
 import type { Integration } from "../types/integration";
@@ -32,7 +31,6 @@ type IntegrationCardProps = {
   progress: number
   isSettingSourceOfTruth: boolean
   onSync: (id: number, name: string) => void
-  onViewCustomers: (id: number, name: string) => void
   onSetSourceOfTruth: (id: number, name: string) => void
   onEdit: (integration: Integration) => void
   onViewLogs: (integration: Integration) => void
@@ -51,7 +49,6 @@ export function IntegrationCard ({
   progress,
   isSettingSourceOfTruth,
   onSync,
-  onViewCustomers,
   onSetSourceOfTruth,
   onEdit,
   onViewLogs,
@@ -73,7 +70,7 @@ export function IntegrationCard ({
       hoverLift={!isSyncing}
       className={`p-6 transition-all duration-300 ${
         isSyncing ? 'ring-2 ring-primary/50 shadow-lg bg-primary/5' : ''
-      } ${isSourceOfTruth ? 'border-2 border-blue-500 dark:border-blue-400' : ''}`}
+      } ${isSourceOfTruth ? 'border-2 border-primary' : ''}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
@@ -84,9 +81,9 @@ export function IntegrationCard ({
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-foreground truncate" style={{maxWidth: 'calc(100% - 120px)'}} title={integration.name}>{integration.name}</h3>
               {isSourceOfTruth && (
-                <Badge variant="default" className="bg-blue-500 text-white hover:bg-blue-600 whitespace-nowrap flex-shrink-0">
-                  <Crown className="h-3 w-3 mr-1 flex-shrink-0" />
-                  <span className="truncate">Master List</span>
+                <Badge variant="default" className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap flex-shrink-0">
+                  <Crown className="h-3 w-3 mr-1" />
+                  Master List
                 </Badge>
               )}
             </div>
@@ -103,22 +100,28 @@ export function IntegrationCard ({
           <span className="text-muted-foreground flex-shrink-0">Last Sync</span>
           <span className="font-medium text-foreground truncate" title={integration.lastSync}>{integration.lastSync}</span>
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Unmapped Customers</span>
-          <span className={`font-medium ${integration.customers > 0 ? 'text-orange-600' : 'text-foreground'}`}>
-            {integration.customers}
-          </span>
-        </div>
+        {integration.customers > 0 && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Unmapped Customers</span>
+            <span className="font-medium text-orange-600">
+              {integration.customers}
+            </span>
+          </div>
+        )}
         <div className="flex items-center gap-2 pt-2">
           {getStatusIcon(integration.status, integration.syncStatus)}
           <span className="text-sm text-muted-foreground">
             {integration.syncStatus === 'success' 
-              ? 'Synced successfully' 
+              ? isSourceOfTruth
+                ? 'Synced successfully'
+                : 'Auto-synced with master list'
               : integration.syncStatus === 'failed'
               ? 'Sync failed - check logs'
+              : integration.lastSync === 'Never'
+              ? 'Not synced yet'
               : isSourceOfTruth
               ? 'Ready to sync'
-              : 'Syncs automatically with source of truth'}
+              : 'Syncs automatically with master list'}
           </span>
         </div>
 
@@ -139,25 +142,27 @@ export function IntegrationCard ({
       </div>
 
       <div className="mt-4 space-y-2 border-t border-border pt-4">
-        <button
-          onClick={() => onSync(integration.id, integration.name)}
-          disabled={isSyncing}
-          className={`w-full flex items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium transition-all ${
-            isSyncing
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-background text-foreground hover:bg-muted'
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
-        >
-          {isSyncing ? <LoadingSpinner size="sm" /> : <RefreshCw className="h-4 w-4" />}
-          {isSyncing ? 'Syncing...' : 'Sync Now'}
-        </button>
         <div className="flex gap-2">
+          {isSourceOfTruth && (
+            <button
+              onClick={() => onSync(integration.id, integration.name)}
+              disabled={isSyncing}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${
+                isSyncing
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'border-border bg-background text-foreground hover:bg-muted'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isSyncing ? <LoadingSpinner size="sm" /> : <RefreshCw className="h-4 w-4" />}
+              {isSyncing ? 'Syncing...' : 'Sync Now'}
+            </button>
+          )}
           <button
             onClick={() => onPreviewData(integration)}
-            className="flex-1 flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+            className="flex-1 flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-all"
           >
-            <Eye className="h-4 w-4" />
-            Preview Data
+            <Users className="h-4 w-4" />
+            View Customers
           </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -166,11 +171,21 @@ export function IntegrationCard ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onViewCustomers(integration.id, integration.name)}>
-                <Users className="mr-2 h-4 w-4" />
-                View Customers
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              {!isSourceOfTruth && (
+                <>
+                  <DropdownMenuItem onClick={() => onSetSourceOfTruth(integration.id, integration.name)} disabled={isSettingSourceOfTruth}>
+                    <Crown className="mr-2 h-4 w-4" />
+                    {isSettingSourceOfTruth ? 'Setting as Master...' : 'Set as Master List'}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              {!isSourceOfTruth && (
+                <DropdownMenuItem onClick={() => onSync(integration.id, integration.name)} disabled={isSyncing}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Manual Sync
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => onEdit(integration)}>
                 <Settings className="mr-2 h-4 w-4" />
                 Edit Settings
@@ -203,24 +218,6 @@ export function IntegrationCard ({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        {!isSourceOfTruth && (
-          <button
-            onClick={() => onSetSourceOfTruth(integration.id, integration.name)}
-            disabled={isSettingSourceOfTruth}
-            className={`w-full flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${
-              isSettingSourceOfTruth
-                ? 'border-blue-500 bg-blue-500 text-white dark:border-blue-400 dark:bg-blue-600 cursor-wait'
-                : 'border-border bg-background text-foreground hover:bg-muted'
-            }`}
-          >
-            {isSettingSourceOfTruth ? (
-              <LoadingSpinner size="sm" className="border-white/30 border-t-white" />
-            ) : (
-              <Crown className="h-4 w-4" />
-            )}
-            {isSettingSourceOfTruth ? 'Setting...' : 'Use as Master Customer List'}
-          </button>
-        )}
       </div>
     </AnimatedCard>
   )

@@ -1,11 +1,18 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Download, RefreshCw, CheckCircle2, XCircle, AlertCircle, Clock, Eye } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Download, RefreshCw, CheckCircle2, XCircle, AlertCircle, Clock, Eye, FileText, Building2, Calendar, Mail, MoreVertical, Trash2, Send } from 'lucide-react'
 import { formatDate, formatFileSize } from '../utils/formatters'
 import type { GeneratedReport } from '../types/report'
 import { ReportPreviewModal } from '@/components/reports/ReportPreviewModal'
+import { AnimatedCard } from '@/components/ui/AnimatedCard'
 
 interface ReportCardProps {
   report: GeneratedReport
@@ -35,95 +42,117 @@ export function ReportCard({ report, downloading, onDownload }: ReportCardProps)
     )
   }
 
+  const formatReportType = (type: string) => {
+    return type.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ')
+  }
+
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="pb-3 space-y-2">
-        {/* Customer Name - Full Width, 2 Lines */}
-        <div>
-          <CardTitle className="text-base leading-snug line-clamp-2" title={report.customer_name || 'Unknown Customer'}>
-            {report.customer_name || 'Unknown Customer'}
-          </CardTitle>
-          <CardDescription className="text-xs mt-1" title={report.report_type || 'Custom Report'}>
-            {report.report_type || 'Custom Report'}
-          </CardDescription>
+    <AnimatedCard className="p-6">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
+            <FileText className="h-6 w-6 text-primary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-foreground break-words">
+              {report.customer_name || 'Unknown Customer'}
+            </h3>
+            <p className="text-xs text-muted-foreground truncate">
+              {formatReportType(report.report_type || 'custom_report')} • {formatFileSize(report.file_size)}
+            </p>
+          </div>
+        </div>
+        {getStatusBadge(report.status)}
+      </div>
+
+      {/* Info Section */}
+      <div className="mt-6 space-y-3">
+        <div className="flex items-center gap-2 text-sm">
+          <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <span className="text-foreground">{report.customer_name || 'Unknown Customer'}</span>
         </div>
         
-        {/* Status Badge - Separate Line */}
-        <div>
-          {getStatusBadge(report.status)}
+        <div className="flex items-center gap-2 text-sm">
+          <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <span className="text-foreground">{formatDate(report.generated_at)}</span>
         </div>
-      </CardHeader>
-      <CardContent className="flex-1 space-y-3">
-        <div className="space-y-2 text-xs">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Generated</span>
-            <span className="font-medium">{formatDate(report.generated_at)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">File Size</span>
-            <span className="font-medium">{formatFileSize(report.file_size)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Delivery</span>
-            <span className="font-medium capitalize">
-              {report.delivery_method}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Delivered</span>
-            <span className="font-medium">
-              {report.delivered ? 'Yes' : 'Not yet'}
-            </span>
-          </div>
+
+        <div className="flex items-center gap-2 text-sm">
+          <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <span className={report.delivered ? 'text-green-600' : 'text-orange-600'}>
+            {report.delivered ? 'Delivered via ' + report.delivery_method : 'Not delivered yet'}
+          </span>
         </div>
 
         {report.error_message && (
-          <div className="p-2 rounded bg-destructive/10 border border-destructive/50">
-            <p className="text-xs text-destructive font-medium line-clamp-2">
+          <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20">
+            <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-destructive font-medium">
               {report.error_message}
             </p>
           </div>
         )}
+      </div>
 
+      {/* Actions */}
+      <div className="mt-4 border-t border-border pt-4">
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1"
+          <button
             onClick={() => setShowPreview(true)}
             disabled={report.status !== 'completed'}
+            className="flex-1 flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Eye className="h-4 w-4 mr-2" />
+            <Eye className="h-4 w-4" />
             Preview
-          </Button>
-          <Button
-            size="sm"
-            className="flex-1"
+          </button>
+          <button
             onClick={onDownload}
             disabled={downloading || report.status !== 'completed'}
+            className="flex-1 flex items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {downloading ? (
               <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                <RefreshCw className="h-4 w-4 animate-spin" />
                 Downloading...
               </>
             ) : (
               <>
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-4 w-4" />
                 Download
               </>
             )}
-          </Button>
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="px-2">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem disabled={report.status !== 'completed'}>
+                <Send className="mr-2 h-4 w-4" />
+                Resend Report
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Report
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </CardContent>
+      </div>
 
       {/* Preview Modal */}
       <ReportPreviewModal
         open={showPreview}
         onClose={() => setShowPreview(false)}
         reportId={report.generated_report_id}
-        reportName={`${report.customer_name} - ${report.report_type}`}
+        reportName={`${report.customer_name} - ${formatReportType(report.report_type || 'custom_report')}`}
       />
-    </Card>
+    </AnimatedCard>
   )
 }

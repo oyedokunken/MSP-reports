@@ -1,0 +1,18 @@
+import { Link } from "react-router-dom";
+
+export function AuthFooter() {
+  return (
+    <div className="mt-8 pt-6 border-t border-gray-200">
+      <p className="text-center text-xs text-gray-500 mb-2 font-athletics">
+        By signing in, you agree to our{' '}
+        <Link to="/privacy-policy" className="text-indigo-600 hover:text-indigo-500 underline font-athletics">
+          Privacy Policy
+        </Link>
+        {' '}and{' '}
+        <a href="#" className="text-indigo-600 hover:text-indigo-500 underline font-athletics">
+          Terms of Service
+        </a>
+      </p>
+    </div>
+  );
+}

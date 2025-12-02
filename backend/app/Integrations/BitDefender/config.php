@@ -10,27 +10,39 @@ return [
         'api_url' => [
             'type' => 'text',
             'label' => 'API URL',
-            'required' => false,
-            'default' => 'https://cloud.gravityzone.bitdefender.com/api',
-            'placeholder' => 'https://cloud.gravityzone.bitdefender.com/api',
-            'help' => 'BitDefender GravityZone API base URL. Use a real endpoint when available.',
+            'required' => true,
+            'default' => 'https://cloud.gravityzone.bitdefender.com/api/v1.0/jsonrpc',
+            'placeholder' => 'https://cloud.gravityzone.bitdefender.com/api/v1.0/jsonrpc',
+            'help' => 'BitDefender GravityZone API URL',
         ],
         'api_key' => [
             'type' => 'password',
             'label' => 'API Key',
-            'required' => false,
+            'required' => true,
             'encrypted' => true,
-            'placeholder' => 'Enter BitDefender API key (optional for now)',
-            'help' => 'Placeholder credential until real BitDefender API details are defined.',
+            'placeholder' => 'Enter your BitDefender API Key',
+            'help' => 'Found in GravityZone Control Center under My Account > API Keys',
         ],
     ],
 
     'configuration' => [
+        'api_url' => [
+            'type' => 'text',
+            'label' => 'API URL',
+            'default' => 'https://cloud.gravityzone.bitdefender.com/api/v1.0/jsonrpc',
+            'required' => false,
+        ],
         'sync_interval' => [
             'type' => 'number',
             'label' => 'Sync Interval (seconds)',
             'default' => 86400,
-            'help' => 'How often to sync BitDefender data. Placeholder only for now.',
+            'help' => 'How often to sync BitDefender data (in seconds)',
+        ],
+        'sync_endpoints' => [
+            'type' => 'boolean',
+            'label' => 'Sync Endpoints',
+            'default' => true,
+            'help' => 'Enable syncing of endpoint protection status',
         ],
     ],
 
