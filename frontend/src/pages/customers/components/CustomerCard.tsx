@@ -89,7 +89,8 @@ export function CustomerCard({
       </div>
 
       {/* Actions */}
-      <div className="mt-4 border-t border-border pt-4">
+      <div className="mt-4 border-t border-border pt-4 space-y-2">
+        {/* Primary Actions Row */}
         <div className="flex gap-2">
           <button
             onClick={onSetupReports}
@@ -98,9 +99,16 @@ export function CustomerCard({
             <Settings className="h-4 w-4" />
             Setup Reports
           </button>
+          <button
+            onClick={onMoreInfo}
+            className="flex-1 flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-all"
+          >
+            <Info className="h-4 w-4" />
+            More Info
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="px-2">
+              <Button variant="outline" size="sm" className="px-2 h-[38px]">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -109,11 +117,6 @@ export function CustomerCard({
                 <FileText className="mr-2 h-4 w-4" />
                 View History
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onMoreInfo}>
-                <Info className="mr-2 h-4 w-4" />
-                More Info
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onEdit}>
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Customer
