@@ -66,7 +66,8 @@ export function AnimatedStatCard({
 }: AnimatedStatCardProps) {
     return (
         <AnimatedCard
-            className={`p-6 group shadow-[0_1px_0_rgba(0,0,0,0.2),0_8px_24px_rgba(0,0,0,0.18)] dark:shadow-[0_1px_0_rgba(0,0,0,0.35),0_12px_28px_rgba(0,0,0,0.28)] ${
+            hoverLift={false}
+            className={`p-6 ${
                 className ?? ""
             }`}
         >
@@ -75,24 +76,23 @@ export function AnimatedStatCard({
                     <p className="text-sm font-medium text-muted-foreground">
                         {name}
                     </p>
-                    <p className="mt-2 text-3xl font-bold text-foreground transition-transform group-hover:scale-105">
+                    <p className="mt-2 text-3xl font-bold text-foreground">
                         {value}
                     </p>
                     {trend && (
                         <p
-                            className={`mt-2 text-xs font-medium flex items-center gap-1 ${
+                            className={`mt-2 text-xs font-medium ${
                                 trend.isPositive
                                     ? "text-green-600 dark:text-green-400"
-                                    : "text-red-600 dark:text-red-400"
+                                    : "text-orange-600 dark:text-orange-400"
                             }`}
                         >
-                            <span>{trend.isPositive ? "↑" : "↓"}</span>
-                            <span>{trend.value}</span>
+                            {trend.value}
                         </p>
                     )}
                 </div>
-                <div className="rounded-lg bg-accent/40 p-3 transition-transform group-hover:scale-110 group-hover:rotate-3">
-                    <Icon className="h-6 w-6 text-accent-foreground" />
+                <div className="rounded-lg bg-primary/10 p-3">
+                    <Icon className="h-6 w-6 text-primary" />
                 </div>
             </div>
         </AnimatedCard>

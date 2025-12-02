@@ -25,7 +25,6 @@ interface IntegrationState {
   // Modal state
   modals: {
     add: boolean
-    viewCustomers: boolean
     edit: boolean
     delete: boolean
     syncLogs: boolean
@@ -48,6 +47,10 @@ interface IntegrationState {
   setSelectedIntegration: (integration: Integration | null) => void
 }
 
+// Cache timestamp
+let lastFetchTime = 0;
+const CACHE_DURATION = 30000; // 30 seconds cache
+
 export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   // Initial state
   integrations: [],
@@ -62,7 +65,6 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   settingSourceOfTruthId: null,
   modals: {
     add: false,
-    viewCustomers: false,
     edit: false,
     delete: false,
     syncLogs: false,
@@ -73,8 +75,16 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   },
   selectedIntegration: null,
 
-  // Fetch integrations
+  // Fetch integrations with caching
   fetchIntegrations: async (silent = false) => {
+    // Check cache - if data was fetched less than 30 seconds ago, skip
+    const now = Date.now();
+    const state = get();
+    if (state.integrations.length > 0 && now - lastFetchTime < CACHE_DURATION) {
+      console.log('Using cached integrations data');
+      return;
+    }
+
     if (!silent) set({ isLoading: true })
 
     try {
@@ -98,6 +108,8 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
         sourceOfTruthId,
         isLoading: false,
       })
+      
+      lastFetchTime = now; // Update cache timestamp
     } catch (err: any) {
       console.error('Failed to fetch integrations:', err)
       set({ isLoading: false })

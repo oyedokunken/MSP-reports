@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Settings } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Calendar, Clock, Settings, CalendarClock, Repeat, Play, Pause, Edit, Trash2, MoreVertical, CheckCircle } from "lucide-react";
+import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import {
     formatDate,
     formatFrequency,
@@ -18,84 +19,128 @@ import type { ReportSchedule } from "../types/schedule";
 interface ScheduleCardProps {
     schedule: ReportSchedule;
     onConfigure: () => void;
+    onPause?: () => void;
+    onRunNow?: () => void;
+    onEdit?: () => void;
+    onDelete?: () => void;
 }
 
-export function ScheduleCard({ schedule, onConfigure }: ScheduleCardProps) {
+export function ScheduleCard({ schedule, onConfigure, onPause, onRunNow, onEdit, onDelete }: ScheduleCardProps) {
     return (
-        <Card className="flex flex-col">
-            <CardHeader className="pb-3 space-y-2">
-                {/* Customer Name - Full Width, 2 Lines */}
-                <div>
-                    <CardTitle className="text-base leading-snug line-clamp-2" title={schedule.customer_name}>
-                        {schedule.customer_name}
-                    </CardTitle>
-                    <CardDescription className="text-xs mt-1" title={formatReportType(schedule.report_type)}>
-                        {formatReportType(schedule.report_type)}
-                    </CardDescription>
+        <AnimatedCard className="p-6">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
+                        <CalendarClock className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-foreground break-words">
+                            {schedule.customer_name}
+                        </h3>
+                        <p className="text-xs text-muted-foreground truncate">
+                            {formatReportType(schedule.report_type)}
+                        </p>
+                    </div>
                 </div>
-                
-                {/* Status Badge - Separate Line */}
-                <div>
-                    <Badge
-                        variant={schedule.active ? "default" : "secondary"}
-                        className={`flex-shrink-0 ${
-                            !schedule.active
-                                ? "bg-purple-600 text-white hover:bg-purple-700"
-                                : ""
-                        }`}
-                    >
-                        {schedule.active ? "Active" : "Inactive"}
-                    </Badge>
-                </div>
-            </CardHeader>
-            <CardContent className="flex-1 space-y-3">
-                <div className="space-y-2 text-xs">
-                    <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground flex items-center gap-1 flex-shrink-0">
-                            <Calendar className="h-3 w-3" />
-                            Frequency
-                        </span>
-                        <span className="font-medium truncate" title={formatFrequency(schedule.frequency)}>
-                            {formatFrequency(schedule.frequency)}
-                        </span>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground flex items-center gap-1 flex-shrink-0">
-                            <Clock className="h-3 w-3" />
-                            Time
-                        </span>
-                        <span className="font-medium truncate">
-                            {schedule.time_of_day || "On-demand"}
-                        </span>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground flex-shrink-0">
-                            Last Generated
-                        </span>
-                        <span className="font-medium truncate" title={formatDate(schedule.last_generated_at)}>
-                            {formatDate(schedule.last_generated_at)}
-                        </span>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground flex-shrink-0">
-                            Next Scheduled
-                        </span>
-                        <span className="font-medium truncate" title={formatDate(schedule.next_scheduled_at)}>
-                            {formatDate(schedule.next_scheduled_at)}
-                        </span>
-                    </div>
+                <Badge
+                    variant={schedule.active ? "default" : "secondary"}
+                    className={`flex-shrink-0 ${
+                        !schedule.active
+                            ? "bg-purple-600 text-white hover:bg-purple-700"
+                            : ""
+                    }`}
+                >
+                    {schedule.active ? "Active" : "Inactive"}
+                </Badge>
+            </div>
+
+            {/* Info Section */}
+            <div className="mt-6 space-y-3">
+                {/* Frequency + Time */}
+                <div className="flex items-center gap-2 text-sm">
+                    <Repeat className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-foreground">
+                        {formatFrequency(schedule.frequency)} • {schedule.time_of_day || "On-demand"}
+                    </span>
                 </div>
 
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full"
-                    onClick={onConfigure}
-                >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Configure
-                </Button>
-            </CardContent>
-        </Card>
+                {/* Next Scheduled */}
+                <div className="flex items-center gap-2 text-sm">
+                    <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-foreground">
+                        Next: {formatDate(schedule.next_scheduled_at)}
+                    </span>
+                </div>
+
+                {/* Last Generated */}
+                {schedule.last_generated_at && (
+                    <div className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <span className="text-green-600">
+                            Last: {formatDate(schedule.last_generated_at)}
+                        </span>
+                    </div>
+                )}
+                {!schedule.last_generated_at && (
+                    <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                        <span className="text-orange-600">
+                            Never generated
+                        </span>
+                    </div>
+                )}
+            </div>
+
+            {/* Actions */}
+            <div className="mt-4 border-t border-border pt-4">
+                <div className="flex gap-2">
+                    <button
+                        onClick={onConfigure}
+                        className="flex-1 flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-all"
+                    >
+                        <Settings className="h-4 w-4" />
+                        Configure
+                    </button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="px-2">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            {onRunNow && (
+                                <DropdownMenuItem onClick={onRunNow}>
+                                    <Play className="mr-2 h-4 w-4" />
+                                    Run Now
+                                </DropdownMenuItem>
+                            )}
+                            {onPause && (
+                                <DropdownMenuItem onClick={onPause}>
+                                    <Pause className="mr-2 h-4 w-4" />
+                                    {schedule.active ? 'Pause Schedule' : 'Resume Schedule'}
+                                </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            {onEdit && (
+                                <DropdownMenuItem onClick={onEdit}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit Schedule
+                                </DropdownMenuItem>
+                            )}
+                            {onDelete && (
+                                <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={onDelete} className="text-destructive">
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete Schedule
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
+        </AnimatedCard>
     );
 }

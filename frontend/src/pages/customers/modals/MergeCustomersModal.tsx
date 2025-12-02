@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -37,6 +37,12 @@ export function MergeCustomersModal({
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(
         null
     );
+    const [searchResults, setSearchResults] = useState<Customer[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const observerTarget = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (open) {
@@ -44,14 +50,151 @@ export function MergeCustomersModal({
             setSelectedCustomerId(null);
             setError("");
             setSuccess(false);
+            setSearchResults([]);
+            setCurrentPage(1);
+            setHasMore(true);
+            // Load initial customers when modal opens
+            loadInitialCustomers();
         }
     }, [open]);
 
-    const filteredCustomers = allCustomers.filter(
-        (c) =>
-            c.customer_id !== customer?.customer_id &&
-            c.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Load initial customers (no search)
+    const loadInitialCustomers = async () => {
+        setIsSearching(true);
+        try {
+            const params = new URLSearchParams({ 
+                page: '1',
+                per_page: '20'
+            });
+            const response = await api.get(`/customers?${params.toString()}`);
+            const data = response as any;
+            const customers = data.data || [];
+            const pagination = data.pagination || data;
+            
+            // Map API response
+            const mapped = customers.map((c: any) => ({
+                ...c,
+                name: c.canonical_name || c.name,
+                integration_count: c.integrations?.length || 0
+            }));
+            
+            // Filter out current customer
+            const filtered = mapped.filter(
+                (c: Customer) => c.customer_id !== customer?.customer_id
+            );
+            
+            setSearchResults(filtered);
+            
+            // Check pagination
+            const currentPageNum = pagination.current_page || 1;
+            const lastPage = pagination.last_page || 1;
+            setHasMore(currentPageNum < lastPage);
+            setCurrentPage(currentPageNum);
+        } catch (err) {
+            console.error('Failed to load customers:', err);
+            setSearchResults([]);
+            setHasMore(false);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    // Load more customers (with or without search)
+    const loadMoreCustomers = useCallback(async (page: number, append: boolean = false) => {
+
+        if (append) {
+            setIsLoadingMore(true);
+        } else {
+            setIsSearching(true);
+        }
+
+        try {
+            const params = new URLSearchParams({ 
+                page: page.toString(),
+                per_page: '20' // Load 20 at a time
+            });
+            
+            // Add search if exists
+            if (searchTerm.trim()) {
+                params.append('search', searchTerm);
+            }
+            const response = await api.get(`/customers?${params.toString()}`);
+            const data = response as any;
+            const customers = data.data || [];
+            const pagination = data.pagination || data;
+            
+            // Map API response to Customer type (API returns canonical_name, we need name)
+            const mapped = customers.map((c: any) => ({
+                ...c,
+                name: c.canonical_name || c.name,
+                integration_count: c.integrations?.length || 0
+            }));
+            
+            // Filter out the current customer
+            const filtered = mapped.filter(
+                (c: Customer) => c.customer_id !== customer?.customer_id
+            );
+            
+            if (append) {
+                setSearchResults(prev => [...prev, ...filtered]);
+            } else {
+                setSearchResults(filtered);
+            }
+
+            // Check if there are more pages
+            const currentPageNum = pagination.current_page || page;
+            const lastPage = pagination.last_page || 1;
+            setHasMore(currentPageNum < lastPage);
+            setCurrentPage(currentPageNum);
+        } catch (err) {
+            console.error('Failed to search customers:', err);
+            if (!append) {
+                setSearchResults([]);
+            }
+            setHasMore(false);
+        } finally {
+            setIsSearching(false);
+            setIsLoadingMore(false);
+        }
+    }, [searchTerm, customer?.customer_id]);
+
+    // Search when search term changes
+    useEffect(() => {
+        if (!open) return;
+        
+        setCurrentPage(1);
+        setHasMore(true);
+        
+        // Debounce search
+        const timeoutId = setTimeout(() => loadMoreCustomers(1, false), 300);
+        return () => clearTimeout(timeoutId);
+    }, [searchTerm, open, loadMoreCustomers]);
+
+    // Infinite scroll observer
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isSearching) {
+                    loadMoreCustomers(currentPage + 1, true);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        const currentTarget = observerTarget.current;
+        if (currentTarget) {
+            observer.observe(currentTarget);
+        }
+
+        return () => {
+            if (currentTarget) {
+                observer.unobserve(currentTarget);
+            }
+        };
+    }, [hasMore, isLoadingMore, isSearching, currentPage, loadMoreCustomers]);
+
+    // Always use searchResults (includes initial load and search)
+    const filteredCustomers = searchResults;
 
     const selectedCustomer = allCustomers.find(
         (c) => c.customer_id === selectedCustomerId
@@ -177,31 +320,52 @@ export function MergeCustomersModal({
 
                     {/* Customer List */}
                     <div className="max-h-64 overflow-y-auto space-y-2 border border-border rounded-lg p-2">
-                        {filteredCustomers.length === 0 ? (
+                        {isSearching && currentPage === 1 ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Spinner className="h-6 w-6" />
+                                <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
+                            </div>
+                        ) : filteredCustomers.length === 0 ? (
                             <p className="text-sm text-muted-foreground text-center py-4">
-                                No customers found
+                                {searchTerm.trim() ? 'No customers found matching your search' : 'No customers found'}
                             </p>
                         ) : (
-                            filteredCustomers.slice(0, 10).map((c) => (
-                                <button
-                                    key={c.customer_id}
-                                    type="button"
-                                    onClick={() =>
-                                        setSelectedCustomerId(c.customer_id)
-                                    }
-                                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                                        selectedCustomerId === c.customer_id
-                                            ? "border-primary bg-primary/10"
-                                            : "border-border hover:bg-accent"
-                                    }`}
-                                >
-                                    <p className="font-medium">{c.name}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {c.integration_count} integration
-                                        {c.integration_count !== 1 ? "s" : ""}
-                                    </p>
-                                </button>
-                            ))
+                            <>
+                                <p className="text-xs text-muted-foreground px-2 py-1">
+                                    Showing {filteredCustomers.length} result{filteredCustomers.length !== 1 ? 's' : ''}
+                                    {hasMore && ' (scroll for more)'}
+                                </p>
+                                {filteredCustomers.map((c) => (
+                                    <button
+                                        key={c.customer_id}
+                                        type="button"
+                                        onClick={() =>
+                                            setSelectedCustomerId(c.customer_id)
+                                        }
+                                        className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                                            selectedCustomerId === c.customer_id
+                                                ? "border-primary bg-primary/10"
+                                                : "border-border hover:bg-accent"
+                                        }`}
+                                    >
+                                        <p className="font-medium">{c.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {c.integration_count} integration
+                                            {c.integration_count !== 1 ? "s" : ""}
+                                        </p>
+                                    </button>
+                                ))}
+                                
+                                {/* Infinite scroll trigger */}
+                                <div ref={observerTarget} className="py-2">
+                                    {isLoadingMore && (
+                                        <div className="flex items-center justify-center py-2">
+                                            <Spinner className="h-4 w-4" />
+                                            <span className="ml-2 text-xs text-muted-foreground">Loading more...</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         )}
                     </div>
 

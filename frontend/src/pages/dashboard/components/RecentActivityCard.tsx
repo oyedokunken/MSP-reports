@@ -1,9 +1,6 @@
 import { AnimatedCard, PulsingDot } from "@/components/ui/AnimatedCard";
 import { Activity } from "lucide-react";
-import {
-    ActivityCardSkeleton,
-    EmptyState,
-} from "@/components/ui/LoadingStates";
+import { ActivityCardSkeleton, EmptyState } from "@/components/ui/LoadingStates";
 import type { RecentActivity } from "../types";
 import { useNavigate } from "react-router-dom";
 
@@ -12,10 +9,7 @@ type RecentActivityCardProps = {
     items: RecentActivity[];
 };
 
-export function RecentActivityCard({
-    isLoading,
-    items,
-}: RecentActivityCardProps) {
+export function RecentActivityCard({ isLoading, items }: RecentActivityCardProps) {
     const navigate = useNavigate();
 
     return (

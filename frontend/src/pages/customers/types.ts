@@ -88,3 +88,24 @@ export interface CustomerIntegrationsResponse {
   status: string
   data: CustomerIntegrationDetail[]
 }
+
+export interface IntegrationStats {
+  tickets?: {
+    total: number
+    open: number
+    completed: number
+    top_technicians?: Array<{
+      name: string
+      ticket_count: number
+    }>
+  }
+  time_entries?: {
+    total: number
+    total_hours: number
+    billable_hours: number
+  }
+  contracts?: {
+    total: number
+    active: number
+  }
+}

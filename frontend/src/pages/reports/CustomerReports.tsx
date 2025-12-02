@@ -1,153 +1,33 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
 import FloatingLayout from '@/components/layout/FloatingLayout'
-import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, FileText, Mail, Save, Play } from 'lucide-react'
-import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
-
-interface ReportConfig {
-  enabled_reports: Array<{
-    report_type: string
-    schedule_id?: number
-  }>
-  report_branding: {
-    customer_logo_url?: string
-    report_title?: string
-    footer_notes?: string
-  }
-  delivery: {
-    method: string
-    destination: string
-    cc: string[]
-  }
-  timezone: string | null
-  retention_days: number | null
-  format: any
-}
+import { useCustomerReports } from './hooks'
+import { CustomerReportsLoading, CustomerReportsNotFound } from './components/CustomerReportsStates'
 
 export default function CustomerReports() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const toast = useToast()
-  
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [config, setConfig] = useState<ReportConfig | null>(null)
-  const [destination, setDestination] = useState('')
-  const [ccEmails, setCcEmails] = useState('')
-
-  useEffect(() => {
-    fetchReportConfig()
-  }, [id])
-
-  const fetchReportConfig = async () => {
-    try {
-      setIsLoading(true)
-      const response = await api.get<{ data: ReportConfig }>(`/customers/${id}/reports`)
-      const data = (response as any).data || response
-      const reportData = data.data || data
-      
-      // Ensure enabled_reports is always an array
-      const configData = {
-        ...reportData,
-        enabled_reports: reportData.enabled_reports || [],
-        delivery: reportData.delivery || { method: 'email', destination: '', cc: [] },
-        report_branding: reportData.report_branding || {}
-      }
-      
-      setConfig(configData)
-      setDestination(configData.delivery?.destination || '')
-      setCcEmails(configData.delivery?.cc?.join(', ') || '')
-    } catch (err: any) {
-      toast.error('Failed to load report configuration', err.response?.data?.message || err.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleSaveDestination = async () => {
-    try {
-      setIsSaving(true)
-      
-      const ccArray = ccEmails
-        .split(',')
-        .map(email => email.trim())
-        .filter(email => email.length > 0)
-
-      await api.patch(`/customers/${id}/report-destination`, {
-        method: 'email',
-        destination,
-        cc: ccArray
-      })
-
-      toast.success('Saved', 'Report destination updated successfully')
-      fetchReportConfig()
-    } catch (err: any) {
-      toast.error('Save Failed', err.response?.data?.message || err.message)
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleGenerateReport = async () => {
-    try {
-      setIsGenerating(true)
-      await api.post(`/reports/generate/${id}`)
-      toast.success('Report Generated', 'Report has been generated successfully')
-    } catch (err: any) {
-      toast.error('Generation Failed', err.response?.data?.message || err.message)
-    } finally {
-      setIsGenerating(false)
-    }
-  }
+  const {
+    navigate,
+    isLoading,
+    isSaving,
+    isGenerating,
+    config,
+    destination,
+    ccEmails,
+    setDestination,
+    setCcEmails,
+    handleSaveDestination,
+    handleGenerateReport
+  } = useCustomerReports()
 
   if (isLoading) {
     return (
       <FloatingLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Skeleton className="h-9 w-20" />
-              <div>
-                <Skeleton className="h-8 w-64" />
-                <Skeleton className="h-4 w-48 mt-2" />
-              </div>
-            </div>
-          </div>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-full mt-2" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </CardContent>
-          </Card>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i}>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <Skeleton className="h-5 w-40" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-9 w-full" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+        <CustomerReportsLoading />
       </FloatingLayout>
     )
   }
@@ -155,13 +35,7 @@ export default function CustomerReports() {
   if (!config) {
     return (
       <FloatingLayout>
-        <div className="flex flex-col items-center justify-center h-64">
-          <p className="text-lg font-medium text-muted-foreground">Customer not found</p>
-          <Button onClick={() => navigate('/customers')} className="mt-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Customers
-          </Button>
-        </div>
+        <CustomerReportsNotFound onBack={() => navigate('/customers')} />
       </FloatingLayout>
     )
   }
@@ -169,7 +43,6 @@ export default function CustomerReports() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate('/customers')}>
             <ArrowLeft className="h-4 w-4" />
@@ -182,7 +55,6 @@ export default function CustomerReports() {
           </div>
         </div>
 
-        {/* Enabled Reports */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -214,7 +86,6 @@ export default function CustomerReports() {
           </CardContent>
         </Card>
 
-        {/* Delivery Configuration */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -274,7 +145,6 @@ export default function CustomerReports() {
           </CardContent>
         </Card>
 
-        {/* Report Settings */}
         <Card>
           <CardHeader>
             <CardTitle>Report Settings</CardTitle>
@@ -300,7 +170,6 @@ export default function CustomerReports() {
           </CardContent>
         </Card>
 
-        {/* Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
@@ -309,8 +178,8 @@ export default function CustomerReports() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              onClick={handleGenerateReport} 
+            <Button
+              onClick={handleGenerateReport}
               disabled={isGenerating || config.enabled_reports.length === 0}
               className="text-white"
             >

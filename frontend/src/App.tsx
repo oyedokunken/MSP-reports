@@ -18,18 +18,19 @@ import AuthLayout from '@/pages/auth/Layout'
 import { UsersList, CreateUser } from '@/pages/users'
 import { ReportsList, CustomerReports, ConfigureReports } from '@/pages/reports'
 import { ApiKeysList } from '@/pages/api-keys'
-import { 
-  ActiveDirectoryDashboard, 
-  UsersList as ADUsersList, 
-  UserDetail as ADUserDetail,
-  GroupsList as ADGroupsList,
-  GroupDetail as ADGroupDetail
-} from '@/pages/active-directory'
-import {
-  ExchangeDashboard,
-  MailboxesList,
-  MailboxDetail
-} from '@/pages/exchange'
+// TODO: Create these pages when needed
+// import { 
+//   ActiveDirectoryDashboard, 
+//   UsersList as ADUsersList, 
+//   UserDetail as ADUserDetail,
+//   GroupsList as ADGroupsList,
+//   GroupDetail as ADGroupDetail
+// } from '@/pages/active-directory'
+// import {
+//   ExchangeDashboard,
+//   MailboxesList,
+//   MailboxDetail
+// } from '@/pages/exchange'
 import Licenses from '@/pages/licenses/Licenses'
 import Monitoring from '@/pages/monitoring/Monitoring'
 import NotificationsPage from '@/pages/notifications/NotificationsPage'
@@ -122,6 +123,7 @@ function AppRoutes() {
         }
       />
 
+      {/* TODO: Uncomment when Active Directory pages are created
       <Route
         path="/platform/active-directory"
         element={
@@ -193,6 +195,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      */}
 
       <Route
         path="/platform/customers"

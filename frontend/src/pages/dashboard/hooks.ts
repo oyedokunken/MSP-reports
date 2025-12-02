@@ -1,4 +1,13 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/Toast";
+import { FileText, Cable, Users, Activity } from "lucide-react";
+import { useIntegrationStore } from "@/stores/useIntegrationStore";
+import { useCustomersStore } from "@/stores/useCustomersStore";
+import { useMonitoringStore } from "@/stores/useMonitoringStore";
+import { useSchedulesStore } from "@/stores/useSchedulesStore";
+import { useNotificationStore } from "@/stores/useNotificationStore";
+import type { Integration, UpcomingReport, RecentActivity, Stat } from "./types";
 
 export const useQuickSync = (
     onSuccess: (title: string, description?: string) => void,
@@ -33,4 +42,202 @@ export const useQuickSync = (
     );
 
     return { syncingId, progress, handleQuickSync };
+};
+
+export const useDashboard = () => {
+    const toast = useToast();
+    const { isAuthenticated, user } = useAuth();
+    const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const integrations = useIntegrationStore((state) => state.integrations);
+    const totalCustomers = useCustomersStore((state) => state.total);
+    const systemStatus = useMonitoringStore((state) => state.systemStatus);
+    const reportMetrics = useMonitoringStore((state) => state.reportMetrics);
+    const schedules = useSchedulesStore((state) => state.schedules);
+
+    const fetchIntegrations = useIntegrationStore((state) => state.fetchIntegrations);
+    const fetchCustomers = useCustomersStore((state) => state.fetchCustomers);
+    const fetchSystemStatus = useMonitoringStore((state) => state.fetchSystemStatus);
+    const fetchReportMetrics = useMonitoringStore((state) => state.fetchReportMetrics);
+    const fetchSchedules = useSchedulesStore((state) => state.fetchSchedules);
+    const setNotifications = useNotificationStore((state) => state.setNotifications);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            loadDashboardData();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAuthenticated]);
+
+    const recentActivity: RecentActivity[] = (() => {
+        const activities: RecentActivity[] = [];
+
+        integrations.slice(0, 5).forEach((int: any, index: number) => {
+            if (int.lastSync && int.lastSync !== "Never") {
+                activities.push({
+                    id: index + 1,
+                    type: "sync",
+                    title: `${int.name} sync ${int.syncStatus === "success" ? "completed" : "failed"}`,
+                    time: int.lastSync,
+                    severity: int.syncStatus === "success" ? "green" : "red",
+                });
+            } else if (int.status === "active" || int.status === "warning") {
+                activities.push({
+                    id: index + 1,
+                    type: "alert",
+                    title: `${int.name} integration added`,
+                    time: "Recently",
+                    severity: int.status === "warning" ? "yellow" : "green",
+                });
+            }
+        });
+
+        if (reportMetrics?.metrics.completed_reports) {
+            activities.push({
+                id: activities.length + 1,
+                type: "report",
+                title: `${reportMetrics.metrics.completed_reports} reports generated successfully`,
+                time: "Recently",
+                severity: "green",
+            });
+        }
+
+        return activities.slice(0, 5);
+    })();
+
+    useEffect(() => {
+        const notifications = recentActivity.map((activity, index) => ({
+            id: Date.now() + index,
+            title: activity.title,
+            time: activity.time,
+            read: false,
+            type: activity.type as any,
+            severity: activity.severity,
+        }));
+        setNotifications(notifications);
+    }, [integrations, reportMetrics, setNotifications]);
+
+    const loadDashboardData = async () => {
+        if (!isAuthenticated) {
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            await Promise.all([
+                fetchIntegrations(),
+                fetchCustomers(),
+                fetchSystemStatus(),
+                fetchReportMetrics(),
+                fetchSchedules(),
+            ]);
+        } catch (err: any) {
+            if (isAuthenticated) {
+                toast.error("Failed to load dashboard data");
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            await loadDashboardData();
+            toast.success("Dashboard refreshed");
+        } catch (err) {
+            toast.error("Failed to refresh dashboard");
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    // Limit to 5 integrations for dashboard (performance)
+    const dashboardIntegrations: Integration[] = integrations
+        .slice(0, 5)
+        .map((int: any) => ({
+            id: int.id,
+            name: int.name,
+            type: int.type || "unknown",
+            status: (int.status === "syncing" ? "warning" : int.status) as "active" | "error" | "warning",
+            lastSync: int.lastSync || "Never",
+            customers: int.customers || 0,
+            syncStatus: int.syncStatus || "pending",
+        }));
+
+    // Limit to 5 upcoming reports for dashboard (performance)
+    const upcomingReports: UpcomingReport[] = schedules
+        .filter((s: any) => s.active)
+        .slice(0, 5)
+        .map((schedule: any) => ({
+            id: schedule.report_schedule_id,
+            name: schedule.report_type,
+            customer: schedule.customer_name || "Unknown Customer",
+            nextRun: schedule.next_scheduled_at
+                ? new Date(schedule.next_scheduled_at).toLocaleString()
+                : "Not scheduled",
+            status: "scheduled" as const,
+        }));
+
+    const activeIntegrations = integrations.filter((i: any) => i.status === "active").length;
+    const errorIntegrations = integrations.filter((i: any) => i.status === "error").length;
+    const totalReports = reportMetrics?.metrics.total_reports || 0;
+    const successRate = reportMetrics?.metrics.success_rate || 0;
+    const queueHealth = systemStatus?.queue.health || "unknown";
+
+    const stats: Stat[] = [
+        {
+            label: "Customers",
+            value: totalCustomers.toString(),
+            icon: Users,
+            trend: {
+                value: totalCustomers > 0 ? "All customers" : "No customers",
+                isPositive: true,
+            },
+        },
+        {
+            label: "Integrations",
+            value: activeIntegrations.toString(),
+            icon: Cable,
+            trend: {
+                value: errorIntegrations > 0
+                    ? `${errorIntegrations} error${errorIntegrations > 1 ? "s" : ""}`
+                    : "All healthy",
+                isPositive: errorIntegrations === 0,
+            },
+        },
+        {
+            label: `Reports (${reportMetrics?.period_days || 7}d)`,
+            value: totalReports.toString(),
+            icon: FileText,
+            trend: {
+                value: `${successRate.toFixed(1)}% success`,
+                isPositive: successRate >= 95,
+            },
+        },
+        {
+            label: "System Health",
+            value: queueHealth === "healthy" ? "Healthy" : "Issues",
+            icon: Activity,
+            trend: {
+                value: systemStatus?.queue.pending_jobs
+                    ? `${systemStatus.queue.pending_jobs} pending`
+                    : "No jobs",
+                isPositive: (systemStatus?.queue.pending_jobs || 0) < 10,
+            },
+        },
+    ];
+
+    return {
+        user,
+        isLoading,
+        isRefreshing,
+        recentActivity,
+        dashboardIntegrations,
+        upcomingReports,
+        stats,
+        handleRefresh,
+        toast,
+    };
 };

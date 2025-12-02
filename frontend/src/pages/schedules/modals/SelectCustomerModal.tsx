@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Dialog,
@@ -32,30 +32,130 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
   const [customers, setCustomers] = useState<Customer[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const observerTarget = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (open) {
-      fetchCustomers()
+      setSearchQuery('')
+      setCustomers([])
+      setCurrentPage(1)
+      setHasMore(true)
+      loadInitialCustomers()
     }
   }, [open])
 
-  const fetchCustomers = async () => {
+  // Load initial customers (no search)
+  const loadInitialCustomers = async () => {
+    setIsLoading(true)
     try {
-      setIsLoading(true)
-      const response = await api.get('/customers?per_page=100')
-      const data = (response as any)
+      const params = new URLSearchParams({ 
+        page: '1',
+        per_page: '20'
+      })
+      const response = await api.get(`/customers?${params.toString()}`)
+      const data = response as any
       const customerData = data.data || []
-      setCustomers(customerData.filter((c: any) => c.customer_id !== null))
+      const pagination = data.pagination || data
+      
+      const filtered = customerData.filter((c: any) => c.customer_id !== null)
+      setCustomers(filtered)
+      
+      const currentPageNum = pagination.current_page || 1
+      const lastPage = pagination.last_page || 1
+      setHasMore(currentPageNum < lastPage)
+      setCurrentPage(currentPageNum)
     } catch (err) {
       console.error('Failed to fetch customers:', err)
+      setCustomers([])
+      setHasMore(false)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.canonical_name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Load more customers (with or without search)
+  const loadMoreCustomers = useCallback(async (page: number, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMore(true)
+    } else {
+      setIsLoading(true)
+    }
+
+    try {
+      const params = new URLSearchParams({ 
+        page: page.toString(),
+        per_page: '20'
+      })
+      
+      if (searchQuery.trim()) {
+        params.append('search', searchQuery)
+      }
+      
+      const response = await api.get(`/customers?${params.toString()}`)
+      const data = response as any
+      const customerData = data.data || []
+      const pagination = data.pagination || data
+      
+      const filtered = customerData.filter((c: any) => c.customer_id !== null)
+      
+      if (append) {
+        setCustomers(prev => [...prev, ...filtered])
+      } else {
+        setCustomers(filtered)
+      }
+
+      const currentPageNum = pagination.current_page || page
+      const lastPage = pagination.last_page || 1
+      setHasMore(currentPageNum < lastPage)
+      setCurrentPage(currentPageNum)
+    } catch (err) {
+      console.error('Failed to fetch customers:', err)
+      if (!append) {
+        setCustomers([])
+      }
+      setHasMore(false)
+    } finally {
+      setIsLoading(false)
+      setIsLoadingMore(false)
+    }
+  }, [searchQuery])
+
+  // Search when search query changes
+  useEffect(() => {
+    if (!open) return
+    
+    setCurrentPage(1)
+    setHasMore(true)
+    
+    const timeoutId = setTimeout(() => loadMoreCustomers(1, false), 300)
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, open, loadMoreCustomers])
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoading) {
+          loadMoreCustomers(currentPage + 1, true)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentTarget = observerTarget.current
+    if (currentTarget) {
+      observer.observe(currentTarget)
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget)
+      }
+    }
+  }, [hasMore, isLoadingMore, isLoading, currentPage, loadMoreCustomers])
 
   const handleSelectCustomer = (customerId: number) => {
     navigate(`/platform/customers/${customerId}/configure-reports`)
@@ -92,7 +192,7 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
             <div className="flex items-center justify-center py-8">
               <Spinner className="h-8 w-8" />
             </div>
-          ) : filteredCustomers.length === 0 ? (
+          ) : customers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Users className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-sm text-muted-foreground">
@@ -101,7 +201,11 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-              {filteredCustomers.map((customer) => (
+              <p className="text-xs text-muted-foreground px-2 py-1">
+                Showing {customers.length} result{customers.length !== 1 ? 's' : ''}
+                {hasMore && ' (scroll for more)'}
+              </p>
+              {customers.map((customer) => (
                 <button
                   key={customer.customer_id}
                   onClick={() => handleSelectCustomer(customer.customer_id)}
@@ -128,6 +232,16 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
                   </div>
                 </button>
               ))}
+              
+              {/* Infinite scroll trigger */}
+              <div ref={observerTarget} className="py-2">
+                {isLoadingMore && (
+                  <div className="flex items-center justify-center py-2">
+                    <Spinner className="h-4 w-4" />
+                    <span className="ml-2 text-xs text-muted-foreground">Loading more...</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

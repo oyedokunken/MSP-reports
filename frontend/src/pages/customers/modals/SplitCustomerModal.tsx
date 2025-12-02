@@ -33,11 +33,11 @@ interface SplitCustomerModalProps {
   onSuccess?: () => void
 }
 
-export function SplitCustomerModal({ 
-  open, 
+export function SplitCustomerModal({
+  open,
   onOpenChange,
   customer,
-  onSuccess 
+  onSuccess
 }: SplitCustomerModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -83,8 +83,7 @@ export function SplitCustomerModal({
       const data = (response as any).data || response
       setMergeHistory(Array.isArray(data) ? data : [])
     } catch (err: any) {
-      // Silently fail - merge history is optional
-      console.error('Failed to load merge history:', err)
+      // Merge history is optional, fail silently
     }
   }
 
@@ -98,7 +97,7 @@ export function SplitCustomerModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!newCustomerName.trim()) {
       setError('Please enter a name for the new customer')
       return
@@ -170,7 +169,7 @@ export function SplitCustomerModal({
             Split {customer.name} into two separate customers
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Merge History */}
           {mergeHistory.length > 0 && (

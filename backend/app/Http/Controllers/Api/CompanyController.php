@@ -134,8 +134,15 @@ class CompanyController extends Controller
             $validated = $request->validate([
                 'company_name' => 'sometimes|string|max:255',
                 'primary_color' => 'sometimes|string|regex:/^#[0-9a-f]{6}$/i',
+                'secondary_color' => 'sometimes|string|regex:/^#[0-9a-f]{6}$/i',
+                'logo_url' => 'sometimes|nullable|url|max:500',
+                'favicon_url' => 'sometimes|nullable|url|max:500',
                 'email_from_address' => 'sometimes|nullable|email|max:255',
                 'email_from_name' => 'sometimes|nullable|string|max:255',
+                'support_email' => 'sometimes|nullable|email|max:255',
+                'support_phone' => 'sometimes|nullable|string|max:50',
+                'footer_text' => 'sometimes|nullable|string|max:500',
+                'report_header_text' => 'sometimes|nullable|string|max:255',
             ]);
 
             // Get current settings or initialize empty array
@@ -153,11 +160,32 @@ class CompanyController extends Controller
             if (isset($validated['primary_color'])) {
                 $settings['white_label']['primary_color'] = $validated['primary_color'];
             }
+            if (isset($validated['secondary_color'])) {
+                $settings['white_label']['secondary_color'] = $validated['secondary_color'];
+            }
+            if (isset($validated['logo_url'])) {
+                $settings['white_label']['logo_url'] = $validated['logo_url'];
+            }
+            if (isset($validated['favicon_url'])) {
+                $settings['white_label']['favicon_url'] = $validated['favicon_url'];
+            }
             if (isset($validated['email_from_address'])) {
                 $settings['white_label']['email_from_address'] = $validated['email_from_address'];
             }
             if (isset($validated['email_from_name'])) {
                 $settings['white_label']['email_from_name'] = $validated['email_from_name'];
+            }
+            if (isset($validated['support_email'])) {
+                $settings['white_label']['support_email'] = $validated['support_email'];
+            }
+            if (isset($validated['support_phone'])) {
+                $settings['white_label']['support_phone'] = $validated['support_phone'];
+            }
+            if (isset($validated['footer_text'])) {
+                $settings['white_label']['footer_text'] = $validated['footer_text'];
+            }
+            if (isset($validated['report_header_text'])) {
+                $settings['white_label']['report_header_text'] = $validated['report_header_text'];
             }
 
             // Update company settings

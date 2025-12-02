@@ -1,9 +1,4 @@
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import FloatingLayout from "@/components/layout/FloatingLayout";
-import { useToast } from "@/components/ui/Toast";
-import { useCustomersStore } from "@/stores/useCustomersStore";
-
 import {
     CustomersHeader,
     CustomersFilters,
@@ -12,96 +7,40 @@ import {
     MapCustomerModal,
     Pagination,
 } from "./components";
-
 import { EditCustomerModal } from "./modals/EditCustomerModal";
 import { ViewCustomerIntegrationsModal } from "./modals/ViewCustomerIntegrationsModal";
 import { MergeCustomersModal } from "./modals/MergeCustomersModal";
 import { SplitCustomerModal } from "./modals/SplitCustomerModal";
+import { useCustomerList } from "./hooks";
 
 export default function CustomerList() {
-    const navigate = useNavigate();
-    const toast = useToast();
-
-    // Zustand selectors
-    const customers = useCustomersStore((state) => state.customers);
-    const unmappedCount = useCustomersStore((state) => state.unmappedCount);
-    const isLoading = useCustomersStore((state) => state.isLoading);
-    const searchQuery = useCustomersStore((state) => state.searchQuery);
-    const statusFilter = useCustomersStore((state) => state.statusFilter);
-    const reportFilter = useCustomersStore((state) => state.reportFilter);
-    const modals = useCustomersStore((state) => state.modals);
-    const selectedUnmappedCustomer = useCustomersStore((state) => state.selectedUnmappedCustomer);
-    const selectedCustomer = useCustomersStore((state) => state.selectedCustomer);
-    
-    // Pagination
-    const currentPage = useCustomersStore((state) => state.currentPage);
-    const totalPages = useCustomersStore((state) => state.totalPages);
-    const total = useCustomersStore((state) => state.total);
-
-    const fetchCustomers = useCustomersStore((state) => state.fetchCustomers);
-    const setSearchQuery = useCustomersStore((state) => state.setSearchQuery);
-    const setStatusFilter = useCustomersStore((state) => state.setStatusFilter);
-    const setReportFilter = useCustomersStore((state) => state.setReportFilter);
-    const openModal = useCustomersStore((state) => state.openModal);
-    const closeModal = useCustomersStore((state) => state.closeModal);
-    const setSelectedUnmappedCustomer = useCustomersStore((state) => state.setSelectedUnmappedCustomer);
-    const setSelectedCustomer = useCustomersStore((state) => state.setSelectedCustomer);
-
-    const getMappedCustomers = useCustomersStore((state) => state.getMappedCustomers);
-    const getUnmappedCustomers = useCustomersStore((state) => state.getUnmappedCustomers);
-
-    // Fetch on mount
-    useEffect(() => {
-        fetchCustomers().catch((err) => {
-            toast.error(
-                "Failed to load customers",
-                err.response?.data?.message || err.message
-            );
-        });
-    }, [fetchCustomers]);
-
-    const mappedCustomers = getMappedCustomers();
-    const unmappedCustomers = getUnmappedCustomers();
-    const totalMapped = customers.filter((c) => c.customer_id !== null).length;
-
-    // Start mapping
-    const handleStartMapping = () => {
-        if (unmappedCustomers.length > 0) {
-            // Convert UnmappedCustomer to IntegrationCustomer format
-            const firstUnmapped = unmappedCustomers[0];
-            setSelectedUnmappedCustomer({
-                integration_customer_id: firstUnmapped.integration_customer_id,
-                integration_type: firstUnmapped.integration_type,
-                display_name: firstUnmapped.display_name,
-                external_id: firstUnmapped.external_id,
-                name: firstUnmapped.name,
-                active: firstUnmapped.active,
-                last_seen_at: firstUnmapped.last_seen_at,
-            });
-            openModal("map");
-        }
-    };
-
-    const handleMapSuccess = async () => {
-        await fetchCustomers();
-        const updatedUnmapped = getUnmappedCustomers();
-
-        if (updatedUnmapped.length > 0) {
-            const nextUnmapped = updatedUnmapped[0];
-            setSelectedUnmappedCustomer({
-                integration_customer_id: nextUnmapped.integration_customer_id,
-                integration_type: nextUnmapped.integration_type,
-                display_name: nextUnmapped.display_name,
-                external_id: nextUnmapped.external_id,
-                name: nextUnmapped.name,
-                active: nextUnmapped.active,
-                last_seen_at: nextUnmapped.last_seen_at,
-            });
-        } else {
-            closeModal("map");
-            toast.success("All Done!", "All customers have been mapped");
-        }
-    };
+    const {
+        navigate,
+        searchQuery,
+        statusFilter,
+        reportFilter,
+        totalMapped,
+        mappedCustomers,
+        unmappedCustomers,
+        unmappedCount,
+        isLoading,
+        modals,
+        selectedUnmappedCustomer,
+        selectedCustomer,
+        currentPage,
+        totalPages,
+        total,
+        setSearchQuery,
+        setStatusFilter,
+        setReportFilter,
+        fetchCustomers,
+        openModal,
+        closeModal,
+        handleStartMapping,
+        handleMapSuccess,
+        handleCustomerAction,
+        handleModalSuccess,
+    } = useCustomerList();
 
     return (
         <FloatingLayout>
@@ -130,46 +69,13 @@ export default function CustomerList() {
                     hasUnmapped={unmappedCustomers.length > 0}
                     onSetupReports={(id) => navigate(`/platform/customers/${id}/configure-reports`)}
                     onViewHistory={(id) => navigate(`/platform/reports?customer=${id}`)}
-                    onEdit={(customer) => {
-                        setSelectedCustomer({
-                            customer_id: customer.customer_id!,
-                            name: customer.canonical_name!,
-                            status: customer.status!,
-                            integration_count: customer.integrations.length,
-                        });
-                        openModal("edit");
-                    }}
-                    onViewIntegrations={(customer) => {
-                        setSelectedCustomer({
-                            customer_id: customer.customer_id!,
-                            name: customer.canonical_name!,
-                            status: customer.status!,
-                            integration_count: customer.integrations.length,
-                        });
-                        openModal("integrations");
-                    }}
-                    onMerge={(customer) => {
-                        setSelectedCustomer({
-                            customer_id: customer.customer_id!,
-                            name: customer.canonical_name!,
-                            status: customer.status!,
-                            integration_count: customer.integrations.length,
-                        });
-                        openModal("merge");
-                    }}
-                    onSplit={(customer) => {
-                        setSelectedCustomer({
-                            customer_id: customer.customer_id!,
-                            name: customer.canonical_name!,
-                            status: customer.status!,
-                            integration_count: customer.integrations.length,
-                        });
-                        openModal("split");
-                    }}
+                    onEdit={(customer) => handleCustomerAction(customer, 'edit')}
+                    onViewIntegrations={(customer) => handleCustomerAction(customer, 'integrations')}
+                    onMerge={(customer) => handleCustomerAction(customer, 'merge')}
+                    onSplit={(customer) => handleCustomerAction(customer, 'split')}
                     onMoreInfo={(id) => navigate(`/platform/customers/${id}/integrations`)}
                 />
 
-                {/* Pagination */}
                 {total > 0 && (
                     <Pagination
                         currentPage={currentPage}
@@ -178,8 +84,6 @@ export default function CustomerList() {
                         onPageChange={(page) => fetchCustomers(page)}
                     />
                 )}
-
-                {/* ---------------- MODALS ---------------- */}
 
                 <MapCustomerModal
                     open={modals.map}
@@ -193,22 +97,14 @@ export default function CustomerList() {
                     open={modals.edit}
                     onOpenChange={(open) => open ? openModal("edit") : closeModal("edit")}
                     customer={selectedCustomer}
-                    onSuccess={() => {
-                        fetchCustomers();
-                        closeModal("edit");
-                        toast.success("Customer Updated", "Customer updated successfully");
-                    }}
+                    onSuccess={() => handleModalSuccess('edit', "Customer Updated", "Customer updated successfully")}
                 />
 
                 <ViewCustomerIntegrationsModal
                     open={modals.integrations}
                     onOpenChange={(open) => open ? openModal("integrations") : closeModal("integrations")}
                     customer={selectedCustomer}
-                    onSuccess={() => {
-                        fetchCustomers();
-                        closeModal("integrations");
-                        toast.success("Mapping Deleted", "Integration mapping removed");
-                    }}
+                    onSuccess={() => handleModalSuccess('integrations', "Mapping Deleted", "Integration mapping removed")}
                 />
 
                 <MergeCustomersModal
@@ -221,22 +117,14 @@ export default function CustomerList() {
                         status: c.status!,
                         integration_count: c.integrations.length,
                     }))}
-                    onSuccess={() => {
-                        fetchCustomers();
-                        closeModal("merge");
-                        toast.success("Customers Merged", "Customers merged successfully");
-                    }}
+                    onSuccess={() => handleModalSuccess('merge', "Customers Merged", "Customers merged successfully")}
                 />
 
                 <SplitCustomerModal
                     open={modals.split}
                     onOpenChange={(open) => open ? openModal("split") : closeModal("split")}
                     customer={selectedCustomer}
-                    onSuccess={() => {
-                        fetchCustomers();
-                        closeModal("split");
-                        toast.success("Customer Split", "Customer split successfully");
-                    }}
+                    onSuccess={() => handleModalSuccess('split', "Customer Split", "Customer split successfully")}
                 />
             </div>
         </FloatingLayout>

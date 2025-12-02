@@ -3,7 +3,6 @@ import type { Integration } from '../types/integration'
 
 export function useIntegrationModals() {
   const [addModalOpen, setAddModalOpen] = useState(false)
-  const [viewCustomersModalOpen, setViewCustomersModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [syncLogsModalOpen, setSyncLogsModalOpen] = useState(false)
@@ -15,8 +14,6 @@ export function useIntegrationModals() {
   return {
     addModalOpen,
     setAddModalOpen,
-    viewCustomersModalOpen,
-    setViewCustomersModalOpen,
     editModalOpen,
     setEditModalOpen,
     deleteModalOpen,

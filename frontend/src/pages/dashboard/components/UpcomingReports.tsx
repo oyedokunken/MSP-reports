@@ -10,9 +10,8 @@ type UpcomingReportsProps = {
   onInfo: (title: string, description?: string) => void
 }
 
-export function UpcomingReports ({ isLoading, reports, onInfo }: UpcomingReportsProps) {
+export function UpcomingReports({ isLoading, reports, onInfo }: UpcomingReportsProps) {
   const navigate = useNavigate();
-
   return (
     <AnimatedCard className="p-6 min-w-0">
       <div className="flex items-center justify-between">
