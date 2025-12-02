@@ -6,17 +6,17 @@ return [
     'version' => '1.0.0',
     
     'credentials' => [
-        'bearer_token' => [
+        'api_token' => [
             'type' => 'password',
-            'label' => 'Bearer Token',
+            'label' => 'API Token',
             'required' => true,
             'encrypted' => true,
-            'placeholder' => 'Enter your Sendmarc API bearer token',
+            'placeholder' => 'Enter your Sendmarc API token',
             'help' => 'Found in Sendmarc Portal under API Settings',
         ],
-        'endpoint' => [
+        'base_url' => [
             'type' => 'text',
-            'label' => 'API Endpoint',
+            'label' => 'API Base URL',
             'required' => false,
             'default' => 'https://portal.sendmarc.com/api/v1',
             'placeholder' => 'https://portal.sendmarc.com/api/v1',
@@ -25,6 +25,12 @@ return [
     ],
     
     'configuration' => [
+        'base_url' => [
+            'type' => 'text',
+            'label' => 'API Base URL',
+            'default' => 'https://portal.sendmarc.com/api/v1',
+            'required' => false,
+        ],
         'sync_sender_statistics' => [
             'type' => 'boolean',
             'label' => 'Sync Sender Statistics',

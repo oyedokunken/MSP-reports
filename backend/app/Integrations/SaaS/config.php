@@ -35,11 +35,48 @@ return [
     ],
 
     'configuration' => [
-        'sync_interval' => [
+        'sync_frequency' => [
+            'type' => 'select',
+            'label' => 'Sync Frequency',
+            'options' => [
+                '4_hours' => 'Every 4 Hours',
+                '6_hours' => 'Every 6 Hours',
+                '12_hours' => 'Every 12 Hours',
+                '24_hours' => 'Daily',
+            ],
+            'default' => '6_hours',
+        ],
+        'sync_customers' => [
+            'type' => 'boolean',
+            'label' => 'Sync Customers',
+            'default' => true,
+        ],
+        'sync_users' => [
+            'type' => 'boolean',
+            'label' => 'Sync Users',
+            'default' => true,
+        ],
+        'sync_events' => [
+            'type' => 'boolean',
+            'label' => 'Sync Security Events',
+            'default' => true,
+        ],
+        'alert_status_filter' => [
+            'type' => 'multiselect',
+            'label' => 'Alert Status Filter',
+            'options' => [
+                'critical' => 'Critical',
+                'high' => 'High',
+                'medium' => 'Medium',
+                'low' => 'Low',
+            ],
+            'default' => ['critical', 'medium'],
+        ],
+        'historical_import_days' => [
             'type' => 'number',
-            'label' => 'Sync Interval (seconds)',
-            'default' => 86400,
-            'help' => 'How often to sync SaaS data. Placeholder only for now.',
+            'label' => 'Historical Import Days',
+            'default' => 90,
+            'help' => 'Number of days to import historical data (max: 365)',
         ],
     ],
 

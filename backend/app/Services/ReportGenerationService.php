@@ -258,15 +258,21 @@ class ReportGenerationService
         }
 
         $html = $this->generateHTML($reportData, $schedule);
+        
+        // Generate header and footer HTML for repeating on every page
+        $headerHtml = $this->generatePDFHeader($reportData, $schedule);
+        $footerHtml = $this->generatePDFFooter($reportData, $schedule);
 
-        // Use Gotenberg to generate PDF
+        // Use Gotenberg to generate PDF with repeating header/footer
         $pdfContent = $this->gotenberg->htmlToPdf($html, [
             'paper_width' => '8.27',  // A4 width in inches
             'paper_height' => '11.69', // A4 height in inches
-            'margin_top' => '0',
-            'margin_bottom' => '0',
-            'margin_left' => '0',
-            'margin_right' => '0',
+            'margin_top' => '1.3',    // 1.1 inch (~28mm) top margin for header
+            'margin_bottom' => '0.9', // 0.9 inch (~23mm) bottom margin for footer
+            'margin_left' => '0.4',   // 0.4 inch (~10mm) left margin
+            'margin_right' => '0.4',  // 0.4 inch (~10mm) right margin
+            'header_html' => $headerHtml,
+            'footer_html' => $footerHtml,
             'print_background' => true,
             'prefer_css_page_size' => false,
         ]);
@@ -429,5 +435,31 @@ class ReportGenerationService
                 return null;
             }
         });
+    }
+
+    /**
+     * Generate PDF header HTML for repeating on every page
+     */
+    private function generatePDFHeader(array $reportData, ReportSchedule $schedule): string
+    {
+        $branding = $reportData['branding'] ?? [];
+        $customer = $schedule->customer;
+        
+        return view('reports.partials.pdf-header', [
+            'branding' => $branding,
+            'customer' => $customer,
+        ])->render();
+    }
+
+    /**
+     * Generate PDF footer HTML for repeating on every page with page numbers
+     */
+    private function generatePDFFooter(array $reportData, ReportSchedule $schedule): string
+    {
+        $branding = $reportData['branding'] ?? [];
+        
+        return view('reports.partials.pdf-footer', [
+            'branding' => $branding,
+        ])->render();
     }
 }

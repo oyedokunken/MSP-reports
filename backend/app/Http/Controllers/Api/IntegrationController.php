@@ -234,7 +234,7 @@ class IntegrationController extends Controller
         }
         
         if ($validated['integration_type'] === 'Sendmarc' && !isset($credentials['base_url'])) {
-            $credentials['base_url'] = 'https://api.sendmarc.com';
+            $credentials['base_url'] = 'https://portal.sendmarc.com/api/v1';
         }
         
         if ($validated['integration_type'] === 'Barracuda' && !isset($credentials['base_url'])) {

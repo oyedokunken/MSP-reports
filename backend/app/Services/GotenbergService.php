@@ -36,84 +36,47 @@ class GotenbergService
         try {
             $endpoint = "{$this->baseUrl}/forms/chromium/convert/html";
 
-            // Prepare multipart form data
-            $multipart = [
-                [
-                    'name' => 'files',
-                    'contents' => $html,
-                    'filename' => 'index.html',
-                ],
+            // Build the multipart form data properly
+            $multipart = [];
+            
+            // Add main HTML file
+            $multipart[] = [
+                'name' => 'files',
+                'contents' => $html,
+                'filename' => 'index.html',
             ];
-
-            // Add optional parameters
-            if (isset($options['paper_width'])) {
+            
+            // Add header HTML if provided
+            if (isset($options['header_html']) && !empty($options['header_html'])) {
                 $multipart[] = [
-                    'name' => 'paperWidth',
-                    'contents' => $options['paper_width'],
+                    'name' => 'files',
+                    'contents' => $options['header_html'],
+                    'filename' => 'header.html',
+                ];
+            }
+            
+            // Add footer HTML if provided
+            if (isset($options['footer_html']) && !empty($options['footer_html'])) {
+                $multipart[] = [
+                    'name' => 'files',
+                    'contents' => $options['footer_html'],
+                    'filename' => 'footer.html',
                 ];
             }
 
-            if (isset($options['paper_height'])) {
+            // Add all form parameters
+            $formData = $this->buildFormData($options);
+            foreach ($formData as $key => $value) {
                 $multipart[] = [
-                    'name' => 'paperHeight',
-                    'contents' => $options['paper_height'],
-                ];
-            }
-
-            if (isset($options['margin_top'])) {
-                $multipart[] = [
-                    'name' => 'marginTop',
-                    'contents' => $options['margin_top'],
-                ];
-            }
-
-            if (isset($options['margin_bottom'])) {
-                $multipart[] = [
-                    'name' => 'marginBottom',
-                    'contents' => $options['margin_bottom'],
-                ];
-            }
-
-            if (isset($options['margin_left'])) {
-                $multipart[] = [
-                    'name' => 'marginLeft',
-                    'contents' => $options['margin_left'],
-                ];
-            }
-
-            if (isset($options['margin_right'])) {
-                $multipart[] = [
-                    'name' => 'marginRight',
-                    'contents' => $options['margin_right'],
-                ];
-            }
-
-            if (isset($options['prefer_css_page_size'])) {
-                $multipart[] = [
-                    'name' => 'preferCssPageSize',
-                    'contents' => $options['prefer_css_page_size'] ? 'true' : 'false',
-                ];
-            }
-
-            if (isset($options['print_background'])) {
-                $multipart[] = [
-                    'name' => 'printBackground',
-                    'contents' => $options['print_background'] ? 'true' : 'false',
-                ];
-            }
-
-            if (isset($options['landscape'])) {
-                $multipart[] = [
-                    'name' => 'landscape',
-                    'contents' => $options['landscape'] ? 'true' : 'false',
+                    'name' => $key,
+                    'contents' => is_bool($value) ? ($value ? 'true' : 'false') : (string)$value,
                 ];
             }
 
             // Make request to Gotenberg
             $response = Http::timeout($this->timeout)
                 ->asMultipart()
-                ->attach('files', $html, 'index.html')
-                ->post($endpoint, $this->buildFormData($options));
+                ->post($endpoint, $multipart);
 
             if (!$response->successful()) {
                 throw new Exception(

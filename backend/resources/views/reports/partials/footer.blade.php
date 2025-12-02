@@ -9,7 +9,7 @@
     - $totalPages (int): Total number of pages
 --}}
 
-<div class="report-footer" style="margin-top: 20mm; padding-top: 10mm; border-top: 1px solid #e5e5e5;">
+<div class="report-footer" style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e5e5;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap;">
         
         <!-- Left: Company info -->
@@ -41,7 +41,7 @@
     </div>
     
     <!-- Page number (centered) -->
-    <div style="text-align: center; margin-top: 10mm; font-size: 7pt; color: #999;">
+    <div style="text-align: center; margin-top: 10px; font-size: 7pt; color: #999;">
         @if(isset($pageNumber) && isset($totalPages))
             Page {{ $pageNumber }} of {{ $totalPages }}
         @else

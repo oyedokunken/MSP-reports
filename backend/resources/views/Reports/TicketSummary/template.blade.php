@@ -24,10 +24,9 @@
         }
         
         .page {
-            width: 210mm;
-            min-height: 297mm;
-            padding: 20mm;
-            margin: 0 auto;
+            width: 100%;
+            padding: 0;
+            margin: 0;
         }
         
         /* Header */
@@ -212,13 +211,30 @@
 </head>
 <body>
     <div class="page">
-        <!-- Header Partial -->
-        @include('reports.partials.header', [
-            'branding' => $branding,
-            'customer' => $customer,
-            'reportDate' => \Carbon\Carbon::parse($generated_at)->format('F j, Y'),
-            'period' => $period
-        ])
+        <!-- Report Title and Configuration -->
+        <div class="report-info" style="background: #f8fafc; border-left: 4px solid {{ $branding['primary_color'] ?? '#1a56db' }}; padding: 15px 20px; margin-bottom: 20px; border-radius: 4px;">
+            <h2 style="font-size: 16pt; font-weight: 600; color: #1a1a1a; margin: 0 0 10px 0;">
+                Ticket Summary Report
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 9pt; color: #666;">
+                <div>
+                    <div style="font-weight: 600; color: #999; text-transform: uppercase; font-size: 7pt; letter-spacing: 0.5px; margin-bottom: 3px;">Report Type</div>
+                    <div style="color: #1a1a1a; font-weight: 500;">Monthly Support Ticket Analysis</div>
+                </div>
+                @if(isset($period))
+                <div>
+                    <div style="font-weight: 600; color: #999; text-transform: uppercase; font-size: 7pt; letter-spacing: 0.5px; margin-bottom: 3px;">Report Period</div>
+                    <div style="color: #1a1a1a; font-weight: 500;">{{ $period['formatted'] ?? ($period['start'] . ' - ' . $period['end']) }}</div>
+                </div>
+                @endif
+                @if(isset($generated_at))
+                <div>
+                    <div style="font-weight: 600; color: #999; text-transform: uppercase; font-size: 7pt; letter-spacing: 0.5px; margin-bottom: 3px;">Generated</div>
+                    <div style="color: #1a1a1a; font-weight: 500;">{{ \Carbon\Carbon::parse($generated_at)->format('F j, Y g:i A') }}</div>
+                </div>
+                @endif
+            </div>
+        </div>
         
         <!-- Key Metrics -->
         <div class="metrics">
@@ -349,11 +365,6 @@
             </table>
         </div>
         @endif
-        
-        <!-- Footer Partial -->
-        @include('reports.partials.footer', [
-            'branding' => $branding
-        ])
     </div>
 </body>
 </html>

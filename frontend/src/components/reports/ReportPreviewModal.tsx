@@ -168,7 +168,7 @@ export function ReportPreviewModal({
         </DialogHeader>
 
         {/* PDF Preview */}
-        <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900">
+        <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900">
           {loading && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -191,18 +191,20 @@ export function ReportPreviewModal({
           )}
 
           {!loading && !error && pdfUrl && (
-            <div className="flex justify-center w-full h-full">
+            <div className="flex justify-center w-full p-4">
               <iframe
-                src={pdfUrl}
-                className="bg-white shadow-lg w-full"
+                src={`${pdfUrl}#view=FitH&scrollbar=0`}
+                className="bg-white shadow-lg"
                 style={{
                   width: `${zoom}%`,
                   minWidth: '800px',
-                  height: '100%',
-                  minHeight: '1000px',
+                  height: '100vh',
+                  minHeight: '1200px',
                   border: 'none',
+                  overflow: 'hidden',
                 }}
                 title="PDF Preview"
+                scrolling="no"
               />
             </div>
           )}
