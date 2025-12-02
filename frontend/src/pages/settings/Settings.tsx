@@ -147,20 +147,18 @@ export default function Settings() {
       })
       console.log('✅ Company info saved')
       
-      // Save branding (only send non-empty values)
+      // Save branding
       const brandingData: any = {
         company_name: companyName,
         primary_color: primaryHex,
         secondary_color: secondaryHex,
+        logo_url: logoUrl || null,
+        favicon_url: faviconUrl || null,
+        support_email: supportEmail || null,
+        support_phone: supportPhone || null,
+        footer_text: footerText || null,
+        report_header_text: reportHeaderText || null,
       }
-      
-      // Add optional fields only if they have values
-      if (logoUrl) brandingData.logo_url = logoUrl
-      if (faviconUrl) brandingData.favicon_url = faviconUrl
-      if (supportEmail) brandingData.support_email = supportEmail
-      if (supportPhone) brandingData.support_phone = supportPhone
-      if (footerText) brandingData.footer_text = footerText
-      if (reportHeaderText) brandingData.report_header_text = reportHeaderText
       
       console.log('2️⃣ Saving branding data:', brandingData)
       
@@ -168,24 +166,28 @@ export default function Settings() {
       
       console.log('✅ Branding saved! Response:', response)
       
-      // Update branding context immediately with new colors
-      if (response?.data) {
-        console.log('🎨 Updating branding context with:', response.data)
+      // Update branding context immediately with response from backend
+      // Response structure: { status: 'success', message: '...', data: { ...branding } }
+      const savedBranding = (response as any)?.data || response
+      
+      if (savedBranding) {
+        console.log('🎨 Updating branding context with:', savedBranding)
         const newBranding = {
           enabled: true,
-          company_name: companyName,
-          logo_url: logoUrl,
-          primary_color: primaryHex,
-          secondary_color: secondaryHex,
-          favicon_url: faviconUrl,
-          email_from_name: fromName,
-          email_from_address: fromEmail,
-          support_email: supportEmail,
-          support_phone: supportPhone,
-          footer_text: footerText,
-          report_header_text: reportHeaderText,
+          company_name: savedBranding.company_name || companyName,
+          logo_url: savedBranding.logo_url || null,
+          primary_color: savedBranding.primary_color || primaryHex,
+          secondary_color: savedBranding.secondary_color || secondaryHex,
+          favicon_url: savedBranding.favicon_url || null,
+          email_from_name: savedBranding.email_from_name || fromName,
+          email_from_address: savedBranding.email_from_address || fromEmail,
+          support_email: savedBranding.support_email || null,
+          support_phone: savedBranding.support_phone || null,
+          footer_text: savedBranding.footer_text || null,
+          report_header_text: savedBranding.report_header_text || null,
         }
         
+        console.log('📦 Final branding object to save:', newBranding)
         setBranding(newBranding)
         
         // Also update localStorage company data so it persists on refresh

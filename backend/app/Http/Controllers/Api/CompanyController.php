@@ -154,37 +154,38 @@ class CompanyController extends Controller
             }
 
             // Map frontend field names to backend structure
-            if (isset($validated['company_name'])) {
+            // Use array_key_exists to allow null values
+            if (array_key_exists('company_name', $validated)) {
                 $settings['white_label']['company_name'] = $validated['company_name'];
             }
-            if (isset($validated['primary_color'])) {
+            if (array_key_exists('primary_color', $validated)) {
                 $settings['white_label']['primary_color'] = $validated['primary_color'];
             }
-            if (isset($validated['secondary_color'])) {
+            if (array_key_exists('secondary_color', $validated)) {
                 $settings['white_label']['secondary_color'] = $validated['secondary_color'];
             }
-            if (isset($validated['logo_url'])) {
+            if (array_key_exists('logo_url', $validated)) {
                 $settings['white_label']['logo_url'] = $validated['logo_url'];
             }
-            if (isset($validated['favicon_url'])) {
+            if (array_key_exists('favicon_url', $validated)) {
                 $settings['white_label']['favicon_url'] = $validated['favicon_url'];
             }
-            if (isset($validated['email_from_address'])) {
+            if (array_key_exists('email_from_address', $validated)) {
                 $settings['white_label']['email_from_address'] = $validated['email_from_address'];
             }
-            if (isset($validated['email_from_name'])) {
+            if (array_key_exists('email_from_name', $validated)) {
                 $settings['white_label']['email_from_name'] = $validated['email_from_name'];
             }
-            if (isset($validated['support_email'])) {
+            if (array_key_exists('support_email', $validated)) {
                 $settings['white_label']['support_email'] = $validated['support_email'];
             }
-            if (isset($validated['support_phone'])) {
+            if (array_key_exists('support_phone', $validated)) {
                 $settings['white_label']['support_phone'] = $validated['support_phone'];
             }
-            if (isset($validated['footer_text'])) {
+            if (array_key_exists('footer_text', $validated)) {
                 $settings['white_label']['footer_text'] = $validated['footer_text'];
             }
-            if (isset($validated['report_header_text'])) {
+            if (array_key_exists('report_header_text', $validated)) {
                 $settings['white_label']['report_header_text'] = $validated['report_header_text'];
             }
 

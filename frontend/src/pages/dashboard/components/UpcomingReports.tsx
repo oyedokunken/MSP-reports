@@ -7,10 +7,9 @@ import { useNavigate } from 'react-router-dom'
 type UpcomingReportsProps = {
   isLoading: boolean
   reports: UpcomingReport[]
-  onInfo: (title: string, description?: string) => void
 }
 
-export function UpcomingReports({ isLoading, reports, onInfo }: UpcomingReportsProps) {
+export function UpcomingReports({ isLoading, reports }: UpcomingReportsProps) {
   const navigate = useNavigate();
   return (
     <AnimatedCard className="p-6 min-w-0">

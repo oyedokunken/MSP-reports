@@ -13,6 +13,7 @@ import {
   Activity,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { useBranding } from '@/contexts/BrandingContext'
 import { useNotificationStore } from '@/stores/useNotificationStore'
 import {
   Sidebar,
@@ -34,6 +35,7 @@ export default function AppSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { branding } = useBranding()
   const { state } = useSidebar()
   const [createUserOpen, setCreateUserOpen] = useState(false)
   const getUnreadCount = useNotificationStore((state) => state.getUnreadCount)
@@ -107,24 +109,42 @@ export default function AppSidebar() {
               className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 hover:opacity-80 transition-opacity"
               onClick={(e) => handleNavClick(e, '/platform/dashboard')}
             >
-              {/* Expanded state - full logos */}
-              <img 
-                src="/logo.png" 
-                alt="Logo" 
-                className="h-14 w-auto object-contain dark:hidden group-data-[collapsible=icon]:hidden"
-              />
-              <img 
-                src="/logo-white.png" 
-                alt="Logo" 
-                className="h-14 w-auto object-contain hidden dark:block group-data-[collapsible=icon]:hidden"
-              />
+              {/* Expanded state - brand logo */}
+              {branding?.logo_url ? (
+                <img 
+                  src={branding.logo_url} 
+                  alt={branding.company_name} 
+                  className="h-14 w-auto object-contain group-data-[collapsible=icon]:hidden"
+                />
+              ) : (
+                <>
+                  <img 
+                    src="/logo.png" 
+                    alt="Logo" 
+                    className="h-14 w-auto object-contain dark:hidden group-data-[collapsible=icon]:hidden"
+                  />
+                  <img 
+                    src="/logo-white.png" 
+                    alt="Logo" 
+                    className="h-14 w-auto object-contain hidden dark:block group-data-[collapsible=icon]:hidden"
+                  />
+                </>
+              )}
               
-              {/* Collapsed state - icon logo */}
-              <img 
-                src="/msp-logo-icon.png" 
-                alt="Logo Icon" 
-                className="h-10 w-10 object-contain hidden group-data-[collapsible=icon]:block"
-              />
+              {/* Collapsed state - icon logo or first letter */}
+              {branding?.logo_url ? (
+                <img 
+                  src={branding.logo_url} 
+                  alt={branding.company_name} 
+                  className="h-10 w-10 object-contain hidden group-data-[collapsible=icon]:block"
+                />
+              ) : (
+                <img 
+                  src="/msp-logo-icon.png" 
+                  alt="Logo Icon" 
+                  className="h-10 w-10 object-contain hidden group-data-[collapsible=icon]:block"
+                />
+              )}
               
               {companyName && (
                 <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
