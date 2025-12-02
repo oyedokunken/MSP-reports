@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
-import { Mail } from 'lucide-react'
+import { Mail, CheckCircle2 } from 'lucide-react'
 
 interface EmailReportDialogProps {
   open: boolean
@@ -30,6 +30,8 @@ export function EmailReportDialog({
 }: EmailReportDialogProps) {
   const [emails, setEmails] = useState(defaultEmail)
   const [sending, setSending] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [sentEmails, setSentEmails] = useState('')
 
   const handleSend = async () => {
     if (!emails.trim()) {
@@ -39,8 +41,12 @@ export function EmailReportDialog({
     try {
       setSending(true)
       await onSend(emails)
-      setEmails(defaultEmail) // Reset to default
-      onClose()
+      setSentEmails(emails) // Store the emails that were sent to
+      setSuccess(true)
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        handleClose()
+      }, 3000)
     } catch (error) {
       // Error handled by parent component
     } finally {
@@ -51,8 +57,41 @@ export function EmailReportDialog({
   const handleClose = () => {
     if (!sending) {
       setEmails(defaultEmail) // Reset to default
+      setSuccess(false)
+      setSentEmails('')
       onClose()
     }
+  }
+
+  // Success state - show confirmation
+  if (success) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-md">
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="mb-4 rounded-full bg-green-500/10 p-3">
+              <CheckCircle2 className="h-12 w-12 text-green-500" />
+            </div>
+            <DialogTitle className="text-2xl text-green-600 mb-2">
+              Report Sent!
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              The report has been sent to:
+              <span className="block mt-2 font-medium text-foreground">
+                {sentEmails}
+              </span>
+            </DialogDescription>
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              className="mt-6"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
   }
 
   return (

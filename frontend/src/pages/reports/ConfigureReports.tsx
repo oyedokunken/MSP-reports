@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Calendar, Clock, Mail, Save, Plus, Trash2, Bell, Play, Zap } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Mail, Save, Plus, Trash2, Bell, Play, Zap, AlertTriangle } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 
 interface ReportType {
   id: string
@@ -64,6 +65,8 @@ export default function ConfigureReports() {
   const [destination, setDestination] = useState('')
   const [ccEmails, setCcEmails] = useState('')
   const [availableReportTypes, setAvailableReportTypes] = useState<ReportType[]>([])
+  const [showValidationModal, setShowValidationModal] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
 
   useEffect(() => {
     fetchAvailableReports()
@@ -237,7 +240,50 @@ export default function ConfigureReports() {
     setEnabledReports(updated)
   }
 
+  // Validate configuration before saving
+  const validateConfiguration = (): string[] => {
+    const errors: string[] = []
+    
+    // Check if there are any reports configured
+    if (enabledReports.length === 0) {
+      errors.push('No reports configured. Please add at least one report schedule.')
+    }
+    
+    // Check if email destination is provided when reports are configured
+    if (enabledReports.length > 0 && !destination.trim()) {
+      errors.push('Email destination is required for report delivery.')
+    }
+    
+    // Validate email format if provided
+    if (destination.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(destination.trim())) {
+        errors.push('Please enter a valid email address for the destination.')
+      }
+    }
+    
+    // Validate CC emails if provided
+    if (ccEmails.trim()) {
+      const ccArray = ccEmails.split(',').map(e => e.trim()).filter(e => e)
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      const invalidCCs = ccArray.filter(email => !emailRegex.test(email))
+      if (invalidCCs.length > 0) {
+        errors.push(`Invalid CC email(s): ${invalidCCs.join(', ')}`)
+      }
+    }
+    
+    return errors
+  }
+
   const handleSaveConfiguration = async () => {
+    // Validate before saving
+    const errors = validateConfiguration()
+    if (errors.length > 0) {
+      setValidationErrors(errors)
+      setShowValidationModal(true)
+      return
+    }
+
     try {
       setIsSaving(true)
       
@@ -745,6 +791,21 @@ export default function ConfigureReports() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Validation Error Modal */}
+      <ConfirmationModal
+        isOpen={showValidationModal}
+        onClose={() => setShowValidationModal(false)}
+        onConfirm={() => setShowValidationModal(false)}
+        title="Missing Required Information"
+        description={validationErrors.length > 0 
+          ? validationErrors.map((err, i) => `${i + 1}. ${err}`).join('\n\n')
+          : 'Please fill in all required fields before saving.'
+        }
+        confirmText="OK, I'll Fix It"
+        cancelText=""
+        type="warning"
+      />
     </FloatingLayout>
   )
 }
