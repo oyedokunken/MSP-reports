@@ -8,7 +8,7 @@ const Layout = () => {
     }, []);
 
     return (
-        <div className="fixed inset-0 overflow-hidden auth-theme">
+        <div className="min-h-screen overflow-auto auth-theme">
             <Outlet />
         </div>
     );
