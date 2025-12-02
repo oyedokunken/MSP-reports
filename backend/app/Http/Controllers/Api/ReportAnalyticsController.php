@@ -138,6 +138,104 @@ class ReportAnalyticsController extends Controller
         ]);
     }
 
+    public function emailReport(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        // Validate request
+        $validated = $request->validate([
+            'emails' => 'required|string',
+        ]);
+
+        $report = GeneratedReport::where('generated_report_id', $id)
+            ->where('company_id', $authUser->company_id)
+            ->with(['customer', 'reportSchedule', 'company'])
+            ->first();
+
+        if (!$report) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report not found or access denied.'
+            ], 404);
+        }
+
+        if ($report->status !== 'completed') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report is not ready for delivery.'
+            ], 400);
+        }
+
+        if (!$report->file_path || !Storage::disk('reports')->exists($report->file_path)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report file not found.'
+            ], 404);
+        }
+
+        // Parse and validate email addresses
+        $emailString = $validated['emails'];
+        $emailAddresses = array_map('trim', explode(',', $emailString));
+        $emailAddresses = array_filter($emailAddresses); // Remove empty strings
+        
+        // Validate each email
+        $invalidEmails = [];
+        foreach ($emailAddresses as $email) {
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $invalidEmails[] = $email;
+            }
+        }
+
+        if (!empty($invalidEmails)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid email address(es): ' . implode(', ', $invalidEmails)
+            ], 400);
+        }
+
+        if (empty($emailAddresses)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Please provide at least one valid email address.'
+            ], 400);
+        }
+
+        $customer = $report->customer;
+
+        // Dispatch the email job with custom recipients
+        try {
+            DeliverReportJob::dispatch($report, $emailAddresses);
+
+            Log::info('Report email queued', [
+                'report_id' => $report->generated_report_id,
+                'customer' => $customer->canonical_name,
+                'recipients' => $emailAddresses,
+                'user' => $authUser->email,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Report has been queued for email delivery.',
+                'data' => [
+                    'report_id' => $report->generated_report_id,
+                    'customer_name' => $customer->canonical_name,
+                    'email_recipients' => $emailAddresses,
+                    'report_type' => $report->reportSchedule->report_type ?? 'Unknown',
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Failed to queue report email', [
+                'report_id' => $report->generated_report_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to queue report for delivery: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function deleteSchedule(Request $request, $id)
     {
         $authUser = $request->user();

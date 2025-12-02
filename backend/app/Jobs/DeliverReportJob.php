@@ -21,10 +21,12 @@ class DeliverReportJob implements ShouldQueue
     public $timeout = 120;
 
     protected GeneratedReport $generatedReport;
+    protected ?array $customRecipients;
 
-    public function __construct(GeneratedReport $generatedReport)
+    public function __construct(GeneratedReport $generatedReport, ?array $customRecipients = null)
     {
         $this->generatedReport = $generatedReport;
+        $this->customRecipients = $customRecipients;
     }
 
     public function handle(): void
@@ -87,10 +89,13 @@ class DeliverReportJob implements ShouldQueue
         }
     }
 
-    private function deliverViaEmail(string $destination, $company): void
+    private function deliverViaEmail(string $destination, $company, ?array $additionalRecipients = null): void
     {
         $customer = $this->generatedReport->customer;
-        $ccAddresses = $customer->report_configuration['delivery']['cc'] ?? [];
+        
+        // If additional recipients provided (from custom email), use them
+        // Otherwise, use configured CC addresses
+        $ccAddresses = $additionalRecipients ?? ($customer->report_configuration['delivery']['cc'] ?? []);
 
         $mail = Mail::to($destination);
         

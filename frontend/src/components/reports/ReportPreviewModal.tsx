@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { ZoomIn, ZoomOut, Maximize2, Mail } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import apiClient from '@/lib/api'
+import { EmailReportDialog } from './EmailReportDialog'
 
 interface ReportPreviewModalProps {
   open: boolean
@@ -30,7 +31,7 @@ export function ReportPreviewModal({
   const [error, setError] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [zoom, setZoom] = useState(100)
-  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
   useEffect(() => {
     if (open && reportId) {
@@ -89,12 +90,13 @@ export function ReportPreviewModal({
     setZoom(100)
   }
 
-  const handleEmailReport = async () => {
+  const handleEmailReport = async (emails: string) => {
     try {
-      setSendingEmail(true)
-      console.log('Sending email for report ID:', reportId)
+      console.log('Sending email for report ID:', reportId, 'to:', emails)
 
-      await apiClient.post(`/reports/${reportId}/email`)
+      await apiClient.post(`/reports/${reportId}/email`, {
+        emails: emails
+      })
 
       toast.success('Email Sent!', 'Report has been emailed successfully')
     } catch (err: any) {
@@ -103,8 +105,7 @@ export function ReportPreviewModal({
         || err.message 
         || 'Failed to send email'
       toast.error('Email Failed', errorMessage)
-    } finally {
-      setSendingEmail(false)
+      throw err // Re-throw so dialog knows to stay open
     }
   }
 
@@ -155,22 +156,13 @@ export function ReportPreviewModal({
 
             {/* Email Report Button */}
             <Button
-              onClick={handleEmailReport}
-              disabled={sendingEmail || loading || !!error}
+              onClick={() => setEmailDialogOpen(true)}
+              disabled={loading || !!error}
               size="sm"
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {sendingEmail ? (
-                <>
-                  <Spinner className="h-4 w-4 mr-2" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Mail className="h-4 w-4 mr-2" />
-                  Email Report
-                </>
-              )}
+              <Mail className="h-4 w-4 mr-2" />
+              Email Report
             </Button>
           </div>
         </DialogHeader>
@@ -216,6 +208,14 @@ export function ReportPreviewModal({
           )}
         </div>
       </DialogContent>
+
+      {/* Email Report Dialog */}
+      <EmailReportDialog
+        open={emailDialogOpen}
+        onClose={() => setEmailDialogOpen(false)}
+        onSend={handleEmailReport}
+        reportName={reportName}
+      />
     </Dialog>
   )
 }
