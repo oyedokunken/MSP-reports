@@ -49,8 +49,11 @@ export default function IntegrationList() {
     );
     const setPage = useIntegrationStore((state) => state.setPage);
     const searchQuery = useIntegrationStore((state) => state.searchQuery);
+    const statusFilter = useIntegrationStore((state) => state.statusFilter);
     const setSearchQuery = useIntegrationStore((state) => state.setSearchQuery);
+    const setStatusFilter = useIntegrationStore((state) => state.setStatusFilter);
     const getFilteredIntegrations = useIntegrationStore((state) => state.getFilteredIntegrations);
+    const getUniqueStatuses = useIntegrationStore((state) => state.getUniqueStatuses);
     const openModal = useIntegrationStore((state) => state.openModal);
     const closeModal = useIntegrationStore((state) => state.closeModal);
 
@@ -92,7 +95,10 @@ export default function IntegrationList() {
                 <IntegrationHeader 
                     onAdd={() => openModal("add")} 
                     searchQuery={searchQuery}
+                    statusFilter={statusFilter}
+                    uniqueStatuses={getUniqueStatuses()}
                     onSearchChange={setSearchQuery}
+                    onStatusChange={setStatusFilter}
                 />
 
                 <IntegrationGrid

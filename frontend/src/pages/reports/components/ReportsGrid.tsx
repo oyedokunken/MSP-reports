@@ -14,7 +14,7 @@ interface ReportsGridProps {
 export function ReportsGrid({ reports, isLoading, downloading, onDownload }: ReportsGridProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <Card key={i}>
             <CardContent className="pt-6">
@@ -58,7 +58,7 @@ export function ReportsGrid({ reports, isLoading, downloading, onDownload }: Rep
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
       {reports.map((report) => (
         <ReportCard
           key={report.generated_report_id}

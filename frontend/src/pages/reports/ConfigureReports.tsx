@@ -353,8 +353,11 @@ export default function ConfigureReports() {
   }
 
   const handleGenerateNow = async () => {
-    if (enabledReports.length === 0) {
-      toast.error('No Reports Configured', 'Please add at least one report before generating')
+    // Validate before generating
+    const errors = validateConfiguration()
+    if (errors.length > 0) {
+      setValidationErrors(errors)
+      setShowValidationModal(true)
       return
     }
 

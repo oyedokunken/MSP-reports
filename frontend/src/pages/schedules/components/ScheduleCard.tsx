@@ -27,7 +27,7 @@ interface ScheduleCardProps {
 
 export function ScheduleCard({ schedule, onConfigure, onPause, onRunNow, onEdit, onDelete }: ScheduleCardProps) {
     return (
-        <AnimatedCard className="p-6">
+        <AnimatedCard className="p-6 h-full flex flex-col">
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -56,7 +56,7 @@ export function ScheduleCard({ schedule, onConfigure, onPause, onRunNow, onEdit,
             </div>
 
             {/* Info Section */}
-            <div className="mt-6 space-y-3">
+            <div className="mt-6 space-y-3 flex-1">
                 {/* Frequency + Time */}
                 <div className="flex items-center gap-2 text-sm">
                     <Repeat className="h-4 w-4 text-muted-foreground flex-shrink-0" />

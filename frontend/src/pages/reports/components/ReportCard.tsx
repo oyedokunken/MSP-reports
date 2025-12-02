@@ -49,7 +49,7 @@ export function ReportCard({ report, downloading, onDownload }: ReportCardProps)
   }
 
   return (
-    <AnimatedCard className="p-6">
+    <AnimatedCard className="p-6 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -69,7 +69,7 @@ export function ReportCard({ report, downloading, onDownload }: ReportCardProps)
       </div>
 
       {/* Info Section */}
-      <div className="mt-6 space-y-3">
+      <div className="mt-6 space-y-3 flex-1">
         <div className="flex items-center gap-2 text-sm">
           <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <span className="text-foreground">{report.customer_name || 'Unknown Customer'}</span>

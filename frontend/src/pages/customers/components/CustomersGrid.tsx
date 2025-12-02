@@ -31,7 +31,7 @@ export function CustomersGrid({
 }: CustomersGridProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <Card key={i}>
             <CardContent className="pt-6">
@@ -77,7 +77,7 @@ export function CustomersGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-full overflow-hidden">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch max-w-full overflow-hidden">
       {customers.map((customer) => (
         <CustomerCard
           key={customer.customer_id}

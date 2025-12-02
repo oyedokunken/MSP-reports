@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, ChevronDown, Bell, LogOut } from "lucide-react";
+import { Settings, ChevronDown, Bell, LogOut, Calendar } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useState, useRef, useEffect } from "react";
@@ -29,8 +29,28 @@ export default function FloatingNav() {
     const [selectedNotification, setSelectedNotification] =
         useState<Notification | null>(null);
     const [isScrolled, setIsScrolled] = useState(false);
+    const [currentTime, setCurrentTime] = useState(new Date());
     const userMenuRef = useRef<HTMLDivElement>(null);
     const notificationMenuRef = useRef<HTMLDivElement>(null);
+
+    // Update time every second
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const formatDateTime = (date: Date) => {
+        return date.toLocaleDateString('en-AU', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+        }) + ' • ' + date.toLocaleTimeString('en-AU', {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
 
     // Get notifications from store
     const notifications = useNotificationStore((state) => state.notifications);
@@ -114,6 +134,12 @@ export default function FloatingNav() {
             <div className="flex flex-1 items-center gap-2">
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
+                
+                {/* Current Date/Time */}
+                <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>{formatDateTime(currentTime)}</span>
+                </div>
             </div>
 
             <div className="flex items-center gap-3">

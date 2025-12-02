@@ -131,7 +131,7 @@ export default function AppSidebar() {
                 </>
               )}
               
-              {/* Collapsed state - icon logo or first letter */}
+              {/* Collapsed state - icon logo */}
               {branding?.logo_url ? (
                 <img 
                   src={branding.logo_url} 
@@ -139,11 +139,20 @@ export default function AppSidebar() {
                   className="h-10 w-10 object-contain hidden group-data-[collapsible=icon]:block"
                 />
               ) : (
-                <img 
-                  src="/msp-logo-icon.png" 
-                  alt="Logo Icon" 
-                  className="h-10 w-10 object-contain hidden group-data-[collapsible=icon]:block"
-                />
+                <>
+                  {/* Light mode collapsed icon */}
+                  <img 
+                    src="/msp-logo-icon.png" 
+                    alt="Logo Icon" 
+                    className="h-10 w-10 object-contain hidden group-data-[collapsible=icon]:block dark:!hidden"
+                  />
+                  {/* Dark mode collapsed icon */}
+                  <img 
+                    src="/icon.png" 
+                    alt="Logo Icon" 
+                    className="h-10 w-10 object-contain !hidden dark:group-data-[collapsible=icon]:!block"
+                  />
+                </>
               )}
               
               {companyName && (

@@ -68,7 +68,7 @@ export function IntegrationCard ({
   return (
     <AnimatedCard
       hoverLift={!isSyncing}
-      className={`p-6 transition-all duration-300 ${
+      className={`p-6 h-full flex flex-col transition-all duration-300 ${
         isSyncing ? 'ring-2 ring-primary/50 shadow-lg bg-primary/5' : ''
       } ${isSourceOfTruth ? 'border-2 border-primary' : ''}`}
     >
@@ -95,7 +95,7 @@ export function IntegrationCard ({
         </span>
       </div>
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-6 space-y-3 flex-1">
         <div className="flex items-center justify-between text-sm gap-2">
           <span className="text-muted-foreground flex-shrink-0">Last Sync</span>
           <span className="font-medium text-foreground truncate" title={integration.lastSync}>{integration.lastSync}</span>

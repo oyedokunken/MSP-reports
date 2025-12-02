@@ -11,8 +11,9 @@ interface IntegrationState {
   sourceOfTruthId: number | null
   isLoading: boolean
 
-  // Search & Pagination (client-side)
+  // Search, Filter & Pagination (client-side)
   searchQuery: string
+  statusFilter: string
   currentPage: number
   perPage: number
   
@@ -42,7 +43,9 @@ interface IntegrationState {
   syncIntegration: (id: number) => Promise<{ success: boolean; error?: string }>
   setPage: (page: number) => void
   setSearchQuery: (query: string) => void
+  setStatusFilter: (status: string) => void
   getFilteredIntegrations: () => Integration[]
+  getUniqueStatuses: () => string[]
 
   // Modal actions
   openModal: (modal: keyof IntegrationState['modals'], integration?: Integration) => void
@@ -62,6 +65,7 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   sourceOfTruthId: null,
   isLoading: true,
   searchQuery: '',
+  statusFilter: 'all',
   currentPage: 1,
   perPage: 9,
   syncingId: null,
@@ -224,16 +228,37 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
     set({ integrations: paginatedIntegrations })
   },
 
-  // Get filtered integrations based on search
+  // Status filter action
+  setStatusFilter: (status: string) => {
+    set({ statusFilter: status, currentPage: 1 })
+    const { perPage } = get()
+    const filtered = get().getFilteredIntegrations()
+    const paginatedIntegrations = filtered.slice(0, perPage)
+    set({ integrations: paginatedIntegrations })
+  },
+
+  // Get filtered integrations based on search and status
   getFilteredIntegrations: () => {
-    const { allIntegrations, searchQuery } = get()
-    if (!searchQuery.trim()) return allIntegrations
+    const { allIntegrations, searchQuery, statusFilter } = get()
     
-    const query = searchQuery.toLowerCase()
-    return allIntegrations.filter(int => 
-      int.name.toLowerCase().includes(query) ||
-      int.type.toLowerCase().includes(query) ||
-      int.status.toLowerCase().includes(query)
-    )
+    return allIntegrations.filter(int => {
+      // Search filter
+      const matchesSearch = !searchQuery.trim() || 
+        int.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        int.type.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || 
+        int.status.toLowerCase() === statusFilter.toLowerCase()
+      
+      return matchesSearch && matchesStatus
+    })
+  },
+
+  // Get unique statuses for filter dropdown
+  getUniqueStatuses: () => {
+    const { allIntegrations } = get()
+    const statuses = [...new Set(allIntegrations.map(int => int.status))]
+    return statuses.sort()
   },
 }))
