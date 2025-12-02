@@ -18,10 +18,15 @@ export default function ScheduleList() {
   const currentPage = useSchedulesStore(state => state.currentPage)
   const perPage = useSchedulesStore(state => state.perPage)
   const searchQuery = useSchedulesStore(state => state.searchQuery)
+  const statusFilter = useSchedulesStore(state => state.statusFilter)
+  const frequencyFilter = useSchedulesStore(state => state.frequencyFilter)
   const fetchSchedules = useSchedulesStore(state => state.fetchSchedules)
   const setPage = useSchedulesStore(state => state.setPage)
   const setSearchQuery = useSchedulesStore(state => state.setSearchQuery)
+  const setStatusFilter = useSchedulesStore(state => state.setStatusFilter)
+  const setFrequencyFilter = useSchedulesStore(state => state.setFrequencyFilter)
   const getFilteredSchedules = useSchedulesStore(state => state.getFilteredSchedules)
+  const getUniqueFrequencies = useSchedulesStore(state => state.getUniqueFrequencies)
 
   useEffect(() => {
     fetchSchedules().catch(err => {
@@ -43,7 +48,12 @@ export default function ScheduleList() {
         <SchedulesHeader 
           onCreateSchedule={handleCreateSchedule}
           searchQuery={searchQuery}
+          statusFilter={statusFilter}
+          frequencyFilter={frequencyFilter}
+          uniqueFrequencies={getUniqueFrequencies()}
           onSearchChange={setSearchQuery}
+          onStatusChange={setStatusFilter}
+          onFrequencyChange={setFrequencyFilter}
         />
         
         <SchedulesGrid

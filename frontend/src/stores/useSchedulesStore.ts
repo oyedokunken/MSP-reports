@@ -19,8 +19,10 @@ interface SchedulesState {
   allSchedules: ReportSchedule[]
   isLoading: boolean
   
-  // Search & Pagination
+  // Search, Filters & Pagination
   searchQuery: string
+  statusFilter: string
+  frequencyFilter: string
   currentPage: number
   perPage: number
   
@@ -28,7 +30,10 @@ interface SchedulesState {
   fetchSchedules: () => Promise<void>
   setPage: (page: number) => void
   setSearchQuery: (query: string) => void
+  setStatusFilter: (status: string) => void
+  setFrequencyFilter: (frequency: string) => void
   getFilteredSchedules: () => ReportSchedule[]
+  getUniqueFrequencies: () => string[]
 }
 
 export const useSchedulesStore = create<SchedulesState>((set, get) => ({
@@ -37,6 +42,8 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
   allSchedules: [],
   isLoading: true,
   searchQuery: '',
+  statusFilter: 'all',
+  frequencyFilter: 'all',
   currentPage: 1,
   perPage: 9,
 
@@ -88,16 +95,51 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     set({ schedules: paginatedSchedules })
   },
 
-  // Get filtered schedules based on search
+  // Status filter action
+  setStatusFilter: (status: string) => {
+    set({ statusFilter: status, currentPage: 1 })
+    const { perPage } = get()
+    const filtered = get().getFilteredSchedules()
+    const paginatedSchedules = filtered.slice(0, perPage)
+    set({ schedules: paginatedSchedules })
+  },
+
+  // Frequency filter action
+  setFrequencyFilter: (frequency: string) => {
+    set({ frequencyFilter: frequency, currentPage: 1 })
+    const { perPage } = get()
+    const filtered = get().getFilteredSchedules()
+    const paginatedSchedules = filtered.slice(0, perPage)
+    set({ schedules: paginatedSchedules })
+  },
+
+  // Get filtered schedules based on search and filters
   getFilteredSchedules: () => {
-    const { allSchedules, searchQuery } = get()
-    if (!searchQuery.trim()) return allSchedules
+    const { allSchedules, searchQuery, statusFilter, frequencyFilter } = get()
     
-    const query = searchQuery.toLowerCase()
-    return allSchedules.filter(schedule => 
-      schedule.customer_name.toLowerCase().includes(query) ||
-      schedule.report_type.toLowerCase().includes(query) ||
-      schedule.frequency.toLowerCase().includes(query)
-    )
+    return allSchedules.filter(schedule => {
+      // Search filter
+      const matchesSearch = !searchQuery.trim() || 
+        schedule.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        schedule.report_type.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || 
+        (statusFilter === 'active' && schedule.active) ||
+        (statusFilter === 'inactive' && !schedule.active)
+      
+      // Frequency filter
+      const matchesFrequency = frequencyFilter === 'all' || 
+        schedule.frequency.toLowerCase() === frequencyFilter.toLowerCase()
+      
+      return matchesSearch && matchesStatus && matchesFrequency
+    })
+  },
+
+  // Get unique frequencies for filter dropdown
+  getUniqueFrequencies: () => {
+    const { allSchedules } = get()
+    const frequencies = [...new Set(allSchedules.map(s => s.frequency))]
+    return frequencies.sort()
   },
 }))
