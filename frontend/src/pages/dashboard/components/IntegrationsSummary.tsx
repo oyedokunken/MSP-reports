@@ -5,6 +5,7 @@ import {
     LoadingSpinner,
 } from "@/components/ui/LoadingStates";
 import type { Integration } from "../types";
+import { useNavigate } from "react-router-dom";
 
 type IntegrationsSummaryProps = {
     isLoading: boolean;
@@ -29,6 +30,8 @@ export function IntegrationsSummary({
     getStatusText,
     getStatusIcon,
 }: IntegrationsSummaryProps) {
+    const navigate = useNavigate();
+
     return (
         <AnimatedCard className="p-6 min-w-0">
             <div className="flex items-center justify-between">
@@ -37,9 +40,7 @@ export function IntegrationsSummary({
                 </h2>
                 <button
                     className="text-sm text-muted-foreground hover:text-foreground"
-                    onClick={() =>
-                        onInfo("Navigate", "Go to Integrations list")
-                    }
+                    onClick={() => navigate("/platform/integrations")}
                 >
                     View all
                 </button>

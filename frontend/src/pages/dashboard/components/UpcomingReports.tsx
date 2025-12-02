@@ -2,6 +2,7 @@ import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { FileText, Calendar } from 'lucide-react'
 import { EmptyState, StatCardSkeleton } from '@/components/ui/LoadingStates'
 import type { UpcomingReport } from '../types'
+import { useNavigate } from 'react-router-dom'
 
 type UpcomingReportsProps = {
   isLoading: boolean
@@ -10,13 +11,15 @@ type UpcomingReportsProps = {
 }
 
 export function UpcomingReports ({ isLoading, reports, onInfo }: UpcomingReportsProps) {
+  const navigate = useNavigate();
+
   return (
     <AnimatedCard className="p-6 min-w-0">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Upcoming Reports</h2>
         <button
           className="text-sm text-muted-foreground hover:text-foreground"
-          onClick={() => onInfo('Navigate', 'Go to Reports list')}
+          onClick={() => navigate('/platform/schedules')}
         >
           View all
         </button>
