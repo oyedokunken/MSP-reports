@@ -3,6 +3,7 @@ import FloatingLayout from '@/components/layout/FloatingLayout'
 import { ChangePasswordModal } from '@/components/modals/ChangePasswordModal'
 import { useToast } from '@/components/ui/Toast'
 import { useSettingsStore } from '@/stores/useSettingsStore'
+import { useBranding } from '@/contexts/BrandingContext'
 import { api } from '@/lib/api'
 import {
   SettingsHeader,
@@ -14,6 +15,7 @@ import {
 
 export default function Settings() {
   const toast = useToast()
+  const { branding, setBranding } = useBranding()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
@@ -105,6 +107,15 @@ export default function Settings() {
         company_name: companyName,
         primary_color: primaryHex,
       })
+      
+      // Update branding context immediately to apply color changes
+      if (branding) {
+        setBranding({
+          ...branding,
+          company_name: companyName,
+          primary_color: primaryHex,
+        })
+      }
       
       toast.success('Saved', 'Company information updated successfully')
     } catch (error: any) {
