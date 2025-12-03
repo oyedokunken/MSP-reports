@@ -267,4 +267,36 @@ class ReportAnalyticsController extends Controller
             ]
         ], 200);
     }
+
+    public function deleteReport(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $report = GeneratedReport::where('generated_report_id', $id)
+            ->where('company_id', $authUser->company_id)
+            ->first();
+
+        if (!$report) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report not found or access denied.'
+            ], 404);
+        }
+
+        // Delete the PDF file if it exists
+        if ($report->file_path && Storage::exists($report->file_path)) {
+            Storage::delete($report->file_path);
+        }
+
+        $reportId = $report->generated_report_id;
+        $report->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Report deleted successfully',
+            'data' => [
+                'deleted_report_id' => $reportId
+            ]
+        ], 200);
+    }
 }

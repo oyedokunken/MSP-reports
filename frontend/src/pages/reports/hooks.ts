@@ -14,11 +14,13 @@ export const useReportsList = () => {
   const isLoading = useReportsStore(state => state.isLoading)
   const customerName = useReportsStore(state => state.customerName)
   const downloading = useReportsStore(state => state.downloading)
+  const deleting = useReportsStore(state => state.deleting)
   const searchQuery = useReportsStore(state => state.searchQuery)
   const statusFilter = useReportsStore(state => state.statusFilter)
   const reportTypeFilter = useReportsStore(state => state.reportTypeFilter)
   const fetchReports = useReportsStore(state => state.fetchReports)
   const downloadReport = useReportsStore(state => state.downloadReport)
+  const deleteReport = useReportsStore(state => state.deleteReport)
   const setSearchQuery = useReportsStore(state => state.setSearchQuery)
   const setStatusFilter = useReportsStore(state => state.setStatusFilter)
   const setReportTypeFilter = useReportsStore(state => state.setReportTypeFilter)
@@ -43,12 +45,26 @@ export const useReportsList = () => {
     }
   }
 
+  const handleDelete = async (reportId: number) => {
+    if (!confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
+      return
+    }
+
+    const result = await deleteReport(reportId)
+    if (result.success) {
+      toast.success('Report Deleted', 'Report has been deleted successfully')
+    } else {
+      toast.error('Delete Failed', result.error)
+    }
+  }
+
   return {
     navigate,
     customerId,
     customerName,
     isLoading,
     downloading,
+    deleting,
     searchQuery,
     statusFilter,
     reportTypeFilter,
@@ -57,7 +73,8 @@ export const useReportsList = () => {
     setSearchQuery,
     setStatusFilter,
     setReportTypeFilter,
-    handleDownload
+    handleDownload,
+    handleDelete
   }
 }
 

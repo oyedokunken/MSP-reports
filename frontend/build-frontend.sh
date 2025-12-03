@@ -68,7 +68,10 @@ echo -e "${YELLOW}Step 6: Setting permissions...${NC}"
 docker exec -u root reporting-app chown -R www-data:www-data /var/www/html/public
 docker exec -u root reporting-app chmod -R 755 /var/www/html/public
 
-echo -e "${YELLOW}Step 7: Clearing application cache...${NC}"
+echo -e "${YELLOW}Step 7: Creating storage symlink...${NC}"
+docker exec reporting-app php artisan storage:link || true
+
+echo -e "${YELLOW}Step 8: Clearing application cache...${NC}"
 docker exec reporting-app php artisan cache:clear
 docker exec reporting-app php artisan config:clear
 docker exec reporting-app php artisan view:clear

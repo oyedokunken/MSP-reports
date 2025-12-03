@@ -36,9 +36,13 @@ interface ReportsState {
   // Download state
   downloading: number | null
   
+  // Delete state
+  deleting: number | null
+  
   // Actions
   fetchReports: (customerId?: string | null, page?: number) => Promise<void>
   downloadReport: (reportId: number) => Promise<{ success: boolean; error?: string }>
+  deleteReport: (reportId: number) => Promise<{ success: boolean; error?: string }>
   
   // Filter actions
   setSearchQuery: (query: string) => void
@@ -63,6 +67,7 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
   statusFilter: 'all',
   reportTypeFilter: 'all',
   downloading: null,
+  deleting: null,
 
   // Fetch reports
   fetchReports: async (customerId = null, page = 1) => {
@@ -138,6 +143,29 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
       return { success: true }
     } catch (err: any) {
       set({ downloading: null })
+      return {
+        success: false,
+        error: err.response?.data?.message || err.message,
+      }
+    }
+  },
+
+  // Delete report
+  deleteReport: async (reportId: number) => {
+    set({ deleting: reportId })
+    try {
+      await api.delete(`/reports/${reportId}`)
+      
+      // Remove the report from the list
+      const { reports } = get()
+      set({ 
+        reports: reports.filter(r => r.generated_report_id !== reportId),
+        deleting: null 
+      })
+      
+      return { success: true }
+    } catch (err: any) {
+      set({ deleting: null })
       return {
         success: false,
         error: err.response?.data?.message || err.message,

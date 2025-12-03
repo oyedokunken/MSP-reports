@@ -11,6 +11,7 @@ export default function ReportsList() {
     customerName,
     isLoading,
     downloading,
+    deleting,
     searchQuery,
     statusFilter,
     reportTypeFilter,
@@ -19,7 +20,8 @@ export default function ReportsList() {
     setSearchQuery,
     setStatusFilter,
     setReportTypeFilter,
-    handleDownload
+    handleDownload,
+    handleDelete
   } = useReportsList()
 
   // Pagination from store
@@ -53,6 +55,8 @@ export default function ReportsList() {
           isLoading={isLoading}
           downloading={downloading}
           onDownload={handleDownload}
+          onDelete={handleDelete}
+          deleting={deleting}
         />
 
         {/* Pagination */}

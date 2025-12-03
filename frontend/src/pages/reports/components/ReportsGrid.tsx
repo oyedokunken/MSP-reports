@@ -9,9 +9,11 @@ interface ReportsGridProps {
   isLoading: boolean
   downloading: number | null
   onDownload: (reportId: number) => void
+  onDelete?: (reportId: number) => void
+  deleting?: number | null
 }
 
-export function ReportsGrid({ reports, isLoading, downloading, onDownload }: ReportsGridProps) {
+export function ReportsGrid({ reports, isLoading, downloading, onDownload, onDelete, deleting }: ReportsGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
@@ -65,6 +67,8 @@ export function ReportsGrid({ reports, isLoading, downloading, onDownload }: Rep
           report={report}
           downloading={downloading === report.generated_report_id}
           onDownload={() => onDownload(report.generated_report_id)}
+          onDelete={onDelete}
+          deleting={deleting === report.generated_report_id}
         />
       ))}
     </div>

@@ -18,9 +18,11 @@ interface ReportCardProps {
   report: GeneratedReport
   downloading: boolean
   onDownload: () => void
+  onDelete?: (reportId: number) => void
+  deleting?: boolean
 }
 
-export function ReportCard({ report, downloading, onDownload }: ReportCardProps) {
+export function ReportCard({ report, downloading, onDownload, onDelete, deleting = false }: ReportCardProps) {
   const [showPreview, setShowPreview] = useState(false)
 
   const getStatusBadge = (status: string) => {
@@ -137,9 +139,13 @@ export function ReportCard({ report, downloading, onDownload }: ReportCardProps)
                 Resend Report
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem 
+                className="text-destructive"
+                onClick={() => onDelete?.(report.generated_report_id)}
+                disabled={deleting}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete Report
+                {deleting ? 'Deleting...' : 'Delete Report'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
