@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { LogoUpload } from '@/components/ui/LogoUpload'
 
 interface CompanyInfoSectionProps {
   companyName: string
@@ -162,9 +163,18 @@ export function CompanyInfoSection({
         {/* Logo & Favicon */}
         <div className="sm:col-span-2">
           <h3 className="text-sm font-semibold text-foreground mb-3">Branding Assets</h3>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-6">
+            {/* Logo Upload Component */}
+            <LogoUpload
+              type="company"
+              currentLogoUrl={logoUrl}
+              onUploadSuccess={(url) => onLogoUrlChange(url)}
+              onDeleteSuccess={() => onLogoUrlChange(null)}
+            />
+
+            {/* Logo URL Input (Alternative) */}
             <div>
-              <label className="block text-sm font-medium text-foreground">Logo URL</label>
+              <label className="block text-sm font-medium text-foreground">Or enter Logo URL</label>
               <input
                 type="url"
                 placeholder="https://example.com/logo.png"
@@ -175,8 +185,17 @@ export function CompanyInfoSection({
               <p className="mt-1 text-xs text-muted-foreground">Used in sidebar, reports, and emails</p>
             </div>
 
+            {/* Favicon Upload Component */}
+            <LogoUpload
+              type="profile"
+              currentLogoUrl={faviconUrl}
+              onUploadSuccess={(url) => onFaviconUrlChange(url)}
+              onDeleteSuccess={() => onFaviconUrlChange(null)}
+            />
+
+            {/* Favicon URL Input (Alternative) */}
             <div>
-              <label className="block text-sm font-medium text-foreground">Favicon URL</label>
+              <label className="block text-sm font-medium text-foreground">Or enter Favicon URL</label>
               <input
                 type="url"
                 placeholder="https://example.com/favicon.ico"
