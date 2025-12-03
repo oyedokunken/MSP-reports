@@ -23,7 +23,6 @@ export default function IntegrationList() {
 
     // Zustand store - select only what we need to prevent unnecessary rerenders
     const integrations = useIntegrationStore((state) => state.integrations);
-    const allIntegrations = useIntegrationStore((state) => state.allIntegrations);
     const availableTypes = useIntegrationStore((state) => state.availableTypes);
     const sourceOfTruthId = useIntegrationStore(
         (state) => state.sourceOfTruthId

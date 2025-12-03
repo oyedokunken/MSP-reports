@@ -13,7 +13,6 @@ export default function ScheduleList() {
   const [selectCustomerOpen, setSelectCustomerOpen] = useState(false)
   
   const schedules = useSchedulesStore(state => state.schedules)
-  const allSchedules = useSchedulesStore(state => state.allSchedules)
   const isLoading = useSchedulesStore(state => state.isLoading)
   const currentPage = useSchedulesStore(state => state.currentPage)
   const perPage = useSchedulesStore(state => state.perPage)

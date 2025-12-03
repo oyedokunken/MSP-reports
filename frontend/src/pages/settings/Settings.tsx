@@ -5,6 +5,7 @@ import { ChangePasswordModal } from '@/components/modals/ChangePasswordModal'
 import { useToast } from '@/components/ui/Toast'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useBranding } from '@/contexts/BrandingContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { api } from '@/lib/api'
 import {
   Dialog,
@@ -26,6 +27,8 @@ import {
 
 export default function Settings() {
   const toast = useToast()
+  const navigate = useNavigate()
+  const { logout } = useAuth()
   const { branding, setBranding } = useBranding()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)

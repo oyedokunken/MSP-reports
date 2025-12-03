@@ -1,18 +1,24 @@
 import axios, { type AxiosInstance, type AxiosError } from "axios";
 import type { ApiResponse, ApiError } from "@/types/api";
 
-// Create axios instance with default config
+const getBaseURL = () => {
+    if (import.meta.env.VITE_API_BASE_URL) {
+        return import.meta.env.VITE_API_BASE_URL;
+    }
+    
+    return `${window.location.origin}/api`;
+};
+
 const apiClient: AxiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
+    baseURL: getBaseURL(),
     timeout: 30000,
     headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
     },
-    withCredentials: true, // For session-based auth
+    withCredentials: true,
 });
 
-// Request interceptor - Add auth token
 apiClient.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem("auth_token");
@@ -26,13 +32,11 @@ apiClient.interceptors.request.use(
     }
 );
 
-// Response interceptor - Handle errors
 apiClient.interceptors.response.use(
     (response) => {
         return response;
     },
     (error: AxiosError<ApiError>) => {
-        // Handle 401 Unauthorized - redirect to login (except during logout)
         if (error.response?.status === 401) {
             const isLogoutRequest = error.config?.url?.includes("/auth/logout");
 
@@ -41,19 +45,16 @@ apiClient.interceptors.response.use(
                 localStorage.removeItem("user");
                 localStorage.removeItem("company");
 
-                // Use replace to prevent back button issues
                 if (window.location.pathname !== "/login") {
                     window.location.replace("/login");
                 }
             }
         }
 
-        // Handle 403 Forbidden
         if (error.response?.status === 403) {
             console.error("Permission denied:", error.response.data);
         }
 
-        // Handle network errors
         if (!error.response) {
             console.error("Network error:", error.message);
         }
@@ -62,7 +63,6 @@ apiClient.interceptors.response.use(
     }
 );
 
-// Generic request wrapper with type safety
 export async function apiRequest<T>(
     method: "get" | "post" | "put" | "patch" | "delete",
     url: string,
@@ -88,7 +88,6 @@ export async function apiRequest<T>(
     }
 }
 
-// Convenience methods
 export const api = {
     get: <T>(url: string, params?: Record<string, unknown>) =>
         apiRequest<T>("get", url, undefined, params),
