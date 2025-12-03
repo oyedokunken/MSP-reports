@@ -71,6 +71,23 @@ class ReportAnalyticsController extends Controller
             ->paginate($perPage);
 
         $formattedReports = $reports->map(function ($report) {
+            // Check if file exists for completed reports
+            if ($report->status === 'completed' && $report->file_path) {
+                if (!Storage::disk('reports')->exists($report->file_path)) {
+                    // Mark report as failed if file is missing
+                    $report->update([
+                        'status' => 'failed',
+                        'error_message' => 'Report file not found on disk',
+                    ]);
+                    
+                    Log::warning('Report file missing, marked as failed', [
+                        'report_id' => $report->generated_report_id,
+                        'file_path' => $report->file_path,
+                        'customer' => $report->customer->canonical_name ?? 'Unknown',
+                    ]);
+                }
+            }
+            
             return [
                 'generated_report_id' => $report->generated_report_id,
                 'customer_id' => $report->customer_id,
