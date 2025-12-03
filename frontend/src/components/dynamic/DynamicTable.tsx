@@ -155,7 +155,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
         <div className="flex justify-end">
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-card dark:bg-[hsl(var(--auth-card))] border border-border rounded-lg hover:bg-muted/50 transition-colors"
           >
             <Download className="w-4 h-4" />
             Export CSV
@@ -163,9 +163,9 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
         </div>
       )}
 
-      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="overflow-x-auto border border-border rounded-lg">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted/50">
             <tr>
               {config.selectable && (
                 <th className="w-12 px-4 py-3">
@@ -173,16 +173,15 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
                     type="checkbox"
                     checked={selectedRows.size === paginatedData.length && paginatedData.length > 0}
                     onChange={handleSelectAll}
-                    className="rounded border-gray-300"
+                    className="rounded border-border bg-card"
                   />
                 </th>
               )}
               {config.columns.map((column) => (
                 <th
                   key={column.key}
-                  className={`px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                    config.sortable && column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
-                  }`}
+                  className={`px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider ${config.sortable && column.sortable ? 'cursor-pointer hover:bg-muted/80' : ''
+                    }`}
                   style={{ width: column.width }}
                   onClick={() => handleSort(column)}
                 >
@@ -200,7 +199,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
               ))}
             </tr>
             {config.filterable && (
-              <tr className="bg-gray-50">
+              <tr className="bg-muted/50">
                 {config.selectable && <th className="w-12"></th>}
                 {config.columns.map((column) => (
                   <th key={column.key} className="px-4 py-2">
@@ -212,7 +211,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
                         onChange={(e) =>
                           setFilterValues({ ...filterValues, [column.key]: e.target.value })
                         }
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                        className="w-full px-2 py-1 text-sm border border-border rounded bg-card dark:bg-[hsl(var(--auth-card))] text-foreground placeholder:text-muted-foreground"
                       />
                     )}
                   </th>
@@ -220,33 +219,33 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
               </tr>
             )}
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-card dark:bg-[hsl(var(--auth-card))] divide-y divide-border">
             {paginatedData.length === 0 ? (
               <tr>
                 <td
                   colSpan={config.columns.length + (config.selectable ? 1 : 0)}
-                  className="px-4 py-8 text-center text-gray-500"
+                  className="px-4 py-8 text-center text-muted-foreground"
                 >
                   No data available
                 </td>
               </tr>
             ) : (
               paginatedData.map((row, index) => (
-                <tr key={row.id || index} className="hover:bg-gray-50">
+                <tr key={row.id || index} className="hover:bg-muted/50 transition-colors">
                   {config.selectable && (
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedRows.has(row.id)}
                         onChange={() => handleSelectRow(row.id)}
-                        className="rounded border-gray-300"
+                        className="rounded border-border bg-card"
                       />
                     </td>
                   )}
                   {config.columns.map((column) => (
                     <td
                       key={column.key}
-                      className={`px-4 py-3 text-sm text-gray-900 ${column.align || 'left'}`}
+                      className={`px-4 py-3 text-sm text-foreground ${column.align || 'left'}`}
                     >
                       {renderCell(row, column)}
                     </td>
@@ -260,7 +259,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
 
       {config.paginated && totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-700">
+          <div className="text-sm text-muted-foreground">
             Showing {(currentPage - 1) * pageSize + 1} to{' '}
             {Math.min(currentPage * pageSize, sortedData.length)} of {sortedData.length} results
           </div>
@@ -268,17 +267,17 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
             <button
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded disabled:opacity-50 bg-card dark:bg-[hsl(var(--auth-card))] text-foreground hover:bg-muted/50 transition-colors"
             >
               Previous
             </button>
-            <span className="px-3 py-1 text-sm">
+            <span className="px-3 py-1 text-sm text-foreground">
               Page {currentPage} of {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded disabled:opacity-50 bg-card dark:bg-[hsl(var(--auth-card))] text-foreground hover:bg-muted/50 transition-colors"
             >
               Next
             </button>

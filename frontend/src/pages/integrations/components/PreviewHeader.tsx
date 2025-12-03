@@ -21,17 +21,17 @@ export function PreviewHeader({
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-card dark:bg-[hsl(var(--auth-card))] border border-border rounded-lg hover:bg-muted/50 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               {integrationName || 'Integration Preview'}
             </h1>
             {customerName && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Customer: {customerName}
               </p>
             )}
@@ -41,7 +41,7 @@ export function PreviewHeader({
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-card dark:bg-[hsl(var(--auth-card))] border border-border rounded-lg hover:bg-muted/50 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh

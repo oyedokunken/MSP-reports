@@ -53,8 +53,8 @@ export const IntegrationPreview = () => {
         />
 
         {/* Footer Info */}
-        <div className="p-4 bg-white border border-gray-200 rounded-lg">
-          <div className="flex items-center justify-between text-sm text-gray-500">
+        <div className="p-4 bg-card dark:bg-[hsl(var(--auth-card))] border border-border rounded-lg">
+          <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
             <span>
               Last updated: {new Date(preview.preview.timestamp).toLocaleString()}
             </span>

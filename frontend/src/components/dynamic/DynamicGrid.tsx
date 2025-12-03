@@ -42,14 +42,14 @@ export const DynamicGrid: React.FC<DynamicGridProps> = ({ config, data }) => {
                 return (
                     <div
                         key={metric.id}
-                        className="p-6 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                        className="p-6 bg-card dark:bg-[hsl(var(--auth-card))] border border-border rounded-lg hover:border-primary/50 transition-colors"
                     >
                         <div className="flex items-start justify-between">
                             <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-600">
+                                <p className="text-sm font-medium text-muted-foreground">
                                     {metric.label}
                                 </p>
-                                <p className="mt-2 text-3xl font-semibold text-gray-900">
+                                <p className="mt-2 text-3xl font-semibold text-foreground">
                                     {formatted}
                                 </p>
                             </div>

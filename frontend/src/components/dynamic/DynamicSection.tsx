@@ -44,7 +44,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
     const renderComponent = () => {
         if (isEmpty) {
             return (
-                <div className="p-8 text-center text-gray-500">
+                <div className="p-8 text-center text-muted-foreground">
                     {section.emptyMessage || "No data available"}
                 </div>
             );
@@ -96,35 +96,35 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
 
             case "chart":
                 return (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                         Chart component coming soon
                     </div>
                 );
 
             case "metric":
                 return (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                         Metric component coming soon
                     </div>
                 );
 
             case "timeline":
                 return (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                         Timeline component coming soon
                     </div>
                 );
 
             case "tree":
                 return (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                         Tree component coming soon
                     </div>
                 );
 
             default:
                 return (
-                    <div className="p-8 text-center text-gray-500">
+                    <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                         Unknown component type: {section.component}
                     </div>
                 );
@@ -132,11 +132,10 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
     };
 
     return (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-card dark:bg-[hsl(var(--auth-card))] border border-border rounded-lg overflow-hidden">
             <div
-                className={`px-6 py-4 border-b border-gray-200 ${
-                    section.collapsible ? "cursor-pointer hover:bg-gray-50" : ""
-                }`}
+                className={`px-6 py-4 border-b border-border ${section.collapsible ? "cursor-pointer hover:bg-muted/50" : ""
+                    }`}
                 onClick={() =>
                     section.collapsible && setIsCollapsed(!isCollapsed)
                 }
@@ -144,23 +143,23 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         {section.icon && (
-                            <div className="text-gray-600">
+                            <div className="text-muted-foreground">
                                 {getIcon(section.icon)}
                             </div>
                         )}
                         <div>
-                            <h2 className="text-lg font-semibold text-gray-900">
+                            <h2 className="text-lg font-semibold text-foreground">
                                 {section.title}
                             </h2>
                             {section.description && (
-                                <p className="mt-1 text-sm text-gray-500">
+                                <p className="mt-1 text-sm text-muted-foreground">
                                     {section.description}
                                 </p>
                             )}
                         </div>
                     </div>
                     {section.collapsible && (
-                        <div className="text-gray-400">
+                        <div className="text-muted-foreground">
                             {isCollapsed ? (
                                 <ChevronRight className="w-5 h-5" />
                             ) : (
