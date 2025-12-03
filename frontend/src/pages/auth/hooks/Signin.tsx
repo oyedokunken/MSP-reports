@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Link } from "react-router-dom";
-import { useAuthForm } from "../hooks/useAuthForm";
+import { useAuthForm } from "../hooks";
 
 const Signin = () => {
     const [showPassword, setShowPassword] = useState(false);

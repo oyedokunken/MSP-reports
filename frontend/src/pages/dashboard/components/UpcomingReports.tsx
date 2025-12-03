@@ -23,7 +23,7 @@ export function UpcomingReports({
                 </h2>
                 <button
                     className="text-sm text-muted-foreground hover:text-foreground"
-                    onClick={() => navigate("/platform/reports")}
+                    onClick={() => navigate("/platform/schedules")}
                 >
                     View all
                 </button>

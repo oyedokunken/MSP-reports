@@ -32,7 +32,6 @@ export function IntegrationGrid({
     settingSourceOfTruthId,
     onSync,
     onEmptyAction,
-    onViewCustomers,
     onSetSourceOfTruth,
     onEdit,
     onViewLogs,
@@ -80,7 +79,6 @@ export function IntegrationGrid({
                             progress={progress}
                             isSettingSourceOfTruth={settingSourceOfTruthId === integration.id}
                             onSync={onSync}
-                            onViewCustomers={onViewCustomers}
                             onSetSourceOfTruth={onSetSourceOfTruth}
                             onEdit={onEdit}
                             onViewLogs={onViewLogs}

@@ -72,7 +72,6 @@ export default function Dashboard() {
                                 isSyncingId={syncingId}
                                 syncProgress={progress}
                                 onSync={handleQuickSync}
-                                onInfo={toast.info}
                                 getStatusBadge={getIntegrationStatusBadge}
                                 getStatusText={getIntegrationStatusText}
                                 getStatusIcon={getIntegrationStatusIcon}

@@ -10,7 +10,6 @@ type IntegrationsSummaryProps = {
     isSyncingId: number | null;
     syncProgress: number;
     onSync: (id: number, name: string) => void;
-    onInfo: (title: string, description?: string) => void;
     getStatusBadge: (status: string, syncStatus: string) => string;
     getStatusText: (status: string, syncStatus: string) => string;
     getStatusIcon: (status: string, syncStatus: string) => React.ReactNode;
@@ -22,7 +21,6 @@ export function IntegrationsSummary({
     isSyncingId,
     syncProgress,
     onSync,
-    onInfo,
     getStatusBadge,
     getStatusText,
     getStatusIcon,
