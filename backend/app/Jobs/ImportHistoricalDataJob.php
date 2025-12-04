@@ -42,7 +42,6 @@ class ImportHistoricalDataJob implements ShouldQueue
         try {
             $integration = $this->importJob->integration;
 
-            
             if ($this->importJob->status === 'queued') {
                 $this->importJob->update([
                     'status' => 'running',
@@ -56,47 +55,55 @@ class ImportHistoricalDataJob implements ShouldQueue
                 throw new \Exception("Integration type {$integration->integration_type} not found.");
             }
 
+            // Optimization: Process 7 days at a time instead of 1 day
+            // This reduces queue overhead from 90 jobs to ~13 jobs for a 90-day import
+            $daysToProcess = 7;
+            $currentDate = $this->chunkDate->copy();
+            $endDate = $this->chunkDate->copy()->addDays($daysToProcess - 1)->endOfDay();
             
-            // Wait longer for rate limit slot (up to 5 minutes for Datto)
-            // Datto has strict 60/min limit with 111 sites to process
-            if (!$rateLimiter->waitForSlot($integration, 300)) {
-                // If still rate limited after 5 min, delay this job and try again
-                $this->release(120); // Release back to queue, retry in 2 minutes
-                Log::warning('Historical import: Rate limit wait timeout, job released', [
-                    'import_job_id' => $this->importJob->historical_import_job_id,
-                    'chunk_date' => $this->chunkDate->toDateString(),
-                ]);
+            // Cap at the import job's end date
+            if ($endDate->gt($this->importJob->import_end_date)) {
+                $endDate = $this->importJob->import_end_date->copy()->endOfDay();
+            }
+
+            // Check rate limit WITHOUT blocking
+            if (!$rateLimiter->canMakeRequest($integration)) {
+                // Release the job back to the queue for 60 seconds
+                // This frees up the worker to do other things instead of sleeping
+                $this->release(60);
                 return;
             }
 
+            // Process the chunk (up to 7 days)
             $result = $integrationClass->getHistoricalData(
-                $this->chunkDate,
-                $this->chunkDate->copy()->endOfDay()
+                $currentDate,
+                $endDate
             );
 
-            
             $rateLimiter->recordRequest($integration);
 
-            
             $recordsImported = count($result['data'] ?? []);
             $this->importJob->records_imported += $recordsImported;
-            $this->importJob->current_position = $this->chunkDate;
-
             
-            $totalDays = $this->importJob->import_start_date->diffInDays($this->importJob->import_end_date);
-            $completedDays = $this->importJob->import_start_date->diffInDays($this->chunkDate);
+            // Update position to the end of this chunk
+            $this->importJob->current_position = $endDate;
+
+            // Calculate progress
+            $totalDays = $this->importJob->import_start_date->diffInDays($this->importJob->import_end_date) ?: 1;
+            $completedDays = $this->importJob->import_start_date->diffInDays($endDate);
             $this->importJob->progress_percent = min(100, round(($completedDays / $totalDays) * 100));
 
             $this->importJob->save();
 
+            // Dispatch next job if there are more days
+            $nextDate = $endDate->copy()->addDay();
             
-            $nextDate = $this->chunkDate->copy()->addDay();
             if ($nextDate->lte($this->importJob->import_end_date)) {
                 // Delay next job by 2 minutes to avoid overwhelming rate limits
                 // This ensures jobs process sequentially with breathing room
                 ImportHistoricalDataJob::dispatch($this->importJob, $nextDate)->delay(now()->addMinutes(2));
             } else {
-                
+                // All done!
                 $this->importJob->update([
                     'status' => 'completed',
                     'completed_at' => now(),

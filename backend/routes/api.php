@@ -19,7 +19,7 @@ use App\Http\Controllers\Api\ExchangeController;
 // Public Health Check (no auth required)
 Route::get('/health', [HealthCheckController::class, 'index']);
 
-Route::middleware(['secure.headers', 'throttle:60,1'])->group(function () {
+Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
 
     // Auth Routes
     Route::post('/auth/login', [AuthController::class, 'authLogin']);

@@ -157,26 +157,44 @@ class AutotaskIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
+            // Pre-load all integration customers for this integration to avoid N+1 queries
+            // This turns 12,000 queries into 1 query
+            $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                ->pluck('integration_customer_id', 'external_id')
+                ->toArray();
+
             $tickets = $this->client->getTickets($startDate, $endDate);
 
-            collect($tickets)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed) {
+            collect($tickets)->chunk(500)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed, $customerMap) {
+                $batchRecords = [];
+
                 foreach ($chunk as $ticket) {
                     try {
-                        // Find the IntegrationCustomer for this ticket's company
+                        // Instant lookup from memory map
                         $companyId = $ticket['companyID'] ?? null;
-                        $integrationCustomer = null;
+                        $integrationCustomerId = null;
                         
                         if ($companyId) {
-                            $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-                                ->where('external_id', (string)$companyId)
-                                ->first();
+                            $integrationCustomerId = $customerMap[(string)$companyId] ?? null;
                         }
                         
                         $standardized = AutotaskMapper::mapTicket($ticket);
-                        $standardized['integration_customer_id'] = $integrationCustomer?->integration_customer_id;
+                        $standardized['integration_customer_id'] = $integrationCustomerId;
                         
                         $data[] = $standardized;
-                        $this->storeHistoricalData($standardized);
+                        
+                        // Prepare for batch insert
+                        $batchRecords[] = [
+                            'company_id' => $this->integration->company_id,
+                            'integration_id' => $this->integration->integration_id,
+                            'integration_customer_id' => $integrationCustomerId,
+                            'data_type' => $standardized['data_type'],
+                            'data_timestamp' => $standardized['timestamp'],
+                            'data_payload' => json_encode($standardized['payload']),
+                            'imported_at' => now(),
+                            'data_version' => 1,
+                        ];
+                        
                         $totalProcessed++;
                     } catch (\Exception $e) {
                         $errors[] = "Failed to process ticket: {$e->getMessage()}";
@@ -187,34 +205,53 @@ class AutotaskIntegration implements IntegrationInterface
                         ]);
                     }
                 }
+
+                // Batch insert 500 records at once
+                if (!empty($batchRecords)) {
+                    $this->storeHistoricalDataBatch($batchRecords);
+                }
             });
 
             $timeEntries = $this->client->getTimeEntries($startDate, $endDate);
             
-            collect($timeEntries)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed, $tickets) {
+            collect($timeEntries)->chunk(500)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed, $tickets, $customerMap) {
+                $batchRecords = [];
+
                 foreach ($chunk as $entry) {
                     try {
                         // Find the IntegrationCustomer by looking up the ticket's company
                         $ticketId = $entry['ticketID'] ?? null;
-                        $integrationCustomer = null;
+                        $integrationCustomerId = null;
                         
                         if ($ticketId) {
                             // Find the ticket to get its companyID
+                            // Optimization: In a real scenario, we might want to map ticket IDs to company IDs beforehand
+                            // but for now, we'll rely on the collection lookup which is in-memory
                             $ticket = collect($tickets)->firstWhere('id', $ticketId);
                             $companyId = $ticket['companyID'] ?? null;
                             
                             if ($companyId) {
-                                $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-                                    ->where('external_id', (string)$companyId)
-                                    ->first();
+                                $integrationCustomerId = $customerMap[(string)$companyId] ?? null;
                             }
                         }
                         
                         $standardized = AutotaskMapper::mapTimeEntry($entry);
-                        $standardized['integration_customer_id'] = $integrationCustomer?->integration_customer_id;
+                        $standardized['integration_customer_id'] = $integrationCustomerId;
                         
                         $data[] = $standardized;
-                        $this->storeHistoricalData($standardized);
+                        
+                        // Prepare for batch insert
+                        $batchRecords[] = [
+                            'company_id' => $this->integration->company_id,
+                            'integration_id' => $this->integration->integration_id,
+                            'integration_customer_id' => $integrationCustomerId,
+                            'data_type' => $standardized['data_type'],
+                            'data_timestamp' => $standardized['timestamp'],
+                            'data_payload' => json_encode($standardized['payload']),
+                            'imported_at' => now(),
+                            'data_version' => 1,
+                        ];
+
                         $totalProcessed++;
                     } catch (\Exception $e) {
                         $errors[] = "Failed to process time entry: {$e->getMessage()}";
@@ -225,17 +262,34 @@ class AutotaskIntegration implements IntegrationInterface
                         ]);
                     }
                 }
+
+                // Batch insert 500 records at once
+                if (!empty($batchRecords)) {
+                    $this->storeHistoricalDataBatch($batchRecords);
+                }
             });
 
             // Fetch and store resources (technicians)
             try {
                 $resources = $this->client->getResources();
+                $batchRecords = [];
                 
                 foreach ($resources as $resource) {
                     try {
                         $standardized = AutotaskMapper::mapResource($resource);
                         $data[] = $standardized;
-                        $this->storeHistoricalData($standardized);
+                        
+                        $batchRecords[] = [
+                            'company_id' => $this->integration->company_id,
+                            'integration_id' => $this->integration->integration_id,
+                            'integration_customer_id' => null, // Resources aren't tied to a customer
+                            'data_type' => $standardized['data_type'],
+                            'data_timestamp' => $standardized['timestamp'],
+                            'data_payload' => json_encode($standardized['payload']),
+                            'imported_at' => now(),
+                            'data_version' => 1,
+                        ];
+
                         $totalProcessed++;
                     } catch (\Exception $e) {
                         $errors[] = "Failed to process resource: {$e->getMessage()}";
@@ -246,6 +300,11 @@ class AutotaskIntegration implements IntegrationInterface
                         ]);
                     }
                 }
+
+                if (!empty($batchRecords)) {
+                    $this->storeHistoricalDataBatch($batchRecords);
+                }
+
             } catch (\Exception $e) {
                 $errors[] = "Failed to fetch resources: {$e->getMessage()}";
                 \Log::warning('Autotask historical: Could not fetch resources', [
@@ -274,6 +333,12 @@ class AutotaskIntegration implements IntegrationInterface
             'data' => $data,
             'errors' => $errors,
         ];
+    }
+
+    private function storeHistoricalDataBatch(array $records): void
+    {
+        // Use DB::table for direct batch insert (much faster than Eloquent create)
+        DB::table('integration_data')->insert($records);
     }
 
     public function getAvailableHistoryRange(): ?Carbon
