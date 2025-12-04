@@ -16,18 +16,48 @@ class ITGlueMapper
             'name' => $attributes['name'] ?? 'Unknown',
             'active' => ($attributes['organization-status-name'] ?? 'Active') === 'Active',
             'metadata' => [
+                // Source Information
                 'source' => 'itglue',
                 'itglue_id' => $organization['id'],
+                
+                // Basic Information
                 'short_name' => $attributes['short-name'] ?? null,
+                'description' => $attributes['description'] ?? null,
                 'organization_type_id' => $attributes['organization-type-id'] ?? null,
                 'organization_type_name' => $attributes['organization-type-name'] ?? null,
                 'organization_status_id' => $attributes['organization-status-id'] ?? null,
                 'organization_status_name' => $attributes['organization-status-name'] ?? null,
+                
+                // Hierarchy
                 'parent_id' => $attributes['parent-id'] ?? null,
                 'ancestor_ids' => $attributes['ancestor-ids'] ?? [],
                 'is_primary' => $attributes['primary'] ?? false,
+                
+                // Contact Information
+                'phone' => $attributes['phone'] ?? null,
+                'fax' => $attributes['fax'] ?? null,
+                'website' => $attributes['website'] ?? null,
+                
+                // Address Information
+                'address' => $attributes['address'] ?? null,
+                'city' => $attributes['city'] ?? null,
+                'region' => $attributes['region'] ?? null,
+                'country' => $attributes['country'] ?? null,
+                'postal_code' => $attributes['postal-code'] ?? null,
+                
+                // Business Details
+                'quick_notes' => $attributes['quick-notes'] ?? null,
+                'alert' => $attributes['alert'] ?? null,
+                'logo_url' => $attributes['logo-url'] ?? null,
+                
+                // Timestamps
                 'created_at' => $attributes['created-at'] ?? null,
                 'updated_at' => $attributes['updated-at'] ?? null,
+                
+                // Additional metadata that might be present
+                'group_id' => $attributes['group-id'] ?? null,
+                'psa_id' => $attributes['psa-id'] ?? null,
+                'psa_integration_type' => $attributes['psa-integration-type'] ?? null,
             ],
         ];
     }

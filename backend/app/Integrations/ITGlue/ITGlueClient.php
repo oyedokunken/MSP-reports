@@ -96,17 +96,18 @@ class ITGlueClient
         return $this->fetchAllPages('/flexible_asset_types', ['page' => ['size' => 50]]);
     }
 
-    public function getFlexibleAssets(?int $typeId = null): array
+    public function getFlexibleAssets(int $typeId): array
     {
         if ($this->useMockData) {
             return [];
         }
         
-        $params = ['page' => ['size' => 1000], 'include' => 'organization'];
-        
-        if ($typeId) {
-            $params['filter'] = ['flexible_asset_type_id' => $typeId];
-        }
+        // IT Glue API requires flexible_asset_type_id filter
+        $params = [
+            'page' => ['size' => 1000],
+            'include' => 'organization',
+            'filter' => ['flexible_asset_type_id' => $typeId]
+        ];
         
         return $this->fetchAllPages('/flexible_assets', $params);
     }

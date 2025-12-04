@@ -158,6 +158,8 @@ class ITGlueIntegration implements IntegrationInterface
             foreach ($sslCerts as $cert) {
                 try {
                     $data = ITGlueMapper::mapSslCertificate($cert);
+                    // Convert IT Glue organization_id to our integration_customer_id
+                    $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
                     $this->storeHistoricalData($data);
                 } catch (\Exception $e) {
                     $errors[] = "Failed to process SSL certificate: {$e->getMessage()}";
@@ -168,19 +170,39 @@ class ITGlueIntegration implements IntegrationInterface
             foreach ($domains as $domain) {
                 try {
                     $data = ITGlueMapper::mapDomain($domain);
+                    // Convert IT Glue organization_id to our integration_customer_id
+                    $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
                     $this->storeHistoricalData($data);
                 } catch (\Exception $e) {
                     $errors[] = "Failed to process domain: {$e->getMessage()}";
                 }
             }
 
-            $flexibleAssets = $this->client->getFlexibleAssets();
-            foreach ($flexibleAssets as $asset) {
+            // Fetch flexible assets by type (IT Glue requires type ID filter)
+            $flexibleAssetTypes = $this->client->getFlexibleAssetTypes();
+            $totalFlexibleAssets = 0;
+            
+            foreach ($flexibleAssetTypes as $assetType) {
                 try {
-                    $data = ITGlueMapper::mapFlexibleAsset($asset);
-                    $this->storeHistoricalData($data);
+                    $typeId = $assetType['id'] ?? null;
+                    if (!$typeId) {
+                        continue;
+                    }
+                    
+                    $flexibleAssets = $this->client->getFlexibleAssets((int)$typeId);
+                    foreach ($flexibleAssets as $asset) {
+                        try {
+                            $data = ITGlueMapper::mapFlexibleAsset($asset);
+                            // Convert IT Glue organization_id to our integration_customer_id
+                            $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
+                            $this->storeHistoricalData($data);
+                            $totalFlexibleAssets++;
+                        } catch (\Exception $e) {
+                            $errors[] = "Failed to process flexible asset: {$e->getMessage()}";
+                        }
+                    }
                 } catch (\Exception $e) {
-                    $errors[] = "Failed to process flexible asset: {$e->getMessage()}";
+                    $errors[] = "Failed to fetch flexible assets for type {$typeId}: {$e->getMessage()}";
                 }
             }
 
@@ -188,7 +210,8 @@ class ITGlueIntegration implements IntegrationInterface
                 'integration_id' => $this->integration->integration_id,
                 'ssl_certs' => count($sslCerts),
                 'domains' => count($domains),
-                'flexible_assets' => count($flexibleAssets),
+                'flexible_asset_types' => count($flexibleAssetTypes ?? []),
+                'flexible_assets' => $totalFlexibleAssets,
             ]);
 
         } catch (\Exception $e) {
@@ -346,5 +369,25 @@ class ITGlueIntegration implements IntegrationInterface
             'imported_at' => now(),
             'data_version' => 1,
         ]);
+    }
+
+    /**
+     * Resolve IT Glue organization ID to our integration_customer_id
+     * 
+     * @param string|int|null $itGlueOrgId The IT Glue organization ID
+     * @return int|null The integration_customer_id or null if not found
+     */
+    private function resolveIntegrationCustomerId($itGlueOrgId): ?int
+    {
+        if (empty($itGlueOrgId)) {
+            return null;
+        }
+
+        // Look up the integration_customer_id by external_id (IT Glue organization ID)
+        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('external_id', (string)$itGlueOrgId)
+            ->first();
+
+        return $integrationCustomer?->integration_customer_id;
     }
 }

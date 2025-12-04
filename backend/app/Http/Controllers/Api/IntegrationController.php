@@ -228,6 +228,18 @@ class IntegrationController extends Controller
             }
         }
         
+        // LibreNMS: add default base_url if not provided, or use provided value
+        if ($validated['integration_type'] === 'LibreNMS') {
+            if (!isset($credentials['base_url']) && isset($credentials['api_token'])) {
+                $credentials['base_url'] = 'https://nms.arafuracloud.com.au/api/v0';
+                Log::info('LibreNMS: Added default base_url', ['credentials' => $credentials]);
+            }
+            // Ensure base_url doesn't have trailing slash
+            if (isset($credentials['base_url'])) {
+                $credentials['base_url'] = rtrim($credentials['base_url'], '/');
+            }
+        }
+        
         if ($validated['integration_type'] === 'Autotask' && isset($credentials['zone'])) {
             $credentials['endpoint'] = $credentials['zone'];
             unset($credentials['zone']);
@@ -251,7 +263,7 @@ class IntegrationController extends Controller
             'configuration' => $validated['configuration'] ?? [],
         ]);
 
-        if (!empty($credentials)) {
+        if (!empty($credentials) && $validated['status'] !== 'disconnected') {
             try {
                 $className = "App\\Integrations\\{$validated['integration_type']}\\{$validated['integration_type']}Integration";
                 

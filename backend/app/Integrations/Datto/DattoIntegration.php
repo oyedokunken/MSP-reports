@@ -221,9 +221,8 @@ class DattoIntegration implements IntegrationInterface
                         }
                     }
                     
-                    // Delay to respect Datto's 60/min rate limit
-                    // 2 seconds per site = max 30 sites/min
-                    sleep(2);
+                    // Rate limiting handled by RateLimiter service in DattoClient::makeRmmRequest()
+                    // No manual sleep needed - RateLimiter waits intelligently only when necessary
                     
                 } catch (\Exception $e) {
                     $errors[] = "Failed to fetch devices for site {$site['name']}: {$e->getMessage()}";
@@ -720,11 +719,8 @@ class DattoIntegration implements IntegrationInterface
                         $totalDevices++;
                     }
                     
-                    // Add delay between sites to respect Datto's 60/min rate limit
-                    // With 111 sites, we need ~2 seconds per site to stay under 60/min
-                    if ($processedSites < $totalSites) {
-                        sleep(2); // 2 second delay = max 30 sites/min
-                    }
+                    // Rate limiting handled by RateLimiter service in DattoClient::makeRmmRequest()
+                    // RateLimiter waits intelligently only when approaching limits
                     
                 } catch (\Exception $e) {
                     // Log error but continue with other sites

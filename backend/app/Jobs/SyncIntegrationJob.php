@@ -17,6 +17,7 @@ use App\Integrations\Autotask\AutotaskIntegration;
 use App\Integrations\Datto\DattoIntegration;
 use App\Integrations\Sendmarc\SendmarcIntegration;
 use App\Integrations\ITGlue\ITGlueIntegration;
+use App\Integrations\LibreNMS\LibreNMSIntegration;
 use App\Integrations\BitDefender\BitDefenderIntegration;
 use App\Integrations\SaaS\SaaSIntegration;
 use App\Mail\IntegrationSyncFailedMail;
@@ -173,6 +174,7 @@ class SyncIntegrationJob implements ShouldQueue
             'Datto' => DattoIntegration::class,
             'Sendmarc' => SendmarcIntegration::class,
             'ITGlue' => ITGlueIntegration::class,
+            'LibreNMS' => LibreNMSIntegration::class,
             'BitDefender' => BitDefenderIntegration::class,
             'SaaS' => SaaSIntegration::class,
         ];

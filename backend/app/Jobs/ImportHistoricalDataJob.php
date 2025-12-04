@@ -16,6 +16,7 @@ use App\Integrations\Autotask\AutotaskIntegration;
 use App\Integrations\Datto\DattoIntegration;
 use App\Integrations\Sendmarc\SendmarcIntegration;
 use App\Integrations\ITGlue\ITGlueIntegration;
+use App\Integrations\LibreNMS\LibreNMSIntegration;
 use App\Integrations\SaaS\SaaSIntegration;
 
 
@@ -23,9 +24,9 @@ class ImportHistoricalDataJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 3;
-    public $timeout = 600;
-    public $backoff = [60, 300, 900]; // Exponential backoff: 1 min, 5 min, 15 min
+    public $tries = 5;
+    public $timeout = 1800; // 30 minutes to handle rate limit waits
+    public $backoff = [120, 300, 600, 1200]; // Exponential backoff: 2min, 5min, 10min, 20min
 
     protected HistoricalImportJobModel $importJob;
     protected Carbon $chunkDate;
@@ -56,8 +57,16 @@ class ImportHistoricalDataJob implements ShouldQueue
             }
 
             
-            if (!$rateLimiter->waitForSlot($integration, 120)) {
-                throw new \Exception("Rate limit exceeded for historical import.");
+            // Wait longer for rate limit slot (up to 5 minutes for Datto)
+            // Datto has strict 60/min limit with 111 sites to process
+            if (!$rateLimiter->waitForSlot($integration, 300)) {
+                // If still rate limited after 5 min, delay this job and try again
+                $this->release(120); // Release back to queue, retry in 2 minutes
+                Log::warning('Historical import: Rate limit wait timeout, job released', [
+                    'import_job_id' => $this->importJob->historical_import_job_id,
+                    'chunk_date' => $this->chunkDate->toDateString(),
+                ]);
+                return;
             }
 
             $result = $integrationClass->getHistoricalData(
@@ -83,7 +92,9 @@ class ImportHistoricalDataJob implements ShouldQueue
             
             $nextDate = $this->chunkDate->copy()->addDay();
             if ($nextDate->lte($this->importJob->import_end_date)) {
-                ImportHistoricalDataJob::dispatch($this->importJob, $nextDate);
+                // Delay next job by 2 minutes to avoid overwhelming rate limits
+                // This ensures jobs process sequentially with breathing room
+                ImportHistoricalDataJob::dispatch($this->importJob, $nextDate)->delay(now()->addMinutes(2));
             } else {
                 
                 $this->importJob->update([
@@ -149,6 +160,7 @@ class ImportHistoricalDataJob implements ShouldQueue
             'Datto' => DattoIntegration::class,
             'Sendmarc' => SendmarcIntegration::class,
             'ITGlue' => ITGlueIntegration::class,
+            'LibreNMS' => LibreNMSIntegration::class,
             'SaaS' => SaaSIntegration::class,
         ];
 
