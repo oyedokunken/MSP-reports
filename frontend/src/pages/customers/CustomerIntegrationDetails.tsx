@@ -9,6 +9,7 @@ import { IntegrationCardHeader } from './components/IntegrationCardHeader'
 import { TechniciansList } from './components/TechniciansList'
 import DattoCustomerDetails from '@/components/integrations/DattoCustomerDetails'
 import AutotaskCustomerDetails from '@/components/integrations/AutotaskCustomerDetails'
+import ITGlueCustomerDetails from '@/components/integrations/ITGlueCustomerDetails'
 
 export default function CustomerIntegrationDetails() {
   const { customerId } = useParams<{ customerId: string }>()
@@ -53,6 +54,9 @@ export default function CustomerIntegrationDetails() {
                     )}
                     {integration.integration_type.toLowerCase() === 'autotask' && (
                       <AutotaskCustomerDetails metadata={integration.metadata} />
+                    )}
+                    {integration.integration_type.toLowerCase() === 'itglue' && (
+                      <ITGlueCustomerDetails metadata={integration.metadata} />
                     )}
                   </div>
                 ) : (
