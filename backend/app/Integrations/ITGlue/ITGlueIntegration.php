@@ -467,6 +467,33 @@ class ITGlueIntegration implements IntegrationInterface
             return;
         }
 
+        // For ITGlue snapshot data, use upsert logic to avoid duplicates
+        // Identify unique records by: integration_customer_id + data_type + unique identifier from payload
+        $uniqueId = $this->getUniqueIdentifier($data);
+        
+        if ($uniqueId) {
+            // Try to find existing record
+            $existing = IntegrationData::where('company_id', $this->integration->company_id)
+                ->where('integration_id', $this->integration->integration_id)
+                ->where('integration_customer_id', $data['integration_customer_id'])
+                ->where('data_type', $data['data_type'])
+                ->where('data_payload->certificate_id', $uniqueId)
+                ->orWhere('data_payload->domain_id', $uniqueId)
+                ->orWhere('data_payload->asset_id', $uniqueId)
+                ->first();
+            
+            if ($existing) {
+                // Update existing record with new data
+                $existing->update([
+                    'data_payload' => $data['payload'],
+                    'data_timestamp' => $data['timestamp'],
+                    'imported_at' => now(),
+                ]);
+                return;
+            }
+        }
+
+        // Create new record if not found
         IntegrationData::create([
             'company_id' => $this->integration->company_id,
             'integration_id' => $this->integration->integration_id,
@@ -477,6 +504,17 @@ class ITGlueIntegration implements IntegrationInterface
             'imported_at' => now(),
             'data_version' => 1,
         ]);
+    }
+    
+    private function getUniqueIdentifier(array $data): ?string
+    {
+        $payload = $data['payload'] ?? [];
+        
+        // Return the appropriate unique ID based on data type
+        return $payload['certificate_id'] 
+            ?? $payload['domain_id'] 
+            ?? $payload['asset_id'] 
+            ?? null;
     }
 
     /**
