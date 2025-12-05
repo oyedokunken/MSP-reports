@@ -105,6 +105,11 @@ class ITGlueMapper
                 'name' => $attributes['name'] ?? null,
                 'expires_on' => $attributes['expires-on'] ?? null,
                 'organization_id' => $attributes['organization-id'] ?? null,
+                'organization_name' => $attributes['organization-name'] ?? null,
+                'registrar' => $attributes['registrar-name'] ?? null,
+                'notes' => $attributes['notes'] ?? null,
+                'created_at' => $attributes['created-at'] ?? null,
+                'updated_at' => $attributes['updated-at'] ?? null,
                 'days_until_expiry' => self::calculateDaysUntilExpiry($attributes['expires-on'] ?? null),
             ],
         ];

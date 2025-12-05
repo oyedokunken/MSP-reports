@@ -121,17 +121,27 @@
                         @endif
                     </td>
                     <td>
-                        {{ $cert['issuer'] }}
-                        @if(!empty($cert['issuer_country']))
-                        <br><small style="color: #666;">{{ $cert['issuer_country'] }}</small>
-                        @endif
-                        @if(!empty($cert['signature_algorithm']))
-                        <div class="cert-details">
-                            <strong>Algorithm:</strong> {{ $cert['signature_algorithm'] }}
-                        </div>
+                        @if($cert['issuer'] !== 'Not Available')
+                            {{ $cert['issuer'] }}
+                            @if(!empty($cert['issuer_country']))
+                            <br><small style="color: #666;">{{ $cert['issuer_country'] }}</small>
+                            @endif
+                            @if(!empty($cert['signature_algorithm']))
+                            <div class="cert-details">
+                                <strong>Algorithm:</strong> {{ $cert['signature_algorithm'] }}
+                            </div>
+                            @endif
+                        @else
+                            <em style="color: #999;">Not recorded in ITGlue</em>
                         @endif
                     </td>
-                    <td>{{ $cert['expiry_date_formatted'] }}</td>
+                    <td>
+                        @if($cert['expiry_date_formatted'] !== 'Unknown')
+                            {{ $cert['expiry_date_formatted'] }}
+                        @else
+                            <em style="color: #999;">No expiry date on file</em>
+                        @endif
+                    </td>
                     <td>
                         @if($cert['days_until_expiry'] !== null)
                             @if($cert['days_until_expiry'] <= 0)
@@ -140,7 +150,7 @@
                                 {{ $cert['days_until_expiry'] }} days
                             @endif
                         @else
-                            Unknown
+                            <em style="color: #999;">Please update in ITGlue</em>
                         @endif
                     </td>
                     <td>
