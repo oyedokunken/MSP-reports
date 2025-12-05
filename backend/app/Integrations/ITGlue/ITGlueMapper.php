@@ -66,6 +66,9 @@ class ITGlueMapper
     {
         $attributes = $certificate['attributes'] ?? [];
         
+        // ITGlue uses 'valid-until' for SSL certificates, not 'expires-on'
+        $expiryDate = $attributes['valid-until'] ?? $attributes['expires-on'] ?? null;
+        
         return [
             'integration_customer_id' => $attributes['organization-id'] ?? null,
             'data_type' => 'ssl_certificate',
@@ -73,9 +76,18 @@ class ITGlueMapper
             'payload' => [
                 'certificate_id' => $certificate['id'],
                 'name' => $attributes['name'] ?? null,
-                'expires_on' => $attributes['expires-on'] ?? null,
+                'host' => $attributes['host'] ?? null,
+                'issued_by' => $attributes['issued-by'] ?? null,
+                'issuer_organization' => $attributes['issuer-organization'] ?? null,
+                'issuer_country' => $attributes['issuer-country'] ?? null,
+                'signature_algorithm' => $attributes['signature-algorithm'] ?? null,
+                'expires_on' => $expiryDate,
                 'organization_id' => $attributes['organization-id'] ?? null,
-                'days_until_expiry' => self::calculateDaysUntilExpiry($attributes['expires-on'] ?? null),
+                'organization_name' => $attributes['organization-name'] ?? null,
+                'notes' => $attributes['notes'] ?? null,
+                'created_at' => $attributes['created-at'] ?? null,
+                'updated_at' => $attributes['updated-at'] ?? null,
+                'days_until_expiry' => self::calculateDaysUntilExpiry($expiryDate),
             ],
         ];
     }

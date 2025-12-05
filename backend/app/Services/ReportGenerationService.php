@@ -348,6 +348,10 @@ class ReportGenerationService
                     'period' => $reportData['period'] ?? [],
                     'data' => $reportData['data'] ?? [],
                     'alerts' => $reportData['alerts'] ?? [],
+                    'certificates' => $reportData['certificates'] ?? [],
+                    'licenses' => $reportData['licenses'] ?? [],
+                    'summary' => $reportData['summary'] ?? [],
+                    'recommendations' => $reportData['recommendations'] ?? [],
                     'generated_at' => $reportData['generated_at'] ?? now()->toDateTimeString(),
                     'included_reports' => $reportData['included_reports'] ?? [],
                 ])->render();
