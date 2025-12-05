@@ -2,32 +2,35 @@
 
 namespace App\Reports\TicketSummary;
 
-use App\Models\Company;
 use App\Models\Customer;
 use App\Reports\Contracts\ReportInterface;
+use Carbon\Carbon;
 
 class TicketSummary implements ReportInterface
 {
-    public static function getRequiredDataSources(): array
+    public function getRequiredDataTypes(): array
     {
-        return ['tickets', 'ticket_events'];
+        return ['ticket', 'ticket_event'];
     }
 
-    public static function getRequiredHistoricalRange(): int
+    public function getRequiredHistoricalRange(): int
     {
         return 30; // 30 days of ticket history
     }
 
-    public function validate(Customer $customer): bool
+    public function validate(Customer $customer, Carbon $startDate, Carbon $endDate): bool
     {
         // Always return true for now - will implement proper validation later
         return true;
     }
 
-    public function generate(Customer $customer, $period): array
+    public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
         $dataGatherer = new TicketDataGatherer($customer);
-        $data = $dataGatherer->getAggregatedData($period);
+        $data = $dataGatherer->getAggregatedData([
+            'start' => $startDate,
+            'end' => $endDate,
+        ]);
 
         return [
             'generated_at' => now()->toDateTimeString(),
@@ -36,8 +39,9 @@ class TicketSummary implements ReportInterface
                 'name' => $customer->canonical_name,
             ],
             'period' => [
-                'start' => is_array($period) ? $period['start']->format('F j, Y') : $period,
-                'end' => is_array($period) ? $period['end']->format('F j, Y') : now()->format('F j, Y'),
+                'start' => $startDate->format('F j, Y'),
+                'end' => $endDate->format('F j, Y'),
+                'formatted' => $startDate->format('F j, Y') . ' - ' . $endDate->format('F j, Y'),
             ],
             'metrics' => [
                 [
@@ -70,8 +74,16 @@ class TicketSummary implements ReportInterface
         return resource_path('views/Reports/TicketSummary/template.blade.php');
     }
 
-    public function deliver(Company $company, Customer $customer, string $filePath): void
+    public function getMetadata(): array
     {
-        // TODO: Implement deliver method
+        return [
+            'id' => 'ticket_summary',
+            'name' => 'Ticket Summary Report',
+            'description' => 'Summary of ticket activity, response times, and SLA compliance',
+            'category' => 'tickets',
+            'data_types' => $this->getRequiredDataTypes(),
+            'frequencies' => ['daily', 'weekly', 'monthly'],
+            'formats' => ['pdf', 'html'],
+        ];
     }
 }
