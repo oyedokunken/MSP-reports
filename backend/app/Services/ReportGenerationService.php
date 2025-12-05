@@ -230,6 +230,20 @@ class ReportGenerationService
             now()->format('Y-m-d_His')
         );
 
+        // Ensure base reports directory exists with proper permissions
+        $reportsBasePath = Storage::disk('reports')->path('');
+        if (!file_exists($reportsBasePath)) {
+            if (!mkdir($reportsBasePath, 0775, true)) {
+                Log::error('Failed to create base reports directory', [
+                    'path' => $reportsBasePath,
+                ]);
+                throw new \Exception("Failed to create base reports directory: {$reportsBasePath}");
+            }
+            @chmod($reportsBasePath, 0775);
+            @chown($reportsBasePath, 'www');
+            @chgrp($reportsBasePath, 'www');
+        }
+        
         // Ensure directory exists with proper permissions
         $directory = sprintf('%s/%s', $schedule->company_id, $schedule->report_type);
         $fullDirPath = Storage::disk('reports')->path($directory);
@@ -246,7 +260,8 @@ class ReportGenerationService
                 throw new \Exception("Failed to create directory: {$fullDirPath}");
             }
             
-            // Ensure proper ownership (www user in container)
+            // Ensure proper ownership and permissions (www user in container)
+            @chmod($fullDirPath, 0775);
             @chown($fullDirPath, 'www');
             @chgrp($fullDirPath, 'www');
             
@@ -316,7 +331,7 @@ class ReportGenerationService
         ]);
         
         // Set proper permissions and ownership
-        chmod($fullPath, 0644);
+        @chmod($fullPath, 0664);
         @chown($fullPath, 'www');
         @chgrp($fullPath, 'www');
 
@@ -357,6 +372,12 @@ class ReportGenerationService
                     'recommendations' => $reportData['recommendations'] ?? [],
                     'generated_at' => $reportData['generated_at'] ?? now()->toDateTimeString(),
                     'included_reports' => $reportData['included_reports'] ?? [],
+                    // Autotask Monthly Summary specific variables
+                    'executive_summary' => $reportData['executive_summary'] ?? [],
+                    'tickets' => $reportData['tickets'] ?? [],
+                    'time_entries' => $reportData['time_entries'] ?? [],
+                    'technicians' => $reportData['technicians'] ?? [],
+                    'contracts' => $reportData['contracts'] ?? [],
                 ])->render();
             }
         }
