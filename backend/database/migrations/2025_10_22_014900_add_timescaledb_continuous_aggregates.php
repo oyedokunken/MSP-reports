@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration {
     public function up(): void
     {
+        // Skip TimescaleDB-specific commands for SQLite
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Create daily continuous aggregate for integration_data
         DB::statement("
             CREATE MATERIALIZED VIEW IF NOT EXISTS integration_data_daily
@@ -68,6 +73,11 @@ return new class extends Migration {
 
     public function down(): void
     {
+        // Skip TimescaleDB-specific commands for SQLite
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         DB::statement("DROP MATERIALIZED VIEW IF EXISTS integration_data_monthly CASCADE;");
         DB::statement("DROP MATERIALIZED VIEW IF EXISTS integration_data_daily CASCADE;");
     }

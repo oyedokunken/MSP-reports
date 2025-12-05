@@ -7,9 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use App\Models\ReportSchedule;
 use App\Models\GeneratedReport;
+use App\Models\ReportShareToken;
 use App\Jobs\DeliverReportJob;
 
 class ReportAnalyticsController extends Controller
@@ -315,5 +317,114 @@ class ReportAnalyticsController extends Controller
                 'deleted_report_id' => $reportId
             ]
         ], 200);
+    }
+
+    /**
+     * Generate a quick share link for a report (valid for 1 hour)
+     */
+    public function generateShareLink(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $report = GeneratedReport::where('generated_report_id', $id)
+            ->where('company_id', $authUser->company_id)
+            ->first();
+
+        if (!$report) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report not found or access denied.'
+            ], 404);
+        }
+
+        if ($report->status !== 'completed') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report is not ready for sharing.'
+            ], 400);
+        }
+
+        if (!$report->file_path || !Storage::disk('reports')->exists($report->file_path)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report file not found.'
+            ], 404);
+        }
+
+        // Generate a unique token
+        $token = Str::random(64);
+        
+        // Create share token with 1 hour expiry
+        $shareToken = ReportShareToken::create([
+            'generated_report_id' => $report->generated_report_id,
+            'company_id' => $authUser->company_id,
+            'token' => $token,
+            'expires_at' => now()->addHour(),
+        ]);
+
+        // Build the share URL
+        $shareUrl = url("/api/reports/shared/{$token}");
+
+        Log::info('Share link generated', [
+            'report_id' => $report->generated_report_id,
+            'token' => $token,
+            'expires_at' => $shareToken->expires_at,
+            'user' => $authUser->email,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Share link generated successfully.',
+            'share_url' => $shareUrl,
+            'expires_at' => $shareToken->expires_at->toIso8601String(),
+            'expires_in_minutes' => 60,
+        ], 200);
+    }
+
+    /**
+     * Download a shared report using a token (no authentication required)
+     */
+    public function downloadSharedReport(Request $request, $token)
+    {
+        $shareToken = ReportShareToken::where('token', $token)
+            ->with(['generatedReport.customer', 'generatedReport.reportSchedule'])
+            ->first();
+
+        if (!$shareToken) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid share link.'
+            ], 404);
+        }
+
+        if ($shareToken->isExpired()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This share link has expired.'
+            ], 410);
+        }
+
+        $report = $shareToken->generatedReport;
+
+        if (!$report || !$report->file_path || !Storage::disk('reports')->exists($report->file_path)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report file not found.'
+            ], 404);
+        }
+
+        $customerName = str_replace(' ', '_', $report->customer->canonical_name ?? 'Customer');
+        $generatedDate = $report->generated_at->format('Y-m-d');
+        $reportType = $report->reportSchedule ? str_replace('_', ' ', $report->reportSchedule->report_type) : 'Report';
+        $downloadFilename = "{$customerName}_{$reportType}_{$generatedDate}.pdf";
+
+        Log::info('Shared report downloaded', [
+            'report_id' => $report->generated_report_id,
+            'token' => $token,
+        ]);
+
+        return Storage::disk('reports')->download($report->file_path, $downloadFilename, [
+            'Content-Type' => 'application/pdf',
+        ]);
     }
 }

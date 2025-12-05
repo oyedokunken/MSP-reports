@@ -40,6 +40,7 @@ export default function Settings() {
   const contactEmail = useSettingsStore(state => state.contactEmail)
   const contactPhone = useSettingsStore(state => state.contactPhone)
   const address = useSettingsStore(state => state.address)
+  const websiteUrl = useSettingsStore(state => state.websiteUrl)
   const logoUrl = useSettingsStore(state => state.logoUrl)
   const faviconUrl = useSettingsStore(state => state.faviconUrl)
   const fromEmail = useSettingsStore(state => state.fromEmail)
@@ -57,6 +58,7 @@ export default function Settings() {
   const setContactEmail = useSettingsStore(state => state.setContactEmail)
   const setContactPhone = useSettingsStore(state => state.setContactPhone)
   const setAddress = useSettingsStore(state => state.setAddress)
+  const setWebsiteUrl = useSettingsStore(state => state.setWebsiteUrl)
   const setLogoUrl = useSettingsStore(state => state.setLogoUrl)
   const setFaviconUrl = useSettingsStore(state => state.setFaviconUrl)
   const setFromEmail = useSettingsStore(state => state.setFromEmail)
@@ -102,6 +104,7 @@ export default function Settings() {
           setSupportPhone(branding.support_phone || '')
           setFooterText(branding.footer_text || '')
           setReportHeaderText(branding.report_header_text || 'Monthly Service Report')
+          setWebsiteUrl(branding.website_url || '')
           
           console.log('✅ Settings loaded - Secondary color:', branding.secondary_color)
         } else {
@@ -158,6 +161,7 @@ export default function Settings() {
         support_phone: supportPhone || null,
         footer_text: footerText || null,
         report_header_text: reportHeaderText || null,
+        website_url: websiteUrl || null,
       }
       
       console.log('2️⃣ Saving branding data:', brandingData)
@@ -281,6 +285,7 @@ export default function Settings() {
           contactEmail={contactEmail}
           contactPhone={contactPhone}
           address={address}
+          websiteUrl={websiteUrl}
           logoUrl={logoUrl}
           faviconUrl={faviconUrl}
           supportEmail={supportEmail}
@@ -296,6 +301,7 @@ export default function Settings() {
           onContactEmailChange={setContactEmail}
           onContactPhoneChange={setContactPhone}
           onAddressChange={setAddress}
+          onWebsiteUrlChange={setWebsiteUrl}
           onLogoUrlChange={setLogoUrl}
           onFaviconUrlChange={setFaviconUrl}
           onSupportEmailChange={setSupportEmail}

@@ -8,10 +8,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Download, RefreshCw, CheckCircle2, XCircle, AlertCircle, Clock, Eye, FileText, Building2, Calendar, Mail, MoreVertical, Trash2, Send } from 'lucide-react'
+import { Download, RefreshCw, CheckCircle2, XCircle, AlertCircle, Clock, Eye, FileText, Building2, Calendar, Mail, MoreVertical, Trash2, Send, Share2 } from 'lucide-react'
 import { formatDate, formatFileSize } from '../utils/formatters'
 import type { GeneratedReport } from '../types/report'
 import { ReportPreviewModal } from '@/components/reports/ReportPreviewModal'
+import { ShareLinkModal } from '@/components/reports/ShareLinkModal'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 
 interface ReportCardProps {
@@ -24,6 +25,7 @@ interface ReportCardProps {
 
 export function ReportCard({ report, downloading, onDownload, onDelete, deleting = false }: ReportCardProps) {
   const [showPreview, setShowPreview] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -134,6 +136,13 @@ export function ReportCard({ report, downloading, onDownload, onDelete, deleting
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                disabled={report.status !== 'completed'}
+                onClick={() => setShowShareModal(true)}
+              >
+                <Share2 className="mr-2 h-4 w-4" />
+                Quick Share Link
+              </DropdownMenuItem>
               <DropdownMenuItem disabled={report.status !== 'completed'}>
                 <Send className="mr-2 h-4 w-4" />
                 Resend Report
@@ -156,6 +165,14 @@ export function ReportCard({ report, downloading, onDownload, onDelete, deleting
       <ReportPreviewModal
         open={showPreview}
         onClose={() => setShowPreview(false)}
+        reportId={report.generated_report_id}
+        reportName={`${report.customer_name} - ${formatReportType(report.report_type || 'custom_report')}`}
+      />
+
+      {/* Share Link Modal */}
+      <ShareLinkModal
+        open={showShareModal}
+        onClose={() => setShowShareModal(false)}
         reportId={report.generated_report_id}
         reportName={`${report.customer_name} - ${formatReportType(report.report_type || 'custom_report')}`}
       />

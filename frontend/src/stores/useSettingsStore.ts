@@ -9,6 +9,7 @@ interface SettingsState {
   contactEmail: string
   contactPhone: string
   address: string
+  websiteUrl: string
   
   // Branding assets
   logoUrl: string | null
@@ -38,6 +39,7 @@ interface SettingsState {
   setContactEmail: (email: string) => void
   setContactPhone: (phone: string) => void
   setAddress: (address: string) => void
+  setWebsiteUrl: (url: string) => void
   setLogoUrl: (url: string | null) => void
   setFaviconUrl: (url: string | null) => void
   setFromEmail: (email: string) => void
@@ -65,6 +67,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   contactEmail: '',
   contactPhone: '',
   address: '',
+  websiteUrl: '',
   logoUrl: null,
   faviconUrl: null,
   fromEmail: '',
@@ -84,6 +87,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setContactEmail: (email: string) => set({ contactEmail: email }),
   setContactPhone: (phone: string) => set({ contactPhone: phone }),
   setAddress: (address: string) => set({ address: address }),
+  setWebsiteUrl: (url: string) => set({ websiteUrl: url }),
   setLogoUrl: (url: string | null) => set({ logoUrl: url }),
   setFaviconUrl: (url: string | null) => set({ faviconUrl: url }),
   setFromEmail: (email: string) => set({ fromEmail: email }),
@@ -109,6 +113,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       supportPhone: branding.support_phone || '',
       footerText: branding.footer_text || '',
       reportHeaderText: branding.report_header_text || 'Monthly Service Report',
+      websiteUrl: (branding as any).website_url || '',
     })
   },
 

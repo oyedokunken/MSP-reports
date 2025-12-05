@@ -8,6 +8,7 @@ interface CompanyInfoSectionProps {
   contactEmail: string
   contactPhone: string
   address: string
+  websiteUrl: string
   logoUrl: string | null
   faviconUrl: string | null
   supportEmail: string
@@ -23,6 +24,7 @@ interface CompanyInfoSectionProps {
   onContactEmailChange: (email: string) => void
   onContactPhoneChange: (phone: string) => void
   onAddressChange: (address: string) => void
+  onWebsiteUrlChange: (url: string) => void
   onLogoUrlChange: (url: string | null) => void
   onFaviconUrlChange: (url: string | null) => void
   onSupportEmailChange: (email: string) => void
@@ -39,6 +41,7 @@ export function CompanyInfoSection({
   contactEmail,
   contactPhone,
   address,
+  websiteUrl,
   logoUrl,
   faviconUrl,
   supportEmail,
@@ -54,6 +57,7 @@ export function CompanyInfoSection({
   onContactEmailChange,
   onContactPhoneChange,
   onAddressChange,
+  onWebsiteUrlChange,
   onLogoUrlChange,
   onFaviconUrlChange,
   onSupportEmailChange,
@@ -110,6 +114,18 @@ export function CompanyInfoSection({
             rows={3}
             className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring resize-none"
           />
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium text-foreground">Website URL</label>
+          <input
+            type="url"
+            placeholder="https://www.yourcompany.com"
+            value={websiteUrl}
+            onChange={(e) => onWebsiteUrlChange(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">This will be displayed on your reports</p>
         </div>
 
         {/* Brand Colors */}

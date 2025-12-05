@@ -2,7 +2,8 @@ import { useState } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { AnimatedCard, PulsingDot } from '@/components/ui/AnimatedCard'
 import { Button } from '@/components/ui/button'
-import { Bell, CheckCheck, X, Clock, Tag, Trash2 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Bell, CheckCheck, X, Clock, Tag, Trash2, CheckSquare, Square } from 'lucide-react'
 import { useNotificationStore, type Notification } from '@/stores/useNotificationStore'
 import { EmptyState } from '@/components/ui/LoadingStates'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
@@ -11,19 +12,28 @@ import { useToast } from '@/components/ui/Toast'
 export default function NotificationsPage() {
   const toast = useToast()
   const notifications = useNotificationStore((state) => state.notifications)
+  const selectedIds = useNotificationStore((state) => state.selectedIds)
   const markAsRead = useNotificationStore((state) => state.markAsRead)
   const markAllAsRead = useNotificationStore((state) => state.markAllAsRead)
   const deleteNotification = useNotificationStore((state) => state.deleteNotification)
+  const deleteSelected = useNotificationStore((state) => state.deleteSelected)
   const deleteAllRead = useNotificationStore((state) => state.deleteAllRead)
+  const toggleSelect = useNotificationStore((state) => state.toggleSelect)
+  const selectAll = useNotificationStore((state) => state.selectAll)
+  const deselectAll = useNotificationStore((state) => state.deselectAll)
   const getUnreadCount = useNotificationStore((state) => state.getUnreadCount)
+  const getSelectedCount = useNotificationStore((state) => state.getSelectedCount)
 
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
   const [showMarkAllConfirm, setShowMarkAllConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null)
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false)
+  const [showDeleteSelectedConfirm, setShowDeleteSelectedConfirm] = useState(false)
+  const [selectionMode, setSelectionMode] = useState(false)
 
   const unreadCount = getUnreadCount()
   const readCount = notifications.filter(n => n.read).length
+  const selectedCount = getSelectedCount()
 
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id)
@@ -52,6 +62,20 @@ export default function NotificationsPage() {
     toast.success('All read notifications deleted')
   }
 
+  const handleDeleteSelected = () => {
+    deleteSelected()
+    setShowDeleteSelectedConfirm(false)
+    setSelectionMode(false)
+    toast.success(`${selectedCount} notification(s) deleted`)
+  }
+
+  const toggleSelectionMode = () => {
+    if (selectionMode) {
+      deselectAll()
+    }
+    setSelectionMode(!selectionMode)
+  }
+
   return (
     <FloatingLayout>
       <div className="space-y-6">
@@ -63,7 +87,39 @@ export default function NotificationsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            {unreadCount > 0 && (
+            {notifications.length > 0 && (
+              <Button
+                variant={selectionMode ? "default" : "outline"}
+                size="sm"
+                onClick={toggleSelectionMode}
+                className="gap-2"
+              >
+                {selectionMode ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                {selectionMode ? 'Done' : 'Select'}
+              </Button>
+            )}
+            {selectionMode && selectedCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeleteSelectedConfirm(true)}
+                className="gap-2 text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete ({selectedCount})
+              </Button>
+            )}
+            {selectionMode && notifications.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectedCount === notifications.length ? deselectAll : selectAll}
+                className="gap-2"
+              >
+                {selectedCount === notifications.length ? 'Deselect All' : 'Select All'}
+              </Button>
+            )}
+            {!selectionMode && unreadCount > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -74,7 +130,7 @@ export default function NotificationsPage() {
                 Mark all as read
               </Button>
             )}
-            {readCount > 0 && (
+            {!selectionMode && readCount > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -104,15 +160,23 @@ export default function NotificationsPage() {
                   key={notification.id}
                   className={`p-4 hover:bg-muted/50 transition-colors group ${
                     !notification.read ? 'bg-primary/5' : ''
-                  }`}
+                  } ${selectedIds.has(notification.id) ? 'bg-primary/10' : ''}`}
                 >
                   <div className="flex items-start gap-4">
+                    {selectionMode && (
+                      <div className="flex-shrink-0 mt-1">
+                        <Checkbox
+                          checked={selectedIds.has(notification.id)}
+                          onCheckedChange={() => toggleSelect(notification.id)}
+                        />
+                      </div>
+                    )}
                     <div className="flex-shrink-0 mt-1">
                       <PulsingDot color={notification.severity} />
                     </div>
                     <div 
                       className="flex-1 min-w-0 cursor-pointer"
-                      onClick={() => handleNotificationClick(notification)}
+                      onClick={() => selectionMode ? toggleSelect(notification.id) : handleNotificationClick(notification)}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <h3 className="text-sm font-medium text-foreground">
@@ -122,6 +186,11 @@ export default function NotificationsPage() {
                           <span className="flex h-2 w-2 rounded-full bg-blue-500 flex-shrink-0 mt-1" />
                         )}
                       </div>
+                      {notification.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {notification.description}
+                        </p>
+                      )}
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="h-3 w-3" />
@@ -132,21 +201,25 @@ export default function NotificationsPage() {
                           {notification.type}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2 italic">
-                        Click to view details
-                      </p>
+                      {!selectionMode && (
+                        <p className="text-xs text-muted-foreground mt-2 italic">
+                          Click to view details
+                        </p>
+                      )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setShowDeleteConfirm(notification.id)
-                      }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!selectionMode && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowDeleteConfirm(notification.id)
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -318,6 +391,17 @@ export default function NotificationsPage() {
         title="Delete All Read Notifications"
         description={`Are you sure you want to delete all ${readCount} read notifications? This action cannot be undone.`}
         confirmText="Delete All"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteSelectedConfirm}
+        onClose={() => setShowDeleteSelectedConfirm(false)}
+        onConfirm={handleDeleteSelected}
+        title="Delete Selected Notifications"
+        description={`Are you sure you want to delete ${selectedCount} selected notification(s)? This action cannot be undone.`}
+        confirmText="Delete Selected"
         cancelText="Cancel"
         type="danger"
       />

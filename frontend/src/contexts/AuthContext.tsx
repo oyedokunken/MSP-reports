@@ -131,6 +131,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.removeItem("auth_token");
             localStorage.removeItem("user");
             localStorage.removeItem("company");
+            localStorage.removeItem("sidebar_state"); // Reset sidebar to expanded on next login
+            localStorage.removeItem("vite-ui-theme"); // Reset theme to system default on next login
             setBranding(null);
 
             setState({

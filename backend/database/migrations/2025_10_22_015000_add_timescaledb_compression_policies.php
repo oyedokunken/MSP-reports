@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration {
     public function up(): void
     {
+        // Skip TimescaleDB-specific commands for SQLite
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Enable compression on integration_data hypertable
         DB::statement("
             ALTER TABLE integration_data SET (
@@ -35,6 +40,11 @@ return new class extends Migration {
 
     public function down(): void
     {
+        // Skip TimescaleDB-specific commands for SQLite
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Remove policies
         DB::statement("SELECT remove_retention_policy('integration_data', if_exists => TRUE);");
         DB::statement("SELECT remove_compression_policy('integration_data', if_exists => TRUE);");

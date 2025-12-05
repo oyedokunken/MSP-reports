@@ -12,6 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Skip for SQLite - SQLite doesn't support ALTER TABLE DROP CONSTRAINT
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // For TimescaleDB hypertables, we need to use raw SQL
         // Drop the foreign key constraint first
         DB::statement('ALTER TABLE integration_data DROP CONSTRAINT IF EXISTS integration_data_integration_customer_id_foreign');
@@ -34,6 +39,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Skip for SQLite
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Drop the foreign key
         DB::statement('ALTER TABLE integration_data DROP CONSTRAINT IF EXISTS integration_data_integration_customer_id_foreign');
         
