@@ -197,20 +197,22 @@ class DattoIntegration implements IntegrationInterface
                 'end_date' => $endDate->toDateString(),
             ]);
 
-            // For Datto RMM, historical data means current device status
-            // We'll sync devices and store them as historical uptime metrics
+            // For Datto RMM, historical data means current device status and active alerts
             $sites = $this->client->getRmmSites();
             $totalDevices = 0;
+            $totalAlerts = 0;
 
             foreach ($sites as $site) {
                 try {
                     $siteUid = $site['uid'];
-                    $devices = $this->client->getRmmDevices($siteUid);
                     
+                    // 1. Fetch and Store Devices (Uptime & Asset Info)
+                    $devices = $this->client->getRmmDevices($siteUid);
                     foreach ($devices as $device) {
                         try {
                             $this->storeDeviceData($device, $site);
                             $data[] = [
+                                'type' => 'device',
                                 'device_name' => $device['hostname'] ?? 'Unknown',
                                 'site_name' => $site['name'] ?? 'Unknown',
                                 'online' => $device['online'] ?? false,
@@ -220,14 +222,27 @@ class DattoIntegration implements IntegrationInterface
                             $errors[] = "Failed to store device {$device['hostname']}: {$e->getMessage()}";
                         }
                     }
-                    
-                    // Rate limiting handled by RateLimiter service in DattoClient::makeRmmRequest()
-                    // No manual sleep needed - RateLimiter waits intelligently only when necessary
+
+                    // 2. Fetch and Store Alerts (Security & Backup Status)
+                    // We treat alerts as "Security Alerts" generally, but if they mention "Backup", we can treat them as Backup failures.
+                    $alerts = $this->client->getRmmAlerts($siteUid);
+                    foreach ($alerts as $alert) {
+                        try {
+                            $this->storeAlertData($alert, $site);
+                            $data[] = [
+                                'type' => 'alert',
+                                'message' => $alert['alertMessage'] ?? 'Unknown',
+                                'site_name' => $site['name'] ?? 'Unknown',
+                            ];
+                            $totalAlerts++;
+                        } catch (\Exception $e) {
+                            $errors[] = "Failed to store alert {$alert['uid']}: {$e->getMessage()}";
+                        }
+                    }
                     
                 } catch (\Exception $e) {
-                    $errors[] = "Failed to fetch devices for site {$site['name']}: {$e->getMessage()}";
+                    $errors[] = "Failed to fetch data for site {$site['name']}: {$e->getMessage()}";
                     
-                    // Stop if rate limited
                     if (str_contains($e->getMessage(), 'Rate limit')) {
                         \Log::warning('Datto Integration: Rate limit hit during historical import');
                         break;
@@ -238,6 +253,7 @@ class DattoIntegration implements IntegrationInterface
             \Log::info('Datto Integration: Historical data import completed', [
                 'integration_id' => $this->integration->integration_id,
                 'devices_imported' => $totalDevices,
+                'alerts_imported' => $totalAlerts,
                 'errors' => count($errors),
             ]);
 
@@ -347,6 +363,53 @@ class DattoIntegration implements IntegrationInterface
             'data_type' => $data['data_type'],
             'data_timestamp' => $data['timestamp'],
             'data_payload' => $data['payload'],
+            'imported_at' => now(),
+            'data_version' => 1,
+        ]);
+    }
+
+    protected function storeAlertData(array $alert, array $site): void
+    {
+        $siteUid = $site['uid'] ?? $site['id'] ?? null;
+        if (!$siteUid) return;
+
+        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('external_id', $siteUid)
+            ->first();
+
+        if (!$integrationCustomer) return;
+
+        $message = $alert['alertMessage'] ?? '';
+        $priority = strtolower($alert['priority'] ?? 'low');
+        
+        // Determine Data Type
+        $dataType = 'security_alert';
+        $payload = [
+            'alert_id' => $alert['uid'] ?? null,
+            'message' => $message,
+            'device_name' => $alert['hostname'] ?? 'Unknown',
+            'severity' => $priority,
+            'timestamp' => $alert['alertDate'] ?? now()->toIso8601String(),
+            'category' => $alert['category'] ?? 'General',
+        ];
+
+        // Check for Backup Keywords
+        if (stripos($message, 'backup') !== false || 
+            stripos($message, 'bdr') !== false || 
+            stripos($message, 'snapshot') !== false) {
+            
+            $dataType = 'backup_status';
+            $payload['status'] = 'failed'; // Alerts usually mean failure
+            $payload['backup_type'] = 'incremental'; // Assumption
+        }
+
+        IntegrationData::create([
+            'company_id' => $this->integration->company_id,
+            'integration_id' => $this->integration->integration_id,
+            'integration_customer_id' => $integrationCustomer->integration_customer_id,
+            'data_type' => $dataType,
+            'data_timestamp' => isset($alert['alertDate']) ? Carbon::parse($alert['alertDate']) : now(),
+            'data_payload' => $payload,
             'imported_at' => now(),
             'data_version' => 1,
         ]);

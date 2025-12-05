@@ -20,8 +20,31 @@ class BackupStatus extends BaseReport
 
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
-        // TODO: Update to use BaseDataGatherer when BackupDataGatherer is refactored
-        // For now, return placeholder data
+        // 1. Fetch Backup Data
+        $backups = $customer->integrationData()
+            ->where('data_type', 'backup_status')
+            ->whereBetween('data_timestamp', [$startDate, $endDate])
+            ->orderBy('data_timestamp', 'desc')
+            ->get()
+            ->map(function ($item) {
+                return $item->data_payload;
+            });
+
+        // 2. Calculate Metrics
+        $totalFailures = $backups->where('status', 'failed')->count();
+        // We can't know total backups without success logs, so we estimate or just show failures.
+        // For now, let's assume 1 backup per day per device if we have device count, but that's complex.
+        // Let's just report on what we found.
+        
+        $successRate = 'N/A'; // Hard to calculate without success logs
+        if ($totalFailures === 0 && $backups->count() > 0) {
+             $successRate = '100%';
+        } elseif ($backups->count() > 0) {
+             // If we have data (failures), success rate is likely low for those specific jobs
+             // But this is misleading if we only store failures.
+             // Let's just show "Issues Detected" count.
+        }
+
         return [
             'generated_at' => now()->toDateTimeString(),
             'customer' => [
@@ -33,30 +56,21 @@ class BackupStatus extends BaseReport
                 'end' => $this->formatDate($endDate),
                 'formatted' => $this->formatDateRange($startDate, $endDate),
             ],
-            // Branding is now handled by ReportGenerationService::applyBranding()
             'metrics' => [
                 [
-                    'label' => 'Success Rate',
-                    'value' => '95%',
-                    'unit' => 'percentage',
-                ],
-                [
-                    'label' => 'Total Backups',
-                    'value' => '30',
-                    'unit' => 'backups',
-                ],
-                [
-                    'label' => 'Failed Backups',
-                    'value' => '2',
+                    'label' => 'Backup Issues',
+                    'value' => (string)$totalFailures,
                     'unit' => 'failures',
                 ],
                 [
-                    'label' => 'Storage Used',
-                    'value' => '500',
-                    'unit' => 'GB',
+                    'label' => 'Status',
+                    'value' => $totalFailures > 0 ? 'Attention Needed' : 'Healthy',
+                    'unit' => 'status',
                 ],
             ],
-            'data' => [],
+            'data' => [
+                'backups' => $backups->toArray(),
+            ],
         ];
     }
 

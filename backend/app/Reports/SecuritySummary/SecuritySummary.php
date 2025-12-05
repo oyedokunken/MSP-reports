@@ -20,7 +20,25 @@ class SecuritySummary extends BaseReport
 
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
-        // TODO: Update to use BaseDataGatherer
+        // 1. Fetch Security Alerts from IntegrationData
+        $alerts = $customer->integrationData()
+            ->where('data_type', 'security_alert')
+            ->whereBetween('data_timestamp', [$startDate, $endDate])
+            ->orderBy('data_timestamp', 'desc')
+            ->get()
+            ->map(function ($item) {
+                return $item->data_payload;
+            });
+
+        // 2. Calculate Metrics
+        $totalAlerts = $alerts->count();
+        $criticalAlerts = $alerts->whereIn('severity', ['critical', 'high'])->count();
+        
+        // Calculate Threat Level based on critical alerts
+        $threatLevel = 'Low';
+        if ($criticalAlerts > 0) $threatLevel = 'High';
+        elseif ($totalAlerts > 10) $threatLevel = 'Medium';
+
         return [
             'generated_at' => now()->toDateTimeString(),
             'customer' => [
@@ -32,30 +50,26 @@ class SecuritySummary extends BaseReport
                 'end' => $this->formatDate($endDate),
                 'formatted' => $this->formatDateRange($startDate, $endDate),
             ],
-            // Branding is now handled by ReportGenerationService::applyBranding()
             'metrics' => [
                 [
-                    'label' => 'Critical Alerts',
-                    'value' => '0',
+                    'label' => 'Total Alerts',
+                    'value' => (string)$totalAlerts,
                     'unit' => 'alerts',
                 ],
                 [
-                    'label' => 'Vulnerabilities',
-                    'value' => '2',
-                    'unit' => 'issues',
-                ],
-                [
-                    'label' => 'Patch Compliance',
-                    'value' => '98%',
-                    'unit' => 'percentage',
+                    'label' => 'Critical Alerts',
+                    'value' => (string)$criticalAlerts,
+                    'unit' => 'alerts',
                 ],
                 [
                     'label' => 'Threat Level',
-                    'value' => 'Low',
+                    'value' => $threatLevel,
                     'unit' => 'status',
                 ],
             ],
-            'data' => [],
+            'data' => [
+                'alerts' => $alerts->toArray(),
+            ],
         ];
     }
 
