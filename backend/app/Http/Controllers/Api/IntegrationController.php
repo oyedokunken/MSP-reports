@@ -785,10 +785,15 @@ class IntegrationController extends Controller
             ], 403);
         }
 
-        if ($integration->historical_import_status === 'running') {
+        // Check if there's actually a running job (not just the status flag)
+        $runningJob = $integration->historicalImportJobs()
+            ->whereIn('status', ['queued', 'running'])
+            ->exists();
+            
+        if ($runningJob) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Historical import is already running for this integration.'
+                'message' => 'Historical import is already running for this integration. Please wait for it to complete or cancel it first.'
             ], 400);
         }
         
