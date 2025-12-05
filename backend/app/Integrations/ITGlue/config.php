@@ -73,8 +73,8 @@ return [
         'flexible_asset' => 'Flexible Asset Documentation',
     ],
     
-    'supports_historical' => false,
-    'historical_range_days' => 0,
+    'supports_historical' => true,
+    'historical_range_days' => 1, // Captures current state snapshot
     
     'rate_limits' => [
         'requests_per_minute' => 60,
