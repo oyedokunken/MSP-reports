@@ -137,6 +137,39 @@ class BitDefenderIntegration implements IntegrationInterface
                                 $errors[] = "Failed to process endpoint {$endpointId} for company {$companyName}: {$e->getMessage()}";
                             }
                         }
+                        
+                        // Also sync threat detections during regular sync
+                        try {
+                            $threats = $this->client->getThreatDetections();
+                            
+                            foreach ($threats as $threat) {
+                                // Try to match threat to this company
+                                $threatCompanyId = $threat['companyId'] ?? null;
+                                
+                                // Only process threats for this company
+                                if ($threatCompanyId && $threatCompanyId === $companyId) {
+                                    $mapped = BitDefenderMapper::mapThreatDetection($threat, $integrationCustomer->integration_customer_id);
+                                    
+                                    IntegrationData::create([
+                                        'company_id' => $this->integration->company_id,
+                                        'integration_id' => $this->integration->integration_id,
+                                        'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                                        'data_type' => $mapped['data_type'],
+                                        'data_timestamp' => $mapped['timestamp'],
+                                        'data_payload' => $mapped['payload'],
+                                        'imported_at' => now(),
+                                    ]);
+                                    $totalNew++;
+                                }
+                            }
+                        } catch (Exception $e) {
+                            Log::warning('BitDefenderIntegration::sync threat detection failed', [
+                                'integration_id' => $this->integration->integration_id,
+                                'company_id' => $companyId,
+                                'error' => $e->getMessage(),
+                            ]);
+                            // Don't fail the entire sync if threat detection fails
+                        }
                     });
                     
                     $totalProcessed++;
@@ -245,15 +278,128 @@ class BitDefenderIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
+        $data = [];
+        $errors = [];
+        $totalProcessed = 0;
+
+        try {
+            Log::info('BitDefenderIntegration::getHistoricalData started', [
+                'integration_id' => $this->integration->integration_id,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+            ]);
+
+            // Get all companies
+            $companies = $this->client->getEndpoints();
+            
+            foreach ($companies as $company) {
+                $companyId = $company['id'] ?? null;
+                if (!$companyId) continue;
+
+                // Find the integration customer for this company
+                $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                    ->where('external_id', $companyId)
+                    ->first();
+
+                if (!$integrationCustomer) {
+                    Log::warning('BitDefenderIntegration::getHistoricalData - customer not found', [
+                        'company_id' => $companyId,
+                        'company_name' => $company['name'] ?? 'Unknown',
+                    ]);
+                    continue;
+                }
+
+                try {
+                    // Fetch endpoints for this company
+                    $endpoints = $this->client->getEndpointsForCompany($companyId);
+                    
+                    foreach ($endpoints as $endpoint) {
+                        $mapped = BitDefenderMapper::mapEndpoint($endpoint);
+                        
+                        // Store endpoint data
+                        IntegrationData::create([
+                            'company_id' => $this->integration->company_id,
+                            'integration_id' => $this->integration->integration_id,
+                            'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                            'data_type' => $mapped['data_type'],
+                            'data_timestamp' => $mapped['timestamp'],
+                            'data_payload' => $mapped['payload'],
+                            'imported_at' => now(),
+                        ]);
+                        
+                        $data[] = $mapped;
+                        $totalProcessed++;
+                    }
+                    
+                    // Fetch threat detections (quarantine items)
+                    $threats = $this->client->getThreatDetections();
+                    
+                    foreach ($threats as $threat) {
+                        // Try to match threat to endpoint and customer
+                        $endpointId = $threat['endpointId'] ?? null;
+                        $companyIdFromThreat = $threat['companyId'] ?? null;
+                        
+                        // If threat has company ID, find the customer
+                        $threatCustomer = $integrationCustomer;
+                        if ($companyIdFromThreat && $companyIdFromThreat !== $companyId) {
+                            $threatCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                                ->where('external_id', $companyIdFromThreat)
+                                ->first();
+                        }
+                        
+                        if ($threatCustomer) {
+                            $mapped = BitDefenderMapper::mapThreatDetection($threat, $threatCustomer->integration_customer_id);
+                            
+                            IntegrationData::create([
+                                'company_id' => $this->integration->company_id,
+                                'integration_id' => $this->integration->integration_id,
+                                'integration_customer_id' => $threatCustomer->integration_customer_id,
+                                'data_type' => $mapped['data_type'],
+                                'data_timestamp' => $mapped['timestamp'],
+                                'data_payload' => $mapped['payload'],
+                                'imported_at' => now(),
+                            ]);
+                            
+                            $data[] = $mapped;
+                            $totalProcessed++;
+                        }
+                    }
+                    
+                } catch (Exception $e) {
+                    $errors[] = "Failed to process historical data for company {$companyId}: {$e->getMessage()}";
+                    Log::error('BitDefenderIntegration::getHistoricalData company failed', [
+                        'integration_id' => $this->integration->integration_id,
+                        'company_id' => $companyId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            Log::info('BitDefenderIntegration::getHistoricalData completed', [
+                'integration_id' => $this->integration->integration_id,
+                'total_processed' => $totalProcessed,
+                'errors' => count($errors),
+            ]);
+
+        } catch (Exception $e) {
+            $errors[] = "Historical data fetch failed: {$e->getMessage()}";
+            Log::error('BitDefenderIntegration::getHistoricalData failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return [
-            'data' => [],
-            'errors' => ['BitDefender historical data not implemented yet'],
+            'data' => $data,
+            'errors' => $errors,
         ];
     }
 
     public function getAvailableHistoryRange(): ?Carbon
     {
-        return null;
+        // BitDefender provides current state data, not historical time-series
+        // Return 30 days as a reasonable range for current state snapshots
+        return now()->subDays(30);
     }
 
     public function getMetadata(): array
@@ -267,8 +413,8 @@ class BitDefenderIntegration implements IntegrationInterface
                 'endpoint_protection',
                 'malware_incident',
             ],
-            'supports_historical' => false,
-            'historical_range_days' => 0,
+            'supports_historical' => true,
+            'historical_range_days' => 30,
         ];
     }
 

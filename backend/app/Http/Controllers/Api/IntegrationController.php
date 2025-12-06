@@ -252,6 +252,10 @@ class IntegrationController extends Controller
         if ($validated['integration_type'] === 'Barracuda' && !isset($credentials['base_url'])) {
             $credentials['base_url'] = 'https://api.barracuda.com';
         }
+        
+        if ($validated['integration_type'] === 'BitDefender' && !isset($credentials['api_url'])) {
+            $credentials['api_url'] = 'https://cloud.gravityzone.bitdefender.com/api/v1.0/jsonrpc';
+        }
 
         // Test credentials before creating integration
         $tempIntegration = new Integration([

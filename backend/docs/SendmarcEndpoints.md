@@ -10,7 +10,7 @@ https://portal.sendmarc.com/api/v1
 
 **Headers Required for ALL requests:**
 ```
-Authorization: Bearer {bearer_token}
+Authorization: Bearer 286|pnHqEJURKpr2cG5bwbpOyfTEfZ5MOp3hbZm1gM8fe9fd9be4
 Accept: application/json
 ```
 
@@ -19,24 +19,53 @@ Accept: application/json
 ## 1. Get Account List (GET)
 **Endpoint:** `/accounts`
 
+**Full URL:** `GET https://portal.sendmarc.com/api/v1/accounts`
+
 **Method:** GET
 
 **Body Required:** ❌ No
 
 **Purpose:** Retrieve all accounts accessible with the bearer token
 
-**Response Format:**
+**Real Response Example (Territory Technology):**
 ```json
-{
-    "data": [
-        {
-            "uuid": "account-uuid-here",
-            "name": "Account Name",
-            ...
-        }
-    ]
-}
+[
+    {
+        "uuid": "9590e4da-a649-453d-808d-a1869d2bb000",
+        "package_synced_at": "2025-06-16T05:20:54.000000Z",
+        "name": "Territory Technology",
+        "email": "dmarcs@techsolutions.com.au",
+        "is_on_demand": false,
+        "enable_acronis": false,
+        "level": "partner administrator",
+        "phase": "implementation",
+        "package_name": "premium (per user)",
+        "package_status": "active",
+        "lookalike_package_name": null,
+        "lookalike_package_status": null,
+        "identity_package_name": null,
+        "identity_package_status": null,
+        "status": "active",
+        "sso_status": "forced",
+        "sso_provider": "microsoft",
+        "sso_base_url": null,
+        "sso_client_id": null,
+        "two_factor_status": "enabled",
+        "trial_set_at": "2025-05-14T23:45:12.000000Z",
+        "billing_period_expires_at": null,
+        "created_at": "2025-04-23T04:12:26.000000Z",
+        "updated_at": "2025-06-16T05:20:52.000000Z"
+    }
+]
 ```
+
+**Key Fields:**
+- `uuid` - Account identifier (use for domain queries)
+- `name` - Account name
+- `email` - Contact email
+- `package_name` - Subscription tier
+- `package_status` - Account status (active/inactive)
+- `level` - User permission level
 
 **Used in Code:** Line 183
 
@@ -45,35 +74,90 @@ Accept: application/json
 ## 2. Get Account Domains (GET)
 **Endpoint:** `/accounts/{accountUuid}/domains`
 
+**Full URL Example:** `GET https://portal.sendmarc.com/api/v1/accounts/9590e4da-a649-453d-808d-a1869d2bb000/domains`
+
 **Method:** GET
 
 **Body Required:** ❌ No
 
 **URL Parameters:**
-- `{accountUuid}` - UUID of the account
+- `{accountUuid}` - UUID of the account (e.g., `9590e4da-a649-453d-808d-a1869d2bb000`)
 
 **Purpose:** Get all domains for a specific account
 
-**Response Format:**
+**Real Response Example (Territory Technology - 9 domains):**
 ```json
-{
-    "data": [
-        {
-            "uuid": "domain-uuid-here",
-            "domain_name": "example.com",
-            "account_uuid": "account-uuid-here",
-            "suid": "...",
-            "token": "...",
-            "type": "...",
-            "is_favourite": false,
-            "enable_dkim_public_keys": false,
-            "enable_bimi": false,
-            "score": 0,
-            ...
-        }
-    ]
-}
+[
+    {
+        "uuid": "7437efb0-3b2c-4c5b-a00d-e68395bca145",
+        "suid": "4gwwg6o6",
+        "account_uuid": "9590e4da-a649-453d-808d-a1869d2bb000",
+        "token": "z3gcE9d-%jH6oxUSYo%kogll5RvFAXx*xcEQ8cZR^xgLbqCy",
+        "domain_name": "brisbanetechsolutions.com.au",
+        "enable_dkim_public_keys": true,
+        "dkim_public_key_name_servers": [
+            "ns1.sendmarc.net.",
+            "ns2.sendmarc.net."
+        ],
+        "enable_bimi": false,
+        "type": "proactive",
+        "is_favourite": false,
+        "dkim_policy_settings": {
+            "o": "~",
+            "t": "y"
+        },
+        "bimi_name_servers": [],
+        "mx_servers": [],
+        "score": 5,
+        "created_at": "2025-06-16T00:12:15.000000Z",
+        "updated_at": "2025-07-24T12:29:39.000000Z"
+    },
+    {
+        "uuid": "8293799f-4b58-47e7-9e9e-722430d78283",
+        "suid": "r2yskvec",
+        "account_uuid": "9590e4da-a649-453d-808d-a1869d2bb000",
+        "token": "6N4D66iRUyhFj6ARvaa%amH9kckpJJy2$6WlyN8_&2S6dgJF",
+        "domain_name": "techsolutions.com.au",
+        "enable_dkim_public_keys": true,
+        "dkim_public_key_name_servers": [
+            "ns1.sendmarc.net.",
+            "ns2.sendmarc.net."
+        ],
+        "enable_bimi": false,
+        "type": "proactive",
+        "is_favourite": false,
+        "dkim_policy_settings": {
+            "o": "~",
+            "t": "y"
+        },
+        "bimi_name_servers": [],
+        "mx_servers": [],
+        "score": 5,
+        "created_at": "2025-04-23T04:18:00.000000Z",
+        "updated_at": "2025-09-01T04:20:00.000000Z"
+    }
+]
 ```
+
+**Note:** Response shows 2 of 9 total domains. Full list includes:
+- brisbanetechsolutions.com.au
+- arafura.com.au
+- broometechsolutions.com.au
+- arafuraconnect.com.au
+- arafuracloud.com.au
+- atsg.com.au
+- arafura.net.au
+- techsolutions.com.au
+- itblog.com.au
+
+**Key Fields:**
+- `uuid` - Domain identifier (use for statistics queries)
+- `domain_name` - Domain name
+- `account_uuid` - Parent account UUID
+- `suid` - Short unique identifier
+- `score` - Domain health score (0-10)
+- `type` - Domain type (proactive/reactive)
+- `enable_dkim_public_keys` - DKIM configuration status
 
 **Used in Code:** Line 208
 
@@ -102,6 +186,8 @@ Accept: application/json
 ## 4. Get Sender Statistics (GET)
 **Endpoint:** `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/senders`
 
+**Full URL Example:** `GET https://portal.sendmarc.com/api/v1/accounts/9590e4da-a649-453d-808d-a1869d2bb000/domains/8293799f-4b58-47e7-9e9e-722430d78283/statistics/dmarc/senders`
+
 **Method:** GET
 
 **Body Required:** ❌ No
@@ -112,7 +198,17 @@ Accept: application/json
 
 **Purpose:** Get DMARC sender statistics for a domain
 
-**Response Format:**
+**Real Response Example (techsolutions.com.au):**
+```json
+[]
+```
+
+**Note:** Empty array indicates no sender data available for this domain in the current period. This is common for:
+- Newly configured domains
+- Domains with no recent email activity
+- Domains outside the current reporting window
+
+**Expected Format (when data exists):**
 ```json
 [
     {
@@ -148,6 +244,8 @@ Accept: application/json
 ## 5. Get Volume Totals (GET)
 **Endpoint:** `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/volume/totals`
 
+**Full URL Example:** `GET https://portal.sendmarc.com/api/v1/accounts/9590e4da-a649-453d-808d-a1869d2bb000/domains/8293799f-4b58-47e7-9e9e-722430d78283/statistics/dmarc/volume/totals`
+
 **Method:** GET
 
 **Body Required:** ❌ No
@@ -158,20 +256,33 @@ Accept: application/json
 
 **Purpose:** Get total volume statistics for DMARC
 
-**Response Format:**
+**Real Response Example (techsolutions.com.au):**
 ```json
 {
-    "total_incidents": 5000,
-    "total_complete_passes": 4500,
-    "total_dkim_fails_spf_passes": 300,
-    "total_complete_failures": 200,
+    "total_incidents": 0,
+    "total_complete_passes": 0,
+    "total_dkim_fails_spf_passes": 0,
+    "total_complete_failures": 0,
     "total_overrides_none": 0,
     "total_overrides_quarantine": 0,
     "total_overrides_reject": 0,
     "total_spf_fails_dkim_passes": 0,
-    "total_sources": 25
+    "total_sources": 0
 }
 ```
+
+**Note:** All zeros indicate no email activity recorded for this domain in the current period.
+
+**Field Descriptions:**
+- `total_incidents` - Total email messages processed
+- `total_complete_passes` - Messages passing both SPF and DKIM
+- `total_dkim_fails_spf_passes` - Messages passing SPF only
+- `total_spf_fails_dkim_passes` - Messages passing DKIM only
+- `total_complete_failures` - Messages failing both SPF and DKIM
+- `total_overrides_none` - Policy override: none
+- `total_overrides_quarantine` - Policy override: quarantine
+- `total_overrides_reject` - Policy override: reject
+- `total_sources` - Number of unique sending sources
 
 **Used in Code:** Line 551-552
 
@@ -179,6 +290,8 @@ Accept: application/json
 
 ## 6. Get Volume Timeline (GET)
 **Endpoint:** `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/volume/timeline`
+
+**Full URL Example:** `GET https://portal.sendmarc.com/api/v1/accounts/9590e4da-a649-453d-808d-a1869d2bb000/domains/8293799f-4b58-47e7-9e9e-722430d78283/statistics/dmarc/volume/timeline`
 
 **Method:** GET
 
@@ -190,10 +303,18 @@ Accept: application/json
 
 **Purpose:** Get time-series volume statistics for DMARC
 
-**Response Format:**
+**Real Response Example (techsolutions.com.au):**
+```json
+[]
+```
+
+**Note:** Empty array indicates no timeline data available. This is expected when there's no email activity.
+
+**Expected Format (when data exists):**
 ```json
 [
     {
+        "date": "2025-12-01",
         "total_incidents": 100,
         "total_complete_passes": 90,
         "total_dkim_fails_spf_passes": 5,
@@ -203,8 +324,7 @@ Accept: application/json
         "total_overrides_reject": 0,
         "total_spf_fails_dkim_passes": 0,
         "total_sources": 5
-    },
-    ...
+    }
 ]
 ```
 
@@ -215,6 +335,8 @@ Accept: application/json
 ## 7. Get Sender Details (GET)
 **Endpoint:** `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/senders/{senderUuid}`
 
+**Full URL Example:** `GET https://portal.sendmarc.com/api/v1/accounts/9590e4da-a649-453d-808d-a1869d2bb000/domains/8293799f-4b58-47e7-9e9e-722430d78283/statistics/dmarc/senders/{sender_uuid}`
+
 **Method:** GET
 
 **Body Required:** ❌ No
@@ -222,11 +344,13 @@ Accept: application/json
 **URL Parameters:**
 - `{accountUuid}` - UUID of the account
 - `{domainUuid}` - UUID of the domain
-- `{senderUuid}` - UUID of the sender
+- `{senderUuid}` - UUID of the sender (obtained from endpoint #4)
 
 **Purpose:** Get detailed statistics for a specific sender including timeline
 
-**Response Format:**
+**Real Response:** Not available (no senders exist for test domain)
+
+**Expected Format (when sender exists):**
 ```json
 {
     "uuid": "sender-uuid",
@@ -248,7 +372,14 @@ Accept: application/json
     "total_overrides_reject": 0,
     "total_spf_fails_dkim_passes": 0,
     "total_forwards": 0,
-    "timeline": [...]
+    "timeline": [
+        {
+            "date": "2025-12-01",
+            "total_incidents": 50,
+            "total_complete_passes": 48,
+            "total_complete_failures": 2
+        }
+    ]
 }
 ```
 
@@ -258,6 +389,8 @@ Accept: application/json
 
 ## 8. Get IP Address Statistics (GET)
 **Endpoint:** `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/ip-addresses`
+
+**Full URL Example:** `GET https://portal.sendmarc.com/api/v1/accounts/9590e4da-a649-453d-808d-a1869d2bb000/domains/8293799f-4b58-47e7-9e9e-722430d78283/statistics/dmarc/ip-addresses`
 
 **Method:** GET
 
@@ -269,7 +402,14 @@ Accept: application/json
 
 **Purpose:** Get statistics for all IP addresses (sources) sending for the domain
 
-**Response Format:**
+**Real Response Example (techsolutions.com.au):**
+```json
+[]
+```
+
+**Note:** Empty array indicates no IP address data available for this domain.
+
+**Expected Format (when data exists):**
 ```json
 [
     {
@@ -281,7 +421,9 @@ Accept: application/json
         "category": "legitimate",
         "total_incidents": 500,
         "total_complete_passes": 450,
-        ...
+        "total_dkim_fails_spf_passes": 30,
+        "total_complete_failures": 20,
+        "total_spf_fails_dkim_passes": 0
     }
 ]
 ```
@@ -293,6 +435,8 @@ Accept: application/json
 ## 9. Get IP Address Details (GET)
 **Endpoint:** `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/ip-addresses/{sourceUuid}`
 
+**Full URL Example:** `GET https://portal.sendmarc.com/api/v1/accounts/9590e4da-a649-453d-808d-a1869d2bb000/domains/8293799f-4b58-47e7-9e9e-722430d78283/statistics/dmarc/ip-addresses/{source_uuid}`
+
 **Method:** GET
 
 **Body Required:** ❌ No
@@ -300,11 +444,13 @@ Accept: application/json
 **URL Parameters:**
 - `{accountUuid}` - UUID of the account
 - `{domainUuid}` - UUID of the domain
-- `{sourceUuid}` - UUID of the IP address/source
+- `{sourceUuid}` - UUID of the IP address/source (obtained from endpoint #8)
 
 **Purpose:** Get detailed statistics for a specific IP address including timeline
 
-**Response Format:**
+**Real Response:** Not available (no IP addresses exist for test domain)
+
+**Expected Format (when source exists):**
 ```json
 {
     "uuid": "source-uuid",
@@ -315,7 +461,16 @@ Accept: application/json
     "category": "legitimate",
     "total_incidents": 500,
     "total_complete_passes": 450,
-    "timeline": [...]
+    "total_dkim_fails_spf_passes": 30,
+    "total_complete_failures": 20,
+    "timeline": [
+        {
+            "date": "2025-12-01",
+            "total_incidents": 25,
+            "total_complete_passes": 23,
+            "total_complete_failures": 2
+        }
+    ]
 }
 ```
 

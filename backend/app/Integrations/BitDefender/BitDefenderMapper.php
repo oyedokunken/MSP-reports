@@ -34,17 +34,37 @@ class BitDefenderMapper
     }
 
     /**
-     * Map BitDefender threat detection into a standardized IntegrationData payload.
-     * Currently placeholder only.
+     * Map BitDefender threat detection (quarantine item) into a standardized IntegrationData payload.
      */
-    public static function mapThreatDetection(array $threat): array
+    public static function mapThreatDetection(array $threat, ?int $integrationCustomerId = null): array
     {
+        // Parse detection time
+        $detectionTime = now();
+        if (isset($threat['detectionTime'])) {
+            try {
+                $detectionTime = \Carbon\Carbon::parse($threat['detectionTime']);
+            } catch (\Exception $e) {
+                // Use current time if parsing fails
+            }
+        }
+
         return [
-            // No real schema yet; filled in once BitDefender API is defined
-            'integration_customer_id' => null,
+            'integration_customer_id' => $integrationCustomerId,
             'data_type' => 'bitdefender_threat_detection',
-            'timestamp' => now(),
-            'payload' => $threat,
+            'timestamp' => $detectionTime,
+            'payload' => [
+                'threat_id' => $threat['id'] ?? null,
+                'endpoint_id' => $threat['endpointId'] ?? null,
+                'endpoint_name' => $threat['endpointName'] ?? null,
+                'company_id' => $threat['companyId'] ?? null,
+                'threat_name' => $threat['threatName'] ?? null,
+                'threat_type' => $threat['threatType'] ?? null,
+                'file_path' => $threat['filePath'] ?? null,
+                'detection_time' => isset($threat['detectionTime']) ? $threat['detectionTime'] : null,
+                'action_taken' => $threat['actionTaken'] ?? null,
+                'status' => $threat['status'] ?? null,
+                'raw_data' => $threat,
+            ],
         ];
     }
 }

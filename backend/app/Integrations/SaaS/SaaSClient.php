@@ -127,7 +127,7 @@ class SaaSClient
                 $queryParams['size'] = $params['size'];
             }
 
-            $response = $this->makeRequest('GET', '/events', $queryParams);
+            $response = $this->makeRequest('GET', '/reports/events', $queryParams);
 
             if (!$response->successful()) {
                 Log::warning('SaaS Alerts API getEvents failed', [
