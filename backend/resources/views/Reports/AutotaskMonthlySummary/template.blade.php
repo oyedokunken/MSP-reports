@@ -22,7 +22,7 @@
         .container {
             max-width: 100%;
             margin: 0;
-            padding: 20px 30px;
+            padding: 20px 30px 40px 30px;
         }
         
         /* Header - Minimal */
@@ -30,17 +30,17 @@
             border-bottom: 1px solid #e5e7eb;
             padding-bottom: 15px;
             margin-bottom: 25px;
+            text-align: center;
         }
         
         .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
+            display: block;
         }
         
         .logo {
             max-height: 40px;
             max-width: 150px;
+            margin-bottom: 10px;
         }
         
         .report-title h1 {
@@ -242,20 +242,6 @@
             border-color: #1e40af;
         }
         
-        /* Footer - Minimal */
-        .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 1px solid #e5e7eb;
-            text-align: center;
-            color: #6b7280;
-            font-size: 8pt;
-        }
-        
-        .footer p {
-            margin: 3px 0;
-        }
-        
         /* Progress Bar - Minimal */
         .progress-bar {
             background: #e5e7eb;
@@ -369,7 +355,7 @@
             </div>
 
             @if(count($tickets['summary']['top_issues']) > 0)
-            <h3 style="margin-top: 20px; margin-bottom: 10px; color: #333;">Top Issues</h3>
+            <h3>Top Issues</h3>
             <table>
                 <thead>
                     <tr>
@@ -384,6 +370,52 @@
                         <td style="text-align: center;">
                             <span class="badge info">{{ $issue['count'] }}</span>
                         </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            @endif
+
+            @if(count($tickets['data']) > 0)
+            <h3>Recent Tickets</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ticket #</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Created</th>
+                        <th>Completed</th>
+                        <th style="text-align: right;">Hours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach(array_slice($tickets['data'], 0, 10) as $ticket)
+                    <tr>
+                        <td><strong>{{ $ticket['ticket_number'] }}</strong></td>
+                        <td>{{ Str::limit($ticket['title'], 40) }}</td>
+                        <td>
+                            @if($ticket['status_label'] === 'Complete')
+                                <span class="badge success">{{ $ticket['status_label'] }}</span>
+                            @elseif($ticket['status_label'] === 'In Progress')
+                                <span class="badge info">{{ $ticket['status_label'] }}</span>
+                            @else
+                                <span class="badge warning">{{ $ticket['status_label'] }}</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($ticket['priority_label'] === 'Critical')
+                                <span class="badge danger">{{ $ticket['priority_label'] }}</span>
+                            @elseif($ticket['priority_label'] === 'High')
+                                <span class="badge warning">{{ $ticket['priority_label'] }}</span>
+                            @else
+                                {{ $ticket['priority_label'] }}
+                            @endif
+                        </td>
+                        <td>{{ $ticket['created_date'] }}</td>
+                        <td>{{ $ticket['completed_date'] ?? '-' }}</td>
+                        <td style="text-align: right;">{{ $ticket['resolution_hours'] ? number_format($ticket['resolution_hours'], 1) : '-' }}</td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -494,27 +526,43 @@
                 </div>
             </div>
 
-            <table style="margin-top: 20px;">
+            <h3>Contract Details</h3>
+            <table>
                 <thead>
                     <tr>
                         <th>Contract Name</th>
                         <th>Number</th>
                         <th>Start Date</th>
                         <th>End Date</th>
-                        <th style="text-align: center;">Days Until Expiry</th>
+                        <th style="text-align: right;">Est. Hours</th>
+                        <th style="text-align: right;">Est. Revenue</th>
+                        <th style="text-align: center;">Days Left</th>
                         <th style="text-align: center;">Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($contracts['data'] as $contract)
                     <tr>
-                        <td><strong>{{ $contract['contract_name'] }}</strong></td>
+                        <td>
+                            <strong>{{ $contract['contract_name'] }}</strong>
+                            @if($contract['is_default_contract'])
+                                <span class="badge info" style="margin-left: 5px;">Default</span>
+                            @endif
+                        </td>
                         <td>{{ $contract['contract_number'] ?? 'N/A' }}</td>
                         <td>{{ $contract['start_date'] }}</td>
                         <td>{{ $contract['end_date'] }}</td>
+                        <td style="text-align: right;">{{ number_format($contract['estimated_hours'], 1) }}</td>
+                        <td style="text-align: right;">${{ number_format($contract['estimated_revenue'], 0) }}</td>
                         <td style="text-align: center;">
                             @if($contract['days_until_expiry'] !== null)
-                                {{ $contract['days_until_expiry'] }} days
+                                @if($contract['days_until_expiry'] <= 0)
+                                    <span class="badge danger">Expired</span>
+                                @elseif($contract['days_until_expiry'] <= 30)
+                                    <span class="badge warning">{{ $contract['days_until_expiry'] }}d</span>
+                                @else
+                                    {{ $contract['days_until_expiry'] }}d
+                                @endif
                             @else
                                 N/A
                             @endif
@@ -529,20 +577,19 @@
                             @endif
                         </td>
                     </tr>
+                    @if($contract['description'])
+                    <tr>
+                        <td colspan="8" style="font-size: 8pt; color: #6b7280; padding-top: 0;">
+                            {{ Str::limit($contract['description'], 100) }}
+                        </td>
+                    </tr>
+                    @endif
                     @endforeach
                 </tbody>
             </table>
         </div>
         @endif
 
-        <!-- Footer -->
-        <div class="footer">
-            <p>{{ $branding['footer_text'] ?? '© 2025 All Rights Reserved' }}</p>
-            <p>Generated on {{ $generated_at }}</p>
-            @if(isset($branding['support_email']))
-                <p>Support: {{ $branding['support_email'] }}</p>
-            @endif
-        </div>
     </div>
 </body>
 </html>

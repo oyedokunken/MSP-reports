@@ -10,6 +10,13 @@ use Illuminate\Support\Collection;
 
 class AutotaskMonthlySummary extends BaseReport
 {
+    protected AutotaskDataGatherer $dataGatherer;
+
+    public function __construct(int $companyId)
+    {
+        parent::__construct($companyId);
+        $this->dataGatherer = new AutotaskDataGatherer();
+    }
     public function getRequiredDataTypes(): array
     {
         return ['ticket', 'time_entry', 'resource', 'contract'];
@@ -75,11 +82,11 @@ class AutotaskMonthlySummary extends BaseReport
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();
 
-        // Gather all data sections
-        $tickets = $this->gatherTickets($customer, $integrationCustomerIds, $startDate, $endDate);
-        $timeEntries = $this->gatherTimeEntries($customer, $integrationCustomerIds, $startDate, $endDate);
-        $resources = $this->gatherResources($customer);
-        $contracts = $this->gatherContracts($customer, $integrationCustomerIds);
+        // Gather all data sections using DataGatherer
+        $tickets = $this->dataGatherer->gatherTickets($customer, $integrationCustomerIds, $startDate, $endDate);
+        $timeEntries = $this->dataGatherer->gatherTimeEntries($customer, $integrationCustomerIds, $startDate, $endDate);
+        $resources = $this->dataGatherer->gatherResources($customer);
+        $contracts = $this->dataGatherer->gatherContracts($customer, $integrationCustomerIds);
 
         // Calculate summaries
         $ticketSummary = $this->getTicketSummary($tickets);
@@ -163,133 +170,7 @@ class AutotaskMonthlySummary extends BaseReport
         ];
     }
 
-    // ==================== Data Gathering Methods ====================
-
-    private function gatherTickets(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
-    {
-        if (empty($integrationCustomerIds)) {
-            return collect([]);
-        }
-
-        $rawData = IntegrationData::where('company_id', $customer->company_id)
-            ->where('data_type', 'ticket')
-            ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->whereBetween('data_timestamp', [$startDate, $endDate])
-            ->orderBy('data_timestamp', 'desc')
-            ->get();
-
-        return $rawData->map(function($item) {
-            $payload = $item->data_payload;
-            $createdDate = isset($payload['created_date']) ? Carbon::parse($payload['created_date']) : null;
-            $completedDate = isset($payload['completed_date']) ? Carbon::parse($payload['completed_date']) : null;
-            
-            $resolutionHours = null;
-            if ($createdDate && $completedDate) {
-                $resolutionHours = $createdDate->diffInHours($completedDate);
-            }
-            
-            return [
-                'ticket_id' => $payload['ticket_id'] ?? null,
-                'ticket_number' => $payload['ticket_number'] ?? 'N/A',
-                'title' => $payload['title'] ?? 'Untitled',
-                'status' => $payload['status'] ?? null,
-                'priority' => $payload['priority'] ?? null,
-                'created_date' => $createdDate ? $createdDate->format('M d, Y') : 'Unknown',
-                'completed_date' => $completedDate ? $completedDate->format('M d, Y') : null,
-                'resolution_hours' => $resolutionHours,
-                'assigned_resource' => $payload['assigned_resource'] ?? null,
-                'estimated_hours' => $payload['estimated_hours'] ?? 0,
-            ];
-        })->values();
-    }
-
-    private function gatherTimeEntries(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
-    {
-        if (empty($integrationCustomerIds)) {
-            return collect([]);
-        }
-
-        $rawData = IntegrationData::where('company_id', $customer->company_id)
-            ->where('data_type', 'time_entry')
-            ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->whereBetween('data_timestamp', [$startDate, $endDate])
-            ->orderBy('data_timestamp', 'desc')
-            ->get();
-
-        return $rawData->map(function($item) {
-            $payload = $item->data_payload;
-            return [
-                'time_entry_id' => $payload['time_entry_id'] ?? null,
-                'ticket_id' => $payload['ticket_id'] ?? null,
-                'resource_id' => $payload['resource_id'] ?? null,
-                'date_worked' => isset($payload['date_worked']) ? Carbon::parse($payload['date_worked'])->format('M d, Y') : 'Unknown',
-                'hours_worked' => $payload['hours_worked'] ?? 0,
-                'hours_to_bill' => $payload['hours_to_bill'] ?? 0,
-                'billable' => $payload['billable'] ?? false,
-                'summary_notes' => $payload['summary_notes'] ?? '',
-            ];
-        })->values();
-    }
-
-    private function gatherResources(Customer $customer): Collection
-    {
-        $rawData = IntegrationData::where('company_id', $customer->company_id)
-            ->where('data_type', 'resource')
-            ->orderBy('data_timestamp', 'desc')
-            ->get();
-
-        return $rawData->unique(function($item) {
-            return $item->data_payload['resource_id'] ?? null;
-        })->map(function($item) {
-            $payload = $item->data_payload;
-            return [
-                'resource_id' => $payload['resource_id'] ?? null,
-                'name' => trim(($payload['first_name'] ?? '') . ' ' . ($payload['last_name'] ?? '')),
-                'title' => $payload['title'] ?? 'Technician',
-                'email' => $payload['email'] ?? null,
-                'is_active' => $payload['is_active'] ?? false,
-            ];
-        })->values();
-    }
-
-    private function gatherContracts(Customer $customer, array $integrationCustomerIds): Collection
-    {
-        if (empty($integrationCustomerIds)) {
-            return collect([]);
-        }
-
-        $rawData = IntegrationData::where('company_id', $customer->company_id)
-            ->where('data_type', 'contract')
-            ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->orderBy('data_timestamp', 'desc')
-            ->get();
-
-        return $rawData->unique(function($item) {
-            return $item->data_payload['contract_id'] ?? null;
-        })->map(function($item) {
-            $payload = $item->data_payload;
-            $endDate = isset($payload['end_date']) ? Carbon::parse($payload['end_date']) : null;
-            $daysUntilExpiry = $endDate ? now()->diffInDays($endDate, false) : null;
-            
-            $status = 'active';
-            if ($daysUntilExpiry !== null) {
-                if ($daysUntilExpiry <= 0) $status = 'expired';
-                elseif ($daysUntilExpiry <= 30) $status = 'expiring_soon';
-            }
-            
-            return [
-                'contract_id' => $payload['contract_id'] ?? null,
-                'contract_name' => $payload['contract_name'] ?? 'Unknown Contract',
-                'contract_number' => $payload['contract_number'] ?? null,
-                'contract_type' => $payload['contract_type'] ?? null,
-                'start_date' => isset($payload['start_date']) ? Carbon::parse($payload['start_date'])->format('M d, Y') : 'Unknown',
-                'end_date' => $endDate ? $endDate->format('M d, Y') : 'Unknown',
-                'days_until_expiry' => $daysUntilExpiry,
-                'contract_value' => $payload['contract_value'] ?? 0,
-                'status' => $status,
-            ];
-        })->sortBy('days_until_expiry')->values();
-    }
+    // Data gathering is now handled by AutotaskDataGatherer
 
     // ==================== Summary Calculation Methods ====================
 

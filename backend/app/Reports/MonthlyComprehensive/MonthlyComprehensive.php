@@ -61,21 +61,21 @@ class MonthlyComprehensive extends BaseReport
             }
         }
         
-        // Include Ticket Summary if requested
+        // Include Autotask Monthly Summary if requested (includes tickets, time entries, technicians, contracts)
         if (in_array('tickets', $includeSections)) {
             try {
-                $ticketReport = $registry->get('ticket_summary', $customer->company_id);
-                if ($ticketReport) {
-                    $ticketData = $ticketReport->generate($customer, $startDate, $endDate);
+                $autotaskReport = $registry->get('autotask_monthly_summary', $customer->company_id);
+                if ($autotaskReport) {
+                    $autotaskData = $autotaskReport->generate($customer, $startDate, $endDate);
                     $reportData['included_reports'][] = [
                         'type' => 'tickets',
-                        'title' => 'Ticket Summary',
-                        'data' => $ticketData,
-                        'template' => 'Reports/TicketSummary/template',
+                        'title' => 'Autotask Monthly Summary',
+                        'data' => $autotaskData,
+                        'template' => 'Reports/AutotaskMonthlySummary/template',
                     ];
                 }
             } catch (\Exception $e) {
-                \Log::error('Failed to include ticket report: ' . $e->getMessage());
+                \Log::error('Failed to include Autotask report: ' . $e->getMessage());
             }
         }
         
