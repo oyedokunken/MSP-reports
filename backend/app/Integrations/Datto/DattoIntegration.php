@@ -143,6 +143,9 @@ class DattoIntegration implements IntegrationInterface
             'last_sync' => now(),
         ], now()->addMinutes(10));
         
+        // Sync device and alert data for all mapped customers
+        $this->syncDevices();
+        
         \Log::info('Datto Integration: Sync completed', [
             'integration_id' => $this->integration->integration_id,
             'total_processed' => $totalProcessed,
@@ -379,37 +382,49 @@ class DattoIntegration implements IntegrationInterface
 
         if (!$integrationCustomer) return;
 
-        $message = $alert['alertMessage'] ?? '';
-        $priority = strtolower($alert['priority'] ?? 'low');
+        // Extract alert data from Datto API response
+        $alertUid = $alert['alertUid'] ?? $alert['uid'] ?? null;
+        $priority = $alert['priority'] ?? 'Information';
+        $description = $alert['diagnostics'] ?? $alert['alertMessage'] ?? 'No details';
+        $deviceName = $alert['alertSourceInfo']['deviceName'] ?? $alert['hostname'] ?? 'Unknown';
+        $deviceUid = $alert['alertSourceInfo']['deviceUid'] ?? $alert['deviceUid'] ?? null;
+        $resolved = $alert['resolved'] ?? false;
+        $muted = $alert['muted'] ?? false;
+        $ticketNumber = $alert['ticketNumber'] ?? null;
         
-        // Determine Data Type
-        $dataType = 'security_alert';
-        $payload = [
-            'alert_id' => $alert['uid'] ?? null,
-            'message' => $message,
-            'device_name' => $alert['hostname'] ?? 'Unknown',
-            'severity' => $priority,
-            'timestamp' => $alert['alertDate'] ?? now()->toIso8601String(),
-            'category' => $alert['category'] ?? 'General',
-        ];
-
-        // Check for Backup Keywords
-        if (stripos($message, 'backup') !== false || 
-            stripos($message, 'bdr') !== false || 
-            stripos($message, 'snapshot') !== false) {
-            
-            $dataType = 'backup_status';
-            $payload['status'] = 'failed'; // Alerts usually mean failure
-            $payload['backup_type'] = 'incremental'; // Assumption
+        // Parse timestamp - Datto uses milliseconds
+        $timestamp = now();
+        if (isset($alert['timestamp'])) {
+            $timestamp = Carbon::createFromTimestampMs($alert['timestamp']);
+        } elseif (isset($alert['alertDate'])) {
+            $timestamp = Carbon::parse($alert['alertDate']);
+        }
+        
+        // Parse resolved timestamp
+        $resolvedAt = null;
+        if ($resolved && isset($alert['resolvedOn'])) {
+            $resolvedAt = Carbon::createFromTimestampMs($alert['resolvedOn'])->toIso8601String();
         }
 
         IntegrationData::create([
             'company_id' => $this->integration->company_id,
             'integration_id' => $this->integration->integration_id,
             'integration_customer_id' => $integrationCustomer->integration_customer_id,
-            'data_type' => $dataType,
-            'data_timestamp' => isset($alert['alertDate']) ? Carbon::parse($alert['alertDate']) : now(),
-            'data_payload' => $payload,
+            'data_type' => 'alert',
+            'data_timestamp' => $timestamp,
+            'data_payload' => [
+                'alert_uid' => $alertUid,
+                'device_uid' => $deviceUid,
+                'device_name' => $deviceName,
+                'priority' => $priority,
+                'description' => $description,
+                'source' => $alert['alertContext']['source'] ?? $alert['source'] ?? null,
+                'event_type' => $alert['alertContext']['type'] ?? $alert['category'] ?? null,
+                'resolved' => $resolved,
+                'resolved_at' => $resolvedAt,
+                'muted' => $muted,
+                'ticket_number' => $ticketNumber,
+            ],
             'imported_at' => now(),
             'data_version' => 1,
         ]);
@@ -760,13 +775,14 @@ class DattoIntegration implements IntegrationInterface
 
     public function syncDevices(): void
     {
-        \Log::info('Datto Integration: Starting device sync', [
+        \Log::info('Datto Integration: Starting device and alert sync', [
             'integration_id' => $this->integration->integration_id,
         ]);
 
         try {
             $sites = $this->client->getRmmSites();
             $totalDevices = 0;
+            $totalAlerts = 0;
             $totalSites = count($sites);
             $processedSites = 0;
 
@@ -775,11 +791,19 @@ class DattoIntegration implements IntegrationInterface
                 
                 try {
                     $siteUid = $site['uid'];
-                    $devices = $this->client->getRmmDevices($siteUid);
                     
+                    // Sync devices
+                    $devices = $this->client->getRmmDevices($siteUid);
                     foreach ($devices as $device) {
                         $this->storeDeviceData($device, $site);
                         $totalDevices++;
+                    }
+                    
+                    // Sync alerts
+                    $alerts = $this->client->getRmmAlerts($siteUid);
+                    foreach ($alerts as $alert) {
+                        $this->storeAlertData($alert, $site);
+                        $totalAlerts++;
                     }
                     
                     // Rate limiting handled by RateLimiter service in DattoClient::makeRmmRequest()
@@ -787,7 +811,7 @@ class DattoIntegration implements IntegrationInterface
                     
                 } catch (\Exception $e) {
                     // Log error but continue with other sites
-                    \Log::warning('Datto Integration: Failed to sync devices for site', [
+                    \Log::warning('Datto Integration: Failed to sync data for site', [
                         'integration_id' => $this->integration->integration_id,
                         'site_uid' => $site['uid'] ?? 'unknown',
                         'site_name' => $site['name'] ?? 'unknown',
@@ -796,29 +820,31 @@ class DattoIntegration implements IntegrationInterface
                     
                     // If rate limited, stop processing more sites
                     if (str_contains($e->getMessage(), 'Rate limit')) {
-                        \Log::warning('Datto Integration: Rate limit hit, stopping device sync', [
+                        \Log::warning('Datto Integration: Rate limit hit, stopping sync', [
                             'processed_sites' => $processedSites,
                             'total_sites' => $totalSites,
                             'devices_synced' => $totalDevices,
+                            'alerts_synced' => $totalAlerts,
                         ]);
                         break;
                     }
                 }
             }
 
-            \Log::info('Datto Integration: Device sync completed', [
+            \Log::info('Datto Integration: Device and alert sync completed', [
                 'integration_id' => $this->integration->integration_id,
                 'total_devices' => $totalDevices,
+                'total_alerts' => $totalAlerts,
                 'sites_processed' => $processedSites,
                 'sites_total' => $totalSites,
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Datto Integration: Device sync failed', [
+            \Log::error('Datto Integration: Sync failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
-            // Don't throw - let sync continue even if device sync fails
+            // Don't throw - let sync continue even if sync fails
         }
     }
 
@@ -845,11 +871,29 @@ class DattoIntegration implements IntegrationInterface
             return; // Skip if customer not mapped
         }
         
+        // Add site info to device for mapping
+        $device['siteUid'] = $siteUid;
+        $device['siteName'] = $site['name'] ?? 'Unknown';
+        
+        // Map device data using DattoMapper
+        $mappedDevice = DattoMapper::mapDeviceData($device);
+        
+        // Store device_status data (required by reports)
+        IntegrationData::create([
+            'company_id' => $this->integration->company_id,
+            'integration_id' => $this->integration->integration_id,
+            'integration_customer_id' => $integrationCustomer->integration_customer_id,
+            'data_type' => $mappedDevice['data_type'],
+            'data_timestamp' => $mappedDevice['timestamp'],
+            'data_payload' => $mappedDevice['payload'],
+            'imported_at' => now(),
+        ]);
+        
         // Calculate uptime percentage based on online status
         $isOnline = $device['online'] ?? false;
         $uptimePercentage = $isOnline ? 100.0 : 0.0;
         
-        // Store as uptime_metric for reports
+        // Also store as uptime_metric for uptime tracking
         IntegrationData::create([
             'company_id' => $this->integration->company_id,
             'integration_id' => $this->integration->integration_id,
@@ -857,15 +901,13 @@ class DattoIntegration implements IntegrationInterface
             'data_type' => 'uptime_metric',
             'data_timestamp' => now(),
             'data_payload' => [
+                'device_uid' => $device['uid'],
                 'device_name' => $device['hostname'] ?? 'Unknown',
-                'device_id' => $device['uid'],
                 'uptime_percentage' => $uptimePercentage,
-                'downtime_minutes' => $isOnline ? 0 : 60,
-                'online' => $isOnline,
-                'last_seen' => isset($device['lastSeen']) ? Carbon::createFromTimestampMs($device['lastSeen'])->toDateTimeString() : null,
-                'operating_system' => $device['operatingSystem'] ?? null,
-                'device_type' => $device['deviceType']['type'] ?? 'Unknown',
-                'site_name' => $site['name'] ?? 'Unknown',
+                'total_hours' => 24,
+                'online_hours' => $isOnline ? 24 : 0,
+                'offline_hours' => $isOnline ? 0 : 24,
+                'timestamp' => now()->toIso8601String(),
             ],
             'imported_at' => now(),
         ]);

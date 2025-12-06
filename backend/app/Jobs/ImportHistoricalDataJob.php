@@ -141,17 +141,35 @@ class ImportHistoricalDataJob implements ShouldQueue
             'error' => $exception->getMessage(),
         ]);
 
-        // Mark import job as failed
+        // Check if any records were imported before marking as failed
+        $hasImportedData = $this->importJob->records_imported > 0;
+        
+        // Mark import job status based on whether data was imported
         $this->importJob->update([
-            'status' => 'failed',
+            'status' => $hasImportedData ? 'completed' : 'failed',
         ]);
 
-        // Mark integration as error if historical import fails
+        // Update integration's historical import status but DON'T mark integration as error
+        // The integration can still be active and syncing current data even if historical import failed
         $integration = $this->importJob->integration;
+        
+        // If data was imported, mark as completed (partial), otherwise failed
         $integration->update([
-            'status' => 'error',
-            'historical_import_status' => 'failed',
-            'error_message' => "Historical import failed: {$exception->getMessage()}",
+            'historical_import_status' => $hasImportedData ? 'completed' : 'failed',
+            'status' => 'active', // Explicitly keep integration active
+        ]);
+
+        $logLevel = $hasImportedData ? 'info' : 'warning';
+        $message = $hasImportedData 
+            ? 'Historical import completed partially with some data imported'
+            : 'Historical import failed with no data imported';
+
+        Log::$logLevel($message, [
+            'integration_id' => $integration->integration_id,
+            'integration_type' => $integration->integration_type,
+            'records_imported' => $this->importJob->records_imported,
+            'progress_percent' => $this->importJob->progress_percent,
+            'error' => $exception->getMessage(),
         ]);
 
         // TODO: Send notification email to company admins

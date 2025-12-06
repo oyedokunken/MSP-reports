@@ -53,6 +53,16 @@ return new class extends Migration {
 
     public function down(): void
     {
+        // Drop hypertable first (TimescaleDB requirement)
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            try {
+                DB::statement("SELECT drop_chunks('integration_data', older_than => interval '0 seconds');");
+                DB::statement("SELECT * FROM drop_hypertable('integration_data', if_exists => TRUE);");
+            } catch (\Exception $e) {
+                \Log::warning('TimescaleDB hypertable drop failed: ' . $e->getMessage());
+            }
+        }
+        
         Schema::dropIfExists('integration_data');
     }
 };

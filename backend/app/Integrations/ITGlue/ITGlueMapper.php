@@ -203,6 +203,11 @@ class ITGlueMapper
             return null;
         }
         
+        // ITGlue returns "Processing" for certificates/domains still being processed
+        if (strtolower($expiryDate) === 'processing') {
+            return null;
+        }
+        
         try {
             $expiry = Carbon::parse($expiryDate);
             $now = Carbon::now();

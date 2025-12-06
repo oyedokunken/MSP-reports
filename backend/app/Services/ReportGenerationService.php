@@ -151,9 +151,11 @@ class ReportGenerationService
                 ];
 
             case 'monthly':
+                // TEMPORARY: Use current month for testing since historical data is still importing
+                // TODO: Change back to subMonth() once historical import completes
                 return [
-                    'start' => $now->copy()->subMonth()->startOfMonth(),
-                    'end' => $now->copy()->subMonth()->endOfMonth(),
+                    'start' => $now->copy()->startOfMonth(),
+                    'end' => $now->copy()->endOfDay(),
                 ];
 
             case 'yearly':

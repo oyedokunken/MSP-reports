@@ -129,12 +129,26 @@ class SyncIntegrationJob implements ShouldQueue
             'completed_at' => now(),
         ]);
 
-        // Mark integration as error after 3 failures
+        // Check if integration has any existing data
+        $hasExistingData = \App\Models\IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->exists();
+
+        // Only mark as error if there's no existing data
+        // If data exists, mark as 'active' but with failed sync status
+        // This allows reports to continue working with existing data
+        $newStatus = $hasExistingData ? 'active' : 'error';
+
         $this->integration->update([
-            'status' => 'error',
+            'status' => $newStatus,
             'last_sync_status' => 'failed',
             'last_sync_at' => now(),
             'error_message' => $exception->getMessage(),
+        ]);
+
+        Log::warning('Integration sync failed but keeping status as active due to existing data', [
+            'integration_id' => $this->integration->integration_id,
+            'has_existing_data' => $hasExistingData,
+            'new_status' => $newStatus,
         ]);
 
         // Send notification email to company admins
