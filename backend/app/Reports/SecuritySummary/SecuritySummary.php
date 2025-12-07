@@ -18,11 +18,37 @@ class SecuritySummary extends BaseReport
         return 7;
     }
 
+    public function validate(Customer $customer, Carbon $startDate, Carbon $endDate): bool
+    {
+        // Get integration customer IDs for this customer
+        $integrationCustomerIds = $customer->integrationCustomers()
+            ->pluck('integration_customers.integration_customer_id')
+            ->toArray();
+
+        if (empty($integrationCustomerIds)) {
+            return false;
+        }
+
+        // Check if there's any security data
+        $hasData = \App\Models\IntegrationData::where('company_id', $customer->company_id)
+            ->whereIn('data_type', $this->getRequiredDataTypes())
+            ->whereIn('integration_customer_id', $integrationCustomerIds)
+            ->exists();
+
+        return $hasData;
+    }
+
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
+        // Get integration customer IDs for this customer
+        $integrationCustomerIds = $customer->integrationCustomers()
+            ->pluck('integration_customers.integration_customer_id')
+            ->toArray();
+
         // 1. Fetch Security Alerts from IntegrationData
-        $alerts = $customer->integrationData()
+        $alerts = \App\Models\IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'security_alert')
+            ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->whereBetween('data_timestamp', [$startDate, $endDate])
             ->orderBy('data_timestamp', 'desc')
             ->get()

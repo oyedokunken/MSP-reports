@@ -385,6 +385,14 @@ class ReportGenerationService
                     'ip_sources' => $reportData['ip_sources'] ?? [],
                     'totals' => $reportData['totals'] ?? [],
                     'compliance' => $reportData['compliance'] ?? [],
+                    // BitDefender Monthly Summary specific variables
+                    'endpoint_summary' => $reportData['endpoint_summary'] ?? [],
+                    'policy_summary' => $reportData['policy_summary'] ?? [],
+                    'os_summary' => $reportData['os_summary'] ?? [],
+                    'threat_summary' => $reportData['threat_summary'] ?? [],
+                    'endpoints_list' => $reportData['endpoints_list'] ?? [],
+                    'policy_details' => $reportData['policy_details'] ?? [],
+                    'os_distribution' => $reportData['os_distribution'] ?? [],
                 ])->render();
             }
         }
