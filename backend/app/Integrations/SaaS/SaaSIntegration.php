@@ -215,7 +215,7 @@ class SaaSIntegration implements IntegrationInterface
                     collect($events)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed, $integrationCustomer) {
                         foreach ($chunk as $event) {
                             try {
-                                $standardized = SaaSMapper::mapEvent($event, $integrationCustomer->id);
+                                $standardized = SaaSMapper::mapEvent($event, $integrationCustomer->integration_customer_id);
                                 $data[] = $standardized;
                                 $this->storeHistoricalData($standardized);
                                 $totalProcessed++;
