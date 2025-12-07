@@ -380,6 +380,11 @@ class ReportGenerationService
                     'time_entries' => $reportData['time_entries'] ?? [],
                     'technicians' => $reportData['technicians'] ?? [],
                     'contracts' => $reportData['contracts'] ?? [],
+                    // Sendmarc Monthly Summary specific variables
+                    'top_senders' => $reportData['top_senders'] ?? [],
+                    'ip_sources' => $reportData['ip_sources'] ?? [],
+                    'totals' => $reportData['totals'] ?? [],
+                    'compliance' => $reportData['compliance'] ?? [],
                 ])->render();
             }
         }
