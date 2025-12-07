@@ -393,6 +393,13 @@ class ReportGenerationService
                     'endpoints_list' => $reportData['endpoints_list'] ?? [],
                     'policy_details' => $reportData['policy_details'] ?? [],
                     'os_distribution' => $reportData['os_distribution'] ?? [],
+                    // Datto RMM Monthly Summary specific variables
+                    'device_summary' => $reportData['device_summary'] ?? [],
+                    'alert_summary' => $reportData['alert_summary'] ?? [],
+                    'compliance_summary' => $reportData['compliance_summary'] ?? [],
+                    'security_summary' => $reportData['security_summary'] ?? [],
+                    'devices' => $reportData['devices'] ?? [],
+                    'uptime_metrics' => $reportData['uptime_metrics'] ?? [],
                 ])->render();
             }
         }

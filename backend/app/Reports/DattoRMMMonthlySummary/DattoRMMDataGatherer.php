@@ -18,12 +18,23 @@ class DattoRMMDataGatherer
             return collect([]);
         }
 
+        // Try to get data within date range
         $rawData = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'device_status')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->whereBetween('data_timestamp', [$startDate, $endDate])
             ->orderBy('data_timestamp', 'desc')
             ->get();
+
+        // Fallback: if no data in range, get the most recent device status snapshots
+        if ($rawData->isEmpty()) {
+            $rawData = IntegrationData::where('company_id', $customer->company_id)
+                ->where('data_type', 'device_status')
+                ->whereIn('integration_customer_id', $integrationCustomerIds)
+                ->orderBy('data_timestamp', 'desc')
+                ->limit(100) // Get recent snapshots
+                ->get();
+        }
 
         return $rawData->unique(function($item) {
             return $item->data_payload['device_uid'] ?? null;
