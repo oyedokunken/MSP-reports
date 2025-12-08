@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,6 +48,35 @@ export function SplitCustomerModal({
   const [selectedIntegrations, setSelectedIntegrations] = useState<number[]>([])
   const [mergeHistory, setMergeHistory] = useState<MergeHistoryItem[]>([])
 
+  const fetchIntegrations = useCallback(async () => {
+    if (!customer) return
+
+    setIsLoading(true)
+    try {
+      const response = await api.get(`/customers/${customer.customer_id}/integrations`)
+      const data = response as { data?: IntegrationMapping[] } | IntegrationMapping[]
+      const integrationsList = Array.isArray(data) ? data : (data.data || [])
+      setIntegrations(integrationsList)
+    } catch {
+      setError('Failed to load integrations')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [customer])
+
+  const fetchMergeHistory = useCallback(async () => {
+    if (!customer) return
+
+    try {
+      const response = await api.get(`/customers/${customer.customer_id}/merge-history`)
+      const data = response as { data?: MergeHistoryItem[] } | MergeHistoryItem[]
+      const historyList = Array.isArray(data) ? data : (data.data || [])
+      setMergeHistory(historyList)
+    } catch {
+      // Merge history is optional, fail silently
+    }
+  }, [customer])
+
   useEffect(() => {
     if (open && customer) {
       setNewCustomerName('')
@@ -58,34 +87,7 @@ export function SplitCustomerModal({
       fetchIntegrations()
       fetchMergeHistory()
     }
-  }, [open, customer])
-
-  const fetchIntegrations = async () => {
-    if (!customer) return
-
-    setIsLoading(true)
-    try {
-      const response = await api.get(`/customers/${customer.customer_id}/integrations`)
-      const data = (response as any).data || response
-      setIntegrations(Array.isArray(data) ? data : [])
-    } catch (err: any) {
-      setError('Failed to load integrations')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const fetchMergeHistory = async () => {
-    if (!customer) return
-
-    try {
-      const response = await api.get(`/customers/${customer.customer_id}/merge-history`)
-      const data = (response as any).data || response
-      setMergeHistory(Array.isArray(data) ? data : [])
-    } catch (err: any) {
-      // Merge history is optional, fail silently
-    }
-  }
+  }, [open, customer, fetchIntegrations, fetchMergeHistory])
 
   const toggleIntegration = (id: number) => {
     setSelectedIntegrations(prev =>
@@ -123,8 +125,9 @@ export function SplitCustomerModal({
         onOpenChange(false)
         onSuccess?.()
       }, 2000)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to split customer'
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to split customer'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)

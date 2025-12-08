@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '@/components/ui/Toast'
 import { useReportsStore } from '@/stores/useReportsStore'
@@ -28,9 +28,11 @@ export const useReportsList = () => {
   const getUniqueReportTypes = useReportsStore(state => state.getUniqueReportTypes)
 
   useEffect(() => {
-    fetchReports(customerId).catch(err => {
-      toast.error('Failed to load report history', err.response?.data?.message || err.message)
+    fetchReports(customerId).catch((err: unknown) => {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Failed to load report history', error.response?.data?.message || error.message)
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId, fetchReports])
 
   const filteredReports = getFilteredReports()
@@ -90,16 +92,12 @@ export const useCustomerReports = () => {
   const [destination, setDestination] = useState('')
   const [ccEmails, setCcEmails] = useState('')
 
-  useEffect(() => {
-    fetchReportConfig()
-  }, [id])
-
-  const fetchReportConfig = async () => {
+  const fetchReportConfig = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await api.get<{ data: ReportConfig }>(`/customers/${id}/reports`)
-      const data = (response as any).data || response
-      const reportData = data.data || data
+      const data = response as unknown as { data?: ReportConfig } | ReportConfig
+      const reportData = (data as { data?: ReportConfig }).data || data as ReportConfig
 
       const configData = {
         ...reportData,
@@ -111,12 +109,17 @@ export const useCustomerReports = () => {
       setConfig(configData)
       setDestination(configData.delivery?.destination || '')
       setCcEmails(configData.delivery?.cc?.join(', ') || '')
-    } catch (err: any) {
-      toast.error('Failed to load report configuration', err.response?.data?.message || err.message)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Failed to load report configuration', error.response?.data?.message || error.message)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [id, toast])
+
+  useEffect(() => {
+    fetchReportConfig()
+  }, [fetchReportConfig])
 
   const handleSaveDestination = async () => {
     try {
@@ -135,8 +138,9 @@ export const useCustomerReports = () => {
 
       toast.success('Saved', 'Report destination updated successfully')
       fetchReportConfig()
-    } catch (err: any) {
-      toast.error('Save Failed', err.response?.data?.message || err.message)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Save Failed', error.response?.data?.message || error.message)
     } finally {
       setIsSaving(false)
     }
@@ -147,8 +151,9 @@ export const useCustomerReports = () => {
       setIsGenerating(true)
       await api.post(`/reports/generate/${id}`)
       toast.success('Report Generated', 'Report has been generated successfully')
-    } catch (err: any) {
-      toast.error('Generation Failed', err.response?.data?.message || err.message)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Generation Failed', error.response?.data?.message || error.message)
     } finally {
       setIsGenerating(false)
     }
@@ -183,39 +188,15 @@ export const useConfigureReports = () => {
   const [ccEmails, setCcEmails] = useState('')
   const [availableReportTypes, setAvailableReportTypes] = useState<ReportType[]>([])
 
-  useEffect(() => {
-    fetchAvailableReports()
-    fetchReportConfig()
-  }, [id])
-
-  useEffect(() => {
-    if (availableReportTypes.length > 0 && enabledReports.length > 0) {
-      const validReportIds = availableReportTypes.map(r => r.id)
-      const needsUpdate = enabledReports.some(report => !validReportIds.includes(report.report_type))
-
-      if (needsUpdate) {
-        const updatedReports = enabledReports.map(report => {
-          if (!validReportIds.includes(report.report_type)) {
-            return {
-              ...report,
-              report_type: availableReportTypes[0].id
-            }
-          }
-          return report
-        })
-        setEnabledReports(updatedReports)
-      }
-    }
-  }, [availableReportTypes, enabledReports])
-
-  const fetchAvailableReports = async () => {
+  const fetchAvailableReports = useCallback(async () => {
+    if (!id) return
     try {
-      const response = await api.get(`/customers/${id}/available-reports`)
-      const data = (response as any).data || response
-      const reportData = data.data || data
+      const response = await api.get<{ available_reports: ReportType[] }>(`/customers/${id}/available-reports`)
+      const data = response as unknown as { data?: { available_reports: ReportType[] } } | { available_reports: ReportType[] }
+      const reportData = (data as { data?: { available_reports: ReportType[] } }).data || data as { available_reports: ReportType[] }
 
-      const reports = (reportData.available_reports || []).map((r: any) => ({
-        id: r.report_type,
+      const reports = (reportData.available_reports || []).map((r) => ({
+        id: r.id,
         name: r.name,
         description: r.description,
         integration_source: r.integration_source
@@ -223,26 +204,32 @@ export const useConfigureReports = () => {
 
       setAvailableReportTypes(reports)
     } catch (error) {
+      console.error('Failed to fetch available reports:', error)
       toast.error('Failed to load available reports')
     }
-  }
+  }, [id, toast])
 
-  const fetchReportConfig = async () => {
+  const fetchReportConfig = useCallback(async () => {
+    if (!id) return
     try {
       setIsLoading(true)
       const response = await api.get<{ data: ReportConfig }>(`/customers/${id}/reports`)
-      const data = (response as any).data || response
-      const reportData = data.data || data
+      const data = response as unknown as { data?: ReportConfig } | ReportConfig
+      const reportData = (data as { data?: ReportConfig }).data || data as ReportConfig
 
       setConfig(reportData)
       const schedules = reportData.report_schedules || []
 
-      const mappedSchedules = schedules.map((s: any) => ({
+      const mappedSchedules = schedules.map((s) => ({
         report_type: s.report_type,
         schedule_id: s.report_schedule_id,
         frequency: s.frequency,
         time_of_day: s.time_of_day,
-        active: s.active
+        active: s.active,
+        day_of_month: s.day_of_month,
+        day_of_week: s.day_of_week,
+        include_sections: s.include_sections,
+        _old_schedule_id: undefined
       }))
 
       setEnabledReports(mappedSchedules)
@@ -265,19 +252,47 @@ export const useConfigureReports = () => {
 
       setDestination(emailDestination)
       setCcEmails(Array.isArray(ccEmailsList) ? ccEmailsList.join(', ') : '')
-    } catch (err: any) {
-      toast.error('Failed to load report configuration', err.response?.data?.message || err.message)
+    } catch (err: unknown) {
+      console.error('Failed to load report configuration:', err)
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Failed to load configuration', error.response?.data?.message || error.message)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [id, toast])
+
+  useEffect(() => {
+    fetchAvailableReports()
+    fetchReportConfig()
+  }, [fetchAvailableReports, fetchReportConfig])
+
+  useEffect(() => {
+    if (availableReportTypes.length > 0 && enabledReports.length > 0) {
+      const validReportIds = availableReportTypes.map(r => r.id)
+      const needsUpdate = enabledReports.some(report => !validReportIds.includes(report.report_type))
+
+      if (needsUpdate) {
+        const updatedReports = enabledReports.map(report => {
+          if (!validReportIds.includes(report.report_type)) {
+            return {
+              ...report,
+              report_type: availableReportTypes[0].id
+            }
+          }
+          return report
+        })
+        setEnabledReports(updatedReports)
+      }
+    }
+  }, [availableReportTypes, enabledReports])
+
 
   const handleAddReport = () => {
     const defaultReportType = availableReportTypes.length === 1
       ? availableReportTypes[0].id
       : (availableReportTypes.find(r => r.id === 'uptime_monthly')?.id || availableReportTypes[0]?.id || 'uptime_monthly');
 
-    const newReport: any = {
+    const newReport: EnabledReport = {
       report_type: defaultReportType,
       frequency: 'monthly',
       time_of_day: '09:00',
@@ -301,8 +316,9 @@ export const useConfigureReports = () => {
       try {
         await api.delete(`/reports/schedules/${report.schedule_id}`)
         toast.success('Deleted', 'Report schedule deleted successfully')
-      } catch (err: any) {
-        toast.error('Delete Failed', err.response?.data?.message || err.message)
+      } catch (err: unknown) {
+        const error = err as { response?: { data?: { message?: string } }; message?: string }
+        toast.error('Delete Failed', error.response?.data?.message || error.message)
         return
       }
     }
@@ -310,14 +326,15 @@ export const useConfigureReports = () => {
     setEnabledReports(enabledReports.filter((_, i) => i !== index))
   }
 
-  const handleUpdateReport = (index: number, field: string, value: any) => {
+  const handleUpdateReport = (index: number, field: string, value: unknown) => {
     const updated = [...enabledReports]
 
     if (field === 'report_type' && updated[index].schedule_id) {
       const oldScheduleId = updated[index].schedule_id
       updated[index] = {
         ...updated[index],
-        [field]: value,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [field]: value as any,
         schedule_id: undefined,
         _old_schedule_id: oldScheduleId
       }
@@ -326,7 +343,8 @@ export const useConfigureReports = () => {
         updated[index].include_sections = ['uptime', 'tickets', 'backups', 'security']
       }
     } else {
-      updated[index] = { ...updated[index], [field]: value }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      updated[index] = { ...updated[index], [field]: value as any }
     }
 
     setEnabledReports(updated)
@@ -337,13 +355,13 @@ export const useConfigureReports = () => {
       setIsSaving(true)
 
       const oldSchedulesToDelete = enabledReports
-        .filter(report => (report as any)._old_schedule_id)
-        .map(report => (report as any)._old_schedule_id)
+        .filter(report => (report as { _old_schedule_id?: number })._old_schedule_id)
+        .map(report => (report as { _old_schedule_id?: number })._old_schedule_id)
 
       for (const oldScheduleId of oldSchedulesToDelete) {
         try {
           await api.delete(`/reports/schedules/${oldScheduleId}`)
-        } catch (err) {
+        } catch {
           // Continue anyway
         }
       }
@@ -354,18 +372,18 @@ export const useConfigureReports = () => {
         .filter(email => email.length > 0)
 
       const schedules = enabledReports.map(report => {
-        const scheduleConfig: any = {}
+        const scheduleConfig: Record<string, unknown> = {}
 
-        if (report.frequency === 'monthly' && (report as any).day_of_month) {
-          scheduleConfig.day_of_month = (report as any).day_of_month
+        if (report.frequency === 'monthly' && (report as { day_of_month?: number }).day_of_month) {
+          scheduleConfig.day_of_month = (report as { day_of_month?: number }).day_of_month
         }
 
-        if (report.frequency === 'weekly' && (report as any).day_of_week !== undefined) {
-          scheduleConfig.day_of_week = (report as any).day_of_week
+        if (report.frequency === 'weekly' && (report as { day_of_week?: number }).day_of_week !== undefined) {
+          scheduleConfig.day_of_week = (report as { day_of_week?: number }).day_of_week
         }
 
-        if (report.report_type === 'monthly_comprehensive' && (report as any).include_sections) {
-          scheduleConfig.include_sections = (report as any).include_sections
+        if (report.report_type === 'monthly_comprehensive' && (report as { include_sections?: string[] }).include_sections) {
+          scheduleConfig.include_sections = (report as { include_sections?: string[] }).include_sections
         }
 
         return {
@@ -389,8 +407,9 @@ export const useConfigureReports = () => {
 
       toast.success('Saved', 'Report configuration updated successfully')
       fetchReportConfig()
-    } catch (err: any) {
-      toast.error('Save Failed', err.response?.data?.message || err.message)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Save Failed', error.response?.data?.message || error.message)
     } finally {
       setIsSaving(false)
     }
@@ -405,15 +424,17 @@ export const useConfigureReports = () => {
     try {
       setIsGenerating(true)
       const response = await api.post(`/reports/generate/${id}`)
-      const data = (response as any).data || response
+      const data = response as { data?: { data?: unknown[] } } | { data?: unknown[] }
+      const responseData = (data as { data?: { data?: unknown[] } }).data || data as { data?: unknown[] }
 
-      toast.success('Report Generated!', `Successfully generated ${data.data?.length || 1} report(s)`)
+      toast.success('Report Generated!', `Successfully generated ${responseData.data?.length || 1} report(s)`)
 
       setTimeout(() => {
         navigate('/platform/reports')
       }, 1500)
-    } catch (err: any) {
-      toast.error('Generation Failed', err.response?.data?.message || err.message)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Generation Failed', error.response?.data?.message || error.message)
     } finally {
       setIsGenerating(false)
     }

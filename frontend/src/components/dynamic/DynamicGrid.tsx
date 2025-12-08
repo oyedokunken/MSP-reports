@@ -5,12 +5,12 @@ import * as Icons from "lucide-react";
 
 interface DynamicGridProps {
     config: GridConfig;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
 }
 
 export const DynamicGrid: React.FC<DynamicGridProps> = ({ config, data }) => {
     const getIcon = (iconName: string) => {
-        const Icon = (Icons as any)[iconName];
+        const Icon = (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[iconName];
         return Icon ? <Icon className="w-6 h-6" /> : null;
     };
 

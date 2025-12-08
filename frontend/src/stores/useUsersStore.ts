@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api } from '@/lib/api'
+import { userApi } from '@/services/api/users'
 import type { UserWithPermissions } from '@/pages/users/types'
 
 interface UsersState {
@@ -58,18 +58,18 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   fetchUsers: async () => {
     set({ isLoading: true, error: null })
     try {
-      const response = await api.get('/users')
-      const data = (response as any).data || response
-      const usersList = Array.isArray(data) ? data : data.data || []
+      const response = await userApi.getUsers()
+      const usersList = response.data as UserWithPermissions[]
 
       set({
         users: usersList,
         isLoading: false,
       })
-    } catch (err: any) {
-      console.error('Failed to fetch users:', err)
+    } catch (error) {
+      console.error('Failed to fetch users:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load users'
       set({
-        error: err.response?.data?.message || err.message || 'Failed to load users',
+        error: errorMessage,
         isLoading: false,
       })
     }
@@ -78,22 +78,22 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   // Deactivate user
   deactivateUser: async (userId: number) => {
     try {
-      await api.patch(`/users/${userId}/deactivate`)
+      await userApi.deactivateUser(userId)
       await get().fetchUsers()
-    } catch (err: any) {
-      console.error('Failed to deactivate user:', err)
-      throw err
+    } catch (error) {
+      console.error('Failed to deactivate user:', error)
+      throw error
     }
   },
 
   // Reactivate user
   reactivateUser: async (userId: number) => {
     try {
-      await api.patch(`/users/${userId}/reactivate`)
+      await userApi.reactivateUser(userId)
       await get().fetchUsers()
-    } catch (err: any) {
-      console.error('Failed to reactivate user:', err)
-      throw err
+    } catch (error) {
+      console.error('Failed to reactivate user:', error)
+      throw error
     }
   },
 

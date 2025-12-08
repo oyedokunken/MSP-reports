@@ -14,6 +14,6 @@ export function hasPermission(
     if (isAdmin(user)) return true
 
     // Check specific permission
-    const permissions = user?.permissions as any
+    const permissions = user?.permissions as Record<string, Record<string, boolean>> | undefined
     return permissions?.[section]?.[action] === true
 }

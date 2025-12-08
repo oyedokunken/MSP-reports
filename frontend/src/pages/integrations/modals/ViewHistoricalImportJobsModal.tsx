@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -47,6 +47,26 @@ export function ViewHistoricalImportJobsModal({
   const [jobs, setJobs] = useState<HistoricalImportJob[]>([])
   const [error, setError] = useState('')
 
+  const fetchJobs = useCallback(async () => {
+    if (!integration?.id) return
+
+    setIsLoading(true)
+    setError('')
+
+    try {
+      const response = await api.get(`/integrations/${integration.id}/historical-import-jobs`)
+      const data = (response as unknown as { data: { jobs: HistoricalImportJob[] } }).data || response as unknown as { jobs: HistoricalImportJob[] }
+      setJobs(Array.isArray(data.jobs) ? data.jobs : [])
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage =
+        error.response?.data?.message || error.message || 'Failed to load historical import jobs'
+      setError(errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [integration])
+
   useEffect(() => {
     if (open && integration) {
       fetchJobs()
@@ -58,26 +78,7 @@ export function ViewHistoricalImportJobsModal({
       }, 10000)
       return () => clearInterval(interval)
     }
-  }, [open, integration, jobs])
-
-  const fetchJobs = async () => {
-    if (!integration?.id) return
-
-    setIsLoading(true)
-    setError('')
-
-    try {
-      const response = await api.get(`/integrations/${integration.id}/historical-import-jobs`)
-      const data = (response as any).data || response
-      setJobs(Array.isArray(data.jobs) ? data.jobs : [])
-    } catch (err: any) {
-      const errorMessage =
-        err.response?.data?.message || err.message || 'Failed to load historical import jobs'
-      setError(errorMessage)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  }, [open, integration, jobs, fetchJobs])
 
   const getStatusBadge = (status: HistoricalImportJob['status']) => {
     const config = {

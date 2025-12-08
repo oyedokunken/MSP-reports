@@ -5,11 +5,13 @@ import { Spinner } from '@/components/ui/spinner'
 import { AlertTriangle } from 'lucide-react'
 import { api } from '@/lib/api'
 
+import { type ApiKey } from '@/stores/useApiKeysStore'
+
 interface RevokeApiKeyModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  apiKey: any
-  onSuccess: () => void
+  apiKey: ApiKey
+  onSuccess?: () => void
 }
 
 export function RevokeApiKeyModal({ open, onOpenChange, apiKey, onSuccess }: RevokeApiKeyModalProps) {
@@ -20,9 +22,9 @@ export function RevokeApiKeyModal({ open, onOpenChange, apiKey, onSuccess }: Rev
 
     try {
       await api.delete(`/api-keys/${apiKey.api_key_id}`)
-      onSuccess()
+      onSuccess?.()
       onOpenChange(false)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to revoke API key:', error)
     } finally {
       setIsSubmitting(false)

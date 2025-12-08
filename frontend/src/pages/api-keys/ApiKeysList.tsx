@@ -7,13 +7,13 @@ import { Plus, Key, Trash2, Copy, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { CreateApiKeyModal } from './modals/CreateApiKeyModal'
 import { RevokeApiKeyModal } from './modals/RevokeApiKeyModal'
-import { useApiKeysStore } from '@/stores/useApiKeysStore'
+import { useApiKeysStore, type ApiKey } from '@/stores/useApiKeysStore'
 
 export default function ApiKeysList() {
   const toast = useToast()
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [revokeModalOpen, setRevokeModalOpen] = useState(false)
-  const [selectedKey, setSelectedKey] = useState<any>(null)
+  const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null)
   const [visibleKeys, setVisibleKeys] = useState<Set<number>>(new Set())
 
   const { apiKeys, isLoading, fetchApiKeys } = useApiKeysStore()
@@ -30,7 +30,7 @@ export default function ApiKeysList() {
     })
   }
 
-  const handleRevoke = (key: any) => {
+  const handleRevoke = (key: ApiKey) => {
     setSelectedKey(key)
     setRevokeModalOpen(true)
   }
@@ -158,7 +158,7 @@ export default function ApiKeysList() {
                         <Button
                           variant="outline"
                           size="sm"
-                          
+
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -173,7 +173,7 @@ export default function ApiKeysList() {
                         Permissions
                       </label>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(apiKey.permissions).map(([key, perms]: [string, any]) =>
+                        {Object.entries(apiKey.permissions).map(([key, perms]) =>
                           Object.entries(perms || {}).map(([action, allowed]) =>
                             allowed ? (
                               <Badge key={`${key}-${action}`} variant="secondary">

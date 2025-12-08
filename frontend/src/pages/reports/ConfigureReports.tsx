@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
@@ -15,33 +15,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ConfigureReportsLoading, ConfigureReportsNotFound } from './components/ConfigureReportsStates'
 
-interface ReportType {
-  id: string
-  name: string
-  description: string
-  integration_source?: string
-}
-
-interface EnabledReport {
-  report_type: string
-  schedule_id?: number
-  frequency?: string
-  time_of_day?: string
-  active?: boolean
-  _old_schedule_id?: number // Track old schedule ID when report_type changes
-  include_sections?: string[] // For comprehensive reports
-}
-
-interface ReportConfig {
-  enabled_reports: EnabledReport[]
-  delivery: {
-    method: string
-    destination: string
-    cc: string[]
-  }
-  timezone: string | null
-  retention_days: number | null
-}
+import type { ReportConfig, ReportType, EnabledReport } from './types'
 
 
 const FREQUENCIES = [
@@ -56,7 +30,7 @@ export default function ConfigureReports() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const toast = useToast()
-  
+
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -68,17 +42,14 @@ export default function ConfigureReports() {
   const [showValidationModal, setShowValidationModal] = useState(false)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
 
-  useEffect(() => {
-    fetchAvailableReports()
-    fetchReportConfig()
-  }, [id])
+
 
   // Validate and fix invalid report types when availableReportTypes loads
   useEffect(() => {
     if (availableReportTypes.length > 0 && enabledReports.length > 0) {
       const validReportIds = availableReportTypes.map(r => r.id)
       const needsUpdate = enabledReports.some(report => !validReportIds.includes(report.report_type))
-      
+
       if (needsUpdate) {
         const updatedReports = enabledReports.map(report => {
           // If report type is invalid, use first available
@@ -95,57 +66,62 @@ export default function ConfigureReports() {
     }
   }, [availableReportTypes, enabledReports])
 
-  const fetchAvailableReports = async () => {
+  const fetchAvailableReports = useCallback(async () => {
     try {
-      const response = await api.get(`/customers/${id}/available-reports`)
-      const data = (response as any).data || response
-      const reportData = data.data || data
-      
+      const response = await api.get<{ available_reports: ReportType[] }>(`/customers/${id}/available-reports`)
+      const data = response as unknown as { data?: { available_reports: ReportType[] } } | { available_reports: ReportType[] }
+      const reportData = (data as { data?: { available_reports: ReportType[] } }).data || data as { available_reports: ReportType[] }
+
       console.log('Available reports for customer:', reportData)
-      
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const reports = (reportData.available_reports || []).map((r: any) => ({
-        id: r.report_type,
+        id: r.report_type || r.id,
         name: r.name,
         description: r.description,
         integration_source: r.integration_source
       }))
-      
+
       setAvailableReportTypes(reports)
     } catch (error) {
       console.error('Failed to fetch available reports:', error)
       toast.error('Failed to load available reports')
     }
-  }
+  }, [id, toast])
 
-  const fetchReportConfig = async () => {
+  const fetchReportConfig = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await api.get<{ data: ReportConfig }>(`/customers/${id}/reports`)
-      const data = (response as any).data || response
-      const reportData = data.data || data
-      
+      const data = response as unknown as { data?: ReportConfig } | ReportConfig
+      const reportData = (data as { data?: ReportConfig }).data || data as ReportConfig
+
       console.log('Fetched report config:', reportData)
-      
+
       setConfig(reportData)
       const schedules = reportData.report_schedules || []
       console.log('Schedules from backend:', schedules)
-      
-      const mappedSchedules = schedules.map((s: any) => ({
+
+      const mappedSchedules = schedules.map((s) => ({
         report_type: s.report_type,
         schedule_id: s.report_schedule_id,
         frequency: s.frequency,
         time_of_day: s.time_of_day,
-        active: s.active
+        active: s.active,
+        day_of_month: s.day_of_month,
+        day_of_week: s.day_of_week,
+        include_sections: s.include_sections,
+        _old_schedule_id: undefined
       }))
-      
+
       console.log('Mapped schedules:', mappedSchedules)
       setEnabledReports(mappedSchedules)
-      
+
       let emailDestination = ''
       let ccEmailsList: string[] = []
-      
+
       console.log('Full reportData:', reportData)
-      
+
       if (reportData.email_destination) {
         console.log('Using email from root level:', reportData.email_destination)
         emailDestination = reportData.email_destination
@@ -155,44 +131,50 @@ export default function ConfigureReports() {
         console.log('Using email from schedule:', schedules[0].email_destination)
         emailDestination = schedules[0].email_destination
         ccEmailsList = schedules[0].cc_emails || []
-      } 
+      }
       else if (reportData.delivery?.destination) {
         console.log('Using email from delivery config')
         emailDestination = reportData.delivery.destination
         ccEmailsList = reportData.delivery.cc || []
       }
-      
+
       console.log('Final email destination:', emailDestination)
       console.log('Final CC emails:', ccEmailsList)
-      
+
       setDestination(emailDestination)
       setCcEmails(Array.isArray(ccEmailsList) ? ccEmailsList.join(', ') : '')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load report configuration:', err)
-      toast.error('Failed to load report configuration', err.response?.data?.message || err.message)
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Failed to load configuration', error.response?.data?.message || error.message)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [id, toast])
+
+  useEffect(() => {
+    fetchAvailableReports()
+    fetchReportConfig()
+  }, [fetchAvailableReports, fetchReportConfig])
 
   const handleAddReport = () => {
     // If only one report available, use it as default
-    const defaultReportType = availableReportTypes.length === 1 
-      ? availableReportTypes[0].id 
+    const defaultReportType = availableReportTypes.length === 1
+      ? availableReportTypes[0].id
       : (availableReportTypes.find(r => r.id === 'uptime_monthly')?.id || availableReportTypes[0]?.id || 'uptime_monthly');
-    
-    const newReport: any = {
+
+    const newReport: EnabledReport = {
       report_type: defaultReportType,
       frequency: 'monthly',
       time_of_day: '09:00',
       active: true
     };
-    
+
     // If it's a comprehensive report, set default sections
     if (defaultReportType === 'monthly_comprehensive') {
       newReport.include_sections = ['uptime', 'tickets', 'backups', 'security'];
     }
-    
+
     setEnabledReports([
       ...enabledReports,
       newReport
@@ -201,59 +183,59 @@ export default function ConfigureReports() {
 
   const handleRemoveReport = async (index: number) => {
     const report = enabledReports[index]
-    
+
     // If the report has a schedule_id, delete it from the backend
     if (report.schedule_id) {
       try {
         await api.delete(`/reports/schedules/${report.schedule_id}`)
         toast.success('Deleted', 'Report schedule deleted successfully')
-      } catch (err: any) {
-        toast.error('Delete Failed', err.response?.data?.message || err.message)
-        return 
+      } catch (err: unknown) {
+        const error = err as { response?: { data?: { message?: string } }; message?: string }
+        toast.error('Delete Failed', error.response?.data?.message || error.message)
+        return
       }
     }
-    
+
     setEnabledReports(enabledReports.filter((_, i) => i !== index))
   }
 
-  const handleUpdateReport = (index: number, field: string, value: any) => {
+  const handleUpdateReport = (index: number, field: keyof EnabledReport, value: string | number | boolean | string[]) => {
     const updated = [...enabledReports]
-    
+
     // If changing report_type, remove the old schedule_id so it creates a new one
     if (field === 'report_type' && updated[index].schedule_id) {
       const oldScheduleId = updated[index].schedule_id
-      updated[index] = { 
-        ...updated[index], 
-        [field]: value,
+      updated[index] = {
+        ...updated[index],
+        [field]: value as string,
         schedule_id: undefined, // Remove schedule_id so backend creates new one
         _old_schedule_id: oldScheduleId // Track old ID for deletion
       }
-      
+
       // If changing TO comprehensive report, set default sections
       if (value === 'monthly_comprehensive') {
         updated[index].include_sections = ['uptime', 'tickets', 'backups', 'security']
       }
     } else {
-      updated[index] = { ...updated[index], [field]: value }
+      updated[index] = { ...updated[index], [field]: value } as EnabledReport
     }
-    
+
     setEnabledReports(updated)
   }
 
   // Validate configuration before saving
   const validateConfiguration = (): string[] => {
     const errors: string[] = []
-    
-    // Check if there are any reports configured
+
     if (enabledReports.length === 0) {
       errors.push('No reports configured. Please add at least one report schedule.')
     }
-    
+
     // Check if email destination is provided when reports are configured
     if (enabledReports.length > 0 && !destination.trim()) {
       errors.push('Email destination is required for report delivery.')
     }
-    
+
     // Validate email format if provided
     if (destination.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -261,7 +243,7 @@ export default function ConfigureReports() {
         errors.push('Please enter a valid email address for the destination.')
       }
     }
-    
+
     // Validate CC emails if provided
     if (ccEmails.trim()) {
       const ccArray = ccEmails.split(',').map(e => e.trim()).filter(e => e)
@@ -271,7 +253,7 @@ export default function ConfigureReports() {
         errors.push(`Invalid CC email(s): ${invalidCCs.join(', ')}`)
       }
     }
-    
+
     return errors
   }
 
@@ -286,12 +268,12 @@ export default function ConfigureReports() {
 
     try {
       setIsSaving(true)
-      
+
       // Delete old schedules if report_type was changed
       const oldSchedulesToDelete = enabledReports
-        .filter(report => (report as any)._old_schedule_id)
-        .map(report => (report as any)._old_schedule_id)
-      
+        .filter(report => report._old_schedule_id)
+        .map(report => report._old_schedule_id)
+
       for (const oldScheduleId of oldSchedulesToDelete) {
         try {
           await api.delete(`/reports/schedules/${oldScheduleId}`)
@@ -300,30 +282,30 @@ export default function ConfigureReports() {
           // Continue anyway
         }
       }
-      
+
       const ccArray = ccEmails
         .split(',')
         .map(email => email.trim())
         .filter(email => email.length > 0)
 
       const schedules = enabledReports.map(report => {
-        const scheduleConfig: any = {}
-        
+        const scheduleConfig: Record<string, unknown> = {}
+
         // Add day_of_month for monthly reports
-        if (report.frequency === 'monthly' && (report as any).day_of_month) {
-          scheduleConfig.day_of_month = (report as any).day_of_month
+        if (report.frequency === 'monthly' && report.day_of_month) {
+          scheduleConfig.day_of_month = report.day_of_month
         }
-        
+
         // Add day_of_week for weekly reports
-        if (report.frequency === 'weekly' && (report as any).day_of_week !== undefined) {
-          scheduleConfig.day_of_week = (report as any).day_of_week
+        if (report.frequency === 'weekly' && report.day_of_week !== undefined) {
+          scheduleConfig.day_of_week = report.day_of_week
         }
-        
+
         // Add include_sections for comprehensive reports
-        if (report.report_type === 'monthly_comprehensive' && (report as any).include_sections) {
-          scheduleConfig.include_sections = (report as any).include_sections
+        if (report.report_type === 'monthly_comprehensive' && report.include_sections) {
+          scheduleConfig.include_sections = report.include_sections
         }
-        
+
         return {
           report_type: report.report_type,
           frequency: report.frequency || 'monthly',
@@ -345,8 +327,9 @@ export default function ConfigureReports() {
 
       toast.success('Saved', 'Report configuration updated successfully')
       fetchReportConfig()
-    } catch (err: any) {
-      toast.error('Save Failed', err.response?.data?.message || err.message)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Save Failed', error.response?.data?.message || error.message)
     } finally {
       setIsSaving(false)
     }
@@ -364,15 +347,17 @@ export default function ConfigureReports() {
     try {
       setIsGenerating(true)
       const response = await api.post(`/reports/generate/${id}`)
-      const data = (response as any).data || response
-      
-      toast.success('Report Generated!', `Successfully generated ${data.data?.length || 1} report(s)`)
-      
+      const data = response as unknown as { data?: { data?: unknown[] } } | { data?: unknown[] }
+      const responseData = (data as { data?: { data?: unknown[] } }).data || data as { data?: unknown[] }
+
+      toast.success('Report Generated!', `Successfully generated ${responseData.data?.length || 1} report(s)`)
+
       setTimeout(() => {
         navigate('/platform/reports')
       }, 1500)
-    } catch (err: any) {
-      toast.error('Generation Failed', err.response?.data?.message || err.message)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Generation Failed', error.response?.data?.message || error.message)
     } finally {
       setIsGenerating(false)
     }
@@ -513,7 +498,7 @@ export default function ConfigureReports() {
                           <div>
                             <Label htmlFor={`day-${index}`}>Day of Month</Label>
                             <Select
-                              value={String((report as any).day_of_month || '1')}
+                              value={String(report.day_of_month || '1')}
                               onValueChange={(value) => handleUpdateReport(index, 'day_of_month', parseInt(value))}
                             >
                               <SelectTrigger id={`day-${index}`} className="mt-1">
@@ -534,7 +519,7 @@ export default function ConfigureReports() {
                           <div>
                             <Label htmlFor={`weekday-${index}`}>Day of Week</Label>
                             <Select
-                              value={String((report as any).day_of_week || '1')}
+                              value={String(report.day_of_week || '1')}
                               onValueChange={(value) => handleUpdateReport(index, 'day_of_week', parseInt(value))}
                             >
                               <SelectTrigger id={`weekday-${index}`} className="mt-1">
@@ -589,7 +574,7 @@ export default function ConfigureReports() {
                             { id: 'backups', label: 'Backup Status', icon: '💾' },
                             { id: 'security', label: 'Security Alerts', icon: '🔒' },
                           ].map((section) => {
-                            const includeSections = (report as any).include_sections || ['uptime', 'tickets', 'backups', 'security'];
+                            const includeSections = report.include_sections || ['uptime', 'tickets', 'backups', 'security'];
                             const isChecked = includeSections.includes(section.id);
 
                             return (
@@ -599,7 +584,7 @@ export default function ConfigureReports() {
                                   id={`section-${index}-${section.id}`}
                                   checked={isChecked}
                                   onChange={(e) => {
-                                    const currentSections = (report as any).include_sections || ['uptime', 'tickets', 'backups', 'security'];
+                                    const currentSections = report.include_sections || ['uptime', 'tickets', 'backups', 'security'];
                                     const newSections = e.target.checked
                                       ? [...currentSections, section.id]
                                       : currentSections.filter((s: string) => s !== section.id);
@@ -765,7 +750,7 @@ export default function ConfigureReports() {
         onClose={() => setShowValidationModal(false)}
         onConfirm={() => setShowValidationModal(false)}
         title="Missing Required Information"
-        description={validationErrors.length > 0 
+        description={validationErrors.length > 0
           ? validationErrors.map((err, i) => `${i + 1}. ${err}`).join('\n\n')
           : 'Please fill in all required fields before saving.'
         }

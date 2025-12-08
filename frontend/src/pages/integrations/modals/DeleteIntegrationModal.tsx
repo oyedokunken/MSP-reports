@@ -31,7 +31,7 @@ export function DeleteIntegrationModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  
+
   // Get fetchIntegrations from store
   const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
 
@@ -43,10 +43,10 @@ export function DeleteIntegrationModal({
 
     try {
       await api.delete(`/integrations/${integration.id}`)
-      
+
       // Refresh integrations silently
-      await fetchIntegrations(true)
-      
+      await fetchIntegrations(true, true)
+
       setSuccess(true)
 
       setTimeout(() => {
@@ -54,10 +54,11 @@ export function DeleteIntegrationModal({
         onOpenChange(false)
         onSuccess?.()
       }, 1500)
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
       const errorMessage =
-        err.response?.data?.message ||
-        err.message ||
+        error.response?.data?.message ||
+        error.message ||
         'Failed to delete integration'
       setError(errorMessage)
     } finally {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { ChangePasswordModal } from '@/components/modals/ChangePasswordModal'
@@ -73,16 +73,35 @@ export default function Settings() {
   const isValidHex = useSettingsStore(state => state.isValidHex)
   const isValidSecondaryHex = useSettingsStore(state => state.isValidSecondaryHex)
 
-  const fetchSettings = async () => {
+
+
+  const fetchSettings = useCallback(async () => {
     try {
       setLoading(true)
-      console.log('📥 Fetching company settings...')
-      const response = await api.get<any>('/company/settings')
+      const response = await api.get('/company/settings')
 
-      console.log('📦 Received settings:', response)
-
-      if (response && response.data) {
-        const data = response.data
+      if (response.data) {
+        const data = response.data as {
+          name?: string;
+          contact_email?: string;
+          contact_phone?: string;
+          address?: string;
+          settings?: {
+            white_label?: {
+              primary_color?: string;
+              secondary_color?: string;
+              logo_url?: string;
+              favicon_url?: string;
+              email_from_address?: string;
+              email_from_name?: string;
+              support_email?: string;
+              support_phone?: string;
+              footer_text?: string;
+              report_header_text?: string;
+              website_url?: string;
+            };
+          };
+        }
         console.log('🏢 Company data:', data)
 
         setCompanyName(data.name || '')
@@ -112,17 +131,35 @@ export default function Settings() {
           console.warn('⚠️ No white_label settings found in response')
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to load company settings:', error)
-      toast.error('Error', error.message || 'Failed to load company settings')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load company settings'
+      toast.error('Error', errorMessage)
     } finally {
       setLoading(false)
     }
-  }
+  }, [
+    toast,
+    setAddress,
+    setCompanyName,
+    setContactEmail,
+    setContactPhone,
+    setFaviconUrl,
+    setFooterText,
+    setFromEmail,
+    setFromName,
+    setLogoUrl,
+    setPrimaryHex,
+    setReportHeaderText,
+    setSecondaryHex,
+    setSupportEmail,
+    setSupportPhone,
+    setWebsiteUrl
+  ])
 
   useEffect(() => {
     fetchSettings()
-  }, [])
+  }, [fetchSettings])
 
   const handleSaveBranding = async () => {
     // Check edit permission (Admins auto-pass)
@@ -158,7 +195,7 @@ export default function Settings() {
       console.log('✅ Company info saved')
 
       // Save branding
-      const brandingData: any = {
+      const brandingData = {
         company_name: companyName,
         primary_color: primaryHex,
         secondary_color: secondaryHex,
@@ -179,23 +216,36 @@ export default function Settings() {
 
       // Update branding context immediately with response from backend
       // Response structure: { status: 'success', message: '...', data: { ...branding } }
-      const savedBranding = (response as any)?.data || response
+      const savedBranding = (response as { data?: unknown })?.data || response
 
-      if (savedBranding) {
+      if (savedBranding && typeof savedBranding === 'object') {
         console.log('🎨 Updating branding context with:', savedBranding)
+        const brandingObj = savedBranding as {
+          company_name?: string;
+          logo_url?: string;
+          primary_color?: string;
+          secondary_color?: string;
+          favicon_url?: string;
+          email_from_name?: string;
+          email_from_address?: string;
+          support_email?: string;
+          support_phone?: string;
+          footer_text?: string;
+          report_header_text?: string;
+        }
         const newBranding = {
           enabled: true,
-          company_name: savedBranding.company_name || companyName,
-          logo_url: savedBranding.logo_url || null,
-          primary_color: savedBranding.primary_color || primaryHex,
-          secondary_color: savedBranding.secondary_color || secondaryHex,
-          favicon_url: savedBranding.favicon_url || null,
-          email_from_name: savedBranding.email_from_name || fromName,
-          email_from_address: savedBranding.email_from_address || fromEmail,
-          support_email: savedBranding.support_email || null,
-          support_phone: savedBranding.support_phone || null,
-          footer_text: savedBranding.footer_text || null,
-          report_header_text: savedBranding.report_header_text || null,
+          company_name: brandingObj.company_name || companyName,
+          logo_url: brandingObj.logo_url || null,
+          primary_color: brandingObj.primary_color || primaryHex,
+          secondary_color: brandingObj.secondary_color || secondaryHex,
+          favicon_url: brandingObj.favicon_url || null,
+          email_from_name: brandingObj.email_from_name || fromName,
+          email_from_address: brandingObj.email_from_address || fromEmail,
+          support_email: brandingObj.support_email || '',
+          support_phone: brandingObj.support_phone || '',
+          footer_text: brandingObj.footer_text || '',
+          report_header_text: brandingObj.report_header_text || '',
         }
 
         console.log('📦 Final branding object to save:', newBranding)
@@ -225,20 +275,17 @@ export default function Settings() {
       if (branding) {
         setBranding({
           ...branding,
+          ...savedBranding,
           company_name: companyName,
           primary_color: primaryHex,
         })
       }
 
       toast.success('Saved', 'Company information updated successfully')
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Failed to save settings:', error)
-      console.error('❌ Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      })
-      toast.error('Error', error.response?.data?.message || error.message || 'Failed to save settings')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save settings'
+      toast.error('Error', errorMessage)
     } finally {
       setSaving(false)
     }
@@ -260,9 +307,10 @@ export default function Settings() {
       })
 
       toast.success('Saved', 'Email settings updated successfully')
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to save email settings:', error)
-      toast.error('Error', error.message || 'Failed to save email settings')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save email settings'
+      toast.error('Error', errorMessage)
     } finally {
       setSaving(false)
     }

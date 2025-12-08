@@ -18,14 +18,14 @@ interface SchedulesState {
   schedules: ReportSchedule[]
   allSchedules: ReportSchedule[]
   isLoading: boolean
-  
+
   // Search, Filters & Pagination
   searchQuery: string
   statusFilter: string
   frequencyFilter: string
   currentPage: number
   perPage: number
-  
+
   // Actions
   fetchSchedules: () => Promise<void>
   setPage: (page: number) => void
@@ -51,24 +51,24 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
   fetchSchedules: async () => {
     set({ isLoading: true })
     try {
-      const response = await api.get<ReportSchedule[]>('/reports/scheduled')
-      const data = (response as any).data || response
-      const schedulesList = Array.isArray(data) ? data : []
-      
+      const response = await api.get('/reports/scheduled')
+      const data = response as { data?: ReportSchedule[] } | ReportSchedule[]
+      const schedulesList = Array.isArray(data) ? data : (data as { data?: ReportSchedule[] }).data || []
+
       const { currentPage, perPage } = get()
       const startIndex = (currentPage - 1) * perPage
       const endIndex = startIndex + perPage
       const paginatedSchedules = schedulesList.slice(startIndex, endIndex)
-      
+
       set({
         schedules: paginatedSchedules,
         allSchedules: schedulesList,
         isLoading: false,
       })
-    } catch (err: any) {
-      console.error('Failed to fetch schedules:', err)
+    } catch (error) {
+      console.error('Failed to fetch schedules:', error)
       set({ isLoading: false })
-      throw err
+      throw error
     }
   },
 
@@ -79,8 +79,8 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     const startIndex = (page - 1) * perPage
     const endIndex = startIndex + perPage
     const paginatedSchedules = filtered.slice(startIndex, endIndex)
-    
-    set({ 
+
+    set({
       currentPage: page,
       schedules: paginatedSchedules
     })
@@ -116,22 +116,22 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
   // Get filtered schedules based on search and filters
   getFilteredSchedules: () => {
     const { allSchedules, searchQuery, statusFilter, frequencyFilter } = get()
-    
+
     return allSchedules.filter(schedule => {
       // Search filter
-      const matchesSearch = !searchQuery.trim() || 
+      const matchesSearch = !searchQuery.trim() ||
         schedule.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         schedule.report_type.toLowerCase().includes(searchQuery.toLowerCase())
-      
+
       // Status filter
-      const matchesStatus = statusFilter === 'all' || 
+      const matchesStatus = statusFilter === 'all' ||
         (statusFilter === 'active' && schedule.active) ||
         (statusFilter === 'inactive' && !schedule.active)
-      
+
       // Frequency filter
-      const matchesFrequency = frequencyFilter === 'all' || 
+      const matchesFrequency = frequencyFilter === 'all' ||
         schedule.frequency.toLowerCase() === frequencyFilter.toLowerCase()
-      
+
       return matchesSearch && matchesStatus && matchesFrequency
     })
   },

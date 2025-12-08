@@ -13,10 +13,10 @@ interface ChangePasswordModalProps {
   onSuccess?: () => void
 }
 
-export function ChangePasswordModal({ 
-  open, 
+export function ChangePasswordModal({
+  open,
   onOpenChange,
-  onSuccess 
+  onSuccess
 }: ChangePasswordModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -27,23 +27,23 @@ export function ChangePasswordModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Validation
     if (!currentPassword.trim()) {
       setError('Please enter your current password')
       return
     }
-    
+
     if (!newPassword.trim()) {
       setError('Please enter a new password')
       return
     }
-    
+
     if (newPassword.length < 8) {
       setError('New password must be at least 8 characters')
       return
     }
-    
+
     if (newPassword !== confirmPassword) {
       setError('New passwords do not match')
       return
@@ -65,8 +65,9 @@ export function ChangePasswordModal({
         handleClose()
         onSuccess?.()
       }, 2000)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to change password'
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to change password'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -114,7 +115,7 @@ export function ChangePasswordModal({
             Enter your current password and choose a new one
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Current Password */}
           <div>
@@ -199,8 +200,8 @@ export function ChangePasswordModal({
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isSubmitting || !currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword || newPassword.length < 8}
             >
               {isSubmitting ? (

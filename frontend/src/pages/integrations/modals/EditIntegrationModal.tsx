@@ -16,17 +16,17 @@ interface EditIntegrationModalProps {
   onSuccess?: () => void
 }
 
-export function EditIntegrationModal({ 
-  open, 
+export function EditIntegrationModal({
+  open,
   onOpenChange,
   integration,
-  onSuccess 
+  onSuccess
 }: EditIntegrationModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [displayName, setDisplayName] = useState('')
-  
+
   // Get fetchIntegrations from store
   const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
 
@@ -40,9 +40,9 @@ export function EditIntegrationModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!integration) return
-    
+
     if (!displayName.trim()) {
       setError('Please enter a display name')
       return
@@ -65,8 +65,9 @@ export function EditIntegrationModal({
         onOpenChange(false)
         onSuccess?.()
       }, 2000)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to update integration'
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update integration'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -111,7 +112,7 @@ export function EditIntegrationModal({
             Update settings for {integration.name}
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Display Name */}
           <div>

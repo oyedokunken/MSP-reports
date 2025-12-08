@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -22,13 +22,13 @@ interface ViewIntegrationDataModalProps {
 interface PreviewSection {
     title: string;
     type: 'table' | 'key_value' | 'list';
-    data?: any;
+    data?: unknown;
     columns?: string[];
 }
 
 interface PreviewData {
     success: boolean;
-    data?: any;
+    data?: unknown;
     sections?: PreviewSection[];
     message?: string;
 }
@@ -44,13 +44,7 @@ export function ViewIntegrationDataModal({
     const [previewData, setPreviewData] = useState<PreviewData | null>(null);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        if (open && integrationId) {
-            fetchPreviewData();
-        }
-    }, [open, integrationId, integrationCustomerId]);
-
-    const fetchPreviewData = async () => {
+    const fetchPreviewData = useCallback(async () => {
         if (!integrationId) return;
 
         setIsLoading(true);
@@ -60,27 +54,35 @@ export function ViewIntegrationDataModal({
             const url = integrationCustomerId
                 ? `/integrations/${integrationId}/preview?customer_id=${integrationCustomerId}`
                 : `/integrations/${integrationId}/preview`;
-            
+
             const response = await api.get(url);
-            const data = (response as any).data || response;
-            
-            if (data.success && data.preview) {
-                setPreviewData(data.preview);
-            } else if (data.preview) {
-                setPreviewData(data.preview);
+            const responseData = response as { data?: PreviewData } | PreviewData;
+            const data = (responseData as { data?: PreviewData }).data || responseData as PreviewData;
+
+            if (data.success && data.sections) { // Check for sections directly on data if success is true
+                setPreviewData(data);
+            } else if ((data as unknown as { preview: PreviewData }).preview) { // Handle legacy structure if needed
+                setPreviewData((data as unknown as { preview: PreviewData }).preview);
             } else {
                 setPreviewData(data);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
             const errorMessage =
-                err.response?.data?.message ||
-                err.message ||
+                error.response?.data?.message ||
+                error.message ||
                 "Failed to load integration data";
             setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [integrationId, integrationCustomerId]);
+
+    useEffect(() => {
+        if (open && integrationId) {
+            fetchPreviewData();
+        }
+    }, [open, integrationId, integrationCustomerId, fetchPreviewData]);
 
     const handleClose = () => {
         onOpenChange(false);
@@ -109,12 +111,12 @@ export function ViewIntegrationDataModal({
                         </tr>
                     </thead>
                     <tbody>
-                        {section.data.map((row: any, idx: number) => (
+                        {(section.data as Record<string, unknown>[]).map((row, idx) => (
                             <tr key={idx} className="border-b border-border/50">
                                 {columns.map((col) => (
                                     <td key={col} className="p-2 text-muted-foreground">
-                                        {typeof row[col] === 'object' 
-                                            ? JSON.stringify(row[col]) 
+                                        {typeof row[col] === 'object'
+                                            ? JSON.stringify(row[col])
                                             : String(row[col] ?? '')}
                                     </td>
                                 ))}
@@ -131,14 +133,14 @@ export function ViewIntegrationDataModal({
 
         return (
             <div className="space-y-2">
-                {Object.entries(section.data).map(([key, value]) => (
+                {Object.entries(section.data as Record<string, unknown>).map(([key, value]) => (
                     <div key={key} className="flex items-start gap-4">
                         <div className="font-medium text-foreground min-w-[150px]">
                             {key}:
                         </div>
                         <div className="text-muted-foreground flex-1">
-                            {typeof value === 'object' 
-                                ? JSON.stringify(value, null, 2) 
+                            {typeof value === 'object'
+                                ? JSON.stringify(value, null, 2)
                                 : String(value ?? '')}
                         </div>
                     </div>
@@ -152,7 +154,7 @@ export function ViewIntegrationDataModal({
 
         return (
             <ul className="space-y-1 list-disc list-inside">
-                {section.data.map((item: any, idx: number) => (
+                {(section.data as unknown[]).map((item, idx) => (
                     <li key={idx} className="text-muted-foreground">
                         {typeof item === 'object' ? JSON.stringify(item) : String(item)}
                     </li>

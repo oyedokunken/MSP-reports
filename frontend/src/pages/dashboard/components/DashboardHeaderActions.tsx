@@ -2,12 +2,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { SelectCustomerModal } from "@/pages/schedules/modals/SelectCustomerModal";
 
-type DashboardHeaderActionsProps = {
-    onToastSuccess: (title: string, description?: string) => void;
-    onToastInfo: (title: string, description?: string) => void;
-};
-
-export function DashboardHeaderActions(_props: DashboardHeaderActionsProps) {
+export function DashboardHeaderActions() {
     const [selectCustomerOpen, setSelectCustomerOpen] = useState(false);
 
     return (

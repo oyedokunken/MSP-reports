@@ -45,15 +45,16 @@ export function useAuthForm(options: UseAuthFormOptions = {}) {
 
             // Navigate to dashboard or specified route
             navigate(redirectTo);
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
             const errorMessage =
-                err.response?.data?.message ||
-                err.message ||
+                error.response?.data?.message ||
+                error.message ||
                 "Failed to sign in";
             setError(errorMessage);
 
             // Error callback
-            onError?.(err);
+            onError?.(error as Error);
         } finally {
             setIsSubmitting(false);
         }
@@ -130,8 +131,9 @@ export const useForgotPassword = () => {
         try {
             await api.post("/auth/password/request", { email });
             setSuccess(true);
-        } catch (err: any) {
-            const errorMessage = err.response?.data?.message || err.message || "Failed to send reset email";
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
+            const errorMessage = error.response?.data?.message || error.message || "Failed to send reset email";
             setError(errorMessage);
         } finally {
             setIsSubmitting(false);
@@ -194,8 +196,9 @@ export const useResetPassword = () => {
             setTimeout(() => {
                 navigate("/sign-in");
             }, 3000);
-        } catch (err: any) {
-            const errorMessage = err.response?.data?.message || err.message || "Failed to reset password";
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
+            const errorMessage = error.response?.data?.message || error.message || "Failed to reset password";
             setError(errorMessage);
         } finally {
             setIsSubmitting(false);

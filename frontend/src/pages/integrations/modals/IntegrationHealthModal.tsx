@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
@@ -27,8 +27,8 @@ interface IntegrationHealthModalProps {
   integration: Integration | null
 }
 
-export function IntegrationHealthModal({ 
-  open, 
+export function IntegrationHealthModal({
+  open,
   onOpenChange,
   integration
 }: IntegrationHealthModalProps) {
@@ -36,13 +36,7 @@ export function IntegrationHealthModal({
   const [healthData, setHealthData] = useState<HealthCheckResult | null>(null)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (open && integration) {
-      checkHealth()
-    }
-  }, [open, integration])
-
-  const checkHealth = async () => {
+  const checkHealth = useCallback(async () => {
     if (!integration) return
 
     setIsLoading(true)
@@ -50,15 +44,22 @@ export function IntegrationHealthModal({
 
     try {
       const response = await api.get(`/integrations/${integration.id}/health`)
-      const data = (response as any).data || response
+      const data = (response as unknown as { data: HealthCheckResult }).data || response as unknown as HealthCheckResult
       setHealthData(data)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to check health'
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to check health'
       setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [integration])
+
+  useEffect(() => {
+    if (open && integration) {
+      checkHealth()
+    }
+  }, [open, integration, checkHealth])
 
   const handleClose = () => {
     onOpenChange(false)
@@ -78,7 +79,7 @@ export function IntegrationHealthModal({
             Connection status for {integration.name}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -164,8 +165,8 @@ export function IntegrationHealthModal({
                 </div>
               </div>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={checkHealth}
                 disabled={isLoading}
                 className="w-full"

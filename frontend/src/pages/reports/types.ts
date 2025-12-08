@@ -31,6 +31,8 @@ export interface EnabledReport {
   active?: boolean
   _old_schedule_id?: number
   include_sections?: string[]
+  day_of_month?: number
+  day_of_week?: number
 }
 
 export interface ReportDelivery {
@@ -45,16 +47,29 @@ export interface ReportBranding {
   footer_notes?: string
 }
 
+export interface ReportSchedule {
+  report_type: string
+  report_schedule_id?: number
+  frequency: string
+  time_of_day: string
+  active: boolean
+  day_of_month?: number
+  day_of_week?: number
+  include_sections?: string[]
+  email_destination?: string
+  cc_emails?: string[]
+}
+
 export interface ReportConfig {
   enabled_reports: EnabledReport[]
   delivery: ReportDelivery
   timezone: string | null
   retention_days: number | null
   report_branding?: ReportBranding
-  format?: any
+  format?: unknown
   email_destination?: string
   cc_emails?: string[]
-  report_schedules?: any[]
+  report_schedules?: ReportSchedule[]
 }
 
 

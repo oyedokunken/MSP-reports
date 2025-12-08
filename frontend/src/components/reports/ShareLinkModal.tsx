@@ -37,16 +37,25 @@ export function ShareLinkModal({
     try {
       setLoading(true)
       setError(null)
-      
+
       const response = await apiClient.post(`/reports/${reportId}/share`)
-      const data = response.data
-      
-      setShareLink(data.share_url)
-      setExpiresAt(data.expires_at)
+
+      // Handle potentially wrapped response
+      const responseData = response.data
+
+      const data = (responseData as { data?: { share_url: string; expires_at: string } }).data || responseData
+
+      if (!data?.share_url) {
+        throw new Error('Invalid response: missing share_url')
+      }
+
+      setShareLink(String(data.share_url))
+      setExpiresAt(data.expires_at ? String(data.expires_at) : null)
       toast.success('Share Link Generated', 'Link is valid for 1 hour')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to generate share link:', err)
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to generate share link'
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to generate share link'
       setError(errorMessage)
       toast.error('Failed to Generate Link', errorMessage)
     } finally {
@@ -56,13 +65,13 @@ export function ShareLinkModal({
 
   const handleCopyLink = async () => {
     if (!shareLink) return
-    
+
     try {
       await navigator.clipboard.writeText(shareLink)
       setCopied(true)
       toast.success('Copied!', 'Share link copied to clipboard')
       setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
+    } catch {
       toast.error('Copy Failed', 'Could not copy to clipboard')
     }
   }
@@ -82,8 +91,16 @@ export function ShareLinkModal({
   }
 
   const formatExpiryTime = (isoString: string) => {
-    const date = new Date(isoString)
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    try {
+      if (!isoString) return ''
+      const date = new Date(isoString)
+      // Check if date is valid
+      if (isNaN(date.getTime())) return ''
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    } catch (e) {
+      console.error('Error formatting date:', e)
+      return ''
+    }
   }
 
   return (
@@ -114,8 +131,13 @@ export function ShareLinkModal({
 
           {/* Generate Button (shown when no link yet) */}
           {!shareLink && !loading && (
-            <Button 
-              onClick={generateShareLink} 
+            <Button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                generateShareLink()
+              }}
               className="w-full"
               disabled={loading}
             >
@@ -138,12 +160,13 @@ export function ShareLinkModal({
               {/* Link Input with Copy */}
               <div className="flex gap-2">
                 <Input
-                  value={shareLink}
+                  value={shareLink || ''}
                   readOnly
                   className="font-mono text-xs"
                   onClick={(e) => (e.target as HTMLInputElement).select()}
                 />
                 <Button
+                  type="button"
                   variant="outline"
                   size="icon"
                   onClick={handleCopyLink}
@@ -168,6 +191,7 @@ export function ShareLinkModal({
               {/* Action Buttons */}
               <div className="flex gap-2">
                 <Button
+                  type="button"
                   variant="outline"
                   className="flex-1"
                   onClick={handleCopyLink}
@@ -185,6 +209,7 @@ export function ShareLinkModal({
                   )}
                 </Button>
                 <Button
+                  type="button"
                   variant="outline"
                   className="flex-1"
                   onClick={handleOpenLink}
@@ -196,6 +221,7 @@ export function ShareLinkModal({
 
               {/* Generate New Link */}
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={generateShareLink}

@@ -10,28 +10,28 @@ interface SettingsState {
   contactPhone: string
   address: string
   websiteUrl: string
-  
+
   // Branding assets
   logoUrl: string | null
   faviconUrl: string | null
-  
+
   // Email delivery
   fromEmail: string
   fromName: string
   supportEmail: string
   supportPhone: string
-  
+
   // Report branding
   footerText: string
   reportHeaderText: string
-  
+
   // API key
   apiKeyMasked: string
   lastGenerated: string | null
-  
+
   // Modal state
   changePasswordModalOpen: boolean
-  
+
   // Actions
   setCompanyName: (name: string) => void
   setPrimaryHex: (hex: string) => void
@@ -50,10 +50,10 @@ interface SettingsState {
   setReportHeaderText: (text: string) => void
   setLastGenerated: (key: string | null) => void
   setChangePasswordModalOpen: (open: boolean) => void
-  
+
   // Initialize from branding
   initializeFromBranding: (branding: CompanyBranding) => void
-  
+
   // Computed
   isValidHex: () => boolean
   isValidSecondaryHex: () => boolean
@@ -113,7 +113,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       supportPhone: branding.support_phone || '',
       footerText: branding.footer_text || '',
       reportHeaderText: branding.report_header_text || 'Monthly Service Report',
-      websiteUrl: (branding as any).website_url || '',
+      websiteUrl: (branding as { website_url?: string }).website_url || '',
     })
   },
 
@@ -122,7 +122,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const { primaryHex } = get()
     return /^#([0-9a-f]{6})$/i.test(primaryHex)
   },
-  
+
   isValidSecondaryHex: () => {
     const { secondaryHex } = get()
     return /^#([0-9a-f]{6})$/i.test(secondaryHex)

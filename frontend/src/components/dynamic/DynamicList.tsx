@@ -3,12 +3,12 @@ import type { ListConfig } from "@/types/displayTemplate";
 import { replaceTemplateVariables } from "@/utils/formatters";
 import * as Icons from "lucide-react";
 
-interface DynamicListProps<T extends Record<string, any>> {
+interface DynamicListProps<T extends Record<string, unknown>> {
     config: ListConfig;
     data: T[];
 }
 
-export const DynamicList = <T extends Record<string, any>>({
+export const DynamicList = <T extends Record<string, unknown>>({
     config,
     data,
 }: DynamicListProps<T>) => {
@@ -39,7 +39,7 @@ export const DynamicList = <T extends Record<string, any>>({
     }, [sortedData, config.groupBy]);
 
     const getIcon = (iconName: string) => {
-        const IconsMap = Icons as unknown as Record<string, React.FC<any>>;
+        const IconsMap = Icons as unknown as Record<string, React.FC<{ className?: string }>>;
         const Icon = IconsMap[iconName];
         return Icon ? <Icon className="w-5 h-5" /> : null;
     };
@@ -86,30 +86,30 @@ export const DynamicList = <T extends Record<string, any>>({
                             );
                             const subtitle = config.itemTemplate.subtitle
                                 ? replaceTemplateVariables(
-                                      config.itemTemplate.subtitle,
-                                      item
-                                  )
+                                    config.itemTemplate.subtitle,
+                                    item
+                                )
                                 : null;
 
                             const iconName = config.itemTemplate.icon
                                 ? replaceTemplateVariables(
-                                      config.itemTemplate.icon,
-                                      item
-                                  )
+                                    config.itemTemplate.icon,
+                                    item
+                                )
                                 : null;
 
                             const iconColor = config.itemTemplate.iconColor
                                 ? replaceTemplateVariables(
-                                      config.itemTemplate.iconColor,
-                                      item
-                                  )
+                                    config.itemTemplate.iconColor,
+                                    item
+                                )
                                 : "gray";
 
                             const badge = config.itemTemplate.badge
                                 ? replaceTemplateVariables(
-                                      config.itemTemplate.badge,
-                                      item
-                                  )
+                                    config.itemTemplate.badge,
+                                    item
+                                )
                                 : null;
 
                             return (

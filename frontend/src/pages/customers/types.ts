@@ -26,21 +26,21 @@ export interface IntegrationCustomer {
   external_id: string
   name: string
   active: boolean
-  last_seen_at: string | null
+  last_seen_at: number | null
 }
 
 export interface ExistingCustomer {
   customer_id: number | null
   canonical_name: string | null
   status: string | null
-  integrations: any[]
+  integrations: unknown[]
 }
 
 export interface SuggestedMatch {
   customer_id: number
   canonical_name: string
   confidence_score: number
-  integrations?: any[]
+  integrations?: unknown[]
 }
 
 export interface MapCustomerModalProps {
@@ -80,7 +80,7 @@ export interface CustomerIntegrationDetail {
   name: string
   active: boolean
   last_seen_at: string
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
   mapping: CustomerIntegrationMapping
 }
 

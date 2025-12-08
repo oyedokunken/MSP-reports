@@ -61,7 +61,7 @@ export interface Company {
 
 export interface CompanySettings {
   white_label?: WhiteLabelSettings
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export interface WhiteLabelSettings {

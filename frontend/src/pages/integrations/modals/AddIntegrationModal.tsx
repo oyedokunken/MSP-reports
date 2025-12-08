@@ -24,7 +24,7 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  
+
   // Get fetchIntegrations from store
   const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
 
@@ -32,8 +32,8 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
     integration_type: string
     display_name: string
     status: string
-    credentials: Record<string, any>
-    configuration: Record<string, any>
+    credentials: Record<string, unknown>
+    configuration: Record<string, unknown>
   }>({
     integration_type: '',
     display_name: '',
@@ -49,12 +49,12 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
   useEffect(() => {
     if (config && config.credential_fields) {
       const defaultCredentials: Record<string, string> = {}
-      config.credential_fields.forEach((field: any) => {
+      config.credential_fields.forEach((field: { name: string; default?: string }) => {
         if (field.default && !formData.credentials[field.name]) {
           defaultCredentials[field.name] = field.default
         }
       })
-      
+
       if (Object.keys(defaultCredentials).length > 0) {
         setFormData(prev => ({
           ...prev,
@@ -62,7 +62,7 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
         }))
       }
     }
-  }, [config])
+  }, [config, formData.credentials])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,8 +78,8 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
 
       if (response.data) {
         // Refresh integrations silently
-        await fetchIntegrations(true)
-        
+        await fetchIntegrations(true, true)
+
         setSuccess(true)
         setTimeout(() => {
           setSuccess(false)
@@ -95,8 +95,9 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
           onSuccess?.()
         }, 2000)
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to add integration'
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to add integration'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -139,7 +140,7 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
       />
     )
   }
-  
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -222,10 +223,10 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
                 <h4 className="text-sm font-semibold mb-1">Credentials</h4>
                 <p className="text-xs text-muted-foreground">{config.description}</p>
               </div>
-              
+
               <DynamicCredentialForm
                 fields={config.credential_fields}
-                values={formData.credentials}
+                values={formData.credentials as Record<string, string>}
                 onChange={handleCredentialChange}
               />
             </div>

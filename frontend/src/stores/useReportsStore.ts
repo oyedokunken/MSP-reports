@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { api } from '@/lib/api'
 import apiClient from '@/lib/api'
+import type { ReportHistoryResponse } from '@/types/api/report'
+
 
 export interface GeneratedReport {
   generated_report_id: number
@@ -21,34 +23,34 @@ interface ReportsState {
   reports: GeneratedReport[]
   isLoading: boolean
   customerName: string
-  
+
   // Pagination
   currentPage: number
   totalPages: number
   perPage: number
   total: number
-  
+
   // Filters
   searchQuery: string
   statusFilter: string
   reportTypeFilter: string
-  
+
   // Download state
   downloading: number | null
-  
+
   // Delete state
   deleting: number | null
-  
+
   // Actions
   fetchReports: (customerId?: string | null, page?: number) => Promise<void>
   downloadReport: (reportId: number) => Promise<{ success: boolean; error?: string }>
   deleteReport: (reportId: number) => Promise<{ success: boolean; error?: string }>
-  
+
   // Filter actions
   setSearchQuery: (query: string) => void
   setStatusFilter: (status: string) => void
   setReportTypeFilter: (type: string) => void
-  
+
   // Computed
   getFilteredReports: () => GeneratedReport[]
   getUniqueReportTypes: () => string[]
@@ -75,23 +77,20 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
     try {
       const params = new URLSearchParams({ page: page.toString(), per_page: '9' })
       if (customerId) params.append('customer_id', customerId)
-      
+
       const url = `/reports/history?${params.toString()}`
-      const response = await api.get<any>(url)
-      
-      // Handle nested response structure from API
-      // API returns: { status: 'success', data: { reports: [...], pagination: {...} } }
-      const responseData = (response as any).data || response
-      const reportsList = responseData.data?.reports || responseData.reports || []
-      const pagination = responseData.data?.pagination || responseData.pagination || {}
-      
+      const response = await api.get(url) as unknown as ReportHistoryResponse
+
+      const reportsList = response.data.reports
+      const pagination = response.data.pagination
       console.log('Reports fetched:', reportsList)
       console.log('Pagination:', pagination)
-      
+
       // Set customer name from first report if filtering by customer
-      const customerName = customerId && reportsList.length > 0 
-        ? reportsList[0].customer_name 
+      const customerName = customerId && reportsList.length > 0
+        ? reportsList[0].customer_name
         : ''
+
       set({
         reports: reportsList,
         customerName,
@@ -101,10 +100,10 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
         perPage: pagination.per_page || 9,
         isLoading: false,
       })
-    } catch (err: any) {
-      console.error('Failed to fetch reports:', err)
+    } catch (error) {
+      console.error('Failed to fetch reports:', error)
       set({ isLoading: false, reports: [], currentPage: 1, totalPages: 1, total: 0 })
-      throw err
+      throw error
     }
   },
 
@@ -118,18 +117,18 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
       })
 
       const blob = response.data
-      
+
       // Extract filename from Content-Disposition header or use default
       const contentDisposition = response.headers['content-disposition']
       let filename = `report_${reportId}.pdf`
-      
+
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
         if (filenameMatch && filenameMatch[1]) {
           filename = filenameMatch[1].replace(/['"]/g, '')
         }
       }
-      
+
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -141,11 +140,12 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
 
       set({ downloading: null })
       return { success: true }
-    } catch (err: any) {
+    } catch (error) {
       set({ downloading: null })
+      const errorMessage = error instanceof Error ? error.message : 'Download failed'
       return {
         success: false,
-        error: err.response?.data?.message || err.message,
+        error: errorMessage,
       }
     }
   },
@@ -155,20 +155,21 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
     set({ deleting: reportId })
     try {
       await api.delete(`/reports/${reportId}`)
-      
+
       // Remove the report from the list
       const { reports } = get()
-      set({ 
+      set({
         reports: reports.filter(r => r.generated_report_id !== reportId),
-        deleting: null 
+        deleting: null
       })
-      
+
       return { success: true }
-    } catch (err: any) {
+    } catch (error) {
       set({ deleting: null })
+      const errorMessage = error instanceof Error ? error.message : 'Delete failed'
       return {
         success: false,
-        error: err.response?.data?.message || err.message,
+        error: errorMessage,
       }
     }
   },
@@ -181,23 +182,23 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
   // Computed - get filtered reports
   getFilteredReports: () => {
     const { reports, searchQuery, statusFilter, reportTypeFilter } = get()
-    
+
     return reports.filter(report => {
       // Search filter
       if (searchQuery && !report.customer_name.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false
       }
-      
+
       // Status filter
       if (statusFilter !== 'all' && report.status !== statusFilter) {
         return false
       }
-      
+
       // Report type filter
       if (reportTypeFilter !== 'all' && report.report_type !== reportTypeFilter) {
         return false
       }
-      
+
       return true
     })
   },

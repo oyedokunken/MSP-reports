@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,14 +22,14 @@ interface ExistingCustomer {
   customer_id: number | null
   canonical_name: string | null
   status: string | null
-  integrations: any[]
+  integrations: Record<string, unknown>[]
 }
 
 interface SuggestedMatch {
   customer_id: number
   canonical_name: string
   confidence_score: number
-  integrations?: any[]
+  integrations?: Record<string, unknown>[]
 }
 
 interface MapCustomerModalProps {
@@ -40,12 +40,12 @@ interface MapCustomerModalProps {
   onSuccess?: () => void
 }
 
-export function MapCustomerModal({ 
-  open, 
-  onOpenChange, 
+export function MapCustomerModal({
+  open,
+  onOpenChange,
   integrationCustomer,
   existingCustomers,
-  onSuccess 
+  onSuccess
 }: MapCustomerModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -55,34 +55,22 @@ export function MapCustomerModal({
   const [createNew, setCreateNew] = useState(false)
   const [newCustomerName, setNewCustomerName] = useState('')
   const [suggestedMatches, setSuggestedMatches] = useState<SuggestedMatch[]>([])
-  const [_isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
+  const [, setIsLoadingSuggestions] = useState(false)
 
-  useEffect(() => {
-    if (open && integrationCustomer) {
-      setSearchTerm('')
-      setSelectedCustomerId(null)
-      setError('')
-      setSuccess(false)
-      setCreateNew(false)
-      setNewCustomerName(integrationCustomer.name) // Pre-fill with integration customer name
-      fetchSuggestedMatches()
-    }
-  }, [open, integrationCustomer])
-
-  const fetchSuggestedMatches = async () => {
+  const fetchSuggestedMatches = useCallback(async () => {
     if (!integrationCustomer) return
-    
+
     try {
       setIsLoadingSuggestions(true)
       const response = await api.get(`/customers/unmapped`)
       const rawData = response.data || response
-      const data: any[] = Array.isArray(rawData) ? rawData : []
-      
+      const data: Record<string, unknown>[] = Array.isArray(rawData) ? rawData : []
+
       // Find the current integration customer in the response
       const currentCustomer = data.find(
-        (c: any) => c.integration_customer_id === integrationCustomer.integration_customer_id
-      )
-      
+        (c) => (c as { integration_customer_id?: number }).integration_customer_id === integrationCustomer.integration_customer_id
+      ) as { suggested_matches?: SuggestedMatch[] } | undefined
+
       if (currentCustomer && currentCustomer.suggested_matches) {
         setSuggestedMatches(currentCustomer.suggested_matches)
       } else {
@@ -94,11 +82,23 @@ export function MapCustomerModal({
     } finally {
       setIsLoadingSuggestions(false)
     }
-  }
+  }, [integrationCustomer])
+
+  useEffect(() => {
+    if (open && integrationCustomer) {
+      setSearchTerm('')
+      setSelectedCustomerId(null)
+      setError('')
+      setSuccess(false)
+      setCreateNew(false)
+      setNewCustomerName(integrationCustomer.name) // Pre-fill with integration customer name
+      fetchSuggestedMatches()
+    }
+  }, [open, integrationCustomer, fetchSuggestedMatches])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (createNew) {
       if (!newCustomerName.trim()) {
         setError('Please enter a customer name')
@@ -150,8 +150,9 @@ export function MapCustomerModal({
           }, 2000)
         }
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to map customer'
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to map customer'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -169,8 +170,8 @@ export function MapCustomerModal({
   }
 
   const filteredCustomers = existingCustomers.filter(customer =>
-    customer.customer_id !== null && 
-    customer.canonical_name && 
+    customer.customer_id !== null &&
+    customer.canonical_name &&
     customer.canonical_name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
@@ -208,7 +209,7 @@ export function MapCustomerModal({
             Map <strong>{integrationCustomer.name}</strong> from {integrationCustomer.integration_type} to an existing customer
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col space-y-4">
           {/* Integration Customer Info */}
           <div className="rounded-lg border border-border bg-accent/50 p-3">
@@ -233,11 +234,10 @@ export function MapCustomerModal({
                   setCreateNew(false)
                   setSelectedCustomerId(null)
                 }}
-                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
-                  !createNew
-                    ? 'border-primary bg-primary/10 text-primary font-medium'
-                    : 'border-border hover:bg-accent/50'
-                }`}
+                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${!createNew
+                  ? 'border-primary bg-primary/10 text-primary font-medium'
+                  : 'border-border hover:bg-accent/50'
+                  }`}
               >
                 Map to Existing
               </button>
@@ -247,11 +247,10 @@ export function MapCustomerModal({
                   setCreateNew(true)
                   setSelectedCustomerId(null)
                 }}
-                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
-                  createNew
-                    ? 'border-primary bg-primary/10 text-primary font-medium'
-                    : 'border-border hover:bg-accent/50'
-                }`}
+                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${createNew
+                  ? 'border-primary bg-primary/10 text-primary font-medium'
+                  : 'border-border hover:bg-accent/50'
+                  }`}
               >
                 Create New Customer
               </button>
@@ -289,11 +288,10 @@ export function MapCustomerModal({
                         key={match.customer_id}
                         type="button"
                         onClick={() => setSelectedCustomerId(match.customer_id)}
-                        className={`w-full text-left rounded-lg border p-3 transition-all ${
-                          selectedCustomerId === match.customer_id
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border hover:bg-accent/50'
-                        }`}
+                        className={`w-full text-left rounded-lg border p-3 transition-all ${selectedCustomerId === match.customer_id
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:bg-accent/50'
+                          }`}
                       >
                         <div className="flex items-center justify-between">
                           <div>
@@ -342,11 +340,10 @@ export function MapCustomerModal({
                         key={customer.customer_id}
                         type="button"
                         onClick={() => setSelectedCustomerId(customer.customer_id)}
-                        className={`w-full text-left p-3 transition-all ${
-                          selectedCustomerId === customer.customer_id
-                            ? 'bg-primary/10'
-                            : 'hover:bg-accent/50'
-                        }`}
+                        className={`w-full text-left p-3 transition-all ${selectedCustomerId === customer.customer_id
+                          ? 'bg-primary/10'
+                          : 'hover:bg-accent/50'
+                          }`}
                       >
                         <p className="font-medium">{customer.canonical_name}</p>
                         <p className="text-xs text-muted-foreground">

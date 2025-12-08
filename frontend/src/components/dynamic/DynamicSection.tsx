@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import type { TemplateSection } from "@/types/displayTemplate";
+import type {
+    TemplateSection,
+    TableConfig,
+    ListConfig,
+    CardConfig,
+    GridConfig,
+    KeyValueConfig
+} from "@/types/displayTemplate";
 import { getValueByPath } from "@/utils/formatters";
 import { DynamicTable } from "./DynamicTable";
 import { DynamicList } from "./DynamicList";
@@ -11,7 +18,7 @@ import * as Icons from "lucide-react";
 
 interface DynamicSectionProps {
     section: TemplateSection;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
     onSelectionChange?: (sectionId: string, selectedIds: string[]) => void;
 }
 
@@ -37,7 +44,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             Object.keys(sectionData).length === 0);
 
     const getIcon = (iconName: string) => {
-        const Icon = (Icons as any)[iconName];
+        const Icon = (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[iconName];
         return Icon ? <Icon className="w-5 h-5" /> : null;
     };
 
@@ -54,7 +61,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             case "table":
                 return (
                     <DynamicTable
-                        config={section.config as any}
+                        config={section.config as TableConfig}
                         data={Array.isArray(sectionData) ? sectionData : []}
                         onSelectionChange={(ids) =>
                             onSelectionChange?.(section.id, ids)
@@ -65,7 +72,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             case "list":
                 return (
                     <DynamicList
-                        config={section.config as any}
+                        config={section.config as ListConfig}
                         data={Array.isArray(sectionData) ? sectionData : []}
                     />
                 );
@@ -73,7 +80,7 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             case "card":
                 return (
                     <DynamicCard
-                        config={section.config as any}
+                        config={section.config as CardConfig}
                         data={Array.isArray(sectionData) ? sectionData : []}
                     />
                 );
@@ -81,16 +88,16 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
             case "grid":
                 return (
                     <DynamicGrid
-                        config={section.config as any}
-                        data={sectionData}
+                        config={section.config as GridConfig}
+                        data={sectionData as Record<string, unknown>}
                     />
                 );
 
             case "keyvalue":
                 return (
                     <DynamicKeyValue
-                        config={section.config as any}
-                        data={sectionData}
+                        config={section.config as KeyValueConfig}
+                        data={sectionData as Record<string, unknown>}
                     />
                 );
 

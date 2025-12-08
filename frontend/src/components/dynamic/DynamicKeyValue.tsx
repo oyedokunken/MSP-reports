@@ -4,7 +4,7 @@ import { formatValue, getValueByPath } from "@/utils/formatters";
 
 interface DynamicKeyValueProps {
     config: KeyValueConfig;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
 }
 
 export const DynamicKeyValue: React.FC<DynamicKeyValueProps> = ({
@@ -24,19 +24,17 @@ export const DynamicKeyValue: React.FC<DynamicKeyValueProps> = ({
                 return (
                     <div
                         key={pair.key || index}
-                        className={`p-4 ${
-                            isHorizontal
+                        className={`p-4 ${isHorizontal
                                 ? "flex items-center justify-between"
                                 : "space-y-1"
-                        }`}
+                            }`}
                     >
                         <dt className="text-sm font-medium text-gray-500">
                             {pair.label}
                         </dt>
                         <dd
-                            className={`text-sm text-gray-900 ${
-                                isHorizontal ? "text-right" : "font-semibold"
-                            }`}
+                            className={`text-sm text-gray-900 ${isHorizontal ? "text-right" : "font-semibold"
+                                }`}
                         >
                             {formatted}
                         </dd>

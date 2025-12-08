@@ -51,10 +51,7 @@ export default function Dashboard() {
                             <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
                             Refresh
                         </Button>
-                        <DashboardHeaderActions
-                            onToastSuccess={toast.success}
-                            onToastInfo={toast.info}
-                        />
+                        <DashboardHeaderActions />
                     </div>
                 </div>
 

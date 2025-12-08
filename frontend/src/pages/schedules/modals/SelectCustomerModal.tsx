@@ -51,18 +51,18 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
   const loadInitialCustomers = async () => {
     setIsLoading(true)
     try {
-      const params = new URLSearchParams({ 
+      const params = new URLSearchParams({
         page: '1',
         per_page: '20'
       })
       const response = await api.get(`/customers?${params.toString()}`)
-      const data = response as any
+      const data = response as { data?: Customer[]; pagination?: { current_page?: number; last_page?: number } }
       const customerData = data.data || []
-      const pagination = data.pagination || data
-      
-      const filtered = customerData.filter((c: any) => c.customer_id !== null)
+      const pagination = data.pagination || {}
+
+      const filtered = customerData.filter(c => c.customer_id !== null)
       setCustomers(filtered)
-      
+
       const currentPageNum = pagination.current_page || 1
       const lastPage = pagination.last_page || 1
       setHasMore(currentPageNum < lastPage)
@@ -85,22 +85,22 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
     }
 
     try {
-      const params = new URLSearchParams({ 
+      const params = new URLSearchParams({
         page: page.toString(),
         per_page: '20'
       })
-      
+
       if (searchQuery.trim()) {
         params.append('search', searchQuery)
       }
-      
+
       const response = await api.get(`/customers?${params.toString()}`)
-      const data = response as any
+      const data = response as { data?: Customer[]; pagination?: { current_page?: number; last_page?: number } }
       const customerData = data.data || []
-      const pagination = data.pagination || data
-      
-      const filtered = customerData.filter((c: any) => c.customer_id !== null)
-      
+      const pagination = data.pagination || {}
+
+      const filtered = customerData.filter(c => c.customer_id !== null)
+
       if (append) {
         setCustomers(prev => [...prev, ...filtered])
       } else {
@@ -126,10 +126,10 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
   // Search when search query changes
   useEffect(() => {
     if (!open) return
-    
+
     setCurrentPage(1)
     setHasMore(true)
-    
+
     const timeoutId = setTimeout(() => loadMoreCustomers(1, false), 300)
     return () => clearTimeout(timeoutId)
   }, [searchQuery, open, loadMoreCustomers])
@@ -232,7 +232,7 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
                   </div>
                 </button>
               ))}
-              
+
               {/* Infinite scroll trigger */}
               <div ref={observerTarget} className="py-2">
                 {isLoadingMore && (

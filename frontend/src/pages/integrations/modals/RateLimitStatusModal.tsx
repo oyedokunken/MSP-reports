@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
@@ -26,8 +26,8 @@ interface RateLimitStatusModalProps {
   integration: Integration | null
 }
 
-export function RateLimitStatusModal({ 
-  open, 
+export function RateLimitStatusModal({
+  open,
   onOpenChange,
   integration
 }: RateLimitStatusModalProps) {
@@ -35,13 +35,7 @@ export function RateLimitStatusModal({
   const [rateLimitData, setRateLimitData] = useState<RateLimitStatus | null>(null)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (open && integration) {
-      fetchRateLimit()
-    }
-  }, [open, integration])
-
-  const fetchRateLimit = async () => {
+  const fetchRateLimit = useCallback(async () => {
     if (!integration) return
 
     setIsLoading(true)
@@ -49,15 +43,22 @@ export function RateLimitStatusModal({
 
     try {
       const response = await api.get(`/integrations/${integration.id}/rate-limit`)
-      const data = (response as any).data || response
+      const data = (response as unknown as { data: RateLimitStatus }).data || response as unknown as RateLimitStatus
       setRateLimitData(data)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to load rate limit status'
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load rate limit status'
       setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [integration])
+
+  useEffect(() => {
+    if (open && integration) {
+      fetchRateLimit()
+    }
+  }, [open, integration, fetchRateLimit])
 
   const getProgressColor = (percentage: number) => {
     if (percentage >= 90) return 'bg-destructive'
@@ -83,7 +84,7 @@ export function RateLimitStatusModal({
             API usage for {integration.name}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -101,14 +102,13 @@ export function RateLimitStatusModal({
                   <span className="text-sm font-medium">Integration Type</span>
                   <span className="text-sm font-semibold">{rateLimitData.integration_type}</span>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Status</span>
-                  <span className={`text-sm font-semibold capitalize ${
-                    rateLimitData.status === 'normal' ? 'text-green-600' : 
-                    rateLimitData.status === 'warning' ? 'text-orange-600' : 
-                    'text-destructive'
-                  }`}>
+                  <span className={`text-sm font-semibold capitalize ${rateLimitData.status === 'normal' ? 'text-green-600' :
+                    rateLimitData.status === 'warning' ? 'text-orange-600' :
+                      'text-destructive'
+                    }`}>
                     {rateLimitData.status}
                   </span>
                 </div>
@@ -122,15 +122,15 @@ export function RateLimitStatusModal({
                     {rateLimitData.current_usage.requests_last_hour} / {rateLimitData.limits.per_hour}
                   </span>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="w-full bg-accent rounded-full h-2 overflow-hidden">
-                    <div 
+                    <div
                       className={`h-full transition-all ${getProgressColor(rateLimitData.percentage_used)}`}
                       style={{ width: `${rateLimitData.percentage_used}%` }}
                     />
                   </div>
-                  
+
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Usage: {rateLimitData.percentage_used.toFixed(1)}%</span>
                     <span>Remaining: {rateLimitData.limits.per_hour - rateLimitData.current_usage.requests_last_hour}</span>
@@ -156,8 +156,8 @@ export function RateLimitStatusModal({
                 </div>
               </div>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={fetchRateLimit}
                 disabled={isLoading}
                 className="w-full"

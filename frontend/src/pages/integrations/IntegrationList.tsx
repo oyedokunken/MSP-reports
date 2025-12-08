@@ -67,7 +67,7 @@ export default function IntegrationList() {
                 err.response?.data?.message || err.message
             );
         });
-    }, [fetchIntegrations]);
+    }, [fetchIntegrations, toast]);
 
     // Handler functions
     const handleSync = async (integrationId: number, name: string) => {

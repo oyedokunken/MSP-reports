@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -33,19 +33,7 @@ export function ReportPreviewModal({
   const [zoom, setZoom] = useState(100)
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
-  useEffect(() => {
-    if (open && reportId) {
-      loadPdfPreview()
-    }
-
-    return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl)
-      }
-    }
-  }, [open, reportId])
-
-  const loadPdfPreview = async () => {
+  const loadPdfPreview = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -60,23 +48,35 @@ export function ReportPreviewModal({
         },
       })
 
-      console.log('PDF Blob received:', response.data.type, response.data.size)
-      
       // Create object URL from the blob
-      const url = URL.createObjectURL(response.data)
-      console.log('PDF URL created successfully')
+      const blob = new Blob([response.data], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
       setPdfUrl(url)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load PDF preview:', err)
-      const errorMessage = err.response?.data?.message 
-        || err.response?.statusText 
-        || err.message 
+      const error = err as { response?: { data?: { message?: string }; statusText?: string }; message?: string }
+      const errorMessage = error.response?.data?.message
+        || error.response?.statusText
+        || error.message
         || 'Failed to load PDF preview'
       setError(errorMessage)
     } finally {
       setLoading(false)
     }
-  }
+  }, [reportId])
+
+  useEffect(() => {
+    if (open && reportId && !pdfUrl) {
+      loadPdfPreview()
+    }
+
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, reportId])
 
   const handleZoomIn = () => {
     setZoom((prev) => Math.min(prev + 25, 200))
@@ -99,10 +99,11 @@ export function ReportPreviewModal({
       })
 
       toast.success('Email Sent!', 'Report has been emailed successfully')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to email report:', err)
-      const errorMessage = err.response?.data?.message 
-        || err.message 
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message
+        || error.message
         || 'Failed to send email'
       toast.error('Email Failed', errorMessage)
       throw err // Re-throw so dialog knows to stay open

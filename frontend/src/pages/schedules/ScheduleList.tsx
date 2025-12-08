@@ -11,7 +11,7 @@ export default function ScheduleList() {
   const navigate = useNavigate()
   const toast = useToast()
   const [selectCustomerOpen, setSelectCustomerOpen] = useState(false)
-  
+
   const schedules = useSchedulesStore(state => state.schedules)
   const isLoading = useSchedulesStore(state => state.isLoading)
   const currentPage = useSchedulesStore(state => state.currentPage)
@@ -31,7 +31,7 @@ export default function ScheduleList() {
     fetchSchedules().catch(err => {
       toast.error('Failed to load scheduled reports', err.response?.data?.message || err.message)
     })
-  }, [fetchSchedules])
+  }, [fetchSchedules, toast])
 
   const handleCreateSchedule = () => {
     setSelectCustomerOpen(true)
@@ -44,7 +44,7 @@ export default function ScheduleList() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        <SchedulesHeader 
+        <SchedulesHeader
           onCreateSchedule={handleCreateSchedule}
           searchQuery={searchQuery}
           statusFilter={statusFilter}
@@ -54,7 +54,7 @@ export default function ScheduleList() {
           onStatusChange={setStatusFilter}
           onFrequencyChange={setFrequencyFilter}
         />
-        
+
         <SchedulesGrid
           schedules={schedules}
           isLoading={isLoading}
@@ -74,8 +74,8 @@ export default function ScheduleList() {
           />
         )}
       </div>
-      
-      <SelectCustomerModal 
+
+      <SelectCustomerModal
         open={selectCustomerOpen}
         onOpenChange={setSelectCustomerOpen}
       />

@@ -47,7 +47,7 @@ export function EmailReportDialog({
       setTimeout(() => {
         handleClose()
       }, 3000)
-    } catch (error) {
+    } catch {
       // Error handled by parent component
     } finally {
       setSending(false)

@@ -11,8 +11,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { CheckCircle2, Edit, AlertCircle } from "lucide-react";
+import { Edit, AlertCircle } from "lucide-react";
 import { api } from "@/lib/api";
+import { useCustomersStore } from "@/stores/useCustomersStore";
 import type { Customer } from "../types";
 
 interface EditCustomerModalProps {
@@ -30,14 +31,15 @@ export function EditCustomerModal({
 }: EditCustomerModalProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState(false);
     const [name, setName] = useState("");
+
+    const updateCustomer = useCustomersStore((state) => state.updateCustomer);
 
     useEffect(() => {
         if (open && customer) {
-            setName(customer.name || "");
+            // Prefer canonical_name if available, otherwise fallback to name
+            setName(customer.canonical_name || customer.name || "");
             setError("");
-            setSuccess(false);
         }
     }, [open, customer]);
 
@@ -54,19 +56,23 @@ export function EditCustomerModal({
 
         try {
             await api.patch(`/customers/${customer?.customer_id}`, {
-                name: name.trim(),
+                canonical_name: name.trim(),
             });
 
-            setSuccess(true);
-            setTimeout(() => {
-                setSuccess(false);
-                onOpenChange(false);
-                onSuccess?.();
-            }, 2000);
-        } catch (err: any) {
+            // Optimistic update
+            if (customer?.customer_id) {
+                updateCustomer(customer.customer_id, {
+                    canonical_name: name.trim(),
+                });
+            }
+
+            onOpenChange(false);
+            onSuccess?.();
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
             const errorMessage =
-                err.response?.data?.message ||
-                err.message ||
+                error.response?.data?.message ||
+                error.message ||
                 "Failed to update customer";
             setError(errorMessage);
         } finally {
@@ -79,26 +85,6 @@ export function EditCustomerModal({
             onOpenChange(false);
         }
     };
-
-    if (success) {
-        return (
-            <Dialog open={open} onOpenChange={handleClose}>
-                <DialogContent className="sm:max-w-md">
-                    <div className="flex flex-col items-center justify-center py-8">
-                        <div className="mb-4 rounded-full bg-green-500/10 p-3">
-                            <CheckCircle2 className="h-12 w-12 text-green-500" />
-                        </div>
-                        <DialogTitle className="text-2xl text-green-600 mb-2">
-                            Customer Updated!
-                        </DialogTitle>
-                        <DialogDescription className="text-center">
-                            The customer has been updated successfully.
-                        </DialogDescription>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        );
-    }
 
     if (!customer) return null;
 

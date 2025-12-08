@@ -66,7 +66,7 @@ export function ActivityCardSkeleton() {
 }
 
 interface EmptyStateProps {
-  icon: any
+  icon: React.ComponentType<{ className?: string }>
   title: string
   description: string
   actionLabel?: string
@@ -109,9 +109,8 @@ export function LoadingSpinner({ size = 'md', className = '' }: { size?: 'sm' | 
   return (
     <div className="flex items-center justify-center">
       <div
-        className={`${sizeClasses[size]} animate-spin rounded-full border-2 ${
-          className || 'border-gray-300 dark:border-gray-700 border-t-primary'
-        }`}
+        className={`${sizeClasses[size]} animate-spin rounded-full border-2 ${className || 'border-gray-300 dark:border-gray-700 border-t-primary'
+          }`}
       />
     </div>
   )

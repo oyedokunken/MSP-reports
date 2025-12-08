@@ -5,7 +5,7 @@ const getBaseURL = () => {
     if (import.meta.env.VITE_API_BASE_URL) {
         return import.meta.env.VITE_API_BASE_URL;
     }
-    
+
     return `${window.location.origin}/api`;
 };
 
@@ -39,8 +39,9 @@ apiClient.interceptors.response.use(
     (error: AxiosError<ApiError>) => {
         if (error.response?.status === 401) {
             const isLogoutRequest = error.config?.url?.includes("/auth/logout");
+            const isShareRequest = error.config?.url?.includes("/share");
 
-            if (!isLogoutRequest) {
+            if (!isLogoutRequest && !isShareRequest) {
                 localStorage.removeItem("auth_token");
                 localStorage.removeItem("user");
                 localStorage.removeItem("company");

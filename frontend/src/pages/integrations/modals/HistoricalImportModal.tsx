@@ -15,11 +15,11 @@ interface HistoricalImportModalProps {
   onSuccess?: () => void
 }
 
-export function HistoricalImportModal({ 
-  open, 
+export function HistoricalImportModal({
+  open,
   onOpenChange,
   integration,
-  onSuccess 
+  onSuccess
 }: HistoricalImportModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -28,9 +28,9 @@ export function HistoricalImportModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!integration) return
-    
+
     const daysNum = parseInt(days)
     if (isNaN(daysNum) || daysNum < 1) {
       setError('Please enter a valid number of days (minimum 1)')
@@ -49,11 +49,11 @@ export function HistoricalImportModal({
       // Calculate dates based on days
       const endDate = new Date()
       endDate.setHours(0, 0, 0, 0) // Start of today
-      
+
       const startDate = new Date()
       startDate.setDate(startDate.getDate() - daysNum)
       startDate.setHours(0, 0, 0, 0)
-      
+
       await api.post(`/integrations/${integration.id}/historical-import`, {
         start_date: startDate.toISOString().split('T')[0], // Format: YYYY-MM-DD
         end_date: endDate.toISOString().split('T')[0],
@@ -66,8 +66,9 @@ export function HistoricalImportModal({
         onOpenChange(false)
         onSuccess?.()
       }, 3000)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to start historical import'
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to start historical import'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -115,7 +116,7 @@ export function HistoricalImportModal({
             Import past data from {integration.name}
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Info Box */}
           <div className="rounded-lg border border-blue-500/50 bg-blue-500/10 p-3">

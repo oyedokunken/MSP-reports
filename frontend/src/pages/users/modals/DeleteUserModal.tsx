@@ -13,11 +13,11 @@ interface DeleteUserModalProps {
   onSuccess?: () => void
 }
 
-export function DeleteUserModal({ 
-  open, 
+export function DeleteUserModal({
+  open,
   onOpenChange,
   user,
-  onSuccess 
+  onSuccess
 }: DeleteUserModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -25,7 +25,7 @@ export function DeleteUserModal({
 
   const handleDelete = async () => {
     if (!user) return
-    
+
     setError('')
     setIsSubmitting(true)
 
@@ -38,8 +38,8 @@ export function DeleteUserModal({
         onOpenChange(false)
         onSuccess?.()
       }, 2000)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to delete user'
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete user'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -86,7 +86,7 @@ export function DeleteUserModal({
             Are you sure you want to delete this user?
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {/* User Info */}
           <div className="rounded-lg border border-border bg-accent/50 p-3">
@@ -121,7 +121,7 @@ export function DeleteUserModal({
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             type="button"
             variant="destructive"
             onClick={handleDelete}

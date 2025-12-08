@@ -71,20 +71,20 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
           onSuccess?.()
         }, 2000)
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to update permissions'
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update permissions'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const togglePermission = (section: keyof UserPerms, action: string) => {
+  const handlePermissionChange = (section: keyof UserPerms, action: string, value: boolean) => {
     setPermissions(prev => ({
       ...prev,
       [section]: {
         ...prev[section],
-        [action]: !prev[section]?.[action as keyof typeof prev[typeof section]]
+        [action]: value
       }
     }))
   }
@@ -203,8 +203,8 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
                         </Label>
                         <Switch
                           id={`${section.id}-${item.key}`}
-                          checked={(permissions[section.id as keyof UserPerms] as any)?.[item.key] || false}
-                          onCheckedChange={() => togglePermission(section.id as keyof UserPerms, item.key)}
+                          checked={(permissions[section.id as keyof UserPerms] as Record<string, boolean>)?.[item.key] || false}
+                          onCheckedChange={(checked) => handlePermissionChange(section.id as keyof UserPerms, item.key, checked)}
                           disabled={isSubmitting}
                         />
                       </div>

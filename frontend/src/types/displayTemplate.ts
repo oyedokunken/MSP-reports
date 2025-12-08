@@ -4,18 +4,18 @@
  * TypeScript definitions for integration display templates
  */
 
-export type ComponentType = 
-  | 'table' 
-  | 'list' 
-  | 'card' 
-  | 'grid' 
-  | 'chart' 
-  | 'metric' 
-  | 'timeline' 
-  | 'tree' 
+export type ComponentType =
+  | 'table'
+  | 'list'
+  | 'card'
+  | 'grid'
+  | 'chart'
+  | 'metric'
+  | 'timeline'
+  | 'tree'
   | 'keyvalue'
 
-export type FormatType = 
+export type FormatType =
   | 'text'
   | 'number'
   | 'percentage'
@@ -31,11 +31,11 @@ export type FormatType =
   | 'link'
   | 'email'
 
-export type ChartType = 
-  | 'line' 
-  | 'bar' 
-  | 'pie' 
-  | 'donut' 
+export type ChartType =
+  | 'line'
+  | 'bar'
+  | 'pie'
+  | 'donut'
   | 'area'
   | 'scatter'
 
@@ -154,12 +154,12 @@ export interface KeyValueConfig {
   layout: 'horizontal' | 'vertical'
 }
 
-export type SectionConfig = 
-  | TableConfig 
-  | ListConfig 
-  | CardConfig 
-  | ChartConfig 
-  | MetricConfig 
+export type SectionConfig =
+  | TableConfig
+  | ListConfig
+  | CardConfig
+  | ChartConfig
+  | MetricConfig
   | GridConfig
   | KeyValueConfig
 
@@ -190,7 +190,7 @@ export interface IntegrationPreviewData {
     name: string
     external_id: string
   }
-  data: Record<string, any>
+  data: Record<string, unknown>
   timestamp: string
   error?: string
 }

@@ -5,7 +5,7 @@ import { ChevronUp, ChevronDown, Download } from 'lucide-react'
 
 interface DynamicTableProps {
   config: TableConfig
-  data: any[]
+  data: Record<string, unknown>[]
   onSelectionChange?: (selectedIds: string[]) => void
 }
 
@@ -47,7 +47,10 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
 
       if (aValue === bValue) return 0
 
-      const comparison = aValue < bValue ? -1 : 1
+      // Type guard for comparison - convert to string for safe comparison
+      const aStr = String(aValue ?? '')
+      const bStr = String(bValue ?? '')
+      const comparison = aStr < bStr ? -1 : 1
       return sortDirection === 'asc' ? comparison : -comparison
     })
   }, [filteredData, sortColumn, sortDirection])
@@ -89,7 +92,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
       setSelectedRows(new Set())
       onSelectionChange?.([])
     } else {
-      const allIds = new Set(paginatedData.map((row) => row.id))
+      const allIds = new Set(paginatedData.map((row) => String(row.id ?? '')))
       setSelectedRows(allIds)
       onSelectionChange?.(Array.from(allIds))
     }
@@ -118,12 +121,14 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
     URL.revokeObjectURL(url)
   }
 
-  const renderCell = (row: any, column: ColumnDefinition) => {
+  const renderCell = (row: Record<string, unknown>, column: ColumnDefinition) => {
     const value = getValueByPath(row, column.key)
     const formatted = formatValue(value, column.format)
 
     if (column.format === 'status' && column.colorMap) {
-      const colorClass = column.colorMap[value] || 'gray'
+      // Convert unknown value to string for index access
+      const valueStr = String(value ?? '')
+      const colorClass = column.colorMap[valueStr] || 'gray'
       const colorMap: Record<string, string> = {
         success: 'bg-green-100 text-green-800',
         error: 'bg-red-100 text-red-800',
@@ -231,13 +236,13 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
               </tr>
             ) : (
               paginatedData.map((row, index) => (
-                <tr key={row.id || index} className="hover:bg-muted/50 transition-colors">
+                <tr key={String(row.id ?? index)} className="hover:bg-muted/50 transition-colors">
                   {config.selectable && (
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
-                        checked={selectedRows.has(row.id)}
-                        onChange={() => handleSelectRow(row.id)}
+                        checked={selectedRows.has(String(row.id ?? ''))}
+                        onChange={() => handleSelectRow(String(row.id ?? ''))}
                         className="rounded border-border bg-card"
                       />
                     </td>

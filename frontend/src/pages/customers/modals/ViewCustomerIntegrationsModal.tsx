@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,9 +12,9 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-    Cable, 
-    Trash2, 
+import {
+    Cable,
+    Trash2,
     Info,
     // ExternalLink,
 } from "lucide-react";
@@ -30,7 +30,7 @@ interface IntegrationMapping {
     external_name: string;
     mapping_id: number;
     mapped_at: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
 }
 
 interface ViewCustomerIntegrationsModalProps {
@@ -52,13 +52,7 @@ export function ViewCustomerIntegrationsModal({
     const [error, setError] = useState("");
     const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    useEffect(() => {
-        if (open && customer) {
-            fetchIntegrations();
-        }
-    }, [open, customer]);
-
-    const fetchIntegrations = async () => {
+    const fetchIntegrations = useCallback(async () => {
         if (!customer) return;
 
         setIsLoading(true);
@@ -68,18 +62,26 @@ export function ViewCustomerIntegrationsModal({
             const response = await api.get(
                 `/customers/${customer.customer_id}/integrations`
             );
-            const data = (response as any).data || response;
-            setIntegrations(Array.isArray(data) ? data : []);
-        } catch (err: any) {
+            const data = response as { data?: IntegrationMapping[] } | IntegrationMapping[];
+            const integrationsList = Array.isArray(data) ? data : (data.data || []);
+            setIntegrations(integrationsList);
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
             const errorMessage =
-                err.response?.data?.message ||
-                err.message ||
+                error.response?.data?.message ||
+                error.message ||
                 "Failed to load integrations";
             setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [customer]);
+
+    useEffect(() => {
+        if (open && customer) {
+            fetchIntegrations();
+        }
+    }, [open, customer, fetchIntegrations]);
 
     const handleDeleteMapping = async (
         customerId: number,
@@ -90,10 +92,13 @@ export function ViewCustomerIntegrationsModal({
             await api.delete(`/customers/${customerId}/mappings/${mappingId}`);
             await fetchIntegrations();
             onSuccess?.();
-        } catch (err: any) {
+            await fetchIntegrations();
+            onSuccess?.();
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
             const errorMessage =
-                err.response?.data?.message ||
-                err.message ||
+                error.response?.data?.message ||
+                error.message ||
                 "Failed to delete mapping";
             setError(errorMessage);
         } finally {

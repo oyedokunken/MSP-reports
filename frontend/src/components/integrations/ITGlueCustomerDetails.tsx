@@ -24,10 +24,10 @@ import {
 } from 'lucide-react'
 
 interface ITGlueCustomerDetailsProps {
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
 }
 
-const formatValue = (value: any): string => {
+const formatValue = (value: unknown): string => {
   if (!value && value !== 0 && value !== false) return '-'
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (value instanceof Date || (typeof value === 'string' && value.includes('T'))) {
@@ -41,7 +41,7 @@ const formatValue = (value: any): string => {
 }
 
 interface MetadataTableProps {
-  data: Record<string, any>
+  data: Record<string, unknown>
   fields: { key: string; label: string; link?: boolean }[]
 }
 
@@ -70,15 +70,15 @@ const MetadataTable = ({ data, fields }: MetadataTableProps) => {
               {field.link && data[field.key] ? (
                 <a
                   href={
-                    data[field.key].startsWith('http')
-                      ? data[field.key]
-                      : `https://${data[field.key]}`
+                    String(data[field.key]).startsWith('http')
+                      ? String(data[field.key])
+                      : `https://${String(data[field.key])}`
                   }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline inline-flex items-center gap-1"
                 >
-                  {data[field.key]}
+                  {String(data[field.key])}
                   <LinkIcon className="h-3 w-3" />
                 </a>
               ) : (
@@ -132,6 +132,10 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
   const hasAddressInfo = addressFields.some((field) => metadata[field.key])
   const hasSystemInfo = systemFields.some((field) => metadata[field.key])
   const hasDates = datesFields.some((field) => metadata[field.key])
+  const hasQuickNotes = metadata.quick_notes !== undefined
+  const hasAlert = metadata.alert !== undefined
+  const hasLogoUrl = metadata.logo_url !== undefined
+  const hasNotesOrAlerts = hasQuickNotes || hasAlert
 
   return (
     <Accordion type="multiple" className="w-full">
@@ -209,7 +213,7 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
       )}
 
       {/* Notes/Alerts */}
-      {(metadata.quick_notes || metadata.alert) && (
+      {hasNotesOrAlerts && (
         <AccordionItem value="notes">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
@@ -219,20 +223,20 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-4">
-              {metadata.quick_notes && (
+              {hasQuickNotes && (
                 <div>
                   <h4 className="text-sm font-medium mb-2">Quick Notes</h4>
                   <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm whitespace-pre-wrap">{metadata.quick_notes}</p>
+                    <p className="text-sm whitespace-pre-wrap">{String(metadata.quick_notes)}</p>
                   </div>
                 </div>
               )}
-              {metadata.alert && (
+              {hasAlert && (
                 <div>
                   <h4 className="text-sm font-medium mb-2">Alert</h4>
                   <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                     <p className="text-sm text-amber-900 dark:text-amber-100 whitespace-pre-wrap">
-                      {metadata.alert}
+                      {String(metadata.alert)}
                     </p>
                   </div>
                 </div>
@@ -243,7 +247,7 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
       )}
 
       {/* Logo */}
-      {metadata.logo_url && (
+      {hasLogoUrl && (
         <AccordionItem value="logo">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
@@ -254,7 +258,7 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
           <AccordionContent>
             <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-center">
               <img
-                src={metadata.logo_url}
+                src={String(metadata.logo_url)}
                 alt="Organization Logo"
                 className="max-h-32 max-w-full object-contain"
                 onError={(e) => {

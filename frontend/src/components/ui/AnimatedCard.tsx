@@ -49,7 +49,7 @@ export function AnimatedCard({
 interface AnimatedStatCardProps {
     name: string;
     value: string;
-    icon: any;
+    icon: React.ComponentType<{ className?: string }>;
     trend?: {
         value: string;
         isPositive: boolean;
@@ -67,9 +67,8 @@ export function AnimatedStatCard({
     return (
         <AnimatedCard
             hoverLift={false}
-            className={`p-6 ${
-                className ?? ""
-            }`}
+            className={`p-6 ${className ?? ""
+                }`}
         >
             <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -81,11 +80,10 @@ export function AnimatedStatCard({
                     </p>
                     {trend && (
                         <p
-                            className={`mt-2 text-xs font-medium ${
-                                trend.isPositive
+                            className={`mt-2 text-xs font-medium ${trend.isPositive
                                     ? "text-green-600 dark:text-green-400"
                                     : "text-orange-600 dark:text-orange-400"
-                            }`}
+                                }`}
                         >
                             {trend.value}
                         </p>

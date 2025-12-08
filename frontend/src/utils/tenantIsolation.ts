@@ -13,7 +13,7 @@ interface IsolationCheckResult {
  * Verify that API response data belongs to current tenant
  */
 export function verifyTenantData(
-  data: any,
+  data: unknown,
   expectedCompanyId: string
 ): IsolationCheckResult {
   const errors: string[] = []
@@ -24,32 +24,44 @@ export function verifyTenantData(
   }
 
   // Check single object
-  if (data.company_id && data.company_id !== expectedCompanyId) {
-    errors.push(
-      `Data isolation violation: Expected company_id ${expectedCompanyId}, got ${data.company_id}`
-    )
+  if (typeof data === 'object' && data !== null && 'company_id' in data) {
+    const obj = data as { company_id?: string }
+    if (obj.company_id && obj.company_id !== expectedCompanyId) {
+      errors.push(
+        `Data isolation violation: Expected company_id ${expectedCompanyId}, got ${obj.company_id}`
+      )
+    }
   }
 
   // Check array of objects
   if (Array.isArray(data)) {
-    data.forEach((item, index) => {
-      if (item.company_id && item.company_id !== expectedCompanyId) {
-        errors.push(
-          `Data isolation violation at index ${index}: Expected company_id ${expectedCompanyId}, got ${item.company_id}`
-        )
+    data.forEach((item: unknown, index: number) => {
+      if (typeof item === 'object' && item !== null && 'company_id' in item) {
+        const obj = item as { company_id?: string }
+        if (obj.company_id && obj.company_id !== expectedCompanyId) {
+          errors.push(
+            `Data isolation violation at index ${index}: Expected company_id ${expectedCompanyId}, got ${obj.company_id}`
+          )
+        }
       }
     })
   }
 
   // Check nested data property
-  if (data.data && Array.isArray(data.data)) {
-    data.data.forEach((item: any, index: number) => {
-      if (item.company_id && item.company_id !== expectedCompanyId) {
-        errors.push(
-          `Data isolation violation in data array at index ${index}: Expected company_id ${expectedCompanyId}, got ${item.company_id}`
-        )
-      }
-    })
+  if (typeof data === 'object' && data !== null && 'data' in data) {
+    const obj = data as { data?: unknown }
+    if (Array.isArray(obj.data)) {
+      obj.data.forEach((item: unknown, index: number) => {
+        if (typeof item === 'object' && item !== null && 'company_id' in item) {
+          const itemObj = item as { company_id?: string }
+          if (itemObj.company_id && itemObj.company_id !== expectedCompanyId) {
+            errors.push(
+              `Data isolation violation in data array at index ${index}: Expected company_id ${expectedCompanyId}, got ${itemObj.company_id}`
+            )
+          }
+        }
+      })
+    }
   }
 
   return {
@@ -90,17 +102,17 @@ export function logIsolationViolation(
 /**
  * Sanitize user input to prevent tenant ID manipulation
  */
-export function sanitizeTenantInput(input: any): any {
+export function sanitizeTenantInput<T>(input: T): T {
   if (typeof input === 'object' && input !== null) {
-    const sanitized = { ...input }
-    
+    const sanitized = { ...input } as Record<string, unknown>
+
     // Remove any company_id from user input
     delete sanitized.company_id
     delete sanitized.companyId
-    
-    return sanitized
+
+    return sanitized as T
   }
-  
+
   return input
 }
 
@@ -110,6 +122,6 @@ export function sanitizeTenantInput(input: any): any {
 export function verifyTenantHeaders(headers: Headers): boolean {
   const companyId = headers.get('X-Company-ID')
   const tenantId = headers.get('X-Tenant-ID')
-  
+
   return !!(companyId || tenantId)
 }

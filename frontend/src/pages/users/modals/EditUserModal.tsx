@@ -70,8 +70,8 @@ export function EditUserModal({
         onOpenChange(false)
         onSuccess?.()
       }, 2000)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to update user'
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update user'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)

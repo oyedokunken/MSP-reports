@@ -11,12 +11,13 @@ export function useUsers() {
     try {
       setIsLoading(true)
       const response = await api.get<UserWithPermissions[]>('/users')
-      
+
       if (response.data) {
         setUsers(response.data)
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load users')
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load users'
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -39,8 +40,8 @@ export function useUserActions(onSuccess?: () => void, onError?: (message: strin
     try {
       await api.patch(`/users/${userId}/deactivate`)
       onSuccess?.()
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Failed to deactivate user'
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to deactivate user'
       onError?.(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -52,8 +53,8 @@ export function useUserActions(onSuccess?: () => void, onError?: (message: strin
     try {
       await api.patch(`/users/${userId}/reactivate`)
       onSuccess?.()
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Failed to reactivate user'
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reactivate user'
       onError?.(errorMessage)
     } finally {
       setIsSubmitting(false)

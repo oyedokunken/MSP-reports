@@ -3,11 +3,14 @@ export type Trend = {
   isPositive: boolean
 }
 
-export type Stat = {
+export interface Stat {
   label: string
   value: string
-  icon: any
-  trend: Trend
+  icon: React.ComponentType<{ className?: string }>
+  trend?: {
+    value: string
+    isPositive: boolean
+  }
 }
 
 export type Integration = {

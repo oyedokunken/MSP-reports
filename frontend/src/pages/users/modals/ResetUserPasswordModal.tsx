@@ -60,8 +60,8 @@ export function ResetUserPasswordModal({
         onOpenChange(false)
         onSuccess?.()
       }, 1000)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to reset password'
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reset password'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)

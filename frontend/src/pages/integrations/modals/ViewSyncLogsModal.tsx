@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -25,7 +25,7 @@ export interface SyncLog {
   status: 'success' | 'failed' | 'running' | 'partial'
   records_synced: number
   records_failed: number
-  error_messages: Record<string, any> | null
+  error_messages: Record<string, unknown> | null
   rate_limit_hits?: number
   created_at?: string
   updated_at?: string
@@ -54,13 +54,7 @@ export function ViewSyncLogsModal({
   const [logs, setLogs] = useState<SyncLog[]>([])
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (open && integration) {
-      fetchSyncLogs()
-    }
-  }, [open, integration])
-
-  const fetchSyncLogs = async () => {
+  const fetchSyncLogs = useCallback(async () => {
     if (!integration?.id) return
 
     setIsLoading(true)
@@ -74,19 +68,26 @@ export function ViewSyncLogsModal({
 
       const syncLogs = response.data.sync_logs ?? []
       setLogs(Array.isArray(syncLogs) ? syncLogs : [])
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
       const errorMessage =
-        err.response?.data?.message || err.message || 'Failed to load sync logs'
+        error.response?.data?.message || error.message || 'Failed to load sync logs'
       setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [integration])
+
+  useEffect(() => {
+    if (open && integration) {
+      fetchSyncLogs()
+    }
+  }, [open, integration, fetchSyncLogs])
 
   const getStatusBadge = (status: SyncLog['status']) => {
     const variants: Record<
       SyncLog['status'],
-      { variant: 'default' | 'secondary' | 'destructive'; icon: any }
+      { variant: 'default' | 'secondary' | 'destructive'; icon: React.ElementType }
     > = {
       success: { variant: 'default', icon: CheckCircle },
       failed: { variant: 'destructive', icon: XCircle },

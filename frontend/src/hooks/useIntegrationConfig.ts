@@ -37,7 +37,7 @@ export const useIntegrationConfig = (integrationType: string | null): UseIntegra
 
       try {
         // api.get returns the unwrapped data
-        const response = await api.get<any>(
+        const response = await api.get<ApiResponse>(
           `/integrations/config/${integrationType}`
         );
 
@@ -59,10 +59,11 @@ export const useIntegrationConfig = (integrationType: string | null): UseIntegra
           console.error('Success false or no config:', data);
           setError(data.error || 'Failed to load integration configuration');
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to fetch integration config:', err);
-        console.error('Error response:', err.response);
-        setError(err.response?.data?.error || err.message || 'Failed to load integration configuration');
+        const error = err as { response?: { data?: { error?: string } }; message?: string };
+        console.error('Error response:', error.response);
+        setError(error.response?.data?.error || error.message || 'Failed to load integration configuration');
       } finally {
         setLoading(false);
       }

@@ -4,6 +4,7 @@ import {
     useState,
     type ReactNode,
     useCallback,
+    useMemo,
 } from "react";
 import { CheckCircle2, XCircle, AlertCircle, Info, X } from "lucide-react";
 
@@ -86,16 +87,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         [showToast]
     );
 
+    const contextValue = useMemo(
+        () => ({ showToast, success, error, warning, info }),
+        [showToast, success, error, warning, info]
+    );
+
     return (
-        <ToastContext.Provider
-            value={{ showToast, success, error, warning, info }}
-        >
+        <ToastContext.Provider value={contextValue}>
             {children}
             <ToastContainer toasts={toasts} onRemove={removeToast} />
         </ToastContext.Provider>
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
     const context = useContext(ToastContext);
     if (!context) {
@@ -147,9 +152,8 @@ function ToastItem({
 
     return (
         <div
-            className={`${
-                colors[toast.type]
-            } rounded-lg border p-4 shadow-lg animate-in slide-in-from-right-full duration-300`}
+            className={`${colors[toast.type]
+                } rounded-lg border p-4 shadow-lg animate-in slide-in-from-right-full duration-300`}
         >
             <div className="flex items-start gap-3">
                 <Icon className="h-5 w-5 flex-shrink-0 mt-0.5" />

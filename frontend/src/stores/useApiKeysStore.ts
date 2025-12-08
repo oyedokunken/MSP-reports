@@ -32,12 +32,13 @@ export const useApiKeysStore = create<ApiKeysState>((set) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await api.get('/api-keys')
-      const data = (response as any).data || response
-      const apiKeysList = Array.isArray(data) ? data : data.data || []
-      
+      const data = response as { data?: ApiKey[] } | ApiKey[]
+      const apiKeysList = Array.isArray(data) ? data : (data as { data?: ApiKey[] }).data || []
+
       set({ apiKeys: apiKeysList, isLoading: false })
-    } catch (error: any) {
-      set({ error: error.message, isLoading: false })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load API keys'
+      set({ error: errorMessage, isLoading: false })
     }
   },
 }))

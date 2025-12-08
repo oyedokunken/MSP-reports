@@ -30,7 +30,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  
+
   const [formData, setFormData] = useState<CreateUserForm>({
     name: '',
     email: '',
@@ -66,8 +66,8 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
           onSuccess?.()
         }, 1000)
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to create user'
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create user'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -113,7 +113,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
             Add a new user to your organization
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div className="space-y-2">

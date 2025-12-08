@@ -2,6 +2,9 @@ import { create } from 'zustand'
 import { api } from '@/lib/api'
 import { transformIntegrations } from '@/pages/integrations/utils/transformIntegrations'
 import type { Integration } from '@/pages/integrations/types/integration'
+import type { IntegrationListResponse } from '@/types/api/integration'
+
+
 
 interface IntegrationState {
   // Data
@@ -16,11 +19,11 @@ interface IntegrationState {
   statusFilter: string
   currentPage: number
   perPage: number
-  
+
   // Sync state
   syncingId: number | null
   syncProgress: number
-  
+
   // Source of truth setting state
   settingSourceOfTruthId: number | null
 
@@ -38,7 +41,7 @@ interface IntegrationState {
   selectedIntegration: Integration | null
 
   // Actions
-  fetchIntegrations: (silent?: boolean) => Promise<void>
+  fetchIntegrations: (silent?: boolean, force?: boolean) => Promise<void>
   setSourceOfTruth: (id: number) => Promise<{ success: boolean; error?: string }>
   syncIntegration: (id: number) => Promise<{ success: boolean; error?: string }>
   setPage: (page: number) => void
@@ -84,11 +87,11 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   selectedIntegration: null,
 
   // Fetch integrations with caching
-  fetchIntegrations: async (silent = false) => {
+  fetchIntegrations: async (silent = false, force = false) => {
     // Check cache - if data was fetched less than 30 seconds ago, skip
     const now = Date.now();
     const state = get();
-    if (state.integrations.length > 0 && now - lastFetchTime < CACHE_DURATION) {
+    if (!force && state.integrations.length > 0 && now - lastFetchTime < CACHE_DURATION) {
       console.log('Using cached integrations data');
       return;
     }
@@ -96,12 +99,11 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
     if (!silent) set({ isLoading: true })
 
     try {
-      const response = await api.get('/integrations')
-      const data = (response as any).data || response
+      const response = await api.get('/integrations') as unknown as IntegrationListResponse
 
-      const availableTypes = data.available_types || []
-      const transformed = transformIntegrations(data) || []
-      const sourceOfTruth = data.configured?.find((int: any) => int.is_source_of_truth)
+      const availableTypes = response.available_types || []
+      const transformed = transformIntegrations(response) || []
+      const sourceOfTruth = response.configured?.find(int => int.is_source_of_truth)
       const sourceOfTruthId = sourceOfTruth ? sourceOfTruth.integration_id : null
 
       const { currentPage, perPage } = get()
@@ -116,10 +118,10 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
         sourceOfTruthId,
         isLoading: false,
       })
-      
+
       lastFetchTime = now; // Update cache timestamp
-    } catch (err: any) {
-      console.error('Failed to fetch integrations:', err)
+    } catch (error) {
+      console.error('Failed to fetch integrations:', error)
       set({ isLoading: false })
     }
   },
@@ -132,11 +134,12 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
       set({ sourceOfTruthId: id, settingSourceOfTruthId: null })
       await get().fetchIntegrations(true) // refresh silently
       return { success: true }
-    } catch (err: any) {
+    } catch (error) {
       set({ settingSourceOfTruthId: null })
+      const errorMessage = error instanceof Error ? error.message : 'Failed to set source of truth'
       return {
         success: false,
-        error: err.response?.data?.message || err.message,
+        error: errorMessage,
       }
     }
   },
@@ -176,12 +179,13 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
       await get().fetchIntegrations(true)
 
       return { success: true }
-    } catch (err: any) {
+    } catch (error) {
       clearInterval(interval)
       set({ syncingId: null, syncProgress: 0 })
+      const errorMessage = error instanceof Error ? error.message : 'Sync failed'
       return {
         success: false,
-        error: err.response?.data?.message || err.message,
+        error: errorMessage,
       }
     }
   },
@@ -211,8 +215,8 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
     const startIndex = (page - 1) * perPage
     const endIndex = startIndex + perPage
     const paginatedIntegrations = filtered.slice(startIndex, endIndex)
-    
-    set({ 
+
+    set({
       currentPage: page,
       integrations: paginatedIntegrations
     })
@@ -240,17 +244,17 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   // Get filtered integrations based on search and status
   getFilteredIntegrations: () => {
     const { allIntegrations, searchQuery, statusFilter } = get()
-    
+
     return allIntegrations.filter(int => {
       // Search filter
-      const matchesSearch = !searchQuery.trim() || 
+      const matchesSearch = !searchQuery.trim() ||
         int.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         int.type.toLowerCase().includes(searchQuery.toLowerCase())
-      
+
       // Status filter
-      const matchesStatus = statusFilter === 'all' || 
+      const matchesStatus = statusFilter === 'all' ||
         int.status.toLowerCase() === statusFilter.toLowerCase()
-      
+
       return matchesSearch && matchesStatus
     })
   },

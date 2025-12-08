@@ -79,6 +79,36 @@ export const useMapCustomerModal = (
 
   // Reset form when modal opens
   useEffect(() => {
+    const fetchSuggestedMatches = async () => {
+      if (!integrationCustomer) return
+
+      try {
+        setIsLoadingSuggestions(true)
+        const response = await api.get(`/customers/unmapped`)
+        const rawData = response.data || response
+        const data: unknown[] = Array.isArray(rawData) ? rawData : []
+
+        const currentCustomer = data.find(
+          (c: unknown) => {
+            if (typeof c === 'object' && c !== null && 'integration_customer_id' in c) {
+              return (c as { integration_customer_id: number }).integration_customer_id === integrationCustomer.integration_customer_id
+            }
+            return false
+          }
+        ) as { suggested_matches?: SuggestedMatch[] } | undefined
+
+        if (currentCustomer && currentCustomer.suggested_matches) {
+          setSuggestedMatches(currentCustomer.suggested_matches)
+        } else {
+          setSuggestedMatches([])
+        }
+      } catch {
+        setError("Failed to load suggested matches");
+      } finally {
+        setIsLoadingSuggestions(false)
+      }
+    }
+
     if (open && integrationCustomer) {
       setSearchTerm('')
       setSelectedCustomerId(null)
@@ -89,31 +119,6 @@ export const useMapCustomerModal = (
       fetchSuggestedMatches()
     }
   }, [open, integrationCustomer])
-
-  const fetchSuggestedMatches = async () => {
-    if (!integrationCustomer) return
-
-    try {
-      setIsLoadingSuggestions(true)
-      const response = await api.get(`/customers/unmapped`)
-      const rawData = response.data || response
-      const data: any[] = Array.isArray(rawData) ? rawData : []
-
-      const currentCustomer = data.find(
-        (c: any) => c.integration_customer_id === integrationCustomer.integration_customer_id
-      )
-
-      if (currentCustomer && currentCustomer.suggested_matches) {
-        setSuggestedMatches(currentCustomer.suggested_matches)
-      } else {
-        setSuggestedMatches([])
-      }
-    } catch (err) {
-      setSuggestedMatches([])
-    } finally {
-      setIsLoadingSuggestions(false)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -134,7 +139,13 @@ export const useMapCustomerModal = (
     setIsSubmitting(true)
 
     try {
-      const payload: any = {
+      const payload: {
+        integration_customer_id: number;
+        mapping_type: string;
+        create_new?: boolean;
+        canonical_name?: string;
+        customer_id?: number | null;
+      } = {
         integration_customer_id: integrationCustomer!.integration_customer_id,
         mapping_type: 'manual'
       }
@@ -153,8 +164,8 @@ export const useMapCustomerModal = (
         setSuccess(false)
         onSuccess?.()
       }, 2000)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to map customer'
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to map customer'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -195,70 +206,76 @@ export const useCustomerIntegrationDetails = (customerId: string | undefined) =>
   const [loadingStats, setLoadingStats] = useState<{ [key: number]: boolean }>({})
 
   useEffect(() => {
-    if (customerId) {
-      fetchIntegrationDetails()
+    const fetchIntegrationDetails = async () => {
+      if (!customerId) return
+
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        const response = await api.get(`/customers/${customerId}/integrations`)
+
+        let integrationData: import('./types').CustomerIntegrationDetail[] = []
+
+        // Type guard for response structure
+        interface ApiResponse {
+          status?: string;
+          success?: boolean;
+          data?: unknown;
+        }
+
+        const apiResponse = response as ApiResponse
+
+        if (apiResponse && apiResponse.status === 'success' && Array.isArray(apiResponse.data)) {
+          integrationData = apiResponse.data as import('./types').CustomerIntegrationDetail[]
+        }
+        else if (apiResponse && apiResponse.success && Array.isArray(apiResponse.data)) {
+          integrationData = apiResponse.data as import('./types').CustomerIntegrationDetail[]
+        }
+        else if (apiResponse && Array.isArray(apiResponse.data)) {
+          integrationData = apiResponse.data as import('./types').CustomerIntegrationDetail[]
+        }
+        else if (Array.isArray(response)) {
+          integrationData = response as import('./types').CustomerIntegrationDetail[]
+        }
+        else {
+          setError('Failed to load integration details - unexpected response format')
+          return
+        }
+
+        setIntegrations(integrationData)
+
+        if (integrationData.length > 0) {
+          setCustomerName(integrationData[0].name)
+
+          // Fetch stats for each integration
+          integrationData.forEach(async (integration) => {
+            const integrationCustomerId = integration.integration_customer_id
+            setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: true }))
+
+            try {
+              const statsResponse = await api.get(
+                `/customers/${customerId}/integrations/${integrationCustomerId}/stats`
+              )
+              const data = (statsResponse as { data?: unknown }).data || statsResponse
+              setStats(prev => ({ ...prev, [integrationCustomerId]: data as import('./types').IntegrationStats }))
+            } catch {
+              // Stats are optional, fail silently
+            } finally {
+              setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: false }))
+            }
+          })
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load integration details'
+        setError(errorMessage)
+      } finally {
+        setIsLoading(false)
+      }
     }
+
+    fetchIntegrationDetails()
   }, [customerId])
-
-  const fetchIntegrationDetails = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      const response = await api.get<any>(`/customers/${customerId}/integrations`)
-
-      let integrationData: import('./types').CustomerIntegrationDetail[] = []
-
-      if (response && (response as any).status === 'success' && Array.isArray((response as any).data)) {
-        integrationData = (response as any).data
-      }
-      else if (response && response.success && Array.isArray(response.data)) {
-        integrationData = response.data
-      }
-      else if (response && Array.isArray(response.data)) {
-        integrationData = response.data
-      }
-      else if (Array.isArray(response)) {
-        integrationData = response
-      }
-      else {
-        setError('Failed to load integration details - unexpected response format')
-        return
-      }
-
-      setIntegrations(integrationData)
-
-      if (integrationData.length > 0) {
-        setCustomerName(integrationData[0].name)
-        integrationData.forEach(integration => {
-          fetchStats(integration.integration_customer_id)
-        })
-      }
-    } catch (err: any) {
-      const errorMessage = err.message || err.response?.data?.message || 'Failed to load integration details'
-      setError(errorMessage)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const fetchStats = async (integrationCustomerId: number) => {
-    if (stats[integrationCustomerId] || loadingStats[integrationCustomerId]) return
-
-    setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: true }))
-
-    try {
-      const response = await api.get(
-        `/customers/${customerId}/integrations/${integrationCustomerId}/stats`
-      )
-      const data = (response as any).data || response
-      setStats(prev => ({ ...prev, [integrationCustomerId]: data }))
-    } catch (err: any) {
-      // Stats are optional, fail silently
-    } finally {
-      setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: false }))
-    }
-  }
 
   return {
     integrations,
@@ -305,7 +322,7 @@ export const useCustomerList = () => {
         err.response?.data?.message || err.message
       )
     })
-  }, [fetchCustomers])
+  }, [fetchCustomers, toast])
 
   const mappedCustomers = getMappedCustomers()
   const unmappedCustomers = getUnmappedCustomers()
@@ -359,7 +376,7 @@ export const useCustomerList = () => {
   }
 
   const handleModalSuccess = (modalType: 'edit' | 'integrations' | 'merge' | 'split', message: string, description: string) => {
-    fetchCustomers()
+    fetchCustomers(currentPage, true)
     closeModal(modalType)
     toast.success(message, description)
   }

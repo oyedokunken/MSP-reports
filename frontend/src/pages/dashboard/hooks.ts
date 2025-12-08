@@ -6,7 +6,7 @@ import { useIntegrationStore } from "@/stores/useIntegrationStore";
 import { useCustomersStore } from "@/stores/useCustomersStore";
 import { useMonitoringStore } from "@/stores/useMonitoringStore";
 import { useSchedulesStore } from "@/stores/useSchedulesStore";
-import { useNotificationStore } from "@/stores/useNotificationStore";
+import { useNotificationStore, type Notification } from "@/stores/useNotificationStore";
 import type { Integration, UpcomingReport, RecentActivity, Stat } from "./types";
 
 export const useQuickSync = (
@@ -31,7 +31,7 @@ export const useQuickSync = (
                 setProgress(100);
                 await new Promise((r) => setTimeout(r, 250));
                 onSuccess("Sync Complete", `${name} synced successfully`);
-            } catch (e) {
+            } catch {
                 onError("Sync Failed", `Failed to sync ${name}`);
             } finally {
                 setSyncingId(null);
@@ -51,13 +51,13 @@ export const useDashboard = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const integrations = useIntegrationStore((state) => state.integrations);
-    const totalCustomers = useCustomersStore((state) => state.total);
+    const totalCustomers = useCustomersStore((state) => state.totalCustomersCount);
     const systemStatus = useMonitoringStore((state) => state.systemStatus);
     const reportMetrics = useMonitoringStore((state) => state.reportMetrics);
     const schedules = useSchedulesStore((state) => state.schedules);
 
     const fetchIntegrations = useIntegrationStore((state) => state.fetchIntegrations);
-    const fetchCustomers = useCustomersStore((state) => state.fetchCustomers);
+    const fetchCustomers = useCustomersStore((state) => state.fetchTotalCustomersCount);
     const fetchSystemStatus = useMonitoringStore((state) => state.fetchSystemStatus);
     const fetchReportMetrics = useMonitoringStore((state) => state.fetchReportMetrics);
     const fetchSchedules = useSchedulesStore((state) => state.fetchSchedules);
@@ -73,7 +73,7 @@ export const useDashboard = () => {
     const recentActivity: RecentActivity[] = (() => {
         const activities: RecentActivity[] = [];
 
-        integrations.slice(0, 5).forEach((int: any, index: number) => {
+        integrations.slice(0, 5).forEach((int, index) => {
             if (int.lastSync && int.lastSync !== "Never") {
                 activities.push({
                     id: index + 1,
@@ -112,11 +112,11 @@ export const useDashboard = () => {
             title: activity.title,
             time: activity.time,
             read: false,
-            type: activity.type as any,
+            type: activity.type as Notification['type'],
             severity: activity.severity,
         }));
         setNotifications(notifications);
-    }, [integrations, reportMetrics, setNotifications]);
+    }, [integrations, reportMetrics, setNotifications, recentActivity]);
 
     const loadDashboardData = async () => {
         if (!isAuthenticated) {
@@ -132,7 +132,7 @@ export const useDashboard = () => {
                 fetchReportMetrics(),
                 fetchSchedules(),
             ]);
-        } catch (err: any) {
+        } catch {
             if (isAuthenticated) {
                 toast.error("Failed to load dashboard data");
             }
@@ -146,7 +146,7 @@ export const useDashboard = () => {
         try {
             await loadDashboardData();
             toast.success("Dashboard refreshed");
-        } catch (err) {
+        } catch {
             toast.error("Failed to refresh dashboard");
         } finally {
             setIsRefreshing(false);
@@ -156,11 +156,11 @@ export const useDashboard = () => {
     // Limit to 5 integrations for dashboard (performance)
     const dashboardIntegrations: Integration[] = integrations
         .slice(0, 5)
-        .map((int: any) => ({
+        .map((int) => ({
             id: int.id,
             name: int.name,
             type: int.type || "unknown",
-            status: (int.status === "syncing" ? "warning" : int.status) as "active" | "error" | "warning",
+            status: (int.status as string === "syncing" ? "warning" : int.status) as "active" | "error" | "warning",
             lastSync: int.lastSync || "Never",
             customers: int.customers || 0,
             syncStatus: int.syncStatus || "pending",
@@ -168,9 +168,9 @@ export const useDashboard = () => {
 
     // Limit to 5 upcoming reports for dashboard (performance)
     const upcomingReports: UpcomingReport[] = schedules
-        .filter((s: any) => s.active)
+        .filter((s) => s.active)
         .slice(0, 5)
-        .map((schedule: any) => ({
+        .map((schedule) => ({
             id: schedule.report_schedule_id,
             name: schedule.report_type,
             customer: schedule.customer_name || "Unknown Customer",
@@ -180,8 +180,8 @@ export const useDashboard = () => {
             status: "scheduled" as const,
         }));
 
-    const activeIntegrations = integrations.filter((i: any) => i.status === "active").length;
-    const errorIntegrations = integrations.filter((i: any) => i.status === "error").length;
+    const activeIntegrations = integrations.filter((i) => i.status === "active").length;
+    const errorIntegrations = integrations.filter((i) => i.status === "error").length;
     const totalReports = reportMetrics?.metrics.total_reports || 0;
     const successRate = reportMetrics?.metrics.success_rate || 0;
     const queueHealth = systemStatus?.queue.health || "unknown";

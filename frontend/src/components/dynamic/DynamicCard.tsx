@@ -5,12 +5,12 @@ import * as Icons from "lucide-react";
 
 interface DynamicCardProps {
     config: CardConfig;
-    data: any[];
+    data: Record<string, unknown>[];
 }
 
 export const DynamicCard: React.FC<DynamicCardProps> = ({ config, data }) => {
     const getIcon = (iconName: string) => {
-        const Icon = (Icons as any)[iconName];
+        const Icon = (Icons as unknown as Record<string, React.ComponentType<{ className?: string }>>)[iconName];
         return Icon ? <Icon className="w-5 h-5" /> : null;
     };
 
@@ -28,15 +28,15 @@ export const DynamicCard: React.FC<DynamicCardProps> = ({ config, data }) => {
                 );
                 const subtitle = config.cardTemplate.subtitle
                     ? replaceTemplateVariables(
-                          config.cardTemplate.subtitle,
-                          item
-                      )
+                        config.cardTemplate.subtitle,
+                        item
+                    )
                     : null;
                 const content = config.cardTemplate.content
                     ? replaceTemplateVariables(
-                          config.cardTemplate.content,
-                          item
-                      )
+                        config.cardTemplate.content,
+                        item
+                    )
                     : null;
                 const footer = config.cardTemplate.footer
                     ? replaceTemplateVariables(config.cardTemplate.footer, item)
@@ -47,7 +47,7 @@ export const DynamicCard: React.FC<DynamicCardProps> = ({ config, data }) => {
 
                 return (
                     <div
-                        key={item.id || index}
+                        key={String((item as Record<string, unknown>).id ?? index)}
                         className="p-6 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
                     >
                         {iconName && (

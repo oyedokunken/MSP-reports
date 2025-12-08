@@ -21,7 +21,7 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
   const maxSize = type === 'company' ? '800x800' : '400x400'
   const maxFileSizeMB = 2
   const title = type === 'company' ? 'Company Logo' : 'Profile Logo'
-  
+
   // Clear preview when currentLogoUrl updates (after successful upload)
   useEffect(() => {
     if (currentLogoUrl && preview) {
@@ -100,27 +100,31 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
       formData.append('logo', file)
       formData.append('type', type)
 
-      const response = await apiClient.post<any>('/company/logo/upload', formData, {
+      const response = await apiClient.post<unknown>('/company/logo/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       })
 
-      if (response.data.status === 'success') {
-        console.log('Upload response:', response.data)
-        console.log('Logo URL:', response.data.data.logo_url)
-        toast.success('Upload Successful', response.data.message)
-        onUploadSuccess(response.data.data.logo_url)
+      const data = response.data as { status?: string; message?: string; data?: { logo_url?: string } }
+      if (data.status === 'success') {
+        console.log('Upload response:', data)
+        console.log('Logo URL:', data.data?.logo_url)
+        toast.success('Upload Successful', data.message || 'Logo uploaded successfully')
+        if (data.data?.logo_url) {
+          onUploadSuccess(data.data.logo_url)
+        }
         // Don't clear preview immediately - let the currentLogoUrl prop update first
         // The preview will be replaced by currentLogoUrl on next render
       } else {
-        toast.error('Upload Failed', response.data.message || 'Failed to upload logo')
+        toast.error('Upload Failed', data.message || 'Failed to upload logo')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Upload error:', error)
-      const errorMessage = error.response?.data?.message 
-        || error.response?.data?.errors?.logo?.[0]
-        || error.message 
+      const err = error as { response?: { data?: { message?: string; errors?: { logo?: string[] } } }; message?: string }
+      const errorMessage = err.response?.data?.message
+        || err.response?.data?.errors?.logo?.[0]
+        || err.message
         || 'Failed to upload logo'
       toast.error('Upload Failed', errorMessage)
     } finally {
@@ -136,20 +140,22 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
     try {
       setDeleting(true)
 
-      const response = await apiClient.delete<any>('/company/logo/delete', {
+      const response = await apiClient.delete<unknown>('/company/logo/delete', {
         data: { type }
       })
 
-      if (response.data.status === 'success') {
-        toast.success('Delete Successful', response.data.message)
+      const data = response.data as { status?: string; message?: string }
+      if (data.status === 'success') {
+        toast.success('Delete Successful', data.message || 'Logo deleted successfully')
         onDeleteSuccess()
         setPreview(null)
       } else {
-        toast.error('Delete Failed', response.data.message || 'Failed to delete logo')
+        toast.error('Delete Failed', data.message || 'Failed to delete logo')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Delete error:', error)
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete logo'
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to delete logo'
       toast.error('Delete Failed', errorMessage)
     } finally {
       setDeleting(false)
@@ -157,13 +163,13 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
   }
 
   const displayImageUrl = preview || currentLogoUrl
-  
+
   console.log('LogoUpload render:', { type, preview, currentLogoUrl, displayImageUrl })
 
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium text-foreground">{title}</label>
-      
+
       <div className="flex items-start gap-4">
         {/* Image Preview */}
         <div className="flex-shrink-0">
@@ -189,7 +195,7 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
             onChange={handleFileSelect}
             className="hidden"
           />
-          
+
           <div className="flex gap-2">
             <Button
               type="button"

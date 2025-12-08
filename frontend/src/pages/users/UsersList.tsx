@@ -65,8 +65,9 @@ export default function UsersList() {
       await deactivateUser(deactivateConfirm.user_id)
       toast.success('User Deactivated', `${deactivateConfirm.name} has been deactivated`)
       setDeactivateConfirm(null)
-    } catch (err: any) {
-      toast.error('Error', err.response?.data?.message || err.message)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to deactivate user'
+      toast.error('Error', errorMessage)
     } finally {
       setIsProcessing(false)
     }
@@ -84,8 +85,9 @@ export default function UsersList() {
       await reactivateUser(reactivateConfirm.user_id)
       toast.success('User Reactivated', `${reactivateConfirm.name} has been reactivated`)
       setReactivateConfirm(null)
-    } catch (err: any) {
-      toast.error('Error', err.response?.data?.message || err.message)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to reactivate user'
+      toast.error('Error', errorMessage)
     } finally {
       setIsProcessing(false)
     }

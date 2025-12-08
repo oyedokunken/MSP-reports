@@ -24,12 +24,13 @@ export const useIntegrationSync = (
       if (intervalRef.current) window.clearInterval(intervalRef.current)
       setProgress(100)
       await new Promise(resolve => setTimeout(resolve, 300))
-      
+
       // Sync completed successfully
       onSuccess('Sync Complete', `${name} synced successfully`)
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (intervalRef.current) window.clearInterval(intervalRef.current)
-      const errorMsg = e.response?.data?.message || e.message || 'Sync failed'
+      const error = e as { response?: { data?: { message?: string } }; message?: string }
+      const errorMsg = error.response?.data?.message || error.message || 'Sync failed'
       onError('Sync Failed', `${name}: ${errorMsg}`)
     } finally {
       setSyncingId(null)

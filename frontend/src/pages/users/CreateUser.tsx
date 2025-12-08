@@ -23,7 +23,7 @@ export default function CreateUser() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  
+
   const [formData, setFormData] = useState<CreateUserForm>({
     name: '',
     email: '',
@@ -48,8 +48,8 @@ export default function CreateUser() {
           navigate('/users')
         }, 2000)
       }
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to create user'
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create user'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)

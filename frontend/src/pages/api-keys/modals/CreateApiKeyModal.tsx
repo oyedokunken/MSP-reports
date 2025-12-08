@@ -41,7 +41,7 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
         setGeneratedKey((response.data as { api_key: string }).api_key)
         setStep('success')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to create API key:', error)
     } finally {
       setIsSubmitting(false)
@@ -73,7 +73,7 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
       ...prev,
       [category]: {
         ...prev[category],
-        [action]: !(prev[category] as any)[action]
+        [action]: !prev[category][action as keyof typeof prev[typeof category]]
       }
     }))
   }
@@ -123,7 +123,7 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
               {/* Permissions */}
               <div className="space-y-4">
                 <Label>Permissions *</Label>
-                
+
                 {/* Integrations */}
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Integrations</p>

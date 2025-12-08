@@ -24,10 +24,10 @@ import {
 } from 'lucide-react'
 
 interface DattoCustomerDetailsProps {
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
 }
 
-const formatValue = (value: any): string => {
+const formatValue = (value: unknown): string => {
   if (!value && value !== 0 && value !== false) return '-'
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   return String(value)
@@ -56,6 +56,8 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
 
   const hasDeviceData = metadata.devices_total !== undefined
   const hasAutotaskLink = metadata.autotask_company_id !== undefined
+  const hasPortalUrl = metadata.portal_url !== undefined
+  const hasNotes = metadata.notes !== undefined
 
   return (
     <Accordion type="multiple" className="w-full">
@@ -101,7 +103,7 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
               <Monitor className="h-4 w-4 text-primary" />
               <span className="font-semibold">Device Statistics</span>
               <Badge variant="secondary" className="ml-2">
-                {metadata.devices_total || 0} devices
+                {Number(metadata.devices_total) || 0} devices
               </Badge>
             </div>
           </AccordionTrigger>
@@ -114,7 +116,7 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{metadata.devices_total || 0}</div>
+                  <div className="text-2xl font-bold">{Number(metadata.devices_total) || 0}</div>
                 </CardContent>
               </Card>
               <Card>
@@ -125,7 +127,7 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-green-600">
-                    {metadata.devices_online || 0}
+                    {Number(metadata.devices_online) || 0}
                   </div>
                 </CardContent>
               </Card>
@@ -137,7 +139,7 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-600">
-                    {metadata.devices_offline || 0}
+                    {Number(metadata.devices_offline) || 0}
                   </div>
                 </CardContent>
               </Card>
@@ -147,7 +149,7 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
       )}
 
       {/* Portal Access */}
-      {metadata.portal_url && (
+      {hasPortalUrl && (
         <AccordionItem value="portal">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
@@ -158,13 +160,13 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
           <AccordionContent>
             <div className="p-4 bg-muted/50 rounded-lg">
               <a
-                href={metadata.portal_url}
+                href={String(metadata.portal_url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline inline-flex items-center gap-2"
               >
                 <LinkIcon className="h-4 w-4" />
-                {metadata.portal_url}
+                {String(metadata.portal_url)}
               </a>
             </div>
           </AccordionContent>
@@ -208,7 +210,7 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
       )}
 
       {/* Notes */}
-      {metadata.notes && (
+      {hasNotes && (
         <AccordionItem value="notes">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
@@ -218,7 +220,7 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
           </AccordionTrigger>
           <AccordionContent>
             <div className="p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm whitespace-pre-wrap">{metadata.notes}</p>
+              <p className="text-sm whitespace-pre-wrap">{String(metadata.notes)}</p>
             </div>
           </AccordionContent>
         </AccordionItem>

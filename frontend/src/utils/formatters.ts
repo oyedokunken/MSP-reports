@@ -3,39 +3,39 @@ import type { FormatType } from '@/types/displayTemplate'
 /**
  * Format value based on format type
  */
-export function formatValue(value: any, format?: FormatType): string {
+export function formatValue(value: unknown, format?: FormatType): string {
   if (value === null || value === undefined) {
     return '-'
   }
 
   switch (format) {
     case 'number':
-      return formatNumber(value)
-    
+      return formatNumber(value as number | string)
+
     case 'percentage':
-      return formatPercentage(value)
-    
+      return formatPercentage(value as number | string)
+
     case 'currency':
-      return formatCurrency(value)
-    
+      return formatCurrency(value as number | string)
+
     case 'filesize':
-      return formatFilesize(value)
-    
+      return formatFilesize(value as number | string)
+
     case 'duration':
-      return formatDuration(value)
-    
+      return formatDuration(value as number | string)
+
     case 'datetime':
-      return formatDateTime(value)
-    
+      return formatDateTime(value as string | Date)
+
     case 'date':
-      return formatDate(value)
-    
+      return formatDate(value as string | Date)
+
     case 'time':
-      return formatTime(value)
-    
+      return formatTime(value as string | Date)
+
     case 'boolean':
-      return formatBoolean(value)
-    
+      return formatBoolean(value as boolean | string)
+
     case 'badge':
     case 'status':
     case 'text':
@@ -80,11 +80,11 @@ export function formatCurrency(value: number | string): string {
 export function formatFilesize(bytes: number | string): string {
   const num = typeof bytes === 'string' ? parseInt(bytes) : bytes
   if (isNaN(num) || num === 0) return '0 B'
-  
+
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
   const i = Math.floor(Math.log(num) / Math.log(k))
-  
+
   return `${parseFloat((num / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
 }
 
@@ -94,7 +94,7 @@ export function formatFilesize(bytes: number | string): string {
 export function formatDuration(seconds: number | string): string {
   const num = typeof seconds === 'string' ? parseInt(seconds) : seconds
   if (isNaN(num)) return String(seconds)
-  
+
   if (num < 60) {
     return `${num}s`
   } else if (num < 3600) {
@@ -170,14 +170,19 @@ export function formatBoolean(value: boolean | string): string {
 /**
  * Get value from object using dot notation path
  */
-export function getValueByPath(obj: any, path: string): any {
-  return path.split('.').reduce((current, key) => current?.[key], obj)
+export function getValueByPath(obj: Record<string, unknown>, path: string): unknown {
+  return path.split('.').reduce((current: unknown, key: string) => {
+    if (current && typeof current === 'object' && key in current) {
+      return (current as Record<string, unknown>)[key]
+    }
+    return undefined
+  }, obj as unknown)
 }
 
 /**
  * Replace template variables in string (e.g., {{variable}})
  */
-export function replaceTemplateVariables(template: string, data: Record<string, any>): string {
+export function replaceTemplateVariables(template: string, data: Record<string, unknown>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
     return data[key] !== undefined ? String(data[key]) : match
   })

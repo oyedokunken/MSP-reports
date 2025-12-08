@@ -23,10 +23,10 @@ import {
 } from 'lucide-react'
 
 interface AutotaskCustomerDetailsProps {
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
 }
 
-const formatValue = (value: any): string => {
+const formatValue = (value: unknown): string => {
   if (!value && value !== 0 && value !== false) return '-'
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (value instanceof Date || (typeof value === 'string' && value.includes('T'))) {
@@ -40,7 +40,7 @@ const formatValue = (value: any): string => {
 }
 
 interface MetadataTableProps {
-  data: Record<string, any>
+  data: Record<string, unknown>
   fields: { key: string; label: string; link?: boolean }[]
 }
 
@@ -69,15 +69,15 @@ const MetadataTable = ({ data, fields }: MetadataTableProps) => {
               {field.link && data[field.key] ? (
                 <a
                   href={
-                    data[field.key].startsWith('http')
-                      ? data[field.key]
-                      : `https://${data[field.key]}`
+                    String(data[field.key]).startsWith('http')
+                      ? String(data[field.key])
+                      : `https://${String(data[field.key])}`
                   }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary hover:underline inline-flex items-center gap-1"
                 >
-                  {data[field.key]}
+                  {String(data[field.key])}
                   <ExternalLink className="h-3 w-3" />
                 </a>
               ) : (

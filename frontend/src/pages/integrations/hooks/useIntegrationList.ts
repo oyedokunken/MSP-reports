@@ -13,6 +13,11 @@ interface UseIntegrationListReturn {
   handleSetSourceOfTruth: (id: number, name: string) => Promise<void>
 }
 
+interface ConfiguredIntegration {
+  integration_id: number
+  is_source_of_truth: boolean
+}
+
 export function useIntegrationList(): UseIntegrationListReturn {
   const toast = useToast()
   const [isLoading, setIsLoading] = useState(true)
@@ -24,20 +29,21 @@ export function useIntegrationList(): UseIntegrationListReturn {
     try {
       setIsLoading(true)
       const response = await api.get('/integrations')
-      const data = (response as any).data || response
+      const data = (response as unknown as { data: { available_types: string[], configured: ConfiguredIntegration[] } }).data || response as unknown as { available_types: string[], configured: ConfiguredIntegration[] }
 
       setAvailableTypes(data.available_types || [])
       const transformed = transformIntegrations(data)
       setIntegrations(transformed)
 
-      const sourceOfTruth = data.configured?.find((int: any) => int.is_source_of_truth)
+      const sourceOfTruth = data.configured?.find((int) => int.is_source_of_truth)
       if (sourceOfTruth) setSourceOfTruthId(sourceOfTruth.integration_id)
-    } catch (err: any) {
-      toast.error('Failed to load integrations', err.response?.data?.message || err.message)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Failed to load integrations', error.response?.data?.message || error.message)
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [toast])
 
   const handleSetSourceOfTruth = async (id: number, name: string) => {
     try {
@@ -45,8 +51,9 @@ export function useIntegrationList(): UseIntegrationListReturn {
       setSourceOfTruthId(id)
       toast.success('Master Customer List Set', `${name} is now your master customer list.`)
       fetchIntegrations()
-    } catch (err: any) {
-      toast.error('Failed to Update', err.response?.data?.message || err.message)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Failed to Update', error.response?.data?.message || error.message)
     }
   }
 

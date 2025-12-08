@@ -23,6 +23,13 @@ interface MergeCustomersModalProps {
     onSuccess?: () => void;
 }
 
+interface Pagination {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
 export function MergeCustomersModal({
     open,
     onOpenChange,
@@ -44,6 +51,47 @@ export function MergeCustomersModal({
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const observerTarget = useRef<HTMLDivElement>(null);
 
+    // Load initial customers (no search)
+    const loadInitialCustomers = useCallback(async () => {
+        setIsSearching(true);
+        try {
+            const params = new URLSearchParams({
+                page: '1',
+                per_page: '20'
+            });
+            const response = await api.get(`/customers?${params.toString()}`);
+            const data = response as { data?: Customer[]; pagination?: Pagination } | Customer[];
+            const customers = Array.isArray(data) ? data : (data.data || []);
+            const pagination = Array.isArray(data) ? { current_page: 1, last_page: 1 } : (data.pagination || { current_page: 1, last_page: 1 });
+
+            // Map API response
+            const mapped = customers.map((c) => ({
+                ...c,
+                name: c.canonical_name || c.name,
+                integration_count: c.integrations?.length || 0
+            }));
+
+            // Filter out current customer
+            const filtered = mapped.filter(
+                (c: Customer) => c.customer_id !== customer?.customer_id
+            );
+
+            setSearchResults(filtered);
+
+            // Check pagination
+            const currentPageNum = (pagination as Pagination).current_page || 1;
+            const lastPage = (pagination as Pagination).last_page || 1;
+            setHasMore(currentPageNum < lastPage);
+            setCurrentPage(currentPageNum);
+        } catch (err) {
+            console.error('Failed to load customers:', err);
+            setSearchResults([]);
+            setHasMore(false);
+        } finally {
+            setIsSearching(false);
+        }
+    }, [customer]);
+
     useEffect(() => {
         if (open) {
             setSearchTerm("");
@@ -56,48 +104,7 @@ export function MergeCustomersModal({
             // Load initial customers when modal opens
             loadInitialCustomers();
         }
-    }, [open]);
-
-    // Load initial customers (no search)
-    const loadInitialCustomers = async () => {
-        setIsSearching(true);
-        try {
-            const params = new URLSearchParams({ 
-                page: '1',
-                per_page: '20'
-            });
-            const response = await api.get(`/customers?${params.toString()}`);
-            const data = response as any;
-            const customers = data.data || [];
-            const pagination = data.pagination || data;
-            
-            // Map API response
-            const mapped = customers.map((c: any) => ({
-                ...c,
-                name: c.canonical_name || c.name,
-                integration_count: c.integrations?.length || 0
-            }));
-            
-            // Filter out current customer
-            const filtered = mapped.filter(
-                (c: Customer) => c.customer_id !== customer?.customer_id
-            );
-            
-            setSearchResults(filtered);
-            
-            // Check pagination
-            const currentPageNum = pagination.current_page || 1;
-            const lastPage = pagination.last_page || 1;
-            setHasMore(currentPageNum < lastPage);
-            setCurrentPage(currentPageNum);
-        } catch (err) {
-            console.error('Failed to load customers:', err);
-            setSearchResults([]);
-            setHasMore(false);
-        } finally {
-            setIsSearching(false);
-        }
-    };
+    }, [open, loadInitialCustomers]);
 
     // Load more customers (with or without search)
     const loadMoreCustomers = useCallback(async (page: number, append: boolean = false) => {
@@ -109,32 +116,32 @@ export function MergeCustomersModal({
         }
 
         try {
-            const params = new URLSearchParams({ 
+            const params = new URLSearchParams({
                 page: page.toString(),
                 per_page: '20' // Load 20 at a time
             });
-            
+
             // Add search if exists
             if (searchTerm.trim()) {
                 params.append('search', searchTerm);
             }
             const response = await api.get(`/customers?${params.toString()}`);
-            const data = response as any;
-            const customers = data.data || [];
-            const pagination = data.pagination || data;
-            
+            const data = response as { data?: Customer[]; pagination?: Pagination } | Customer[];
+            const customers = Array.isArray(data) ? data : (data.data || []);
+            const pagination = Array.isArray(data) ? { current_page: 1, last_page: 1 } : (data.pagination || { current_page: 1, last_page: 1 });
+
             // Map API response to Customer type (API returns canonical_name, we need name)
-            const mapped = customers.map((c: any) => ({
+            const mapped = customers.map((c) => ({
                 ...c,
                 name: c.canonical_name || c.name,
                 integration_count: c.integrations?.length || 0
             }));
-            
+
             // Filter out the current customer
             const filtered = mapped.filter(
                 (c: Customer) => c.customer_id !== customer?.customer_id
             );
-            
+
             if (append) {
                 setSearchResults(prev => [...prev, ...filtered]);
             } else {
@@ -161,10 +168,10 @@ export function MergeCustomersModal({
     // Search when search term changes
     useEffect(() => {
         if (!open) return;
-        
+
         setCurrentPage(1);
         setHasMore(true);
-        
+
         // Debounce search
         const timeoutId = setTimeout(() => loadMoreCustomers(1, false), 300);
         return () => clearTimeout(timeoutId);
@@ -222,10 +229,11 @@ export function MergeCustomersModal({
                 onOpenChange(false);
                 onSuccess?.();
             }, 2000);
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
             const errorMessage =
-                err.response?.data?.message ||
-                err.message ||
+                error.response?.data?.message ||
+                error.message ||
                 "Failed to merge customers";
             setError(errorMessage);
         } finally {
@@ -342,11 +350,10 @@ export function MergeCustomersModal({
                                         onClick={() =>
                                             setSelectedCustomerId(c.customer_id)
                                         }
-                                        className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                                            selectedCustomerId === c.customer_id
-                                                ? "border-primary bg-primary/10"
-                                                : "border-border hover:bg-accent"
-                                        }`}
+                                        className={`w-full text-left p-3 rounded-lg border transition-colors ${selectedCustomerId === c.customer_id
+                                            ? "border-primary bg-primary/10"
+                                            : "border-border hover:bg-accent"
+                                            }`}
                                     >
                                         <p className="font-medium">{c.name}</p>
                                         <p className="text-xs text-muted-foreground">
@@ -355,7 +362,7 @@ export function MergeCustomersModal({
                                         </p>
                                     </button>
                                 ))}
-                                
+
                                 {/* Infinite scroll trigger */}
                                 <div ref={observerTarget} className="py-2">
                                     {isLoadingMore && (

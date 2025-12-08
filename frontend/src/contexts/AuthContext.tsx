@@ -84,40 +84,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const login = async (credentials: LoginCredentials) => {
-        try {
-            const response = await api.post<LoginResponse>(
-                "/auth/login",
-                credentials
-            );
+        const response = await api.post<LoginResponse>(
+            "/auth/login",
+            credentials
+        );
 
-            if (!response.data) {
-                throw new Error("Login failed");
-            }
-
-            const user = response.data.user;
-            const token = response.data.token;
-            const companyData = response.data.company;
-
-            // Store in localStorage
-            localStorage.setItem("auth_token", token);
-            localStorage.setItem("user", JSON.stringify(user));
-            localStorage.setItem("company", JSON.stringify(companyData));
-
-            // Set branding from company settings
-            if (companyData?.settings?.white_label) {
-                setBranding(companyData.settings.white_label);
-            }
-
-            setState({
-                user,
-                token,
-                isAuthenticated: true,
-                isLoading: false,
-            });
-            setCompany(companyData);
-        } catch (error) {
-            throw error;
+        if (!response.data) {
+            throw new Error("Login failed");
         }
+
+        const user = response.data.user;
+        const token = response.data.token;
+        const companyData = response.data.company;
+
+        // Store in localStorage
+        localStorage.setItem("auth_token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("company", JSON.stringify(companyData));
+
+        // Set branding from company settings
+        if (companyData?.settings?.white_label) {
+            setBranding(companyData.settings.white_label);
+        }
+
+        setState({
+            user,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+        });
+        setCompany(companyData);
     };
 
     const logout = async () => {
@@ -180,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     const context = useContext(AuthContext);
     if (context === undefined) {
