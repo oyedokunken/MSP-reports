@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
-import { CheckCircle2, Lock, AlertCircle } from 'lucide-react'
+import { CheckCircle2, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
 
@@ -16,33 +16,34 @@ interface ResetUserPasswordModalProps {
   onSuccess?: () => void
 }
 
-export function ResetUserPasswordModal({ 
-  open, 
+export function ResetUserPasswordModal({
+  open,
   onOpenChange,
   user,
-  onSuccess 
+  onSuccess
 }: ResetUserPasswordModalProps) {
   const toast = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [newPassword, setNewPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!newPassword.trim()) {
       setError('Please enter a new password')
       return
     }
-    
+
     if (newPassword.length < 8) {
       setError('Password must be at least 8 characters')
       return
     }
 
     if (!user) return
-    
+
     setError('')
     setIsSubmitting(true)
 
@@ -108,7 +109,7 @@ export function ResetUserPasswordModal({
             Set a new password for {user.name}
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Warning */}
           <div className="rounded-lg border border-orange-500/50 bg-orange-500/10 p-3">
@@ -122,15 +123,34 @@ export function ResetUserPasswordModal({
             <Label htmlFor="newPassword" className="text-sm font-medium mb-2 block">
               New Password
             </Label>
-            <Input
-              id="newPassword"
-              type="password"
-              placeholder="Enter new password (min 8 characters)"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              disabled={isSubmitting}
-              className="w-full"
-            />
+            <div className="relative">
+              <Input
+                id="newPassword"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter new password (min 8 characters)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                disabled={isSubmitting}
+                className="w-full pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="sr-only">
+                  {showPassword ? 'Hide password' : 'Show password'}
+                </span>
+              </Button>
+            </div>
           </div>
 
           {/* Password Requirements */}

@@ -37,9 +37,13 @@ import NotificationsPage from '@/pages/notifications/NotificationsPage'
 import { Loader2 } from 'lucide-react'
 
 
+import { hasPermission } from '@/utils/permissions'
+
+// ...
+
 // Protected route wrapper 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth()
+function ProtectedRoute({ children, permission }: { children: React.ReactNode, permission?: { section: string, action: string } }) {
+  const { user, isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -51,6 +55,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
+  }
+
+  if (permission && !hasPermission(user, permission.section, permission.action)) {
+    return <Navigate to="/platform/dashboard" replace />
   }
 
   return <>{children}</>
@@ -108,7 +116,7 @@ function AppRoutes() {
       <Route
         path="/platform/integrations"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'integrations', action: 'view' }}>
             <IntegrationList />
           </ProtectedRoute>
         }
@@ -200,7 +208,7 @@ function AppRoutes() {
       <Route
         path="/platform/customers"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
             <CustomerList />
           </ProtectedRoute>
         }
@@ -236,7 +244,7 @@ function AppRoutes() {
       <Route
         path="/platform/reports"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'reports', action: 'view' }}>
             <ReportsList />
           </ProtectedRoute>
         }
@@ -245,7 +253,7 @@ function AppRoutes() {
       <Route
         path="/platform/schedules"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'reports', action: 'view' }}>
             <ScheduleList />
           </ProtectedRoute>
         }
@@ -254,7 +262,7 @@ function AppRoutes() {
       <Route
         path="/admin/settings"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
             <Settings />
           </ProtectedRoute>
         }
@@ -263,7 +271,7 @@ function AppRoutes() {
       <Route
         path="/admin/users"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'users', action: 'view' }}>
             <UsersList />
           </ProtectedRoute>
         }
@@ -281,7 +289,7 @@ function AppRoutes() {
       <Route
         path="/admin/licenses"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
             <Licenses />
           </ProtectedRoute>
         }
@@ -290,7 +298,7 @@ function AppRoutes() {
       <Route
         path="/admin/api-keys"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
             <ApiKeysList />
           </ProtectedRoute>
         }

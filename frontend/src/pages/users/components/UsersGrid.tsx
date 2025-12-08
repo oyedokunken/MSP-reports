@@ -90,7 +90,7 @@ export function UsersGrid({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       {users.map((user) => (
         <UserCard
           key={user.user_id}

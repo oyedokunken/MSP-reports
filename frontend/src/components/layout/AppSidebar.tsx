@@ -12,6 +12,7 @@ import {
   Key,
   Activity,
 } from 'lucide-react'
+import { hasPermission } from '@/utils/permissions'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBranding } from '@/contexts/BrandingContext'
 import { useNotificationStore } from '@/stores/useNotificationStore'
@@ -42,25 +43,25 @@ export default function AppSidebar() {
   const unreadCount = getUnreadCount()
 
   const navItems = [
-    { path: '/platform/dashboard', icon: Home, label: 'Dashboard' },
-    { path: '/platform/integrations', icon: Cable, label: 'Integrations' },
-    { path: '/platform/customers', icon: Users, label: 'Customers' },
-    { path: '/platform/reports', icon: FileText, label: 'Reports' },
-    { path: '/platform/schedules', icon: Calendar, label: 'Schedules' },
-    { path: '/platform/notifications', icon: Bell, label: 'Notifications' },
-  ]
+    { path: '/platform/dashboard', icon: Home, label: 'Dashboard', show: true },
+    { path: '/platform/integrations', icon: Cable, label: 'Integrations', show: hasPermission(user, 'integrations', 'view') },
+    { path: '/platform/customers', icon: Users, label: 'Customers', show: hasPermission(user, 'customers', 'view') },
+    { path: '/platform/reports', icon: FileText, label: 'Reports', show: hasPermission(user, 'reports', 'view') },
+    { path: '/platform/schedules', icon: Calendar, label: 'Schedules', show: hasPermission(user, 'reports', 'view') },
+    { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: true },
+  ].filter(item => item.show !== false)
 
   const adminNavItems = [
-    { path: '/admin/users', icon: UserPlus, label: 'Users' },
-    { path: '/admin/api-keys', icon: Key, label: 'API Keys' },
-    { path: '/admin/licenses', icon: Key, label: 'Licenses' },
-    { path: '/admin/monitoring', icon: Activity, label: 'Monitoring' },
-  ]
+    { path: '/admin/users', icon: UserPlus, label: 'Users', show: hasPermission(user, 'users', 'view') },
+    { path: '/admin/api-keys', icon: Key, label: 'API Keys', show: hasPermission(user, 'company_settings', 'view') },
+    { path: '/admin/licenses', icon: Key, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view') },
+    { path: '/admin/monitoring', icon: Activity, label: 'Monitoring', show: hasPermission(user, 'company_settings', 'view') },
+  ].filter(item => item.show !== false)
 
 
   const bottomItems = [
-    { path: '/admin/settings', icon: SettingsIcon, label: 'Settings' },
-  ]
+    { path: '/admin/settings', icon: SettingsIcon, label: 'Settings', show: hasPermission(user, 'company_settings', 'view') },
+  ].filter(item => item.show !== false)
 
   const isActive = (path: string) => {
     // For exact match paths (dashboard, settings)
@@ -70,7 +71,7 @@ export default function AppSidebar() {
     // For section paths, check if current path starts with the section path
     return location.pathname.startsWith(path)
   }
-  
+
   // Handler to navigate without expanding sidebar when collapsed
   const handleNavClick = (e: React.MouseEvent, path: string) => {
     if (state === 'collapsed') {
@@ -79,7 +80,7 @@ export default function AppSidebar() {
     }
     // If expanded, let the Link component handle navigation normally
   }
-  
+
   const initials = (user?.name ?? 'User')
     .split(' ')
     .filter(Boolean)
@@ -104,57 +105,57 @@ export default function AppSidebar() {
       <SidebarHeader className="px-4 py-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <Link 
+            <Link
               to="/platform/dashboard"
               className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 hover:opacity-80 transition-opacity"
               onClick={(e) => handleNavClick(e, '/platform/dashboard')}
             >
               {/* Expanded state - brand logo */}
               {branding?.logo_url ? (
-                <img 
-                  src={branding.logo_url} 
-                  alt={branding.company_name} 
+                <img
+                  src={branding.logo_url}
+                  alt={branding.company_name}
                   className="h-14 w-auto object-contain group-data-[collapsible=icon]:hidden"
                 />
               ) : (
                 <>
-                  <img 
-                    src="/logo.png" 
-                    alt="Logo" 
+                  <img
+                    src="/logo.png"
+                    alt="Logo"
                     className="h-14 w-auto object-contain dark:hidden group-data-[collapsible=icon]:hidden"
                   />
-                  <img 
-                    src="/logo-white.png" 
-                    alt="Logo" 
+                  <img
+                    src="/logo-white.png"
+                    alt="Logo"
                     className="h-14 w-auto object-contain hidden dark:block group-data-[collapsible=icon]:hidden"
                   />
                 </>
               )}
-              
+
               {/* Collapsed state - icon logo */}
               {branding?.logo_url ? (
-                <img 
-                  src={branding.logo_url} 
-                  alt={branding.company_name} 
+                <img
+                  src={branding.logo_url}
+                  alt={branding.company_name}
                   className="h-10 w-10 object-contain hidden group-data-[collapsible=icon]:block"
                 />
               ) : (
                 <>
                   {/* Light mode collapsed icon */}
-                  <img 
-                    src="/msp-logo-icon.png" 
-                    alt="Logo Icon" 
+                  <img
+                    src="/msp-logo-icon.png"
+                    alt="Logo Icon"
                     className="h-10 w-10 object-contain hidden group-data-[collapsible=icon]:block dark:!hidden"
                   />
                   {/* Dark mode collapsed icon */}
-                  <img 
-                    src="/icon.png" 
-                    alt="Logo Icon" 
+                  <img
+                    src="/icon.png"
+                    alt="Logo Icon"
                     className="h-10 w-10 object-contain !hidden dark:group-data-[collapsible=icon]:!block"
                   />
                 </>
               )}
-              
+
               {companyName && (
                 <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                   <span className="font-semibold text-base truncate" title={companyName}>{companyMain}</span>
@@ -178,10 +179,10 @@ export default function AppSidebar() {
                 const showBadge = item.path === '/notifications' && unreadCount > 0
                 return (
                   <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={active} 
-                      tooltip={item.label} 
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.label}
                       className="rounded-lg group-data-[collapsible=icon]:!p-0"
                       style={active ? { background: 'var(--brand-gradient)' } : undefined}
                     >
@@ -204,33 +205,37 @@ export default function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup className="mt-4 group-data-[collapsible=icon]:mt-2">
-          <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Admin</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2">
-              {adminNavItems.map((item) => {
-                const Icon = item.icon
-                const active = isActive(item.path)
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={active} 
-                      tooltip={item.label} 
-                      className="rounded-lg group-data-[collapsible=icon]:!p-0"
-                      style={active ? { background: 'var(--brand-gradient)' } : undefined}
-                    >
-                      <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
-                        <Icon className="h-4 w-4 flex-shrink-0" />
-                        <span className="font-medium group-data-[collapsible=icon]:hidden">{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+
+        {/* Only show Admin group if there are admin items */}
+        {adminNavItems.length > 0 && (
+          <SidebarGroup className="mt-4 group-data-[collapsible=icon]:mt-2">
+            <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2">
+                {adminNavItems.map((item) => {
+                  const Icon = item.icon
+                  const active = isActive(item.path)
+                  return (
+                    <SidebarMenuItem key={item.path}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
+                        tooltip={item.label}
+                        className="rounded-lg group-data-[collapsible=icon]:!p-0"
+                        style={active ? { background: 'var(--brand-gradient)' } : undefined}
+                      >
+                        <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
+                          <Icon className="h-4 w-4 flex-shrink-0" />
+                          <span className="font-medium group-data-[collapsible=icon]:hidden">{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="px-3 pb-3 group-data-[collapsible=icon]:px-2">
@@ -240,10 +245,10 @@ export default function AppSidebar() {
             const active = isActive(item.path)
             return (
               <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={active} 
-                  tooltip={item.label} 
+                <SidebarMenuButton
+                  asChild
+                  isActive={active}
+                  tooltip={item.label}
                   className="rounded-lg group-data-[collapsible=icon]:!p-0"
                   style={active ? { background: 'var(--brand-gradient)' } : undefined}
                 >
@@ -270,10 +275,10 @@ export default function AppSidebar() {
       </SidebarFooter>
       {/* Collapsible rail to toggle icon mode */}
       <SidebarRail />
-      
+
       {/* Create User Modal */}
-      <CreateUserModal 
-        open={createUserOpen} 
+      <CreateUserModal
+        open={createUserOpen}
         onOpenChange={setCreateUserOpen}
         onSuccess={() => {
           // Optionally refresh user list or show toast

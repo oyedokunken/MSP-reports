@@ -16,11 +16,11 @@ interface EditUserModalProps {
   onSuccess?: () => void
 }
 
-export function EditUserModal({ 
-  open, 
+export function EditUserModal({
+  open,
   onOpenChange,
   user,
-  onSuccess 
+  onSuccess
 }: EditUserModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -33,7 +33,7 @@ export function EditUserModal({
     if (open && user) {
       setName(user.name || '')
       setEmail(user.email || '')
-      setRoleId(user.role?.role_id?.toString() || '2')
+      setRoleId(user.role_id?.toString() || user.role?.role_id?.toString() || '2')
       setError('')
       setSuccess(false)
     }
@@ -41,14 +41,14 @@ export function EditUserModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!user) return
-    
+
     if (!name.trim()) {
       setError('Please enter a name')
       return
     }
-    
+
     if (!email.trim()) {
       setError('Please enter an email')
       return
@@ -116,7 +116,7 @@ export function EditUserModal({
             Update user details for {user.name}
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div>

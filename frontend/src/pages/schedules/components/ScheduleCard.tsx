@@ -7,8 +7,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Calendar, Clock, Settings, CalendarClock, Repeat, Play, Pause, Edit, Trash2, MoreVertical, CheckCircle } from "lucide-react";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissions";
 import {
     formatDate,
     formatFrequency,
@@ -26,6 +29,9 @@ interface ScheduleCardProps {
 }
 
 export function ScheduleCard({ schedule, onConfigure, onPause, onRunNow, onEdit, onDelete }: ScheduleCardProps) {
+    const { user } = useAuth();
+    const canConfigure = hasPermission(user, 'reports', 'configure');
+
     return (
         <AnimatedCard className="p-6 h-full flex flex-col">
             {/* Header */}
@@ -45,11 +51,10 @@ export function ScheduleCard({ schedule, onConfigure, onPause, onRunNow, onEdit,
                 </div>
                 <Badge
                     variant={schedule.active ? "default" : "secondary"}
-                    className={`flex-shrink-0 ${
-                        !schedule.active
-                            ? "bg-purple-600 text-white hover:bg-purple-700"
-                            : ""
-                    }`}
+                    className={`flex-shrink-0 ${!schedule.active
+                        ? "bg-purple-600 text-white hover:bg-purple-700"
+                        : ""
+                        }`}
                 >
                     {schedule.active ? "Active" : "Inactive"}
                 </Badge>
@@ -95,13 +100,28 @@ export function ScheduleCard({ schedule, onConfigure, onPause, onRunNow, onEdit,
             {/* Actions */}
             <div className="mt-4 border-t border-border pt-4">
                 <div className="flex gap-2">
-                    <button
-                        onClick={onConfigure}
-                        className="flex-1 flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-all"
-                    >
-                        <Settings className="h-4 w-4" />
-                        Configure
-                    </button>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    onClick={canConfigure ? onConfigure : undefined}
+                                    disabled={!canConfigure}
+                                    className={`flex-1 flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${canConfigure
+                                        ? "border-border bg-background text-foreground hover:bg-muted cursor-pointer"
+                                        : "border-muted bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+                                        }`}
+                                >
+                                    <Settings className="h-4 w-4" />
+                                    Configure
+                                </button>
+                            </TooltipTrigger>
+                            {!canConfigure && (
+                                <TooltipContent>
+                                    <p>You need <strong>reports.configure</strong> permission</p>
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
+                    </TooltipProvider>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="sm" className="px-2">

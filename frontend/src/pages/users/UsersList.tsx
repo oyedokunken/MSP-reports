@@ -10,21 +10,27 @@ import { EditUserModal } from './modals/EditUserModal'
 import { ResetUserPasswordModal } from './modals/ResetUserPasswordModal'
 import { DeleteUserModal } from './modals/DeleteUserModal'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import { hasPermission } from '@/utils/permissions'
 import type { UserWithPermissions } from './types'
 
 export default function UsersList() {
   const toast = useToast()
   const { user: currentUser } = useAuth()
-  
+
   // Zustand store - individual selectors for optimal performance
-  const users = useUsersStore(state => state.users)
+
   const isLoading = useUsersStore(state => state.isLoading)
   const error = useUsersStore(state => state.error)
   const modals = useUsersStore(state => state.modals)
   const selectedUser = useUsersStore(state => state.selectedUser)
+  const searchQuery = useUsersStore(state => state.searchQuery)
+  const statusFilter = useUsersStore(state => state.statusFilter)
   const fetchUsers = useUsersStore(state => state.fetchUsers)
   const deactivateUser = useUsersStore(state => state.deactivateUser)
   const reactivateUser = useUsersStore(state => state.reactivateUser)
+  const setSearchQuery = useUsersStore(state => state.setSearchQuery)
+  const setStatusFilter = useUsersStore(state => state.setStatusFilter)
+  const getFilteredUsers = useUsersStore(state => state.getFilteredUsers)
   const openModal = useUsersStore(state => state.openModal)
   const closeModal = useUsersStore(state => state.closeModal)
   const setSelectedUser = useUsersStore(state => state.setSelectedUser)
@@ -34,6 +40,13 @@ export default function UsersList() {
   const [reactivateConfirm, setReactivateConfirm] = useState<UserWithPermissions | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
+  // Get filtered users and sort them (current user first)
+  const filteredUsers = getFilteredUsers().sort((a, b) => {
+    if (a.user_id === currentUser?.user_id) return -1
+    if (b.user_id === currentUser?.user_id) return 1
+    return 0
+  })
+
   // Fetch users on mount
   useEffect(() => {
     fetchUsers()
@@ -41,8 +54,12 @@ export default function UsersList() {
 
   // Handler functions
   const handleDeactivate = async () => {
+    if (!hasPermission(currentUser, 'users', 'manage')) {
+      toast.error('Permission Denied', 'You don\'t have permission to manage users')
+      return
+    }
     if (!deactivateConfirm) return
-    
+
     setIsProcessing(true)
     try {
       await deactivateUser(deactivateConfirm.user_id)
@@ -56,8 +73,12 @@ export default function UsersList() {
   }
 
   const handleReactivate = async () => {
+    if (!hasPermission(currentUser, 'users', 'manage')) {
+      toast.error('Permission Denied', 'You don\'t have permission to manage users')
+      return
+    }
     if (!reactivateConfirm) return
-    
+
     setIsProcessing(true)
     try {
       await reactivateUser(reactivateConfirm.user_id)
@@ -73,37 +94,77 @@ export default function UsersList() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        <UsersHeader onCreateUser={() => openModal('create')} />
+        <UsersHeader
+          onCreateUser={() => {
+            if (!hasPermission(currentUser, 'users', 'manage')) {
+              toast.error('Permission Denied', 'You don\'t have permission to add users')
+              return
+            }
+            openModal('create')
+          }}
+          onSearch={setSearchQuery}
+          onFilterChange={setStatusFilter}
+          searchQuery={searchQuery}
+          statusFilter={statusFilter}
+        />
 
         <UsersGrid
-          users={users}
+          users={filteredUsers}
           isLoading={isLoading}
           error={error}
           currentUserId={currentUser?.user_id}
           onCreateUser={() => openModal('create')}
           onEdit={(user) => {
+            if (!hasPermission(currentUser, 'users', 'manage')) {
+              toast.error('Permission Denied', 'You don\'t have permission to edit users')
+              return
+            }
             setSelectedUser(user)
             openModal('edit')
           }}
           onEditPermissions={(user) => {
+            if (!hasPermission(currentUser, 'users', 'manage')) {
+              toast.error('Permission Denied', 'You don\'t have permission to manage permissions')
+              return
+            }
             setSelectedUser(user)
             openModal('permissions')
           }}
           onResetPassword={(user) => {
+            if (!hasPermission(currentUser, 'users', 'manage')) {
+              toast.error('Permission Denied', 'You don\'t have permission to reset passwords')
+              return
+            }
             setSelectedUser(user)
             openModal('resetPassword')
           }}
-          onDeactivate={(user) => setDeactivateConfirm(user)}
-          onReactivate={(user) => setReactivateConfirm(user)}
+          onDeactivate={(user) => {
+            if (!hasPermission(currentUser, 'users', 'manage')) {
+              toast.error('Permission Denied', 'You don\'t have permission to deactivate users')
+              return
+            }
+            setDeactivateConfirm(user)
+          }}
+          onReactivate={(user) => {
+            if (!hasPermission(currentUser, 'users', 'manage')) {
+              toast.error('Permission Denied', 'You don\'t have permission to reactivate users')
+              return
+            }
+            setReactivateConfirm(user)
+          }}
           onDelete={(user) => {
+            if (!hasPermission(currentUser, 'users', 'manage')) {
+              toast.error('Permission Denied', 'You don\'t have permission to delete users')
+              return
+            }
             setSelectedUser(user)
             openModal('delete')
           }}
         />
-      
+
         {/* Modals */}
-        <CreateUserModal 
-          open={modals.create} 
+        <CreateUserModal
+          open={modals.create}
           onOpenChange={(open) => open ? openModal('create') : closeModal('create')}
           onSuccess={() => {
             fetchUsers()

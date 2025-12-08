@@ -6,8 +6,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { FileText, Settings, MoreVertical, Edit, Cable, GitMerge, GitBranch, Info, Building2, CheckCircle, XCircle } from 'lucide-react'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
+import { useAuth } from '@/contexts/AuthContext'
 import type { MappedCustomer } from '@/stores/useCustomersStore'
 
 interface CustomerCardProps {
@@ -31,8 +33,10 @@ export function CustomerCard({
   onSplit,
   onMoreInfo,
 }: CustomerCardProps) {
+  const { user } = useAuth()
   const hasReports = customer.report_schedules_count && customer.report_schedules_count > 0
-  
+  const canAccessReports = user?.permissions?.reports?.configure || user?.permissions?.reports?.generate
+
   return (
     <AnimatedCard className="p-6 h-full flex flex-col">
       {/* Header */}
@@ -48,7 +52,7 @@ export function CustomerCard({
             </p>
           </div>
         </div>
-        <Badge 
+        <Badge
           variant={customer.status === 'active' ? 'default' : 'secondary'}
           className={`flex-shrink-0 ${customer.status !== 'active' ? 'bg-purple-600 text-white hover:bg-purple-700' : ''}`}
         >
@@ -77,9 +81,8 @@ export function CustomerCard({
           ) : (
             <XCircle className="h-4 w-4 text-orange-600 flex-shrink-0" />
           )}
-          <span className={`text-sm ${
-            hasReports ? 'text-green-600' : 'text-orange-600'
-          }`}>
+          <span className={`text-sm ${hasReports ? 'text-green-600' : 'text-orange-600'
+            }`}>
             {hasReports
               ? `${customer.report_schedules_count} report${customer.report_schedules_count !== 1 ? 's' : ''} configured`
               : 'No reports configured'}
@@ -90,14 +93,29 @@ export function CustomerCard({
       {/* Actions */}
       <div className="mt-4 border-t border-border pt-4 space-y-2">
         {/* Setup Reports - Full Width Primary Button */}
-        <button
-          onClick={onSetupReports}
-          className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-all"
-        >
-          <Settings className="h-4 w-4" />
-          Setup Reports
-        </button>
-        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={canAccessReports ? onSetupReports : undefined}
+                disabled={!canAccessReports}
+                className={`w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${canAccessReports
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
+                  }`}
+              >
+                <Settings className="h-4 w-4" />
+                Setup Reports
+              </button>
+            </TooltipTrigger>
+            {!canAccessReports && (
+              <TooltipContent>
+                <p>You need <strong>reports.configure</strong> or <strong>reports.generate</strong> permission</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
+
         {/* Secondary Actions Row - All inline with consistent height */}
         <div className="flex gap-2">
           <button

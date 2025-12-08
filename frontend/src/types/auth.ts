@@ -3,6 +3,12 @@ export interface User {
   id?: number // Alias for compatibility
   name: string
   email: string
+  role_id: number
+  role?: {
+    id: number
+    name: string
+    slug: string
+  }
   company_id: number
   company_name: string
   company?: Company

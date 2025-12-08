@@ -1,11 +1,21 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
-import { CheckCircle2, Shield } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import {
+  CheckCircle2,
+  Shield,
+  Cable,
+  Users,
+  FileText,
+  Settings,
+  Building2
+} from 'lucide-react'
 import { api } from '@/lib/api'
 import type { UserWithPermissions, UserPermissions as UserPerms } from '../types'
+
 
 interface EditPermissionsModalProps {
   open: boolean
@@ -107,203 +117,111 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
 
   if (!user) return null
 
+  const sections = [
+    {
+      id: 'integrations',
+      label: 'Integrations',
+      icon: Cable,
+      items: [
+        { key: 'view', label: 'View Integrations' },
+        { key: 'manage', label: 'Manage Integrations' },
+        { key: 'sync', label: 'Trigger Syncs' },
+      ]
+    },
+    {
+      id: 'customers',
+      label: 'Customers',
+      icon: Users,
+      items: [
+        { key: 'view', label: 'View Customers' },
+        { key: 'edit', label: 'Edit Customers' },
+        { key: 'map', label: 'Map Customers' },
+      ]
+    },
+    {
+      id: 'reports',
+      label: 'Reports',
+      icon: FileText,
+      items: [
+        { key: 'view', label: 'View Reports' },
+        { key: 'configure', label: 'Configure Reports' },
+        { key: 'generate', label: 'Generate Reports' },
+        { key: 'download', label: 'Download Reports' },
+      ]
+    },
+    {
+      id: 'users',
+      label: 'User Management',
+      icon: Shield,
+      items: [
+        { key: 'view', label: 'View Users' },
+        { key: 'manage', label: 'Manage Users' },
+      ]
+    },
+    {
+      id: 'company_settings',
+      label: 'Company Settings',
+      icon: Building2,
+      items: [
+        { key: 'view', label: 'View Settings' },
+        { key: 'edit', label: 'Edit Settings' },
+      ]
+    }
+  ]
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
+            <Settings className="h-5 w-5 text-primary" />
             <DialogTitle>Edit Permissions</DialogTitle>
           </div>
           <DialogDescription>
-            Manage permissions for <strong>{user.name}</strong> ({user.email})
+            Manage access levels and capabilities for <strong>{user.name}</strong>
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Integrations */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Integrations</Label>
-            <div className="space-y-2 pl-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.integrations?.view || false}
-                  onChange={() => togglePermission('integrations', 'view')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">View integrations</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.integrations?.manage || false}
-                  onChange={() => togglePermission('integrations', 'manage')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">Manage integrations</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.integrations?.sync || false}
-                  onChange={() => togglePermission('integrations', 'sync')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">Trigger syncs</span>
-              </label>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {sections.map((section) => {
+              const Icon = section.icon
+              return (
+                <div key={section.id} className="space-y-4 rounded-lg border border-border/50 p-4 bg-card/50">
+                  <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                    <Icon className="h-4 w-4 text-primary" />
+                    <h4 className="font-semibold text-sm">{section.label}</h4>
+                  </div>
+                  <div className="space-y-4">
+                    {section.items.map((item) => (
+                      <div key={item.key} className="flex items-center justify-between">
+                        <Label
+                          htmlFor={`${section.id}-${item.key}`}
+                          className="text-sm font-medium text-muted-foreground cursor-pointer flex-1"
+                        >
+                          {item.label}
+                        </Label>
+                        <Switch
+                          id={`${section.id}-${item.key}`}
+                          checked={(permissions[section.id as keyof UserPerms] as any)?.[item.key] || false}
+                          onCheckedChange={() => togglePermission(section.id as keyof UserPerms, item.key)}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
-          {/* Customers */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Customers</Label>
-            <div className="space-y-2 pl-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.customers?.view || false}
-                  onChange={() => togglePermission('customers', 'view')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">View customers</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.customers?.edit || false}
-                  onChange={() => togglePermission('customers', 'edit')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">Edit customers</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.customers?.map || false}
-                  onChange={() => togglePermission('customers', 'map')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">Map customers</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Reports */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Reports</Label>
-            <div className="space-y-2 pl-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.reports?.view || false}
-                  onChange={() => togglePermission('reports', 'view')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">View reports</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.reports?.configure || false}
-                  onChange={() => togglePermission('reports', 'configure')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">Configure reports</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.reports?.generate || false}
-                  onChange={() => togglePermission('reports', 'generate')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">Generate reports</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.reports?.download || false}
-                  onChange={() => togglePermission('reports', 'download')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">Download reports</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Users */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Users</Label>
-            <div className="space-y-2 pl-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.users?.view || false}
-                  onChange={() => togglePermission('users', 'view')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">View users</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.users?.manage || false}
-                  onChange={() => togglePermission('users', 'manage')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">Manage users</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Company Settings */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Company Settings</Label>
-            <div className="space-y-2 pl-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.company_settings?.view || false}
-                  onChange={() => togglePermission('company_settings', 'view')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">View settings</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={permissions.company_settings?.edit || false}
-                  onChange={() => togglePermission('company_settings', 'edit')}
-                  className="w-4 h-4 rounded border-gray-300"
-                  disabled={isSubmitting}
-                />
-                <span className="text-sm">Edit settings</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Error Message */}
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
               <p className="text-sm text-destructive font-medium">{error}</p>
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               type="button"
               variant="outline"
@@ -316,7 +234,7 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
               {isSubmitting ? (
                 <>
                   <Spinner className="mr-2 h-4 w-4" />
-                  Saving...
+                  Saving Changes...
                 </>
               ) : (
                 'Save Permissions'

@@ -44,19 +44,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (token && userStr) {
                 try {
                     const user: User = JSON.parse(userStr);
-                    
+
                     // Load company data and branding
                     if (companyStr) {
                         const companyData: Company = JSON.parse(companyStr);
                         setCompany(companyData);
-                        
+
                         // Set branding from company settings
                         if (companyData?.settings?.white_label) {
                             console.log('🎨 Loading branding from localStorage:', companyData.settings.white_label);
                             setBranding(companyData.settings.white_label);
                         }
                     }
-                    
+
                     setState({
                         user,
                         token,

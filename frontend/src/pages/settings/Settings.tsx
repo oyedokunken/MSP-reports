@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useBranding } from '@/contexts/BrandingContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/utils/permissions'
 import { api } from '@/lib/api'
 import {
   Dialog,
@@ -28,7 +29,7 @@ import {
 export default function Settings() {
   const toast = useToast()
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
   const { branding, setBranding } = useBranding()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -77,23 +78,23 @@ export default function Settings() {
       setLoading(true)
       console.log('📥 Fetching company settings...')
       const response = await api.get<any>('/company/settings')
-      
+
       console.log('📦 Received settings:', response)
-      
+
       if (response && response.data) {
         const data = response.data
         console.log('🏢 Company data:', data)
-        
+
         setCompanyName(data.name || '')
         setContactEmail(data.contact_email || '')
         setContactPhone(data.contact_phone || '')
         setAddress(data.address || '')
-        
+
         // Load branding from settings
         if (data.settings?.white_label) {
           const branding = data.settings.white_label
           console.log('🎨 Branding data:', branding)
-          
+
           setPrimaryHex(branding.primary_color || '#3b82f6')
           setSecondaryHex(branding.secondary_color || '#7c3aed')
           setLogoUrl(branding.logo_url || null)
@@ -105,7 +106,7 @@ export default function Settings() {
           setFooterText(branding.footer_text || '')
           setReportHeaderText(branding.report_header_text || 'Monthly Service Report')
           setWebsiteUrl(branding.website_url || '')
-          
+
           console.log('✅ Settings loaded - Secondary color:', branding.secondary_color)
         } else {
           console.warn('⚠️ No white_label settings found in response')
@@ -124,14 +125,20 @@ export default function Settings() {
   }, [])
 
   const handleSaveBranding = async () => {
+    // Check edit permission (Admins auto-pass)
+    if (!hasPermission(user, 'company_settings', 'edit')) {
+      toast.error('Permission Denied', 'You don\'t have permission to edit company settings')
+      return
+    }
+
     if (!isValidHex() || !isValidSecondaryHex()) {
       toast.error('Invalid Color', 'Please enter valid hex colors')
       return
     }
-    
+
     try {
       setSaving(true)
-      
+
       console.log('💾 Starting save process...')
       console.log('📝 Current values:', {
         primaryHex,
@@ -139,7 +146,7 @@ export default function Settings() {
         logoUrl,
         supportEmail,
       })
-      
+
       // Save company info
       console.log('1️⃣ Saving company info...')
       await api.patch('/company/settings', {
@@ -149,7 +156,7 @@ export default function Settings() {
         address: address,
       })
       console.log('✅ Company info saved')
-      
+
       // Save branding
       const brandingData: any = {
         company_name: companyName,
@@ -163,17 +170,17 @@ export default function Settings() {
         report_header_text: reportHeaderText || null,
         website_url: websiteUrl || null,
       }
-      
+
       console.log('2️⃣ Saving branding data:', brandingData)
-      
+
       const response = await api.patch('/company/branding', brandingData)
-      
+
       console.log('✅ Branding saved! Response:', response)
-      
+
       // Update branding context immediately with response from backend
       // Response structure: { status: 'success', message: '...', data: { ...branding } }
       const savedBranding = (response as any)?.data || response
-      
+
       if (savedBranding) {
         console.log('🎨 Updating branding context with:', savedBranding)
         const newBranding = {
@@ -190,10 +197,10 @@ export default function Settings() {
           footer_text: savedBranding.footer_text || null,
           report_header_text: savedBranding.report_header_text || null,
         }
-        
+
         console.log('📦 Final branding object to save:', newBranding)
         setBranding(newBranding)
-        
+
         // Also update localStorage company data so it persists on refresh
         const companyStr = localStorage.getItem('company')
         if (companyStr) {
@@ -208,12 +215,12 @@ export default function Settings() {
           }
         }
       }
-      
+
       toast.success('Saved', 'Branding updated successfully')
-      
+
       // Show logout warning modal
       setShowLogoutWarning(true)
-      
+
       // Update branding context immediately to apply color changes
       if (branding) {
         setBranding({
@@ -222,7 +229,7 @@ export default function Settings() {
           primary_color: primaryHex,
         })
       }
-      
+
       toast.success('Saved', 'Company information updated successfully')
     } catch (error: any) {
       console.error('❌ Failed to save settings:', error)
@@ -238,14 +245,20 @@ export default function Settings() {
   }
 
   const handleSaveEmail = async () => {
+    // Check edit permission (Admins auto-pass)
+    if (!hasPermission(user, 'company_settings', 'edit')) {
+      toast.error('Permission Denied', 'You don\'t have permission to edit company settings')
+      return
+    }
+
     try {
       setSaving(true)
-      
+
       await api.patch('/company/branding', {
         email_from_address: fromEmail,
         email_from_name: fromName,
       })
-      
+
       toast.success('Saved', 'Email settings updated successfully')
     } catch (error: any) {
       console.error('Failed to save email settings:', error)
