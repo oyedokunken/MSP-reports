@@ -40,17 +40,23 @@ export const IntegrationPreview = () => {
     <FloatingLayout>
       <div className="space-y-6">
         <PreviewHeader
-          integrationName={preview.template.metadata.display_name}
+          integrationName={preview.template?.metadata?.display_name || preview.integration.name}
           customerName={preview.preview.customer?.name}
           isRefreshing={refreshing}
           onBack={handleBack}
           onRefresh={handleRefresh}
         />
 
-        <PreviewContent
-          preview={preview}
-          onSelectionChange={handleSelectionChange}
-        />
+        {preview.template ? (
+          <PreviewContent
+            preview={preview}
+            onSelectionChange={handleSelectionChange}
+          />
+        ) : (
+          <div className="p-8 text-center text-muted-foreground bg-card border border-border rounded-lg">
+            No preview configuration available for this integration.
+          </div>
+        )}
 
         {/* Footer Info */}
         <div className="p-4 bg-card dark:bg-[hsl(var(--auth-card))] border border-border rounded-lg">

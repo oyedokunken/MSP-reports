@@ -38,8 +38,16 @@ export function useIntegrationPreview() {
       // Handle both direct data and nested data structures
       const data = (response as { data?: unknown }).data || response
 
-      // Type guard for the preview data
-      if (typeof data === 'object' && data !== null && 'success' in data) {
+      // Check if the data itself is the IntegrationPreviewType
+      if (
+        typeof data === 'object' &&
+        data !== null &&
+        'integration' in data &&
+        'template' in data &&
+        'preview' in data
+      ) {
+        setPreview(data as IntegrationPreviewType)
+      } else if (typeof data === 'object' && data !== null && 'success' in data) {
         const previewData = data as { success: boolean; preview?: IntegrationPreviewType; message?: string }
         if (previewData.success && previewData.preview) {
           setPreview(previewData.preview)
