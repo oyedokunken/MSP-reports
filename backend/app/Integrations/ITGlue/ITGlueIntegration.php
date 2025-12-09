@@ -250,8 +250,9 @@ class ITGlueIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        $data = [];
+        // NO MORE $data = [] bucket! Just track stats
         $errors = [];
+        $totalProcessed = 0;
 
         try {
             // ITGlue doesn't have traditional historical data with date ranges
@@ -272,8 +273,8 @@ class ITGlueIntegration implements IntegrationInterface
                     // Resolve organization ID to integration_customer_id
                     $standardized['integration_customer_id'] = $this->resolveIntegrationCustomerId($standardized['integration_customer_id']);
                     if ($standardized['integration_customer_id']) {
-                        $data[] = $standardized;
                         $this->storeHistoricalData($standardized);
+                        $totalProcessed++;
                     }
                 } catch (\Exception $e) {
                     $errors[] = "Failed to process organization data: {$e->getMessage()}";
@@ -288,8 +289,8 @@ class ITGlueIntegration implements IntegrationInterface
                         $certData = ITGlueMapper::mapSslCertificate($cert);
                         $certData['integration_customer_id'] = $this->resolveIntegrationCustomerId($certData['integration_customer_id']);
                         if ($certData['integration_customer_id']) {
-                            $data[] = $certData;
                             $this->storeHistoricalData($certData);
+                            $totalProcessed++;
                         }
                     } catch (\Exception $e) {
                         $errors[] = "Failed to process SSL certificate: {$e->getMessage()}";
@@ -311,8 +312,8 @@ class ITGlueIntegration implements IntegrationInterface
                         $domainData = ITGlueMapper::mapDomain($domain);
                         $domainData['integration_customer_id'] = $this->resolveIntegrationCustomerId($domainData['integration_customer_id']);
                         if ($domainData['integration_customer_id']) {
-                            $data[] = $domainData;
                             $this->storeHistoricalData($domainData);
+                            $totalProcessed++;
                         }
                     } catch (\Exception $e) {
                         $errors[] = "Failed to process domain: {$e->getMessage()}";
@@ -344,9 +345,8 @@ class ITGlueIntegration implements IntegrationInterface
                                 $assetData = ITGlueMapper::mapFlexibleAsset($asset);
                                 $assetData['integration_customer_id'] = $this->resolveIntegrationCustomerId($assetData['integration_customer_id']);
                                 if ($assetData['integration_customer_id']) {
-                                    $data[] = $assetData;
                                     $this->storeHistoricalData($assetData);
-                                    $totalFlexibleAssets++;
+                                    $totalProcessed++;
                                 }
                             } catch (\Exception $e) {
                                 $errors[] = "Failed to process flexible asset: {$e->getMessage()}";
@@ -360,7 +360,6 @@ class ITGlueIntegration implements IntegrationInterface
                 Log::info('ITGlue Integration: Flexible assets synced', [
                     'integration_id' => $this->integration->integration_id,
                     'asset_types' => count($flexibleAssetTypes),
-                    'total_assets' => $totalFlexibleAssets,
                 ]);
             } catch (\Exception $e) {
                 $errors[] = "Failed to fetch flexible assets: {$e->getMessage()}";
@@ -368,7 +367,7 @@ class ITGlueIntegration implements IntegrationInterface
 
             Log::info('ITGlue Integration: Historical data import completed', [
                 'integration_id' => $this->integration->integration_id,
-                'total_records' => count($data),
+                'total_processed' => $totalProcessed,
                 'errors' => count($errors),
             ]);
 
@@ -381,7 +380,8 @@ class ITGlueIntegration implements IntegrationInterface
         }
 
         return [
-            'data' => $data,
+            'success' => true,
+            'total_processed' => $totalProcessed,
             'errors' => $errors,
         ];
     }

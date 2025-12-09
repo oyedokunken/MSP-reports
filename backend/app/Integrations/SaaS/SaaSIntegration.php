@@ -184,7 +184,7 @@ class SaaSIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        $data = [];
+        // NO MORE $data = [] bucket! Just track stats
         $errors = [];
         $totalProcessed = 0;
 
@@ -212,11 +212,10 @@ class SaaSIntegration implements IntegrationInterface
                     ]);
 
                     // Process events in chunks
-                    collect($events)->chunk(50)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed, $integrationCustomer) {
+                    collect($events)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $integrationCustomer) {
                         foreach ($chunk as $event) {
                             try {
                                 $standardized = SaaSMapper::mapEvent($event, $integrationCustomer->integration_customer_id);
-                                $data[] = $standardized;
                                 $this->storeHistoricalData($standardized);
                                 $totalProcessed++;
                             } catch (\Exception $e) {
@@ -266,7 +265,8 @@ class SaaSIntegration implements IntegrationInterface
         }
 
         return [
-            'data' => $data,
+            'success' => true,
+            'total_processed' => $totalProcessed,
             'errors' => $errors,
         ];
     }

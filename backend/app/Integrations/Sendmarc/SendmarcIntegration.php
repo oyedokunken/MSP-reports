@@ -192,7 +192,7 @@ class SendmarcIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        $data = [];
+        // NO MORE $data = [] bucket! Just track stats
         $errors = [];
         $totalProcessed = 0;
 
@@ -205,40 +205,42 @@ class SendmarcIntegration implements IntegrationInterface
 
                 $domains = $this->client->getAccountDomains($accountUuid);
 
-                collect($domains)->chunk(50)->each(function ($chunk) use ($accountUuid, &$data, &$errors, &$totalProcessed) {
+                collect($domains)->chunk(50)->each(function ($chunk) use ($accountUuid, &$errors, &$totalProcessed) {
                     foreach ($chunk as $domain) {
                         $domainUuid = $domain['uuid'] ?? null;
                         if (!$domainUuid) continue;
 
                         try {
+                            // 1. Fetch senders
                             $senders = $this->client->getDomainSenders($accountUuid, $domainUuid);
+                            // 2. Process IMMEDIATELY (no accumulation)
                             foreach ($senders as $sender) {
                                 $standardized = SendmarcMapper::mapSenderStatistics($sender, $domainUuid);
-                                $data[] = $standardized;
                                 $this->storeHistoricalData($standardized);
                                 $totalProcessed++;
                             }
+                            // 3. $senders is freed when loop ends
 
+                            // Same pattern for volume totals
                             $volumeTotals = $this->client->getDomainVolumeTotals($accountUuid, $domainUuid);
                             if (!empty($volumeTotals)) {
                                 $standardized = SendmarcMapper::mapVolumeTotals($volumeTotals, $domainUuid);
-                                $data[] = $standardized;
                                 $this->storeHistoricalData($standardized);
                                 $totalProcessed++;
                             }
 
+                            // Same pattern for volume timeline
                             $volumeTimeline = $this->client->getDomainVolumeTimeline($accountUuid, $domainUuid);
                             foreach ($volumeTimeline as $index => $timelineEntry) {
                                 $standardized = SendmarcMapper::mapVolumeTimeline($timelineEntry, $domainUuid, $index);
-                                $data[] = $standardized;
                                 $this->storeHistoricalData($standardized);
                                 $totalProcessed++;
                             }
 
+                            // Same pattern for IP addresses
                             $ipAddresses = $this->client->getDomainIpAddresses($accountUuid, $domainUuid);
                             foreach ($ipAddresses as $ipData) {
                                 $standardized = SendmarcMapper::mapIpAddressStatistics($ipData, $domainUuid);
-                                $data[] = $standardized;
                                 $this->storeHistoricalData($standardized);
                                 $totalProcessed++;
                             }
@@ -272,7 +274,8 @@ class SendmarcIntegration implements IntegrationInterface
         }
 
         return [
-            'data' => $data,
+            'success' => true,
+            'total_processed' => $totalProcessed,
             'errors' => $errors,
         ];
     }

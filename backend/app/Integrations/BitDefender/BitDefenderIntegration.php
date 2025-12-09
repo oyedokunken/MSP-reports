@@ -278,7 +278,7 @@ class BitDefenderIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        $data = [];
+        // NO MORE $data = [] bucket! Just track stats
         $errors = [];
         $totalProcessed = 0;
 
@@ -327,7 +327,6 @@ class BitDefenderIntegration implements IntegrationInterface
                             'imported_at' => now(),
                         ]);
                         
-                        $data[] = $mapped;
                         $totalProcessed++;
                     }
                     
@@ -360,7 +359,6 @@ class BitDefenderIntegration implements IntegrationInterface
                                 'imported_at' => now(),
                             ]);
                             
-                            $data[] = $mapped;
                             $totalProcessed++;
                         }
                     }
@@ -390,7 +388,8 @@ class BitDefenderIntegration implements IntegrationInterface
         }
 
         return [
-            'data' => $data,
+            'success' => true,
+            'total_processed' => $totalProcessed,
             'errors' => $errors,
         ];
     }

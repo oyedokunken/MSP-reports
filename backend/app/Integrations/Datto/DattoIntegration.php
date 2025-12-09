@@ -190,8 +190,9 @@ class DattoIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        $data = [];
+        // NO MORE $data = [] bucket! Just track stats
         $errors = [];
+        $totalRecords = 0; // Track actual DB records created
 
         try {
             \Log::info('Datto Integration: Starting historical data import', [
@@ -202,46 +203,37 @@ class DattoIntegration implements IntegrationInterface
 
             // For Datto RMM, historical data means current device status and active alerts
             $sites = $this->client->getRmmSites();
-            $totalDevices = 0;
-            $totalAlerts = 0;
 
             foreach ($sites as $site) {
                 try {
                     $siteUid = $site['uid'];
                     
-                    // 1. Fetch and Store Devices (Uptime & Asset Info)
+                    // 1. Fetch Devices
                     $devices = $this->client->getRmmDevices($siteUid);
+                    // 2. Process IMMEDIATELY (no accumulation)
                     foreach ($devices as $device) {
                         try {
                             $this->storeDeviceData($device, $site);
-                            $data[] = [
-                                'type' => 'device',
-                                'device_name' => $device['hostname'] ?? 'Unknown',
-                                'site_name' => $site['name'] ?? 'Unknown',
-                                'online' => $device['online'] ?? false,
-                            ];
-                            $totalDevices++;
+                            // storeDeviceData creates 2 records: device_status + uptime_metric
+                            $totalRecords += 2;
                         } catch (\Exception $e) {
                             $errors[] = "Failed to store device {$device['hostname']}: {$e->getMessage()}";
                         }
                     }
+                    // 3. $devices is freed when loop ends
 
-                    // 2. Fetch and Store Alerts (Security & Backup Status)
-                    // We treat alerts as "Security Alerts" generally, but if they mention "Backup", we can treat them as Backup failures.
+                    // Same pattern for Alerts
                     $alerts = $this->client->getRmmAlerts($siteUid);
                     foreach ($alerts as $alert) {
                         try {
                             $this->storeAlertData($alert, $site);
-                            $data[] = [
-                                'type' => 'alert',
-                                'message' => $alert['alertMessage'] ?? 'Unknown',
-                                'site_name' => $site['name'] ?? 'Unknown',
-                            ];
-                            $totalAlerts++;
+                            // storeAlertData creates 1 record
+                            $totalRecords += 1;
                         } catch (\Exception $e) {
                             $errors[] = "Failed to store alert {$alert['uid']}: {$e->getMessage()}";
                         }
                     }
+                    // $alerts is freed when loop ends
                     
                 } catch (\Exception $e) {
                     $errors[] = "Failed to fetch data for site {$site['name']}: {$e->getMessage()}";
@@ -255,8 +247,7 @@ class DattoIntegration implements IntegrationInterface
 
             \Log::info('Datto Integration: Historical data import completed', [
                 'integration_id' => $this->integration->integration_id,
-                'devices_imported' => $totalDevices,
-                'alerts_imported' => $totalAlerts,
+                'total_records' => $totalRecords,
                 'errors' => count($errors),
             ]);
 
@@ -268,7 +259,8 @@ class DattoIntegration implements IntegrationInterface
         }
 
         return [
-            'data' => $data,
+            'success' => true,
+            'total_processed' => $totalRecords,
             'errors' => $errors,
         ];
     }

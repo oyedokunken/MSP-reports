@@ -83,7 +83,8 @@ class ImportHistoricalDataJob implements ShouldQueue
 
             $rateLimiter->recordRequest($integration);
 
-            $recordsImported = count($result['data'] ?? []);
+            // Get records count from result (supports both old 'data' array and new 'total_processed' count)
+            $recordsImported = $result['total_processed'] ?? count($result['data'] ?? []);
             $this->importJob->records_imported += $recordsImported;
             
             // Update position to the end of this chunk

@@ -152,7 +152,7 @@ class AutotaskIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        $data = [];
+        // NO MORE $data = [] bucket! Just track stats
         $errors = [];
         $totalProcessed = 0;
 
@@ -165,7 +165,7 @@ class AutotaskIntegration implements IntegrationInterface
 
             $tickets = $this->client->getTickets($startDate, $endDate);
 
-            collect($tickets)->chunk(500)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed, $customerMap) {
+            collect($tickets)->chunk(500)->each(function ($chunk) use (&$errors, &$totalProcessed, $customerMap) {
                 $batchRecords = [];
 
                 foreach ($chunk as $ticket) {
@@ -181,9 +181,7 @@ class AutotaskIntegration implements IntegrationInterface
                         $standardized = AutotaskMapper::mapTicket($ticket);
                         $standardized['integration_customer_id'] = $integrationCustomerId;
                         
-                        $data[] = $standardized;
-                        
-                        // Prepare for batch insert
+                        // Prepare for batch insert (NO accumulation in $data)
                         $batchRecords[] = [
                             'company_id' => $this->integration->company_id,
                             'integration_id' => $this->integration->integration_id,
@@ -214,7 +212,7 @@ class AutotaskIntegration implements IntegrationInterface
 
             $timeEntries = $this->client->getTimeEntries($startDate, $endDate);
             
-            collect($timeEntries)->chunk(500)->each(function ($chunk) use (&$data, &$errors, &$totalProcessed, $tickets, $customerMap) {
+            collect($timeEntries)->chunk(500)->each(function ($chunk) use (&$errors, &$totalProcessed, $tickets, $customerMap) {
                 $batchRecords = [];
 
                 foreach ($chunk as $entry) {
@@ -238,9 +236,7 @@ class AutotaskIntegration implements IntegrationInterface
                         $standardized = AutotaskMapper::mapTimeEntry($entry);
                         $standardized['integration_customer_id'] = $integrationCustomerId;
                         
-                        $data[] = $standardized;
-                        
-                        // Prepare for batch insert
+                        // Prepare for batch insert (NO accumulation in $data)
                         $batchRecords[] = [
                             'company_id' => $this->integration->company_id,
                             'integration_id' => $this->integration->integration_id,
@@ -277,7 +273,6 @@ class AutotaskIntegration implements IntegrationInterface
                 foreach ($resources as $resource) {
                     try {
                         $standardized = AutotaskMapper::mapResource($resource);
-                        $data[] = $standardized;
                         
                         $batchRecords[] = [
                             'company_id' => $this->integration->company_id,
@@ -330,7 +325,8 @@ class AutotaskIntegration implements IntegrationInterface
         }
 
         return [
-            'data' => $data,
+            'success' => true,
+            'total_processed' => $totalProcessed,
             'errors' => $errors,
         ];
     }
