@@ -65,6 +65,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/admin/settings')}>Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/admin/security')}>Security</DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/admin/users')}>Team Management</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive" onClick={handleLogout}>

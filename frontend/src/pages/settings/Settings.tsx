@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import FloatingLayout from '@/components/layout/FloatingLayout'
-import { ChangePasswordModal } from '@/components/modals/ChangePasswordModal'
 import { useToast } from '@/components/ui/Toast'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useBranding } from '@/contexts/BrandingContext'
@@ -22,8 +21,6 @@ import {
   SettingsHeader,
   CompanyInfoSection,
   EmailDeliverySection,
-  ApiAccessSection,
-  SecuritySection,
 } from './components'
 
 export default function Settings() {
@@ -50,9 +47,6 @@ export default function Settings() {
   const supportPhone = useSettingsStore(state => state.supportPhone)
   const footerText = useSettingsStore(state => state.footerText)
   const reportHeaderText = useSettingsStore(state => state.reportHeaderText)
-  const apiKeyMasked = useSettingsStore(state => state.apiKeyMasked)
-  const lastGenerated = useSettingsStore(state => state.lastGenerated)
-  const changePasswordModalOpen = useSettingsStore(state => state.changePasswordModalOpen)
   const setCompanyName = useSettingsStore(state => state.setCompanyName)
   const setPrimaryHex = useSettingsStore(state => state.setPrimaryHex)
   const setSecondaryHex = useSettingsStore(state => state.setSecondaryHex)
@@ -68,8 +62,6 @@ export default function Settings() {
   const setSupportPhone = useSettingsStore(state => state.setSupportPhone)
   const setFooterText = useSettingsStore(state => state.setFooterText)
   const setReportHeaderText = useSettingsStore(state => state.setReportHeaderText)
-  const setLastGenerated = useSettingsStore(state => state.setLastGenerated)
-  const setChangePasswordModalOpen = useSettingsStore(state => state.setChangePasswordModalOpen)
   const isValidHex = useSettingsStore(state => state.isValidHex)
   const isValidSecondaryHex = useSettingsStore(state => state.isValidSecondaryHex)
 
@@ -316,13 +308,6 @@ export default function Settings() {
     }
   }
 
-  const handleRegenerateKey = () => {
-    const random = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-    setLastGenerated(random)
-    alert('New API key generated. Copy it now; it will only be shown once.\n\n' + random)
-  }
 
   if (loading) {
     return (
@@ -379,26 +364,7 @@ export default function Settings() {
           onFromNameChange={setFromName}
           onSave={handleSaveEmail}
         />
-
-        <ApiAccessSection
-          apiKeyMasked={apiKeyMasked}
-          lastGenerated={lastGenerated}
-          onRegenerate={handleRegenerateKey}
-        />
-
-        <SecuritySection
-          onChangePassword={() => setChangePasswordModalOpen(true)}
-        />
       </div>
-
-      {/* Change Password Modal */}
-      <ChangePasswordModal
-        open={changePasswordModalOpen}
-        onOpenChange={setChangePasswordModalOpen}
-        onSuccess={() => {
-          toast.success('Password Changed', 'Your password has been updated successfully')
-        }}
-      />
 
       {/* Logout Warning Modal */}
       <Dialog open={showLogoutWarning} onOpenChange={setShowLogoutWarning}>

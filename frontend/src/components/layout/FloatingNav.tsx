@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, ChevronDown, Bell, LogOut, Calendar } from "lucide-react";
+import { Settings, ChevronDown, Bell, LogOut, Calendar, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useState, useRef, useEffect } from "react";
@@ -278,6 +278,14 @@ export default function FloatingNav() {
                                 >
                                     <Settings className="h-4 w-4" />
                                     <span>Settings</span>
+                                </Link>
+                                <Link
+                                    to="/admin/security"
+                                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
+                                    onClick={() => setIsUserMenuOpen(false)}
+                                >
+                                    <Shield className="h-4 w-4" />
+                                    <span>Security</span>
                                 </Link>
                                 <button
                                     onClick={() => {

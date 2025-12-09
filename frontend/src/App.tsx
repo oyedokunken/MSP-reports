@@ -11,6 +11,7 @@ import CustomerList from '@/pages/customers/CustomerList'
 import CustomerIntegrationDetails from '@/pages/customers/CustomerIntegrationDetails'
 import ScheduleList from '@/pages/schedules/ScheduleList'
 import Settings from '@/pages/settings/Settings'
+import Security from '@/pages/security/Security'
 import ForgotPassword from '@/pages/auth/pages/ForgotPassword'
 import ResetPassword from '@/pages/auth/pages/ResetPassword'
 import ContactAdmin from '@/pages/auth/pages/ContactAdmin'
@@ -267,6 +268,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
             <Settings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/security"
+        element={
+          <ProtectedRoute>
+            <Security />
           </ProtectedRoute>
         }
       />

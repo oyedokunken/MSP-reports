@@ -5,7 +5,6 @@ import {
   Cable,
   Users,
   FileText,
-  Settings as SettingsIcon,
   Calendar,
   Bell,
   UserPlus,
@@ -56,11 +55,6 @@ export default function AppSidebar() {
     { path: '/admin/api-keys', icon: Key, label: 'API Keys', show: hasPermission(user, 'company_settings', 'view') },
     { path: '/admin/licenses', icon: Key, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view') },
     { path: '/admin/monitoring', icon: Activity, label: 'Monitoring', show: hasPermission(user, 'company_settings', 'view') },
-  ].filter(item => item.show !== false)
-
-
-  const bottomItems = [
-    { path: '/admin/settings', icon: SettingsIcon, label: 'Settings', show: hasPermission(user, 'company_settings', 'view') },
   ].filter(item => item.show !== false)
 
   const isActive = (path: string) => {
@@ -239,29 +233,7 @@ export default function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="px-3 pb-3 group-data-[collapsible=icon]:px-2">
-        <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2">
-          {bottomItems.map((item) => {
-            const Icon = item.icon
-            const active = isActive(item.path)
-            return (
-              <SidebarMenuItem key={item.path}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={active}
-                  tooltip={item.label}
-                  className="rounded-lg group-data-[collapsible=icon]:!p-0"
-                  style={active ? { background: 'var(--brand-gradient)' } : undefined}
-                >
-                  <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
-                    <Icon className="h-4 w-4 flex-shrink-0" />
-                    <span className="font-medium group-data-[collapsible=icon]:hidden">{item.label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )
-          })}
-        </SidebarMenu>
-        <div className="mt-3 pt-3 border-t border-sidebar-border group-data-[collapsible=icon]:mt-2 group-data-[collapsible=icon]:pt-2">
+        <div className="border-t border-sidebar-border pt-3 group-data-[collapsible=icon]:pt-2">
           <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-sidebar-accent/50 cursor-pointer transition-colors group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-1">
             <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
               <span className="text-primary font-semibold text-xs">{initials}</span>
