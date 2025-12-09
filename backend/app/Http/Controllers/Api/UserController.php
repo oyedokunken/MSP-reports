@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\AuditLog;
 use App\Services\LicenseChecker;
+use App\Rules\StrongPassword;
 
 class UserController extends Controller
 {
@@ -377,7 +378,7 @@ class UserController extends Controller
         }
 
         $validated = $request->validate([
-            'new_password' => 'required|string|min:8',
+            'new_password' => ['required', 'string', new StrongPassword()],
         ]);
 
         $user->password = Hash::make($validated['new_password']);

@@ -1,5 +1,4 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
@@ -21,16 +20,19 @@ Route::get('/health', [HealthCheckController::class, 'index']);
 
 Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
 
-    // Auth Routes
-    Route::post('/auth/login', [AuthController::class, 'authLogin']);
+    // Auth Routes - Stricter rate limiting for security-sensitive endpoints
+    Route::middleware(['throttle:10,1'])->group(function () {
+        Route::post('/auth/login', [AuthController::class, 'authLogin']);
+        Route::post('/auth/password/request', [AuthController::class, 'requestPasswordReset']);
+        Route::post('/auth/password/reset', [AuthController::class, 'resetPassword']);
+    });
+    
     Route::post('/auth/logout', [AuthController::class, 'authLogout'])->middleware('auth:sanctum');
     Route::get('/auth/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
-    Route::post('/auth/password/request', [AuthController::class, 'requestPasswordReset']);
-    Route::post('/auth/password/reset', [AuthController::class, 'resetPassword']);
     Route::post('/auth/password/change', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');
 
     // Company Routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/company/settings', [CompanyController::class, 'getSettings']);
         Route::patch('/company/settings', [CompanyController::class, 'updateSettings']);
         Route::patch('/company/branding', [CompanyController::class, 'updateBranding']);
@@ -39,7 +41,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     });
 
     // Users Routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/users', [UserController::class, 'getUser']);
         Route::post('/users', [UserController::class, 'createUser']);
         Route::patch('/users/{id}', [UserController::class, 'updateUser']);
@@ -51,7 +53,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     });
 
     // Integrations Routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/integrations', [IntegrationController::class, 'getIntegrations']);
         Route::get('/integrations/config/{integrationType}', [IntegrationController::class, 'getIntegrationTypeConfig']);
         Route::post('/integrations', [IntegrationController::class, 'createIntegration']);
@@ -85,7 +87,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     });
 
     // Customer Mapping Routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/customers', [CustomerMappingController::class, 'getCustomers']);
         Route::get('/customers/unmapped', [CustomerMappingController::class, 'getUnmappedCustomers']);
         Route::post('/customers/map', [CustomerMappingController::class, 'mapCustomer']);
@@ -98,7 +100,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     });
 
     // Report Configuration Routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/reports', [ReportConfigController::class, 'getAvailableReports']);
         Route::get('/customers/{id}/available-reports', [ReportConfigController::class, 'getAvailableReportsForCustomer']);
         Route::get('/customers/{id}/reports', [ReportConfigController::class, 'getCustomerReports']);
@@ -108,7 +110,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     });
 
     // Reporting & Analytics Routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/reports/scheduled', [ReportAnalyticsController::class, 'getScheduledReports']);
         Route::get('/reports/history', [ReportAnalyticsController::class, 'getReportHistory']);
         Route::get('/reports/{id}/download', [ReportAnalyticsController::class, 'downloadReport']);
@@ -118,11 +120,13 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::delete('/reports/schedules/{id}', [ReportAnalyticsController::class, 'deleteSchedule']);
     });
 
-    // Public shared report download (no auth required)
-    Route::get('/reports/shared/{token}', [ReportAnalyticsController::class, 'downloadSharedReport']);
+    // Public shared report download (no auth required) - Rate limited to prevent abuse
+    Route::middleware(['throttle:30,1'])->group(function () {
+        Route::get('/reports/shared/{token}', [ReportAnalyticsController::class, 'downloadSharedReport']);
+    });
 
     // License Management Routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/licenses', [LicenseController::class, 'index']);
         Route::get('/licenses/usage', [LicenseController::class, 'getLicenseUsage']);
         Route::post('/licenses/check/integration', [LicenseController::class, 'checkIntegrationLicense']);
@@ -131,7 +135,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     });
 
     // Monitoring & Health Routes
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/monitoring/status', [HealthCheckController::class, 'status']);
         Route::get('/monitoring/integrations', [HealthCheckController::class, 'integrationMetrics']);
         Route::get('/monitoring/reports', [HealthCheckController::class, 'reportMetrics']);

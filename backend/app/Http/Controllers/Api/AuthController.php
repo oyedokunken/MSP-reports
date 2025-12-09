@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\LoginRequest;
 use App\Mail\PasswordResetMail;
+use App\Rules\StrongPassword;
 
 class AuthController extends Controller
 {
@@ -211,7 +212,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'email' => 'required|email',
             'token' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'confirmed', new StrongPassword()],
         ]);
 
         $email = trim(strtolower($validated['email']));
@@ -277,7 +278,7 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed',
+            'new_password' => ['required', 'string', 'confirmed', new StrongPassword()],
         ]);
         
         if (!Hash::check($validated['current_password'], $user->password)) {

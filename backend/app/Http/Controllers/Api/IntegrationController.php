@@ -204,17 +204,19 @@ class IntegrationController extends Controller
 
         $credentials = $validated['credentials'] ?? [];
         
-        Log::info('Credentials received', [
+        // Log integration creation attempt (credentials masked for security)
+        Log::info('Integration credentials received', [
             'integration_type' => $validated['integration_type'],
-            'credentials' => $credentials,
+            'credential_keys' => array_keys($credentials),
         ]);
         
         $credentials = array_filter($credentials, function($value) {
             return $value !== null && $value !== '';
         });
         
-        Log::info('Credentials after filtering', [
-            'credentials' => $credentials,
+        Log::debug('Credentials filtered', [
+            'credential_keys' => array_keys($credentials),
+            'count' => count($credentials),
         ]);
         
         // Datto: map rmm_region to rmm_url, or use default if not provided
@@ -232,7 +234,7 @@ class IntegrationController extends Controller
         if ($validated['integration_type'] === 'LibreNMS') {
             if (!isset($credentials['base_url']) && isset($credentials['api_token'])) {
                 $credentials['base_url'] = 'https://nms.arafuracloud.com.au/api/v0';
-                Log::info('LibreNMS: Added default base_url', ['credentials' => $credentials]);
+                Log::debug('LibreNMS: Added default base_url');
             }
             // Ensure base_url doesn't have trailing slash
             if (isset($credentials['base_url'])) {

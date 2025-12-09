@@ -454,11 +454,11 @@ class CustomerMappingController extends Controller
                         ->count(),
                     'open' => IntegrationData::where('integration_customer_id', $integrationCustomerId)
                         ->where('data_type', 'ticket')
-                        ->whereRaw("(data_payload->>'status')::int != 5")
+                        ->whereRaw("(data_payload->>'status')::int != ?", [5])
                         ->count(),
                     'completed' => IntegrationData::where('integration_customer_id', $integrationCustomerId)
                         ->where('data_type', 'ticket')
-                        ->whereRaw("(data_payload->>'status')::int = 5")
+                        ->whereRaw("(data_payload->>'status')::int = ?", [5])
                         ->count(),
                     'top_technicians' => $technicianStats,
                 ],
@@ -480,7 +480,7 @@ class CustomerMappingController extends Controller
                         ->count(),
                     'active' => IntegrationData::where('integration_customer_id', $integrationCustomerId)
                         ->where('data_type', 'contract')
-                        ->whereRaw("(data_payload->>'status')::int = 1")
+                        ->whereRaw("(data_payload->>'status')::int = ?", [1])
                         ->count(),
                 ],
             ];

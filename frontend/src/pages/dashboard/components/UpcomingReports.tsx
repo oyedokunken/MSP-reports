@@ -9,10 +9,7 @@ type UpcomingReportsProps = {
     reports: UpcomingReport[];
 };
 
-export function UpcomingReports({
-    isLoading,
-    reports,
-}: UpcomingReportsProps) {
+export function UpcomingReports({ isLoading, reports }: UpcomingReportsProps) {
     const navigate = useNavigate();
 
     return (

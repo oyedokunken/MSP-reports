@@ -351,23 +351,26 @@ class ReportAnalyticsController extends Controller
             ], 404);
         }
 
-        // Generate a unique token
-        $token = Str::random(64);
+        // Generate a secure token with HMAC signature for tamper detection
+        $secureToken = ReportShareToken::generateSecureToken(
+            $report->generated_report_id,
+            $authUser->company_id
+        );
         
         // Create share token with 1 hour expiry
         $shareToken = ReportShareToken::create([
             'generated_report_id' => $report->generated_report_id,
             'company_id' => $authUser->company_id,
-            'token' => $token,
-            'expires_at' => now()->addHour(),
+            'token' => $secureToken['token'],
+            'signature' => $secureToken['signature'],
+            'expires_at' => $secureToken['expires_at'],
         ]);
 
         // Build the share URL
-        $shareUrl = url("/api/reports/shared/{$token}");
+        $shareUrl = url("/api/reports/shared/{$secureToken['token']}");
 
         Log::info('Share link generated', [
             'report_id' => $report->generated_report_id,
-            'token' => $token,
             'expires_at' => $shareToken->expires_at,
             'user' => $authUser->email,
         ]);
@@ -402,6 +405,18 @@ class ReportAnalyticsController extends Controller
                 'status' => 'error',
                 'message' => 'This share link has expired.'
             ], 410);
+        }
+
+        // Verify HMAC signature to detect tampering
+        if ($shareToken->signature && !$shareToken->verifySignature()) {
+            Log::warning('Share link signature verification failed', [
+                'token' => $token,
+                'report_id' => $shareToken->generated_report_id,
+            ]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid share link.'
+            ], 403);
         }
 
         $report = $shareToken->generatedReport;
