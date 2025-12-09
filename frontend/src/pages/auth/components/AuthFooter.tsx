@@ -9,9 +9,9 @@ export function AuthFooter() {
           Privacy Policy
         </Link>
         {' '}and{' '}
-        <a href="#" className="text-indigo-600 hover:text-indigo-500 underline font-athletics">
+        <Link to="/terms-of-service" className="text-indigo-600 hover:text-indigo-500 underline font-athletics">
           Terms of Service
-        </a>
+        </Link>
       </p>
     </div>
   );

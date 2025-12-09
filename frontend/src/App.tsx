@@ -34,6 +34,7 @@ import { ApiKeysList } from '@/pages/api-keys'
 import Licenses from '@/pages/licenses/Licenses'
 import Monitoring from '@/pages/monitoring/Monitoring'
 import NotificationsPage from '@/pages/notifications/NotificationsPage'
+import { PrivacyPolicy, TermsOfService } from '@/pages/legal'
 import { Loader2 } from 'lucide-react'
 
 
@@ -101,6 +102,8 @@ function AppRoutes() {
         <Route path="forgot-password" element={<ForgotPassword />} />
         <Route path="reset-password" element={<ResetPassword />} />
         <Route path="contact-admin" element={<ContactAdmin />} />
+        <Route path="privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="terms-of-service" element={<TermsOfService />} />
       </Route>
 
       {/* Protected routes */}
