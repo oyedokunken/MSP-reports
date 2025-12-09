@@ -123,7 +123,8 @@ class ReportAnalyticsController extends Controller
     {
         $authUser = $request->user();
 
-        $report = GeneratedReport::where('generated_report_id', $id)
+        $report = GeneratedReport::withTrashed()
+            ->where('generated_report_id', $id)
             ->where('company_id', $authUser->company_id)
             ->with(['customer:customer_id,canonical_name', 'reportSchedule:report_schedule_id,report_type'])
             ->first();
