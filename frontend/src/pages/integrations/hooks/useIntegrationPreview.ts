@@ -19,6 +19,8 @@ export function useIntegrationPreview() {
   const [isExporting, setIsExporting] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
   const [showDownloadConfirm, setShowDownloadConfirm] = useState(false)
+  const [deliverViaEmail, setDeliverViaEmail] = useState(false)
+  const [emailTo, setEmailTo] = useState('')
 
   const customerId = searchParams.get('customer_id')
 
@@ -111,12 +113,26 @@ export function useIntegrationPreview() {
       const currentDate = new Date()
       await reportApi.downloadLicenseConsumptionReport(
         currentDate.getMonth() + 1, // JavaScript months are 0-indexed
-        currentDate.getFullYear()
+        currentDate.getFullYear(),
+        deliverViaEmail ? emailTo : undefined,
+        undefined // emailFrom will be the logged-in user's email from backend
       )
-      toast.success('Report Downloaded', 'License consumption report has been downloaded successfully')
+      
+      if (deliverViaEmail) {
+        toast.success('Email Sent', `License consumption report has been sent to ${emailTo}`)
+        // Reset email fields
+        setDeliverViaEmail(false)
+        setEmailTo('')
+      } else {
+        toast.success('Report Downloaded', 'License consumption report has been downloaded successfully')
+      }
     } catch (err) {
       console.error('Download error:', err)
-      toast.error('Download Failed', 'Failed to download license consumption report')
+      if (deliverViaEmail) {
+        toast.error('Email Failed', 'Failed to send license consumption report via email')
+      } else {
+        toast.error('Download Failed', 'Failed to download license consumption report')
+      }
     } finally {
       setIsDownloading(false)
     }
@@ -148,10 +164,14 @@ export function useIntegrationPreview() {
     isDownloading,
     isITGlueIntegration,
     showDownloadConfirm,
+    deliverViaEmail,
+    emailTo,
     navigate,
     toast,
     setIsExporting,
     setShowDownloadConfirm,
+    setDeliverViaEmail,
+    setEmailTo,
     handleRefresh,
     handleSelectionChange,
     handleBack,

@@ -16,7 +16,11 @@ export const IntegrationPreview = () => {
     isDownloading,
     isITGlueIntegration,
     showDownloadConfirm,
+    deliverViaEmail,
+    emailTo,
     setShowDownloadConfirm,
+    setDeliverViaEmail,
+    setEmailTo,
     handleRefresh,
     handleSelectionChange,
     handleBack,
@@ -85,13 +89,50 @@ export const IntegrationPreview = () => {
       {/* Download Confirmation Modal */}
       {showDownloadConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Download M365 License Consumption Report
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               This will generate an Excel file containing M365 license consumption data for all customers in your ITGlue integration.
             </p>
+            
+            {/* Deliver via Email Checkbox */}
+            <div className="mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={deliverViaEmail}
+                  onChange={(e) => setDeliverViaEmail(e.target.checked)}
+                  className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:bg-gray-700 dark:border-gray-600"
+                />
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  Deliver via Email
+                </span>
+              </label>
+            </div>
+
+            {/* Email Fields (shown when checkbox is checked) */}
+            {deliverViaEmail && (
+              <div className="space-y-3 mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Send To
+                  </label>
+                  <input
+                    type="email"
+                    value={emailTo}
+                    onChange={(e) => setEmailTo(e.target.value)}
+                    placeholder="recipient@example.com"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    The report will be sent from your account
+                  </p>
+                </div>
+              </div>
+            )}
+            
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowDownloadConfirm(false)}
@@ -101,9 +142,10 @@ export const IntegrationPreview = () => {
               </button>
               <button
                 onClick={confirmDownload}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors"
+                disabled={deliverViaEmail && !emailTo}
+                className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                OK, Generate Report
+                {deliverViaEmail ? 'Send Email' : 'OK, Generate Report'}
               </button>
             </div>
           </div>

@@ -12,16 +12,28 @@ export const reportApi = {
      * 
      * @param month - Optional month (1-12), defaults to current month
      * @param year - Optional year (YYYY), defaults to current year
-     * @returns Promise that triggers file download
+     * @param emailTo - Optional email recipient
+     * @param emailFrom - Optional email sender
+     * @returns Promise that triggers file download or sends email
      */
-    async downloadLicenseConsumptionReport(month?: number, year?: number): Promise<void> {
+    async downloadLicenseConsumptionReport(month?: number, year?: number, emailTo?: string, emailFrom?: string): Promise<void> {
         try {
             const params = new URLSearchParams()
             if (month) params.append('month', month.toString())
             if (year) params.append('year', year.toString())
+            if (emailTo) params.append('email_to', emailTo)
+            if (emailFrom) params.append('email_from', emailFrom)
 
             const url = `/reports/itglue/license-consumption${params.toString() ? `?${params.toString()}` : ''}`
 
+            // If sending via email, don't expect blob response
+            if (emailTo && emailFrom) {
+                await apiClient.get(url)
+                // Email sent successfully, no download needed
+                return
+            }
+
+            // Otherwise, download the file
             const response = await apiClient.get(url, {
                 responseType: 'blob', // Important: Handle binary data
             })
