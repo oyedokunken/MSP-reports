@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\LicenseController;
 use App\Http\Controllers\Api\HealthCheckController;
 use App\Http\Controllers\Api\ActiveDirectoryController;
 use App\Http\Controllers\Api\ExchangeController;
+use App\Http\Controllers\Admin\ITGlueReportController;
 
 // All routes are automatically prefixed with /api
 
@@ -118,6 +119,9 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::post('/reports/{id}/share', [ReportAnalyticsController::class, 'generateShareLink']);
         Route::delete('/reports/{id}', [ReportAnalyticsController::class, 'deleteReport']);
         Route::delete('/reports/schedules/{id}', [ReportAnalyticsController::class, 'deleteSchedule']);
+        
+        // ITGlue Reports
+        Route::get('/reports/itglue/license-consumption', [ITGlueReportController::class, 'downloadLicenseReport']);
     });
 
     // Public shared report download (no auth required) - Rate limited to prevent abuse
