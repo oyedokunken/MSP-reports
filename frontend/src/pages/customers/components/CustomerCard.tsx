@@ -50,7 +50,7 @@ export function CustomerCard({
             <p className="text-xs text-muted-foreground truncate">
               {customer.integrations.length} integration{customer.integrations.length !== 1 ? 's' : ''}
             </p>
-          </div>
+          </div> 
         </div>
         <Badge
           variant={customer.status === 'active' ? 'default' : 'secondary'}
