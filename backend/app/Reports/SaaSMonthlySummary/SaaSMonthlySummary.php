@@ -54,14 +54,22 @@ class SaaSMonthlySummary extends BaseReport
         // Gather all security events
         $events = $this->dataGatherer->gatherSecurityEvents($customer, $integrationCustomerIds, $startDate, $endDate);
 
-        // If no events in date range, try to get any available data
+        // If no events in date range, try to get any available data from the last 3 months
+        $actualStartDate = $startDate;
+        $actualEndDate = $endDate;
         if ($events->isEmpty()) {
+            $fallbackStart = $startDate->copy()->subMonths(3);
             $events = $this->dataGatherer->gatherSecurityEvents(
                 $customer,
                 $integrationCustomerIds,
-                $startDate->copy()->subMonths(3),
+                $fallbackStart,
                 $endDate
             );
+            
+            // Update actual date range to reflect the data we found
+            if ($events->isNotEmpty()) {
+                $actualStartDate = $fallbackStart;
+            }
         }
 
         // Gather analytics
@@ -87,8 +95,8 @@ class SaaSMonthlySummary extends BaseReport
             'device_statistics' => $deviceStats,
             'total_events' => $events->count(),
             'date_range' => [
-                'start' => $startDate->format('F j, Y'),
-                'end' => $endDate->format('F j, Y'),
+                'start' => $actualStartDate->format('F j, Y'),
+                'end' => $actualEndDate->format('F j, Y'),
             ],
         ];
     }
