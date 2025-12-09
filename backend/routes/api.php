@@ -127,6 +127,8 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     // Public shared report download (no auth required) - Rate limited to prevent abuse
     Route::middleware(['throttle:30,1'])->group(function () {
         Route::get('/reports/shared/{token}', [ReportAnalyticsController::class, 'downloadSharedReport']);
+        Route::get('/reports/librenms/devices/preview', [App\Http\Controllers\Admin\LibreNMSReportController::class, 'previewDeviceReport']);
+        Route::get('/reports/librenms/devices', [App\Http\Controllers\Admin\LibreNMSReportController::class, 'downloadDeviceReport']);
     });
 
     // License Management Routes
