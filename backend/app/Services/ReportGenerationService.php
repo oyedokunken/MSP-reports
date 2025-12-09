@@ -400,6 +400,13 @@ class ReportGenerationService
                     'security_summary' => $reportData['security_summary'] ?? [],
                     'devices' => $reportData['devices'] ?? [],
                     'uptime_metrics' => $reportData['uptime_metrics'] ?? [],
+                    // SaaS Monthly Summary specific variables
+                    'user_activity' => $reportData['user_activity'] ?? [],
+                    'geographic_data' => $reportData['geographic_data'] ?? [],
+                    'application_usage' => $reportData['application_usage'] ?? [],
+                    'threat_statistics' => $reportData['threat_statistics'] ?? [],
+                    'device_statistics' => $reportData['device_statistics'] ?? [],
+                    'date_range' => $reportData['date_range'] ?? [],
                 ])->render();
             }
         }
