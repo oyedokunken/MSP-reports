@@ -89,7 +89,7 @@ export const useSignin = () => {
     const [showPassword, setShowPassword] = useState(false);
 
     const authForm = useAuthForm({
-        redirectTo: '/dashboard',
+        redirectTo: '/platform/dashboard',
         onSuccess: () => {
             toast.success('Login Successful', 'Welcome back!')
         },

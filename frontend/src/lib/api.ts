@@ -21,7 +21,13 @@ const apiClient: AxiosInstance = axios.create({
 
 apiClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem("auth_token");
+        // Check both localStorage and sessionStorage for auth token
+        // User might have logged in with or without "Remember Me"
+        let token = localStorage.getItem("auth_token");
+        if (!token) {
+            token = sessionStorage.getItem("auth_token");
+        }
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -42,9 +48,13 @@ apiClient.interceptors.response.use(
             const isShareRequest = error.config?.url?.includes("/share");
 
             if (!isLogoutRequest && !isShareRequest) {
+                // Clear auth data from both storages
                 localStorage.removeItem("auth_token");
                 localStorage.removeItem("user");
                 localStorage.removeItem("company");
+                sessionStorage.removeItem("auth_token");
+                sessionStorage.removeItem("user");
+                sessionStorage.removeItem("company");
 
                 if (window.location.pathname !== "/login") {
                     window.location.replace("/login");

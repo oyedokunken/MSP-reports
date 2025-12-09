@@ -40,12 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Check localStorage first, then sessionStorage
             const storageType = localStorage.getItem("auth_storage_type");
             const storage = storageType === "session" ? sessionStorage : localStorage;
-            
+
             // Also check sessionStorage if localStorage doesn't have token
             let token = storage.getItem("auth_token");
             let userStr = storage.getItem("user");
             let companyStr = storage.getItem("company");
-            
+
             // Fallback: check the other storage if primary is empty
             if (!token) {
                 const fallbackStorage = storageType === "session" ? localStorage : sessionStorage;
@@ -78,10 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     });
 
                     // Optionally verify token with backend (non-blocking)
-                    refreshUser().catch(() => {
-                        // Silently fail - user can still use the app with cached data
-                        console.warn("Failed to refresh user data");
-                    });
+                    // DISABLED: This can cause race conditions and redirect loops
+                    // refreshUser().catch(() => {
+                    //     // Silently fail - user can still use the app with cached data
+                    //     console.warn("Failed to refresh user data");
+                    // });
                 } catch (error) {
                     console.error("Failed to parse stored user:", error);
                     setState((prev) => ({ ...prev, isLoading: false }));
@@ -98,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const login = async (credentials: LoginCredentials) => {
         const { rememberMe, ...apiCredentials } = credentials;
-        
+
         const response = await api.post<LoginResponse>(
             "/auth/login",
             apiCredentials
@@ -116,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // localStorage persists across browser sessions
         // sessionStorage clears when browser/tab is closed
         const storage = rememberMe ? localStorage : sessionStorage;
-        
+
         // Clear both storages first to avoid conflicts
         localStorage.removeItem("auth_token");
         localStorage.removeItem("user");
@@ -124,12 +125,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionStorage.removeItem("auth_token");
         sessionStorage.removeItem("user");
         sessionStorage.removeItem("company");
-        
+
         // Store in appropriate storage
         storage.setItem("auth_token", token);
         storage.setItem("user", JSON.stringify(user));
         storage.setItem("company", JSON.stringify(companyData));
-        
+
         // Also store which storage type was used
         localStorage.setItem("auth_storage_type", rememberMe ? "local" : "session");
 
@@ -182,7 +183,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (response.success && response.data) {
                 const user = response.data;
-                localStorage.setItem("user", JSON.stringify(user));
+
+                // Save to the correct storage based on how the user logged in
+                const storageType = localStorage.getItem("auth_storage_type");
+                const storage = storageType === "session" ? sessionStorage : localStorage;
+                storage.setItem("user", JSON.stringify(user));
 
                 setState((prev) => ({
                     ...prev,
