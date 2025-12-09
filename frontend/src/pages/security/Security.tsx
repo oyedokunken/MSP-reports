@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { ChangePasswordModal } from '@/components/modals/ChangePasswordModal'
+import { ApiKeyModal } from '@/components/modals/ApiKeyModal'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/button'
 import { Shield } from 'lucide-react'
@@ -9,6 +10,8 @@ import { useSettingsStore } from '@/stores/useSettingsStore'
 export default function Security() {
   const toast = useToast()
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false)
+  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false)
+  const [newApiKey, setNewApiKey] = useState('')
   
   const apiKeyMasked = useSettingsStore(state => state.apiKeyMasked)
   const lastGenerated = useSettingsStore(state => state.lastGenerated)
@@ -19,7 +22,8 @@ export default function Security() {
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('')
     setLastGenerated(random)
-    alert('New API key generated. Copy it now; it will only be shown once.\n\n' + random)
+    setNewApiKey(random)
+    setApiKeyModalOpen(true)
   }
 
   return (
@@ -93,6 +97,18 @@ export default function Security() {
         onSuccess={() => {
           toast.success('Password Changed', 'Your password has been updated successfully')
         }}
+      />
+
+      {/* API Key Modal */}
+      <ApiKeyModal
+        open={apiKeyModalOpen}
+        onOpenChange={(open) => {
+          setApiKeyModalOpen(open)
+          if (!open) {
+            toast.success('API Key Saved', 'Make sure you have stored your API key securely')
+          }
+        }}
+        apiKey={newApiKey}
       />
     </FloatingLayout>
   )
