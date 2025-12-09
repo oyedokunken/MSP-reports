@@ -366,8 +366,9 @@ class ReportAnalyticsController extends Controller
             'expires_at' => $secureToken['expires_at'],
         ]);
 
-        // Build the share URL
-        $shareUrl = url("/api/reports/shared/{$secureToken['token']}");
+        // Build the share URL using the request's base URL for reliable local development
+        $baseUrl = $request->getSchemeAndHttpHost();
+        $shareUrl = "{$baseUrl}/api/reports/shared/{$secureToken['token']}";
 
         Log::info('Share link generated', [
             'report_id' => $report->generated_report_id,
