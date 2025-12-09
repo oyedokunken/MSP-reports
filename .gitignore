@@ -50,3 +50,4 @@ Thumbs.db
 !/backend/public/.htaccess
 !/backend/public/robots.txt
 !/backend/public/favicon.ico
+.agent/
