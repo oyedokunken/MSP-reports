@@ -3,7 +3,7 @@
 namespace App\Reports\SaaSMonthlySummary;
 
 use App\Models\Customer;
-use App\Reports\BaseReport;
+use App\Reports\Contracts\BaseReport;
 use Carbon\Carbon;
 
 class SaaSMonthlySummary extends BaseReport
