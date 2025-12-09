@@ -48,6 +48,7 @@ export interface LoginCredentials {
   email: string
   password: string
   auth_method?: 'local' | 'saml' | 'm365' | 'ldap'
+  rememberMe?: boolean
 }
 
 export interface Company {

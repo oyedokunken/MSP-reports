@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Link } from "react-router-dom";
@@ -16,6 +17,9 @@ interface SigninFormProps {
   onSubmit: (e: React.FormEvent) => void;
 }
 
+// Email validation regex
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 export function SigninForm({
   email,
   password,
@@ -29,8 +33,73 @@ export function SigninForm({
   onShowPasswordToggle,
   onSubmit,
 }: SigninFormProps) {
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [touched, setTouched] = useState({ email: false, password: false });
+
+  const validateEmail = (value: string): string | null => {
+    if (!value.trim()) {
+      return 'Email address is required';
+    }
+    if (!EMAIL_REGEX.test(value)) {
+      return 'Please enter a valid email address';
+    }
+    return null;
+  };
+
+  const validatePassword = (value: string): string | null => {
+    if (!value) {
+      return 'Password is required';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return null;
+  };
+
+  const handleEmailChange = (value: string) => {
+    onEmailChange(value);
+    if (touched.email) {
+      setEmailError(validateEmail(value));
+    }
+  };
+
+  const handlePasswordChange = (value: string) => {
+    onPasswordChange(value);
+    if (touched.password) {
+      setPasswordError(validatePassword(value));
+    }
+  };
+
+  const handleEmailBlur = () => {
+    setTouched(prev => ({ ...prev, email: true }));
+    setEmailError(validateEmail(email));
+  };
+
+  const handlePasswordBlur = () => {
+    setTouched(prev => ({ ...prev, password: true }));
+    setPasswordError(validatePassword(password));
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate all fields
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password);
+    
+    setEmailError(emailErr);
+    setPasswordError(passwordErr);
+    setTouched({ email: true, password: true });
+    
+    // Only submit if no errors
+    if (!emailErr && !passwordErr) {
+      onSubmit(e);
+    }
+  };
+
   return (
-    <form className="space-y-6" onSubmit={onSubmit}>
+    <form className="space-y-6" onSubmit={handleFormSubmit} noValidate>
       {/* Email Field */}
       <div>
         <label htmlFor="email" className="block text-sm text-left font-medium text-gray-700 mb-2 font-athletics">
@@ -41,13 +110,22 @@ export function SigninForm({
           name="email"
           type="email"
           autoComplete="email"
-          required
           value={email}
-          onChange={(e) => onEmailChange(e.target.value)}
+          onChange={(e) => handleEmailChange(e.target.value)}
+          onBlur={handleEmailBlur}
           disabled={isSubmitting}
-          className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out"
+          aria-invalid={!!emailError}
+          aria-describedby={emailError ? "email-error" : undefined}
+          className={`appearance-none relative block w-full px-4 py-3 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out ${
+            emailError && touched.email
+              ? 'border-red-500 focus:ring-red-500'
+              : 'border-gray-300'
+          }`}
           placeholder="admin@example.com"
         />
+        {emailError && touched.email && (
+          <p id="email-error" className="mt-1 text-sm text-red-600">{emailError}</p>
+        )}
       </div>
 
       {/* Password Field */}
@@ -61,11 +139,17 @@ export function SigninForm({
             name="password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
-            required
             value={password}
-            onChange={(e) => onPasswordChange(e.target.value)}
+            onChange={(e) => handlePasswordChange(e.target.value)}
+            onBlur={handlePasswordBlur}
             disabled={isSubmitting}
-            className="appearance-none relative block w-full px-4 py-3 pr-12 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out"
+            aria-invalid={!!passwordError}
+            aria-describedby={passwordError ? "password-error" : undefined}
+            className={`appearance-none relative block w-full px-4 py-3 pr-12 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out ${
+              passwordError && touched.password
+                ? 'border-red-500 focus:ring-red-500'
+                : 'border-gray-300'
+            }`}
             placeholder="*******"
           />
           <button
@@ -81,6 +165,9 @@ export function SigninForm({
             )}
           </button>
         </div>
+        {passwordError && touched.password && (
+          <p id="password-error" className="mt-1 text-sm text-red-600">{passwordError}</p>
+        )}
       </div>
 
       {/* Remember Me and Forgot Password */}

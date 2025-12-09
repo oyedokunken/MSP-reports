@@ -34,12 +34,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     const [company, setCompany] = useState<Company | null>(null);
 
-    // Initialize auth state from localStorage
+    // Initialize auth state from localStorage or sessionStorage
     useEffect(() => {
         const initializeAuth = async () => {
-            const token = localStorage.getItem("auth_token");
-            const userStr = localStorage.getItem("user");
-            const companyStr = localStorage.getItem("company");
+            // Check localStorage first, then sessionStorage
+            const storageType = localStorage.getItem("auth_storage_type");
+            const storage = storageType === "session" ? sessionStorage : localStorage;
+            
+            // Also check sessionStorage if localStorage doesn't have token
+            let token = storage.getItem("auth_token");
+            let userStr = storage.getItem("user");
+            let companyStr = storage.getItem("company");
+            
+            // Fallback: check the other storage if primary is empty
+            if (!token) {
+                const fallbackStorage = storageType === "session" ? localStorage : sessionStorage;
+                token = fallbackStorage.getItem("auth_token");
+                userStr = fallbackStorage.getItem("user");
+                companyStr = fallbackStorage.getItem("company");
+            }
 
             if (token && userStr) {
                 try {
@@ -84,9 +97,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const login = async (credentials: LoginCredentials) => {
+        const { rememberMe, ...apiCredentials } = credentials;
+        
         const response = await api.post<LoginResponse>(
             "/auth/login",
-            credentials
+            apiCredentials
         );
 
         if (!response.data) {
@@ -97,10 +112,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = response.data.token;
         const companyData = response.data.company;
 
-        // Store in localStorage
-        localStorage.setItem("auth_token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("company", JSON.stringify(companyData));
+        // Use localStorage for "Remember Me", sessionStorage otherwise
+        // localStorage persists across browser sessions
+        // sessionStorage clears when browser/tab is closed
+        const storage = rememberMe ? localStorage : sessionStorage;
+        
+        // Clear both storages first to avoid conflicts
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("company");
+        sessionStorage.removeItem("auth_token");
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("company");
+        
+        // Store in appropriate storage
+        storage.setItem("auth_token", token);
+        storage.setItem("user", JSON.stringify(user));
+        storage.setItem("company", JSON.stringify(companyData));
+        
+        // Also store which storage type was used
+        localStorage.setItem("auth_storage_type", rememberMe ? "local" : "session");
 
         // Set branding from company settings
         if (companyData?.settings?.white_label) {
@@ -123,12 +154,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
             console.error("Logout error:", error);
         } finally {
-            // Clear local state regardless of API call success
+            // Clear both storages regardless of API call success
             localStorage.removeItem("auth_token");
             localStorage.removeItem("user");
             localStorage.removeItem("company");
+            localStorage.removeItem("auth_storage_type");
             localStorage.removeItem("sidebar_state"); // Reset sidebar to expanded on next login
             localStorage.removeItem("vite-ui-theme"); // Reset theme to system default on next login
+            sessionStorage.removeItem("auth_token");
+            sessionStorage.removeItem("user");
+            sessionStorage.removeItem("company");
             setBranding(null);
 
             setState({

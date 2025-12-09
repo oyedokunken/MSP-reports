@@ -8,10 +8,11 @@ interface UseAuthFormOptions {
     redirectTo?: string;
     onSuccess?: () => void;
     onError?: (error: Error) => void;
+    getRememberMe?: () => boolean;
 }
 
 export function useAuthForm(options: UseAuthFormOptions = {}) {
-    const { redirectTo = "/dashboard", onSuccess, onError } = options;
+    const { redirectTo = "/dashboard", onSuccess, onError, getRememberMe } = options;
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -38,6 +39,7 @@ export function useAuthForm(options: UseAuthFormOptions = {}) {
                 email,
                 password,
                 auth_method: "local", // Default to local auth
+                rememberMe: getRememberMe?.() ?? false,
             });
 
             // Success callback
@@ -93,7 +95,8 @@ export const useSignin = () => {
         },
         onError: (err) => {
             console.error('Login failed:', err)
-        }
+        },
+        getRememberMe: () => rememberMe,
     });
 
     // Lock body scroll while enterprise auth drawer is open
