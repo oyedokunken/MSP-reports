@@ -636,11 +636,53 @@ Email security concerns to: security@athenanetworks.com.au
 - Multi-layer authentication with MFA support
 - Comprehensive audit logging
 - Rate limiting and brute force protection
-- SQL injection prevention (Eloquent ORM)
+- SQL injection prevention (Eloquent ORM + parameterized queries)
 - XSS prevention (React auto-escaping + CSP headers)
 - CSRF protection (Laravel Sanctum)
 - Encrypted credentials storage
 - Secure session management
+
+### Security Implementations
+
+#### API Rate Limiting
+- **Global rate limit**: 300 requests/minute for authenticated routes
+- **Auth endpoints**: 10 requests/minute for login, password reset (brute force protection)
+- **Public endpoints**: 30 requests/minute for share link downloads
+- Rate limit headers included in responses (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`)
+
+#### Password Policy Enforcement
+Strong password requirements enforced on all password endpoints:
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+- At least one special character
+- Common password blocklist (password123, admin, etc.)
+
+#### Session Timeout
+Server-side session timeout enforcement:
+- **Inactivity timeout**: Configurable per company (default 60 minutes)
+- **Maximum session duration**: 8 hours absolute limit
+- Sessions automatically invalidated on timeout
+- Company-specific settings via `settings.authentication.session_timeout_minutes`
+
+#### Share Link Security
+Report share links include HMAC signatures for tamper detection:
+- 64-character cryptographically random tokens
+- HMAC-SHA256 signature using application key
+- 1-hour expiration
+- Signature verification on download
+- Failed signature attempts logged for security monitoring
+
+#### Credential Protection
+- Integration credentials never logged (only key names logged for debugging)
+- Credentials encrypted at rest using Laravel encryption (AES-256)
+- Per-company encryption keys for credential storage
+
+#### SQL Injection Prevention
+- All database queries use Eloquent ORM or parameterized queries
+- JSONB queries use bound parameters for values
+- Input validation on all API endpoints
 
 ---
 
