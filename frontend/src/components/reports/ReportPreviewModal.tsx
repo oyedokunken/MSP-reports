@@ -66,7 +66,13 @@ export function ReportPreviewModal({
   }, [reportId])
 
   useEffect(() => {
-    if (open && reportId && !pdfUrl) {
+    if (open && reportId) {
+      // Always reload when modal opens or reportId changes
+      // Clean up old URL first if it exists
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl)
+        setPdfUrl(null)
+      }
       loadPdfPreview()
     }
 
