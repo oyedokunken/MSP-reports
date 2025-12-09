@@ -11,6 +11,7 @@ class SaaSDataGatherer
 {
     /**
      * Gather security events for the customer
+     * Limited to 10,000 most recent events to prevent memory issues
      */
     public function gatherSecurityEvents(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
     {
@@ -23,6 +24,7 @@ class SaaSDataGatherer
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->whereBetween('data_timestamp', [$startDate, $endDate])
             ->orderBy('data_timestamp', 'desc')
+            ->limit(10000) // Limit to prevent memory issues with large datasets
             ->get()
             ->map(function ($item) {
                 $payload = $item->data_payload;

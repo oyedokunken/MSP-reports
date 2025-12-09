@@ -145,8 +145,10 @@ class ReportAnalyticsController extends Controller
         $filename = basename($report->file_path);
         
         $customerName = str_replace(' ', '_', $report->customer->canonical_name ?? 'Customer');
+        $customerName = str_replace(['/', '\\'], '-', $customerName); // Remove slashes
         $generatedDate = $report->generated_at->format('Y-m-d');
         $reportType = $report->reportSchedule ? str_replace('_', ' ', $report->reportSchedule->report_type) : 'Report';
+        $reportType = str_replace(['/', '\\'], '-', $reportType); // Remove slashes
         $downloadFilename = "{$customerName}_{$reportType}_{$generatedDate}.pdf";
 
         return Storage::disk('reports')->download($report->file_path, $downloadFilename, [
