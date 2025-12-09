@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import type { IntegrationPreview as IntegrationPreviewType } from '@/types/displayTemplate'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
+import { reportApi } from '@/services/api/reports'
 
 export function useIntegrationPreview() {
   const { integrationId } = useParams<{ integrationId: string }>()
@@ -16,6 +17,8 @@ export function useIntegrationPreview() {
   const [refreshing, setRefreshing] = useState(false)
   const [selectedData, setSelectedData] = useState<Record<string, string[]>>({})
   const [isExporting, setIsExporting] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [showDownloadConfirm, setShowDownloadConfirm] = useState(false)
 
   const customerId = searchParams.get('customer_id')
 
@@ -96,6 +99,43 @@ export function useIntegrationPreview() {
     navigate('/platform/integrations')
   }
 
+  const handleDownloadReport = () => {
+    // Show confirmation modal first
+    setShowDownloadConfirm(true)
+  }
+
+  const confirmDownload = async () => {
+    setShowDownloadConfirm(false)
+    setIsDownloading(true)
+    try {
+      const currentDate = new Date()
+      await reportApi.downloadLicenseConsumptionReport(
+        currentDate.getMonth() + 1, // JavaScript months are 0-indexed
+        currentDate.getFullYear()
+      )
+      toast.success('Report Downloaded', 'License consumption report has been downloaded successfully')
+    } catch (err) {
+      console.error('Download error:', err)
+      toast.error('Download Failed', 'Failed to download license consumption report')
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  // Check if this is ITGlue integration - only check type, not ID
+  const integrationType = preview?.integration?.type?.toLowerCase() || ''
+  const isITGlueIntegration = integrationType === 'itglue' || integrationType.includes('it_glue')
+  
+  // Debug log to verify integration type
+  if (preview?.integration) {
+    console.log('Integration check:', {
+      id: preview.integration.id,
+      type: preview.integration.type,
+      normalizedType: integrationType,
+      isITGlue: isITGlueIntegration
+    })
+  }
+
   return {
     integrationId,
     customerId,
@@ -105,11 +145,17 @@ export function useIntegrationPreview() {
     refreshing,
     selectedData,
     isExporting,
+    isDownloading,
+    isITGlueIntegration,
+    showDownloadConfirm,
     navigate,
     toast,
     setIsExporting,
+    setShowDownloadConfirm,
     handleRefresh,
     handleSelectionChange,
     handleBack,
+    handleDownloadReport,
+    confirmDownload,
   }
 }

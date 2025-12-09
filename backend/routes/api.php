@@ -73,6 +73,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::get('/integrations/{integration}/preview/template', [IntegrationPreviewController::class, 'getTemplate']);
         Route::get('/integrations/{integration}/preview/data', [IntegrationPreviewController::class, 'getPreviewData']);
         Route::get('/integrations/{integration}/preview', [IntegrationPreviewController::class, 'getPreview']);
+        Route::get('/integrations/{integration}/customer-licenses', [IntegrationPreviewController::class, 'getCustomerLicenses']);
     });
 
     // Active Directory Push Routes (from agent)

@@ -30,6 +30,7 @@ export type FormatType =
   | 'boolean'
   | 'link'
   | 'email'
+  | 'license_button'
 
 export type ChartType =
   | 'line'

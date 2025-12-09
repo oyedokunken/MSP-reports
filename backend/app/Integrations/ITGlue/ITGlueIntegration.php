@@ -434,6 +434,120 @@ class ITGlueIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * Override the default display template to customize column names for ITGlue
+     */
+    public function getDisplayTemplate(): array
+    {
+        $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('itglue', 'ITGlue');
+        $builder->description('IT Glue Organizations and Assets');
+        
+        // Customers table with custom "Licenses" column
+        $builder->addSection('customers', 'Organizations', 'table')
+            ->description('Synced organizations from IT Glue')
+            ->icon('Users')
+            ->dataPath('customers')
+            ->tableColumns([
+                ['key' => 'name', 'label' => 'Customer Name', 'sortable' => true, 'filterable' => true, 'width' => '300px'],
+                ['key' => 'licenses', 'label' => 'Licenses', 'sortable' => false, 'filterable' => false, 'format' => 'license_button'],
+                [
+                    'key' => 'active',
+                    'label' => 'Status',
+                    'sortable' => true,
+                    'filterable' => true,
+                    'format' => 'status',
+                    'colorMap' => [
+                        'Active' => 'success',
+                        'Inactive' => 'error',
+                    ],
+                ],
+                ['key' => 'last_seen', 'label' => 'Last Seen', 'sortable' => true, 'format' => 'datetime'],
+            ])
+            ->sortable()
+            ->filterable()
+            ->paginated(25)
+            ->selectable()
+            ->exportable()
+            ->end();
+        
+        // Overview metrics
+        $builder->addSection('metrics', 'Overview', 'grid')
+            ->icon('BarChart3')
+            ->dataPath('metrics')
+            ->gridColumns(3)
+            ->addMetric('total_customers', 'Total Organizations', 'total_customers', 'number', 'Users', 'blue')
+            ->addMetric('active_customers', 'Active Organizations', 'active_customers', 'number', 'CheckCircle', 'green')
+            ->addMetric('last_sync', 'Last Sync', 'last_sync', 'datetime', 'RefreshCw', 'gray')
+            ->end();
+        
+        return $builder->build();
+    }
+
+    /**
+     * Get licenses for a specific customer (called on-demand when modal opens)
+     */
+    public function getCustomerLicenses(int $integrationCustomerId): array
+    {
+        // Get licenses for this customer from IntegrationData
+        $licenses = IntegrationData::where('company_id', $this->integration->company_id)
+            ->where('integration_id', $this->integration->integration_id)
+            ->where('integration_customer_id', $integrationCustomerId)
+            ->where('data_type', 'flexible_asset')
+            ->get()
+            ->filter(function ($data) {
+                // Filter for license-type flexible assets
+                $typeName = $data->data_payload['type_name'] ?? '';
+                return stripos($typeName, 'License') !== false;
+            })
+            ->map(function ($data) {
+                $payload = $data->data_payload;
+                $traits = $payload['traits'] ?? [];
+                
+                // Get license name
+                $licenseName = $traits['license-name'] ?? $payload['name'] ?? 'Unknown License';
+                if (is_array($licenseName)) {
+                    $licenseName = reset($licenseName);
+                }
+                
+                // Get counts
+                $active = $this->getLicenseValue($traits, 'active', 'purchased', 'total-seats');
+                $consumed = $this->getLicenseValue($traits, 'consumed', 'assigned', 'used-seats');
+                $unused = $this->getLicenseValue($traits, 'unused', 'available');
+                
+                return [
+                    'name' => $licenseName,
+                    'active' => (int)$active,
+                    'consumed' => (int)$consumed,
+                    'unused' => (int)$unused,
+                    'utilization' => $active > 0 ? round(($consumed / $active) * 100, 1) : 0,
+                ];
+            })
+            ->values()
+            ->toArray();
+        
+        return $licenses;
+    }
+    
+    /**
+     * Helper to get license value from traits (handles array or single values)
+     */
+    private function getLicenseValue(array $traits, ...$keys): float
+    {
+        foreach ($keys as $key) {
+            if (!isset($traits[$key])) {
+                continue;
+            }
+            
+            $value = $traits[$key];
+            if (is_array($value)) {
+                return array_sum(array_map('floatval', $value));
+            }
+            return (float)$value;
+        }
+        
+        return 0;
+    }
+
     private function storeCustomer(array $customer): void
     {
         $integrationCustomer = IntegrationCustomer::updateOrCreate(

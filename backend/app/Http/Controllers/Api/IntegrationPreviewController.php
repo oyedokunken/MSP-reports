@@ -159,6 +159,61 @@ class IntegrationPreviewController extends Controller
     }
 
     /**
+     * Get licenses for a specific customer (ITGlue only)
+     */
+    public function getCustomerLicenses(Integration $integration, Request $request): JsonResponse
+    {
+        try {
+            // Ensure user has access to this integration
+            if ($integration->company_id !== auth()->user()->company_id) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized',
+                ], 403);
+            }
+
+            $integrationCustomerId = $request->query('customer_id');
+            if (!$integrationCustomerId) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'customer_id is required',
+                ], 400);
+            }
+
+            // Get integration instance
+            $integrationClass = $this->getIntegrationClass($integration);
+            $integrationInstance = new $integrationClass($integration);
+
+            // Check if integration has getCustomerLicenses method
+            if (!method_exists($integrationInstance, 'getCustomerLicenses')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'This integration does not support license fetching',
+                ], 400);
+            }
+
+            $licenses = $integrationInstance->getCustomerLicenses($integrationCustomerId);
+
+            return response()->json([
+                'success' => true,
+                'licenses' => $licenses,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get customer licenses', [
+                'integration_id' => $integration->integration_id,
+                'customer_id' => $request->query('customer_id'),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to load licenses: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Get the integration class from the integration type
      */
     private function getIntegrationClass(Integration $integration): string

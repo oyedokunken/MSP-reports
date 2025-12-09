@@ -1,4 +1,4 @@
-import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Download } from 'lucide-react'
 
 interface PreviewHeaderProps {
   integrationName?: string
@@ -6,6 +6,9 @@ interface PreviewHeaderProps {
   isRefreshing: boolean
   onBack: () => void
   onRefresh: () => void
+  onDownloadReport?: () => void
+  isDownloading?: boolean
+  showDownloadButton?: boolean
 }
 
 export function PreviewHeader({
@@ -14,6 +17,9 @@ export function PreviewHeader({
   isRefreshing,
   onBack,
   onRefresh,
+  onDownloadReport,
+  isDownloading = false,
+  showDownloadButton = false,
 }: PreviewHeaderProps) {
   return (
     <div className="mb-6">
@@ -38,6 +44,17 @@ export function PreviewHeader({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {showDownloadButton && onDownloadReport && (
+            <button
+              onClick={onDownloadReport}
+              disabled={isDownloading}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 border border-primary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Download M365 License Consumption Report"
+            >
+              <Download className={`w-4 h-4 ${isDownloading ? 'animate-bounce' : ''}`} />
+              {isDownloading ? 'Downloading...' : 'M365 Licenses'}
+            </button>
+          )}
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
