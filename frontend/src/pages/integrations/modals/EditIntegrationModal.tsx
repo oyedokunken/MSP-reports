@@ -57,7 +57,7 @@ export function EditIntegrationModal({
       })
 
       // Refresh integrations silently (without showing loading skeleton)
-      await fetchIntegrations(true)
+      await fetchIntegrations(true, true)
 
       setSuccess(true)
       setTimeout(() => {
