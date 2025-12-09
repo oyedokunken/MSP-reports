@@ -297,6 +297,7 @@ export const useCustomerList = () => {
   const searchQuery = useCustomersStore((state) => state.searchQuery)
   const statusFilter = useCustomersStore((state) => state.statusFilter)
   const reportFilter = useCustomersStore((state) => state.reportFilter)
+  const integrationFilter = useCustomersStore((state) => state.integrationFilter)
   const modals = useCustomersStore((state) => state.modals)
   const selectedUnmappedCustomer = useCustomersStore((state) => state.selectedUnmappedCustomer)
   const selectedCustomer = useCustomersStore((state) => state.selectedCustomer)
@@ -308,6 +309,7 @@ export const useCustomerList = () => {
   const setSearchQuery = useCustomersStore((state) => state.setSearchQuery)
   const setStatusFilter = useCustomersStore((state) => state.setStatusFilter)
   const setReportFilter = useCustomersStore((state) => state.setReportFilter)
+  const setIntegrationFilter = useCustomersStore((state) => state.setIntegrationFilter)
   const openModal = useCustomersStore((state) => state.openModal)
   const closeModal = useCustomersStore((state) => state.closeModal)
   const setSelectedUnmappedCustomer = useCustomersStore((state) => state.setSelectedUnmappedCustomer)
@@ -387,6 +389,7 @@ export const useCustomerList = () => {
     searchQuery,
     statusFilter,
     reportFilter,
+    integrationFilter,
     totalMapped,
     mappedCustomers,
     unmappedCustomers,
@@ -401,6 +404,7 @@ export const useCustomerList = () => {
     setSearchQuery,
     setStatusFilter,
     setReportFilter,
+    setIntegrationFilter,
     fetchCustomers,
     openModal,
     closeModal,

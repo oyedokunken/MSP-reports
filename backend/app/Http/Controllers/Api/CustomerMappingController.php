@@ -25,6 +25,7 @@ class CustomerMappingController extends Controller
         $search = $request->input('search');
         $status = $request->input('status');
         $reportFilter = $request->input('report_filter');
+        $integrationType = $request->input('integration_type');
 
         // OPTIMIZED: Server-side filtering and pagination
         $query = Customer::with([
@@ -49,6 +50,13 @@ class CustomerMappingController extends Controller
             $query->has('reportSchedules');
         } elseif ($reportFilter === 'not-configured') {
             $query->doesntHave('reportSchedules');
+        }
+
+        // Apply integration type filter
+        if ($integrationType && $integrationType !== 'all') {
+            $query->whereHas('integrationCustomers.integration', function ($q) use ($integrationType) {
+                $q->where('integration_type', $integrationType);
+            });
         }
 
         $customers = $query->orderBy('canonical_name', 'asc')

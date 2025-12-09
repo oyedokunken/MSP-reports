@@ -19,6 +19,7 @@ export default function CustomerList() {
         searchQuery,
         statusFilter,
         reportFilter,
+        integrationFilter,
         totalMapped,
         mappedCustomers,
         unmappedCustomers,
@@ -33,6 +34,7 @@ export default function CustomerList() {
         setSearchQuery,
         setStatusFilter,
         setReportFilter,
+        setIntegrationFilter,
         fetchCustomers,
         openModal,
         closeModal,
@@ -51,11 +53,13 @@ export default function CustomerList() {
                     searchQuery={searchQuery}
                     statusFilter={statusFilter}
                     reportFilter={reportFilter}
+                    integrationFilter={integrationFilter}
                     totalCustomers={totalMapped}
                     filteredCount={mappedCustomers.length}
                     onSearchChange={setSearchQuery}
                     onStatusChange={setStatusFilter}
                     onReportFilterChange={setReportFilter}
+                    onIntegrationFilterChange={setIntegrationFilter}
                 />
 
                 <UnmappedBanner

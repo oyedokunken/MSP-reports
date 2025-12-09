@@ -27,6 +27,7 @@ export const customerApi = {
         search?: string
         status?: string
         report_filter?: string
+        integration_type?: string
     }): Promise<CustomerListResponse> {
         const queryParams = new URLSearchParams()
         if (params?.page) queryParams.append('page', params.page.toString())
@@ -34,6 +35,9 @@ export const customerApi = {
         if (params?.status && params.status !== 'all') queryParams.append('status', params.status)
         if (params?.report_filter && params.report_filter !== 'all') {
             queryParams.append('report_filter', params.report_filter)
+        }
+        if (params?.integration_type && params.integration_type !== 'all') {
+            queryParams.append('integration_type', params.integration_type)
         }
 
         const url = `/customers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`

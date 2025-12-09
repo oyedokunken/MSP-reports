@@ -1,29 +1,53 @@
+import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Search, Filter } from 'lucide-react'
+import { api } from '@/lib/api'
 
 interface CustomersFiltersProps {
   searchQuery: string
   statusFilter: string
   reportFilter: string
+  integrationFilter: string
   totalCustomers: number
   filteredCount: number
   onSearchChange: (value: string) => void
   onStatusChange: (value: string) => void
   onReportFilterChange: (value: string) => void
+  onIntegrationFilterChange: (value: string) => void
 }
 
 export function CustomersFilters({
   searchQuery,
   statusFilter,
   reportFilter,
+  integrationFilter,
   totalCustomers,
   filteredCount,
   onSearchChange,
   onStatusChange,
   onReportFilterChange,
+  onIntegrationFilterChange,
 }: CustomersFiltersProps) {
-  const hasActiveFilters = searchQuery || statusFilter !== 'all' || reportFilter !== 'all'
+  const [integrationTypes, setIntegrationTypes] = useState<string[]>([])
+  const hasActiveFilters = searchQuery || statusFilter !== 'all' || reportFilter !== 'all' || integrationFilter !== 'all'
+
+  // Fetch available integration types
+  useEffect(() => {
+    const fetchIntegrationTypes = async () => {
+      try {
+        const response = await api.get('/integrations')
+        const data = response as { configured?: Array<{ integration_type?: string }> }
+        if (data.configured) {
+          const types = [...new Set(data.configured.map(int => int.integration_type).filter(Boolean))] as string[]
+          setIntegrationTypes(types)
+        }
+      } catch (error) {
+        console.error('Failed to fetch integration types:', error)
+      }
+    }
+    fetchIntegrationTypes()
+  }, [])
 
   return (
     <div className="space-y-3">
@@ -62,6 +86,23 @@ export function CustomersFilters({
             <SelectItem value="not-configured">Not Configured</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Integration Filter */}
+        {integrationTypes.length > 0 && (
+          <Select value={integrationFilter} onValueChange={onIntegrationFilterChange}>
+            <SelectTrigger className="w-full md:w-[180px]">
+              <SelectValue placeholder="Integration" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Integrations</SelectItem>
+              {integrationTypes.map((type) => (
+                <SelectItem key={type} value={type} className="capitalize">
+                  {type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
       
       {/* Active Filters Display */}

@@ -23,6 +23,7 @@ interface CustomersState {
   searchQuery: string
   statusFilter: string
   reportFilter: string
+  integrationFilter: string
 
   // Modal state
   modals: {
@@ -48,6 +49,7 @@ interface CustomersState {
   setSearchQuery: (query: string) => void
   setStatusFilter: (status: string) => void
   setReportFilter: (filter: string) => void
+  setIntegrationFilter: (filter: string) => void
 
   // Modal actions
   openModal: (modal: keyof CustomersState['modals'], customer?: CustomersState['selectedCustomer']) => void
@@ -74,6 +76,7 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   searchQuery: '',
   statusFilter: 'all',
   reportFilter: 'all',
+  integrationFilter: 'all',
   modals: {
     map: false,
     edit: false,
@@ -94,13 +97,14 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   fetchCustomers: async (page: number = 1, silent: boolean = false) => {
     if (!silent) set({ isLoading: true })
     try {
-      const { searchQuery, statusFilter, reportFilter } = get()
+      const { searchQuery, statusFilter, reportFilter, integrationFilter } = get()
 
       const response = await customerApi.getCustomers({
         page,
         search: searchQuery || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         report_filter: reportFilter !== 'all' ? reportFilter : undefined,
+        integration_type: integrationFilter !== 'all' ? integrationFilter : undefined,
       })
 
       set({
@@ -146,6 +150,10 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   },
   setReportFilter: (filter: string) => {
     set({ reportFilter: filter, currentPage: 1 })
+    get().fetchCustomers(1)
+  },
+  setIntegrationFilter: (filter: string) => {
+    set({ integrationFilter: filter, currentPage: 1 })
     get().fetchCustomers(1)
   },
 
