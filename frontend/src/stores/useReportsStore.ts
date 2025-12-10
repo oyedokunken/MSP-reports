@@ -32,8 +32,8 @@ interface ReportsState {
 
   // Filters
   searchQuery: string
-  statusFilter: string
-  reportTypeFilter: string
+  statusFilters: string[]
+  reportTypeFilters: string[]
 
   // Download state
   downloading: number | null
@@ -48,8 +48,8 @@ interface ReportsState {
 
   // Filter actions
   setSearchQuery: (query: string) => void
-  setStatusFilter: (status: string) => void
-  setReportTypeFilter: (type: string) => void
+  setStatusFilters: (statuses: string[]) => void
+  setReportTypeFilters: (types: string[]) => void
 
   // Computed
   getFilteredReports: () => GeneratedReport[]
@@ -66,8 +66,8 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
   perPage: 9,
   total: 0,
   searchQuery: '',
-  statusFilter: 'all',
-  reportTypeFilter: 'all',
+  statusFilters: [],
+  reportTypeFilters: [],
   downloading: null,
   deleting: null,
 
@@ -176,12 +176,12 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
 
   // Filter actions
   setSearchQuery: (query: string) => set({ searchQuery: query }),
-  setStatusFilter: (status: string) => set({ statusFilter: status }),
-  setReportTypeFilter: (type: string) => set({ reportTypeFilter: type }),
+  setStatusFilters: (statuses: string[]) => set({ statusFilters: statuses }),
+  setReportTypeFilters: (types: string[]) => set({ reportTypeFilters: types }),
 
   // Computed - get filtered reports
   getFilteredReports: () => {
-    const { reports, searchQuery, statusFilter, reportTypeFilter } = get()
+    const { reports, searchQuery, statusFilters, reportTypeFilters } = get()
 
     return reports.filter(report => {
       // Search filter
@@ -190,12 +190,12 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
       }
 
       // Status filter
-      if (statusFilter !== 'all' && report.status !== statusFilter) {
+      if (statusFilters.length > 0 && !statusFilters.includes(report.status)) {
         return false
       }
 
       // Report type filter
-      if (reportTypeFilter !== 'all' && report.report_type !== reportTypeFilter) {
+      if (reportTypeFilters.length > 0 && !reportTypeFilters.includes(report.report_type)) {
         return false
       }
 

@@ -16,14 +16,14 @@ export const useReportsList = () => {
   const downloading = useReportsStore(state => state.downloading)
   const deleting = useReportsStore(state => state.deleting)
   const searchQuery = useReportsStore(state => state.searchQuery)
-  const statusFilter = useReportsStore(state => state.statusFilter)
-  const reportTypeFilter = useReportsStore(state => state.reportTypeFilter)
+  const statusFilters = useReportsStore(state => state.statusFilters)
+  const reportTypeFilters = useReportsStore(state => state.reportTypeFilters)
   const fetchReports = useReportsStore(state => state.fetchReports)
   const downloadReport = useReportsStore(state => state.downloadReport)
   const deleteReport = useReportsStore(state => state.deleteReport)
   const setSearchQuery = useReportsStore(state => state.setSearchQuery)
-  const setStatusFilter = useReportsStore(state => state.setStatusFilter)
-  const setReportTypeFilter = useReportsStore(state => state.setReportTypeFilter)
+  const setStatusFilters = useReportsStore(state => state.setStatusFilters)
+  const setReportTypeFilters = useReportsStore(state => state.setReportTypeFilters)
   const getFilteredReports = useReportsStore(state => state.getFilteredReports)
   const getUniqueReportTypes = useReportsStore(state => state.getUniqueReportTypes)
 
@@ -68,13 +68,13 @@ export const useReportsList = () => {
     downloading,
     deleting,
     searchQuery,
-    statusFilter,
-    reportTypeFilter,
+    statusFilters,
+    reportTypeFilters,
     filteredReports,
     uniqueReportTypes,
     setSearchQuery,
-    setStatusFilter,
-    setReportTypeFilter,
+    setStatusFilters,
+    setReportTypeFilters,
     handleDownload,
     handleDelete
   }

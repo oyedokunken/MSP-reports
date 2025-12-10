@@ -13,13 +13,13 @@ export default function ReportsList() {
     downloading,
     deleting,
     searchQuery,
-    statusFilter,
-    reportTypeFilter,
+    statusFilters,
+    reportTypeFilters,
     filteredReports,
     uniqueReportTypes,
     setSearchQuery,
-    setStatusFilter,
-    setReportTypeFilter,
+    setStatusFilters,
+    setReportTypeFilters,
     handleDownload,
     handleDelete
   } = useReportsList()
@@ -42,12 +42,12 @@ export default function ReportsList() {
 
         <ReportsFilters
           searchQuery={searchQuery}
-          statusFilter={statusFilter}
-          reportTypeFilter={reportTypeFilter}
+          statusFilters={statusFilters}
+          reportTypeFilters={reportTypeFilters}
           uniqueReportTypes={uniqueReportTypes}
           onSearchChange={setSearchQuery}
-          onStatusChange={setStatusFilter}
-          onReportTypeChange={setReportTypeFilter}
+          onStatusFiltersChange={setStatusFilters}
+          onReportTypeFiltersChange={setReportTypeFilters}
         />
 
         <ReportsGrid
