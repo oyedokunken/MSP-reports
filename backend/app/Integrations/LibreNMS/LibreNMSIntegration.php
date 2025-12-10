@@ -144,6 +144,10 @@ class LibreNMSIntegration implements IntegrationInterface
                     // Get device groups
                     $groups = $this->client->getDeviceGroupsForDevice($deviceId);
                     
+                    // Store device details (including groups)
+                    $deviceDetails = LibreNMSMapper::mapDeviceDetails($device, $groups);
+                    $this->storeHistoricalData($deviceDetails);
+
                     // Store device uptime data
                     $uptimeData = LibreNMSMapper::mapDeviceUptime($device);
                     $this->storeHistoricalData($uptimeData);
@@ -285,8 +289,8 @@ class LibreNMSIntegration implements IntegrationInterface
     public function getRateLimits(): array
     {
         return [
-            'requests_per_minute' => 120,
-            'requests_per_hour' => 5000,
+            'requests_per_minute' => 2000, // Massively increased for internal server
+            'requests_per_hour' => 20000,
         ];
     }
 
@@ -320,39 +324,127 @@ class LibreNMSIntegration implements IntegrationInterface
     {
         // For LibreNMS, we don't have integration_customer_id for devices
         // Store with company context only
-        IntegrationData::create([
-            'company_id' => $this->integration->company_id,
+        
+        $matchAttributes = [
             'integration_id' => $this->integration->integration_id,
-            'integration_customer_id' => $data['integration_customer_id'],
             'data_type' => $data['data_type'],
-            'data_timestamp' => $data['timestamp'],
-            'data_payload' => $data['payload'],
-            'imported_at' => now(),
-            'data_version' => 1,
-        ]);
+        ];
+
+        // If payload has device_id, use it to match existing record
+        if (isset($data['payload']['device_id'])) {
+            $matchAttributes['data_payload->device_id'] = $data['payload']['device_id'];
+        }
+
+        IntegrationData::updateOrCreate(
+            $matchAttributes,
+            [
+                'company_id' => $this->integration->company_id,
+                'integration_customer_id' => $data['integration_customer_id'],
+                'data_timestamp' => $data['timestamp'],
+                'data_payload' => $data['payload'],
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]
+        );
     }
 
     public function getDisplayTemplate(): array
     {
-        // Return empty array for now - can be implemented later for custom display
-        return [];
+        $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('librenms', 'LibreNMS');
+        $builder->description('LibreNMS Device Groups and Devices');
+        
+        // Customers (Device Groups) table
+        $builder->addSection('customers', 'Device Groups', 'table')
+            ->description('Synced device groups from LibreNMS')
+            ->icon('Server')
+            ->dataPath('customers')
+            ->tableColumns([
+                ['key' => 'name', 'label' => 'Group Name', 'sortable' => true, 'filterable' => true, 'width' => '300px'],
+                ['key' => 'description', 'label' => 'Description', 'sortable' => true, 'filterable' => true],
+                ['key' => 'type', 'label' => 'Type', 'sortable' => true, 'filterable' => true],
+                [
+                    'key' => 'active',
+                    'label' => 'Status',
+                    'sortable' => true,
+                    'filterable' => true,
+                    'format' => 'status',
+                    'colorMap' => [
+                        'Active' => 'success',
+                        'Inactive' => 'error',
+                    ],
+                ],
+            ])
+            ->sortable()
+            ->filterable()
+            ->paginated(25)
+            ->end();
+        
+        // Overview metrics
+        $builder->addSection('metrics', 'Overview', 'grid')
+            ->icon('BarChart3')
+            ->dataPath('metrics')
+            ->gridColumns(3)
+            ->addMetric('total_groups', 'Total Groups', 'total_groups', 'number', 'Users', 'blue')
+            ->addMetric('total_devices', 'Total Devices', 'total_devices', 'number', 'Server', 'purple')
+            ->addMetric('active_devices', 'Active Devices', 'active_devices', 'number', 'CheckCircle', 'green')
+            ->end();
+        
+        return $builder->build();
     }
 
     public function getPreviewData(?int $integrationCustomerId = null): array
     {
-        // Return preview data for the integration
         try {
-            $groups = $this->client->getDeviceGroups();
-            $devices = $this->client->getAllDevices();
+            // Fetch from Database to match ITGlue behavior and avoid API rate limits
+            $query = IntegrationCustomer::where('integration_id', $this->integration->integration_id);
             
+            if ($integrationCustomerId) {
+                $query->where('integration_customer_id', $integrationCustomerId);
+            }
+            
+            $customers = $query->get();
+            
+            $mappedGroups = $customers->map(function($customer) {
+                $metadata = $customer->metadata ?? [];
+                return [
+                    'id' => $customer->integration_customer_id,
+                    'name' => $customer->name,
+                    'description' => $metadata['description'] ?? '',
+                    'type' => $metadata['type'] ?? '',
+                    'active' => $customer->active ? 'Active' : 'Inactive',
+                ];
+            })->toArray();
+
+            // Calculate metrics from stored data
+            $totalGroups = $customers->count();
+            
+            // Count unique devices from historical data (approximate)
+            $totalDevices = IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', 'device_uptime')
+                ->distinct('data_payload->device_id')
+                ->count();
+                
+            $activeDevices = IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', 'device_uptime')
+                ->where('data_payload->status', 1)
+                ->distinct('data_payload->device_id')
+                ->count();
+
             return [
-                'device_groups' => count($groups),
-                'total_devices' => count($devices),
-                'active_devices' => collect($devices)->where('status', 1)->count(),
-                'sample_groups' => array_slice(array_map(fn($g) => $g['name'], $groups), 0, 5),
+                'success' => true,
+                'data' => [
+                    'customers' => $mappedGroups,
+                    'metrics' => [
+                        'total_groups' => $totalGroups,
+                        'total_devices' => $totalDevices,
+                        'active_devices' => $activeDevices,
+                    ]
+                ],
+                'timestamp' => now()->toIso8601String(),
             ];
         } catch (\Exception $e) {
             return [
+                'success' => false,
                 'error' => 'Failed to fetch preview data: ' . $e->getMessage(),
             ];
         }

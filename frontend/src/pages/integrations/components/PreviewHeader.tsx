@@ -9,6 +9,7 @@ interface PreviewHeaderProps {
   onDownloadReport?: () => void
   isDownloading?: boolean
   showDownloadButton?: boolean
+  downloadButtonLabel?: string
 }
 
 export function PreviewHeader({
@@ -20,6 +21,7 @@ export function PreviewHeader({
   onDownloadReport,
   isDownloading = false,
   showDownloadButton = false,
+  downloadButtonLabel = 'Download Report',
 }: PreviewHeaderProps) {
   return (
     <div className="mb-6">
@@ -49,10 +51,10 @@ export function PreviewHeader({
               onClick={onDownloadReport}
               disabled={isDownloading}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 border border-primary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Download M365 License Consumption Report"
+              title={downloadButtonLabel}
             >
               <Download className={`w-4 h-4 ${isDownloading ? 'animate-bounce' : ''}`} />
-              {isDownloading ? 'Downloading...' : 'M365 Licenses'}
+              {isDownloading ? 'Downloading...' : downloadButtonLabel}
             </button>
           )}
           <button

@@ -25,6 +25,7 @@ export interface CredentialField {
     help?: string;
     default?: string;
     options?: Record<string, string>;
+    hidden?: boolean;
 }
 
 interface DynamicCredentialFormProps {

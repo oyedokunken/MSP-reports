@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>LibreNMS Device Report</title>
+    <title>Datto Device Report</title>
     <style>
         body {
             font-family: sans-serif;
@@ -75,13 +75,33 @@
         tr:nth-child(even) {
             background-color: #f5f5f5;
         }
-        .status-up {
+        .uptime-excellent {
             color: #52A421;
             font-weight: bold;
+            background-color: #e8f5e8;
+            padding: 2px 6px;
+            border-radius: 3px;
         }
-        .status-down {
+        .uptime-good {
+            color: #7BA428;
+            font-weight: bold;
+            background-color: #f0f7e8;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .uptime-warning {
+            color: #FF8800;
+            font-weight: bold;
+            background-color: #fff3e8;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .uptime-critical {
             color: #A42152;
             font-weight: bold;
+            background-color: #f5e8eb;
+            padding: 2px 6px;
+            border-radius: 3px;
         }
         .summary-section {
             margin-top: 20px;
@@ -116,7 +136,7 @@
                 </span>
             </div>
             <div class="title-container">
-                <h1 class="report-title">LibreNMS Device Report</h1>
+                <h1 class="report-title">Datto Device Report</h1>
                 <p class="report-date">Generated: {{ date('Y-m-d') }}</p>
             </div>
         </div>
@@ -129,9 +149,10 @@
                     <th>Device Name</th>
                     <th>IP Address</th>
                     <th>Type</th>
-                    <th>OS</th>
-                    <th>Status</th>
-                    <th>Last Seen</th>
+                    <th>Uptime %</th>
+                    <th>Uptime Hours</th>
+                    <th>Downtime Hours</th>
+                    <th>Polls</th>
                 </tr>
             </thead>
             <tbody>
@@ -140,13 +161,14 @@
                     <td>{{ $device->device_name }}</td>
                     <td>{{ $device->ip_address }}</td>
                     <td>{{ $device->device_type }}</td>
-                    <td>{{ $device->operating_system }}</td>
                     <td>
-                        <span class="{{ $device->status === 'Up' ? 'status-up' : 'status-down' }}">
-                            {{ $device->status }}
+                        <span class="uptime-{{ $device->uptime_status }}">
+                            {{ $device->uptime_percentage }}%
                         </span>
                     </td>
-                    <td>{{ $device->last_seen instanceof \Carbon\Carbon ? $device->last_seen->format('Y-m-d H:i:s') : $device->last_seen }}</td>
+                    <td>{{ $device->uptime_hours }}h</td>
+                    <td>{{ $device->downtime_hours }}h</td>
+                    <td>{{ $device->online_polls }}/{{ $device->total_polls }}</td>
                 </tr>
                 @endforeach
             </tbody>

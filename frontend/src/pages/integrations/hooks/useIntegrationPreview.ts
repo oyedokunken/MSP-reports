@@ -106,49 +106,59 @@ export function useIntegrationPreview() {
     setShowDownloadConfirm(true)
   }
 
+  // Check if this is ITGlue integration - only check type, not ID
+  const integrationType = preview?.integration?.type?.toLowerCase() || ''
+  const isITGlueIntegration = integrationType === 'itglue' || integrationType.includes('it_glue')
+  const isLibreNMSIntegration = integrationType === 'librenms' || integrationType.includes('libre_nms')
+
   const confirmDownload = async () => {
     setShowDownloadConfirm(false)
     setIsDownloading(true)
     try {
-      const currentDate = new Date()
-      await reportApi.downloadLicenseConsumptionReport(
-        currentDate.getMonth() + 1, // JavaScript months are 0-indexed
-        currentDate.getFullYear(),
-        deliverViaEmail ? emailTo : undefined,
-        undefined // emailFrom will be the logged-in user's email from backend
-      )
-      
+      if (isITGlueIntegration) {
+        const currentDate = new Date()
+        await reportApi.downloadLicenseConsumptionReport(
+          currentDate.getMonth() + 1, // JavaScript months are 0-indexed
+          currentDate.getFullYear(),
+          deliverViaEmail ? emailTo : undefined,
+          undefined // emailFrom will be the logged-in user's email from backend
+        )
+      } else if (isLibreNMSIntegration) {
+        await reportApi.downloadLibreNMSDeviceReport(
+          undefined, // No group ID for company-wide report
+          deliverViaEmail ? emailTo : undefined,
+          undefined
+        )
+      }
+
       if (deliverViaEmail) {
-        toast.success('Email Sent', `License consumption report has been sent to ${emailTo}`)
+        toast.success('Report Sent & Downloaded', `Report has been downloaded and sent to ${emailTo}`)
         // Reset email fields
         setDeliverViaEmail(false)
         setEmailTo('')
       } else {
-        toast.success('Report Downloaded', 'License consumption report has been downloaded successfully')
+        toast.success('Report Downloaded', 'Report has been downloaded successfully')
       }
     } catch (err) {
       console.error('Download error:', err)
       if (deliverViaEmail) {
-        toast.error('Email Failed', 'Failed to send license consumption report via email')
+        toast.error('Email Failed', 'Failed to send report via email')
       } else {
-        toast.error('Download Failed', 'Failed to download license consumption report')
+        toast.error('Download Failed', 'Failed to download report')
       }
     } finally {
       setIsDownloading(false)
     }
   }
 
-  // Check if this is ITGlue integration - only check type, not ID
-  const integrationType = preview?.integration?.type?.toLowerCase() || ''
-  const isITGlueIntegration = integrationType === 'itglue' || integrationType.includes('it_glue')
-  
   // Debug log to verify integration type
   if (preview?.integration) {
     console.log('Integration check:', {
       id: preview.integration.id,
       type: preview.integration.type,
       normalizedType: integrationType,
-      isITGlue: isITGlueIntegration
+      isITGlue: isITGlueIntegration,
+      isLibreNMS: isLibreNMSIntegration
     })
   }
 
@@ -163,6 +173,7 @@ export function useIntegrationPreview() {
     isExporting,
     isDownloading,
     isITGlueIntegration,
+    isLibreNMSIntegration,
     showDownloadConfirm,
     deliverViaEmail,
     emailTo,

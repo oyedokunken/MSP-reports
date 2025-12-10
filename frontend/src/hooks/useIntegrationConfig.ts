@@ -54,6 +54,7 @@ export const useIntegrationConfig = (integrationType: string | null): UseIntegra
 
         if (data.success && data.config) {
           console.log('Setting config:', data.config);
+          // Store the full config (including hidden fields for default values)
           setConfig(data.config);
         } else {
           console.error('Success false or no config:', data);

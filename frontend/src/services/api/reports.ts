@@ -44,7 +44,7 @@ export const reportApi = {
             })
 
             // Generate filename with date
-            const monthName = month 
+            const monthName = month
                 ? new Date(year || new Date().getFullYear(), month - 1).toLocaleString('default', { month: 'long' })
                 : new Date().toLocaleString('default', { month: 'long' })
             const yearValue = year || new Date().getFullYear()
@@ -57,12 +57,60 @@ export const reportApi = {
             link.setAttribute('download', filename)
             document.body.appendChild(link)
             link.click()
-            
+
             // Cleanup
             link.remove()
             window.URL.revokeObjectURL(downloadUrl)
         } catch (error) {
             console.error('Failed to download license consumption report:', error)
+            throw error
+        }
+    },
+
+    /**
+     * Download LibreNMS Device Report (Company-Wide or Group)
+     * GET /api/reports/librenms/devices
+     * 
+     * @param groupId - Optional group ID
+     * @param emailTo - Optional email recipient
+     * @param emailFrom - Optional email sender
+     * @returns Promise that triggers file download or sends email
+     */
+    async downloadLibreNMSDeviceReport(groupId?: string, emailTo?: string, emailFrom?: string): Promise<void> {
+        try {
+            const params = new URLSearchParams()
+            if (groupId) params.append('group_id', groupId)
+            if (emailTo) params.append('email_to', emailTo)
+            if (emailFrom) params.append('email_from', emailFrom)
+
+            const url = `/reports/librenms/devices${params.toString() ? `?${params.toString()}` : ''}`
+
+            // Always download the file, even if sending via email
+            const response = await apiClient.get(url, {
+                responseType: 'blob', // Important: Handle binary data
+            })
+
+            // Create blob from response
+            const blob = new Blob([response.data], {
+                type: 'application/pdf',
+            })
+
+            // Generate filename with date
+            const filename = `librenms-devices-${new Date().toISOString().split('T')[0]}.pdf`
+
+            // Create download link and trigger download
+            const downloadUrl = window.URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = downloadUrl
+            link.setAttribute('download', filename)
+            document.body.appendChild(link)
+            link.click()
+
+            // Cleanup
+            link.remove()
+            window.URL.revokeObjectURL(downloadUrl)
+        } catch (error) {
+            console.error('Failed to download LibreNMS device report:', error)
             throw error
         }
     },

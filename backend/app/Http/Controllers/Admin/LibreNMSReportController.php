@@ -8,6 +8,7 @@ use App\Models\Scopes\CompanyScope;
 use Illuminate\Http\Request;
 use Gotenberg\Gotenberg;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
 
 class LibreNMSReportController extends Controller
@@ -62,6 +63,7 @@ class LibreNMSReportController extends Controller
     {
         try {
             $groupId = $request->query('group_id');
+            $emailTo = $request->query('email_to');
 
             // URL that Gotenberg will visit to generate the PDF
             // We use the internal container name 'reporting-app' and port 80 (nginx) or 9000 (php-fpm)? 
@@ -85,10 +87,50 @@ class LibreNMSReportController extends Controller
                 ->url($previewUrl);
 
             $response = Gotenberg::send($request);
+            $pdfContent = $response->getBody()->getContents();
 
-            return response()->streamDownload(function () use ($response) {
-                echo $response->getBody()->getContents();
-            }, $filename, ['Content-Type' => 'application/pdf']);
+            // If email recipient provided, send via email
+            if ($emailTo) {
+                try {
+                    // Get the authenticated user's email as sender
+                    $user = auth()->user();
+                    $senderEmail = $user ? $user->email : config('mail.from.address');
+                    $senderName = $user ? $user->name : config('mail.from.name');
+                    
+                    Mail::send([], [], function ($message) use ($emailTo, $senderEmail, $senderName, $filename, $pdfContent) {
+                        $message->to($emailTo)
+                            ->replyTo($senderEmail, $senderName)
+                            ->subject('LibreNMS Device Report - ' . date('F Y'))
+                            ->attachData(
+                                $pdfContent,
+                                $filename,
+                                ['mime' => 'application/pdf']
+                            )
+                            ->html(
+                                '<h2>LibreNMS Device Report</h2>' .
+                                '<p>Please find attached the LibreNMS Device Report.</p>' .
+                                '<br><p>Best regards,<br>' . htmlspecialchars($senderName) . '</p>'
+                            );
+                    });
+
+                    Log::info('LibreNMS device report emailed', [
+                        'to' => $emailTo,
+                        'from' => $senderEmail,
+                    ]);
+
+                    // Continue to download...
+                } catch (\Exception $e) {
+                    Log::error('Failed to email LibreNMS report', [
+                        'error' => $e->getMessage(),
+                        'to' => $emailTo,
+                    ]);
+                    // Continue to download even if email fails
+                }
+            }
+
+            return response($pdfContent)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
 
         } catch (\Exception $e) {
             Log::error('PDF Generation Failed: ' . $e->getMessage());

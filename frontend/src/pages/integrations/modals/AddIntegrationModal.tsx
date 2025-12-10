@@ -217,7 +217,7 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
             </div>
           )}
 
-          {config && config.credential_fields && config.credential_fields.length > 0 && (
+          {config && config.credential_fields && config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden).length > 0 && (
             <div className="space-y-4 pt-4 border-t">
               <div>
                 <h4 className="text-sm font-semibold mb-1">Credentials</h4>
@@ -225,7 +225,7 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
               </div>
 
               <DynamicCredentialForm
-                fields={config.credential_fields}
+                fields={config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden)}
                 values={formData.credentials as Record<string, string>}
                 onChange={handleCredentialChange}
               />

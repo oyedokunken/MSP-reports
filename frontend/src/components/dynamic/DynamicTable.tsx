@@ -11,6 +11,14 @@ interface DynamicTableProps {
   onSelectionChange?: (selectedIds: string[]) => void
 }
 
+interface License {
+  name: string
+  active: number
+  consumed: number
+  unused: number
+  utilization: number
+}
+
 export const DynamicTable: React.FC<DynamicTableProps> = ({
   config,
   data,
@@ -22,8 +30,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set())
   const [filterValues, setFilterValues] = useState<Record<string, string>>({})
-  const [licenseModalData, setLicenseModalData] = useState<{ customerName: string; customerId: number; licenses: any[] | null } | null>(null)
-  const [loadingLicenses, setLoadingLicenses] = useState(false)
+  const [licenseModalData, setLicenseModalData] = useState<{ customerName: string; customerId: number; licenses: License[] | null } | null>(null)
 
   const pageSize = config.pageSize || 10
 
@@ -137,25 +144,25 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
       const handleViewLicenses = async () => {
         const customerId = row.id as number
         const customerName = String(row.name || 'Customer')
-        
+
         // Open modal immediately with loading state
         setLicenseModalData({
           customerName,
           customerId,
           licenses: null // null means loading
         })
-        
+
         // Fetch licenses
-        setLoadingLicenses(true)
+        // Fetch licenses
         try {
-          const response = await api.get(`/integrations/${integrationId}/customer-licenses`, {
+          const response = await api.get<{ licenses: License[] }>(`/integrations/${integrationId}/customer-licenses`, {
             customer_id: customerId
-          }) as any
-          
+          })
+
           setLicenseModalData({
             customerName,
             customerId,
-            licenses: response.licenses || []
+            licenses: response.data?.licenses || []
           })
         } catch (error) {
           console.error('Failed to fetch licenses:', error)
@@ -164,11 +171,9 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
             customerId,
             licenses: []
           })
-        } finally {
-          setLoadingLicenses(false)
         }
       }
-      
+
       return (
         <button
           onClick={handleViewLicenses}
@@ -324,7 +329,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
                 ✕
               </button>
             </div>
-            
+
             {licenseModalData.licenses === null ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
@@ -356,11 +361,10 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
                         <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white">{license.consumed}</td>
                         <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white">{license.unused}</td>
                         <td className="px-4 py-3 text-sm text-center">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            license.utilization > 90 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${license.utilization > 90 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
                             license.utilization > 75 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                            'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          }`}>
+                              'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            }`}>
                             {license.utilization}%
                           </span>
                         </td>
@@ -370,7 +374,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
                 </table>
               </div>
             )}
-            
+
             <div className="mt-4 flex justify-end">
               <button
                 onClick={() => setLicenseModalData(null)}

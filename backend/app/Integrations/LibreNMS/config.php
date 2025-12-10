@@ -18,6 +18,7 @@ return [
             'type' => 'text',
             'label' => 'Base URL',
             'required' => true,
+            'hidden' => true,
             'default' => 'https://nms.arafuracloud.com.au/api/v0',
             'placeholder' => 'https://nms.arafuracloud.com.au/api/v0',
             'help' => 'LibreNMS API base URL. Use IP address if DNS resolution fails (e.g., http://203.48.112.21/api/v0)',

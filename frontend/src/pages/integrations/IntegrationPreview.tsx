@@ -59,18 +59,19 @@ export const IntegrationPreview = () => {
             onDownloadReport={handleDownloadReport}
             isDownloading={isDownloading}
             showDownloadButton={isITGlueIntegration}
+            downloadButtonLabel={isITGlueIntegration ? 'M365 Licenses' : 'Device Report'}
           />
 
-        {preview.template ? (
-          <PreviewContent
-            preview={preview}
-            onSelectionChange={handleSelectionChange}
-          />
-        ) : (
-          <div className="p-8 text-center text-muted-foreground bg-card border border-border rounded-lg">
-            No preview configuration available for this integration.
-          </div>
-        )}
+          {preview.template ? (
+            <PreviewContent
+              preview={preview}
+              onSelectionChange={handleSelectionChange}
+            />
+          ) : (
+            <div className="p-8 text-center text-muted-foreground bg-card border border-border rounded-lg">
+              No preview configuration available for this integration.
+            </div>
+          )}
 
           {/* Footer Info */}
           <div className="p-4 bg-card dark:bg-[hsl(var(--auth-card))] border border-border rounded-lg">
@@ -91,12 +92,14 @@ export const IntegrationPreview = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Download M365 License Consumption Report
+              {isITGlueIntegration ? 'Download M365 License Consumption Report' : 'Download LibreNMS Device Report'}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              This will generate an Excel file containing M365 license consumption data for all customers in your ITGlue integration.
+              {isITGlueIntegration
+                ? 'This will generate an Excel file containing M365 license consumption data for all customers in your ITGlue integration.'
+                : 'This will generate a PDF report containing device status and metrics for all customers in your LibreNMS integration.'}
             </p>
-            
+
             {/* Deliver via Email Checkbox */}
             <div className="mb-4">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -132,7 +135,7 @@ export const IntegrationPreview = () => {
                 </div>
               </div>
             )}
-            
+
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowDownloadConfirm(false)}

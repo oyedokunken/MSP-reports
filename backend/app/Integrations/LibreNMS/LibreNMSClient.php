@@ -20,7 +20,7 @@ class LibreNMSClient
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
         
-        $this->baseUrl = rtrim($credentials['base_url'] ?? 'https://nms.arafuracloud.com.au/api/v0', '/');
+        $this->baseUrl = rtrim($credentials['base_url'] ?? 'http://192.168.228.7/api/v0', '/');
     }
 
     public function testConnection(): bool
@@ -85,33 +85,54 @@ class LibreNMSClient
 
     protected function makeRequest(string $endpoint, array $params = []): array
     {
-        if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
+        if (!$this->rateLimiter->waitForSlot($this->integration, 60)) {
             throw new \Exception("Rate limit exceeded for LibreNMS API");
         }
 
         $url = $this->baseUrl . $endpoint;
         
         try {
-            // Disable SSL verification for self-signed certificates
-            // Add retry logic for connection timeouts (geolocation-restricted APIs)
-            $response = Http::withHeaders([
+            // Build HTTP client with headers
+            $httpClient = Http::withHeaders([
                 'X-Auth-Token' => $this->credentials['api_token'] ?? '',
                 'Accept' => 'application/json',
-            ])
-            ->withOptions([
+            ]);
+            
+            // Base options
+            $options = [
                 'verify' => false, // Disable SSL verification
                 'connect_timeout' => 10,
                 'timeout' => 30,
-            ])
-            ->retry(3, 1000) // Retry 3 times with 1 second delay
-            ->get($url, $params);
+            ];
+            
+            // Add proxy configuration if available (for geolocation bypass)
+            if ($proxyHost = config('services.librenms.proxy_host')) {
+                $proxyPort = config('services.librenms.proxy_port', 1080);
+                $proxyType = config('services.librenms.proxy_type', 'socks5');
+                
+                $proxyUrl = "{$proxyType}://{$proxyHost}:{$proxyPort}";
+                $options['proxy'] = [
+                    'http' => $proxyUrl,
+                    'https' => $proxyUrl,
+                ];
+                
+                Log::info('LibreNMS: Using proxy for geolocation bypass', [
+                    'integration_id' => $this->integration->integration_id,
+                    'proxy' => $proxyUrl,
+                ]);
+            }
+            
+            // Apply options and make request with retry logic
+            $response = $httpClient
+                ->withOptions($options)
+                ->retry(3, 1000) // Retry 3 times with 1 second delay
+                ->get($url, $params);
 
             if ($response->status() === 429) {
-                Log::warning('LibreNMS: Rate limit hit, waiting 60 seconds', [
+                Log::warning('LibreNMS: Rate limit hit', [
                     'integration_id' => $this->integration->integration_id,
                 ]);
-                sleep(60);
-                return $this->makeRequest($endpoint, $params);
+                throw new \RuntimeException("Rate limit exceeded. Please try again later.");
             }
 
             if ($response->status() === 401) {
@@ -154,4 +175,5 @@ class LibreNMSClient
             throw $e;
         }
     }
+
 }

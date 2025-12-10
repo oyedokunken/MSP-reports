@@ -233,7 +233,7 @@ class IntegrationController extends Controller
         // LibreNMS: add default base_url if not provided, or use provided value
         if ($validated['integration_type'] === 'LibreNMS') {
             if (!isset($credentials['base_url']) && isset($credentials['api_token'])) {
-                $credentials['base_url'] = 'https://nms.arafuracloud.com.au/api/v0';
+                $credentials['base_url'] = 'http://192.168.228.7/api/v0';
                 Log::debug('LibreNMS: Added default base_url');
             }
             // Ensure base_url doesn't have trailing slash
@@ -552,14 +552,14 @@ class IntegrationController extends Controller
             'actor_id' => $authUser->user_id,
             'target_type' => 'Integration',
             'target_id' => $integration->integration_id,
-            'event_data' => json_encode([
+            'event_data' => [
                 'integration_type' => $integration->integration_type,
                 'old_data' => $oldData,
                 'new_data' => [
                     'display_name' => $integration->display_name,
                     'status' => $integration->status,
                 ],
-            ]),
+            ],
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
@@ -600,11 +600,11 @@ class IntegrationController extends Controller
             'actor_id' => $authUser->user_id,
             'target_type' => 'Integration',
             'target_id' => $integration->integration_id,
-            'event_data' => json_encode([
+            'event_data' => [
                 'integration_type' => $integration->integration_type,
                 'display_name' => $integration->display_name,
                 'customer_count' => $integration->integrationCustomers()->count(),
-            ]),
+            ],
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);

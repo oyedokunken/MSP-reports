@@ -352,11 +352,11 @@ class ReportGenerationService
                 'report_type' => $schedule->report_type,
                 'report_class' => get_class($reportClass),
                 'template_path' => $templatePath,
-                'file_exists' => file_exists($templatePath),
             ]);
             
-            if (file_exists($templatePath)) {
-                return view()->file($templatePath, [
+            // Try to render using Blade view name (dot notation)
+            try {
+                return view($templatePath, [
                     'reportData' => $reportData,
                     'schedule' => $schedule,
                     'customer' => $schedule->customer,
@@ -407,7 +407,72 @@ class ReportGenerationService
                     'threat_statistics' => $reportData['threat_statistics'] ?? [],
                     'device_statistics' => $reportData['device_statistics'] ?? [],
                     'date_range' => $reportData['date_range'] ?? [],
+                    // LibreNMS Device Report
+                    'groups' => $reportData['groups'] ?? [],
                 ])->render();
+            } catch (\Exception $e) {
+                Log::error('Failed to render Blade template, trying file path', [
+                    'template_path' => $templatePath,
+                    'error' => $e->getMessage()
+                ]);
+                
+                // Fallback: try as file path if Blade view name doesn't work
+                if (file_exists($templatePath)) {
+                    return view()->file($templatePath, [
+                        'reportData' => $reportData,
+                        'schedule' => $schedule,
+                        'customer' => $schedule->customer,
+                        'branding' => $reportData['branding'] ?? [],
+                        'metrics' => $reportData['metrics'] ?? [],
+                        'period' => $reportData['period'] ?? [],
+                        'data' => $reportData['data'] ?? [],
+                        'alerts' => $reportData['alerts'] ?? [],
+                        'certificates' => $reportData['certificates'] ?? [],
+                        'licenses' => $reportData['licenses'] ?? [],
+                        'ssl_certificates' => $reportData['ssl_certificates'] ?? [],
+                        'domains' => $reportData['domains'] ?? [],
+                        'all_alerts' => $reportData['all_alerts'] ?? [],
+                        'summary' => $reportData['summary'] ?? [],
+                        'recommendations' => $reportData['recommendations'] ?? [],
+                        'generated_at' => $reportData['generated_at'] ?? now()->toDateTimeString(),
+                        'included_reports' => $reportData['included_reports'] ?? [],
+                        // Autotask Monthly Summary specific variables
+                        'executive_summary' => $reportData['executive_summary'] ?? [],
+                        'tickets' => $reportData['tickets'] ?? [],
+                        'time_entries' => $reportData['time_entries'] ?? [],
+                        'technicians' => $reportData['technicians'] ?? [],
+                        'contracts' => $reportData['contracts'] ?? [],
+                        // Sendmarc Monthly Summary specific variables
+                        'top_senders' => $reportData['top_senders'] ?? [],
+                        'ip_sources' => $reportData['ip_sources'] ?? [],
+                        'totals' => $reportData['totals'] ?? [],
+                        'compliance' => $reportData['compliance'] ?? [],
+                        // BitDefender Monthly Summary specific variables
+                        'endpoint_summary' => $reportData['endpoint_summary'] ?? [],
+                        'policy_summary' => $reportData['policy_summary'] ?? [],
+                        'os_summary' => $reportData['os_summary'] ?? [],
+                        'threat_summary' => $reportData['threat_summary'] ?? [],
+                        'endpoints_list' => $reportData['endpoints_list'] ?? [],
+                        'policy_details' => $reportData['policy_details'] ?? [],
+                        'os_distribution' => $reportData['os_distribution'] ?? [],
+                        // Datto RMM Monthly Summary specific variables
+                        'device_summary' => $reportData['device_summary'] ?? [],
+                        'alert_summary' => $reportData['alert_summary'] ?? [],
+                        'compliance_summary' => $reportData['compliance_summary'] ?? [],
+                        'security_summary' => $reportData['security_summary'] ?? [],
+                        'devices' => $reportData['devices'] ?? [],
+                        'uptime_metrics' => $reportData['uptime_metrics'] ?? [],
+                        // SaaS Monthly Summary specific variables
+                        'user_activity' => $reportData['user_activity'] ?? [],
+                        'geographic_data' => $reportData['geographic_data'] ?? [],
+                        'application_usage' => $reportData['application_usage'] ?? [],
+                        'threat_statistics' => $reportData['threat_statistics'] ?? [],
+                        'device_statistics' => $reportData['device_statistics'] ?? [],
+                        'date_range' => $reportData['date_range'] ?? [],
+                        // LibreNMS Device Report
+                        'groups' => $reportData['groups'] ?? [],
+                    ])->render();
+                }
             }
         }
         

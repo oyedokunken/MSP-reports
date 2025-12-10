@@ -147,4 +147,29 @@ class LibreNMSMapper
             ],
         ];
     }
+
+    public static function mapDeviceDetails(array $device, array $groups = []): array
+    {
+        return [
+            'integration_customer_id' => null, // Will be set by integration
+            'data_type' => 'device_details',
+            'timestamp' => now(),
+            'payload' => [
+                'device_id' => $device['device_id'],
+                'hostname' => $device['hostname'] ?? $device['sysName'] ?? 'Unknown',
+                'sysName' => $device['sysName'] ?? null,
+                'ip' => $device['ip'] ?? null,
+                'type' => $device['type'] ?? 'network',
+                'hardware' => $device['hardware'] ?? null,
+                'os' => $device['os'] ?? null,
+                'version' => $device['version'] ?? null,
+                'features' => $device['features'] ?? null,
+                'location' => $device['location'] ?? null,
+                'groups' => $groups,
+                'status' => $device['status'] ?? 0,
+                'serial' => $device['serial'] ?? null,
+                'last_polled' => $device['last_polled'] ?? null,
+            ],
+        ];
+    }
 }
