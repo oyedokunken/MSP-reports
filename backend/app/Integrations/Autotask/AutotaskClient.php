@@ -273,7 +273,7 @@ class AutotaskClient
     protected function makeRequest(string $method, string $endpoint, array $params = [])
     {
         if (!$this->useMockData) {
-            if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
+            if (!$this->rateLimiter->waitForSlot($this->integration, 180)) {
                 throw new \Exception("Rate limit exceeded for Autotask API, could not acquire slot within timeout.");
             }
         }
@@ -294,23 +294,59 @@ class AutotaskClient
             'body' => $params
         ]);
 
-        if ($method === 'GET') {
-            $response = Http::withHeaders($headers)->timeout(120)->get($url);
-        } else {
-            $response = Http::withHeaders($headers)->timeout(120)->post($url, $params);
+        // Retry logic with exponential backoff for network errors
+        $maxRetries = 3;
+        $retryDelay = 1; // Start with 1 second
+        $lastException = null;
+
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            try {
+                if ($method === 'GET') {
+                    $response = Http::withHeaders($headers)->timeout(120)->get($url);
+                } else {
+                    $response = Http::withHeaders($headers)->timeout(120)->post($url, $params);
+                }
+
+                \Log::info('Autotask API Response', [
+                    'status' => $response->status(),
+                    'successful' => $response->successful(),
+                    'body_preview' => substr($response->body(), 0, 500),
+                    'attempt' => $attempt
+                ]);
+
+                if (!$this->useMockData) {
+                    $this->rateLimiter->recordRequest($this->integration);
+                }
+
+                return $response;
+
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                $lastException = $e;
+                
+                \Log::warning('Autotask API connection error, retrying...', [
+                    'attempt' => $attempt,
+                    'max_retries' => $maxRetries,
+                    'error' => $e->getMessage(),
+                    'next_retry_in' => $retryDelay . 's'
+                ]);
+
+                // Don't sleep on last attempt
+                if ($attempt < $maxRetries) {
+                    sleep($retryDelay);
+                    $retryDelay *= 2; // Exponential backoff: 1s, 2s, 4s
+                }
+            }
         }
 
-        \Log::info('Autotask API Response', [
-            'status' => $response->status(),
-            'successful' => $response->successful(),
-            'body_preview' => substr($response->body(), 0, 500)
+        // If we get here, all retries failed
+        \Log::error('Autotask API request failed after all retries', [
+            'method' => $method,
+            'endpoint' => $endpoint,
+            'retries' => $maxRetries,
+            'last_error' => $lastException->getMessage()
         ]);
 
-        if (!$this->useMockData) {
-            $this->rateLimiter->recordRequest($this->integration);
-        }
-
-        return $response;
+        throw $lastException;
     }
 
     private function getMockCompanies(): array
