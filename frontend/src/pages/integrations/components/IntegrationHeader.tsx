@@ -1,28 +1,64 @@
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Filter } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 type IntegrationHeaderProps = {
   onAdd: () => void
   searchQuery: string
-  statusFilter: string
+  statusFilters: string[]
+  integrationTypeFilters: string[]
   uniqueStatuses: string[]
+  uniqueTypes: string[]
   onSearchChange: (query: string) => void
-  onStatusChange: (status: string) => void
+  onStatusFiltersChange: (statuses: string[]) => void
+  onIntegrationTypeFiltersChange: (types: string[]) => void
 }
 
 function formatStatus(status: string): string {
   return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
 }
 
+function formatType(type: string): string {
+  return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
+}
+
 export function IntegrationHeader ({ 
   onAdd, 
   searchQuery, 
-  statusFilter,
+  statusFilters,
+  integrationTypeFilters,
   uniqueStatuses,
+  uniqueTypes,
   onSearchChange,
-  onStatusChange
+  onStatusFiltersChange,
+  onIntegrationTypeFiltersChange
 }: IntegrationHeaderProps) {
+  const activeFilterCount = statusFilters.length + integrationTypeFilters.length
+
+  const toggleStatusFilter = (status: string) => {
+    if (statusFilters.includes(status)) {
+      onStatusFiltersChange(statusFilters.filter(s => s !== status))
+    } else {
+      onStatusFiltersChange([...statusFilters, status])
+    }
+  }
+
+  const toggleIntegrationTypeFilter = (type: string) => {
+    if (integrationTypeFilters.includes(type)) {
+      onIntegrationTypeFiltersChange(integrationTypeFilters.filter(t => t !== type))
+    } else {
+      onIntegrationTypeFiltersChange([...integrationTypeFilters, type])
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -38,6 +74,66 @@ export function IntegrationHeader ({
       
       {/* Search and Filters */}
       <div className="flex flex-col md:flex-row gap-3">
+        {/* Filter Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full md:w-auto h-10">
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            {/* Status Section */}
+            <DropdownMenuLabel>Status</DropdownMenuLabel>
+            <DropdownMenuCheckboxItem
+              checked={statusFilters.includes('active')}
+              onCheckedChange={() => toggleStatusFilter('active')}
+            >
+              Active
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={statusFilters.includes('disconnected')}
+              onCheckedChange={() => toggleStatusFilter('disconnected')}
+            >
+              Disconnected
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={statusFilters.includes('failed')}
+              onCheckedChange={() => toggleStatusFilter('failed')}
+            >
+              Failed
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={statusFilters.includes('error')}
+              onCheckedChange={() => toggleStatusFilter('error')}
+            >
+              Error
+            </DropdownMenuCheckboxItem>
+
+            {/* Integration Types Section */}
+            {uniqueTypes.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Integration</DropdownMenuLabel>
+                {uniqueTypes.map((type) => (
+                  <DropdownMenuCheckboxItem
+                    key={type}
+                    checked={integrationTypeFilters.includes(type)}
+                    onCheckedChange={() => toggleIntegrationTypeFilter(type)}
+                  >
+                    {formatType(type)}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {/* Search */}
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -45,24 +141,9 @@ export function IntegrationHeader ({
             placeholder="Search by name or type..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10"
           />
         </div>
-        
-        {/* Status Filter */}
-        <Select value={statusFilter} onValueChange={onStatusChange}>
-          <SelectTrigger className="w-full md:w-[180px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            {uniqueStatuses.map(status => (
-              <SelectItem key={status} value={status.toLowerCase()}>
-                {formatStatus(status)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
     </div>
   )

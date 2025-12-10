@@ -51,11 +51,14 @@ export default function IntegrationList() {
     );
     const setPage = useIntegrationStore((state) => state.setPage);
     const searchQuery = useIntegrationStore((state) => state.searchQuery);
-    const statusFilter = useIntegrationStore((state) => state.statusFilter);
+    const statusFilters = useIntegrationStore((state) => state.statusFilters);
+    const integrationTypeFilters = useIntegrationStore((state) => state.integrationTypeFilters);
     const setSearchQuery = useIntegrationStore((state) => state.setSearchQuery);
-    const setStatusFilter = useIntegrationStore((state) => state.setStatusFilter);
+    const setStatusFilters = useIntegrationStore((state) => state.setStatusFilters);
+    const setIntegrationTypeFilters = useIntegrationStore((state) => state.setIntegrationTypeFilters);
     const getFilteredIntegrations = useIntegrationStore((state) => state.getFilteredIntegrations);
     const getUniqueStatuses = useIntegrationStore((state) => state.getUniqueStatuses);
+    const getUniqueTypes = useIntegrationStore((state) => state.getUniqueTypes);
     const openModal = useIntegrationStore((state) => state.openModal);
     const closeModal = useIntegrationStore((state) => state.closeModal);
 
@@ -111,10 +114,13 @@ export default function IntegrationList() {
                         openModal("add");
                     }}
                     searchQuery={searchQuery}
-                    statusFilter={statusFilter}
+                    statusFilters={statusFilters}
+                    integrationTypeFilters={integrationTypeFilters}
                     uniqueStatuses={getUniqueStatuses()}
+                    uniqueTypes={getUniqueTypes()}
                     onSearchChange={setSearchQuery}
-                    onStatusChange={setStatusFilter}
+                    onStatusFiltersChange={setStatusFilters}
+                    onIntegrationTypeFiltersChange={setIntegrationTypeFilters}
                 />
 
                 <IntegrationGrid

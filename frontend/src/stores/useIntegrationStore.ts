@@ -16,7 +16,8 @@ interface IntegrationState {
 
   // Search, Filter & Pagination (client-side)
   searchQuery: string
-  statusFilter: string
+  statusFilters: string[]
+  integrationTypeFilters: string[]
   currentPage: number
   perPage: number
 
@@ -46,9 +47,11 @@ interface IntegrationState {
   syncIntegration: (id: number) => Promise<{ success: boolean; error?: string }>
   setPage: (page: number) => void
   setSearchQuery: (query: string) => void
-  setStatusFilter: (status: string) => void
+  setStatusFilters: (statuses: string[]) => void
+  setIntegrationTypeFilters: (types: string[]) => void
   getFilteredIntegrations: () => Integration[]
   getUniqueStatuses: () => string[]
+  getUniqueTypes: () => string[]
 
   // Modal actions
   openModal: (modal: keyof IntegrationState['modals'], integration?: Integration) => void
@@ -68,7 +71,8 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   sourceOfTruthId: null,
   isLoading: true,
   searchQuery: '',
-  statusFilter: 'all',
+  statusFilters: [],
+  integrationTypeFilters: [],
   currentPage: 1,
   perPage: 9,
   syncingId: null,
@@ -233,17 +237,26 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   },
 
   // Status filter action
-  setStatusFilter: (status: string) => {
-    set({ statusFilter: status, currentPage: 1 })
+  setStatusFilters: (statuses: string[]) => {
+    set({ statusFilters: statuses, currentPage: 1 })
     const { perPage } = get()
     const filtered = get().getFilteredIntegrations()
     const paginatedIntegrations = filtered.slice(0, perPage)
     set({ integrations: paginatedIntegrations })
   },
 
-  // Get filtered integrations based on search and status
+  // Integration type filter action
+  setIntegrationTypeFilters: (types: string[]) => {
+    set({ integrationTypeFilters: types, currentPage: 1 })
+    const { perPage } = get()
+    const filtered = get().getFilteredIntegrations()
+    const paginatedIntegrations = filtered.slice(0, perPage)
+    set({ integrations: paginatedIntegrations })
+  },
+
+  // Get filtered integrations based on search, status, and type
   getFilteredIntegrations: () => {
-    const { allIntegrations, searchQuery, statusFilter } = get()
+    const { allIntegrations, searchQuery, statusFilters, integrationTypeFilters } = get()
 
     return allIntegrations.filter(int => {
       // Search filter
@@ -252,10 +265,14 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
         int.type.toLowerCase().includes(searchQuery.toLowerCase())
 
       // Status filter
-      const matchesStatus = statusFilter === 'all' ||
-        int.status.toLowerCase() === statusFilter.toLowerCase()
+      const matchesStatus = statusFilters.length === 0 ||
+        statusFilters.some(status => int.status.toLowerCase() === status.toLowerCase())
 
-      return matchesSearch && matchesStatus
+      // Integration type filter
+      const matchesType = integrationTypeFilters.length === 0 ||
+        integrationTypeFilters.some(type => int.type.toLowerCase() === type.toLowerCase())
+
+      return matchesSearch && matchesStatus && matchesType
     })
   },
 
@@ -264,5 +281,12 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
     const { allIntegrations } = get()
     const statuses = [...new Set(allIntegrations.map(int => int.status))]
     return statuses.sort()
+  },
+
+  // Get unique integration types for filter dropdown
+  getUniqueTypes: () => {
+    const { allIntegrations } = get()
+    const types = [...new Set(allIntegrations.map(int => int.type))]
+    return types.sort()
   },
 }))
