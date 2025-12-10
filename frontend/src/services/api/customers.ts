@@ -25,19 +25,27 @@ export const customerApi = {
     async getCustomers(params?: {
         page?: number
         search?: string
-        status?: string
-        report_filter?: string
-        integration_type?: string
+        statuses?: string[]
+        report_filters?: string[]
+        integration_types?: string[]
     }): Promise<CustomerListResponse> {
         const queryParams = new URLSearchParams()
         if (params?.page) queryParams.append('page', params.page.toString())
         if (params?.search) queryParams.append('search', params.search)
-        if (params?.status && params.status !== 'all') queryParams.append('status', params.status)
-        if (params?.report_filter && params.report_filter !== 'all') {
-            queryParams.append('report_filter', params.report_filter)
+        
+        // Add multiple status filters
+        if (params?.statuses && params.statuses.length > 0) {
+            params.statuses.forEach(status => queryParams.append('statuses[]', status))
         }
-        if (params?.integration_type && params.integration_type !== 'all') {
-            queryParams.append('integration_type', params.integration_type)
+        
+        // Add multiple report filters
+        if (params?.report_filters && params.report_filters.length > 0) {
+            params.report_filters.forEach(filter => queryParams.append('report_filters[]', filter))
+        }
+        
+        // Add multiple integration type filters
+        if (params?.integration_types && params.integration_types.length > 0) {
+            params.integration_types.forEach(type => queryParams.append('integration_types[]', type))
         }
 
         const url = `/customers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`

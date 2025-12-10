@@ -295,9 +295,9 @@ export const useCustomerList = () => {
   const unmappedCount = useCustomersStore((state) => state.unmappedCount)
   const isLoading = useCustomersStore((state) => state.isLoading)
   const searchQuery = useCustomersStore((state) => state.searchQuery)
-  const statusFilter = useCustomersStore((state) => state.statusFilter)
-  const reportFilter = useCustomersStore((state) => state.reportFilter)
-  const integrationFilter = useCustomersStore((state) => state.integrationFilter)
+  const statusFilters = useCustomersStore((state) => state.statusFilters)
+  const reportFilters = useCustomersStore((state) => state.reportFilters)
+  const integrationFilters = useCustomersStore((state) => state.integrationFilters)
   const modals = useCustomersStore((state) => state.modals)
   const selectedUnmappedCustomer = useCustomersStore((state) => state.selectedUnmappedCustomer)
   const selectedCustomer = useCustomersStore((state) => state.selectedCustomer)
@@ -307,9 +307,10 @@ export const useCustomerList = () => {
 
   const fetchCustomers = useCustomersStore((state) => state.fetchCustomers)
   const setSearchQuery = useCustomersStore((state) => state.setSearchQuery)
-  const setStatusFilter = useCustomersStore((state) => state.setStatusFilter)
-  const setReportFilter = useCustomersStore((state) => state.setReportFilter)
-  const setIntegrationFilter = useCustomersStore((state) => state.setIntegrationFilter)
+  const setStatusFilters = useCustomersStore((state) => state.setStatusFilters)
+  const setReportFilters = useCustomersStore((state) => state.setReportFilters)
+  const setIntegrationFilters = useCustomersStore((state) => state.setIntegrationFilters)
+  const clearAllFilters = useCustomersStore((state) => state.clearAllFilters)
   const openModal = useCustomersStore((state) => state.openModal)
   const closeModal = useCustomersStore((state) => state.closeModal)
   const setSelectedUnmappedCustomer = useCustomersStore((state) => state.setSelectedUnmappedCustomer)
@@ -387,9 +388,9 @@ export const useCustomerList = () => {
     navigate,
     toast,
     searchQuery,
-    statusFilter,
-    reportFilter,
-    integrationFilter,
+    statusFilters,
+    reportFilters,
+    integrationFilters,
     totalMapped,
     mappedCustomers,
     unmappedCustomers,
@@ -402,9 +403,10 @@ export const useCustomerList = () => {
     totalPages,
     total,
     setSearchQuery,
-    setStatusFilter,
-    setReportFilter,
-    setIntegrationFilter,
+    setStatusFilters,
+    setReportFilters,
+    setIntegrationFilters,
+    clearAllFilters,
     fetchCustomers,
     openModal,
     closeModal,

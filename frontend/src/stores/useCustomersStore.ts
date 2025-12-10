@@ -21,9 +21,9 @@ interface CustomersState {
 
   // Filters
   searchQuery: string
-  statusFilter: string
-  reportFilter: string
-  integrationFilter: string
+  statusFilters: string[]
+  reportFilters: string[]
+  integrationFilters: string[]
 
   // Modal state
   modals: {
@@ -47,9 +47,10 @@ interface CustomersState {
 
   // Filter actions
   setSearchQuery: (query: string) => void
-  setStatusFilter: (status: string) => void
-  setReportFilter: (filter: string) => void
-  setIntegrationFilter: (filter: string) => void
+  setStatusFilters: (statuses: string[]) => void
+  setReportFilters: (filters: string[]) => void
+  setIntegrationFilters: (filters: string[]) => void
+  clearAllFilters: () => void
 
   // Modal actions
   openModal: (modal: keyof CustomersState['modals'], customer?: CustomersState['selectedCustomer']) => void
@@ -74,9 +75,9 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   unmappedCount: 0,
   isLoading: false,
   searchQuery: '',
-  statusFilter: 'all',
-  reportFilter: 'all',
-  integrationFilter: 'all',
+  statusFilters: [],
+  reportFilters: [],
+  integrationFilters: [],
   modals: {
     map: false,
     edit: false,
@@ -97,14 +98,14 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   fetchCustomers: async (page: number = 1, silent: boolean = false) => {
     if (!silent) set({ isLoading: true })
     try {
-      const { searchQuery, statusFilter, reportFilter, integrationFilter } = get()
+      const { searchQuery, statusFilters, reportFilters, integrationFilters } = get()
 
       const response = await customerApi.getCustomers({
         page,
         search: searchQuery || undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        report_filter: reportFilter !== 'all' ? reportFilter : undefined,
-        integration_type: integrationFilter !== 'all' ? integrationFilter : undefined,
+        statuses: statusFilters.length > 0 ? statusFilters : undefined,
+        report_filters: reportFilters.length > 0 ? reportFilters : undefined,
+        integration_types: integrationFilters.length > 0 ? integrationFilters : undefined,
       })
 
       set({
@@ -144,16 +145,20 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
     set({ searchQuery: query, currentPage: 1 })
     get().fetchCustomers(1)
   },
-  setStatusFilter: (status: string) => {
-    set({ statusFilter: status, currentPage: 1 })
+  setStatusFilters: (statuses: string[]) => {
+    set({ statusFilters: statuses, currentPage: 1 })
     get().fetchCustomers(1)
   },
-  setReportFilter: (filter: string) => {
-    set({ reportFilter: filter, currentPage: 1 })
+  setReportFilters: (filters: string[]) => {
+    set({ reportFilters: filters, currentPage: 1 })
     get().fetchCustomers(1)
   },
-  setIntegrationFilter: (filter: string) => {
-    set({ integrationFilter: filter, currentPage: 1 })
+  setIntegrationFilters: (filters: string[]) => {
+    set({ integrationFilters: filters, currentPage: 1 })
+    get().fetchCustomers(1)
+  },
+  clearAllFilters: () => {
+    set({ statusFilters: [], reportFilters: [], integrationFilters: [], searchQuery: '', currentPage: 1 })
     get().fetchCustomers(1)
   },
 
@@ -191,8 +196,9 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
       const response = await customerApi.getCustomers({
         page: 1,
         search: undefined,
-        status: undefined,
-        report_filter: undefined
+        statuses: undefined,
+        report_filters: undefined,
+        integration_types: undefined
       })
       set({ totalCustomersCount: response.pagination.total })
     } catch (err) {
