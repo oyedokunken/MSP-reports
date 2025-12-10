@@ -42,7 +42,7 @@ interface ReportsState {
   deleting: number | null
 
   // Actions
-  fetchReports: (customerId?: string | null, page?: number) => Promise<void>
+  fetchReports: (customerId?: string | null, page?: number, options?: { background?: boolean }) => Promise<void>
   downloadReport: (reportId: number) => Promise<{ success: boolean; error?: string }>
   deleteReport: (reportId: number) => Promise<{ success: boolean; error?: string }>
 
@@ -72,8 +72,10 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
   deleting: null,
 
   // Fetch reports
-  fetchReports: async (customerId = null, page = 1) => {
-    set({ isLoading: true })
+  fetchReports: async (customerId = null, page = 1, options = { background: false }) => {
+    if (!options.background) {
+      set({ isLoading: true })
+    }
     try {
       const params = new URLSearchParams({ page: page.toString(), per_page: '9' })
       if (customerId) params.append('customer_id', customerId)

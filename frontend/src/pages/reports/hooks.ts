@@ -26,6 +26,7 @@ export const useReportsList = () => {
   const setReportTypeFilters = useReportsStore(state => state.setReportTypeFilters)
   const getFilteredReports = useReportsStore(state => state.getFilteredReports)
   const getUniqueReportTypes = useReportsStore(state => state.getUniqueReportTypes)
+  const currentPage = useReportsStore(state => state.currentPage)
 
   useEffect(() => {
     fetchReports(customerId).catch((err: unknown) => {
@@ -55,6 +56,8 @@ export const useReportsList = () => {
     const result = await deleteReport(reportId)
     if (result.success) {
       toast.success('Report Deleted', 'Report has been deleted successfully')
+      // Refetch to fill the gap in the current page
+      fetchReports(customerId, currentPage, { background: true })
     } else {
       toast.error('Delete Failed', result.error)
     }
