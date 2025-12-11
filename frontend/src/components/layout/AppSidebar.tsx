@@ -10,6 +10,9 @@ import {
   UserPlus,
   Key,
   Activity,
+  ChevronDown,
+  Database,
+  Building2,
 } from 'lucide-react'
 import { hasPermission } from '@/utils/permissions'
 import { useAuth } from '@/contexts/AuthContext'
@@ -26,6 +29,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar'
@@ -38,17 +44,24 @@ export default function AppSidebar() {
   const { branding } = useBranding()
   const { state } = useSidebar()
   const [createUserOpen, setCreateUserOpen] = useState(false)
+  const [customersExpanded, setCustomersExpanded] = useState(() => {
+    return location.pathname.startsWith('/platform/customers')
+  })
   const getUnreadCount = useNotificationStore((state) => state.getUnreadCount)
   const unreadCount = getUnreadCount()
 
   const navItems = [
     { path: '/platform/dashboard', icon: Home, label: 'Dashboard', show: true },
     { path: '/platform/integrations', icon: Cable, label: 'Integrations', show: hasPermission(user, 'integrations', 'view') },
-    { path: '/platform/customers', icon: Users, label: 'Customers', show: hasPermission(user, 'customers', 'view') },
     { path: '/platform/reports', icon: FileText, label: 'Reports', show: hasPermission(user, 'reports', 'view') },
     { path: '/platform/schedules', icon: Calendar, label: 'Schedules', show: hasPermission(user, 'reports', 'view') },
     { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: true },
   ].filter(item => item.show !== false)
+
+  const customersSubItems = [
+    { path: '/platform/customers/master', icon: Database, label: 'Master List' },
+    { path: '/platform/customers/secondary', icon: Building2, label: 'Secondary Customers' },
+  ]
 
   const adminNavItems = [
     { path: '/admin/users', icon: UserPlus, label: 'Users', show: hasPermission(user, 'users', 'view') },
@@ -196,6 +209,42 @@ export default function AppSidebar() {
                   </SidebarMenuItem>
                 )
               })}
+
+              {/* Customers Collapsible Menu */}
+              {hasPermission(user, 'customers', 'view') && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip="Customers"
+                    onClick={() => setCustomersExpanded(!customersExpanded)}
+                    className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10"
+                  >
+                    <Users className="h-4 w-4 flex-shrink-0" />
+                    <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">Customers</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform group-data-[collapsible=icon]:hidden ${customersExpanded ? 'rotate-180' : ''}`} />
+                  </SidebarMenuButton>
+                  {customersExpanded && (
+                    <SidebarMenuSub className="group-data-[collapsible=icon]:hidden">
+                      {customersSubItems.map((subItem) => {
+                        const SubIcon = subItem.icon
+                        const subActive = isActive(subItem.path)
+                        return (
+                          <SidebarMenuSubItem key={subItem.path}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={subActive}
+                            >
+                              <Link to={subItem.path} onClick={(e) => handleNavClick(e, subItem.path)}>
+                                <SubIcon className="h-4 w-4 !text-muted-foreground" />
+                                <span>{subItem.label}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )
+                      })}
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

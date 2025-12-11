@@ -28,6 +28,7 @@ export const customerApi = {
         statuses?: string[]
         report_filters?: string[]
         integration_types?: string[]
+        source_of_truth_only?: boolean | null
     }): Promise<CustomerListResponse> {
         const queryParams = new URLSearchParams()
         if (params?.page) queryParams.append('page', params.page.toString())
@@ -46,6 +47,11 @@ export const customerApi = {
         // Add multiple integration type filters
         if (params?.integration_types && params.integration_types.length > 0) {
             params.integration_types.forEach(type => queryParams.append('integration_types[]', type))
+        }
+        
+        // Add source of truth filter
+        if (params?.source_of_truth_only !== null && params?.source_of_truth_only !== undefined) {
+            queryParams.append('source_of_truth_only', params.source_of_truth_only.toString())
         }
 
         const url = `/customers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`

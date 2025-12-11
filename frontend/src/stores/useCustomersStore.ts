@@ -42,7 +42,7 @@ interface CustomersState {
   } | null
 
   // Actions
-  fetchCustomers: (page?: number, silent?: boolean) => Promise<void>
+  fetchCustomers: (page?: number, silent?: boolean, sourceOfTruthOnly?: boolean | null) => Promise<void>
   fetchUnmappedCustomers: () => Promise<void>
 
   // Filter actions
@@ -95,7 +95,7 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   total: 0,
 
   // Fetch customers
-  fetchCustomers: async (page: number = 1, silent: boolean = false) => {
+  fetchCustomers: async (page: number = 1, silent: boolean = false, sourceOfTruthOnly: boolean | null = null) => {
     if (!silent) set({ isLoading: true })
     try {
       const { searchQuery, statusFilters, reportFilters, integrationFilters } = get()
@@ -106,6 +106,7 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
         statuses: statusFilters.length > 0 ? statusFilters : undefined,
         report_filters: reportFilters.length > 0 ? reportFilters : undefined,
         integration_types: integrationFilters.length > 0 ? integrationFilters : undefined,
+        source_of_truth_only: sourceOfTruthOnly,
       })
 
       set({

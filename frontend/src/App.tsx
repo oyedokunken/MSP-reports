@@ -7,7 +7,8 @@ import Login from '@/pages/auth/pages/Signin'
 import Dashboard from '@/pages/dashboard/Dashboard'
 import IntegrationList from '@/pages/integrations/IntegrationList'
 import { IntegrationPreview } from '@/pages/integrations/IntegrationPreview'
-import CustomerList from '@/pages/customers/CustomerList'
+import MasterCustomerList from '@/pages/customers/MasterCustomerList'
+import SecondaryCustomerList from '@/pages/customers/SecondaryCustomerList'
 import CustomerIntegrationDetails from '@/pages/customers/CustomerIntegrationDetails'
 import ScheduleList from '@/pages/schedules/ScheduleList'
 import Settings from '@/pages/settings/Settings'
@@ -209,11 +210,26 @@ function AppRoutes() {
       />
       */}
 
+      {/* Redirect old customers route to master list */}
       <Route
         path="/platform/customers"
+        element={<Navigate to="/platform/customers/master" replace />}
+      />
+
+      <Route
+        path="/platform/customers/master"
         element={
           <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
-            <CustomerList />
+            <MasterCustomerList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/platform/customers/secondary"
+        element={
+          <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
+            <SecondaryCustomerList />
           </ProtectedRoute>
         }
       />
