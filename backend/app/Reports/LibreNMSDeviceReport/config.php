@@ -8,4 +8,5 @@ return [
     'category' => 'infrastructure',
     'frequencies' => ['weekly', 'monthly'],
     'formats' => ['pdf', 'html'],
+    'required_integrations' => ['LibreNMS'],
 ];

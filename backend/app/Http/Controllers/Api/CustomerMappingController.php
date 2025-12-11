@@ -23,9 +23,9 @@ class CustomerMappingController extends Controller
         // Get pagination and filter parameters
         $perPage = 15;
         $search = $request->input('search');
-        $status = $request->input('status');
-        $reportFilter = $request->input('report_filter');
-        $integrationType = $request->input('integration_type');
+        $statuses = $request->input('statuses');
+        $reportFilters = $request->input('report_filters');
+        $integrationTypes = $request->input('integration_types');
 
         // OPTIMIZED: Server-side filtering and pagination
         $query = Customer::with([
@@ -41,21 +41,25 @@ class CustomerMappingController extends Controller
         }
 
         // Apply status filter
-        if ($status && $status !== 'all') {
-            $query->where('status', $status);
+        if (!empty($statuses)) {
+            $query->whereIn('status', $statuses);
         }
 
         // Apply report filter
-        if ($reportFilter === 'configured') {
-            $query->has('reportSchedules');
-        } elseif ($reportFilter === 'not-configured') {
-            $query->doesntHave('reportSchedules');
+        if (!empty($reportFilters)) {
+            // If both are selected, we show all (so no filter needed)
+            // If only one is selected, apply that filter
+            if (in_array('configured', $reportFilters) && !in_array('not-configured', $reportFilters)) {
+                $query->has('reportSchedules');
+            } elseif (in_array('not-configured', $reportFilters) && !in_array('configured', $reportFilters)) {
+                $query->doesntHave('reportSchedules');
+            }
         }
 
         // Apply integration type filter
-        if ($integrationType && $integrationType !== 'all') {
-            $query->whereHas('integrationCustomers.integration', function ($q) use ($integrationType) {
-                $q->where('integration_type', $integrationType);
+        if (!empty($integrationTypes)) {
+            $query->whereHas('integrationCustomers.integration', function ($q) use ($integrationTypes) {
+                $q->whereIn('integration_type', $integrationTypes);
             });
         }
 
