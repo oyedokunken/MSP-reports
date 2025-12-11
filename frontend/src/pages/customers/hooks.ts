@@ -519,6 +519,32 @@ export const useMasterCustomerList = () => {
     fetchCustomers(page, false, true)
   }
 
+  // Override filter setters to include SOT parameter
+  const handleSetSearchQuery = (query: string) => {
+    setSearchQuery(query)
+    fetchCustomers(1, false, true)
+  }
+
+  const handleSetStatusFilters = (statuses: string[]) => {
+    setStatusFilters(statuses)
+    fetchCustomers(1, false, true)
+  }
+
+  const handleSetReportFilters = (filters: string[]) => {
+    setReportFilters(filters)
+    fetchCustomers(1, false, true)
+  }
+
+  const handleSetIntegrationFilters = (filters: string[]) => {
+    setIntegrationFilters(filters)
+    fetchCustomers(1, false, true)
+  }
+
+  const handleClearAllFilters = () => {
+    clearAllFilters()
+    fetchCustomers(1, false, true)
+  }
+
   return {
     navigate,
     toast,
@@ -537,11 +563,11 @@ export const useMasterCustomerList = () => {
     currentPage,
     totalPages,
     total,
-    setSearchQuery,
-    setStatusFilters,
-    setReportFilters,
-    setIntegrationFilters,
-    clearAllFilters,
+    setSearchQuery: handleSetSearchQuery,
+    setStatusFilters: handleSetStatusFilters,
+    setReportFilters: handleSetReportFilters,
+    setIntegrationFilters: handleSetIntegrationFilters,
+    clearAllFilters: handleClearAllFilters,
     fetchCustomers: handlePageChange,
     openModal,
     closeModal,
@@ -612,6 +638,32 @@ export const useSecondaryCustomerList = () => {
     fetchCustomers(page, false, false)
   }
 
+  // Override filter setters to include SOT parameter
+  const handleSetSearchQuery = (query: string) => {
+    setSearchQuery(query)
+    fetchCustomers(1, false, false)
+  }
+
+  const handleSetStatusFilters = (statuses: string[]) => {
+    setStatusFilters(statuses)
+    fetchCustomers(1, false, false)
+  }
+
+  const handleSetReportFilters = (filters: string[]) => {
+    setReportFilters(filters)
+    fetchCustomers(1, false, false)
+  }
+
+  const handleSetIntegrationFilters = (filters: string[]) => {
+    setIntegrationFilters(filters)
+    fetchCustomers(1, false, false)
+  }
+
+  const handleClearAllFilters = () => {
+    clearAllFilters()
+    fetchCustomers(1, false, false)
+  }
+
   return {
     navigate,
     toast,
@@ -627,11 +679,11 @@ export const useSecondaryCustomerList = () => {
     currentPage,
     totalPages,
     total,
-    setSearchQuery,
-    setStatusFilters,
-    setReportFilters,
-    setIntegrationFilters,
-    clearAllFilters,
+    setSearchQuery: handleSetSearchQuery,
+    setStatusFilters: handleSetStatusFilters,
+    setReportFilters: handleSetReportFilters,
+    setIntegrationFilters: handleSetIntegrationFilters,
+    clearAllFilters: handleClearAllFilters,
     fetchCustomers: handlePageChange,
     openModal,
     closeModal,
