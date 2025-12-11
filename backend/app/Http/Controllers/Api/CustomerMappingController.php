@@ -26,6 +26,7 @@ class CustomerMappingController extends Controller
         $statuses = $request->input('statuses');
         $reportFilters = $request->input('report_filters');
         $integrationTypes = $request->input('integration_types');
+        $sourceOfTruthOnly = $request->input('source_of_truth_only');
 
         // OPTIMIZED: Server-side filtering and pagination
         $query = Customer::with([
@@ -60,6 +61,14 @@ class CustomerMappingController extends Controller
         if (!empty($integrationTypes)) {
             $query->whereHas('integrationCustomers.integration', function ($q) use ($integrationTypes) {
                 $q->whereIn('integration_type', $integrationTypes);
+            });
+        }
+
+        // Filter by source of truth status (optional)
+        if ($sourceOfTruthOnly !== null) {
+            $isSourceOfTruth = filter_var($sourceOfTruthOnly, FILTER_VALIDATE_BOOLEAN);
+            $query->whereHas('integrationCustomers.integration', function ($q) use ($isSourceOfTruth) {
+                $q->where('is_source_of_truth', $isSourceOfTruth);
             });
         }
 
