@@ -1,6 +1,5 @@
 import FloatingLayout from "@/components/layout/FloatingLayout";
 import {
-    CustomersHeader,
     CustomersFilters,
     UnmappedBanner,
     CustomersGrid,
@@ -31,6 +30,7 @@ export default function MasterCustomerList() {
         currentPage,
         totalPages,
         total,
+        sotIntegrationName,
         setSearchQuery,
         setStatusFilters,
         setReportFilters,
@@ -47,10 +47,19 @@ export default function MasterCustomerList() {
     return (
         <FloatingLayout>
             <div className="space-y-6 max-w-full overflow-hidden">
-                <CustomersHeader 
-                    title="Master Customer List"
-                    subtitle="Customers from your Source of Truth integration"
-                />
+                <div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-bold text-foreground">Master Customer List</h1>
+                        {sotIntegrationName && (
+                            <span className="px-3 py-1 text-sm font-medium bg-primary/10 text-primary rounded-full border border-primary/20">
+                                {sotIntegrationName}
+                            </span>
+                        )}
+                    </div>
+                    <p className="mt-2 text-muted-foreground">
+                        Customers from your Source of Truth integration
+                    </p>
+                </div>
 
                 <CustomersFilters
                     searchQuery={searchQuery}

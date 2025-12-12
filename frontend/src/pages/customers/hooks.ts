@@ -421,6 +421,7 @@ export const useCustomerList = () => {
 export const useMasterCustomerList = () => {
   const navigate = useNavigate()
   const toast = useToast()
+  const [sotIntegrationName, setSotIntegrationName] = useState<string | null>(null)
 
   const customers = useCustomersStore((state) => state.customers)
   const unmappedCount = useCustomersStore((state) => state.unmappedCount)
@@ -455,6 +456,16 @@ export const useMasterCustomerList = () => {
         "Failed to load customers",
         err.response?.data?.message || err.message
       )
+    })
+
+    // Fetch SOT integration name
+    api.get('/integrations').then((response: any) => {
+      const sotIntegration = response.configured?.find((int: any) => int.is_source_of_truth === true)
+      if (sotIntegration) {
+        setSotIntegrationName(sotIntegration.display_name || sotIntegration.integration_type)
+      }
+    }).catch((err) => {
+      console.error('Failed to fetch SOT integration:', err)
     })
   }, [fetchCustomers, toast])
 
@@ -521,27 +532,27 @@ export const useMasterCustomerList = () => {
 
   // Override filter setters to include SOT parameter
   const handleSetSearchQuery = (query: string) => {
-    setSearchQuery(query)
+    useCustomersStore.setState({ searchQuery: query, currentPage: 1 })
     fetchCustomers(1, false, true)
   }
 
   const handleSetStatusFilters = (statuses: string[]) => {
-    setStatusFilters(statuses)
+    useCustomersStore.setState({ statusFilters: statuses, currentPage: 1 })
     fetchCustomers(1, false, true)
   }
 
   const handleSetReportFilters = (filters: string[]) => {
-    setReportFilters(filters)
+    useCustomersStore.setState({ reportFilters: filters, currentPage: 1 })
     fetchCustomers(1, false, true)
   }
 
   const handleSetIntegrationFilters = (filters: string[]) => {
-    setIntegrationFilters(filters)
+    useCustomersStore.setState({ integrationFilters: filters, currentPage: 1 })
     fetchCustomers(1, false, true)
   }
 
   const handleClearAllFilters = () => {
-    clearAllFilters()
+    useCustomersStore.setState({ statusFilters: [], reportFilters: [], integrationFilters: [], searchQuery: '', currentPage: 1 })
     fetchCustomers(1, false, true)
   }
 
@@ -563,6 +574,7 @@ export const useMasterCustomerList = () => {
     currentPage,
     totalPages,
     total,
+    sotIntegrationName,
     setSearchQuery: handleSetSearchQuery,
     setStatusFilters: handleSetStatusFilters,
     setReportFilters: handleSetReportFilters,
@@ -640,27 +652,27 @@ export const useSecondaryCustomerList = () => {
 
   // Override filter setters to include SOT parameter
   const handleSetSearchQuery = (query: string) => {
-    setSearchQuery(query)
+    useCustomersStore.setState({ searchQuery: query, currentPage: 1 })
     fetchCustomers(1, false, false)
   }
 
   const handleSetStatusFilters = (statuses: string[]) => {
-    setStatusFilters(statuses)
+    useCustomersStore.setState({ statusFilters: statuses, currentPage: 1 })
     fetchCustomers(1, false, false)
   }
 
   const handleSetReportFilters = (filters: string[]) => {
-    setReportFilters(filters)
+    useCustomersStore.setState({ reportFilters: filters, currentPage: 1 })
     fetchCustomers(1, false, false)
   }
 
   const handleSetIntegrationFilters = (filters: string[]) => {
-    setIntegrationFilters(filters)
+    useCustomersStore.setState({ integrationFilters: filters, currentPage: 1 })
     fetchCustomers(1, false, false)
   }
 
   const handleClearAllFilters = () => {
-    clearAllFilters()
+    useCustomersStore.setState({ statusFilters: [], reportFilters: [], integrationFilters: [], searchQuery: '', currentPage: 1 })
     fetchCustomers(1, false, false)
   }
 
