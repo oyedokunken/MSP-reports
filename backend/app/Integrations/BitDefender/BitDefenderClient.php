@@ -98,6 +98,7 @@ class BitDefenderClient
 
     /**
      * Get endpoints (devices) for a specific company.
+     * Filters out groups and only returns actual computer endpoints.
      */
     public function getEndpointsForCompany(string $companyId): array
     {
@@ -111,10 +112,25 @@ class BitDefenderClient
                     'parentId' => $companyId,
                     'page' => $page,
                     'perPage' => $perPage,
+                    'filters' => [
+                        'type' => [
+                            'computers' => true,
+                            'virtualMachines' => true,
+                        ],
+                    ],
                 ], 'network');
 
                 $items = $response['result']['items'] ?? [];
-                $allEndpoints = array_merge($allEndpoints, $items);
+                
+                // Additional filtering: only include items that are actual endpoints (type 1 = computer, type 2 = VM)
+                // Exclude groups (type 4) and other organizational items
+                $endpoints = array_filter($items, function($item) {
+                    $type = $item['type'] ?? null;
+                    // Type 1 = Computer, Type 2 = Virtual Machine, Type 4 = Group
+                    return in_array($type, [1, 2]);
+                });
+                
+                $allEndpoints = array_merge($allEndpoints, $endpoints);
                 
                 $total = $response['result']['total'] ?? 0;
                 $pagesCount = $response['result']['pagesCount'] ?? 1;
@@ -124,7 +140,8 @@ class BitDefenderClient
                     'company_id' => $companyId,
                     'page' => $page,
                     'items_this_page' => count($items),
-                    'total_so_far' => count($allEndpoints),
+                    'endpoints_this_page' => count($endpoints),
+                    'total_endpoints_so_far' => count($allEndpoints),
                 ]);
                 
                 $page++;
