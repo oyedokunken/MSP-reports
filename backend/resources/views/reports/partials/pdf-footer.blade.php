@@ -1,18 +1,18 @@
 <html>
 <head>
     <style>
-        * {
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
         }
         body {
-            margin: 0;
-            padding: 8px 15px 5px 15px;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            font-size: 7.5pt;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            font-size: 9px;
             color: #666;
-            width: 100%;
+            padding: 8px 30px 10px 30px;
         }
         .footer-container {
             border-top: 1px solid #e5e5e5;
@@ -23,34 +23,21 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 8px;
         }
         .footer-left {
-            flex: 1;
-            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .footer-left div {
+            font-size: 9px;
+            color: #666;
+            line-height: 1.4;
         }
         .footer-right {
-            flex: 1;
-            min-width: 200px;
             text-align: right;
-            font-style: italic;
-            color: #999;
-        }
-        .footer-text {
-            margin-bottom: 3px;
-            font-weight: 500;
-        }
-        .contact-info {
-            line-height: 1.5;
-        }
-        .contact-info strong {
-            font-weight: 600;
-        }
-        .page-number {
-            text-align: center;
-            font-size: 7pt;
-            color: #999;
-            margin-top: 5px;
+            font-size: 9px;
+            color: #666;
         }
     </style>
 </head>
@@ -58,31 +45,14 @@
     <div class="footer-container">
         <div class="footer-content">
             <div class="footer-left">
-                @if(isset($branding['footer_text']) && $branding['footer_text'])
-                    <div class="footer-text">{{ $branding['footer_text'] }}</div>
-                @endif
-                
-                @if(isset($branding['support_email']) || isset($branding['support_phone']))
-                    <div class="contact-info">
-                        @if(isset($branding['support_phone']) && $branding['support_phone'])
-                            <div><strong>Phone:</strong> {{ $branding['support_phone'] }}</div>
-                        @endif
-                        @if(isset($branding['support_email']) && $branding['support_email'])
-                            <div><strong>Email:</strong> {{ $branding['support_email'] }}</div>
-                        @endif
-                    </div>
-                @endif
+                <div>{{ $branding['footer_text'] ?? '© 2025 Territory Technology Solutions' }}</div>
+                <div>{{ $branding['support_phone'] ?? '1300 XXX XXX' }}</div>
+                <div>{{ $branding['support_email'] ?? 'support@tts.com.au' }}</div>
             </div>
             
-            @if(isset($branding['footer_notes']) && $branding['footer_notes'])
-                <div class="footer-right">
-                    {{ $branding['footer_notes'] }}
-                </div>
-            @endif
-        </div>
-        
-        <div class="page-number">
-            Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+            <div class="footer-right">
+                Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+            </div>
         </div>
     </div>
 </body>

@@ -11,11 +11,11 @@
             color: #1a1a1a;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 50px 30px;
+            padding: 10px;
             font-size: 12px;
         }
-        .header { margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5; }
-        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 6px; }
+        .header { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; }
+        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
         .header .meta { font-size: 11px; color: #666; }
         .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 40px; }
         .summary-card { padding: 18px; border: 1px solid #e5e5e5; border-radius: 6px; }
