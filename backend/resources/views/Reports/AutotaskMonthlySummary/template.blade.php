@@ -11,10 +11,11 @@
             color: #1a1a1a;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 10px;
+            padding: 20px 10px;
             font-size: 12px;
         }
-        .header { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; }
+        .header { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; text-align: center; }
+        .header .company-name { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
         .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
         .header .meta { font-size: 11px; color: #666; }
         .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 40px; }
@@ -56,6 +57,7 @@
 <body>
     <div class="header">
         <h1>Autotask Monthly Summary</h1>
+        <div class="company-name">{{ $branding['company_name'] ?? 'Territory Technology Solutions' }}</div>
         <div class="meta">{{ $customer->canonical_name }} • {{ $period['formatted'] }}</div>
     </div>
 

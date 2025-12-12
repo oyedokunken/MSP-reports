@@ -1,5 +1,6 @@
 <html>
 <head>
+    <base href="http://reporting-nginx/">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body {
@@ -27,8 +28,11 @@
             gap: 12px;
         }
         .company-logo {
-            max-height: 35px;
-            max-width: 120px;
+            max-height: 40px;
+            height: auto;
+            max-width: 150px;
+            width: auto;
+            display: block;
         }
         .company-info {
             display: flex;
@@ -64,15 +68,7 @@
 <body>
     <div class="header-container">
         <div class="header-left">
-            @if(isset($branding['company_logo']) && $branding['company_logo'])
-                <img src="{{ $branding['company_logo'] }}" alt="{{ $branding['company_name'] ?? 'Company' }}" class="company-logo">
-            @endif
-            <div class="company-info">
-                @if(!isset($branding['company_logo']) || !$branding['company_logo'])
-                    <div class="company-name">{{ $branding['company_name'] ?? 'Company Name' }}</div>
-                @endif
-                <div class="report-title">{{ $branding['report_title'] ?? 'Service Report' }}</div>
-            </div>
+            <img src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('logo.png'))) }}" alt="MSP Logo" class="company-logo">
         </div>
         <div class="header-right">
             <div class="prepared-for">Prepared For</div>

@@ -120,6 +120,10 @@ class GotenbergService
         $formData['preferCssPageSize'] = $options['prefer_css_page_size'] ?? false;
         $formData['printBackground'] = $options['print_background'] ?? true;
         $formData['landscape'] = $options['landscape'] ?? false;
+        
+        // Allow loading external resources (images, fonts, etc.)
+        $formData['skipNetworkIdleEvent'] = true;
+        $formData['failOnHttpStatusCodes'] = '[499,599]';
 
         // Wait delay (useful for JavaScript rendering)
         if (isset($options['wait_delay'])) {

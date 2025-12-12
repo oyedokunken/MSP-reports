@@ -435,9 +435,7 @@ export default function ConfigureReports() {
                             onValueChange={(value) => handleUpdateReport(index, 'report_type', value)}
                           >
                             <SelectTrigger id={`report-type-${index}`} className="mt-1">
-                              <SelectValue placeholder="Select report type">
-                                {report.report_type && availableReportTypes.find(t => t.id === report.report_type)?.name}
-                              </SelectValue>
+                              <SelectValue placeholder="Select report type" />
                             </SelectTrigger>
                             <SelectContent>
                               {availableReportTypes.length === 0 ? (

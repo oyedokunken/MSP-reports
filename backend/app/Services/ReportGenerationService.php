@@ -284,14 +284,15 @@ class ReportGenerationService
         $pdfContent = $this->gotenberg->htmlToPdf($html, [
             'paper_width' => '8.27',  // A4 width in inches
             'paper_height' => '11.69', // A4 height in inches
-            'margin_top' => '0.8',    // 0.8 inch (~20mm) top margin for header
-            'margin_bottom' => '0.7', // 0.7 inch (~18mm) bottom margin for footer
+            'margin_top' => '1.0',    // 1.0 inch (~25mm) top margin for header
+            'margin_bottom' => '0.8', // 0.8 inch (~20mm) bottom margin for footer
             'margin_left' => '0.4',   // 0.4 inch (~10mm) left margin
             'margin_right' => '0.4',  // 0.4 inch (~10mm) right margin
             'header_html' => $headerHtml,
             'footer_html' => $footerHtml,
             'print_background' => true,
             'prefer_css_page_size' => false,
+            'wait_delay' => '2s',     // Wait 2 seconds for images to load
         ]);
 
         // Log PDF content size for debugging
