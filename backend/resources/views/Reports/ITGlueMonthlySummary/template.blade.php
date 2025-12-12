@@ -11,11 +11,12 @@
             color: #1a1a1a;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 50px 30px;
+            padding: 20px 10px;
             font-size: 12px;
         }
-        .header { margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5; }
-        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 6px; }
+        .header { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; text-align: center; }
+        .header .company-name { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
         .header .meta { font-size: 11px; color: #666; }
         .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 40px; }
         .summary-card { padding: 18px; border: 1px solid #e5e5e5; border-radius: 6px; }
@@ -34,17 +35,17 @@
         tr:last-child td { border-bottom: none; }
         .detail { font-size: 10px; color: #666; margin-top: 3px; line-height: 1.4; }
         .badge { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
-        .badge-critical { background: #fee2e2; color: #991b1b; }
-        .badge-warning { background: #fef3c7; color: #92400e; }
-        .badge-healthy { background: #d1fae5; color: #065f46; }
-        .badge-info { background: #dbeafe; color: #1e40af; }
+        .badge.critical { background: #fee2e2; color: #991b1b; }
+        .badge.warning { background: #fef3c7; color: #92400e; }
+        .badge.healthy { background: #d1fae5; color: #065f46; }
+        .badge.info { background: #dbeafe; color: #1e40af; }
         .empty { text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 11px; }
-        .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #e5e5e5; text-align: center; font-size: 10px; color: #9ca3af; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>ITGlue Monthly Summary</h1>
+        <div class="company-name">{{ $branding['company_name'] ?? 'Territory Technology Solutions' }}</div>
         <div class="meta">{{ $customer->canonical_name }} • {{ $period['formatted'] }}</div>
     </div>
 
@@ -101,11 +102,11 @@
                     <td>{{ $license['utilization_percentage'] ?? 0 }}%</td>
                     <td>
                         @if(($license['status'] ?? '') === 'over_provisioned')
-                            <span class="badge badge-warning">Over-provisioned</span>
+                            <span class="badge warning">Over-provisioned</span>
                         @elseif(($license['status'] ?? '') === 'well_utilized')
-                            <span class="badge badge-healthy">Well Utilized</span>
+                            <span class="badge healthy">Well Utilized</span>
                         @else
-                            <span class="badge badge-info">Normal</span>
+                            <span class="badge info">Normal</span>
                         @endif
                     </td>
                 </tr>
@@ -170,11 +171,11 @@
                     </td>
                     <td>
                         @if(in_array($cert['severity'] ?? '', ['expired', 'critical']))
-                            <span class="badge badge-critical">Critical</span>
+                            <span class="badge critical">Critical</span>
                         @elseif(($cert['severity'] ?? '') === 'warning')
-                            <span class="badge badge-warning">Warning</span>
+                            <span class="badge warning">Warning</span>
                         @else
-                            <span class="badge badge-healthy">Healthy</span>
+                            <span class="badge healthy">Healthy</span>
                         @endif
                     </td>
                 </tr>
@@ -234,11 +235,11 @@
                     </td>
                     <td>
                         @if(in_array($domain['severity'] ?? '', ['expired', 'critical']))
-                            <span class="badge badge-critical">Critical</span>
+                            <span class="badge critical">Critical</span>
                         @elseif(($domain['severity'] ?? '') === 'warning')
-                            <span class="badge badge-warning">Warning</span>
+                            <span class="badge warning">Warning</span>
                         @else
-                            <span class="badge badge-healthy">Healthy</span>
+                            <span class="badge healthy">Healthy</span>
                         @endif
                     </td>
                 </tr>
@@ -250,8 +251,5 @@
         @endif
     </div>
 
-    <div class="footer">
-        ITGlue Monthly Summary Report • Data sourced from IT Glue
-    </div>
 </body>
 </html>

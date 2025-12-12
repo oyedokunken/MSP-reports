@@ -1,294 +1,91 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Datto RMM Monthly Summary - {{ $customer->canonical_name }}</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
             line-height: 1.5;
-            color: #1f2937;
-            background: white;
-            font-size: 11pt;
+            color: #1a1a1a;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 10px;
+            font-size: 12px;
         }
         
-        .container {
-            max-width: 100%;
-            margin: 0;
-            padding: 20px 30px 40px 30px;
-        }
+        .header { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; text-align: center; }
+        .header .company-name { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+        .header .meta { font-size: 11px; color: #666; }
         
-        /* Header - Minimal */
-        .header {
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-            text-align: center;
-        }
+        .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 40px; }
+        .summary-card { padding: 18px; border: 1px solid #e5e5e5; border-radius: 6px; }
+        .summary-card .number { font-size: 28px; font-weight: 600; margin-bottom: 3px; }
+        .summary-card .label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+        .summary-card .subvalue { font-size: 10px; color: #666; margin-top: 3px; }
         
-        .header-content {
-            display: block;
-        }
+        .section { margin-bottom: 40px; }
+        .section-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; }
+        h3 { font-size: 14px; font-weight: 600; margin: 20px 0 10px 0; }
         
-        .logo {
-            max-height: 40px;
-            max-width: 150px;
-            margin-bottom: 10px;
-        }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 20px; }
+        th { text-align: left; padding: 10px 12px; background: #f9fafb; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e5e5; white-space: nowrap; }
+        td { padding: 12px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
         
-        .report-title h1 {
-            font-size: 18pt;
-            font-weight: 600;
-            color: #111827;
-            margin-bottom: 3px;
-        }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+        .badge.success { background: #d1fae5; color: #065f46; }
+        .badge.warning { background: #fef3c7; color: #92400e; }
+        .badge.danger { background: #fee2e2; color: #991b1b; }
+        .badge.info { background: #dbeafe; color: #1e40af; }
         
-        .report-title .subtitle {
-            color: #6b7280;
-            font-size: 10pt;
-        }
-        
-        /* Executive Summary - Minimal */
-        .executive-summary {
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .executive-summary h2 {
-            font-size: 12pt;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #111827;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .stat-box {
-            text-align: center;
-            padding: 8px;
-        }
-        
-        .stat-label {
-            font-size: 8pt;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 3px;
-        }
-        
-        .stat-value {
-            font-size: 16pt;
-            font-weight: 600;
-            color: #111827;
-        }
-        
-        /* Section - Minimal */
-        .section {
-            margin-bottom: 20px;
-            page-break-inside: avoid;
-        }
-        
-        .section-header {
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 5px;
-            margin-bottom: 10px;
-        }
-        
-        .section-header h2 {
-            font-size: 12pt;
-            font-weight: 600;
-            color: #111827;
-        }
-        
-        h3 {
-            font-size: 10pt;
-            font-weight: 600;
-            color: #111827;
-            margin-top: 15px;
-            margin-bottom: 8px;
-        }
-        
-        /* Table - Minimal */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            font-size: 9pt;
-        }
-        
-        th {
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            padding: 6px 8px;
-            text-align: left;
-            font-weight: 600;
-            color: #374151;
-            font-size: 8pt;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-        
-        td {
-            border: 1px solid #e5e7eb;
-            padding: 6px 8px;
-        }
-        
-        tr:nth-child(even) {
-            background: #f9fafb;
-        }
-        
-        /* Badge - Minimal */
-        .badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 8pt;
-            font-weight: 500;
-            border: 1px solid;
-        }
-        
-        .badge.success {
-            background: white;
-            color: #059669;
-            border-color: #059669;
-        }
-        
-        .badge.warning {
-            background: white;
-            color: #d97706;
-            border-color: #d97706;
-        }
-        
-        .badge.danger {
-            background: white;
-            color: #dc2626;
-            border-color: #dc2626;
-        }
-        
-        .badge.info {
-            background: white;
-            color: #1e40af;
-            border-color: #1e40af;
-        }
-        
-        /* Progress Bar - Minimal */
-        .progress-bar {
-            background: #e5e7eb;
-            height: 6px;
-            margin-top: 5px;
-        }
-        
-        .progress-fill {
-            background: #111827;
-            height: 100%;
-        }
-        
-        /* Alert Box - Minimal */
-        .alert-box {
-            border-left: 3px solid;
-            padding: 8px 10px;
-            margin: 8px 0;
-            font-size: 9pt;
-        }
-        
-        .alert-box.critical {
-            border-color: #dc2626;
-            background: #fef2f2;
-        }
-        
-        .alert-box.high {
-            border-color: #d97706;
-            background: #fffbeb;
-        }
-        
-        .alert-box.medium {
-            border-color: #2563eb;
-            background: #eff6ff;
-        }
-        
-        .alert-box .alert-title {
-            font-weight: 600;
-            margin-bottom: 3px;
-        }
+        .alert-box { border-left: 3px solid; padding: 10px 12px; margin: 10px 0; font-size: 11px; }
+        .alert-box.critical { border-color: #dc2626; background: #fef2f2; }
+        .alert-box.high { border-color: #d97706; background: #fffbeb; }
+        .alert-box.medium { border-color: #2563eb; background: #eff6ff; }
+        .alert-box .alert-title { font-weight: 600; margin-bottom: 3px; }
+        .empty { text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 11px; }
+        ul { padding-left: 18px; }
+        li { margin-bottom: 6px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-content">
-                <div>
-                    @if(isset($branding['logo_url']))
-                        <img src="{{ $branding['logo_url'] }}" alt="Company Logo" class="logo">
-                    @endif
-                </div>
-                <div class="report-title">
-                    <h1>Datto RMM Monthly Summary</h1>
-                    <div class="subtitle">{{ $customer->canonical_name }}</div>
-                    <div class="subtitle">{{ $period['formatted'] }}</div>
-                </div>
-            </div>
+    <div class="header">
+        <h1>Datto RMM Monthly Summary</h1>
+        <div class="company-name">{{ $branding['company_name'] ?? 'Territory Technology Solutions' }}</div>
+        <div class="meta">{{ $customer->canonical_name }} • {{ $period['formatted'] }}</div>
+    </div>
+
+    <div class="summary">
+        <div class="summary-card">
+            <div class="number">{{ $executive_summary['devices']['total'] }}</div>
+            <div class="label">Total Devices</div>
         </div>
-
-        <!-- Executive Summary -->
-        <div class="executive-summary">
-            <h2>Executive Summary</h2>
-            <p style="margin-bottom: 10px; font-size: 9pt; color: #4b5563;">
-                This report provides a comprehensive overview of your IT infrastructure health, security posture, and compliance status for {{ $period['formatted'] }}.
-            </p>
-            
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-label">Total Devices</div>
-                    <div class="stat-value">{{ $executive_summary['devices']['total'] }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Uptime</div>
-                    <div class="stat-value">{{ $executive_summary['devices']['uptime_percentage'] }}%</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Total Alerts</div>
-                    <div class="stat-value">{{ $executive_summary['alerts']['total'] }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Patch Compliance</div>
-                    <div class="stat-value">{{ $executive_summary['compliance']['patch_compliance'] }}%</div>
-                </div>
-            </div>
-
+        <div class="summary-card">
+            <div class="number">{{ $executive_summary['devices']['uptime_percentage'] }}%</div>
+            <div class="label">Uptime</div>
+        </div>
+        <div class="summary-card">
+            <div class="number">{{ $executive_summary['alerts']['total'] }}</div>
+            <div class="label">Total Alerts</div>
             @if($executive_summary['alerts']['critical'] > 0)
-            <p style="margin-top: 10px; color: #dc2626; font-weight: 500; font-size: 9pt;">
-                ⚠ {{ $executive_summary['alerts']['critical'] }} critical alert(s) require immediate attention.
-            </p>
-            @endif
-
-            @if($executive_summary['compliance']['devices_needing_reboot'] > 0)
-            <p style="margin-top: 5px; color: #d97706; font-weight: 500; font-size: 9pt;">
-                ⚠ {{ $executive_summary['compliance']['devices_needing_reboot'] }} device(s) require reboot to complete updates.
-            </p>
+            <div class="subvalue" style="color: #dc2626;">{{ $executive_summary['alerts']['critical'] }} critical</div>
             @endif
         </div>
+        <div class="summary-card">
+            <div class="number">{{ $executive_summary['compliance']['patch_compliance'] }}%</div>
+            <div class="label">Patch Compliance</div>
+            @if($executive_summary['compliance']['devices_needing_reboot'] > 0)
+            <div class="subvalue" style="color: #d97706;">{{ $executive_summary['compliance']['devices_needing_reboot'] }} need reboot</div>
+            @endif
+        </div>
+    </div>
 
-        <!-- Alerts & Recommendations -->
-        @if(isset($recommendations) && count($recommendations) > 0)
-        <div class="section">
-            <div class="section-header">
-                <h2>Alerts & Recommendations</h2>
-            </div>
+    @if(isset($recommendations) && count($recommendations) > 0)
+    <div class="section">
+        <h2 class="section-title">Alerts & Recommendations</h2>
             
             @foreach($recommendations as $rec)
             <div class="alert-box {{ $rec['severity'] }}">
@@ -297,33 +94,30 @@
                 <div style="color: #6b7280; font-size: 8pt;"><strong>Action:</strong> {{ $rec['action'] }}</div>
             </div>
             @endforeach
-        </div>
-        @endif
+    </div>
+    @endif
 
-        <!-- Device Summary -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Device Summary</h2>
+    <div class="section">
+        <h2 class="section-title">Device Summary</h2>
+        
+        <div class="summary">
+            <div class="summary-card">
+                <div class="number">{{ $devices['summary']['online_devices'] ?? 0 }}</div>
+                <div class="label">Online</div>
             </div>
-            
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-label">Online</div>
-                    <div class="stat-value">{{ $devices['summary']['online_devices'] ?? 0 }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Offline</div>
-                    <div class="stat-value">{{ $devices['summary']['offline_devices'] ?? 0 }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Reboot Required</div>
-                    <div class="stat-value">{{ $devices['summary']['devices_needing_reboot'] ?? 0 }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Suspended</div>
-                    <div class="stat-value">{{ $devices['summary']['suspended_devices'] ?? 0 }}</div>
-                </div>
+            <div class="summary-card">
+                <div class="number">{{ $devices['summary']['offline_devices'] ?? 0 }}</div>
+                <div class="label">Offline</div>
             </div>
+            <div class="summary-card">
+                <div class="number">{{ $devices['summary']['devices_needing_reboot'] ?? 0 }}</div>
+                <div class="label">Reboot Required</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">{{ $devices['summary']['suspended_devices'] ?? 0 }}</div>
+                <div class="label">Suspended</div>
+            </div>
+        </div>
 
             @if(isset($devices['data']) && count($devices['data']) > 0)
             <h3>Device Status</h3>
@@ -366,32 +160,29 @@
                 </tbody>
             </table>
             @endif
-        </div>
+    </div>
 
-        <!-- Security & Compliance -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Security & Compliance</h2>
+    <div class="section">
+        <h2 class="section-title">Security & Compliance</h2>
+        
+        <div class="summary">
+            <div class="summary-card">
+                <div class="number">{{ $security['summary']['antivirus_coverage_percentage'] ?? 0 }}%</div>
+                <div class="label">Antivirus Coverage</div>
             </div>
-            
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-label">Antivirus Coverage</div>
-                    <div class="stat-value">{{ $security['summary']['antivirus_coverage_percentage'] ?? 0 }}%</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Patch Compliance</div>
-                    <div class="stat-value">{{ $compliance['summary']['patch_compliance_percentage'] ?? 0 }}%</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Fully Patched</div>
-                    <div class="stat-value">{{ $compliance['summary']['fully_patched_devices'] ?? 0 }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Pending Patches</div>
-                    <div class="stat-value">{{ $compliance['summary']['devices_with_pending_patches'] ?? 0 }}</div>
-                </div>
+            <div class="summary-card">
+                <div class="number">{{ $compliance['summary']['patch_compliance_percentage'] ?? 0 }}%</div>
+                <div class="label">Patch Compliance</div>
             </div>
+            <div class="summary-card">
+                <div class="number">{{ $compliance['summary']['fully_patched_devices'] ?? 0 }}</div>
+                <div class="label">Fully Patched</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">{{ $compliance['summary']['devices_with_pending_patches'] ?? 0 }}</div>
+                <div class="label">Pending Patches</div>
+            </div>
+        </div>
 
             <h3>Antivirus Status</h3>
             <table>
@@ -405,9 +196,7 @@
                     @foreach(($security['summary']['antivirus_products'] ?? []) as $product => $count)
                     <tr>
                         <td>{{ $product }}</td>
-                        <td style="text-align: center;">
-                            <span class="badge">{{ $count }}</span>
-                        </td>
+                        <td style="text-align: center;">{{ $count }}</td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -434,31 +223,28 @@
             </table>
         </div>
 
-        <!-- Alert Summary -->
-        @if(isset($alerts['data']) && count($alerts['data']) > 0)
-        <div class="section">
-            <div class="section-header">
-                <h2>Alert Summary</h2>
+    @if(isset($alerts['data']) && count($alerts['data']) > 0)
+    <div class="section">
+        <h2 class="section-title">Alert Summary</h2>
+        
+        <div class="summary">
+            <div class="summary-card">
+                <div class="number">{{ $alerts['summary']['total_alerts'] ?? 0 }}</div>
+                <div class="label">Total Alerts</div>
             </div>
-            
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-label">Total Alerts</div>
-                    <div class="stat-value">{{ $alerts['summary']['total_alerts'] ?? 0 }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Critical</div>
-                    <div class="stat-value">{{ $alerts['summary']['critical_alerts'] ?? 0 }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Resolved</div>
-                    <div class="stat-value">{{ $alerts['summary']['resolved_alerts'] ?? 0 }}</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">Avg Resolution</div>
-                    <div class="stat-value">{{ $alerts['summary']['avg_resolution_minutes'] ?? 0 }}m</div>
-                </div>
+            <div class="summary-card">
+                <div class="number">{{ $alerts['summary']['critical_alerts'] ?? 0 }}</div>
+                <div class="label">Critical</div>
             </div>
+            <div class="summary-card">
+                <div class="number">{{ $alerts['summary']['resolved_alerts'] ?? 0 }}</div>
+                <div class="label">Resolved</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">{{ $alerts['summary']['avg_resolution_minutes'] ?? 0 }}m</div>
+                <div class="label">Avg Resolution</div>
+            </div>
+        </div>
 
             @if(isset($alerts['summary']['top_alerts']) && count($alerts['summary']['top_alerts']) > 0)
             <h3>Top Alert Types</h3>
@@ -529,9 +315,7 @@
                     @endforeach
                 </tbody>
             </table>
-        </div>
-        @endif
-
     </div>
+    @endif
 </body>
 </html>

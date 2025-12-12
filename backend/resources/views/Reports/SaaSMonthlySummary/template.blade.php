@@ -4,248 +4,105 @@
     <meta charset="UTF-8">
     <title>SaaS Alerts Monthly Security Report - {{ $customer->canonical_name }}</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            font-size: 11pt;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            line-height: 1.5;
+            color: #1a1a1a;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 10px;
+            font-size: 12px;
         }
-        .header {
-            background: linear-gradient(135deg, {{ $branding['primary_color'] ?? '#1a56db' }} 0%, {{ $branding['secondary_color'] ?? '#7c3aed' }} 100%);
-            color: white;
-            padding: 30px;
-            margin-bottom: 20px;
-        }
-        .header h1 {
-            margin: 0 0 10px 0;
-            font-size: 24pt;
-            font-weight: 600;
-        }
-        .header .customer-name {
-            font-size: 16pt;
-            opacity: 0.95;
-            margin: 5px 0;
-        }
-        .header .period {
-            font-size: 12pt;
-            opacity: 0.9;
-        }
-        .content {
-            padding: 0 30px 30px 30px;
-        }
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin: 20px 0;
-        }
-        .summary-card {
-            background: #f8f9fa;
-            border-left: 4px solid {{ $branding['primary_color'] ?? '#1a56db' }};
-            padding: 15px;
-            border-radius: 4px;
-        }
-        .summary-card .label {
-            font-size: 9pt;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-        }
-        .summary-card .value {
-            font-size: 24pt;
-            font-weight: 700;
-            color: {{ $branding['primary_color'] ?? '#1a56db' }};
-            line-height: 1;
-        }
-        .summary-card .subtext {
-            font-size: 8pt;
-            color: #888;
-            margin-top: 5px;
-        }
-        .section {
-            margin: 30px 0;
-            page-break-inside: avoid;
-        }
-        .section-title {
-            font-size: 16pt;
-            font-weight: 600;
-            color: {{ $branding['primary_color'] ?? '#1a56db' }};
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        .alert-box {
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 4px;
-            border-left: 4px solid;
-        }
-        .alert-critical {
-            background: #fef2f2;
-            border-color: #dc2626;
-        }
-        .alert-high {
-            background: #fef3c7;
-            border-color: #f59e0b;
-        }
-        .alert-medium {
-            background: #dbeafe;
-            border-color: #3b82f6;
-        }
-        .alert-low {
-            background: #f0fdf4;
-            border-color: #10b981;
-        }
-        .alert-info {
-            background: #f0f9ff;
-            border-color: #0ea5e9;
-        }
-        .alert-title {
-            font-weight: 600;
-            margin-bottom: 5px;
-            font-size: 11pt;
-        }
-        .alert-description {
-            margin: 5px 0;
-            font-size: 10pt;
-        }
-        .alert-action {
-            margin-top: 8px;
-            font-size: 9pt;
-            font-style: italic;
-            color: #555;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 9pt;
-        }
-        table thead {
-            background: {{ $branding['primary_color'] ?? '#1a56db' }};
-            color: white;
-        }
-        table th {
-            padding: 10px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 9pt;
-        }
-        table td {
-            padding: 8px 10px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        table tbody tr:nth-child(even) {
-            background: #f9fafb;
-        }
-        .footer {
-            margin-top: 40px;
-            padding: 20px 30px;
-            background: #f8f9fa;
-            border-top: 3px solid {{ $branding['primary_color'] ?? '#1a56db' }};
-            font-size: 9pt;
-            color: #666;
-        }
-        .footer-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        .page-break {
-            page-break-after: always;
-        }
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 8pt;
-            font-weight: 600;
-        }
-        .badge-success {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        .badge-warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        .badge-danger {
-            background: #fee2e2;
-            color: #991b1b;
-        }
+        .header { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; text-align: center; }
+        .header .company-name { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+        .header .meta { font-size: 11px; color: #666; }
+        .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 40px; }
+        .summary-card { padding: 18px; border: 1px solid #e5e5e5; border-radius: 6px; }
+        .summary-card .number { font-size: 28px; font-weight: 600; margin-bottom: 3px; }
+        .summary-card .label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+        .summary-card .subvalue { font-size: 10px; color: #666; margin-top: 3px; }
+        .section { margin-bottom: 40px; page-break-inside: auto; }
+        .section-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; page-break-after: avoid; }
+        .alert-box { border-left: 3px solid; padding: 10px 12px; margin: 10px 0; font-size: 11px; }
+        .alert-box.critical { border-color: #dc2626; background: #fef2f2; }
+        .alert-box.high { border-color: #d97706; background: #fffbeb; }
+        .alert-box.medium { border-color: #2563eb; background: #eff6ff; }
+        .alert-box.low { border-color: #10b981; background: #f0fdf4; }
+        .alert-box.info { border-color: #0ea5e9; background: #f0f9ff; }
+        .alert-box .alert-title { font-weight: 600; margin-bottom: 3px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 20px; page-break-inside: auto; }
+        thead { display: table-header-group; }
+        tbody { display: table-row-group; }
+        tr { page-break-inside: avoid; page-break-after: auto; }
+        th { text-align: left; padding: 10px 12px; background: #f9fafb; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e5e5; white-space: nowrap; }
+        td { padding: 12px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        .page-break { page-break-after: always; }
+        .summary { page-break-inside: avoid; }
+        .empty { text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 11px; }
+        ul { padding-left: 18px; }
+        li { margin-bottom: 6px; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+        .badge.success { background: #d1fae5; color: #065f46; }
+        .badge.warning { background: #fef3c7; color: #92400e; }
+        .badge.danger { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>SaaS Alerts Monthly Security Report</h1>
-        <div class="customer-name">{{ $customer->canonical_name }}</div>
-        <div class="period">{{ $date_range['start'] ?? 'N/A' }} - {{ $date_range['end'] ?? 'N/A' }}</div>
+        <div class="company-name">{{ $branding['company_name'] ?? 'Territory Technology Solutions' }}</div>
+        <div class="meta">{{ $customer->canonical_name }} • {{ $date_range['start'] ?? 'N/A' }} - {{ $date_range['end'] ?? 'N/A' }}</div>
     </div>
 
-    <div class="content">
-        <!-- Executive Summary -->
-        <div class="section">
-            <div class="section-title">Executive Summary</div>
-            <p>This report provides a comprehensive security analysis of user activity, threat detection, and access patterns for {{ $customer->canonical_name }} during the reporting period.</p>
-            
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <div class="label">Total Security Events</div>
-                    <div class="value">{{ number_format($executive_summary['total_events'] ?? 0) }}</div>
-                    <div class="subtext">Monitored activities</div>
-                </div>
-                <div class="summary-card">
-                    <div class="label">Active Users</div>
-                    <div class="value">{{ $executive_summary['unique_users'] ?? 0 }}</div>
-                    <div class="subtext">Unique user accounts</div>
-                </div>
-                <div class="summary-card">
-                    <div class="label">Failed Logins</div>
-                    <div class="value">{{ number_format($executive_summary['failed_logins'] ?? 0) }}</div>
-                    <div class="subtext">Authentication failures</div>
-                </div>
-                <div class="summary-card">
-                    <div class="label">Threat Events</div>
-                    <div class="value">{{ $executive_summary['threat_events'] ?? 0 }}</div>
-                    <div class="subtext">Security threats detected</div>
-                </div>
-                <div class="summary-card">
-                    <div class="label">Mobile Usage</div>
-                    <div class="value">{{ $executive_summary['mobile_usage_percent'] ?? 0 }}%</div>
-                    <div class="subtext">Mobile device access</div>
-                </div>
-                <div class="summary-card">
-                    <div class="label">VPN Usage</div>
-                    <div class="value">{{ number_format($executive_summary['vpn_usage'] ?? 0) }}</div>
-                    <div class="subtext">VPN connections</div>
-                </div>
-            </div>
+    <div class="summary">
+        <div class="summary-card">
+            <div class="number">{{ number_format($executive_summary['total_events'] ?? 0) }}</div>
+            <div class="label">Total Security Events</div>
         </div>
+        <div class="summary-card">
+            <div class="number">{{ $executive_summary['unique_users'] ?? 0 }}</div>
+            <div class="label">Active Users</div>
+        </div>
+        <div class="summary-card">
+            <div class="number">{{ number_format($executive_summary['failed_logins'] ?? 0) }}</div>
+            <div class="label">Failed Logins</div>
+        </div>
+        <div class="summary-card">
+            <div class="number">{{ $executive_summary['threat_events'] ?? 0 }}</div>
+            <div class="label">Threat Events</div>
+        </div>
+        <div class="summary-card">
+            <div class="number">{{ $executive_summary['mobile_usage_percent'] ?? 0 }}%</div>
+            <div class="label">Mobile Usage</div>
+        </div>
+        <div class="summary-card">
+            <div class="number">{{ number_format($executive_summary['vpn_usage'] ?? 0) }}</div>
+            <div class="label">VPN Usage</div>
+        </div>
+    </div>
 
-        <!-- Alerts & Recommendations -->
-        <div class="section">
-            <div class="section-title">Alerts & Recommendations</div>
+    <div class="section">
+        <h2 class="section-title">Alerts & Recommendations</h2>
             @if(!empty($recommendations) && count($recommendations) > 0)
                 @foreach($recommendations as $recommendation)
-                    <div class="alert-box alert-{{ $recommendation['severity'] }}">
+                    <div class="alert-box {{ $recommendation['severity'] }}">
                         <div class="alert-title">{{ $recommendation['title'] }}</div>
                         <div class="alert-description">{{ $recommendation['description'] }}</div>
                         <div class="alert-action"><strong>Action:</strong> {{ $recommendation['action'] }}</div>
                     </div>
                 @endforeach
             @else
-                <p>No security recommendations at this time.</p>
+                <div class="empty">No security recommendations at this time.</div>
             @endif
-        </div>
+    </div>
 
-        <div class="page-break"></div>
+        <!-- <div class="page-break"></div> -->
 
-        <!-- User Activity -->
-        <div class="section">
-            <div class="section-title">Top User Activity</div>
+    <div class="section">
+        <h2 class="section-title">Top User Activity</h2>
             @if(!empty($user_activity) && count($user_activity) > 0)
                 <table>
                     <thead>
@@ -270,9 +127,9 @@
                                 <td>{{ number_format($user['successful_logins']) }}</td>
                                 <td>
                                     @if($user['failed_logins'] > 5)
-                                        <span class="badge badge-danger">{{ $user['failed_logins'] }}</span>
+                                        <span class="badge danger">{{ $user['failed_logins'] }}</span>
                                     @elseif($user['failed_logins'] > 0)
-                                        <span class="badge badge-warning">{{ $user['failed_logins'] }}</span>
+                                        <span class="badge warning">{{ $user['failed_logins'] }}</span>
                                     @else
                                         {{ $user['failed_logins'] }}
                                     @endif
@@ -281,9 +138,9 @@
                                 <td>{{ $user['unique_locations'] }}</td>
                                 <td>
                                     @if($user['is_licensed'])
-                                        <span class="badge badge-success">Licensed</span>
+                                        <span class="badge success">Licensed</span>
                                     @else
-                                        <span class="badge badge-warning">Unlicensed</span>
+                                        <span class="badge warning">Unlicensed</span>
                                     @endif
                                 </td>
                             </tr>
@@ -291,13 +148,12 @@
                     </tbody>
                 </table>
             @else
-                <p>No user activity data available.</p>
+                <div class="empty">No user activity data available.</div>
             @endif
-        </div>
+    </div>
 
-        <!-- Geographic Access -->
-        <div class="section">
-            <div class="section-title">Geographic Access Patterns</div>
+    <div class="section">
+        <h2 class="section-title">Geographic Access Patterns</h2>
             @if(!empty($geographic_data) && count($geographic_data) > 0)
                 <table>
                     <thead>
@@ -319,7 +175,7 @@
                                 <td>{{ $location['unique_ips'] }}</td>
                                 <td>
                                     @if($location['threat_count'] > 0)
-                                        <span class="badge badge-danger">{{ $location['threat_count'] }}</span>
+                                        <span class="badge danger">{{ $location['threat_count'] }}</span>
                                     @else
                                         0
                                     @endif
@@ -330,15 +186,14 @@
                     </tbody>
                 </table>
             @else
-                <p>No geographic data available.</p>
+                <div class="empty">No geographic data available.</div>
             @endif
-        </div>
+    </div>
 
-        <div class="page-break"></div>
+        <!-- <div class="page-break"></div> -->
 
-        <!-- Application Usage -->
-        <div class="section">
-            <div class="section-title">Application Usage</div>
+    <div class="section">
+        <h2 class="section-title">Application Usage</h2>
             @if(!empty($application_usage) && count($application_usage) > 0)
                 <table>
                     <thead>
@@ -361,62 +216,41 @@
                     </tbody>
                 </table>
             @else
-                <p>No application usage data available.</p>
+                <div class="empty">No application usage data available.</div>
             @endif
-        </div>
-
-        <!-- Threat Statistics -->
-        <div class="section">
-            <div class="section-title">Security & Threat Analysis</div>
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <div class="label">Total Threat Events</div>
-                    <div class="value">{{ $threat_statistics['threat_events'] ?? 0 }}</div>
-                    <div class="subtext">{{ $threat_statistics['threat_percentage'] ?? 0 }}% of total events</div>
-                </div>
-                <div class="summary-card">
-                    <div class="label">Failed Logins</div>
-                    <div class="value">{{ number_format($threat_statistics['failed_logins'] ?? 0) }}</div>
-                    <div class="subtext">{{ $threat_statistics['failed_login_percentage'] ?? 0 }}% failure rate</div>
-                </div>
-                <div class="summary-card">
-                    <div class="label">VPN Connections</div>
-                    <div class="value">{{ number_format($threat_statistics['vpn_events'] ?? 0) }}</div>
-                    <div class="subtext">VPN usage detected</div>
-                </div>
-                <div class="summary-card">
-                    <div class="label">Proxy Connections</div>
-                    <div class="value">{{ number_format($threat_statistics['proxy_events'] ?? 0) }}</div>
-                    <div class="subtext">Proxy usage detected</div>
-                </div>
-                <div class="summary-card">
-                    <div class="label">High Threat IPs</div>
-                    <div class="value">{{ $threat_statistics['high_threat_ips'] ?? 0 }}</div>
-                    <div class="subtext">IPs with threat score > 50</div>
-                </div>
-                <div class="summary-card">
-                    <div class="label">Mobile Access</div>
-                    <div class="value">{{ $device_statistics['mobile_percentage'] ?? 0 }}%</div>
-                    <div class="subtext">{{ number_format($device_statistics['mobile_events'] ?? 0) }} mobile events</div>
-                </div>
-            </div>
-        </div>
     </div>
 
-    <div class="footer">
-        <div class="footer-grid">
-            <div>
-                <strong>{{ $branding['company_name'] ?? 'Territory Technology Solutions' }}</strong><br>
-                {{ $branding['footer_text'] ?? '© 2025 Territory Technology Solutions' }}
+    <div class="section">
+        <h2 class="section-title">Security & Threat Analysis</h2>
+        <div class="summary">
+            <div class="summary-card">
+                <div class="number">{{ $threat_statistics['threat_events'] ?? 0 }}</div>
+                <div class="label">Total Threat Events</div>
+                <div class="subvalue">{{ $threat_statistics['threat_percentage'] ?? 0 }}% of total</div>
             </div>
-            <div style="text-align: right;">
-                <strong>Contact</strong><br>
-                Phone: {{ $branding['support_phone'] ?? '1300 XXX XXX' }}<br>
-                Email: {{ $branding['support_email'] ?? 'support@tts.com.au' }}
+            <div class="summary-card">
+                <div class="number">{{ number_format($threat_statistics['failed_logins'] ?? 0) }}</div>
+                <div class="label">Failed Logins</div>
+                <div class="subvalue">{{ $threat_statistics['failed_login_percentage'] ?? 0 }}% failure rate</div>
             </div>
-        </div>
-        <div style="margin-top: 15px; text-align: center; font-size: 8pt; color: #999;">
-            Report generated on {{ now()->format('F j, Y \a\t g:i A') }}
+            <div class="summary-card">
+                <div class="number">{{ number_format($threat_statistics['vpn_events'] ?? 0) }}</div>
+                <div class="label">VPN Connections</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">{{ number_format($threat_statistics['proxy_events'] ?? 0) }}</div>
+                <div class="label">Proxy Connections</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">{{ $threat_statistics['high_threat_ips'] ?? 0 }}</div>
+                <div class="label">High Threat IPs</div>
+                <div class="subvalue">Threat score > 50</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">{{ $device_statistics['mobile_percentage'] ?? 0 }}%</div>
+                <div class="label">Mobile Access</div>
+                <div class="subvalue">{{ number_format($device_statistics['mobile_events'] ?? 0) }} events</div>
+            </div>
         </div>
     </div>
 </body>

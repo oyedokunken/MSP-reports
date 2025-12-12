@@ -11,11 +11,12 @@
             color: #1a1a1a;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 50px 30px;
+            padding: 20px 10px;
             font-size: 12px;
         }
-        .header { margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5; }
-        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 6px; }
+        .header { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; text-align: center; }
+        .header .company-name { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
         .header .meta { font-size: 11px; color: #666; }
         .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 40px; }
         .summary-card { padding: 18px; border: 1px solid #e5e5e5; border-radius: 6px; }
@@ -29,19 +30,19 @@
         td { padding: 12px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
         tr:last-child td { border-bottom: none; }
         .badge { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
-        .badge-success { background: #d1fae5; color: #065f46; }
-        .badge-warning { background: #fef3c7; color: #92400e; }
-        .badge-danger { background: #fee2e2; color: #991b1b; }
-        .badge-info { background: #dbeafe; color: #1e40af; }
+        .badge.success { background: #d1fae5; color: #065f46; }
+        .badge.warning { background: #fef3c7; color: #92400e; }
+        .badge.danger { background: #fee2e2; color: #991b1b; }
+        .badge.info { background: #dbeafe; color: #1e40af; }
         .empty { text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 11px; }
         ul { padding-left: 18px; }
         li { margin-bottom: 6px; }
-        .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #e5e5e5; text-align: center; font-size: 10px; color: #9ca3af; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>BitDefender Monthly Summary</h1>
+        <div class="company-name">{{ $branding['company_name'] ?? 'Territory Technology Solutions' }}</div>
         <div class="meta">{{ $customer->canonical_name }} • {{ $period['formatted'] }}</div>
     </div>
 
@@ -101,11 +102,11 @@
                     <td>{{ ($policy['total'] ?? 0) - ($policy['applied'] ?? 0) }}</td>
                     <td>
                         @if(($policy['total'] ?? 0) === ($policy['applied'] ?? 0))
-                            <span class="badge badge-success">Fully Applied</span>
+                            <span class="badge success">Fully Applied</span>
                         @elseif(($policy['applied'] ?? 0) > 0)
-                            <span class="badge badge-warning">Partially Applied</span>
+                            <span class="badge warning">Partially Applied</span>
                         @else
-                            <span class="badge badge-danger">Not Applied</span>
+                            <span class="badge danger">Not Applied</span>
                         @endif
                     </td>
                 </tr>
@@ -171,17 +172,17 @@
                     <td>
                         {{ $endpoint['policy_name'] ?? 'No Policy' }}
                         @if(($endpoint['policy_applied'] ?? false))
-                            <span class="badge badge-success">Applied</span>
+                            <span class="badge success">Applied</span>
                         @else
-                            <span class="badge badge-warning">Pending</span>
+                            <span class="badge warning">Pending</span>
                         @endif
                     </td>
                     <td>{{ $endpoint['machine_type'] ?? 'Unknown' }}</td>
                     <td>
                         @if(($endpoint['is_managed'] ?? false))
-                            <span class="badge badge-success">Managed</span>
+                            <span class="badge success">Managed</span>
                         @else
-                            <span class="badge badge-danger">Unmanaged</span>
+                            <span class="badge danger">Unmanaged</span>
                         @endif
                     </td>
                 </tr>
@@ -193,8 +194,5 @@
         @endif
     </div>
 
-    <div class="footer">
-        BitDefender Monthly Summary • Data sourced from BitDefender GravityZone
-    </div>
 </body>
 </html>
