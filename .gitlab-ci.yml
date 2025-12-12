@@ -14,8 +14,6 @@ cache:
   key: ${CI_COMMIT_REF_SLUG}
   paths:
     - backend/vendor/
-    - frontend/node_modules/
-    - frontend/.next/
 
 # Build Backend
 build:backend:
@@ -36,8 +34,8 @@ build:backend:
     - develop
     - merge_requests
 
-# Build Frontend
-build:frontend:
+# Build Frontend (disabled - backend only pipeline)
+.build:frontend:
   stage: build
   image: node:${NODE_VERSION}-alpine
   script:
@@ -91,8 +89,8 @@ test:backend:
     - develop
     - merge_requests
 
-# Test Frontend
-test:frontend:
+# Test Frontend (disabled - backend only pipeline)
+.test:frontend:
   stage: test
   image: node:${NODE_VERSION}-alpine
   script:
@@ -125,7 +123,7 @@ security:backend:
     - develop
     - merge_requests
 
-security:frontend:
+.security:frontend:
   stage: test
   image: node:${NODE_VERSION}-alpine
   script:
