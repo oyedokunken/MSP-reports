@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home,
@@ -60,7 +60,7 @@ export default function AppSidebar() {
 
   const customersSubItems = [
     { path: '/platform/customers/master', icon: Database, label: 'Master List' },
-    { path: '/platform/customers/secondary', icon: Building2, label: 'Secondary Customers' },
+    { path: '/platform/customers/secondary', icon: Building2, label: 'Secondary List' },
   ]
 
   const adminNavItems = [
@@ -175,76 +175,84 @@ export default function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent className="px-3 py-2 group-data-[collapsible=icon]:px-2">
+      <SidebarContent className="px-3 py-2 group-data-[collapsible=icon]:px-0">
         <SidebarGroup>
           <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Platform</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2">
+            <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2 border-l border-sidebar-border ml-3.5 pl-2.5 pr-3 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:pr-0">
               {navItems.map((item) => {
                 const Icon = item.icon
                 const active = isActive(item.path)
                 const showBadge = item.path === '/notifications' && unreadCount > 0
+                
                 return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={active}
-                      tooltip={item.label}
-                      className="rounded-lg group-data-[collapsible=icon]:!p-0"
-                      style={active ? { background: 'var(--brand-gradient)' } : undefined}
-                    >
-                      <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
-                        <div className="relative flex-shrink-0">
-                          <Icon className="h-4 w-4" />
+                  <Fragment key={item.path}>
+                    <SidebarMenuItem className="relative group-data-[collapsible=icon]:static">
+                      <span className="absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-border group-data-[collapsible=icon]:hidden" />
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
+                        tooltip={item.label}
+                        className="rounded-lg group-data-[collapsible=icon]:!p-0"
+                        style={active ? { background: 'var(--brand-gradient)' } : undefined}
+                      >
+                        <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
+                          <div className="relative flex-shrink-0">
+                            <Icon className="h-4 w-4" />
+                            {showBadge && (
+                              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
+                            )}
+                          </div>
+                          <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">{item.label}</span>
                           {showBadge && (
-                            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
+                            <span className="ml-auto h-2 w-2 rounded-full bg-red-500 group-data-[collapsible=icon]:hidden" />
                           )}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+
+                    {/* Insert Customers menu after Integrations */}
+                    {item.path === '/platform/integrations' && hasPermission(user, 'customers', 'view') && (
+                      <SidebarMenuItem className="group-data-[collapsible=icon]:static">
+                        <div className="relative">
+                          <span className="absolute left-[-14px] top-5 h-1.5 w-1.5 rounded-full bg-sidebar-border group-data-[collapsible=icon]:hidden" />
+                          <SidebarMenuButton
+                            tooltip="Customers"
+                            onClick={() => setCustomersExpanded(!customersExpanded)}
+                            className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10"
+                          >
+                            <Users className="h-4 w-4 flex-shrink-0" />
+                            <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">Customers</span>
+                            <ChevronDown className={`h-4 w-4 transition-transform group-data-[collapsible=icon]:hidden ${customersExpanded ? 'rotate-180' : ''}`} />
+                          </SidebarMenuButton>
                         </div>
-                        <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">{item.label}</span>
-                        {showBadge && (
-                          <span className="ml-auto h-2 w-2 rounded-full bg-red-500 group-data-[collapsible=icon]:hidden" />
+                        {customersExpanded && (
+                          <SidebarMenuSub className="group-data-[collapsible=icon]:hidden">
+                            {customersSubItems.map((subItem) => {
+                              const SubIcon = subItem.icon
+                              const subActive = isActive(subItem.path)
+                              return (
+                                <SidebarMenuSubItem key={subItem.path} className="relative">
+                                  <span className="absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-border" />
+                                  <SidebarMenuSubButton
+                                    asChild
+                                    isActive={subActive}
+                                  >
+                                    <Link to={subItem.path} onClick={(e) => handleNavClick(e, subItem.path)}>
+                                      <SubIcon className="h-4 w-4 !text-muted-foreground" />
+                                      <span>{subItem.label}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              )
+                            })}
+                          </SidebarMenuSub>
                         )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                      </SidebarMenuItem>
+                    )}
+                  </Fragment>
                 )
               })}
-
-              {/* Customers Collapsible Menu */}
-              {hasPermission(user, 'customers', 'view') && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    tooltip="Customers"
-                    onClick={() => setCustomersExpanded(!customersExpanded)}
-                    className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10"
-                  >
-                    <Users className="h-4 w-4 flex-shrink-0" />
-                    <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">Customers</span>
-                    <ChevronDown className={`h-4 w-4 transition-transform group-data-[collapsible=icon]:hidden ${customersExpanded ? 'rotate-180' : ''}`} />
-                  </SidebarMenuButton>
-                  {customersExpanded && (
-                    <SidebarMenuSub className="group-data-[collapsible=icon]:hidden">
-                      {customersSubItems.map((subItem) => {
-                        const SubIcon = subItem.icon
-                        const subActive = isActive(subItem.path)
-                        return (
-                          <SidebarMenuSubItem key={subItem.path}>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={subActive}
-                            >
-                              <Link to={subItem.path} onClick={(e) => handleNavClick(e, subItem.path)}>
-                                <SubIcon className="h-4 w-4 !text-muted-foreground" />
-                                <span>{subItem.label}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        )
-                      })}
-                    </SidebarMenuSub>
-                  )}
-                </SidebarMenuItem>
-              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -254,12 +262,13 @@ export default function AppSidebar() {
           <SidebarGroup className="mt-4 group-data-[collapsible=icon]:mt-2">
             <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Admin</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2">
+              <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2 border-l border-sidebar-border ml-3.5 pl-2.5 pr-2 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:pr-0">
                 {adminNavItems.map((item) => {
                   const Icon = item.icon
                   const active = isActive(item.path)
                   return (
-                    <SidebarMenuItem key={item.path}>
+                    <SidebarMenuItem key={item.path} className="relative group-data-[collapsible=icon]:static">
+                      <span className="absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-border group-data-[collapsible=icon]:hidden" />
                       <SidebarMenuButton
                         asChild
                         isActive={active}
