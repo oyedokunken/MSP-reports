@@ -9,7 +9,6 @@ import {
 import { useDashboard, useQuickSync } from "./hooks";
 import { DashboardHeaderActions } from "./components/DashboardHeaderActions";
 import { RecentActivityCard } from "./components/RecentActivityCard";
-import { QuickActionsCard } from "./components/QuickActionsCard";
 import { IntegrationsSummary } from "./components/IntegrationsSummary";
 import { StatsGrid } from "./components/StatsGrid";
 
@@ -62,7 +61,7 @@ export default function Dashboard() {
                 <div className="grid gap-4 lg:grid-cols-2 flex-1 min-h-0">
                     {/* Left Column */}
                     <div className="flex flex-col gap-4 min-h-0">
-                        <div className="flex-1 min-h-0">
+                        <div className="h-[600px]">
                             <IntegrationsSummary
                                 isLoading={isLoading}
                                 integrations={dashboardIntegrations}
@@ -78,13 +77,13 @@ export default function Dashboard() {
 
                     {/* Right Column */}
                     <div className="flex flex-col gap-4 min-h-0">
-                        <div className="flex-1 min-h-0">
+                        <div className="h-[600px]">
                             <RecentActivityCard
                                 isLoading={isLoading}
                                 items={recentActivity}
+                                onInfo={toast.info}
                             />
                         </div>
-                        <QuickActionsCard onInfo={toast.info} />
                     </div>
                 </div>
             </div>

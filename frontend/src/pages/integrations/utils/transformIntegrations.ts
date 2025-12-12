@@ -10,6 +10,8 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
       last_sync_at?: string
       last_sync_status?: string
       unmapped_customers_count?: number
+      total_customers_count?: number
+      is_source_of_truth?: boolean
     }>
   }
 
@@ -28,6 +30,7 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
       })
       : 'Never',
     syncStatus: (int.last_sync_status || 'pending') as Integration['syncStatus'],
-    customers: int.unmapped_customers_count || 0,
+    customers: int.total_customers_count || 0,
+    isSourceOfTruth: int.is_source_of_truth || false,
   }))
 }

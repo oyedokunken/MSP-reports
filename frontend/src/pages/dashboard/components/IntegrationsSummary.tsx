@@ -28,8 +28,8 @@ export function IntegrationsSummary({
     const navigate = useNavigate();
 
     return (
-        <AnimatedCard className="p-6 min-w-0">
-            <div className="flex items-center justify-between">
+        <AnimatedCard className="p-6 min-w-0 flex flex-col h-full">
+            <div className="flex items-center justify-between flex-shrink-0">
                 <h2 className="text-lg font-semibold text-foreground">
                     Integrations
                 </h2>
@@ -41,7 +41,7 @@ export function IntegrationsSummary({
                 </button>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-3 overflow-y-auto flex-1 min-h-0 pr-2 scrollbar-hide">
                 {isLoading ? (
                     <>
                         <StatCardSkeleton />
@@ -52,10 +52,13 @@ export function IntegrationsSummary({
                     integrations.map((intg) => (
                         <div
                             key={intg.id}
-                            className={`rounded-lg border border-border p-4 ${isSyncingId === intg.id
-                                ? "bg-primary/5 ring-1 ring-primary/40"
-                                : ""
-                                }`}
+                            className={`rounded-lg border p-4 ${
+                                isSyncingId === intg.id
+                                    ? "bg-primary/5 ring-1 ring-primary/40 border-primary"
+                                    : intg.isSourceOfTruth
+                                    ? "bg-blue-50 dark:bg-blue-950/20 border-blue-500/50 ring-1 ring-blue-500/30"
+                                    : "border-border"
+                            }`}
                         >
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -67,6 +70,11 @@ export function IntegrationsSummary({
                                             <p className="font-medium text-foreground truncate">
                                                 {intg.name}
                                             </p>
+                                            {intg.isSourceOfTruth && (
+                                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                                    Source of Truth
+                                                </span>
+                                            )}
                                             <span
                                                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${getStatusBadge(
                                                     intg.status,

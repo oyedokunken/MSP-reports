@@ -153,9 +153,8 @@ export const useDashboard = () => {
         }
     };
 
-    // Limit to 5 integrations for dashboard (performance)
+    // Show all integrations on dashboard with scroll, source of truth first
     const dashboardIntegrations: Integration[] = integrations
-        .slice(0, 5)
         .map((int) => ({
             id: int.id,
             name: int.name,
@@ -164,7 +163,14 @@ export const useDashboard = () => {
             lastSync: int.lastSync || "Never",
             customers: int.customers || 0,
             syncStatus: int.syncStatus || "pending",
-        }));
+            isSourceOfTruth: int.isSourceOfTruth || false,
+        }))
+        .sort((a, b) => {
+            // Source of truth always first
+            if (a.isSourceOfTruth && !b.isSourceOfTruth) return -1;
+            if (!a.isSourceOfTruth && b.isSourceOfTruth) return 1;
+            return 0;
+        });
 
     // Limit to 5 upcoming reports for dashboard (performance)
     const upcomingReports: UpcomingReport[] = schedules

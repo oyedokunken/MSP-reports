@@ -70,9 +70,12 @@ class IntegrationController extends Controller
         $availableTypes = $this->scanAvailableIntegrations();
         
         $configuredIntegrations = $company->integrations()
-            ->withCount(['integrationCustomers as unmapped_customers_count' => function ($query) {
-                $query->whereNull('customer_id');
-            }])
+            ->withCount([
+                'integrationCustomers as unmapped_customers_count' => function ($query) {
+                    $query->whereNull('customer_id');
+                },
+                'integrationCustomers as total_customers_count'
+            ])
             ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth', 'last_sync_at', 'last_sync_status'])
             ->map(function($integration) {
                 return [
@@ -85,6 +88,7 @@ class IntegrationController extends Controller
                     'last_sync_at' => $integration->last_sync_at,
                     'last_sync_status' => $integration->last_sync_status,
                     'unmapped_customers_count' => $integration->unmapped_customers_count ?? 0,
+                    'total_customers_count' => $integration->total_customers_count ?? 0,
                 ];
             });
 

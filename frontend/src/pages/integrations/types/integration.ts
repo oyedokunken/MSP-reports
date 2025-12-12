@@ -6,6 +6,7 @@ export type Integration = {
   lastSync: string
   syncStatus: 'success' | 'failed' | 'pending'
   customers: number
+  isSourceOfTruth?: boolean
 }
 
   

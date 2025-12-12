@@ -21,6 +21,7 @@ export type Integration = {
   lastSync: string
   customers: number
   syncStatus: 'success' | 'failed' | 'pending'
+  isSourceOfTruth?: boolean
 }
 
 export type UpcomingReport = {
