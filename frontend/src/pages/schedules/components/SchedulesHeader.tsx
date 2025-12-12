@@ -1,7 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Search } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Calendar, Search, Filter } from "lucide-react";
 
 interface SchedulesHeaderProps {
     onCreateSchedule: () => void;
@@ -28,6 +35,8 @@ export function SchedulesHeader({
     onStatusChange,
     onFrequencyChange
 }: SchedulesHeaderProps) {
+    const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + (frequencyFilter !== 'all' ? 1 : 0);
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -45,8 +54,57 @@ export function SchedulesHeader({
                 </Button>
             </div>
             
-            {/* Search and Filters */}
+            {/* Filters and Search */}
             <div className="flex flex-col md:flex-row gap-3">
+                {/* Filter Dropdown */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-full md:w-auto h-10">
+                            <Filter className="h-4 w-4 mr-2" />
+                            Filters
+                            {activeFilterCount > 0 && (
+                                <span className="ml-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                                    {activeFilterCount}
+                                </span>
+                            )}
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56">
+                        {/* Status Section */}
+                        <DropdownMenuLabel>Status</DropdownMenuLabel>
+                        <DropdownMenuCheckboxItem
+                            checked={statusFilter === 'active'}
+                            onCheckedChange={() => onStatusChange(statusFilter === 'active' ? 'all' : 'active')}
+                        >
+                            Active
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                            checked={statusFilter === 'inactive'}
+                            onCheckedChange={() => onStatusChange(statusFilter === 'inactive' ? 'all' : 'inactive')}
+                        >
+                            Inactive
+                        </DropdownMenuCheckboxItem>
+
+                        {/* Frequency Section */}
+                        {uniqueFrequencies.length > 0 && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel>Frequency</DropdownMenuLabel>
+                                {uniqueFrequencies.map((freq) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={freq}
+                                        checked={frequencyFilter === freq.toLowerCase()}
+                                        onCheckedChange={() => onFrequencyChange(frequencyFilter === freq.toLowerCase() ? 'all' : freq.toLowerCase())}
+                                        className="capitalize"
+                                    >
+                                        {formatFrequency(freq)}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            </>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
                 {/* Search */}
                 <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -54,36 +112,9 @@ export function SchedulesHeader({
                         placeholder="Search by customer or report type..."
                         value={searchQuery}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 h-10"
                     />
                 </div>
-                
-                {/* Status Filter */}
-                <Select value={statusFilter} onValueChange={onStatusChange}>
-                    <SelectTrigger className="w-full md:w-[150px]">
-                        <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                </Select>
-                
-                {/* Frequency Filter */}
-                <Select value={frequencyFilter} onValueChange={onFrequencyChange}>
-                    <SelectTrigger className="w-full md:w-[150px]">
-                        <SelectValue placeholder="Frequency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Frequencies</SelectItem>
-                        {uniqueFrequencies.map(freq => (
-                            <SelectItem key={freq} value={freq.toLowerCase()}>
-                                {formatFrequency(freq)}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
             </div>
         </div>
     );

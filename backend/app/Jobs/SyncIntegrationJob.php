@@ -26,9 +26,9 @@ class SyncIntegrationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 3;
-    public $timeout = 600; // 10 minutes - increased for integrations with many customers (BitDefender)
-    public $backoff = [60, 300, 900]; // Exponential backoff: 1 min, 5 min, 15 min
+    public $tries = 5;
+    public $timeout = 900; // 15 minutes - increased for integrations with many customers
+    public $backoff = [60, 300, 900, 1800]; // Exponential backoff: 1 min, 5 min, 15 min, 30 min
 
     protected Integration $integration;
     protected SyncLog $syncLog;
@@ -47,7 +47,7 @@ class SyncIntegrationJob implements ShouldQueue
         return [
             (new WithoutOverlapping($this->integration->integration_id))
                 ->releaseAfter(60) // Release lock after 60 seconds if job fails
-                ->expireAfter(600) // Expire lock after 10 minutes (matches job timeout)
+                ->expireAfter(900) // Expire lock after 15 minutes (matches job timeout)
         ];
     }
 
