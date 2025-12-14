@@ -342,7 +342,7 @@ class AutotaskIntegration implements IntegrationInterface
         }
 
         return [
-            'processed' => $totalProcessed,
+            'total_processed' => $totalProcessed,
             'errors' => $errors,
         ];
     }
