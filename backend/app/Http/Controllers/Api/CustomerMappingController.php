@@ -29,8 +29,9 @@ class CustomerMappingController extends Controller
         $sourceOfTruthOnly = $request->input('source_of_truth_only');
 
         // OPTIMIZED: Server-side filtering and pagination
+        // Load ALL integrations for each customer (no filtering in eager load)
         $query = Customer::with([
-            'integrationCustomers.integration:integration_id,display_name,integration_type',
+            'integrationCustomers.integration:integration_id,display_name,integration_type,is_source_of_truth',
             'integrationCustomers.customerMappings',
             'reportSchedules'
         ])

@@ -13,6 +13,7 @@ class IntegrationCustomer extends Model
 
     protected $fillable = [
         'integration_id',
+        'customer_id',
         'external_id',
         'name',
         'metadata',

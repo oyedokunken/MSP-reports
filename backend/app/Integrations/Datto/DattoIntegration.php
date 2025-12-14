@@ -155,7 +155,7 @@ class DattoIntegration implements IntegrationInterface
         ]);
 
         return [
-            'records_synced' => $mappedCount,
+            'records_synced' => $totalProcessed,
             'records_new' => $unmappedCount,
             'customers_mapped' => $mappedCustomers,
             'records_failed' => count($errors),
