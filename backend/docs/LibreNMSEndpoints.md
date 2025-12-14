@@ -15,7 +15,7 @@
 
 ## Production Credentials
 
-**Base URL:** `https://nms.arafuracloud.com.au/api/v0`  
+**Base URL:** `http://192.168.228.7/api/v0`  
 **API Token:** `96c9989e1c4a0a9ce532c91d27d05840`  
 **Source ID:** `11`  
 **Source Name:** `NMS`  
@@ -29,7 +29,7 @@
 
 ### 1. Get All Device Groups
 **Endpoint:** `GET /devicegroups`  
-**URL:** `https://nms.arafuracloud.com.au/api/v0/devicegroups`
+**URL:** `http://192.168.228.7/api/v0/devicegroups`
 
 **Headers:**
 ```
@@ -110,7 +110,7 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 
 **cURL:**
 ```bash
-curl -X GET "https://nms.arafuracloud.com.au/api/v0/devicegroups" \
+curl -X GET "http://192.168.228.7/api/v0/devicegroups" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
@@ -118,7 +118,7 @@ curl -X GET "https://nms.arafuracloud.com.au/api/v0/devicegroups" \
 
 ### 2. Get Devices in Group
 **Endpoint:** `GET /devicegroups/{group_id}`  
-**URL:** `https://nms.arafuracloud.com.au/api/v0/devicegroups/{group_id}`
+**URL:** `http://192.168.228.7/api/v0/devicegroups/{group_id}`
 
 **Headers:**
 ```
@@ -151,7 +151,7 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 
 **cURL:**
 ```bash
-curl -X GET "https://nms.arafuracloud.com.au/api/v0/devicegroups/1" \
+curl -X GET "http://192.168.228.7/api/v0/devicegroups/1" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
@@ -159,7 +159,7 @@ curl -X GET "https://nms.arafuracloud.com.au/api/v0/devicegroups/1" \
 
 ### 3. Get All Devices
 **Endpoint:** `GET /devices`  
-**URL:** `https://nms.arafuracloud.com.au/api/v0/devices`
+**URL:** `http://192.168.228.7/api/v0/devices`
 
 **Headers:**
 ```
@@ -279,7 +279,7 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 
 **cURL:**
 ```bash
-curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices" \
+curl -X GET "http://192.168.228.7/api/v0/devices" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
@@ -287,7 +287,7 @@ curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices" \
 
 ### 4. Get Single Device
 **Endpoint:** `GET /devices/{device_id}`  
-**URL:** `https://nms.arafuracloud.com.au/api/v0/devices/{device_id}`
+**URL:** `http://192.168.228.7/api/v0/devices/{device_id}`
 
 **Headers:**
 ```
@@ -355,7 +355,7 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 
 **cURL:**
 ```bash
-curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101" \
+curl -X GET "http://192.168.228.7/api/v0/devices/101" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
@@ -363,7 +363,7 @@ curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101" \
 
 ### 5. Get Device Availability
 **Endpoint:** `GET /devices/{device_id}/availability`  
-**URL:** `https://nms.arafuracloud.com.au/api/v0/devices/{device_id}/availability`
+**URL:** `http://192.168.228.7/api/v0/devices/{device_id}/availability`
 
 **Headers:**
 ```
@@ -403,7 +403,7 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 
 **cURL:**
 ```bash
-curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101/availability" \
+curl -X GET "http://192.168.228.7/api/v0/devices/101/availability" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
@@ -411,7 +411,7 @@ curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101/availability" \
 
 ### 6. Get Device Groups for Device
 **Endpoint:** `GET /devices/{device_id}/groups`  
-**URL:** `https://nms.arafuracloud.com.au/api/v0/devices/{device_id}/groups`
+**URL:** `http://192.168.228.7/api/v0/devices/{device_id}/groups`
 
 **Headers:**
 ```
@@ -461,7 +461,7 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 
 **cURL:**
 ```bash
-curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101/groups" \
+curl -X GET "http://192.168.228.7/api/v0/devices/101/groups" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
@@ -481,7 +481,7 @@ curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101/groups" \
   "variable": [
     {
       "key": "base_url",
-      "value": "https://nms.arafuracloud.com.au/api/v0",
+      "value": "http://192.168.228.7/api/v0",
       "type": "string"
     },
     {
@@ -821,19 +821,19 @@ Each test automatically validates:
 
 ### Test Connection
 ```bash
-curl -X GET "https://nms.arafuracloud.com.au/api/v0/devicegroups" \
+curl -X GET "http://192.168.228.7/api/v0/devicegroups" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
 ### Get All Devices
 ```bash
-curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices" \
+curl -X GET "http://192.168.228.7/api/v0/devices" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
 ### Get Specific Device (replace 101 with actual device_id)
 ```bash
-curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101" \
+curl -X GET "http://192.168.228.7/api/v0/devices/101" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 

@@ -119,7 +119,7 @@ class LibreNMSIntegration implements IntegrationInterface
         ]);
 
         return [
-            'records_synced' => $mappedCount,
+            'records_synced' => $totalProcessed,
             'records_new' => $unmappedCount,
             'customers_mapped' => $mappedCustomers,
             'records_failed' => count($errors),
@@ -141,23 +141,17 @@ class LibreNMSIntegration implements IntegrationInterface
                 try {
                     $deviceId = $device['device_id'];
                     
-                    // Get device groups
-                    $groups = $this->client->getDeviceGroupsForDevice($deviceId);
-                    
-                    // Store device details (including groups)
-                    $deviceDetails = LibreNMSMapper::mapDeviceDetails($device, $groups);
+                    // Store device details (without groups to avoid per-device API calls)
+                    // Groups and availability will be fetched on-demand during report generation
+                    $deviceDetails = LibreNMSMapper::mapDeviceDetails($device, []);
                     $this->storeHistoricalData($deviceDetails);
 
                     // Store device uptime data
                     $uptimeData = LibreNMSMapper::mapDeviceUptime($device);
                     $this->storeHistoricalData($uptimeData);
                     
-                    // Get and store availability metrics
-                    $availability = $this->client->getDeviceAvailability($deviceId);
-                    if (!empty($availability)) {
-                        $availabilityData = LibreNMSMapper::mapDeviceAvailability($deviceId, $availability);
-                        $this->storeHistoricalData($availabilityData);
-                    }
+                    // Skip per-device availability API calls during sync to prevent timeout
+                    // Availability metrics will be fetched on-demand during report generation
                     
                 } catch (\Exception $e) {
                     $deviceId = $device['device_id'] ?? 'unknown';

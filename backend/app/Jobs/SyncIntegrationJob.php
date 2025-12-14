@@ -27,7 +27,7 @@ class SyncIntegrationJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 5;
-    public $timeout = 900; // 15 minutes - increased for integrations with many customers
+    public $timeout = 1800; // 30 minutes - increased for LibreNMS with many devices
     public $backoff = [60, 300, 900, 1800]; // Exponential backoff: 1 min, 5 min, 15 min, 30 min
 
     protected Integration $integration;

@@ -58,20 +58,28 @@ class CustomerMappingController extends Controller
             }
         }
 
-        // Apply integration filters (combined to ensure both conditions apply to same integration)
-        if (!empty($integrationTypes) || $sourceOfTruthOnly !== null) {
-            $query->whereHas('integrationCustomers.integration', function ($q) use ($integrationTypes, $sourceOfTruthOnly) {
-                // Apply integration type filter
-                if (!empty($integrationTypes)) {
-                    $q->whereIn('integration_type', $integrationTypes);
-                }
-                
-                // Apply source of truth filter
-                if ($sourceOfTruthOnly !== null) {
-                    $isSourceOfTruth = filter_var($sourceOfTruthOnly, FILTER_VALIDATE_BOOLEAN);
-                    $q->where('is_source_of_truth', $isSourceOfTruth);
-                }
+        // Apply integration type filter
+        if (!empty($integrationTypes)) {
+            $query->whereHas('integrationCustomers.integration', function ($q) use ($integrationTypes) {
+                $q->whereIn('integration_type', $integrationTypes);
             });
+        }
+
+        // Apply source of truth filter
+        if ($sourceOfTruthOnly !== null) {
+            $isSourceOfTruth = filter_var($sourceOfTruthOnly, FILTER_VALIDATE_BOOLEAN);
+            
+            if ($isSourceOfTruth) {
+                // Show customers that have at least one SOT integration
+                $query->whereHas('integrationCustomers.integration', function ($q) {
+                    $q->where('is_source_of_truth', true);
+                });
+            } else {
+                // Show customers that do NOT have any SOT integration
+                $query->whereDoesntHave('integrationCustomers.integration', function ($q) {
+                    $q->where('is_source_of_truth', true);
+                });
+            }
         }
 
         $customers = $query->orderBy('canonical_name', 'asc')

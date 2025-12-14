@@ -73,14 +73,40 @@ class LibreNMSClient
 
     public function getDeviceAvailability(int $deviceId): array
     {
-        $response = $this->makeRequest("/devices/{$deviceId}/availability");
-        return $response['availability'] ?? [];
+        try {
+            $response = $this->makeRequest("/devices/{$deviceId}/availability");
+            return $response['availability'] ?? [];
+        } catch (\Exception $e) {
+            // Handle 404 or missing availability data gracefully
+            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), 'not found')) {
+                Log::debug('LibreNMS: Device availability not found (expected)', [
+                    'integration_id' => $this->integration->integration_id,
+                    'device_id' => $deviceId,
+                ]);
+                return [];
+            }
+            // Re-throw other errors
+            throw $e;
+        }
     }
 
     public function getDeviceGroupsForDevice(int $deviceId): array
     {
-        $response = $this->makeRequest("/devices/{$deviceId}/groups");
-        return $response['groups'] ?? [];
+        try {
+            $response = $this->makeRequest("/devices/{$deviceId}/groups");
+            return $response['groups'] ?? [];
+        } catch (\Exception $e) {
+            // 404 is expected when device has no groups - return empty array
+            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), 'No device groups found')) {
+                Log::debug('LibreNMS: Device has no groups (expected)', [
+                    'integration_id' => $this->integration->integration_id,
+                    'device_id' => $deviceId,
+                ]);
+                return [];
+            }
+            // Re-throw other errors
+            throw $e;
+        }
     }
 
     protected function makeRequest(string $endpoint, array $params = []): array
@@ -147,13 +173,16 @@ class LibreNMSClient
                 $errorMessage = $response->body();
                 $statusCode = $response->status();
                 
-                Log::error('LibreNMS: API request failed', [
-                    'integration_id' => $this->integration->integration_id,
-                    'endpoint' => $endpoint,
-                    'url' => $url,
-                    'status' => $statusCode,
-                    'body' => $errorMessage
-                ]);
+                // Don't log 404 as error - it's expected for devices without groups/availability
+                if ($statusCode !== 404) {
+                    Log::error('LibreNMS: API request failed', [
+                        'integration_id' => $this->integration->integration_id,
+                        'endpoint' => $endpoint,
+                        'url' => $url,
+                        'status' => $statusCode,
+                        'body' => $errorMessage
+                    ]);
+                }
                 
                 // Provide helpful error messages
                 if ($statusCode === 403) {
@@ -167,11 +196,14 @@ class LibreNMSClient
             
             return $response->json();
         } catch (\Exception $e) {
-            Log::error('LibreNMS: API request error', [
-                'integration_id' => $this->integration->integration_id,
-                'endpoint' => $endpoint,
-                'error' => $e->getMessage()
-            ]);
+            // Don't log 404 errors - they're expected and handled by calling methods
+            if (!str_contains($e->getMessage(), '404') && !str_contains($e->getMessage(), 'No device groups found')) {
+                Log::error('LibreNMS: API request error', [
+                    'integration_id' => $this->integration->integration_id,
+                    'endpoint' => $endpoint,
+                    'error' => $e->getMessage()
+                ]);
+            }
             throw $e;
         }
     }
