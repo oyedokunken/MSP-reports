@@ -306,11 +306,6 @@ export const useCustomerList = () => {
   const total = useCustomersStore((state) => state.total)
 
   const fetchCustomers = useCustomersStore((state) => state.fetchCustomers)
-  const setSearchQuery = useCustomersStore((state) => state.setSearchQuery)
-  const setStatusFilters = useCustomersStore((state) => state.setStatusFilters)
-  const setReportFilters = useCustomersStore((state) => state.setReportFilters)
-  const setIntegrationFilters = useCustomersStore((state) => state.setIntegrationFilters)
-  const clearAllFilters = useCustomersStore((state) => state.clearAllFilters)
   const openModal = useCustomersStore((state) => state.openModal)
   const closeModal = useCustomersStore((state) => state.closeModal)
   const setSelectedUnmappedCustomer = useCustomersStore((state) => state.setSelectedUnmappedCustomer)
@@ -402,11 +397,6 @@ export const useCustomerList = () => {
     currentPage,
     totalPages,
     total,
-    setSearchQuery,
-    setStatusFilters,
-    setReportFilters,
-    setIntegrationFilters,
-    clearAllFilters,
     fetchCustomers,
     openModal,
     closeModal,
@@ -438,11 +428,6 @@ export const useMasterCustomerList = () => {
   const total = useCustomersStore((state) => state.total)
 
   const fetchCustomers = useCustomersStore((state) => state.fetchCustomers)
-  const setSearchQuery = useCustomersStore((state) => state.setSearchQuery)
-  const setStatusFilters = useCustomersStore((state) => state.setStatusFilters)
-  const setReportFilters = useCustomersStore((state) => state.setReportFilters)
-  const setIntegrationFilters = useCustomersStore((state) => state.setIntegrationFilters)
-  const clearAllFilters = useCustomersStore((state) => state.clearAllFilters)
   const openModal = useCustomersStore((state) => state.openModal)
   const closeModal = useCustomersStore((state) => state.closeModal)
   const setSelectedUnmappedCustomer = useCustomersStore((state) => state.setSelectedUnmappedCustomer)
@@ -608,11 +593,6 @@ export const useSecondaryCustomerList = () => {
   const total = useCustomersStore((state) => state.total)
 
   const fetchCustomers = useCustomersStore((state) => state.fetchCustomers)
-  const setSearchQuery = useCustomersStore((state) => state.setSearchQuery)
-  const setStatusFilters = useCustomersStore((state) => state.setStatusFilters)
-  const setReportFilters = useCustomersStore((state) => state.setReportFilters)
-  const setIntegrationFilters = useCustomersStore((state) => state.setIntegrationFilters)
-  const clearAllFilters = useCustomersStore((state) => state.clearAllFilters)
   const openModal = useCustomersStore((state) => state.openModal)
   const closeModal = useCustomersStore((state) => state.closeModal)
   const setSelectedCustomer = useCustomersStore((state) => state.setSelectedCustomer)
