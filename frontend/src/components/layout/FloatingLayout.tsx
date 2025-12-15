@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import AppSidebar from "./AppSidebar";
 import FloatingNav from "./FloatingNav";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SupportChatbot } from "@/components/chatbot";
 
 /**
  * Floating Layout
@@ -27,6 +28,8 @@ export default function FloatingLayout({ children }: FloatingLayoutProps) {
                         <div className="p-7 md:p-8 max-w-full">{children}</div>
                     </main>
                 </SidebarInset>
+                {/* Support Chatbot */}
+                <SupportChatbot />
             </div>
         </SidebarProvider>
     );
