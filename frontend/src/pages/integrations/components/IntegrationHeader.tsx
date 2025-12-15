@@ -15,15 +15,10 @@ type IntegrationHeaderProps = {
   searchQuery: string
   statusFilters: string[]
   integrationTypeFilters: string[]
-  uniqueStatuses: string[]
   uniqueTypes: string[]
   onSearchChange: (query: string) => void
   onStatusFiltersChange: (statuses: string[]) => void
   onIntegrationTypeFiltersChange: (types: string[]) => void
-}
-
-function formatStatus(status: string): string {
-  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
 }
 
 function formatType(type: string): string {
@@ -35,7 +30,6 @@ export function IntegrationHeader ({
   searchQuery, 
   statusFilters,
   integrationTypeFilters,
-  uniqueStatuses,
   uniqueTypes,
   onSearchChange,
   onStatusFiltersChange,

@@ -4,6 +4,10 @@
 
 These interactive commands help you manage integrations and API keys without needing the frontend UI.
 
+Note:
+- Local development may use SQLite by default.
+- Some database behaviors (e.g., `SET timezone`) are Postgres-specific and are only applied when the configured driver is `pgsql`.
+
 ### Create Integration
 
 **Create a new integration interactively:**

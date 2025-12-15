@@ -21,6 +21,14 @@ The backend reporting system is built on a modular architecture that allows for 
     *   `PATCH /api/customers/{id}/reports`: Updates report schedules.
 *   **Filtering Logic:** The controller filters the global list of reports against the customer's linked integrations. For example, if a customer only has "Autotask", they will not see "Backup Status" reports (which require Datto/Veeam).
 
+### 2a. Sharing & Downloads (`ReportAnalyticsController`)
+*   **Location:** `app/Http/Controllers/Api/ReportAnalyticsController.php`
+*   **Endpoints:**
+    *   `GET /api/reports/{id}/download`: Authenticated download of a generated report.
+    *   `POST /api/reports/{id}/share`: Generates a time-limited share link for a completed report.
+    *   `GET /api/reports/shared/{token}`: Public (no-auth) download using a share token.
+*   **Security Model:** Share links are time-limited and include an HMAC signature for tamper detection.
+
 ### 3. Generation Service (`ReportGenerationService`)
 *   **Location:** `app/Services/ReportGenerationService.php`
 *   **Process:**

@@ -95,6 +95,28 @@ Each report card displays:
 
 ---
 
+### 3a. Quick Share Link
+
+**Purpose:** Generate a time-limited link to allow downloading a completed report without requiring the recipient to log in.
+
+**Steps:**
+1. Locate a report with **✅ Completed** status
+2. Open the report actions menu
+3. Select **"Quick Share Link"**
+4. Copy the generated link and send it to the recipient
+
+**How it works (high level):**
+- The UI calls `POST /api/reports/{id}/share`
+- The backend returns a URL like `/api/reports/shared/{token}`
+- The token expires (typically 1 hour)
+
+**Security notes:**
+- Share links are time-limited
+- Tokens are signed (HMAC) to detect tampering
+- Public downloads are rate-limited
+
+---
+
 ### 4. Resend Report via Email
 
 **Purpose:** Re-deliver report if original email failed or customer didn't receive it.

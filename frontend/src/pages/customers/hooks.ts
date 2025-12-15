@@ -305,6 +305,11 @@ export const useCustomerList = () => {
   const totalPages = useCustomersStore((state) => state.totalPages)
   const total = useCustomersStore((state) => state.total)
 
+  const setSearchQuery = useCustomersStore((state) => state.setSearchQuery)
+  const setStatusFilters = useCustomersStore((state) => state.setStatusFilters)
+  const setReportFilters = useCustomersStore((state) => state.setReportFilters)
+  const setIntegrationFilters = useCustomersStore((state) => state.setIntegrationFilters)
+
   const fetchCustomers = useCustomersStore((state) => state.fetchCustomers)
   const openModal = useCustomersStore((state) => state.openModal)
   const closeModal = useCustomersStore((state) => state.closeModal)
@@ -397,6 +402,10 @@ export const useCustomerList = () => {
     currentPage,
     totalPages,
     total,
+    setSearchQuery,
+    setStatusFilters,
+    setReportFilters,
+    setIntegrationFilters,
     fetchCustomers,
     openModal,
     closeModal,

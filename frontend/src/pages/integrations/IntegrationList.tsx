@@ -57,7 +57,6 @@ export default function IntegrationList() {
     const setStatusFilters = useIntegrationStore((state) => state.setStatusFilters);
     const setIntegrationTypeFilters = useIntegrationStore((state) => state.setIntegrationTypeFilters);
     const getFilteredIntegrations = useIntegrationStore((state) => state.getFilteredIntegrations);
-    const getUniqueStatuses = useIntegrationStore((state) => state.getUniqueStatuses);
     const getUniqueTypes = useIntegrationStore((state) => state.getUniqueTypes);
     const openModal = useIntegrationStore((state) => state.openModal);
     const closeModal = useIntegrationStore((state) => state.closeModal);
@@ -152,7 +151,6 @@ export default function IntegrationList() {
                     searchQuery={searchQuery}
                     statusFilters={statusFilters}
                     integrationTypeFilters={integrationTypeFilters}
-                    uniqueStatuses={getUniqueStatuses()}
                     uniqueTypes={getUniqueTypes()}
                     onSearchChange={setSearchQuery}
                     onStatusFiltersChange={setStatusFilters}

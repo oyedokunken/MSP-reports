@@ -43,6 +43,20 @@ To have reports sent automatically every week or month:
 
 ---
 
+## 5. Share a Report (Quick Share Link)
+If you need to send a report to someone who does not have an account:
+
+1. Go to **Reports** (Generated Reports) and find the report you want to share.
+2. Use the **Share** / **Quick Share Link** action.
+3. The system generates a link that is valid for a limited time (typically 1 hour).
+4. Copy the link and send it to the recipient.
+
+Notes:
+- The share link allows downloading the PDF without logging in.
+- If the link is expired or tampered with, the download will fail.
+
+---
+
 ## Troubleshooting
 *   **"No Data Available":** If a report fails with this message, it means there is no data in the system for the selected date range. Try running a **Sync** or **Historical Import** for that customer first.
 *   **"Report Type Not Found":** Ensure the customer is mapped to the correct integration. A "Ticket Summary" report requires an Autotask or Kaseya integration.

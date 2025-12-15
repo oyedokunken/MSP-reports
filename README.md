@@ -238,6 +238,8 @@ Then login at http://localhost:5173/login
 - `GET /api/reports/scheduled` - View scheduled report queue
 - `GET /api/reports/history` - Report delivery history
 - `GET /api/reports/{id}/download` - Download specific report
+- `POST /api/reports/{id}/share` - Generate a 1-hour share link for a completed report
+- `GET /api/reports/shared/{token}` - Download a shared report (public, rate-limited)
 
 ---
 
@@ -673,6 +675,10 @@ Report share links include HMAC signatures for tamper detection:
 - 1-hour expiration
 - Signature verification on download
 - Failed signature attempts logged for security monitoring
+
+Share link endpoints:
+- `POST /api/reports/{id}/share` (authenticated)
+- `GET /api/reports/shared/{token}` (public, rate-limited)
 
 #### Credential Protection
 - Integration credentials never logged (only key names logged for debugging)
