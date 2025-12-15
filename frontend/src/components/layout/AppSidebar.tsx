@@ -243,6 +243,11 @@ export default function AppSidebar() {
                               return (
                                 <SidebarMenuSubItem key={subItem.path} className="relative">
                                   <span className="absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-border" />
+                                  {showBadge && (
+                                    <span className="absolute -top-2 -right-2 h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center ring-1 ring-background z-10">
+                                      {subItem.badge}
+                                    </span>
+                                  )}
                                   <SidebarMenuSubButton
                                     asChild
                                     isActive={subActive}
@@ -250,11 +255,6 @@ export default function AppSidebar() {
                                     <Link to={subItem.path} onClick={(e) => handleNavClick(e, subItem.path)}>
                                       <SubIcon className="h-4 w-4 !text-muted-foreground" />
                                       <span className="flex-1">{subItem.label}</span>
-                                      {showBadge && (
-                                        <span className="ml-auto h-5 min-w-[20px] px-1.5 rounded-full bg-blue-500 text-white text-xs font-semibold flex items-center justify-center">
-                                          {subItem.badge}
-                                        </span>
-                                      )}
                                     </Link>
                                   </SidebarMenuSubButton>
                                 </SidebarMenuSubItem>
