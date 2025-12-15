@@ -75,9 +75,9 @@ class CustomerMappingController extends Controller
                     $q->where('is_source_of_truth', true);
                 });
             } else {
-                // Show customers that do NOT have any SOT integration
-                $query->whereDoesntHave('integrationCustomers.integration', function ($q) {
-                    $q->where('is_source_of_truth', true);
+                // Show customers that have at least one non-SOT integration
+                $query->whereHas('integrationCustomers.integration', function ($q) {
+                    $q->where('is_source_of_truth', false);
                 });
             }
         }
