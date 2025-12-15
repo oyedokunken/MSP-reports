@@ -287,9 +287,8 @@ class BitDefenderMonthlySummary extends BaseReport
     private function getMachineTypeName(?int $type): string
     {
         return match($type) {
-            1 => 'Workstation',
-            2 => 'Server',
-            3 => 'Mobile',
+            1 => 'Computer',
+            2 => 'Virtual Machine',
             default => 'Unknown',
         };
     }

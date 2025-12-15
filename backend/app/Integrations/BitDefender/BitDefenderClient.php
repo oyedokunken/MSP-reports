@@ -122,12 +122,12 @@ class BitDefenderClient
 
                 $items = $response['result']['items'] ?? [];
                 
-                // Additional filtering: only include items that are actual endpoints (type 1 = computer, type 2 = VM)
-                // Exclude groups (type 4) and other organizational items
+                // Additional filtering: only include items that are actual endpoints (machineType 1 = computer, machineType 2 = VM)
+                // Exclude groups (machineType 4) and other organizational items
                 $endpoints = array_filter($items, function($item) {
-                    $type = $item['type'] ?? null;
-                    // Type 1 = Computer, Type 2 = Virtual Machine, Type 4 = Group
-                    return in_array($type, [1, 2]);
+                    $machineType = $item['machineType'] ?? null;
+                    // machineType 1 = Computer, machineType 2 = Virtual Machine
+                    return in_array($machineType, [1, 2]);
                 });
                 
                 $allEndpoints = array_merge($allEndpoints, $endpoints);
@@ -173,7 +173,7 @@ class BitDefenderClient
             $response = $this->makeRequest('getQuarantineItemsList', [
                 'perPage' => 100,
                 'page' => 1,
-            ]);
+            ], 'quarantine');
 
             $items = $response['result']['items'] ?? [];
 

@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ReportsHeader, ReportsFilters, ReportsGrid } from './components'
 import { Pagination } from '@/pages/customers/components/Pagination'
 import { useReportsStore } from '@/stores/useReportsStore'
@@ -23,6 +25,8 @@ export default function ReportsList() {
     handleDownload,
     handleDelete
   } = useReportsList()
+
+  const [reportToDelete, setReportToDelete] = useState<number | null>(null)
 
   // Pagination from store
   const currentPage = useReportsStore(state => state.currentPage)
@@ -55,7 +59,7 @@ export default function ReportsList() {
           isLoading={isLoading}
           downloading={downloading}
           onDownload={handleDownload}
-          onDelete={handleDelete}
+          onDelete={setReportToDelete}
           deleting={deleting}
         />
 
@@ -71,6 +75,22 @@ export default function ReportsList() {
           />
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={!!reportToDelete}
+        onClose={() => setReportToDelete(null)}
+        onConfirm={() => {
+          if (reportToDelete) {
+            handleDelete(reportToDelete)
+            setReportToDelete(null)
+          }
+        }}
+        title="Delete Report"
+        description="Are you sure you want to delete this report? This action cannot be undone."
+        confirmText="Delete Report"
+        cancelText="Cancel"
+        type="danger"
+      />
     </FloatingLayout>
   )
 }

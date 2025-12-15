@@ -79,7 +79,10 @@ class DattoClient
                 'url' => $tokenUrl,
             ]);
             
-            $response = Http::withHeaders([
+            $response = Http::retry(3, 1000)
+              ->timeout(30)
+              ->connectTimeout(10)
+              ->withHeaders([
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/x-www-form-urlencoded',
             ])->withBasicAuth('public-client', 'public')
@@ -308,7 +311,7 @@ class DattoClient
         return $allDevices;
     }
     
-    public function getRmmAlerts(string $siteUid, bool $openOnly = true): array
+    public function getRmmAlerts(string $siteUid, bool $openOnly = true, ?Carbon $since = null): array
     {
         $endpoint = $openOnly 
             ? "/site/{$siteUid}/alerts/open"
@@ -316,7 +319,8 @@ class DattoClient
             
         $params = [];
         if (!$openOnly) {
-            $params['resolvedSince'] = Carbon::now()->subHour()->format('Y-m-d\TH:i:s\Z');
+            $sinceDate = $since ?? Carbon::now()->subHour();
+            $params['resolvedSince'] = $sinceDate->format('Y-m-d\TH:i:s\Z');
         }
         
         $response = $this->makeRmmRequest($endpoint, $params);
@@ -334,61 +338,81 @@ class DattoClient
 
     protected function makeRmmRequest(string $endpoint, array $params = []): array
     {
-        if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
-            throw new \Exception("Rate limit exceeded for Datto RMM API");
-        }
-
-        // Get access token lazily if not already set
         if (empty($this->accessToken)) {
             $this->accessToken = $this->getAccessToken();
         }
 
         $url = $this->baseUrl . '/api/v2' . $endpoint;
         
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $this->accessToken,
-                'Accept' => 'application/json',
-            ])->get($url, $params);
+        $maxRetries = 2;
+        $attempt = 0;
+        
+        while ($attempt <= $maxRetries) {
+            try {
+                $response = Http::timeout(120)
+                    ->connectTimeout(30)
+                    ->withHeaders([
+                        'Authorization' => 'Bearer ' . $this->accessToken,
+                        'Accept' => 'application/json',
+                    ])->get($url, $params);
 
-            if ($response->status() === 429) {
-                Log::warning('Datto RMM: Rate limit hit, waiting 60 seconds', [
-                    'integration_id' => $this->integration->integration_id,
-                ]);
-                sleep(60);
-                return $this->makeRmmRequest($endpoint, $params);
-            }
+                // Handle response status codes
+                if ($response->status() === 429) {
+                    Log::warning('Datto RMM: Rate limit hit, waiting 60s before retry', [
+                        'integration_id' => $this->integration->integration_id,
+                    ]);
+                    sleep(60);
+                    return $this->makeRmmRequest($endpoint, $params);
+                }
 
-            if ($response->status() === 401) {
-                Log::info('Datto RMM: Token expired, refreshing', [
-                    'integration_id' => $this->integration->integration_id,
-                ]);
-                Cache::forget(self::TOKEN_CACHE_KEY_PREFIX . $this->integration->integration_id);
-                $this->accessToken = $this->getAccessToken();
-                return $this->makeRmmRequest($endpoint, $params);
-            }
+                if ($response->status() === 401) {
+                    Log::info('Datto RMM: Token expired, refreshing', [
+                        'integration_id' => $this->integration->integration_id,
+                    ]);
+                    Cache::forget(self::TOKEN_CACHE_KEY_PREFIX . $this->integration->integration_id);
+                    $this->accessToken = $this->getAccessToken();
+                    return $this->makeRmmRequest($endpoint, $params);
+                }
 
-            if (!$response->successful()) {
-                Log::error('Datto RMM: API request failed', [
+                if (!$response->successful()) {
+                    Log::error('Datto RMM: API request failed', [
+                        'integration_id' => $this->integration->integration_id,
+                        'endpoint' => $endpoint,
+                        'status' => $response->status(),
+                        'body' => $response->body()
+                    ]);
+                    throw new \RuntimeException("API request failed: " . $response->body());
+                }
+
+                $this->rateLimiter->recordRequest($this->integration);
+                return $response->json();
+                
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                $attempt++;
+                
+                if ($attempt > $maxRetries) {
+                    Log::error('Datto RMM: Connection timeout after retries', [
+                        'integration_id' => $this->integration->integration_id,
+                        'endpoint' => $endpoint,
+                        'attempts' => $attempt,
+                        'error' => $e->getMessage()
+                    ]);
+                    throw new \Exception("Connection timeout after {$attempt} attempts: " . $e->getMessage());
+                }
+                
+                Log::warning('Datto RMM: Connection timeout, retrying', [
                     'integration_id' => $this->integration->integration_id,
                     'endpoint' => $endpoint,
-                    'status' => $response->status(),
-                    'body' => $response->body()
+                    'attempt' => $attempt,
+                    'max_retries' => $maxRetries
                 ]);
-                throw new \RuntimeException("API request failed: " . $response->body());
+                
+                sleep(2);
+                continue;
             }
-
-            $this->rateLimiter->recordRequest($this->integration);
-            
-            return $response->json();
-        } catch (\Exception $e) {
-            Log::error('Datto RMM: API request error', [
-                'integration_id' => $this->integration->integration_id,
-                'endpoint' => $endpoint,
-                'error' => $e->getMessage()
-            ]);
-            throw $e;
         }
+        
+        throw new \Exception('Unexpected error in makeRmmRequest');
     }
     
     protected function makeSaasRequest(string $endpoint, array $params = []): array
@@ -404,10 +428,12 @@ class DattoClient
         );
         
         try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Basic ' . $credentials,
-                'Accept' => 'application/json',
-            ])->get($url, $params);
+            $response = Http::timeout(120)
+                ->connectTimeout(30)
+                ->withHeaders([
+                    'Authorization' => 'Basic ' . $credentials,
+                    'Accept' => 'application/json',
+                ])->get($url, $params);
 
             if (!$response->successful()) {
                 Log::error('Datto SaaS: API request failed', [

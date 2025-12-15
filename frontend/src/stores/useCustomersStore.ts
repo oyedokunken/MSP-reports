@@ -19,6 +19,11 @@ interface CustomersState {
   perPage: number
   total: number
 
+  // Unmapped pagination
+  unmappedCurrentPage: number
+  unmappedTotalPages: number
+  unmappedPerPage: number
+
   // Filters
   searchQuery: string
   statusFilters: string[]
@@ -43,7 +48,7 @@ interface CustomersState {
 
   // Actions
   fetchCustomers: (page?: number, silent?: boolean, sourceOfTruthOnly?: boolean | null) => Promise<void>
-  fetchUnmappedCustomers: () => Promise<void>
+  fetchUnmappedCustomers: (page?: number) => Promise<void>
 
   // Filter actions
   setSearchQuery: (query: string) => void
@@ -94,6 +99,11 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   perPage: 21,
   total: 0,
 
+  // Unmapped pagination state
+  unmappedCurrentPage: 1,
+  unmappedTotalPages: 1,
+  unmappedPerPage: 21,
+
   // Fetch customers
   fetchCustomers: async (page: number = 1, silent: boolean = false, sourceOfTruthOnly: boolean | null = null) => {
     if (!silent) set({ isLoading: true })
@@ -127,17 +137,20 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   },
 
   // Fetch unmapped customers
-  fetchUnmappedCustomers: async () => {
+  fetchUnmappedCustomers: async (page: number = 1) => {
     try {
-      const response = await customerApi.getUnmappedCustomers()
+      const response = await customerApi.getUnmappedCustomers(page)
 
       set({
         unmappedCustomers: response.data,
-        unmappedCount: response.summary.total_unmapped,
+        unmappedCount: response.summary?.total_unmapped || response.data.length,
+        unmappedCurrentPage: response.pagination?.current_page || page,
+        unmappedTotalPages: response.pagination?.last_page || 1,
+        unmappedPerPage: response.pagination?.per_page || response.data.length,
       })
     } catch (err) {
       console.error('Failed to fetch unmapped customers:', err)
-      set({ unmappedCustomers: [], unmappedCount: 0 })
+      set({ unmappedCustomers: [], unmappedCount: 0, unmappedCurrentPage: 1, unmappedTotalPages: 1 })
     }
   },
 

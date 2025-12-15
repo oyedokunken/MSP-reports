@@ -126,14 +126,14 @@ class AutotaskClient
             while ($hasMore) {
                 $filters = [
                     ['field' => 'id', 'op' => 'gt', 'value' => $lastId],
-                    ['field' => 'createDate', 'op' => 'gte', 'value' => $startDate->format('Y-m-d\TH:i:s\Z')],
-                    ['field' => 'createDate', 'op' => 'lt', 'value' => $endDate->format('Y-m-d\TH:i:s\Z')]
+                    ['field' => 'lastActivityDate', 'op' => 'gte', 'value' => $startDate->format('Y-m-d\TH:i:s\Z')],
+                    ['field' => 'lastActivityDate', 'op' => 'lt', 'value' => $endDate->format('Y-m-d\TH:i:s\Z')]
                 ];
 
                 $response = $this->makeRequest('POST', '/Tickets/query', [
                     'filter' => $filters,
                     'MaxRecords' => $pageSize,
-                    'SortBy' => 'createDate',
+                    'SortBy' => 'lastActivityDate',
                     'SortOrder' => 'ASC'
                 ]);
 

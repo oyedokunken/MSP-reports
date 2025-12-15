@@ -12,7 +12,11 @@ class UptimeDataGatherer extends BaseDataGatherer
     public function getUptimeMetrics(): array
     {
         // Query uptime_metric data type
-        $data = $this->queryDataType('uptime_metric')->get();
+        $data = $this->queryDataType('uptime_metric')
+            ->get()
+            ->unique(function ($item) {
+                return ($item->data_payload['device_uid'] ?? '') . '_' . $item->data_timestamp->timestamp;
+            });
         
         if ($data->isEmpty()) {
             return [
@@ -56,20 +60,24 @@ class UptimeDataGatherer extends BaseDataGatherer
      */
     public function getDeviceBreakdown(): array
     {
-        $data = $this->queryDataType('uptime_metric')->get();
+        $data = $this->queryDataType('uptime_metric')
+            ->get()
+            ->unique(function ($item) {
+                return ($item->data_payload['device_uid'] ?? '') . '_' . $item->data_timestamp->timestamp;
+            });
         
         if ($data->isEmpty()) {
             return [];
         }
 
         return $data->groupBy(function ($item) {
-            return data_get($item->data_payload, 'device_name', 'Unknown Device');
-        })->map(function ($deviceData, $deviceName) {
+            return $item->data_payload['device_uid'] ?? 'unknown';
+        })->map(function ($deviceData, $deviceUid) {
             $uptimes = $deviceData->map(fn($item) => data_get($item->data_payload, 'uptime_percentage', 0));
             $downtimes = $deviceData->map(fn($item) => data_get($item->data_payload, 'downtime_minutes', 0));
             
             return [
-                'device_name' => $deviceName,
+                'device_name' => data_get($deviceData->first()->data_payload, 'device_name', 'Unknown Device'),
                 'device_id' => data_get($deviceData->first()->data_payload, 'device_id', 'unknown'),
                 'average_uptime' => round($uptimes->avg(), 2),
                 'total_downtime_minutes' => round($downtimes->sum(), 2),
@@ -85,7 +93,10 @@ class UptimeDataGatherer extends BaseDataGatherer
     {
         $data = $this->queryDataType('uptime_metric')
             ->orderBy('data_timestamp')
-            ->get();
+            ->get()
+            ->unique(function ($item) {
+                return ($item->data_payload['device_uid'] ?? '') . '_' . $item->data_timestamp->timestamp;
+            });
         
         if ($data->isEmpty()) {
             return [];

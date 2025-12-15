@@ -10,6 +10,7 @@ use App\Models\IntegrationData;
 use App\Models\Customer;
 use App\Models\CustomerMapping;
 use App\Jobs\AutoMatchCustomersJob;
+use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use Carbon\Carbon;
@@ -46,7 +47,10 @@ class AutotaskIntegration implements IntegrationInterface
         $this->mappedDuringSync = [];
         $totalProcessed = 0;
 
+        // Pre-load customer map for efficiency (though less critical if only syncing companies)
+
         try {
+            // 1. Sync Companies
             $autotaskCompanies = $this->client->getCompanies();
             
             \Log::info('Autotask sync: Retrieved companies', [
@@ -80,7 +84,13 @@ class AutotaskIntegration implements IntegrationInterface
                 ]);
             });
 
+
         } catch (\Exception $e) {
+            // Rethrow rate limit exceptions so the job can be released back to the queue
+            if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
+                throw $e;
+            }
+
             $errors[] = "Sync failed: {$e->getMessage()}";
             \Log::error('Autotask sync: Failed', [
                 'integration_id' => $this->integration->integration_id,
@@ -108,16 +118,87 @@ class AutotaskIntegration implements IntegrationInterface
             'last_sync' => now(),
         ], now()->addMinutes(10));
 
+        // TICKET & TIME ENTRY POLLING (database-driven schedule)
+        // Fetch tickets + time entries from last 10 minutes
+        $ticketsProcessed = 0;
+        $timeEntriesProcessed = 0;
+        
+        try {
+            $since = now()->subMinutes(10);
+            $until = now();
+            
+            // Pre-load customer map
+            $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                ->pluck('integration_customer_id', 'external_id')
+                ->toArray();
+            
+            // Fetch tickets
+            $recentTickets = $this->client->getTickets($since, $until);
+            $ticketToCompanyMap = [];
+            
+            foreach ($recentTickets as $ticket) {
+                try {
+                    $companyId = $ticket['companyID'] ?? null;
+                    $integrationCustomerId = $companyId ? ($customerMap[(string)$companyId] ?? null) : null;
+                    
+                    $standardized = AutotaskMapper::mapTicket($ticket);
+                    $standardized['integration_customer_id'] = $integrationCustomerId;
+                    
+                    $this->storeHistoricalData($standardized);
+                    $ticketsProcessed++;
+                    
+                    if (isset($ticket['id'])) {
+                        $ticketToCompanyMap[$ticket['id']] = $companyId;
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to process ticket: {$e->getMessage()}";
+                }
+            }
+            
+            // Fetch time entries
+            $recentTimeEntries = $this->client->getTimeEntries($since, $until);
+            
+            foreach ($recentTimeEntries as $entry) {
+                try {
+                    $ticketId = $entry['ticketID'] ?? null;
+                    $integrationCustomerId = null;
+                    
+                    if ($ticketId && isset($ticketToCompanyMap[$ticketId])) {
+                        $companyId = $ticketToCompanyMap[$ticketId];
+                        if ($companyId) {
+                            $integrationCustomerId = $customerMap[(string)$companyId] ?? null;
+                        }
+                    }
+                    
+                    $standardized = AutotaskMapper::mapTimeEntry($entry);
+                    $standardized['integration_customer_id'] = $integrationCustomerId;
+                    
+                    $this->storeHistoricalData($standardized);
+                    $timeEntriesProcessed++;
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to process time entry: {$e->getMessage()}";
+                }
+            }
+            
+        } catch (\Exception $e) {
+            \Log::warning('Autotask: Ticket/time polling failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         \Log::info('Autotask sync: Completed', [
             'integration_id' => $this->integration->integration_id,
-            'total_processed' => $totalProcessed,
+            'companies_processed' => $totalProcessed,
             'mapped_count' => $mappedCount,
             'unmapped_count' => $unmappedCount,
+            'tickets_synced' => $ticketsProcessed,
+            'time_entries_synced' => $timeEntriesProcessed,
             'errors' => count($errors),
         ]);
 
         return [
-            'records_synced' => $mappedCount,
+            'records_synced' => $mappedCount + $unmappedCount + $ticketsProcessed + $timeEntriesProcessed,
             'records_new' => $unmappedCount,
             'customers_mapped' => $mappedCustomers,
             'records_failed' => count($errors),
@@ -127,21 +208,9 @@ class AutotaskIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->get();
-
-        $mappedList = [];
-
-        foreach ($unmappedCustomers as $integrationCustomer) {
-            if ($this->integration->is_source_of_truth) {
-                $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Autotask');
-            } else {
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
-        }
-
-        return $mappedList;
+        // Dispatch single batch job to process all unmapped customers
+        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        return [];
     }
 
     public function getCustomers(): array
@@ -347,95 +416,16 @@ class AutotaskIntegration implements IntegrationInterface
         ];
     }
 
-    private function storeHistoricalDataBatch(array $records): void
+    public function storeHistoricalDataBatch(array $records): void
     {
         if (empty($records)) {
             return;
         }
 
-        $dataType = $records[0]['data_type'];
-        \Log::info("Processing batch of " . count($records) . " {$dataType} records");
-
-        // Determine the ID field based on data type
-        $idField = match ($dataType) {
-            'ticket' => 'ticket_id',
-            'time_entry' => 'time_entry_id',
-            'resource' => 'resource_id',
-            'contract' => 'contract_id',
-            default => 'id',
-        };
-
-        // Extract external IDs from the new records
-        $newIds = [];
-        foreach ($records as $record) {
-            $payload = is_string($record['data_payload']) ? json_decode($record['data_payload'], true) : $record['data_payload'];
-            if (isset($payload[$idField])) {
-                $newIds[] = $payload[$idField];
-            } elseif (isset($payload['id'])) {
-                // Fallback to 'id' if specific field not found
-                $newIds[] = $payload['id'];
-            }
-        }
-
-        if (empty($newIds)) {
-            \Log::warning("No IDs found in batch for type {$dataType} (looking for {$idField})");
-            // Fallback to insert all if no IDs found
-            DB::table('integration_data')->insert($records);
-            return;
-        }
-
-        // Find existing records with these IDs
-        // Use raw SQL for JSON extraction to be efficient
-        $placeholders = implode(',', array_fill(0, count($newIds), '?'));
-        
-        // Query existing records with timestamp for composite key matching
-        $existingRecords = DB::select("
-            SELECT integration_data_id, data_timestamp, data_payload->>'$idField' as external_id
-            FROM integration_data 
-            WHERE integration_id = ? 
-            AND data_type = ? 
-            AND data_payload->>'$idField' IN ($placeholders)
-        ", array_merge([$this->integration->integration_id, $dataType], $newIds));
-
-        $existingMap = [];
-        foreach ($existingRecords as $rec) {
-            $existingMap[$rec->external_id] = [
-                'id' => $rec->integration_data_id,
-                'timestamp' => $rec->data_timestamp
-            ];
-        }
-
-        \Log::info("Found " . count($existingMap) . " existing records out of " . count($newIds));
-
-        $toInsert = [];
-        $toUpdate = [];
-
-        foreach ($records as $record) {
-            $payload = is_string($record['data_payload']) ? json_decode($record['data_payload'], true) : $record['data_payload'];
-            $externalId = $payload[$idField] ?? $payload['id'] ?? null;
-
-            if ($externalId && isset($existingMap[$externalId])) {
-                $record['integration_data_id'] = $existingMap[$externalId]['id'];
-                $record['data_timestamp'] = $existingMap[$externalId]['timestamp']; 
-                $toUpdate[] = $record;
-            } else {
-                $toInsert[] = $record;
-            }
-        }
-
-        \Log::info("Inserting " . count($toInsert) . ", Updating " . count($toUpdate));
-
-        if (!empty($toInsert)) {
-            DB::table('integration_data')->insert($toInsert);
-        }
-
-        if (!empty($toUpdate)) {
-            DB::table('integration_data')->upsert(
-                $toUpdate,
-                ['integration_data_id', 'data_timestamp'],
-                ['data_payload', 'imported_at', 'integration_customer_id', 'data_version']
-            );
-        }
+        // TimescaleDB hypertable - always INSERT for time-series data
+        // Creates snapshots for all data types (tickets, time entries, resources)
+        // Reports deduplicate using ->unique() to show latest per entity
+        DB::table('integration_data')->insert($records);
     }
 
     public function getAvailableHistoryRange(): ?Carbon
@@ -571,13 +561,7 @@ class AutotaskIntegration implements IntegrationInterface
 
             $integrationCustomer->refresh();
 
-            if (!$integrationCustomer->customer_id) {
-                if ($this->integration->is_source_of_truth) {
-                    $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Autotask');
-                } else {
-                    AutoMatchCustomersJob::dispatch($integrationCustomer);
-                }
-            }
+            // Batch job processes all unmapped customers at end of sync
         });
     }
 

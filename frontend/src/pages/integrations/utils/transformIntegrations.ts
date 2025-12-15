@@ -12,6 +12,7 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
       unmapped_customers_count?: number
       total_customers_count?: number
       is_source_of_truth?: boolean
+      next_sync_at?: string | null
     }>
   }
 
@@ -27,10 +28,12 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'Australia/Darwin',
       })
       : 'Never',
     syncStatus: (int.last_sync_status || 'pending') as Integration['syncStatus'],
     customers: int.total_customers_count || 0,
     isSourceOfTruth: int.is_source_of_truth || false,
+    nextSyncAt: int.next_sync_at,
   }))
 }

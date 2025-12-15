@@ -56,9 +56,11 @@ class ImportHistoricalDataJob implements ShouldQueue
                 throw new \Exception("Integration type {$integration->integration_type} not found.");
             }
 
-            // Optimization: Process 7 days at a time instead of 1 day
-            // This reduces queue overhead from 90 jobs to ~13 jobs for a 90-day import
-            $daysToProcess = 7;
+            // Optimization: Process 30 days at a time
+            // This reduces queue overhead significantly
+            // Process 1 day at a time to ensure progress bar updates frequently
+            // This creates more jobs but provides much better UX
+            $daysToProcess = 1;
             $currentDate = $this->chunkDate->copy();
             $endDate = $this->chunkDate->copy()->addDays($daysToProcess - 1)->endOfDay();
             
@@ -76,6 +78,13 @@ class ImportHistoricalDataJob implements ShouldQueue
             }
 
             // Process the chunk (up to 7 days)
+            // Set progress callback if supported
+            if (method_exists($integrationClass, 'setProgressCallback')) {
+                $integrationClass->setProgressCallback(function(int $count) {
+                    $this->importJob->increment('records_imported', $count);
+                });
+            }
+
             $result = $integrationClass->getHistoricalData(
                 $currentDate,
                 $endDate
@@ -101,9 +110,9 @@ class ImportHistoricalDataJob implements ShouldQueue
             $nextDate = $endDate->copy()->addDay();
             
             if ($nextDate->lte($this->importJob->import_end_date)) {
-                // Delay next job by 2 minutes to avoid overwhelming rate limits
-                // This ensures jobs process sequentially with breathing room
-                ImportHistoricalDataJob::dispatch($this->importJob, $nextDate)->delay(now()->addMinutes(2));
+                // Delay next job by 5 seconds just to be safe
+                // The RateLimiter will handle the actual throttling if needed
+                ImportHistoricalDataJob::dispatch($this->importJob, $nextDate)->onQueue('low')->delay(now()->addSeconds(5));
             } else {
                 // All done!
                 $this->importJob->update([
@@ -118,6 +127,13 @@ class ImportHistoricalDataJob implements ShouldQueue
                 ]);
             }
 
+        } catch (\App\Integrations\Exceptions\RateLimitException $e) {
+            Log::warning('Historical import rate limit hit, releasing job', [
+                'import_job_id' => $this->importJob->historical_import_job_id,
+                'retry_after' => $e->retryAfter,
+            ]);
+            $this->release($e->retryAfter);
+            return;
         } catch (\Exception $e) {
             Log::error('Historical import chunk failed', [
                 'import_job_id' => $this->importJob->historical_import_job_id,

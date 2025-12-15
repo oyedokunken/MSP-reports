@@ -8,6 +8,7 @@ use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
 use App\Jobs\AutoMatchCustomersJob;
+use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use Carbon\Carbon;
@@ -151,21 +152,9 @@ class SendmarcIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->get();
-
-        $mappedList = [];
-
-        foreach ($unmappedCustomers as $integrationCustomer) {
-            if ($this->integration->is_source_of_truth) {
-                $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Sendmarc');
-            } else {
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
-        }
-
-        return $mappedList;
+        // Dispatch single batch job to process all unmapped customers
+        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        return []; // Batch job handles mapping asynchronously
     }
 
     public function getCustomers(): array
@@ -346,7 +335,7 @@ class SendmarcIntegration implements IntegrationInterface
             if ($this->integration->is_source_of_truth) {
                 $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Sendmarc');
             } else {
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
+                // Batch job processes all unmapped customers at end of sync (in processUnmappedCustomers)
             }
         }
     }

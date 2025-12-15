@@ -76,7 +76,7 @@ class IntegrationController extends Controller
                 },
                 'integrationCustomers as total_customers_count'
             ])
-            ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth', 'last_sync_at', 'last_sync_status'])
+            ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth', 'last_sync_at', 'last_sync_status', 'sync_schedule'])
             ->map(function($integration) {
                 return [
                     'integration_id' => $integration->integration_id,
@@ -89,6 +89,7 @@ class IntegrationController extends Controller
                     'last_sync_status' => $integration->last_sync_status,
                     'unmapped_customers_count' => $integration->unmapped_customers_count ?? 0,
                     'total_customers_count' => $integration->total_customers_count ?? 0,
+                    'next_sync_at' => $this->calculateNextSync($integration),
                 ];
             });
 
@@ -96,6 +97,62 @@ class IntegrationController extends Controller
             'available_types' => $availableTypes,
             'configured' => $configuredIntegrations,
         ]);
+    }
+
+    private function calculateNextSync(Integration $integration): ?string
+    {
+        if (!$integration->last_sync_at || $integration->status !== 'active') {
+            return null;
+        }
+
+        $syncSchedule = $integration->sync_schedule ?? $this->getDefaultSchedule($integration->integration_type);
+        $intervalMinutes = $this->parseCronInterval($syncSchedule);
+        
+        if ($intervalMinutes === null) {
+            return null;
+        }
+
+        return $integration->last_sync_at
+            ->copy()
+            ->addMinutes($intervalMinutes)
+            ->toISOString();
+    }
+
+    private function parseCronInterval(string $cronSchedule): ?int
+    {
+        // Parse minute intervals (e.g., */5 * * * * = every 5 minutes)
+        if (preg_match('/^\*\/(\d+)\s+\*/', $cronSchedule, $matches)) {
+            return (int)$matches[1];
+        }
+
+        // Parse hour intervals (e.g., 0 */2 * * * = every 2 hours)
+        if (preg_match('/^0\s+\*\/(\d+)/', $cronSchedule, $matches)) {
+            return (int)$matches[1] * 60;
+        }
+
+        // Common patterns
+        $patterns = [
+            '0 */1 * * *' => 60,     // Hourly
+            '0 */2 * * *' => 120,    // Every 2 hours
+            '0 */4 * * *' => 240,    // Every 4 hours
+            '0 */6 * * *' => 360,    // Every 6 hours
+            '0 */12 * * *' => 720,   // Every 12 hours
+            '0 0 * * *' => 1440,     // Daily
+        ];
+
+        return $patterns[$cronSchedule] ?? null;
+    }
+
+    private function getDefaultSchedule(string $integrationType): string
+    {
+        return match($integrationType) {
+            'Datto' => '*/5 * * * *',       // Every 5 minutes
+            'LibreNMS' => '*/10 * * * *',   // Every 10 minutes
+            'Autotask' => '*/10 * * * *',   // Every 10 minutes
+            'ITGlue' => '0 */6 * * *',      // Every 6 hours
+            'SaaS', 'BitDefender', 'Sendmarc', 'Barracuda' => '0 */6 * * *', // Every 6 hours
+            default => '0 */6 * * *',       // Default to 6 hours for others
+        };
     }
 
     /**
@@ -237,7 +294,7 @@ class IntegrationController extends Controller
         // LibreNMS: add default base_url if not provided, or use provided value
         if ($validated['integration_type'] === 'LibreNMS') {
             if (!isset($credentials['base_url']) && isset($credentials['api_token'])) {
-                $credentials['base_url'] = 'http://192.168.228.7/api/v0';
+                $credentials['base_url'] = 'http://172.17.0.1:8228/api/v0';
                 Log::debug('LibreNMS: Added default base_url');
             }
             // Ensure base_url doesn't have trailing slash
@@ -323,6 +380,15 @@ class IntegrationController extends Controller
 
         $isFirstIntegration = $company->integrations()->count() === 0;
         $isSourceOfTruth = $isFirstIntegration ? true : ($validated['is_source_of_truth'] ?? false);
+        $syncSchedule = match($validated['integration_type']) {
+            'Autotask' => '*/10 * * * *',    // Every 10 minutes (companies + tickets + time)
+            'Datto' => '*/5 * * * *',       // Every 5 minutes
+            'ITGlue' => '0 */6 * * *',      // Every 6 hours
+            'LibreNMS' => '*/10 * * * *',   // Every 10 minutes
+            'SaaS', 'BitDefender', 'Sendmarc', 'Barracuda' => '0 */6 * * *',  // Every 6 hours
+            default => '0 */6 * * *',       // Default to 6 hours for any others (safer than 4)
+        };
+
         $integration = $company->integrations()->create([
             'integration_type' => $validated['integration_type'],
             'display_name' => $validated['display_name'],
@@ -330,6 +396,7 @@ class IntegrationController extends Controller
             'credentials' => $credentials,
             'configuration' => $validated['configuration'] ?? null,
             'is_source_of_truth' => $isSourceOfTruth,
+            'sync_schedule' => $syncSchedule,
         ]);
 
         if ($isSourceOfTruth) {
@@ -404,7 +471,8 @@ class IntegrationController extends Controller
 
         // Use SyncEngine to queue the sync (consistent with scheduled syncs)
         $syncEngine = app(\App\Services\SyncEngine::class);
-        $syncLog = $syncEngine->triggerSync($integration);
+        // Use 'high' priority for user-initiated syncs
+        $syncLog = $syncEngine->triggerSync($integration, 'current_state', 'high');
 
         return response()->json([
             'status' => 'success',
@@ -821,8 +889,8 @@ class IntegrationController extends Controller
             'historical_import_progress' => 0,
         ]);
 
-        // Dispatch job for the first chunk (start date)
-        \App\Jobs\ImportHistoricalDataJob::dispatch($job, $startDate);
+        // Dispatch job for the first chunk (start date) - Use 'low' priority for background processing
+        \App\Jobs\ImportHistoricalDataJob::dispatch($job, $startDate)->onQueue('low');
 
         AuditLog::create([
             'company_id' => $company->company_id,

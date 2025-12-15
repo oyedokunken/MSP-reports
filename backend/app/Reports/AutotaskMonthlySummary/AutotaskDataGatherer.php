@@ -25,7 +25,9 @@ class AutotaskDataGatherer
             ->orderBy('data_timestamp', 'desc')
             ->get();
 
-        return $rawData->map(function($item) {
+        return $rawData->unique(function($item) {
+            return $item->data_payload['ticket_id'] ?? null;
+        })->map(function($item) {
             $payload = $item->data_payload;
             $createdDate = isset($payload['created_date']) ? Carbon::parse($payload['created_date']) : null;
             $completedDate = isset($payload['completed_date']) ? Carbon::parse($payload['completed_date']) : null;
@@ -89,7 +91,9 @@ class AutotaskDataGatherer
             ->orderBy('data_timestamp', 'desc')
             ->get();
 
-        return $rawData->map(function($item) {
+        return $rawData->unique(function($item) {
+            return $item->data_payload['time_entry_id'] ?? null;
+        })->map(function($item) {
             $payload = $item->data_payload;
             $dateWorked = isset($payload['date_worked']) ? Carbon::parse($payload['date_worked']) : null;
             $startDateTime = isset($payload['start_date_time']) ? Carbon::parse($payload['start_date_time']) : null;

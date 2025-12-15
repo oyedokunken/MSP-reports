@@ -136,7 +136,7 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
     try {
       await api.patch('/company/source-integration', { integration_id: id })
       set({ sourceOfTruthId: id, settingSourceOfTruthId: null })
-      await get().fetchIntegrations(true) // refresh silently
+      await get().fetchIntegrations(true, true) // refresh silently
       return { success: true }
     } catch (error) {
       set({ settingSourceOfTruthId: null })
@@ -160,6 +160,14 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
     }, 300)
 
     try {
+      // Capture initial state to detect changes - use allIntegrations to ensure we find it
+      const initialIntegration = get().allIntegrations.find(i => i.id === integrationId)
+      const initialLastSync = initialIntegration?.lastSync
+      let previousUnmappedCount = initialIntegration?.customers || 0
+      let stableCountCycles = 0
+
+      console.log(`🏁 Starting sync for ID ${integrationId}. Initial Last Sync: ${initialLastSync}, Unmapped: ${previousUnmappedCount}`)
+
       await api.get(`/integrations/${integrationId}/sync`)
       clearInterval(interval)
       set({ syncProgress: 100 })
@@ -171,16 +179,45 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
 
       // Start polling for updates (sync is processed asynchronously in backend)
       const pollInterval = setInterval(async () => {
-        await get().fetchIntegrations(true)
+        console.log('🔄 Polling for sync updates...')
+        await get().fetchIntegrations(true, true)
+
+        // Check allIntegrations (not paginated) to ensure we find the integration
+        const currentIntegration = get().allIntegrations.find(i => i.id === integrationId)
+        const currentLastSync = currentIntegration?.lastSync
+        const currentUnmappedCount = currentIntegration?.customers || 0
+
+        // Check 1: Has the main sync job finished? (Timestamp updated)
+        let isSyncUpdated = false
+        if (!initialLastSync && currentLastSync) isSyncUpdated = true
+        else if (initialLastSync && currentLastSync && currentLastSync !== initialLastSync) isSyncUpdated = true
+
+        // Check 2: Is the unmapped count changing? (Auto-match activity)
+        if (currentUnmappedCount !== previousUnmappedCount) {
+          console.log(`📉 Activity detected! Unmapped: ${previousUnmappedCount} -> ${currentUnmappedCount}`)
+          stableCountCycles = 0 // Reset stability counter
+        } else {
+          stableCountCycles++
+        }
+
+        // Stop Condition: Sync is done AND Count is stable for 2 cycles (4 seconds)
+        if (isSyncUpdated && stableCountCycles >= 2) {
+          console.log(`✅ Sync done & Activity settled (${currentUnmappedCount} unmapped). Stopping.`)
+          clearInterval(pollInterval)
+        }
+
+        previousUnmappedCount = currentUnmappedCount
+
       }, 2000) // Poll every 2 seconds
 
-      // Stop polling after 30 seconds
+      // Stop polling after 60 seconds (safety timeout)
       setTimeout(() => {
+        console.log('⚠️ Polling timeout (60s). Stopping.')
         clearInterval(pollInterval)
-      }, 30000)
+      }, 60000)
 
       // Initial refresh
-      await get().fetchIntegrations(true)
+      await get().fetchIntegrations(true, true)
 
       return { success: true }
     } catch (error) {

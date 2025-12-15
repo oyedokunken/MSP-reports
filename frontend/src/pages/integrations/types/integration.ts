@@ -7,6 +7,6 @@ export type Integration = {
   syncStatus: 'success' | 'failed' | 'pending'
   customers: number
   isSourceOfTruth?: boolean
+  nextSyncAt?: string | null
 }
 
-  

@@ -2,7 +2,6 @@ import FloatingLayout from "@/components/layout/FloatingLayout";
 import {
     CustomersHeader,
     CustomersFilters,
-    UnmappedBanner,
     CustomersGrid,
     MapCustomerModal,
     Pagination,
@@ -23,7 +22,6 @@ export default function CustomerList() {
         totalMapped,
         mappedCustomers,
         unmappedCustomers,
-        unmappedCount,
         isLoading,
         modals,
         selectedUnmappedCustomer,
@@ -38,7 +36,6 @@ export default function CustomerList() {
         fetchCustomers,
         openModal,
         closeModal,
-        handleStartMapping,
         handleMapSuccess,
         handleCustomerAction,
         handleModalSuccess,
@@ -62,10 +59,7 @@ export default function CustomerList() {
                     onIntegrationFiltersChange={setIntegrationFilters}
                 />
 
-                <UnmappedBanner
-                    count={unmappedCount}
-                    onStartMapping={handleStartMapping}
-                />
+
 
                 <CustomersGrid
                     customers={mappedCustomers}

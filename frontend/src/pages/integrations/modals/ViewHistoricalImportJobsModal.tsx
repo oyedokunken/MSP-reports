@@ -70,15 +70,24 @@ export function ViewHistoricalImportJobsModal({
   useEffect(() => {
     if (open && integration) {
       fetchJobs()
-      // Auto-refresh every 10 seconds if there are running jobs
-      const interval = setInterval(() => {
-        if (jobs.some(j => j.status === 'running' || j.status === 'queued')) {
+    }
+  }, [open, integration, fetchJobs])
+
+  useEffect(() => {
+    if (!open || !integration) return
+
+    const interval = setInterval(() => {
+      setJobs(currentJobs => {
+        const shouldPoll = currentJobs.some(j => j.status === 'running' || j.status === 'queued')
+        if (shouldPoll) {
           fetchJobs()
         }
-      }, 10000)
-      return () => clearInterval(interval)
-    }
-  }, [open, integration, jobs, fetchJobs])
+        return currentJobs
+      })
+    }, 10000)
+
+    return () => clearInterval(interval)
+  }, [open, integration, fetchJobs])
 
   const getStatusBadge = (status: HistoricalImportJob['status']) => {
     const config = {
@@ -117,11 +126,11 @@ export function ViewHistoricalImportJobsModal({
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleString()
+    return new Date(dateString).toLocaleString('en-US', { timeZone: 'Australia/Darwin' })
   }
 
   const formatDateRange = (start: string, end: string) => {
-    return `${new Date(start).toLocaleDateString()} - ${new Date(end).toLocaleDateString()}`
+    return `${new Date(start).toLocaleDateString('en-AU', { timeZone: 'Australia/Darwin' })} - ${new Date(end).toLocaleDateString('en-AU', { timeZone: 'Australia/Darwin' })}`
   }
 
   const handleClose = () => {
@@ -201,7 +210,7 @@ export function ViewHistoricalImportJobsModal({
                         </div>
                         {job.current_position && (
                           <p className="text-xs text-muted-foreground">
-                            Current Position: {new Date(job.current_position).toLocaleDateString()}
+                            Current Position: {new Date(job.current_position).toLocaleDateString('en-AU', { timeZone: 'Australia/Darwin' })}
                           </p>
                         )}
                       </div>
