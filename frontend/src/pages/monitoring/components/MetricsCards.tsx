@@ -1,14 +1,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Cable, FileText, ListChecks, TrendingUp, TrendingDown, CheckCircle, XCircle } from 'lucide-react'
-import type { IntegrationMetrics, ReportMetrics, QueueMetrics } from '@/stores/useMonitoringStore'
+import type { IntegrationMetrics, ReportMetrics, QueueMetrics, SystemStatus } from '@/stores/useMonitoringStore'
+import { SystemStatusMetricCard } from './SystemStatusMetricCard'
 
 interface MetricsCardsProps {
+  systemStatus: SystemStatus | null
   integrationMetrics: IntegrationMetrics | null
   reportMetrics: ReportMetrics | null
   queueMetrics: QueueMetrics | null
 }
 
-export function MetricsCards({ integrationMetrics, reportMetrics, queueMetrics }: MetricsCardsProps) {
+export function MetricsCards({ systemStatus, integrationMetrics, reportMetrics, queueMetrics }: MetricsCardsProps) {
 
 
   // Calculate overall integration metrics
@@ -18,7 +20,9 @@ export function MetricsCards({ integrationMetrics, reportMetrics, queueMetrics }
   const overallSuccessRate = totalSyncs > 0 ? (successfulSyncs / totalSyncs) * 100 : 0
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* System Status */}
+      <SystemStatusMetricCard status={systemStatus} />
       {/* Integration Metrics */}
       <Card>
         <CardHeader className="pb-3">

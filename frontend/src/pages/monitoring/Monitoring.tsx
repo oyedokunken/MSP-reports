@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import FloatingLayout from "@/components/layout/FloatingLayout";
 import { useMonitoringStore } from "@/stores/useMonitoringStore";
-import { MonitoringHeader, SystemStatusCard, MetricsCards } from "./components";
+import { MonitoringHeader, MetricsCards, ActivityTrendChart } from "./components";
 
 export default function Monitoring() {
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -48,13 +48,14 @@ export default function Monitoring() {
                     isRefreshing={isRefreshing || isLoading}
                 />
 
-                <SystemStatusCard status={systemStatus} />
-
                 <MetricsCards
+                    systemStatus={systemStatus}
                     integrationMetrics={integrationMetrics}
                     reportMetrics={reportMetrics}
                     queueMetrics={queueMetrics}
                 />
+
+                <ActivityTrendChart />
             </div>
         </FloatingLayout>
     );

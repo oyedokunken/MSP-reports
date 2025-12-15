@@ -1,3 +1,5 @@
 export { MonitoringHeader } from './MonitoringHeader'
 export { SystemStatusCard } from './SystemStatusCard'
+export { SystemStatusMetricCard } from './SystemStatusMetricCard'
 export { MetricsCards } from './MetricsCards'
+export { ActivityTrendChart } from './ActivityTrendChart'
