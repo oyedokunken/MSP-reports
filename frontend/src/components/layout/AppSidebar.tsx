@@ -251,9 +251,12 @@ export default function AppSidebar() {
                                   <SidebarMenuSubButton
                                     asChild
                                     isActive={subActive}
+                                    style={subActive ? { background: 'var(--brand-gradient)' } : undefined}
                                   >
                                     <Link to={subItem.path} onClick={(e) => handleNavClick(e, subItem.path)}>
-                                      <SubIcon className="h-4 w-4 !text-muted-foreground" />
+                                      <div className="relative flex-shrink-0">
+                                        <SubIcon className="h-4 w-4" />
+                                      </div>
                                       <span className="flex-1">{subItem.label}</span>
                                     </Link>
                                   </SidebarMenuSubButton>
