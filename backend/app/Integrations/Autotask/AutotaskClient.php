@@ -76,7 +76,9 @@ class AutotaskClient
                     'filter' => [
                         ['field' => 'id', 'op' => 'gt', 'value' => $lastId]
                     ],
-                    'MaxRecords' => $pageSize
+                    'MaxRecords' => $pageSize,
+                    'SortBy' => 'id',
+                    'SortOrder' => 'ASC'
                 ]);
 
                 if (!$response->successful()) {
@@ -133,7 +135,7 @@ class AutotaskClient
                 $response = $this->makeRequest('POST', '/Tickets/query', [
                     'filter' => $filters,
                     'MaxRecords' => $pageSize,
-                    'SortBy' => 'lastActivityDate',
+                    'SortBy' => 'id',
                     'SortOrder' => 'ASC'
                 ]);
 
@@ -175,7 +177,9 @@ class AutotaskClient
 
                 $response = $this->makeRequest('POST', '/TimeEntries/query', [
                     'filter' => $filters,
-                    'MaxRecords' => $pageSize
+                    'MaxRecords' => $pageSize,
+                    'SortBy' => 'id',
+                    'SortOrder' => 'ASC'
                 ]);
 
                 if (!$response->successful()) {
@@ -213,7 +217,9 @@ class AutotaskClient
                         ['field' => 'id', 'op' => 'gt', 'value' => $lastId],
                         ['field' => 'status', 'op' => 'eq', 'value' => 1] // Active contracts
                     ],
-                    'MaxRecords' => $pageSize
+                    'MaxRecords' => $pageSize,
+                    'SortBy' => 'id',
+                    'SortOrder' => 'ASC'
                 ]);
 
                 if (!$response->successful()) {

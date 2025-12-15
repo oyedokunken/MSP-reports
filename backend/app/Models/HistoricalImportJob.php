@@ -31,14 +31,20 @@ class HistoricalImportJob extends Model
         'priority_level',
         'started_at',
         'completed_at',
+        'jobs_completed',
+        'total_jobs',
     ];
 
     protected $casts = [
-        'import_start_date' => 'date',
-        'import_end_date' => 'date',
-        'current_position' => 'date',
+        'import_start_date' => 'datetime',
+        'import_end_date' => 'datetime',
+        'current_position' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+    ];
+
+    protected $appends = [
+        'progress_percentage',
     ];
 
     public function company()
@@ -59,5 +65,10 @@ class HistoricalImportJob extends Model
     public function getProgressFormattedAttribute(): string
     {
         return "{$this->progress_percent}%";
+    }
+
+    public function getProgressPercentageAttribute(): int
+    {
+        return $this->progress_percent ?? 0;
     }
 }

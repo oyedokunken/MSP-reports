@@ -223,9 +223,9 @@ class AutotaskMonthlySummary extends BaseReport
             : 0;
 
         return [
-            'total_hours' => round($totalHours, 1),
-            'billable_hours' => round($billableHours, 1),
-            'non_billable_hours' => round($nonBillableHours, 1),
+            'total_hours' => round($totalHours, 2),
+            'billable_hours' => round($billableHours, 2),
+            'non_billable_hours' => round($nonBillableHours, 2),
             'billing_efficiency' => $billingEfficiency,
         ];
     }

@@ -12,6 +12,7 @@ use App\Models\Integration;
 use App\Services\RateLimiter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Integrations\Autotask\AutotaskIntegration;
 use App\Integrations\Datto\DattoIntegration;
 use App\Integrations\Sendmarc\SendmarcIntegration;
@@ -56,11 +57,10 @@ class ImportHistoricalDataJob implements ShouldQueue
                 throw new \Exception("Integration type {$integration->integration_type} not found.");
             }
 
-            // Optimization: Process 30 days at a time
-            // This reduces queue overhead significantly
-            // Process 1 day at a time to ensure progress bar updates frequently
-            // This creates more jobs but provides much better UX
-            $daysToProcess = 1;
+            // Process 7 days at a time to balance queue efficiency with progress updates
+            // 90-day import = ~13 jobs instead of 90 jobs
+            // Progress bar still updates reasonably frequently (every ~week)
+            $daysToProcess = 7;
             $currentDate = $this->chunkDate->copy();
             $endDate = $this->chunkDate->copy()->addDays($daysToProcess - 1)->endOfDay();
             
@@ -92,29 +92,53 @@ class ImportHistoricalDataJob implements ShouldQueue
 
             $rateLimiter->recordRequest($integration);
 
+
             // Get records count from result (supports both old 'data' array and new 'total_processed' count)
             $recordsImported = $result['total_processed'] ?? count($result['data'] ?? []);
-            $this->importJob->records_imported += $recordsImported;
             
             // Update position to the end of this chunk
             $this->importJob->current_position = $endDate;
 
-            // Calculate progress
-            $totalDays = $this->importJob->import_start_date->diffInDays($this->importJob->import_end_date) ?: 1;
-            $completedDays = $this->importJob->import_start_date->diffInDays($endDate);
-            $this->importJob->progress_percent = min(100, round(($completedDays / $totalDays) * 100));
+
+            // Atomically increment both completed jobs counter AND records imported
+            // This ensures parallel jobs don't overwrite each other's counts
+            // Try-catch handles old jobs created before jobs_completed column was added
+            try {
+                DB::table('historical_import_jobs')
+                    ->where('historical_import_job_id', $this->importJob->historical_import_job_id)
+                    ->increment('jobs_completed');
+            } catch (\Exception $e) {
+                // Column doesn't exist (old job) - fall back to non-atomic update
+                Log::info('jobs_completed column not found, using fallback');
+            }
+            
+            if ($recordsImported > 0) {
+                DB::table('historical_import_jobs')
+                    ->where('historical_import_job_id', $this->importJob->historical_import_job_id)
+                    ->increment('records_imported', $recordsImported);
+            }
+            
+            // Refresh to get updated counters
+            $this->importJob->refresh();
+            
+            // Calculate progress from completed jobs
+            if (isset($this->importJob->total_jobs) && $this->importJob->total_jobs > 0) {
+                $this->importJob->progress_percent = min(100, round(($this->importJob->jobs_completed / $this->importJob->total_jobs) * 100));
+            } else {
+                // Fallback to date-based if total_jobs wasn't set
+                $totalDays = $this->importJob->import_start_date->diffInDays($this->importJob->import_end_date) ?: 1;
+                $completedDays = $this->importJob->import_start_date->diffInDays($endDate);
+                $this->importJob->progress_percent = min(100, round(($completedDays / $totalDays) * 100));
+            }
 
             $this->importJob->save();
 
-            // Dispatch next job if there are more days
-            $nextDate = $endDate->copy()->addDay();
+            // Check if ALL chunks are complete (parallel processing)
+            // Since all jobs are dispatched upfront, we check if this is the final chunk
+            $isLastChunk = $endDate->gte($this->importJob->import_end_date);
             
-            if ($nextDate->lte($this->importJob->import_end_date)) {
-                // Delay next job by 5 seconds just to be safe
-                // The RateLimiter will handle the actual throttling if needed
-                ImportHistoricalDataJob::dispatch($this->importJob, $nextDate)->onQueue('low')->delay(now()->addSeconds(5));
-            } else {
-                // All done!
+            if ($isLastChunk) {
+                // Mark as complete - this job processed the last date range
                 $this->importJob->update([
                     'status' => 'completed',
                     'completed_at' => now(),

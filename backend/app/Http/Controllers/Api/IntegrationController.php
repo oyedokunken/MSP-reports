@@ -889,8 +889,30 @@ class IntegrationController extends Controller
             'historical_import_progress' => 0,
         ]);
 
-        // Dispatch job for the first chunk (start date) - Use 'low' priority for background processing
-        \App\Jobs\ImportHistoricalDataJob::dispatch($job, $startDate)->onQueue('low');
+        // Dispatch ALL chunks upfront for parallel processing across multiple workers
+        // Each chunk is 7 days (configured in ImportHistoricalDataJob)
+        $chunkSize = 7; // Must match $daysToProcess in ImportHistoricalDataJob
+        $currentChunkDate = $startDate->copy();
+        $jobsDispatched = 0;
+        
+        while ($currentChunkDate->lte($endDate)) {
+            \App\Jobs\ImportHistoricalDataJob::dispatch($job, $currentChunkDate->copy())
+                ->onQueue('low')
+                ->delay(now()->addSeconds($jobsDispatched * 2)); // Stagger by 2 seconds to avoid thundering herd
+            
+            $currentChunkDate->addDays($chunkSize);
+            $jobsDispatched++;
+        }
+        
+        // Update the job with total_jobs count for progress tracking
+        $job->update(['total_jobs' => $jobsDispatched]);
+        
+        Log::info('Historical import jobs dispatched', [
+            'integration_id' => $integration->integration_id,
+            'total_jobs' => $jobsDispatched,
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+        ]);
 
         AuditLog::create([
             'company_id' => $company->company_id,
@@ -903,6 +925,7 @@ class IntegrationController extends Controller
                 'start_date' => $validated['start_date'],
                 'end_date' => $validated['end_date'],
                 'job_id' => $job->id,
+                'total_jobs_dispatched' => $jobsDispatched,
             ]),
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),

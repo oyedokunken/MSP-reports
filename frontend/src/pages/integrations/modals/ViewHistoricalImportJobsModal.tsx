@@ -26,6 +26,7 @@ interface HistoricalImportJob {
   records_imported: number
   records_failed: number
   error_count: number
+  progress_percentage?: number
   created_at: string
   updated_at: string
   started_at: string | null
@@ -112,6 +113,13 @@ export function ViewHistoricalImportJobsModal({
   const calculateProgress = (job: HistoricalImportJob) => {
     if (job.status === 'completed') return 100
     if (job.status === 'failed') return 0
+
+    // Use progress_percentage from API if available (more accurate for parallel jobs)
+    if (typeof job.progress_percentage === 'number') {
+      return job.progress_percentage
+    }
+
+    // Fallback to date-based calculation for old jobs
     if (!job.current_position || !job.import_start_date || !job.import_end_date) return 0
 
     const start = new Date(job.import_start_date).getTime()

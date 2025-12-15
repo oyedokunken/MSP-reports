@@ -100,7 +100,7 @@ class AutotaskMapper
         return [
             'integration_customer_id' => null, 
             'data_type' => 'ticket',
-            'timestamp' => $autotaskTicket['createDate'] ?? now(),
+            'timestamp' => $autotaskTicket['lastActivityDate'] ?? $autotaskTicket['createDate'] ?? now(),
             'payload' => [
                 'ticket_id' => $autotaskTicket['id'],
                 'ticket_number' => $autotaskTicket['ticketNumber'] ?? null,
