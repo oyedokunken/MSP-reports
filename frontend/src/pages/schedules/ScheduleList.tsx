@@ -5,12 +5,16 @@ import { useToast } from '@/components/ui/Toast'
 import { useSchedulesStore } from '@/stores/useSchedulesStore'
 import { SchedulesHeader, SchedulesGrid } from './components'
 import { SelectCustomerModal } from './modals/SelectCustomerModal'
+import { DeleteScheduleModal } from './modals/DeleteScheduleModal'
 import { Pagination } from '@/pages/customers/components/Pagination'
+import type { ReportSchedule } from './types/schedule'
 
 export default function ScheduleList() {
   const navigate = useNavigate()
   const toast = useToast()
   const [selectCustomerOpen, setSelectCustomerOpen] = useState(false)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [scheduleToDelete, setScheduleToDelete] = useState<ReportSchedule | null>(null)
 
   const schedules = useSchedulesStore(state => state.schedules)
   const isLoading = useSchedulesStore(state => state.isLoading)
@@ -26,6 +30,7 @@ export default function ScheduleList() {
   const setFrequencyFilter = useSchedulesStore(state => state.setFrequencyFilter)
   const getFilteredSchedules = useSchedulesStore(state => state.getFilteredSchedules)
   const getUniqueFrequencies = useSchedulesStore(state => state.getUniqueFrequencies)
+  const deleteSchedule = useSchedulesStore(state => state.deleteSchedule)
 
   useEffect(() => {
     fetchSchedules().catch(err => {
@@ -39,6 +44,20 @@ export default function ScheduleList() {
 
   const handleConfigure = (customerId: number) => {
     navigate(`/platform/customers/${customerId}/configure-reports`)
+  }
+
+  const handleDeleteClick = (scheduleId: number) => {
+    const schedule = schedules.find(s => s.report_schedule_id === scheduleId)
+    if (schedule) {
+      setScheduleToDelete(schedule)
+      setDeleteModalOpen(true)
+    }
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!scheduleToDelete) return
+    
+    await deleteSchedule(scheduleToDelete.report_schedule_id)
   }
 
   return (
@@ -59,6 +78,7 @@ export default function ScheduleList() {
           schedules={schedules}
           isLoading={isLoading}
           onConfigure={handleConfigure}
+          onDelete={handleDeleteClick}
           onCreateSchedule={handleCreateSchedule}
         />
 
@@ -78,6 +98,13 @@ export default function ScheduleList() {
       <SelectCustomerModal
         open={selectCustomerOpen}
         onOpenChange={setSelectCustomerOpen}
+      />
+
+      <DeleteScheduleModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        schedule={scheduleToDelete}
+        onConfirm={handleDeleteConfirm}
       />
     </FloatingLayout>
   )

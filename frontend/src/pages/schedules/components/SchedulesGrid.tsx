@@ -9,6 +9,7 @@ interface SchedulesGridProps {
     schedules: ReportSchedule[];
     isLoading: boolean;
     onConfigure: (customerId: number) => void;
+    onDelete: (scheduleId: number) => void;
     onCreateSchedule: () => void;
 }
 
@@ -16,6 +17,7 @@ export function SchedulesGrid({
     schedules,
     isLoading,
     onConfigure,
+    onDelete,
     onCreateSchedule,
 }: SchedulesGridProps) {
     if (isLoading) {
@@ -71,6 +73,7 @@ export function SchedulesGrid({
                     key={schedule.report_schedule_id}
                     schedule={schedule}
                     onConfigure={() => onConfigure(schedule.customer_id)}
+                    onDelete={() => onDelete(schedule.report_schedule_id)}
                 />
             ))}
         </div>

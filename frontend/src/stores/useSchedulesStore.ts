@@ -28,6 +28,7 @@ interface SchedulesState {
 
   // Actions
   fetchSchedules: () => Promise<void>
+  deleteSchedule: (scheduleId: number) => Promise<void>
   setPage: (page: number) => void
   setSearchQuery: (query: string) => void
   setStatusFilter: (status: string) => void
@@ -68,6 +69,17 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     } catch (error) {
       console.error('Failed to fetch schedules:', error)
       set({ isLoading: false })
+      throw error
+    }
+  },
+
+  // Delete schedule
+  deleteSchedule: async (scheduleId: number) => {
+    try {
+      await api.delete(`/reports/schedules/${scheduleId}`)
+      await get().fetchSchedules()
+    } catch (error) {
+      console.error('Failed to delete schedule:', error)
       throw error
     }
   },
