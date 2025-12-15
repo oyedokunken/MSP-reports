@@ -7,6 +7,7 @@ use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
 use App\Jobs\AutoMatchCustomersJob;
+use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use Carbon\Carbon;
@@ -79,8 +80,6 @@ class LibreNMSIntegration implements IntegrationInterface
                 }
             }
 
-            // Sync devices and their availability
-            $this->syncDevices($errors);
 
         } catch (\Exception $e) {
             $errors[] = "Sync failed: {$e->getMessage()}";
@@ -89,6 +88,10 @@ class LibreNMSIntegration implements IntegrationInterface
                 'error' => $e->getMessage(),
             ]);
         }
+
+        // Sync device data (details, uptime, availability)
+        // Network monitoring data changes frequently, so sync with groups
+        $this->syncDevices($errors);
 
         $additionalMapped = $this->processUnmappedCustomers();
         $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
@@ -175,21 +178,9 @@ class LibreNMSIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->get();
-
-        $mappedList = [];
-
-        foreach ($unmappedCustomers as $integrationCustomer) {
-            if ($this->integration->is_source_of_truth) {
-                $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'LibreNMS');
-            } else {
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
-        }
-
-        return $mappedList;
+        // Dispatch single batch job to process all unmapped customers
+        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        return [];
     }
 
     public function getCustomers(): array
@@ -200,43 +191,37 @@ class LibreNMSIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        $data = [];
         $errors = [];
 
         try {
             // LibreNMS provides current availability metrics, not historical time-series
-            // We sync current state as a snapshot
+            // We sync current state as a snapshot using the same syncDevices() method
             
-            $devices = $this->client->getAllDevices();
-            
-            foreach ($devices as $device) {
-                try {
-                    $deviceId = $device['device_id'];
-                    
-                    // Store uptime snapshot
-                    $uptimeData = LibreNMSMapper::mapDeviceUptime($device);
-                    $data[] = $uptimeData;
-                    $this->storeHistoricalData($uptimeData);
-                    
-                    // Store availability snapshot
-                    $availability = $this->client->getDeviceAvailability($deviceId);
-                    if (!empty($availability)) {
-                        $availabilityData = LibreNMSMapper::mapDeviceAvailability($deviceId, $availability);
-                        $data[] = $availabilityData;
-                        $this->storeHistoricalData($availabilityData);
-                    }
-                    
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to process device {$device['device_id']}: {$e->getMessage()}";
-                }
-            }
+            Log::info('LibreNMS Integration: Starting historical data import', [
+                'integration_id' => $this->integration->integration_id,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+            ]);
+
+            // Use syncDevices() for consistency - fetches complete device data
+            $this->syncDevices($errors);
+
+            Log::info('LibreNMS Integration: Historical data import completed', [
+                'integration_id' => $this->integration->integration_id,
+                'errors' => count($errors),
+            ]);
 
         } catch (\Exception $e) {
             $errors[] = "Historical data fetch failed: {$e->getMessage()}";
+            Log::error('LibreNMS Integration: Historical import failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return [
-            'data' => $data,
+            'success' => true,
+            'total_processed' => count($errors) === 0 ? 1 : 0,
             'errors' => $errors,
         ];
     }
@@ -305,41 +290,26 @@ class LibreNMSIntegration implements IntegrationInterface
 
         $integrationCustomer->refresh();
 
-        if (!$integrationCustomer->customer_id) {
-            if ($this->integration->is_source_of_truth) {
-                $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'LibreNMS');
-            } else {
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
+        // Batch job processes all unmapped customers at end of sync
+        if (!$integrationCustomer->customer_id && $this->integration->is_source_of_truth) {
+            $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'LibreNMS');
         }
     }
 
     private function storeHistoricalData(array $data): void
     {
-        // For LibreNMS, we don't have integration_customer_id for devices
-        // Store with company context only
-        
-        $matchAttributes = [
+        // TimescaleDB hypertable - always INSERT, never UPDATE
+        // Updating data_timestamp can violate partition constraints
+        IntegrationData::create([
+            'company_id' => $this->integration->company_id,
             'integration_id' => $this->integration->integration_id,
+            'integration_customer_id' => $data['integration_customer_id'],
             'data_type' => $data['data_type'],
-        ];
-
-        // If payload has device_id, use it to match existing record
-        if (isset($data['payload']['device_id'])) {
-            $matchAttributes['data_payload->device_id'] = $data['payload']['device_id'];
-        }
-
-        IntegrationData::updateOrCreate(
-            $matchAttributes,
-            [
-                'company_id' => $this->integration->company_id,
-                'integration_customer_id' => $data['integration_customer_id'],
-                'data_timestamp' => $data['timestamp'],
-                'data_payload' => $data['payload'],
-                'imported_at' => now(),
-                'data_version' => 1,
-            ]
-        );
+            'data_timestamp' => $data['timestamp'],
+            'data_payload' => $data['payload'],
+            'imported_at' => now(),
+            'data_version' => 1,
+        ]);
     }
 
     public function getDisplayTemplate(): array

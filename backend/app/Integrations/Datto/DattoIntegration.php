@@ -10,6 +10,7 @@ use App\Models\IntegrationData;
 use App\Models\Customer;
 use App\Models\CustomerMapping;
 use App\Jobs\AutoMatchCustomersJob;
+use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use Carbon\Carbon;
@@ -116,12 +117,20 @@ class DattoIntegration implements IntegrationInterface
             });
 
         } catch (\Exception $e) {
+            // Rethrow rate limit exceptions so the job can be released back to the queue
+            if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
+                // If we processed some data, maybe we should just return what we have?
+                // But generally rate limit means we should stop and retry later.
+                throw $e;
+            }
+
             $errors[] = "Sync failed: {$e->getMessage()}";
             \Log::error('Datto Integration: Sync failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
         }
+
 
         $additionalMapped = $this->processUnmappedCustomers();
         $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
@@ -143,14 +152,48 @@ class DattoIntegration implements IntegrationInterface
             'last_sync' => now(),
         ], now()->addMinutes(10));
         
-        // Sync device and alert data for all mapped customers
-        $this->syncDevices();
+        // ALERT POLLING (matches TTS-Security pattern)
+        // Fetch alerts for each site - same as TTS-Security's pull() method
+        $totalAlerts = 0;
+        try {
+            $sites = $this->client->getRmmSites();
+            
+            foreach ($sites as $site) {
+                $siteUid = $site['uid'];
+                
+                // Get open alerts
+                $openAlerts = $this->client->getRmmAlerts($siteUid, true);
+                foreach ($openAlerts as $alert) {
+                    $this->storeAlertData($alert, $site);
+                    $totalAlerts++;
+                }
+                
+                // Get resolved alerts from last 1 hour (same as TTS)
+                $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, now()->subHour());
+                foreach ($resolvedAlerts as $alert) {
+                    $this->storeAlertData($alert, $site);
+                    $totalAlerts++;
+                }
+            }
+            
+            \Log::info('Datto Integration: Alert polling completed', [
+                'integration_id' => $this->integration->integration_id,
+                'total_alerts' => $totalAlerts,
+            ]);
+        } catch (\Exception $e) {
+            \Log::warning('Datto Integration: Alert polling failed (continuing)', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+            // Don't fail the whole sync if alert polling fails
+        }
         
         \Log::info('Datto Integration: Sync completed', [
             'integration_id' => $this->integration->integration_id,
             'total_processed' => $totalProcessed,
             'mapped_count' => $mappedCount,
             'unmapped_count' => $unmappedCount,
+            'alerts_synced' => $totalAlerts,
             'errors' => count($errors),
         ]);
 
@@ -165,21 +208,9 @@ class DattoIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->get();
-
-        $mappedList = [];
-
-        foreach ($unmappedCustomers as $integrationCustomer) {
-            if ($this->integration->is_source_of_truth) {
-                $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Datto');
-            } else {
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
-        }
-
-        return $mappedList;
+        // Dispatch single batch job to process all unmapped customers
+        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        return [];
     }
 
     public function getCustomers(): array
@@ -188,11 +219,19 @@ class DattoIntegration implements IntegrationInterface
         return array_map(fn($customer) => DattoMapper::mapCustomer($customer), $dattoCustomers);
     }
 
+    protected $progressCallback = null;
+
+    public function setProgressCallback(callable $callback): void
+    {
+        $this->progressCallback = $callback;
+    }
+
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         // NO MORE $data = [] bucket! Just track stats
         $errors = [];
         $totalRecords = 0; // Track actual DB records created
+        $recordsSinceLastUpdate = 0;
 
         try {
             \Log::info('Datto Integration: Starting historical data import', [
@@ -208,41 +247,73 @@ class DattoIntegration implements IntegrationInterface
                 try {
                     $siteUid = $site['uid'];
                     
-                    // 1. Fetch Devices
+                    // 1. Fetch Devices (Current Snapshot)
                     $devices = $this->client->getRmmDevices($siteUid);
-                    // 2. Process IMMEDIATELY (no accumulation)
                     foreach ($devices as $device) {
                         try {
-                            $this->storeDeviceData($device, $site);
-                            // storeDeviceData creates 2 records: device_status + uptime_metric
+                            // Pass startDate to backdate the uptime metric snapshot
+                            $this->storeDeviceData($device, $site, $startDate);
                             $totalRecords += 2;
+                            $recordsSinceLastUpdate += 2;
                         } catch (\Exception $e) {
                             $errors[] = "Failed to store device {$device['hostname']}: {$e->getMessage()}";
                         }
                     }
-                    // 3. $devices is freed when loop ends
 
-                    // Same pattern for Alerts
-                    $alerts = $this->client->getRmmAlerts($siteUid);
-                    foreach ($alerts as $alert) {
+                    // 2. Fetch Alerts (Open + Resolved since Start Date)
+                    // Open alerts (Current state)
+                    $openAlerts = $this->client->getRmmAlerts($siteUid, true);
+                    foreach ($openAlerts as $alert) {
                         try {
                             $this->storeAlertData($alert, $site);
-                            // storeAlertData creates 1 record
                             $totalRecords += 1;
+                            $recordsSinceLastUpdate += 1;
                         } catch (\Exception $e) {
-                            $errors[] = "Failed to store alert {$alert['uid']}: {$e->getMessage()}";
+                            $errors[] = "Failed to store open alert {$alert['uid']}: {$e->getMessage()}";
                         }
                     }
-                    // $alerts is freed when loop ends
+
+                    // Resolved alerts (Historical)
+                    // Use the chunk start date to get alerts resolved within this period
+                    $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, $startDate);
+                    foreach ($resolvedAlerts as $alert) {
+                        try {
+                            $this->storeAlertData($alert, $site);
+                            $totalRecords += 1;
+                            $recordsSinceLastUpdate += 1;
+                        } catch (\Exception $e) {
+                            $errors[] = "Failed to store resolved alert {$alert['uid']}: {$e->getMessage()}";
+                        }
+                    }
+
+                    // Update progress if we have accumulated enough records
+                    if ($this->progressCallback && $recordsSinceLastUpdate >= 10) {
+                        call_user_func($this->progressCallback, $recordsSinceLastUpdate);
+                        $recordsSinceLastUpdate = 0;
+                    }
                     
+                } catch (\App\Integrations\Exceptions\RateLimitException $e) {
+                    // For historical import, we prefer to sleep and finish the batch
+                    // rather than restarting from scratch (which causes infinite loops)
+                    \Log::warning("Datto Historical Import: Rate limit hit, sleeping for {$e->retryAfter}s");
+                    
+                    // Force update progress before sleeping so user sees movement
+                    if ($this->progressCallback && $recordsSinceLastUpdate > 0) {
+                        call_user_func($this->progressCallback, $recordsSinceLastUpdate);
+                        $recordsSinceLastUpdate = 0;
+                    }
+                    
+                    sleep($e->retryAfter);
+                    // We continue the loop, effectively retrying the NEXT site.
                 } catch (\Exception $e) {
                     $errors[] = "Failed to fetch data for site {$site['name']}: {$e->getMessage()}";
-                    
-                    if (str_contains($e->getMessage(), 'Rate limit')) {
-                        \Log::warning('Datto Integration: Rate limit hit during historical import');
-                        break;
-                    }
                 }
+            }
+
+            // Final update for any remaining records
+            if ($this->progressCallback && $recordsSinceLastUpdate > 0) {
+                call_user_func($this->progressCallback, $recordsSinceLastUpdate);
+                $recordsSinceLastUpdate = 0;
             }
 
             \Log::info('Datto Integration: Historical data import completed', [
@@ -251,6 +322,8 @@ class DattoIntegration implements IntegrationInterface
                 'errors' => count($errors),
             ]);
 
+        } catch (\App\Integrations\Exceptions\RateLimitException $e) {
+            throw $e;
         } catch (\Exception $e) {
             $errors[] = "Historical data fetch failed: {$e->getMessage()}";
             \Log::error('Datto Integration: Historical import failed', [
@@ -338,14 +411,7 @@ class DattoIntegration implements IntegrationInterface
             );
 
             $integrationCustomer->refresh();
-
-            if (!$integrationCustomer->customer_id) {
-                if ($this->integration->is_source_of_truth) {
-                    $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Datto');
-                } else {
-                    AutoMatchCustomersJob::dispatch($integrationCustomer);
-                }
-            }
+            // Batch job processes all unmapped customers at end of sync
         });
     }
 
@@ -398,13 +464,13 @@ class DattoIntegration implements IntegrationInterface
             $resolvedAt = Carbon::createFromTimestampMs($alert['resolvedOn'])->toIso8601String();
         }
 
-        IntegrationData::create([
-            'company_id' => $this->integration->company_id,
-            'integration_id' => $this->integration->integration_id,
+        // Store alert data - TimescaleDB hypertable pattern
+        // Use standard storeHistoricalData method for consistency
+        $this->storeHistoricalData([
             'integration_customer_id' => $integrationCustomer->integration_customer_id,
             'data_type' => 'alert',
-            'data_timestamp' => $timestamp,
-            'data_payload' => [
+            'timestamp' => $timestamp,
+            'payload' => [
                 'alert_uid' => $alertUid,
                 'device_uid' => $deviceUid,
                 'device_name' => $deviceName,
@@ -416,9 +482,7 @@ class DattoIntegration implements IntegrationInterface
                 'resolved_at' => $resolvedAt,
                 'muted' => $muted,
                 'ticket_number' => $ticketNumber,
-            ],
-            'imported_at' => now(),
-            'data_version' => 1,
+            ]
         ]);
     }
 
@@ -801,6 +865,8 @@ class DattoIntegration implements IntegrationInterface
                     // Rate limiting handled by RateLimiter service in DattoClient::makeRmmRequest()
                     // RateLimiter waits intelligently only when approaching limits
                     
+                } catch (\App\Integrations\Exceptions\RateLimitException $e) {
+                    throw $e;
                 } catch (\Exception $e) {
                     // Log error but continue with other sites
                     \Log::warning('Datto Integration: Failed to sync data for site', [
@@ -831,6 +897,8 @@ class DattoIntegration implements IntegrationInterface
                 'sites_total' => $totalSites,
             ]);
 
+        } catch (\App\Integrations\Exceptions\RateLimitException $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Datto Integration: Sync failed', [
                 'integration_id' => $this->integration->integration_id,
@@ -840,7 +908,7 @@ class DattoIntegration implements IntegrationInterface
         }
     }
 
-    protected function storeDeviceData(array $device, array $site): void
+    protected function storeDeviceData(array $device, array $site, ?\Carbon\Carbon $timestamp = null): void
     {
         // Find the integration customer for this site
         // Datto uses 'uid' as the unique identifier, not 'id'
@@ -870,7 +938,8 @@ class DattoIntegration implements IntegrationInterface
         // Map device data using DattoMapper
         $mappedDevice = DattoMapper::mapDeviceData($device);
         
-        // Store device_status data (required by reports)
+        // Store device_status - TimescaleDB hypertable pattern
+        // Always insert new snapshot, consistent with uptime_metric below
         IntegrationData::create([
             'company_id' => $this->integration->company_id,
             'integration_id' => $this->integration->integration_id,
@@ -879,19 +948,24 @@ class DattoIntegration implements IntegrationInterface
             'data_timestamp' => $mappedDevice['timestamp'],
             'data_payload' => $mappedDevice['payload'],
             'imported_at' => now(),
+            'data_version' => 1,
         ]);
         
         // Calculate uptime percentage based on online status
         $isOnline = $device['online'] ?? false;
         $uptimePercentage = $isOnline ? 100.0 : 0.0;
         
-        // Also store as uptime_metric for uptime tracking
+        // Use provided timestamp (for historical import) or now() (for sync)
+        $metricTimestamp = $timestamp ?? now();
+
+        // Store uptime_metric - TimescaleDB hypertable requires create() for time-series data
+        // Always insert new snapshot, never update across partition boundaries
         IntegrationData::create([
             'company_id' => $this->integration->company_id,
             'integration_id' => $this->integration->integration_id,
             'integration_customer_id' => $integrationCustomer->integration_customer_id,
             'data_type' => 'uptime_metric',
-            'data_timestamp' => now(),
+            'data_timestamp' => $metricTimestamp,
             'data_payload' => [
                 'device_uid' => $device['uid'],
                 'device_name' => $device['hostname'] ?? 'Unknown',
@@ -899,11 +973,13 @@ class DattoIntegration implements IntegrationInterface
                 'total_hours' => 24,
                 'online_hours' => $isOnline ? 24 : 0,
                 'offline_hours' => $isOnline ? 0 : 24,
-                'timestamp' => now()->toIso8601String(),
+                'timestamp' => $metricTimestamp->toIso8601String(),
             ],
             'imported_at' => now(),
+            'data_version' => 1,
         ]);
     }
+
 
     private function getSeverityColor(string $severity): string
     {

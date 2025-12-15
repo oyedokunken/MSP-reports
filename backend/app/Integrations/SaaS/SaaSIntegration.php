@@ -8,6 +8,7 @@ use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
 use App\Jobs\AutoMatchCustomersJob;
+use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use Carbon\Carbon;
@@ -77,8 +78,10 @@ class SaaSIntegration implements IntegrationInterface
         $errors = [];
         $this->mappedDuringSync = [];
         $totalProcessed = 0;
+        $totalEvents = 0;
 
         try {
+            // Fetch customers
             $saasCustomers = $this->client->getCustomers();
             
             Log::info('SaaS Alerts sync: Retrieved customers', [
@@ -87,12 +90,51 @@ class SaaSIntegration implements IntegrationInterface
             ]);
 
             $totalCustomers = count($saasCustomers);
-            collect($saasCustomers)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCustomers) {
+            
+            // Process customers in chunks
+            collect($saasCustomers)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, &$totalEvents, $totalCustomers) {
                 foreach ($chunk as $customer) {
                     try {
                         $standardized = SaaSMapper::mapCustomer($customer);
                         $this->storeCustomer($standardized);
                         $totalProcessed++;
+                        
+                        // Fetch recent security events for this customer (last 24 hours)
+                        // Similar to Datto's 1-hour redundant window pattern
+                        try {
+                            $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                                ->where('external_id', $customer['id'])
+                                ->first();
+                            
+                            if ($integrationCustomer) {
+                                $events = $this->client->getEvents([
+                                    'customerId' => $customer['id'],
+                                    'start' => now()->subHours(24)->format('Y-m-d'),
+                                    'end' => now()->format('Y-m-d'),
+                                    'size' => 100, // Reasonable batch for regular sync
+                                ]);
+                                
+                                foreach ($events as $event) {
+                                    try {
+                                        $mapped = SaaSMapper::mapEvent($event, $integrationCustomer->integration_customer_id);
+                                        $this->storeHistoricalData($mapped);
+                                        $totalEvents++;
+                                    } catch (\Exception $e) {
+                                        Log::warning('SaaS Alerts sync: Failed to process event', [
+                                            'customer_id' => $customer['id'],
+                                            'event_id' => $event['eventId'] ?? $event['_id'] ?? 'unknown',
+                                            'error' => $e->getMessage(),
+                                        ]);
+                                    }
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            Log::warning('SaaS Alerts sync: Failed to fetch events for customer', [
+                                'customer_id' => $customer['id'],
+                                'error' => $e->getMessage(),
+                            ]);
+                        }
+                        
                     } catch (\Exception $e) {
                         $errors[] = "Failed to process customer {$customer['id']}: {$e->getMessage()}";
                         Log::error('SaaS Alerts sync: Failed to process customer', [
@@ -107,6 +149,7 @@ class SaaSIntegration implements IntegrationInterface
                     'integration_id' => $this->integration->integration_id,
                     'processed' => $totalProcessed,
                     'total' => $totalCustomers,
+                    'events' => $totalEvents,
                 ]);
             });
 
@@ -143,6 +186,7 @@ class SaaSIntegration implements IntegrationInterface
         Log::info('SaaS Alerts sync: Completed', [
             'integration_id' => $this->integration->integration_id,
             'total_processed' => $totalProcessed,
+            'total_events' => $totalEvents,
             'mapped_count' => $mappedCount,
             'unmapped_count' => $unmappedCount,
             'errors' => count($errors),
@@ -159,21 +203,9 @@ class SaaSIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->get();
-
-        $mappedList = [];
-
-        foreach ($unmappedCustomers as $integrationCustomer) {
-            if ($this->integration->is_source_of_truth) {
-                $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'SaaS Alerts');
-            } else {
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
-        }
-
-        return $mappedList;
+        // Dispatch single batch job to process all unmapped customers
+        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        return []; // Batch job handles mapping asynchronously
     }
 
     public function getCustomers(): array
@@ -343,14 +375,7 @@ class SaaSIntegration implements IntegrationInterface
 
             $integrationCustomer->refresh();
 
-            // Trigger customer mapping if not already mapped
-            if (!$integrationCustomer->customer_id) {
-                if ($this->integration->is_source_of_truth) {
-                    $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'SaaS Alerts');
-                } else {
-                    AutoMatchCustomersJob::dispatch($integrationCustomer);
-                }
-            }
+        // Batch job processes all unmapped customers at end of sync
         });
     }
 

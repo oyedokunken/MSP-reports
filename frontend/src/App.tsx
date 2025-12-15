@@ -9,6 +9,7 @@ import IntegrationList from '@/pages/integrations/IntegrationList'
 import { IntegrationPreview } from '@/pages/integrations/IntegrationPreview'
 import MasterCustomerList from '@/pages/customers/MasterCustomerList'
 import SecondaryCustomerList from '@/pages/customers/SecondaryCustomerList'
+import MapCustomersPage from '@/pages/customers/MapCustomersPage'
 import CustomerIntegrationDetails from '@/pages/customers/CustomerIntegrationDetails'
 import ScheduleList from '@/pages/schedules/ScheduleList'
 import Settings from '@/pages/settings/Settings'
@@ -230,6 +231,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
             <SecondaryCustomerList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/platform/customers/map"
+        element={
+          <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
+            <MapCustomersPage />
           </ProtectedRoute>
         }
       />

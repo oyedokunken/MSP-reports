@@ -38,8 +38,8 @@ class TestOptimizedSync extends Command
             return 1;
         }
 
-        if ($integration->integration_type !== 'Autotask') {
-            $this->error("Integration is not Autotask!");
+        if (!in_array($integration->integration_type, ['Autotask', 'Datto'])) {
+            $this->error("Integration is not Autotask or Datto!");
             return 1;
         }
 
@@ -66,7 +66,11 @@ class TestOptimizedSync extends Command
         // Time the sync
         
         try {
-            $integrationClass = new AutotaskIntegration($integration);
+            if ($integration->integration_type === 'Autotask') {
+                $integrationClass = new AutotaskIntegration($integration);
+            } elseif ($integration->integration_type === 'Datto') {
+                $integrationClass = new \App\Integrations\Datto\DattoIntegration($integration);
+            }
             
             $this->info("Starting optimized sync...");
             $startTime = microtime(true);

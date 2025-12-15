@@ -46,9 +46,11 @@ export default function FloatingNav() {
             weekday: 'short',
             day: 'numeric',
             month: 'short',
+            timeZone: 'Australia/Darwin',
         }) + ' • ' + date.toLocaleTimeString('en-AU', {
             hour: '2-digit',
             minute: '2-digit',
+            timeZone: 'Australia/Darwin',
         });
     };
 
@@ -134,7 +136,7 @@ export default function FloatingNav() {
             <div className="flex flex-1 items-center gap-2">
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
-                
+
                 {/* Current Date/Time */}
                 <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
@@ -191,11 +193,10 @@ export default function FloatingNav() {
                                                         notification
                                                     )
                                                 }
-                                                className={`p-3 hover:bg-muted/50 cursor-pointer border-b border-border last:border-b-0 transition-colors ${
-                                                    !notification.read
+                                                className={`p-3 hover:bg-muted/50 cursor-pointer border-b border-border last:border-b-0 transition-colors ${!notification.read
                                                         ? "bg-primary/5"
                                                         : ""
-                                                }`}
+                                                    }`}
                                             >
                                                 <div className="flex items-start gap-3">
                                                     <div className="flex-shrink-0 mt-1">

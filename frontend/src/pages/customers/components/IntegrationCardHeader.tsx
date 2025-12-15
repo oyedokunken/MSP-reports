@@ -34,7 +34,7 @@ export function IntegrationCardHeader({ integration }: IntegrationCardHeaderProp
                     </div>
                     <CardDescription>
                         External ID: {integration.external_id} • Last Seen:{' '}
-                        {new Date(integration.last_seen_at).toLocaleString()}
+                        {new Date(integration.last_seen_at).toLocaleString('en-US', { timeZone: 'Australia/Darwin' })}
                     </CardDescription>
                 </div>
             </div>
@@ -54,7 +54,7 @@ export function IntegrationCardHeader({ integration }: IntegrationCardHeaderProp
                     <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">Mapped:</span>
                         <span className="font-medium">
-                            {new Date(integration.mapping.mapped_at).toLocaleDateString()}
+                            {new Date(integration.mapping.mapped_at).toLocaleDateString('en-AU', { timeZone: 'Australia/Darwin' })}
                         </span>
                     </div>
                 </div>

@@ -111,10 +111,10 @@ class LibreNMSClient
 
     protected function makeRequest(string $endpoint, array $params = []): array
     {
-        if (!$this->rateLimiter->waitForSlot($this->integration, 60)) {
-            throw new \Exception("Rate limit exceeded for LibreNMS API");
-        }
-
+        // LibreNMS is internal server with high rate limit (20,000/hour)
+        // Skip rate limiter wait to improve performance
+        // Just record the request for tracking
+        
         $url = $this->baseUrl . $endpoint;
         
         try {
@@ -151,7 +151,7 @@ class LibreNMSClient
             // Apply options and make request with retry logic
             $response = $httpClient
                 ->withOptions($options)
-                ->retry(3, 1000) // Retry 3 times with 1 second delay
+                ->retry(2, 100) // Retry 2 times with 100ms delay (internal server responds fast)
                 ->get($url, $params);
 
             if ($response->status() === 429) {

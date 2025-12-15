@@ -26,9 +26,10 @@ class SyncIntegrationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 5;
-    public $timeout = 1800; // 30 minutes - increased for LibreNMS with many devices
+    public $tries = 5; // Reduced tries to avoid endless loops, since we have long timeout
+    public $timeout = 3600; // Increased to 60 minutes to handle Datto and LibreNMS
     public $backoff = [60, 300, 900, 1800]; // Exponential backoff: 1 min, 5 min, 15 min, 30 min
+    public $deleteWhenMissingModels = true;
 
     protected Integration $integration;
     protected SyncLog $syncLog;
@@ -39,15 +40,12 @@ class SyncIntegrationJob implements ShouldQueue
         $this->syncLog = $syncLog;
     }
 
-    /**
-     * Get the middleware the job should pass through.
-     */
     public function middleware(): array
     {
         return [
             (new WithoutOverlapping($this->integration->integration_id))
-                ->releaseAfter(60) // Release lock after 60 seconds if job fails
-                ->expireAfter(900) // Expire lock after 15 minutes (matches job timeout)
+                ->releaseAfter(60) 
+                ->expireAfter(900) 
         ];
     }
 
@@ -55,7 +53,10 @@ class SyncIntegrationJob implements ShouldQueue
     {
         try {
 
-            $this->syncLog->update(['status' => 'running']);
+            $this->syncLog->update([
+                'status' => 'running',
+                'error_messages' => null // Clear any errors from previous retries
+            ]);
             
             $integrationClass = $this->loadIntegrationClass();
 
@@ -63,10 +64,42 @@ class SyncIntegrationJob implements ShouldQueue
                 throw new \Exception("Integration type {$this->integration->integration_type} not found.");
             }
             
-            // Rate limiting now handled at API client level (AutotaskClient, DattoClient)
-            // Each individual API call is rate-limited, providing accurate tracking
-            
             $result = $integrationClass->sync();
+            
+            // GENERIC DATA POLLING - DISABLED FOR AUTO-SYNCS
+            // Historical data (devices, alerts, etc.) is now fetched via:
+            // 1. Dedicated polling commands (e.g., datto:poll-devices every 30 mins)
+            // 2. Manual historical import via UI
+            // This prevents API rate limit issues from running heavy polling every 5 minutes
+            
+            // if (method_exists($integrationClass, 'getMetadata') && method_exists($integrationClass, 'getHistoricalData')) {
+            //     $metadata = $integrationClass->getMetadata();
+            //     
+            //     if ($metadata['supports_historical'] ?? false) {
+            //         // Default to a 4-hour window to catch any overlap or missed data
+            //         $startDate = now()->subHours(4); 
+            //         $endDate = now();
+            //         
+            //         try {
+            //             $dataResult = $integrationClass->getHistoricalData($startDate, $endDate);
+            //             
+            //             // Merge results
+            //             $result['records_synced'] = ($result['records_synced'] ?? 0) + ($dataResult['total_processed'] ?? 0);
+            //             if (!empty($dataResult['errors'])) {
+            //                 $result['errors'] = array_merge($result['errors'] ?? [], $dataResult['errors']);
+            //             }
+            //         } catch (\Exception $e) {
+            //              Log::error('Integration data polling failed', [
+            //                 'integration_id' => $this->integration->integration_id,
+            //                 'type' => $this->integration->integration_type,
+            //                 'error' => $e->getMessage()
+            //             ]);
+            //             // We don't fail the whole sync if polling fails, just log it
+            //             $result['errors'][] = "Data polling failed: " . $e->getMessage();
+            //         }
+            //     }
+            // }
+
             
             $recordsSynced = $result['records_synced'] ?? 0;
             $recordsFailed = $result['records_failed'] ?? 0;
@@ -114,70 +147,90 @@ class SyncIntegrationJob implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        Log::error('Integration sync job failed permanently after all retries', [
-            'integration_id' => $this->integration->integration_id,
-            'integration_type' => $this->integration->integration_type,
-            'company_id' => $this->integration->company_id,
-            'attempts' => $this->attempts(),
-            'error' => $exception->getMessage(),
-        ]);
+        try {
+            Log::error('Integration sync job failed permanently after all retries', [
+                'integration_id' => $this->integration->integration_id,
+                'integration_type' => $this->integration->integration_type,
+                'company_id' => $this->integration->company_id,
+                'attempts' => $this->attempts(),
+                'error' => $exception->getMessage(),
+            ]);
 
-        // Update sync log
-        $this->syncLog->update([
-            'status' => 'failed',
-            'error_messages' => [$exception->getMessage()],
-            'completed_at' => now(),
-        ]);
+            // CRITICAL: Update sync log first to prevent stuck 'running' status
+            $this->syncLog->update([
+                'status' => 'failed',
+                'error_messages' => [$exception->getMessage()],
+                'completed_at' => now(),
+            ]);
 
-        // Check if integration has any existing data
-        $hasExistingData = \App\Models\IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->exists();
+            $hasExistingData = \App\Models\IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                ->exists();
 
-        // Only mark as error if there's no existing data
-        // If data exists, mark as 'active' but with failed sync status
-        // This allows reports to continue working with existing data
-        $newStatus = $hasExistingData ? 'active' : 'error';
+            $newStatus = $hasExistingData ? 'active' : 'error';
 
-        $this->integration->update([
-            'status' => $newStatus,
-            'last_sync_status' => 'failed',
-            'last_sync_at' => now(),
-            'error_message' => $exception->getMessage(),
-        ]);
+            $this->integration->update([
+                'status' => $newStatus,
+                'last_sync_status' => 'failed',
+                'last_sync_at' => now(),
+                'error_message' => $exception->getMessage(),
+            ]);
 
-        Log::warning('Integration sync failed but keeping status as active due to existing data', [
-            'integration_id' => $this->integration->integration_id,
-            'has_existing_data' => $hasExistingData,
-            'new_status' => $newStatus,
-        ]);
+            Log::warning('Integration sync failed but keeping status as active due to existing data', [
+                'integration_id' => $this->integration->integration_id,
+                'has_existing_data' => $hasExistingData,
+                'new_status' => $newStatus,
+            ]);
 
-        // Send notification email to company admins
-        $company = $this->integration->company;
-        $notificationEmails = $company->settings['integrations']['sync_failure_notifications'] ?? [];
-        
-        if (!empty($notificationEmails)) {
-            try {
-                foreach ($notificationEmails as $email) {
-                    Mail::to($email)->send(
-                        new IntegrationSyncFailedMail($this->integration, $exception, $this->attempts())
-                    );
+            $company = $this->integration->company;
+            $notificationEmails = $company->settings['integrations']['sync_failure_notifications'] ?? [];
+            
+            if (!empty($notificationEmails)) {
+                try {
+                    foreach ($notificationEmails as $email) {
+                        Mail::to($email)->send(
+                            new IntegrationSyncFailedMail($this->integration, $exception, $this->attempts())
+                        );
+                    }
+                    
+                    Log::info('Integration sync failure notifications sent', [
+                        'integration_id' => $this->integration->integration_id,
+                        'recipients' => $notificationEmails,
+                    ]);
+                } catch (\Exception $mailException) {
+                    Log::error('Failed to send integration sync failure notification', [
+                        'integration_id' => $this->integration->integration_id,
+                        'mail_error' => $mailException->getMessage(),
+                    ]);
                 }
-                
-                Log::info('Integration sync failure notifications sent', [
+            } else {
+                Log::warning('No notification emails configured for integration sync failure', [
                     'integration_id' => $this->integration->integration_id,
-                    'recipients' => $notificationEmails,
-                ]);
-            } catch (\Exception $mailException) {
-                Log::error('Failed to send integration sync failure notification', [
-                    'integration_id' => $this->integration->integration_id,
-                    'mail_error' => $mailException->getMessage(),
+                    'company_id' => $company->company_id,
                 ]);
             }
-        } else {
-            Log::warning('No notification emails configured for integration sync failure', [
-                'integration_id' => $this->integration->integration_id,
-                'company_id' => $company->company_id,
+        } catch (\Throwable $e) {
+            // Last resort failsafe: directly update database if anything goes wrong
+            Log::critical('Failed to update sync log in failed() method - using DB failsafe', [
+                'sync_id' => $this->syncLog->sync_id ?? 'unknown',
+                'integration_id' => $this->integration->integration_id ?? 'unknown',
+                'original_error' => $exception->getMessage(),
+                'failsafe_error' => $e->getMessage(),
             ]);
+            
+            try {
+                \Illuminate\Support\Facades\DB::table('sync_logs')
+                    ->where('sync_id', $this->syncLog->sync_id)
+                    ->update([
+                        'status' => 'failed',
+                        'completed_at' => now(),
+                        'error_messages' => json_encode(['Critical failure in failed() callback: ' . $e->getMessage()])
+                    ]);
+            } catch (\Throwable $dbException) {
+                Log::emergency('DB failsafe also failed in SyncIntegrationJob::failed()', [
+                    'sync_id' => $this->syncLog->sync_id ?? 'unknown',
+                    'db_error' => $dbException->getMessage(),
+                ]);
+            }
         }
     }
 

@@ -10,6 +10,7 @@ use App\Models\IntegrationData;
 use App\Models\Customer;
 use App\Models\CustomerMapping;
 use App\Jobs\AutoMatchCustomersJob;
+use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use Carbon\Carbon;
@@ -112,24 +113,9 @@ class BarracudaIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        // Get all unmapped customers for this integration
-        $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->get();
-
-        $mappedList = [];
-
-        foreach ($unmappedCustomers as $integrationCustomer) {
-            // If this integration is source of truth, auto-create unified customer
-            if ($this->integration->is_source_of_truth) {
-                $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Barracuda');
-            } else {
-                // Not source of truth - try auto-matching
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
-        }
-
-        return $mappedList;
+        // Dispatch single batch job to process all unmapped customers
+        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        return []; // Batch job handles mapping asynchronously
     }
 
     public function getCustomers(): array
@@ -252,16 +238,7 @@ class BarracudaIntegration implements IntegrationInterface
         // Refresh to get latest customer_id value
         $integrationCustomer->refresh();
 
-        // If unmapped, handle based on source of truth setting
-        if (!$integrationCustomer->customer_id) {
-            // If this integration is source of truth, auto-create unified customer
-            if ($this->integration->is_source_of_truth) {
-                $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'Barracuda');
-            } else {
-                // Not source of truth - try auto-matching
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
-        }
+        // Batch job processes all unmapped customers at end of sync
     }
 
     private function storeHistoricalData(array $data): void

@@ -13,11 +13,13 @@ import {
   ChevronDown,
   Database,
   Building2,
+  MapPin,
 } from 'lucide-react'
 import { hasPermission } from '@/utils/permissions'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBranding } from '@/contexts/BrandingContext'
 import { useNotificationStore } from '@/stores/useNotificationStore'
+import { useCustomersStore } from '@/stores/useCustomersStore'
 import {
   Sidebar,
   SidebarContent,
@@ -49,6 +51,7 @@ export default function AppSidebar() {
   })
   const getUnreadCount = useNotificationStore((state) => state.getUnreadCount)
   const unreadCount = getUnreadCount()
+  const unmappedCount = useCustomersStore((state) => state.unmappedCount)
 
   const navItems = [
     { path: '/platform/dashboard', icon: Home, label: 'Dashboard', show: true },
@@ -61,6 +64,7 @@ export default function AppSidebar() {
   const customersSubItems = [
     { path: '/platform/customers/master', icon: Database, label: 'Master List' },
     { path: '/platform/customers/secondary', icon: Building2, label: 'Secondary List' },
+    { path: '/platform/customers/map', icon: MapPin, label: 'Map Customers', badge: unmappedCount },
   ]
 
   const adminNavItems = [
@@ -184,7 +188,7 @@ export default function AppSidebar() {
                 const Icon = item.icon
                 const active = isActive(item.path)
                 const showBadge = item.path === '/notifications' && unreadCount > 0
-                
+
                 return (
                   <Fragment key={item.path}>
                     <SidebarMenuItem className="relative group-data-[collapsible=icon]:static">
@@ -235,6 +239,7 @@ export default function AppSidebar() {
                             {customersSubItems.map((subItem) => {
                               const SubIcon = subItem.icon
                               const subActive = isActive(subItem.path)
+                              const showBadge = subItem.badge && subItem.badge > 0
                               return (
                                 <SidebarMenuSubItem key={subItem.path} className="relative">
                                   <span className="absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-border" />
@@ -244,7 +249,12 @@ export default function AppSidebar() {
                                   >
                                     <Link to={subItem.path} onClick={(e) => handleNavClick(e, subItem.path)}>
                                       <SubIcon className="h-4 w-4 !text-muted-foreground" />
-                                      <span>{subItem.label}</span>
+                                      <span className="flex-1">{subItem.label}</span>
+                                      {showBadge && (
+                                        <span className="ml-auto h-5 min-w-[20px] px-1.5 rounded-full bg-blue-500 text-white text-xs font-semibold flex items-center justify-center">
+                                          {subItem.badge}
+                                        </span>
+                                      )}
                                     </Link>
                                   </SidebarMenuSubButton>
                                 </SidebarMenuSubItem>

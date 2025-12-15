@@ -7,6 +7,8 @@ use App\Models\IntegrationCustomer;
 use App\Models\CustomerMapping;
 use App\Models\Company;
 
+use Illuminate\Support\Facades\Cache;
+
 class CustomerMappingService
 {
     public function autoMatch(IntegrationCustomer $integrationCustomer): ?array
@@ -14,9 +16,12 @@ class CustomerMappingService
         $company = $integrationCustomer->integration->company;
         $threshold = $company->settings['customer_mapping']['auto_match_threshold'] ?? 85;
         
-        $existingCustomers = Customer::where('company_id', $company->company_id)
-            ->where('status', 'active')
-            ->get();
+        // Cache the customer list for 60 seconds to avoid repeated DB queries during batch processing
+        $existingCustomers = Cache::remember("customer_mapping_list_{$company->company_id}", 60, function () use ($company) {
+            return Customer::where('company_id', $company->company_id)
+                ->where('status', 'active')
+                ->get();
+        });
         
         $bestMatch = null;
         $bestScore = 0;

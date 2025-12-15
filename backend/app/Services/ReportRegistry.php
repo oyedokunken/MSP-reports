@@ -115,10 +115,16 @@ class ReportRegistry
     public function discover(): void
     {
         // Check cache first
-        $cached = Cache::get(self::CACHE_KEY);
-        if ($cached !== null) {
-            $this->reports = $cached;
-            return;
+        // Check cache first
+        try {
+            $cached = Cache::get(self::CACHE_KEY);
+            if ($cached !== null) {
+                $this->reports = $cached;
+                return;
+            }
+        } catch (\Exception $e) {
+            // Cache might not be available during migration or setup
+            Log::warning("ReportRegistry cache unavailable: " . $e->getMessage());
         }
 
         $this->reports = [];
@@ -173,7 +179,12 @@ class ReportRegistry
         }
 
         // Cache the discovered reports
-        Cache::put(self::CACHE_KEY, $this->reports, self::CACHE_TTL);
+        // Cache the discovered reports
+        try {
+            Cache::put(self::CACHE_KEY, $this->reports, self::CACHE_TTL);
+        } catch (\Exception $e) {
+            Log::warning("Failed to cache report registry: " . $e->getMessage());
+        }
 
         Log::info("Report discovery completed", [
             'total_reports' => count($this->reports),

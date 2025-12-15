@@ -61,8 +61,6 @@ export default function IntegrationList() {
     const getUniqueTypes = useIntegrationStore((state) => state.getUniqueTypes);
     const openModal = useIntegrationStore((state) => state.openModal);
     const closeModal = useIntegrationStore((state) => state.closeModal);
-
-    // Fetch integrations on mount
     useEffect(() => {
         fetchIntegrations().catch((err) => {
             toast.error(
@@ -72,7 +70,45 @@ export default function IntegrationList() {
         });
     }, [fetchIntegrations, toast]);
 
-    // Handler functions
+    // Smart polling: Refresh when countdowns hit 0, plus slow backup polling
+    // This is more efficient than blind 30s polling - triggers refresh RIGHT when sync is expected
+    useEffect(() => {
+        // Backup polling every 90 seconds (slower than before)
+        let pollInterval: number | null = null;
+
+        const startPolling = () => {
+            if (pollInterval) return;
+
+            pollInterval = window.setInterval(() => {
+                fetchIntegrations(true, true).catch(() => { });
+            }, 90000); // Poll every 90 seconds as backup
+        };
+
+        const stopPolling = () => {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                stopPolling();
+            } else {
+                startPolling();
+                fetchIntegrations(true, true).catch(() => { });
+            }
+        };
+
+        startPolling();
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            stopPolling();
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [fetchIntegrations]);
+
     const handleSync = async (integrationId: number, name: string) => {
         if (!hasPermission(user, 'integrations', 'sync')) {
             toast.error('Permission Denied', 'You don\'t have permission to sync integrations');

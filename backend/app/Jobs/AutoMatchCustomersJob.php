@@ -38,6 +38,20 @@ class AutoMatchCustomersJob implements ShouldQueue
                 return;
             }
 
+            // Check if this integration is the Source of Truth
+            if ($this->integrationCustomer->integration->is_source_of_truth) {
+                Log::info('Processing Source of Truth customer creation', [
+                    'integration_customer_id' => $this->integrationCustomer->integration_customer_id,
+                    'integration_type' => $this->integrationCustomer->integration->integration_type,
+                ]);
+                
+                $mappingService->createFromSourceOfTruth(
+                    $this->integrationCustomer, 
+                    $this->integrationCustomer->integration->integration_type
+                );
+                return;
+            }
+
             $company = $this->integrationCustomer->integration->company;
             $autoMatchEnabled = $company->settings['customer_mapping']['auto_match_enabled'] ?? true;
 
@@ -58,14 +72,17 @@ class AutoMatchCustomersJob implements ShouldQueue
                 $this->integrationCustomer->save();
 
                 // Create mapping record for audit trail
-                CustomerMapping::create([
-                    'customer_id' => $match['customer']->customer_id,
-                    'integration_customer_id' => $this->integrationCustomer->integration_customer_id,
-                    'mapping_type' => $requiresManualReview ? 'auto_pending' : 'auto',
-                    'confidence_score' => $match['confidence_score'],
-                    'mapped_at' => now(),
-                    'notes' => "Auto-matched with {$match['confidence_score']}% confidence",
-                ]);
+                // Create or update mapping record for audit trail
+                CustomerMapping::updateOrCreate(
+                    ['integration_customer_id' => $this->integrationCustomer->integration_customer_id],
+                    [
+                        'customer_id' => $match['customer']->customer_id,
+                        'mapping_type' => $requiresManualReview ? 'auto_pending' : 'auto',
+                        'confidence_score' => $match['confidence_score'],
+                        'mapped_at' => now(),
+                        'notes' => "Auto-matched with {$match['confidence_score']}% confidence",
+                    ]
+                );
 
                 Log::info('Customer auto-matched', [
                     'integration_customer_id' => $this->integrationCustomer->integration_customer_id,

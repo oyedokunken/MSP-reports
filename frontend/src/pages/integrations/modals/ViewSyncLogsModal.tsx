@@ -113,6 +113,7 @@ export function ViewSyncLogsModal({
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'Australia/Darwin',
     })
 
   const handleClose = () => onOpenChange(false)

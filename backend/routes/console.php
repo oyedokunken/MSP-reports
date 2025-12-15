@@ -20,12 +20,13 @@ Schedule::command('reports:evaluate-schedules')
     ->withoutOverlapping()
     ->runInBackground();
 
-// Schedule integration sync evaluation to run every 4 hours
-// This syncs customer lists only (fast, lightweight)
+// Schedule integration sync evaluation to run every minute
+// This command checks each integration's specific schedule stored in DB (for CUSTOMERS)
 Schedule::command('integrations:evaluate-syncs')
-    ->everyFourHours()
+    ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();
+
 
 // Schedule recent data sync to run daily at 1am
 // This pulls last 7 days of data (tickets, devices, etc.) to keep IntegrationData current
@@ -51,3 +52,25 @@ Schedule::command('alerts:evaluate')
     ->everyFiveMinutes()
     ->withoutOverlapping()
     ->runInBackground();
+
+// Cleanup stale syncs (stuck in 'running' for >2hrs) to prevent scheduler blockage
+Schedule::command('syncs:cleanup-stale')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Poll Datto devices separately from customer sync to avoid rate limits
+// Device data changes less frequently than alerts/customers, so separate schedule prevents rate limits
+Schedule::command('datto:poll-devices')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Sync Autotask resources (employees) monthly on the 1st at 4am
+// Resources change infrequently (hiring/firing), so monthly sync is sufficient
+// Uses historical import to refresh the 45 employee records
+Schedule::command('integrations:import-historical 1 --resources-only')
+    ->monthlyOn(1, '04:00')
+    ->withoutOverlapping()
+    ->runInBackground();
+

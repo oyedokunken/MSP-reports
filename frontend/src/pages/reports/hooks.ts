@@ -49,9 +49,7 @@ export const useReportsList = () => {
   }
 
   const handleDelete = async (reportId: number) => {
-    if (!confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
-      return
-    }
+
 
     const result = await deleteReport(reportId)
     if (result.success) {

@@ -44,12 +44,13 @@ return [
             'type' => 'select',
             'label' => 'Sync Frequency',
             'options' => [
+                '5_minutes' => 'Every 5 Minutes (Recommended)',
                 '1_hour' => 'Every Hour',
                 '4_hours' => 'Every 4 Hours',
                 '12_hours' => 'Every 12 Hours',
                 '24_hours' => 'Daily',
             ],
-            'default' => '4_hours',
+            'default' => '5_minutes',
         ],
     ],
     

@@ -10,6 +10,7 @@ use App\Models\IntegrationCustomer;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use App\Jobs\AutoMatchCustomersJob;
+use App\Jobs\BatchAutoMatchCustomersJob;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -95,81 +96,9 @@ class BitDefenderIntegration implements IntegrationInterface
                                 'last_seen_at' => now(),
                             ]
                         );
-
                         $integrationCustomer->refresh();
-
-                        // Handle customer mapping
-                        if (!$integrationCustomer->customer_id) {
-                            if ($this->integration->is_source_of_truth) {
-                                $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'BitDefender');
-                            } else {
-                                AutoMatchCustomersJob::dispatch($integrationCustomer);
-                            }
-                        }
-
-                        // Now fetch endpoints for this company
-                        $endpoints = $this->client->getEndpointsForCompany($companyId);
                         
-                        Log::info('BitDefenderIntegration::sync fetched endpoints for company', [
-                            'integration_id' => $this->integration->integration_id,
-                            'company_id' => $companyId,
-                            'company_name' => $companyName,
-                            'endpoint_count' => count($endpoints),
-                        ]);
-
-                        // Store each endpoint as time-series data
-                        foreach ($endpoints as $endpoint) {
-                            try {
-                                $mapped = BitDefenderMapper::mapEndpoint($endpoint);
-                                
-                                IntegrationData::create([
-                                    'company_id' => $this->integration->company_id,
-                                    'integration_id' => $this->integration->integration_id,
-                                    'integration_customer_id' => $integrationCustomer->integration_customer_id,
-                                    'data_type' => $mapped['data_type'],
-                                    'data_timestamp' => $mapped['timestamp'],
-                                    'data_payload' => $mapped['payload'],
-                                    'imported_at' => now(),
-                                ]);
-                                $totalNew++;
-                            } catch (Exception $e) {
-                                $endpointId = $endpoint['id'] ?? 'unknown';
-                                $errors[] = "Failed to process endpoint {$endpointId} for company {$companyName}: {$e->getMessage()}";
-                            }
-                        }
-                        
-                        // Also sync threat detections during regular sync
-                        try {
-                            $threats = $this->client->getThreatDetections();
-                            
-                            foreach ($threats as $threat) {
-                                // Try to match threat to this company
-                                $threatCompanyId = $threat['companyId'] ?? null;
-                                
-                                // Only process threats for this company
-                                if ($threatCompanyId && $threatCompanyId === $companyId) {
-                                    $mapped = BitDefenderMapper::mapThreatDetection($threat, $integrationCustomer->integration_customer_id);
-                                    
-                                    IntegrationData::create([
-                                        'company_id' => $this->integration->company_id,
-                                        'integration_id' => $this->integration->integration_id,
-                                        'integration_customer_id' => $integrationCustomer->integration_customer_id,
-                                        'data_type' => $mapped['data_type'],
-                                        'data_timestamp' => $mapped['timestamp'],
-                                        'data_payload' => $mapped['payload'],
-                                        'imported_at' => now(),
-                                    ]);
-                                    $totalNew++;
-                                }
-                            }
-                        } catch (Exception $e) {
-                            Log::warning('BitDefenderIntegration::sync threat detection failed', [
-                                'integration_id' => $this->integration->integration_id,
-                                'company_id' => $companyId,
-                                'error' => $e->getMessage(),
-                            ]);
-                            // Don't fail the entire sync if threat detection fails
-                        }
+                        // We track mapped customers, but real mapping happens in the batch job
                     });
                     
                     $totalProcessed++;
@@ -181,6 +110,97 @@ class BitDefenderIntegration implements IntegrationInterface
                         'company_id' => $companyId,
                         'error' => $e->getMessage(),
                     ]);
+                }
+            }
+            
+            // OPTIMIZATION: Dispatch batch job IMMEDIATELY after company processing
+            // This ensures customers show up in the UI "Matched" list while the slow endpoint loop runs
+            BatchAutoMatchCustomersJob::dispatch($this->integration);
+
+            // Now loop AGAIN to fetch endpoints (The Slow Part)
+            // We do this in a separate loop so the DB transaction above stays short and responsive
+            foreach ($companies as $company) {
+                $companyId = $company['id'] ?? null;
+                $companyName = $company['name'] ?? 'Unknown';
+                if (!$companyId) continue;
+
+                try {
+                    // Fetch endpoints for this company
+                    $endpoints = $this->client->getEndpointsForCompany($companyId);
+                    
+                    Log::info('BitDefenderIntegration::sync fetched endpoints for company', [
+                        'integration_id' => $this->integration->integration_id,
+                        'company_id' => $companyId,
+                        'company_name' => $companyName,
+                        'endpoint_count' => count($endpoints),
+                    ]);
+
+                    // Store each endpoint as time-series data
+                    foreach ($endpoints as $endpoint) {
+                        try {
+                            $mapped = BitDefenderMapper::mapEndpoint($endpoint);
+                            
+                            $intCustId = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                                ->where('external_id', $companyId)
+                                ->value('integration_customer_id');
+
+                            if (!$intCustId) {
+                                $errors[] = "Validation failed: Could not find integration_customer_id for company {$companyId}";
+                                continue;
+                            }
+
+                            IntegrationData::create([
+                                'company_id' => $this->integration->company_id,
+                                'integration_id' => $this->integration->integration_id,
+                                // Need to re-fetch customer ID as we are in new loop
+                                'integration_customer_id' => $intCustId,
+                                'data_type' => $mapped['data_type'],
+                                'data_timestamp' => $mapped['timestamp'],
+                                'data_payload' => $mapped['payload'],
+                                'imported_at' => now(),
+                            ]);
+                            $totalNew++;
+                        } catch (Exception $e) {
+                            $endpointId = $endpoint['id'] ?? 'unknown';
+                            $errors[] = "Failed to process endpoint {$endpointId} for company {$companyName}: {$e->getMessage()}";
+                        }
+                    }
+                    
+                    // Also sync threat detections during regular sync
+                    try {
+                        $threats = $this->client->getThreatDetections();
+                        
+                        foreach ($threats as $threat) {
+                            $threatCompanyId = $threat['companyId'] ?? null;
+                            if ($threatCompanyId && $threatCompanyId === $companyId) {
+                                // Need integration_customer_id
+                                $intCustId = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                                    ->where('external_id', $companyId)
+                                    ->value('integration_customer_id');
+
+                                $mapped = BitDefenderMapper::mapThreatDetection($threat, $intCustId);
+                                
+                                IntegrationData::create([
+                                    'company_id' => $this->integration->company_id,
+                                    'integration_id' => $this->integration->integration_id,
+                                    'integration_customer_id' => $intCustId,
+                                    'data_type' => $mapped['data_type'],
+                                    'data_timestamp' => $mapped['timestamp'],
+                                    'data_payload' => $mapped['payload'],
+                                    'imported_at' => now(),
+                                ]);
+                                $totalNew++;
+                            }
+                        }
+                    } catch (Exception $e) {
+                        Log::warning('BitDefenderIntegration::sync threat detection failed', [
+                            'integration_id' => $this->integration->integration_id,
+                            'company_id' => $companyId,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                } catch (Exception $e) {
+                    $errors[] = "Failed to fetch endpoints for {$companyName}: {$e->getMessage()}";
                 }
             }
 
@@ -226,21 +246,9 @@ class BitDefenderIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->get();
-
-        $mappedList = [];
-
-        foreach ($unmappedCustomers as $integrationCustomer) {
-            if ($this->integration->is_source_of_truth) {
-                $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'BitDefender');
-            } else {
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
-        }
-
-        return $mappedList;
+        // Dispatch single batch job to process all unmapped customers
+        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        return []; // Batch job handles mapping asynchronously
     }
 
     private function updateCustomerCountsCache(): void
@@ -292,22 +300,47 @@ class BitDefenderIntegration implements IntegrationInterface
             // Get all companies
             $companies = $this->client->getEndpoints();
             
+            // FIRST: Sync all companies as IntegrationCustomers
+            foreach ($companies as $company) {
+                $companyId = $company['id'] ?? null;
+                $companyName = $company['name'] ?? 'Unknown';
+                
+                if (!$companyId || empty($companyName)) continue;
+
+                DB::transaction(function () use ($company, $companyId, $companyName) {
+                    IntegrationCustomer::updateOrCreate(
+                        [
+                            'integration_id' => $this->integration->integration_id,
+                            'external_id' => $companyId,
+                        ],
+                        [
+                            'name' => $companyName,
+                            'metadata' => $company,
+                            'active' => true,
+                            'last_seen_at' => now(),
+                        ]
+                    );
+                });
+            }
+            
+            // THEN: Fetch endpoint data for each company
             foreach ($companies as $company) {
                 $companyId = $company['id'] ?? null;
                 if (!$companyId) continue;
 
-                // Find the integration customer for this company
+                // Now fetch the integration customer (guaranteed to exist)
                 $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
                     ->where('external_id', $companyId)
                     ->first();
 
                 if (!$integrationCustomer) {
-                    Log::warning('BitDefenderIntegration::getHistoricalData - customer not found', [
+                    Log::warning('BitDefenderIntegration::getHistoricalData - customer still not found', [
                         'company_id' => $companyId,
                         'company_name' => $company['name'] ?? 'Unknown',
                     ]);
                     continue;
                 }
+
 
                 try {
                     // Fetch endpoints for this company

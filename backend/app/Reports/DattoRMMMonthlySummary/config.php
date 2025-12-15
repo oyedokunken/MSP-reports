@@ -8,7 +8,7 @@ return [
     'category' => 'infrastructure',
     'data_types' => ['device_status', 'alert', 'uptime_metric'],
     'required_integrations' => ['Datto'],
-    'frequencies' => ['monthly'],
+    'frequencies' => ['monthly', 'daily', 'weekly', 'on-demand'],
     'formats' => ['pdf', 'html'],
     'default_frequency' => 'monthly',
     'default_format' => 'pdf',

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,7 +24,13 @@ export function HistoricalImportModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [days, setDays] = useState('90')
+  const [days, setDays] = useState(integration?.type === 'itglue' ? '1' : '90')
+
+  useEffect(() => {
+    if (integration) {
+      setDays(integration.type === 'itglue' ? '1' : '90')
+    }
+  }, [integration?.type])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,23 +52,22 @@ export function HistoricalImportModal({
     setIsSubmitting(true)
 
     try {
-      // Calculate dates based on days
       const endDate = new Date()
-      endDate.setHours(0, 0, 0, 0) // Start of today
+      endDate.setHours(0, 0, 0, 0)
 
       const startDate = new Date()
       startDate.setDate(startDate.getDate() - daysNum)
       startDate.setHours(0, 0, 0, 0)
 
       await api.post(`/integrations/${integration.id}/historical-import`, {
-        start_date: startDate.toISOString().split('T')[0], // Format: YYYY-MM-DD
+        start_date: startDate.toISOString().split('T')[0],
         end_date: endDate.toISOString().split('T')[0],
       })
 
       setSuccess(true)
       setTimeout(() => {
         setSuccess(false)
-        setDays('90')
+        setDays(integration?.type === 'itglue' ? '1' : '90')
         onOpenChange(false)
         onSuccess?.()
       }, 3000)
@@ -77,7 +82,7 @@ export function HistoricalImportModal({
 
   const handleClose = () => {
     if (!isSubmitting) {
-      setDays('90')
+      setDays(integration?.type === 'itglue' ? '1' : '90')
       setError('')
       setSuccess(false)
       onOpenChange(false)
@@ -118,14 +123,6 @@ export function HistoricalImportModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Info Box */}
-          <div className="rounded-lg border border-blue-500/50 bg-blue-500/10 p-3">
-            <p className="text-sm text-blue-700 dark:text-blue-400">
-              ℹ️ Historical import runs in the background and pulls data from the past. This is useful for generating reports with historical trends.
-            </p>
-          </div>
-
-          {/* Days Input */}
           <div>
             <Label htmlFor="days" className="text-sm font-medium mb-2 block">
               Number of Days
@@ -135,7 +132,7 @@ export function HistoricalImportModal({
               type="number"
               min="1"
               max="365"
-              placeholder="90"
+              placeholder={integration.type === 'itglue' ? '1' : '90'}
               value={days}
               onChange={(e) => setDays(e.target.value)}
               disabled={isSubmitting}
@@ -146,17 +143,40 @@ export function HistoricalImportModal({
             </p>
           </div>
 
-          {/* Warning */}
-          <div className="rounded-lg border border-orange-500/50 bg-orange-500/10 p-3">
-            <p className="text-sm text-orange-700 dark:text-orange-400 font-medium mb-1">
-              ⚠️ Important Notes:
-            </p>
-            <ul className="text-xs text-orange-700/80 dark:text-orange-400/80 space-y-1 list-disc list-inside">
-              <li>This process may take several hours</li>
-              <li>It will respect API rate limits</li>
-              <li>You can continue using the system while it runs</li>
-              <li>Progress can be monitored in sync logs</li>
-            </ul>
+          <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+            {integration.type === 'itglue' && (
+              <div className="flex gap-2">
+                <span className="text-lg">💡</span>
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium">IT Glue provides snapshots only</p>
+                  <p className="text-xs text-muted-foreground">
+                    Recommend <strong className="text-amber-600">1 day</strong> to capture initial state.
+                    More days won't add value as IT Glue doesn't store historical time-series data.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {(integration.type === 'datto' || integration.type === 'datto_rmm') && (
+              <div className="flex gap-2">
+                <span className="text-lg">💡</span>
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium">Datto Historical Import</p>
+                  <p className="text-xs text-muted-foreground">
+                    Fetches historical alerts and backfills device uptime snapshots for trend analysis.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2 border-t">
+              <span className="text-lg">⚠️</span>
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">
+                  Runs in background (may take hours). Respects API limits. Monitor progress in sync logs.
+                </p>
+              </div>
+            </div>
           </div>
 
           {error && (

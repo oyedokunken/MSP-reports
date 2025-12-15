@@ -8,6 +8,7 @@ use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
 use App\Jobs\AutoMatchCustomersJob;
+use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use Carbon\Carbon;
@@ -104,7 +105,6 @@ class ITGlueIntegration implements IntegrationInterface
                 ]);
             });
 
-            $this->syncAdditionalData($errors);
 
         } catch (\Exception $e) {
             $errors[] = "Sync failed: {$e->getMessage()}";
@@ -113,6 +113,10 @@ class ITGlueIntegration implements IntegrationInterface
                 'error' => $e->getMessage(),
             ]);
         }
+
+        // Sync additional data (SSL certs, domains, licenses)
+        // This tracks expiry dates and license utilization
+        $this->syncAdditionalData($errors);
 
         $additionalMapped = $this->processUnmappedCustomers();
         $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
@@ -145,6 +149,7 @@ class ITGlueIntegration implements IntegrationInterface
         return [
             'records_synced' => $totalProcessed,
             'records_new' => $unmappedCount,
+            'records_mapped' => $mappedCount,
             'customers_mapped' => $mappedCustomers,
             'records_failed' => count($errors),
             'errors' => $errors,
@@ -178,16 +183,43 @@ class ITGlueIntegration implements IntegrationInterface
                 }
             }
 
-            // Fetch flexible assets by type (IT Glue requires type ID filter)
+            // Fetch ONLY license-related flexible asset types (not all types)
             $flexibleAssetTypes = $this->client->getFlexibleAssetTypes();
             $totalFlexibleAssets = 0;
+            $licenseKeywords = ['license', 'microsoft', 'office', 'o365', 'm365', 'subscription', 'azure'];
             
             foreach ($flexibleAssetTypes as $assetType) {
                 try {
                     $typeId = $assetType['id'] ?? null;
+                    $typeName = strtolower($assetType['name'] ?? '');
+                    
                     if (!$typeId) {
                         continue;
                     }
+                    
+                    // Only fetch flexible assets if the type name contains license-related keywords
+                    $isLicenseType = false;
+                    foreach ($licenseKeywords as $keyword) {
+                        if (str_contains($typeName, $keyword)) {
+                            $isLicenseType = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$isLicenseType) {
+                        Log::debug('ITGlue Integration: Skipping non-license flexible asset type', [
+                            'integration_id' => $this->integration->integration_id,
+                            'type_id' => $typeId,
+                            'type_name' => $typeName,
+                        ]);
+                        continue;
+                    }
+                    
+                    Log::info('ITGlue Integration: Fetching license flexible asset type', [
+                        'integration_id' => $this->integration->integration_id,
+                        'type_id' => $typeId,
+                        'type_name' => $typeName,
+                    ]);
                     
                     $flexibleAssets = $this->client->getFlexibleAssets((int)$typeId);
                     foreach ($flexibleAssets as $asset) {
@@ -210,8 +242,8 @@ class ITGlueIntegration implements IntegrationInterface
                 'integration_id' => $this->integration->integration_id,
                 'ssl_certs' => count($sslCerts),
                 'domains' => count($domains),
-                'flexible_asset_types' => count($flexibleAssetTypes ?? []),
-                'flexible_assets' => $totalFlexibleAssets,
+                'flexible_asset_types_checked' => count($flexibleAssetTypes ?? []),
+                'flexible_assets_fetched' => $totalFlexibleAssets,
             ]);
 
         } catch (\Exception $e) {
@@ -225,21 +257,11 @@ class ITGlueIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        $unmappedCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->get();
+        // Dispatch single batch job to process all unmapped customers
+        // This reduces queue load from 397 individual jobs to 1 batch job
+        BatchAutoMatchCustomersJob::dispatch($this->integration);
 
-        $mappedList = [];
-
-        foreach ($unmappedCustomers as $integrationCustomer) {
-            if ($this->integration->is_source_of_truth) {
-                $mappedList[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'ITGlue');
-            } else {
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
-        }
-
-        return $mappedList;
+        return []; // Batch job handles mapping asynchronously
     }
 
     public function getCustomers(): array
@@ -565,13 +587,8 @@ class ITGlueIntegration implements IntegrationInterface
 
         $integrationCustomer->refresh();
 
-        if (!$integrationCustomer->customer_id) {
-            if ($this->integration->is_source_of_truth) {
-                $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'ITGlue');
-            } else {
-                AutoMatchCustomersJob::dispatch($integrationCustomer);
-            }
-        }
+        // No individual dispatch needed - BatchAutoMatchCustomersJob processes
+        // all unmapped customers at end of sync (in processUnmappedCustomers)
     }
 
     private function storeHistoricalData(array $data): void
@@ -581,33 +598,9 @@ class ITGlueIntegration implements IntegrationInterface
             return;
         }
 
-        // For ITGlue snapshot data, use upsert logic to avoid duplicates
-        // Identify unique records by: integration_customer_id + data_type + unique identifier from payload
-        $uniqueId = $this->getUniqueIdentifier($data);
-        
-        if ($uniqueId) {
-            // Try to find existing record
-            $existing = IntegrationData::where('company_id', $this->integration->company_id)
-                ->where('integration_id', $this->integration->integration_id)
-                ->where('integration_customer_id', $data['integration_customer_id'])
-                ->where('data_type', $data['data_type'])
-                ->where('data_payload->certificate_id', $uniqueId)
-                ->orWhere('data_payload->domain_id', $uniqueId)
-                ->orWhere('data_payload->asset_id', $uniqueId)
-                ->first();
-            
-            if ($existing) {
-                // Update existing record with new data
-                $existing->update([
-                    'data_payload' => $data['payload'],
-                    'data_timestamp' => $data['timestamp'],
-                    'imported_at' => now(),
-                ]);
-                return;
-            }
-        }
-
-        // Create new record if not found
+        // TimescaleDB hypertable - always INSERT for time-series data
+        // This enables tracking asset changes over time (certificates expiring, domains changing, etc.)
+        // Reports deduplicate using ->unique() to show latest snapshot
         IntegrationData::create([
             'company_id' => $this->integration->company_id,
             'integration_id' => $this->integration->integration_id,
@@ -618,17 +611,6 @@ class ITGlueIntegration implements IntegrationInterface
             'imported_at' => now(),
             'data_version' => 1,
         ]);
-    }
-    
-    private function getUniqueIdentifier(array $data): ?string
-    {
-        $payload = $data['payload'] ?? [];
-        
-        // Return the appropriate unique ID based on data type
-        return $payload['certificate_id'] 
-            ?? $payload['domain_id'] 
-            ?? $payload['asset_id'] 
-            ?? null;
     }
 
     /**

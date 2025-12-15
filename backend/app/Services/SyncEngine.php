@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class SyncEngine
 {
-    public function triggerSync(Integration $integration, string $syncType = 'current_state'): SyncLog
+    public function triggerSync(Integration $integration, string $syncType = 'current_state', string $priority = 'default'): SyncLog
     {
         $syncLog = SyncLog::create([
             'integration_id' => $integration->integration_id,
@@ -18,7 +18,7 @@ class SyncEngine
             'started_at' => now(),
         ]);
 
-        SyncIntegrationJob::dispatch($integration, $syncLog);
+        SyncIntegrationJob::dispatch($integration, $syncLog)->onQueue($priority);
 
         return $syncLog;
     }

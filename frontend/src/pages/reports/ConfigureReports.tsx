@@ -14,6 +14,14 @@ import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ConfigureReportsLoading, ConfigureReportsNotFound } from './components/ConfigureReportsStates'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 import type { ReportConfig, ReportType, EnabledReport } from './types'
 
@@ -41,6 +49,9 @@ export default function ConfigureReports() {
   const [availableReportTypes, setAvailableReportTypes] = useState<ReportType[]>([])
   const [showValidationModal, setShowValidationModal] = useState(false)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const [showGenerateModal, setShowGenerateModal] = useState(false)
+  const [customStartDate, setCustomStartDate] = useState('')
+  const [customEndDate, setCustomEndDate] = useState('')
 
 
 
@@ -344,9 +355,32 @@ export default function ConfigureReports() {
       return
     }
 
+    // Check if any enabled report is "on-demand"
+    const isOnDemand = enabledReports.some(r => r.frequency === 'on-demand')
+
+    if (isOnDemand) {
+      // Show modal for date selection
+      const end = new Date()
+      const start = new Date()
+      start.setDate(end.getDate() - 30)
+
+      setCustomStartDate(start.toISOString().split('T')[0])
+      setCustomEndDate(end.toISOString().split('T')[0])
+      setShowGenerateModal(true)
+    } else {
+      // Generate immediately using schedule defaults
+      await performGeneration()
+    }
+  }
+
+  const performGeneration = async (startDate?: string, endDate?: string) => {
     try {
       setIsGenerating(true)
-      const response = await api.post(`/reports/generate/${id}`)
+      setShowGenerateModal(false)
+
+      const payload = (startDate && endDate) ? { start_date: startDate, end_date: endDate } : {}
+
+      const response = await api.post(`/reports/generate/${id}`, payload)
       const data = response as unknown as { data?: { data?: unknown[] } } | { data?: unknown[] }
       const responseData = (data as { data?: { data?: unknown[] } }).data || data as { data?: unknown[] }
 
@@ -361,6 +395,10 @@ export default function ConfigureReports() {
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  const confirmGenerate = () => {
+    performGeneration(customStartDate, customEndDate)
   }
 
   if (isLoading) {
@@ -756,6 +794,64 @@ export default function ConfigureReports() {
         cancelText=""
         type="warning"
       />
+
+      {/* Date Selection Modal */}
+      <Dialog open={showGenerateModal} onOpenChange={setShowGenerateModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Generate Report</DialogTitle>
+            <DialogDescription>
+              Select the date range for your immediate report.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="start-date" className="text-right">
+                Start Date
+              </Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="end-date" className="text-right">
+                End Date
+              </Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowGenerateModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmGenerate} disabled={isGenerating}>
+              {isGenerating ? (
+                <>
+                  <Spinner className="h-4 w-4 mr-2" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" />
+                  Generate
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
     </FloatingLayout>
   )
 }

@@ -201,7 +201,7 @@ class LibreNMSDeviceReport implements ReportInterface
         arsort($osTypes);
 
         return [
-            'generated_at' => now()->toDateTimeString(),
+            'generated_at' => $startDate->format('F j, Y') . ' - ' . $endDate->format('F j, Y'),
             'customer' => $customer,
             'period' => [
                 'start' => $startDate->format('F j, Y'),

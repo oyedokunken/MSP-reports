@@ -17,8 +17,8 @@ abstract class BaseDataGatherer
     public function __construct(Customer $customer, Carbon $startDate, Carbon $endDate)
     {
         $this->customer = $customer;
-        $this->startDate = $startDate;
-        $this->endDate = $endDate;
+        $this->startDate = $startDate->startOfDay();
+        $this->endDate = $endDate->endOfDay();
         $this->companyId = $customer->company_id;
     }
 

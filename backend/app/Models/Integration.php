@@ -15,6 +15,58 @@ class Integration extends Model
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
+
+        static::deleting(function (Integration $integration) {
+            try {
+                $redis = \Illuminate\Support\Facades\Redis::connection();
+                $prefix = config('database.redis.options.prefix');
+                $queues = ['high', 'default', 'low'];
+                $jobsRemoved = 0;
+                
+                foreach ($queues as $queueName) {
+                    $queueKey = "{$prefix}queues:{$queueName}";
+                    
+                    $jobs = $redis->lrange($queueKey, 0, -1);
+                    
+                    foreach ($jobs as $job) {
+                        $payload = json_decode($job, true);
+                        
+                        if (!isset($payload['displayName']) || $payload['displayName'] !== 'App\\Jobs\\SyncIntegrationJob') {
+                            continue;
+                        }
+                        
+         
+                        $command = $payload['data']['command'] ?? '';
+                        $pattern = '/s:2:"id";i:' . $integration->integration_id . ';/';
+                        
+                        if (preg_match($pattern, $command)) {
+                            $removed = $redis->lrem($queueKey, 0, $job);
+                            
+                            if ($removed > 0) {
+                                $jobsRemoved++;
+                                \Illuminate\Support\Facades\Log::info('Removed queued job for deleted integration', [
+                                    'integration_id' => $integration->integration_id,
+                                    'queue' => $queueName,
+                                    'job_id' => $payload['uuid'] ?? 'unknown',
+                                ]);
+                            }
+                        }
+                    }
+                }
+                
+                if ($jobsRemoved > 0) {
+                    \Illuminate\Support\Facades\Log::info('Queue cleanup completed', [
+                        'integration_id' => $integration->integration_id,
+                        'jobs_removed' => $jobsRemoved,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed to clean up queued jobs for deleted integration', [
+                    'integration_id' => $integration->integration_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        });
     }
 
     protected $fillable = [
@@ -31,6 +83,7 @@ class Integration extends Model
         'historical_import_status',
         'historical_import_progress',
         'last_historical_sync_at',
+        'sync_schedule',
     ];
 
     protected $casts = [
