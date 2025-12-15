@@ -343,13 +343,11 @@ class BitDefenderIntegration implements IntegrationInterface
 
 
                 try {
-                    // Fetch endpoints for this company
-                    $endpoints = $this->client->getEndpointsForCompany($companyId);
-                    
-                    foreach ($endpoints as $endpoint) {
+                    // Fetch and process endpoints immediately (memory efficient)
+                    $this->client->getEndpointsForCompany($companyId, function($endpoint) use ($integrationCustomer, &$totalProcessed) {
                         $mapped = BitDefenderMapper::mapEndpoint($endpoint);
                         
-                        // Store endpoint data
+                        // Store endpoint data immediately
                         IntegrationData::create([
                             'company_id' => $this->integration->company_id,
                             'integration_id' => $this->integration->integration_id,
@@ -361,7 +359,7 @@ class BitDefenderIntegration implements IntegrationInterface
                         ]);
                         
                         $totalProcessed++;
-                    }
+                    });
                     
                     // Fetch threat detections (quarantine items)
                     $threats = $this->client->getThreatDetections();

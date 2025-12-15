@@ -100,13 +100,13 @@ class BitDefenderClient
      * Get endpoints (devices) for a specific company.
      * Filters out groups and only returns actual computer endpoints.
      */
-    public function getEndpointsForCompany(string $companyId): array
+    public function getEndpointsForCompany(string $companyId, callable $callback = null): array
     {
+        $page = 1;
+        $perPage = 100;
+        $totalProcessed = 0;
+
         try {
-            $allEndpoints = [];
-            $page = 1;
-            $perPage = 100;
-            
             do {
                 $response = $this->makeRequest('getEndpointsList', [
                     'parentId' => $companyId,
@@ -130,7 +130,13 @@ class BitDefenderClient
                     return in_array($machineType, [1, 2]);
                 });
                 
-                $allEndpoints = array_merge($allEndpoints, $endpoints);
+                // Process immediately if callback provided (memory efficient)
+                if ($callback) {
+                    foreach ($endpoints as $endpoint) {
+                        $callback($endpoint);
+                        $totalProcessed++;
+                    }
+                }
                 
                 $total = $response['result']['total'] ?? 0;
                 $pagesCount = $response['result']['pagesCount'] ?? 1;
@@ -141,7 +147,7 @@ class BitDefenderClient
                     'page' => $page,
                     'items_this_page' => count($items),
                     'endpoints_this_page' => count($endpoints),
-                    'total_endpoints_so_far' => count($allEndpoints),
+                    'total_processed' => $totalProcessed,
                 ]);
                 
                 $page++;
@@ -150,10 +156,10 @@ class BitDefenderClient
             Log::info('BitDefenderClient::getEndpointsForCompany completed', [
                 'integration_id' => $this->integration->integration_id,
                 'company_id' => $companyId,
-                'total_endpoints' => count($allEndpoints),
+                'total_endpoints' => $totalProcessed,
             ]);
 
-            return $allEndpoints;
+            return ['total_processed' => $totalProcessed];
         } catch (Exception $e) {
             Log::error('BitDefenderClient::getEndpointsForCompany failed', [
                 'integration_id' => $this->integration->integration_id,
