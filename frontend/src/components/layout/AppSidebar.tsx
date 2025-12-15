@@ -239,7 +239,7 @@ export default function AppSidebar() {
                             {customersSubItems.map((subItem) => {
                               const SubIcon = subItem.icon
                               const subActive = isActive(subItem.path)
-                              const showBadge = subItem.badge && subItem.badge > 0
+                              const showBadge = typeof subItem.badge === 'number' && subItem.badge > 0
                               return (
                                 <SidebarMenuSubItem key={subItem.path} className="relative">
                                   <span className="absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-border" />
