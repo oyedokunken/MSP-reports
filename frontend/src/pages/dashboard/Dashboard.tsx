@@ -6,9 +6,9 @@ import {
     getIntegrationStatusIcon,
     getIntegrationStatusText,
 } from "./utils";
-import { useDashboard, useQuickSync } from "./hooks";
+import { useDashboard } from "./hooks";
 import { DashboardHeaderActions } from "./components/DashboardHeaderActions";
-import { RecentActivityCard } from "./components/RecentActivityCard";
+import { ReportsGeneratedChart } from "./components/ReportsGeneratedChart";
 import { IntegrationsSummary } from "./components/IntegrationsSummary";
 import { StatsGrid } from "./components/StatsGrid";
 
@@ -17,14 +17,11 @@ export default function Dashboard() {
         user,
         isLoading,
         isRefreshing,
-        recentActivity,
         dashboardIntegrations,
+        reportsChartData,
         stats,
         handleRefresh,
-        toast,
     } = useDashboard();
-
-    const { syncingId, progress, handleQuickSync } = useQuickSync(toast.success, toast.error);
 
     return (
         <FloatingLayout>
@@ -65,9 +62,6 @@ export default function Dashboard() {
                             <IntegrationsSummary
                                 isLoading={isLoading}
                                 integrations={dashboardIntegrations}
-                                isSyncingId={syncingId}
-                                syncProgress={progress}
-                                onSync={handleQuickSync}
                                 getStatusBadge={getIntegrationStatusBadge}
                                 getStatusText={getIntegrationStatusText}
                                 getStatusIcon={getIntegrationStatusIcon}
@@ -78,10 +72,9 @@ export default function Dashboard() {
                     {/* Right Column */}
                     <div className="flex flex-col gap-4 min-h-0">
                         <div className="h-[580px]">
-                            <RecentActivityCard
+                            <ReportsGeneratedChart
                                 isLoading={isLoading}
-                                items={recentActivity}
-                                onInfo={toast.info}
+                                data={reportsChartData}
                             />
                         </div>
                     </div>

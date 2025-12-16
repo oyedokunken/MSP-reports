@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp } from 'lucide-react'
-import { Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts'
+import * as echarts from 'echarts'
+import { useEffect, useRef } from 'react'
 
 interface ActivityTrendChartProps {
   data?: Array<{
@@ -32,8 +33,184 @@ const generateSampleData = () => {
 }
 
 export function ActivityTrendChart({ data }: ActivityTrendChartProps) {
+  const chartRef = useRef<HTMLDivElement>(null)
+  const chartInstanceRef = useRef<echarts.ECharts | null>(null)
   const chartData = data || generateSampleData()
-  const isMobile = window.innerWidth < 640
+
+  useEffect(() => {
+    if (!chartRef.current || chartData.length === 0) return
+
+    // Initialize chart
+    if (!chartInstanceRef.current) {
+      chartInstanceRef.current = echarts.init(chartRef.current)
+    }
+
+    const chart = chartInstanceRef.current
+
+    // Prepare data
+    const dates = chartData.map(item => item.date)
+    const syncsData = chartData.map(item => item.syncs)
+    const reportsData = chartData.map(item => item.reports)
+    const jobsData = chartData.map(item => item.jobs)
+
+    // Chart options
+    const option: echarts.EChartsOption = {
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        textStyle: {
+          color: '#fff',
+        },
+        axisPointer: {
+          type: 'cross',
+          label: {
+            backgroundColor: '#6a7985'
+          }
+        }
+      },
+      legend: {
+        data: ['Integration Syncs', 'Reports Generated', 'Queue Jobs'],
+        textStyle: {
+          color: 'rgba(148, 163, 184, 0.8)',
+        },
+        top: 0,
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        top: '15%',
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'category',
+        data: dates,
+        boundaryGap: false,
+        axisLine: {
+          lineStyle: {
+            color: 'rgba(148, 163, 184, 0.3)',
+          },
+        },
+        axisLabel: {
+          color: 'rgba(148, 163, 184, 0.8)',
+          fontSize: 11,
+        },
+        splitLine: {
+          show: false,
+        },
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: {
+          show: false,
+        },
+        axisLabel: {
+          color: 'rgba(148, 163, 184, 0.8)',
+          fontSize: 11,
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(148, 163, 184, 0.1)',
+            type: 'dashed',
+          },
+        },
+      },
+      series: [
+        {
+          name: 'Integration Syncs',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          data: syncsData,
+          lineStyle: {
+            width: 2,
+            color: '#3b82f6',
+          },
+          itemStyle: {
+            color: '#3b82f6',
+            borderWidth: 2,
+            borderColor: '#fff',
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+              { offset: 1, color: 'rgba(59, 130, 246, 0.05)' },
+            ]),
+          },
+        },
+        {
+          name: 'Reports Generated',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          data: reportsData,
+          lineStyle: {
+            width: 2,
+            color: '#22c55e',
+          },
+          itemStyle: {
+            color: '#22c55e',
+            borderWidth: 2,
+            borderColor: '#fff',
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(34, 197, 94, 0.3)' },
+              { offset: 1, color: 'rgba(34, 197, 94, 0.05)' },
+            ]),
+          },
+        },
+        {
+          name: 'Queue Jobs',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          data: jobsData,
+          lineStyle: {
+            width: 2,
+            color: '#f97316',
+          },
+          itemStyle: {
+            color: '#f97316',
+            borderWidth: 2,
+            borderColor: '#fff',
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(249, 115, 22, 0.3)' },
+              { offset: 1, color: 'rgba(249, 115, 22, 0.05)' },
+            ]),
+          },
+        },
+      ],
+    }
+
+    chart.setOption(option)
+
+    // Handle resize
+    const handleResize = () => {
+      chart.resize()
+    }
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [chartData])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (chartInstanceRef.current) {
+        chartInstanceRef.current.dispose()
+        chartInstanceRef.current = null
+      }
+    }
+  }, [])
 
   return (
     <Card className="col-span-full">
@@ -45,94 +222,7 @@ export function ActivityTrendChart({ data }: ActivityTrendChartProps) {
         <CardDescription className="text-xs sm:text-sm">System activity over the last 7 days</CardDescription>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
-        <div className="w-full overflow-x-auto">
-          <ResponsiveContainer width="100%" height={isMobile ? 200 : 300} minWidth={280}>
-          <ComposedChart 
-            data={chartData} 
-            margin={isMobile ? { top: 5, right: 5, left: 5, bottom: 5 } : { top: 5, right: 20, left: 10, bottom: 5 }}
-            style={{ outline: 'none' }}
-          >
-            <defs>
-              <linearGradient id="colorSyncs" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="colorReports" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(142.1 76.2% 36.3%)" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="hsl(142.1 76.2% 36.3%)" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="colorJobs" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(24.6 95% 53.1%)" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="hsl(24.6 95% 53.1%)" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis 
-              dataKey="date" 
-              className="text-xs"
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: isMobile ? 10 : 12 }}
-            />
-            <YAxis 
-              className="text-xs"
-              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: isMobile ? 10 : 12 }}
-            />
-            <Tooltip 
-              contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-              }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
-            />
-            <Legend 
-              wrapperStyle={{ paddingTop: isMobile ? '10px' : '20px', fontSize: isMobile ? '11px' : '14px' }}
-              iconType="line"
-            />
-            <Area 
-              type="monotone" 
-              dataKey="syncs" 
-              fill="url(#colorSyncs)" 
-              stroke="none"
-            />
-            <Area 
-              type="monotone" 
-              dataKey="reports" 
-              fill="url(#colorReports)" 
-              stroke="none"
-            />
-            <Area 
-              type="monotone" 
-              dataKey="jobs" 
-              fill="url(#colorJobs)" 
-              stroke="none"
-            />
-            <Line 
-              type="monotone" 
-              dataKey="syncs" 
-              stroke="hsl(var(--primary))" 
-              strokeWidth={isMobile ? 1.5 : 2}
-              name="Integration Syncs"
-              dot={isMobile ? false : { fill: 'hsl(var(--primary))' }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="reports" 
-              stroke="hsl(142.1 76.2% 36.3%)" 
-              strokeWidth={isMobile ? 1.5 : 2}
-              name="Reports Generated"
-              dot={isMobile ? false : { fill: 'hsl(142.1 76.2% 36.3%)' }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="jobs" 
-              stroke="hsl(24.6 95% 53.1%)" 
-              strokeWidth={isMobile ? 1.5 : 2}
-              name="Queue Jobs"
-              dot={isMobile ? false : { fill: 'hsl(24.6 95% 53.1%)' }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
-        </div>
+        <div ref={chartRef} className="w-full h-[300px]" />
       </CardContent>
     </Card>
   )

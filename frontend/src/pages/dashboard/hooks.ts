@@ -192,6 +192,25 @@ export const useDashboard = () => {
     const successRate = reportMetrics?.metrics.success_rate || 0;
     const queueHealth = systemStatus?.queue.health || "unknown";
 
+    // Generate mock data for reports chart (last 6 months)
+    const reportsChartData = (() => {
+        const data = []
+        const today = new Date()
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(today)
+            date.setMonth(date.getMonth() - i)
+            const dateStr = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+            // Generate some realistic-looking data based on report metrics
+            const baseCount = Math.floor((reportMetrics?.metrics.total_reports || 0) / 6)
+            const variance = Math.floor(Math.random() * 10)
+            data.push({
+                date: dateStr,
+                count: Math.max(0, baseCount + variance)
+            })
+        }
+        return data
+    })()
+
     const stats: Stat[] = [
         {
             label: "Customers",
@@ -242,6 +261,7 @@ export const useDashboard = () => {
         recentActivity,
         dashboardIntegrations,
         upcomingReports,
+        reportsChartData,
         stats,
         handleRefresh,
         toast,

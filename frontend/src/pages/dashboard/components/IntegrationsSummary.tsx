@@ -1,15 +1,12 @@
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
-import { Cable, RefreshCw } from "lucide-react";
-import { StatCardSkeleton, LoadingSpinner } from "@/components/ui/LoadingStates";
+import { Cable } from "lucide-react";
+import { StatCardSkeleton } from "@/components/ui/LoadingStates";
 import type { Integration } from "../types";
 import { useNavigate } from "react-router-dom";
 
 type IntegrationsSummaryProps = {
     isLoading: boolean;
     integrations: Integration[];
-    isSyncingId: number | null;
-    syncProgress: number;
-    onSync: (id: number, name: string) => void;
     getStatusBadge: (status: string, syncStatus: string) => string;
     getStatusText: (status: string, syncStatus: string) => string;
     getStatusIcon: (status: string, syncStatus: string) => React.ReactNode;
@@ -18,9 +15,6 @@ type IntegrationsSummaryProps = {
 export function IntegrationsSummary({
     isLoading,
     integrations,
-    isSyncingId,
-    syncProgress,
-    onSync,
     getStatusBadge,
     getStatusText,
     getStatusIcon,
@@ -53,9 +47,7 @@ export function IntegrationsSummary({
                         <div
                             key={intg.id}
                             className={`rounded-lg border p-4 ${
-                                isSyncingId === intg.id
-                                    ? "bg-primary/5 ring-1 ring-primary/40 border-primary"
-                                    : intg.isSourceOfTruth
+                                intg.isSourceOfTruth
                                     ? "bg-blue-50 dark:bg-blue-950/20 border-blue-500/50 ring-1 ring-blue-500/30"
                                     : "border-border"
                             }`}
@@ -97,23 +89,6 @@ export function IntegrationsSummary({
                                         </p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => onSync(intg.id, intg.name)}
-                                    disabled={isSyncingId === intg.id}
-                                    className={`inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-xs font-medium transition-all flex-shrink-0 ${isSyncingId === intg.id
-                                        ? "bg-primary text-primary-foreground border-primary"
-                                        : "bg-background text-foreground hover:bg-muted"
-                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                >
-                                    {isSyncingId === intg.id ? (
-                                        <LoadingSpinner size="sm" />
-                                    ) : (
-                                        <RefreshCw className="h-4 w-4" />
-                                    )}
-                                    {isSyncingId === intg.id
-                                        ? `${Math.round(syncProgress)}%`
-                                        : "Sync"}
-                                </button>
                             </div>
                         </div>
                     ))
