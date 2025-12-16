@@ -71,6 +71,11 @@ class ReportRegistry
         $available = [];
 
         foreach ($this->reports as $reportId => $config) {
+            // Skip disabled reports
+            if (isset($config['enabled']) && $config['enabled'] === false) {
+                continue;
+            }
+
             $report = $this->get($reportId, $companyId);
 
             if ($report) {

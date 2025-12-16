@@ -10,7 +10,9 @@ class MonthlyComprehensive extends BaseReport
 {
     public function getRequiredDataTypes(): array
     {
-        return ['uptime_metric', 'ticket_event', 'backup_status', 'security_alert'];
+        // Dynamic - depends on which integrations the customer has
+        // Returns empty array since we'll check data availability per integration
+        return [];
     }
 
     public function getRequiredHistoricalRange(): int
@@ -20,10 +22,6 @@ class MonthlyComprehensive extends BaseReport
 
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
-        // HARDCODED FOR TESTING - Always include all sections
-        $includeSections = ['uptime', 'tickets', 'backups', 'security'];
-        \Log::info('Comprehensive report generating with sections: ' . json_encode($includeSections));
-        
         $reportData = [
             'generated_at' => now()->toDateTimeString(),
             'customer' => $customer,
@@ -36,91 +34,111 @@ class MonthlyComprehensive extends BaseReport
                 'end' => $this->formatDate($endDate),
                 'formatted' => $this->formatDateRange($startDate, $endDate),
             ],
-            // Branding is now handled by ReportGenerationService::applyBranding()
             'included_reports' => [],
         ];
         
-        // Generate each individual report and include its full data
         $registry = app(\App\Services\ReportRegistry::class);
         
-        // Include Uptime Report if requested
-        if (in_array('uptime', $includeSections)) {
-            try {
-                $uptimeReport = $registry->get('uptime_monthly', $customer->company_id);
-                if ($uptimeReport) {
-                    $uptimeData = $uptimeReport->generate($customer, $startDate, $endDate);
-                    $reportData['included_reports'][] = [
-                        'type' => 'uptime',
-                        'title' => 'Uptime Report',
-                        'data' => $uptimeData,
-                        'template' => 'Reports/UptimeReport/template',
-                    ];
+        // Get all customer's integrations
+        $customerIntegrations = $customer->integrationCustomers()
+            ->with('integration')
+            ->get()
+            ->pluck('integration')
+            ->unique('integration_id')
+            ->filter();
+        
+        \Log::info('MonthlyComprehensive: Found integrations for customer', [
+            'customer_id' => $customer->customer_id,
+            'customer_name' => $customer->canonical_name,
+            'integration_count' => $customerIntegrations->count(),
+            'integration_types' => $customerIntegrations->pluck('integration_type')->toArray(),
+        ]);
+        
+        // Map integration types to their monthly summary report IDs
+        $integrationReportMap = [
+            'Autotask' => 'autotask_monthly_summary',
+            'Datto' => 'datto_rmm_monthly_summary',
+            'DattoRMM' => 'datto_rmm_monthly_summary',
+            'BitDefender' => 'bitdefender_monthly_summary',
+            'ITGlue' => 'itglue_monthly_summary',
+            'SaaS' => 'saas_monthly_summary',
+            'Sendmarc' => 'sendmarc_monthly_summary',
+        ];
+        
+        // Include integration-specific monthly summaries
+        foreach ($customerIntegrations as $integration) {
+            $integrationType = $integration->integration_type;
+            
+            // Check if we have a monthly summary report for this integration
+            if (isset($integrationReportMap[$integrationType])) {
+                $reportId = $integrationReportMap[$integrationType];
+                
+                try {
+                    $report = $registry->get($reportId, $customer->company_id);
+                    if ($report && $report->validate($customer, $startDate, $endDate)) {
+                        $config = $registry->getConfig($reportId);
+                        $reportInfo = [
+                            'id' => $reportId,
+                            'type' => strtolower($integrationType),
+                            'title' => $config['name'] ?? ucfirst($integrationType) . ' Monthly Summary',
+                        ];
+                        
+                        $reportData['included_reports'][] = $this->generateSubReport(
+                            $report,
+                            $reportInfo,
+                            $customer,
+                            $startDate,
+                            $endDate
+                        );
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Failed to include integration monthly summary: ' . $e->getMessage(), [
+                        'integration_type' => $integrationType,
+                        'report_id' => $reportId,
+                        'customer_id' => $customer->customer_id,
+                    ]);
                 }
-            } catch (\Exception $e) {
-                \Log::error('Failed to include uptime report: ' . $e->getMessage());
             }
         }
         
-        // Include Autotask Monthly Summary if requested (includes tickets, time entries, technicians, contracts)
-        if (in_array('tickets', $includeSections)) {
-            try {
-                $autotaskReport = $registry->get('autotask_monthly_summary', $customer->company_id);
-                if ($autotaskReport) {
-                    $autotaskData = $autotaskReport->generate($customer, $startDate, $endDate);
-                    $reportData['included_reports'][] = [
-                        'type' => 'tickets',
-                        'title' => 'Autotask Monthly Summary',
-                        'data' => $autotaskData,
-                        'template' => 'Reports/AutotaskMonthlySummary/template',
-                    ];
-                }
-            } catch (\Exception $e) {
-                \Log::error('Failed to include Autotask report: ' . $e->getMessage());
-            }
-        }
-        
-        // Include Backup Status if requested
-        if (in_array('backups', $includeSections)) {
-            try {
-                $backupReport = $registry->get('backup_status', $customer->company_id);
-                if ($backupReport) {
-                    $backupData = $backupReport->generate($customer, $startDate, $endDate);
-                    $reportData['included_reports'][] = [
-                        'type' => 'backups',
-                        'title' => 'Backup Status',
-                        'data' => $backupData,
-                        'template' => 'Reports/BackupStatus/template',
-                    ];
-                }
-            } catch (\Exception $e) {
-                \Log::error('Failed to include backup report: ' . $e->getMessage());
-            }
-        }
-        
-        // Include Security Summary if requested
-        if (in_array('security', $includeSections)) {
-            try {
-                $securityReport = $registry->get('security_summary', $customer->company_id);
-                if ($securityReport) {
-                    $securityData = $securityReport->generate($customer, $startDate, $endDate);
-                    $reportData['included_reports'][] = [
-                        'type' => 'security',
-                        'title' => 'Security Summary',
-                        'data' => $securityData,
-                        'template' => 'Reports/SecuritySummary/template',
-                    ];
-                }
-            } catch (\Exception $e) {
-                \Log::error('Failed to include security report: ' . $e->getMessage());
-            }
-        }
-        
-        \Log::info('Comprehensive report generated with ' . count($reportData['included_reports']) . ' reports');
-        foreach ($reportData['included_reports'] as $report) {
-            \Log::info('  - ' . $report['title'] . ' (template: ' . $report['template'] . ')');
-        }
+        \Log::info('MonthlyComprehensive: Report generated', [
+            'customer_id' => $customer->customer_id,
+            'included_report_count' => count($reportData['included_reports']),
+            'report_titles' => array_column($reportData['included_reports'], 'title'),
+        ]);
         
         return $reportData;
+    }
+    
+    /**
+     * Generate a sub-report and return its data structure
+     */
+    private function generateSubReport($report, array $reportInfo, Customer $customer, Carbon $startDate, Carbon $endDate): array
+    {
+        $reportData = $report->generate($customer, $startDate, $endDate);
+        
+        // Determine template path from report ID
+        $reportId = $reportInfo['id'];
+        $templateMap = [
+            'uptime_monthly' => 'Reports/UptimeReport/template',
+            'backup_status' => 'Reports/BackupStatus/template',
+            'security_summary' => 'Reports/SecuritySummary/template',
+            'autotask_monthly_summary' => 'Reports/AutotaskMonthlySummary/template',
+            'datto_rmm_monthly_summary' => 'Reports/DattoRMMMonthlySummary/template',
+            'bitdefender_monthly_summary' => 'Reports/BitDefenderMonthlySummary/template',
+            'itglue_monthly_summary' => 'Reports/ITGlueMonthlySummary/template',
+            'saas_monthly_summary' => 'Reports/SaaSMonthlySummary/template',
+            'sendmarc_monthly_summary' => 'Reports/SendmarcMonthlySummary/template',
+        ];
+        
+        $template = $templateMap[$reportId] ?? 'Reports/' . ucfirst($reportInfo['type']) . '/template';
+        
+        return [
+            'type' => $reportInfo['type'],
+            'title' => $reportInfo['title'],
+            'data' => $reportData,
+            'template' => $template,
+        ];
     }
     
     private function calculateHealthScore(array $data): int
@@ -183,7 +201,7 @@ class MonthlyComprehensive extends BaseReport
         return [
             'id' => 'monthly_comprehensive',
             'name' => 'Monthly Comprehensive Report',
-            'description' => 'Complete monthly overview combining uptime, tickets, backups, and security metrics',
+            'description' => 'Dynamic comprehensive report that includes all available monthly summaries from customer\'s integrations',
             'category' => 'executive',
             'data_types' => $this->getRequiredDataTypes(),
             'frequencies' => ['monthly'],

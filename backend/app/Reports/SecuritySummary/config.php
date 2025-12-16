@@ -13,5 +13,5 @@ return [
     'default_frequency' => 'monthly',
     'default_format' => 'pdf',
     'icon' => 'shield',
-    'enabled' => true,
+    'enabled' => false, // Disabled - functionality covered by integration monthly summaries
 ];

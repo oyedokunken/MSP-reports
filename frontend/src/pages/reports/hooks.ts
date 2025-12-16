@@ -289,9 +289,10 @@ export const useConfigureReports = () => {
 
 
   const handleAddReport = () => {
-    const defaultReportType = availableReportTypes.length === 1
+    // Use first available report type or monthly_comprehensive as fallback
+    const defaultReportType = availableReportTypes.length > 0
       ? availableReportTypes[0].id
-      : (availableReportTypes.find(r => r.id === 'uptime_monthly')?.id || availableReportTypes[0]?.id || 'uptime_monthly');
+      : 'monthly_comprehensive';
 
     const newReport: EnabledReport = {
       report_type: defaultReportType,
@@ -299,10 +300,6 @@ export const useConfigureReports = () => {
       time_of_day: '09:00',
       active: true
     };
-
-    if (defaultReportType === 'monthly_comprehensive') {
-      newReport.include_sections = ['uptime', 'tickets', 'backups', 'security'];
-    }
 
     setEnabledReports([
       ...enabledReports,

@@ -169,10 +169,10 @@ export default function ConfigureReports() {
   }, [fetchAvailableReports, fetchReportConfig])
 
   const handleAddReport = () => {
-    // If only one report available, use it as default
-    const defaultReportType = availableReportTypes.length === 1
+    // Use first available report type or monthly_comprehensive as fallback
+    const defaultReportType = availableReportTypes.length > 0
       ? availableReportTypes[0].id
-      : (availableReportTypes.find(r => r.id === 'uptime_monthly')?.id || availableReportTypes[0]?.id || 'uptime_monthly');
+      : 'monthly_comprehensive';
 
     const newReport: EnabledReport = {
       report_type: defaultReportType,
@@ -180,11 +180,6 @@ export default function ConfigureReports() {
       time_of_day: '09:00',
       active: true
     };
-
-    // If it's a comprehensive report, set default sections
-    if (defaultReportType === 'monthly_comprehensive') {
-      newReport.include_sections = ['uptime', 'tickets', 'backups', 'security'];
-    }
 
     setEnabledReports([
       ...enabledReports,
@@ -602,42 +597,36 @@ export default function ConfigureReports() {
 
                     {report.report_type === 'monthly_comprehensive' && (
                       <div className="mt-4 p-3 bg-muted/50 rounded-md">
-                        <Label className="text-sm font-medium mb-2 block">Include Sections:</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { id: 'uptime', label: 'System Uptime', icon: '📊' },
-                            { id: 'tickets', label: 'Support Tickets', icon: '🎫' },
-                            { id: 'backups', label: 'Backup Status', icon: '💾' },
-                            { id: 'security', label: 'Security Alerts', icon: '🔒' },
-                          ].map((section) => {
-                            const includeSections = report.include_sections || ['uptime', 'tickets', 'backups', 'security'];
-                            const isChecked = includeSections.includes(section.id);
-
-                            return (
-                              <div key={section.id} className="flex items-center space-x-2">
-                                <input
-                                  type="checkbox"
-                                  id={`section-${index}-${section.id}`}
-                                  checked={isChecked}
-                                  onChange={(e) => {
-                                    const currentSections = report.include_sections || ['uptime', 'tickets', 'backups', 'security'];
-                                    const newSections = e.target.checked
-                                      ? [...currentSections, section.id]
-                                      : currentSections.filter((s: string) => s !== section.id);
-                                    handleUpdateReport(index, 'include_sections', newSections);
-                                  }}
-                                  className="h-4 w-4 rounded border-gray-300"
-                                />
-                                <Label
-                                  htmlFor={`section-${index}-${section.id}`}
-                                  className="text-sm cursor-pointer flex items-center gap-1"
-                                >
-                                  <span>{section.icon}</span>
-                                  <span>{section.label}</span>
-                                </Label>
+                        <Label className="text-sm font-medium mb-2 block">📋 Reports Included (Dynamic):</Label>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          This report automatically includes all available monthly summaries based on customer's active integrations
+                        </p>
+                        <div className="space-y-2">
+                          {config && (
+                            <>
+                              <div className="text-xs font-medium text-muted-foreground">Included Reports:</div>
+                              <div className="grid grid-cols-1 gap-1 ml-2">
+                                {availableReportTypes
+                                  .filter(rt => rt.id.includes('monthly_summary'))
+                                  .map(rt => (
+                                    <div key={rt.id} className="flex items-center gap-2 text-sm">
+                                      <span className="text-green-500">✓</span>
+                                      <span>{rt.name}</span>
+                                      {rt.integration_source && (
+                                        <Badge variant="outline" className="ml-1 text-xs">
+                                          {rt.integration_source}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  ))}
+                                {availableReportTypes.filter(rt => rt.id.includes('monthly_summary')).length === 0 && (
+                                  <div className="text-xs text-muted-foreground italic">
+                                    No integration summaries available yet
+                                  </div>
+                                )}
                               </div>
-                            );
-                          })}
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
