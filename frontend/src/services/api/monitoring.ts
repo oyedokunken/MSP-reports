@@ -8,6 +8,7 @@ import type {
     IntegrationMetricsResponse,
     ReportMetricsResponse,
     QueueMetricsResponse,
+    ActivityTrendsResponse,
 } from '@/types/api/monitoring'
 
 export const monitoringApi = {
@@ -67,5 +68,13 @@ export const monitoringApi = {
                 }>
             }
         }>
+    },
+
+    /**
+     * Get activity trends
+     * GET /api/monitoring/activity-trends?days=7
+     */
+    async getActivityTrends(days: number = 7): Promise<ActivityTrendsResponse> {
+        return api.get(`/monitoring/activity-trends?days=${days}`) as unknown as Promise<ActivityTrendsResponse>
     },
 }

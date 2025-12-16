@@ -225,6 +225,81 @@ class HealthCheckController extends Controller
         }
     }
 
+    public function activityTrends(Request $request)
+    {
+        $authUser = $request->user();
+        $days = $request->input('days', 7);
+
+        $startDate = now()->subDays($days)->startOfDay();
+        $endDate = now()->endOfDay();
+
+        // Generate array of dates for the period
+        $dateRange = [];
+        $currentDate = $startDate->copy();
+        while ($currentDate <= $endDate) {
+            $dateRange[] = $currentDate->format('Y-m-d');
+            $currentDate->addDay();
+        }
+
+        // Get sync counts per day
+        $syncCounts = SyncLog::where('company_id', $authUser->company_id)
+            ->whereBetween('started_at', [$startDate, $endDate])
+            ->select(
+                DB::raw("DATE(started_at) as date"),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get()
+            ->keyBy('date');
+
+        // Get report counts per day
+        $reportCounts = GeneratedReport::where('company_id', $authUser->company_id)
+            ->whereBetween('generated_at', [$startDate, $endDate])
+            ->select(
+                DB::raw("DATE(generated_at) as date"),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get()
+            ->keyBy('date');
+
+        // Get job counts per day (from jobs table - completed jobs)
+        // Note: This tracks jobs that were processed, not currently pending
+        $jobCounts = DB::table('jobs')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->select(
+                DB::raw("DATE(created_at) as date"),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get()
+            ->keyBy('date');
+
+        // Build activity data array with all dates (fill gaps with 0)
+        $activityData = [];
+        foreach ($dateRange as $date) {
+            $dateObj = Carbon::parse($date);
+            
+            $activityData[] = [
+                'date' => $dateObj->format('M j'), // e.g., "Dec 16"
+                'syncs' => $syncCounts->get($date)->count ?? 0,
+                'reports' => $reportCounts->get($date)->count ?? 0,
+                'jobs' => $jobCounts->get($date)->count ?? 0,
+            ];
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'period_days' => $days,
+                'activity_data' => $activityData,
+            ]
+        ]);
+    }
+
     // Private helper methods
 
     private function checkApi(): array

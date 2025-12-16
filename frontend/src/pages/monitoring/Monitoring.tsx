@@ -13,6 +13,7 @@ export default function Monitoring() {
     );
     const reportMetrics = useMonitoringStore((state) => state.reportMetrics);
     const queueMetrics = useMonitoringStore((state) => state.queueMetrics);
+    const activityTrends = useMonitoringStore((state) => state.activityTrends);
     const isLoading = useMonitoringStore((state) => state.isLoading);
     const lastUpdated = useMonitoringStore((state) => state.lastUpdated);
     const fetchAllMetrics = useMonitoringStore(
@@ -55,7 +56,7 @@ export default function Monitoring() {
                     queueMetrics={queueMetrics}
                 />
 
-                <ActivityTrendChart />
+                <ActivityTrendChart data={activityTrends?.activity_data} />
             </div>
         </FloatingLayout>
     );

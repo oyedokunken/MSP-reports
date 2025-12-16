@@ -100,8 +100,21 @@ export interface QueueMetrics {
     workers_status: string
 }
 
+export interface ActivityTrendData {
+    date: string
+    syncs: number
+    reports: number
+    jobs: number
+}
+
+export interface ActivityTrends {
+    period_days: number
+    activity_data: ActivityTrendData[]
+}
+
 // API Response Types
 export type SystemStatusResponse = ApiSuccessResponse<SystemStatus>
 export type IntegrationMetricsResponse = ApiSuccessResponse<IntegrationMetrics>
 export type ReportMetricsResponse = ApiSuccessResponse<ReportMetrics>
 export type QueueMetricsResponse = ApiSuccessResponse<QueueMetrics>
+export type ActivityTrendsResponse = ApiSuccessResponse<ActivityTrends>

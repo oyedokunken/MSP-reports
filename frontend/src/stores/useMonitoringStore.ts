@@ -5,6 +5,7 @@ import type {
   IntegrationMetrics,
   ReportMetrics,
   QueueMetrics,
+  ActivityTrends,
 } from '@/types/api/monitoring'
 
 interface MonitoringState {
@@ -13,6 +14,7 @@ interface MonitoringState {
   integrationMetrics: IntegrationMetrics | null
   reportMetrics: ReportMetrics | null
   queueMetrics: QueueMetrics | null
+  activityTrends: ActivityTrends | null
   isLoading: boolean
   error: string | null
   lastUpdated: Date | null
@@ -22,6 +24,7 @@ interface MonitoringState {
   fetchIntegrationMetrics: () => Promise<void>
   fetchReportMetrics: () => Promise<void>
   fetchQueueMetrics: () => Promise<void>
+  fetchActivityTrends: () => Promise<void>
   fetchAllMetrics: () => Promise<void>
 }
 
@@ -31,6 +34,7 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
   integrationMetrics: null,
   reportMetrics: null,
   queueMetrics: null,
+  activityTrends: null,
   isLoading: true,
   error: null,
   lastUpdated: null,
@@ -88,6 +92,19 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
     }
   },
 
+  // Fetch activity trends
+  fetchActivityTrends: async () => {
+    try {
+      const response = await monitoringApi.getActivityTrends()
+
+      set({
+        activityTrends: response.data,
+      })
+    } catch (error) {
+      console.error('Failed to fetch activity trends:', error)
+    }
+  },
+
   // Fetch all metrics
   fetchAllMetrics: async () => {
     set({ isLoading: true, error: null })
@@ -97,6 +114,7 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
         useMonitoringStore.getState().fetchIntegrationMetrics(),
         useMonitoringStore.getState().fetchReportMetrics(),
         useMonitoringStore.getState().fetchQueueMetrics(),
+        useMonitoringStore.getState().fetchActivityTrends(),
       ])
 
       set({
@@ -114,4 +132,4 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
 }))
 
 // Re-export types for backward compatibility
-export type { SystemStatus, IntegrationMetrics, ReportMetrics, QueueMetrics }
+export type { SystemStatus, IntegrationMetrics, ReportMetrics, QueueMetrics, ActivityTrends }
