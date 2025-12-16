@@ -14,6 +14,7 @@ import {
   Database,
   Building2,
   MapPin,
+  HelpCircle,
 } from 'lucide-react'
 import { hasPermission } from '@/utils/permissions'
 import { useAuth } from '@/contexts/AuthContext'
@@ -308,6 +309,23 @@ export default function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="px-3 pb-3 group-data-[collapsible=icon]:px-2">
+        {/* Help & Documentation Link */}
+        <SidebarMenu className="mb-2">
+          <SidebarMenuItem className="relative group-data-[collapsible=icon]:static">
+            <SidebarMenuButton
+              asChild
+              isActive={isActive('/docs')}
+              tooltip="Help & Guides"
+              className="rounded-lg group-data-[collapsible=icon]:!p-0"
+              style={isActive('/docs') ? { background: 'var(--brand-gradient)' } : undefined}
+            >
+              <Link to="/docs" onClick={(e) => handleNavClick(e, '/docs')} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
+                <HelpCircle className="h-4 w-4 flex-shrink-0" />
+                <span className="font-medium group-data-[collapsible=icon]:hidden">Help & Guides</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <div className="border-t border-sidebar-border pt-3 group-data-[collapsible=icon]:pt-2">
           <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-sidebar-accent/50 cursor-pointer transition-colors group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-1">
             <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">

@@ -38,6 +38,7 @@ import Licenses from '@/pages/licenses/Licenses'
 import Monitoring from '@/pages/monitoring/Monitoring'
 import NotificationsPage from '@/pages/notifications/NotificationsPage'
 import { PrivacyPolicy, TermsOfService } from '@/pages/legal'
+import { DocsIndex, DocPage } from '@/pages/docs'
 import { Loader2 } from 'lucide-react'
 
 
@@ -357,6 +358,25 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <NotificationsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Documentation routes - accessible to all authenticated users */}
+      <Route
+        path="/docs"
+        element={
+          <ProtectedRoute>
+            <DocsIndex />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/docs/:categoryId/:articleId"
+        element={
+          <ProtectedRoute>
+            <DocPage />
           </ProtectedRoute>
         }
       />
