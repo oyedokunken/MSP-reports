@@ -25,7 +25,7 @@ export default function Licenses() {
 
     return (
         <FloatingLayout>
-            <div className="space-y-6">
+            <div className="space-y-8">
                 <LicensesHeader />
 
                 <LicenseUsageCard usage={usage} />

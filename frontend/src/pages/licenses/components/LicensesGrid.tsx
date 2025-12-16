@@ -56,12 +56,14 @@ export function LicensesGrid({
     <div className="space-y-6">
       {/* Expiring Soon Warning */}
       {expiringSoon.length > 0 && (
-        <Card className="border-orange-500/50 bg-orange-500/10">
-          <CardContent className="pt-6">
+        <Card className="border-orange-500/30 bg-orange-50 dark:bg-orange-950/20">
+          <CardContent className="pt-5 pb-5">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-orange-500 mt-0.5" />
-              <div>
-                <p className="font-medium text-foreground">Licenses Expiring Soon</p>
+              <div className="p-1.5 rounded-md bg-orange-500/10">
+                <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">Licenses Expiring Soon</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {expiringSoon.length} license{expiringSoon.length > 1 ? 's' : ''} will expire soon. Contact support to renew.
                 </p>
@@ -73,11 +75,11 @@ export function LicensesGrid({
 
       {/* User License Status */}
       {userLicenseStatus && (
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-border/50">
+          <CardContent className="pt-5 pb-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-foreground">User Licenses</p>
+                <p className="text-sm font-medium text-foreground">User Licenses</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {userLicenseStatus.current_users} active user{userLicenseStatus.current_users !== 1 ? 's' : ''}
                   {userLicenseStatus.licensed && ` • ${userLicenseStatus.remaining} remaining`}
@@ -85,11 +87,11 @@ export function LicensesGrid({
               </div>
               <div className="flex items-center gap-2">
                 {!userLicenseStatus.licensed ? (
-                  <Badge variant="default" className="bg-green-500 text-white hover:bg-green-600">Unlimited</Badge>
+                  <Badge variant="outline" className="text-sm border-green-500/50 text-green-600 dark:text-green-400">Unlimited</Badge>
                 ) : userLicenseStatus.remaining > 0 ? (
-                  <Badge variant="default">{userLicenseStatus.remaining} Available</Badge>
+                  <Badge variant="outline" className="text-sm">{userLicenseStatus.remaining} Available</Badge>
                 ) : (
-                  <Badge variant="destructive">Limit Reached</Badge>
+                  <Badge variant="destructive" className="text-sm">Limit Reached</Badge>
                 )}
               </div>
             </div>
@@ -99,12 +101,14 @@ export function LicensesGrid({
 
       {/* License Enforcement Status */}
       {!licenseEnforcementEnabled && (
-        <Card className="border-blue-500/50 bg-blue-500/10">
-          <CardContent className="pt-6">
+        <Card className="border-blue-500/30 bg-blue-50 dark:bg-blue-950/20">
+          <CardContent className="pt-5 pb-5">
             <div className="flex items-start gap-3">
-              <Key className="h-5 w-5 text-blue-500 mt-0.5" />
-              <div>
-                <p className="font-medium text-foreground">License Enforcement Disabled</p>
+              <div className="p-1.5 rounded-md bg-blue-500/10">
+                <Key className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">License Enforcement Disabled</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   License restrictions are not currently enforced. All features are available.
                 </p>
@@ -116,8 +120,8 @@ export function LicensesGrid({
 
       {/* Active Licenses Grid */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Active Licenses</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <h3 className="text-lg font-medium mb-4 text-foreground">Active Licenses</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {licenses.map((license) => (
             <LicenseCard key={license.license_id} license={license} />
           ))}

@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Package, Users, Database, CheckCircle, AlertCircle } from 'lucide-react'
 import type { LicenseUsage } from '@/stores/useLicensesStore'
@@ -21,41 +21,45 @@ export function LicenseUsageCard({ usage }: LicenseUsageCardProps) {
     : 0
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* Integrations Usage */}
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="border-border/50">
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Integrations
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Package className="h-4 w-4 text-primary" />
+              </div>
+              <CardTitle className="text-base font-medium">Integrations</CardTitle>
+            </div>
             {isIntegrationsUnlimited || usage.integrations.active < usage.integrations.licensed ? (
               <CheckCircle className="h-4 w-4 text-green-500" />
             ) : (
               <AlertCircle className="h-4 w-4 text-orange-500" />
             )}
           </div>
-          <CardDescription>Active integrations</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
+        <CardContent className="pt-0">
+          <div className="space-y-3">
             {isIntegrationsUnlimited ? (
               <>
-                <Badge variant="default" className="bg-green-500 text-white hover:bg-green-600">Unlimited</Badge>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {usage.integrations.active} active integration{usage.integrations.active !== 1 ? 's' : ''}
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-semibold tracking-tight">{usage.integrations.active}</span>
+                  <Badge variant="outline" className="text-xs border-green-500/50 text-green-600 dark:text-green-400">Unlimited</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Active integration{usage.integrations.active !== 1 ? 's' : ''}
                 </p>
               </>
             ) : (
               <>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{usage.integrations.active}</span>
-                  <span className="text-muted-foreground">/ {usage.integrations.licensed}</span>
+                  <span className="text-3xl font-semibold tracking-tight">{usage.integrations.active}</span>
+                  <span className="text-sm text-muted-foreground">/ {usage.integrations.licensed}</span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2">
+                <div className="w-full bg-muted/50 rounded-full h-1.5">
                   <div
-                    className={`h-2 rounded-full transition-all ${
+                    className={`h-1.5 rounded-full transition-all ${
                       integrationPercentage >= 90 ? 'bg-orange-500' : 'bg-primary'
                     }`}
                     style={{ width: `${integrationPercentage}%` }}
@@ -71,34 +75,38 @@ export function LicenseUsageCard({ usage }: LicenseUsageCardProps) {
       </Card>
 
       {/* Retention */}
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="border-border/50">
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Database className="h-4 w-4" />
-              Data Retention
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Database className="h-4 w-4 text-primary" />
+              </div>
+              <CardTitle className="text-base font-medium">Data Retention</CardTitle>
+            </div>
             <CheckCircle className="h-4 w-4 text-green-500" />
           </div>
-          <CardDescription>Historical data storage</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
+        <CardContent className="pt-0">
+          <div className="space-y-3">
             {!usage.retention.licensed || usage.retention.max_months === 0 ? (
               <>
-                <Badge variant="default" className="bg-green-500 text-white hover:bg-green-600">Unlimited</Badge>
-                <p className="text-sm text-muted-foreground mt-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-semibold tracking-tight">∞</span>
+                  <Badge variant="outline" className="text-xs border-green-500/50 text-green-600 dark:text-green-400">Unlimited</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
                   No retention limits
                 </p>
               </>
             ) : (
               <>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{usage.retention.max_months}</span>
-                  <span className="text-muted-foreground">months</span>
+                  <span className="text-3xl font-semibold tracking-tight">{usage.retention.max_months}</span>
+                  <span className="text-sm text-muted-foreground">months</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Data retained for {usage.retention.max_months} months
+                  Historical data storage
                 </p>
               </>
             )}
@@ -107,39 +115,43 @@ export function LicenseUsageCard({ usage }: LicenseUsageCardProps) {
       </Card>
 
       {/* Users */}
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="border-border/50">
+        <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Users
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Users className="h-4 w-4 text-primary" />
+              </div>
+              <CardTitle className="text-base font-medium">Users</CardTitle>
+            </div>
             {isUsersUnlimited || usage.users.remaining > 0 ? (
               <CheckCircle className="h-4 w-4 text-green-500" />
             ) : (
               <AlertCircle className="h-4 w-4 text-orange-500" />
             )}
           </div>
-          <CardDescription>Active user accounts</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
+        <CardContent className="pt-0">
+          <div className="space-y-3">
             {isUsersUnlimited ? (
               <>
-                <Badge variant="default" className="bg-green-500 text-white hover:bg-green-600">Unlimited</Badge>
-                <p className="text-sm text-muted-foreground mt-2">
-                  {usage.users.current_users} user{usage.users.current_users !== 1 ? 's' : ''} active
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-semibold tracking-tight">{usage.users.current_users}</span>
+                  <Badge variant="outline" className="text-xs border-green-500/50 text-green-600 dark:text-green-400">Unlimited</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Active user{usage.users.current_users !== 1 ? 's' : ''}
                 </p>
               </>
             ) : (
               <>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold">{usage.users.current_users}</span>
-                  <span className="text-muted-foreground">/ {usage.users.max_users}</span>
+                  <span className="text-3xl font-semibold tracking-tight">{usage.users.current_users}</span>
+                  <span className="text-sm text-muted-foreground">/ {usage.users.max_users}</span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2">
+                <div className="w-full bg-muted/50 rounded-full h-1.5">
                   <div
-                    className={`h-2 rounded-full transition-all ${
+                    className={`h-1.5 rounded-full transition-all ${
                       userPercentage >= 90 ? 'bg-orange-500' : 'bg-primary'
                     }`}
                     style={{ width: `${userPercentage}%` }}

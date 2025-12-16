@@ -21,7 +21,7 @@ export function MonitoringHeader({ lastUpdated, onRefresh, isRefreshing }: Monit
     <div className="flex items-center justify-between">
       <div>
         <h1 className="text-3xl font-bold text-foreground">System Monitoring</h1>
-        <p className="mt-2 text-muted-foreground">
+        <p className="text-muted-foreground">
           Real-time system health and performance metrics
         </p>
       </div>

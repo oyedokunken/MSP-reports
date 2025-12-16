@@ -115,54 +115,59 @@ export function LicenseCheckCard() {
     if (!result) return null
 
     return (
-      <div className="flex items-center gap-2 mt-3">
+      <div className="flex items-start gap-2 mt-2 p-2 rounded-md bg-muted/30">
         {result.allowed ? (
-          <>
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            <Badge variant="default" className="bg-green-500">Allowed</Badge>
-          </>
+          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
         ) : (
-          <>
-            <XCircle className="h-4 w-4 text-red-500" />
-            <Badge variant="destructive">Not Allowed</Badge>
-          </>
+          <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
         )}
-        {result.reason && (
-          <span className="text-sm text-muted-foreground ml-2">{result.reason}</span>
-        )}
+        <div className="flex-1 min-w-0">
+          <Badge 
+            variant={result.allowed ? "outline" : "destructive"} 
+            className={result.allowed ? "text-sm border-green-500/50 text-green-600 dark:text-green-400" : "text-sm"}
+          >
+            {result.allowed ? 'Allowed' : 'Not Allowed'}
+          </Badge>
+          {result.reason && (
+            <p className="text-sm text-muted-foreground mt-1">{result.reason}</p>
+          )}
+        </div>
       </div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>License Checks</CardTitle>
-        <CardDescription>
+    <Card className="border-border/50">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-medium">License Checks</CardTitle>
+        <CardDescription className="text-sm">
           Test license permissions for integrations, retention, and users
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Integration Check */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-3">
-              <Package className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">Integration</h3>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <Package className="h-4 w-4 text-primary" />
+              </div>
+              <h3 className="text-base font-medium">Integration</h3>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="integration-type">Integration Type</Label>
+              <Label htmlFor="integration-type" className="text-sm text-muted-foreground">Integration Type</Label>
               <Input
                 id="integration-type"
                 value={integrationType}
                 onChange={(e) => setIntegrationType(e.target.value)}
                 placeholder="e.g., datto, autotask"
+                className="h-9 text-sm"
               />
             </div>
             <Button
               onClick={checkIntegrationLicense}
               disabled={checkingIntegration || !integrationType}
-              className="w-full"
+              className="w-full h-9"
               size="sm"
             >
               {checkingIntegration ? (
@@ -178,13 +183,15 @@ export function LicenseCheckCard() {
           </div>
 
           {/* Retention Check */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-3">
-              <Database className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">Retention</h3>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <Database className="h-4 w-4 text-primary" />
+              </div>
+              <h3 className="text-base font-medium">Retention</h3>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="retention-months">Months</Label>
+              <Label htmlFor="retention-months" className="text-sm text-muted-foreground">Months</Label>
               <Input
                 id="retention-months"
                 type="number"
@@ -192,12 +199,13 @@ export function LicenseCheckCard() {
                 onChange={(e) => setRetentionMonths(e.target.value)}
                 placeholder="e.g., 36"
                 min="1"
+                className="h-9 text-sm"
               />
             </div>
             <Button
               onClick={checkRetentionLicense}
               disabled={checkingRetention || !retentionMonths}
-              className="w-full"
+              className="w-full h-9"
               size="sm"
             >
               {checkingRetention ? (
@@ -213,21 +221,23 @@ export function LicenseCheckCard() {
           </div>
 
           {/* User Check */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">User Creation</h3>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <Users className="h-4 w-4 text-primary" />
+              </div>
+              <h3 className="text-base font-medium">User Creation</h3>
             </div>
-            <div className="space-y-2">
-              <Label>Check if new user can be created</Label>
-              <p className="text-xs text-muted-foreground">
-                Validates against current user license quota
+            <div className="space-y-1">
+              <Label className="text-sm text-muted-foreground">Check user creation permission</Label>
+              <p className="text-sm text-muted-foreground/70">
+                Validates against current license quota
               </p>
             </div>
             <Button
               onClick={checkUserLicense}
               disabled={checkingUser}
-              className="w-full"
+              className="w-full h-9"
               size="sm"
             >
               {checkingUser ? (
@@ -240,23 +250,25 @@ export function LicenseCheckCard() {
               )}
             </Button>
             {userResult && (
-              <div className="flex items-center gap-2 mt-3">
+              <div className="flex items-start gap-2 mt-2 p-2 rounded-md bg-muted/30">
                 {userResult.can_create.allowed ? (
-                  <>
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                    <Badge variant="default" className="bg-green-500">Can Create</Badge>
-                  </>
+                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                 ) : (
-                  <>
-                    <XCircle className="h-4 w-4 text-red-500" />
-                    <Badge variant="destructive">Cannot Create</Badge>
-                  </>
+                  <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
                 )}
-                {userResult.can_create.reason && (
-                  <span className="text-sm text-muted-foreground ml-2">
-                    {userResult.can_create.reason}
-                  </span>
-                )}
+                <div className="flex-1 min-w-0">
+                  <Badge 
+                    variant={userResult.can_create.allowed ? "outline" : "destructive"}
+                    className={userResult.can_create.allowed ? "text-sm border-green-500/50 text-green-600 dark:text-green-400" : "text-sm"}
+                  >
+                    {userResult.can_create.allowed ? 'Can Create' : 'Cannot Create'}
+                  </Badge>
+                  {userResult.can_create.reason && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {userResult.can_create.reason}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </div>
