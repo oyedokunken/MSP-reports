@@ -34,6 +34,9 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 - ✅ **Form Validation** - Smart validation modals for required fields
 - 🔍 **Search & Filter** - Search functionality across integrations, reports, and schedules
 - 📄 **Smart Pagination** - 9 items per page with dynamic labels
+- 📚 **In-App Documentation** - Comprehensive help guides with search, categories, and sharable links
+- 🎓 **Guided Onboarding** - Welcome modal and step-by-step tour for first-time users
+- 🚫 **Custom 404 Page** - Branded error page for unknown routes with navigation options
 
 ---
 

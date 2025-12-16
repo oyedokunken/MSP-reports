@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Responsive design for mobile, tablet, and desktop
 - Real-time notifications system
 - Dashboard with integration and customer summaries
+- **Comprehensive Documentation System** - In-app help guides with search, categories, and sharable links
+- **Guided Onboarding System** - Welcome modal and step-by-step tour for first-time users
+- **404 Not Found Page** - Branded error page for unknown routes with navigation options
+- **Tour Restart** - Users can retake the guided tour anytime from Help & Guides
 
 ### Changed
 - Customer pagination increased to 21 items per page (3x7 grid)
@@ -37,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings sidebar item now shows active state correctly
 - Integration preview toast notifications working
 - Report download notifications functional
+- IT Glue license utilization calculation now properly extracts array values
 
 ## [0.1.0] - 2025-11-26
 
