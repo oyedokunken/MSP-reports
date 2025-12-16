@@ -1,4 +1,4 @@
-import { DocCategory } from '../types'
+import type { DocCategory } from '../types'
 import { gettingStartedCategory } from './gettingStarted'
 import { integrationsCategory } from './integrations'
 import { customersCategory } from './customers'

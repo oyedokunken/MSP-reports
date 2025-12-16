@@ -9,7 +9,6 @@ import {
   Users,
   FileText,
   Settings,
-  ExternalLink,
   Copy,
   Check,
   PlayCircle,
@@ -20,7 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { documentationData } from './data'
-import { DocArticle, DocCategory } from './types'
+import type { DocArticle } from './types'
 import { useOnboardingStore } from '@/stores/useOnboardingStore'
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {

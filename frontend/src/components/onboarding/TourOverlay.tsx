@@ -18,8 +18,7 @@ export function TourOverlay() {
     isTourActive, 
     currentStep, 
     nextStep, 
-    prevStep, 
-    endTour,
+    prevStep,
     skipTour,
   } = useOnboardingStore()
 

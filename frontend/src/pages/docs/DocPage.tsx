@@ -1,15 +1,13 @@
 import { useMemo, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import {
   ArrowLeft,
-  Book,
   ChevronRight,
   Copy,
   Check,
   ExternalLink,
   Menu,
-  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,11 +16,10 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { documentationData } from './data'
-import { DocArticle, DocCategory } from './types'
+import type { DocArticle } from './types'
 
 export default function DocPage() {
   const { categoryId, articleId } = useParams<{ categoryId: string; articleId: string }>()
-  const navigate = useNavigate()
   const [copiedLink, setCopiedLink] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Sparkles, Rocket, BookOpen, X } from 'lucide-react'
+import { Sparkles, Rocket, BookOpen } from 'lucide-react'
 import {
   Dialog,
   DialogContent,

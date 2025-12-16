@@ -1,4 +1,4 @@
-import { DocCategory } from '../types'
+import type { DocCategory } from '../types'
 
 export const administrationCategory: DocCategory = {
   id: 'administration',
