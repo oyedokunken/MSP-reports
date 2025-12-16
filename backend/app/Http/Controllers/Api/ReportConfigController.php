@@ -287,8 +287,8 @@ class ReportConfigController extends Controller
             ->firstOrFail();
 
         // Get custom date range from request if provided
-        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date')) : null;
-        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date')) : null;
+        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : null;
+        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : null;
         $reportType = $request->input('report_type');
         
         // If no custom dates provided and this is a manual generation, use previous month

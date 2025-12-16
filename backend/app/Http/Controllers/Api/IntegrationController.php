@@ -849,8 +849,8 @@ class IntegrationController extends Controller
             'end_date' => 'required|date|after:start_date|before_or_equal:today',
         ]);
 
-        $startDate = \Carbon\Carbon::parse($validated['start_date']);
-        $endDate = \Carbon\Carbon::parse($validated['end_date']);
+        $startDate = \Carbon\Carbon::parse($validated['start_date'])->startOfDay();
+        $endDate = \Carbon\Carbon::parse($validated['end_date'])->endOfDay();
         $requestedMonths = $startDate->diffInMonths($endDate);
         
         $retentionCheck = $licenseChecker->canExtendRetention($company, $requestedMonths);
@@ -877,9 +877,9 @@ class IntegrationController extends Controller
         
         $job = $integration->historicalImportJobs()->create([
             'company_id' => $company->company_id,
-            'import_start_date' => $validated['start_date'],
-            'import_end_date' => $validated['end_date'],
-            'current_position' => $validated['start_date'],
+            'import_start_date' => $startDate,
+            'import_end_date' => $endDate,
+            'current_position' => $startDate,
             'status' => 'queued',
             'priority_level' => 1,
         ]);

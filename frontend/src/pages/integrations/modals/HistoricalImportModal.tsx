@@ -52,11 +52,14 @@ export function HistoricalImportModal({
     setIsSubmitting(true)
 
     try {
+      // End date should be end of TODAY (includes all of today's data)
       const endDate = new Date()
-      endDate.setHours(0, 0, 0, 0)
+      endDate.setHours(23, 59, 59, 999)
 
+      // Start date: "90 days" means 90 days back from TODAY
+      // Dec 16 - 89 days = Sep 17 (because we count today as day 1)
       const startDate = new Date()
-      startDate.setDate(startDate.getDate() - daysNum)
+      startDate.setDate(startDate.getDate() - daysNum + 1)
       startDate.setHours(0, 0, 0, 0)
 
       await api.post(`/integrations/${integration.id}/historical-import`, {

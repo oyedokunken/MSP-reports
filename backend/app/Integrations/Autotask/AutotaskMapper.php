@@ -179,4 +179,45 @@ class AutotaskMapper
             ],
         ];
     }
+
+    public static function mapContact(array $autotaskContact): array
+    {
+        return [
+            'integration_customer_id' => null, // Will be mapped to company if possible, but primarily a company sub-resource
+            'data_type' => 'contact',
+            'timestamp' => $autotaskContact['lastActivityDate'] ?? $autotaskContact['createDate'] ?? now(),
+            'payload' => [
+                'contact_id' => $autotaskContact['id'],
+                'company_id' => $autotaskContact['companyID'] ?? null,
+                'first_name' => $autotaskContact['firstName'] ?? null,
+                'last_name' => $autotaskContact['lastName'] ?? null,
+                'email' => $autotaskContact['emailAddress'] ?? null,
+                'phone' => $autotaskContact['phone'] ?? null,
+                'mobile_phone' => $autotaskContact['mobilePhone'] ?? null,
+                'title' => $autotaskContact['title'] ?? null,
+                'is_active' => $autotaskContact['isActive'] ?? true,
+                'is_primary_contact' => $autotaskContact['isPrimaryContact'] ?? false,
+            ],
+        ];
+    }
+
+    public static function mapTicketNote(array $autotaskNote): array
+    {
+        return [
+            'integration_customer_id' => null,
+            'data_type' => 'ticket_note',
+            'timestamp' => $autotaskNote['createDateTime'] ?? now(),
+            'payload' => [
+                'note_id' => $autotaskNote['id'],
+                'ticket_id' => $autotaskNote['ticketID'] ?? null,
+                'title' => $autotaskNote['title'] ?? null,
+                'description' => $autotaskNote['description'] ?? null,
+                'note_type' => $autotaskNote['noteType'] ?? null,
+                'publish' => $autotaskNote['publish'] ?? null,
+                'created_by_contact_id' => $autotaskNote['createdByContactID'] ?? null,
+                'created_by_resource_id' => $autotaskNote['creatorResourceID'] ?? null,
+                'created_at' => $autotaskNote['createDateTime'] ?? null,
+            ],
+        ];
+    }
 }

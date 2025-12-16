@@ -57,11 +57,11 @@ class AutotaskDataGatherer
                 'queue_id' => $payload['queue_id'] ?? null,
                 'contract_id' => $payload['contract_id'] ?? null,
                 'billing_code_id' => $payload['billing_code_id'] ?? null,
-                'created_date' => $createdDate ? $createdDate->format('M d, Y') : 'Unknown',
-                'completed_date' => $completedDate ? $completedDate->format('M d, Y') : null,
-                'due_date' => $dueDate ? $dueDate->format('M d, Y') : null,
-                'resolved_date' => $resolvedDate ? $resolvedDate->format('M d, Y') : null,
-                'last_activity_date' => $lastActivityDate ? $lastActivityDate->format('M d, Y H:i') : null,
+                'created_date' => $createdDate ? $createdDate->format('M d, Y g:i A') : 'Unknown',
+                'completed_date' => $completedDate ? $completedDate->format('M d, Y g:i A') : null,
+                'due_date' => $dueDate ? $dueDate->format('M d, Y g:i A') : null,
+                'resolved_date' => $resolvedDate ? $resolvedDate->format('M d, Y g:i A') : null,
+                'last_activity_date' => $lastActivityDate ? $lastActivityDate->format('M d, Y g:i A') : null,
                 'resolution_hours' => $resolutionHours,
                 'assigned_resource' => $payload['assigned_resource'] ?? null,
                 'assigned_resource_role_id' => $payload['assigned_resource_role_id'] ?? null,
@@ -72,6 +72,19 @@ class AutotaskDataGatherer
                 'purchase_order_number' => $payload['purchase_order_number'] ?? null,
                 'resolution' => $payload['resolution'] ?? null,
             ];
+        })->filter(function($item) use ($startDate, $endDate) {
+            $createdDate = isset($item['created_date']) && $item['created_date'] !== 'Unknown' 
+                ? Carbon::parse($item['created_date']) 
+                : null;
+            $completedDate = isset($item['completed_date']) 
+                ? Carbon::parse($item['completed_date']) 
+                : null;
+
+            // Include if created in range OR completed in range
+            $isCreated = $createdDate && $createdDate->between($startDate, $endDate);
+            $isCompleted = $completedDate && $completedDate->between($startDate, $endDate);
+
+            return $isCreated || $isCompleted;
         })->values();
     }
 
@@ -126,6 +139,12 @@ class AutotaskDataGatherer
                 'creator_user_id' => $payload['creator_user_id'] ?? null,
                 'last_modified_user_id' => $payload['last_modified_user_id'] ?? null,
             ];
+        })->filter(function($item) use ($startDate, $endDate) {
+            $dateWorked = isset($item['date_worked']) && $item['date_worked'] !== 'Unknown' 
+                ? Carbon::parse($item['date_worked']) 
+                : null;
+            
+            return $dateWorked && $dateWorked->between($startDate, $endDate);
         })->values();
     }
 

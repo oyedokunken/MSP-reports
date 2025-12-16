@@ -396,6 +396,141 @@ class AutotaskIntegration implements IntegrationInterface
                 $errors[] = "Failed to fetch resources: {$e->getMessage()}";
             }
 
+
+
+            // Process Contracts (Active contracts - no date range, so just fetch/update)
+            // Fetch fewer times if possible? Logic here runs per chunk.
+            // Since contracts are usually low volume, we'll fetch them every chunk to be safe/simple.
+            try {
+                $contracts = $this->client->getContracts(); 
+                $contractsProcessed = 0;
+
+                foreach (array_chunk($contracts, 1000) as $chunk) {
+                    $batchRecords = [];
+
+                    foreach ($chunk as $contract) {
+                        try {
+                            $standardized = AutotaskMapper::mapContract($contract);
+                            
+                            $batchRecords[] = [
+                                'company_id' => $this->integration->company_id,
+                                'integration_id' => $this->integration->integration_id,
+                                'integration_customer_id' => null, // Contracts are company-wide but we don't have direct mapping here easily
+                                'data_type' => $standardized['data_type'],
+                                'data_timestamp' => $standardized['timestamp'],
+                                'data_payload' => json_encode($standardized['payload']),
+                                'imported_at' => now(),
+                                'data_version' => 1,
+                            ];
+                            $contractsProcessed++;
+                        } catch (\Exception $e) {
+                            $errors[] = "Failed to process contract: {$e->getMessage()}";
+                        }
+                    }
+                    if (!empty($batchRecords)) $this->storeHistoricalDataBatch($batchRecords);
+                }
+                $totalProcessed += $contractsProcessed;
+                 \Log::info('Autotask historical (OPTIMIZED): Contracts processed', [
+                    'count' => $contractsProcessed
+                ]);
+            } catch (\Exception $e) {
+                 $errors[] = "Failed to fetch contracts: {$e->getMessage()}";
+            }
+
+            // Process Contacts
+             try {
+                $contacts = $this->client->getContacts($startDate, $endDate);
+                $contactsProcessed = 0;
+
+                foreach (array_chunk($contacts, 1000) as $chunk) {
+                    $batchRecords = [];
+                    foreach ($chunk as $contact) {
+                        try {
+                            $standardized = AutotaskMapper::mapContact($contact);
+                            // Try to map to integration customer
+                             $integrationCustomerId = null;
+                            if ($contact['companyID'] ?? false) {
+                                 $integrationCustomerId = $customerMap[(string)$contact['companyID']] ?? null;
+                            }
+                            
+                            $standardized['integration_customer_id'] = $integrationCustomerId;
+
+                            $batchRecords[] = [
+                                'company_id' => $this->integration->company_id,
+                                'integration_id' => $this->integration->integration_id,
+                                'integration_customer_id' => $integrationCustomerId,
+                                'data_type' => $standardized['data_type'],
+                                'data_timestamp' => $standardized['timestamp'],
+                                'data_payload' => json_encode($standardized['payload']),
+                                'imported_at' => now(),
+                                'data_version' => 1,
+                            ];
+                            $contactsProcessed++;
+                        } catch (\Exception $e) {
+                            $errors[] = "Failed to process contact: {$e->getMessage()}";
+                        }
+                    }
+                    if (!empty($batchRecords)) $this->storeHistoricalDataBatch($batchRecords);
+                }
+                $totalProcessed += $contactsProcessed;
+                 \Log::info('Autotask historical (OPTIMIZED): Contacts processed', [
+                    'count' => $contactsProcessed
+                ]);
+            } catch (\Exception $e) {
+                 $errors[] = "Failed to fetch contacts: {$e->getMessage()}";
+            }
+
+            // Process Ticket Notes
+            try {
+                $notes = $this->client->getTicketNotes($startDate, $endDate);
+                $notesProcessed = 0;
+
+                foreach (array_chunk($notes, 1000) as $chunk) {
+                    $batchRecords = [];
+                    foreach ($chunk as $note) {
+                        try {
+                            $standardized = AutotaskMapper::mapTicketNote($note);
+                            
+                            $ticketId = $note['ticketID'] ?? null;
+                            $integrationCustomerId = null;
+                            // Map to customer via ticket if we have the map
+                            // Note: we don't have ticket->company map persisted here easily unless we refetch or use what we got from getTickets if they overlap
+                            // For simplicity, we might miss the customer ID for notes if we don't look it up.
+                            // However, we did fetch tickets earlier in this method.
+                            
+                            // Optimization: Check if ticket ID was in the tickets we just fetched?
+                            // $ticketToCompanyMap was unset. 
+                            // Re-building map is hard since we unset it. 
+                            // But usually notes come with ticket ID. 
+                            // If we really need integration_customer_id on notes, we need that map.
+                            // Let's use null for now or try to improve later if needed. 
+                            // Ticket Notes are usually children of tickets.
+
+                            $batchRecords[] = [
+                                'company_id' => $this->integration->company_id,
+                                'integration_id' => $this->integration->integration_id,
+                                'integration_customer_id' => null,
+                                'data_type' => $standardized['data_type'],
+                                'data_timestamp' => $standardized['timestamp'],
+                                'data_payload' => json_encode($standardized['payload']),
+                                'imported_at' => now(),
+                                'data_version' => 1,
+                            ];
+                            $notesProcessed++;
+                        } catch (\Exception $e) {
+                            $errors[] = "Failed to process note: {$e->getMessage()}";
+                        }
+                    }
+                    if (!empty($batchRecords)) $this->storeHistoricalDataBatch($batchRecords);
+                }
+                 $totalProcessed += $notesProcessed;
+                 \Log::info('Autotask historical (OPTIMIZED): Notes processed', [
+                    'count' => $notesProcessed
+                ]);
+            } catch (\Exception $e) {
+                 $errors[] = "Failed to fetch ticket notes: {$e->getMessage()}";
+            }
+
             \Log::info('Autotask historical (OPTIMIZED): Completed', [
                 'integration_id' => $this->integration->integration_id,
                 'total_processed' => $totalProcessed,

@@ -128,8 +128,8 @@ class AutotaskClient
             while ($hasMore) {
                 $filters = [
                     ['field' => 'id', 'op' => 'gt', 'value' => $lastId],
-                    ['field' => 'lastActivityDate', 'op' => 'gte', 'value' => $startDate->format('Y-m-d\TH:i:s\Z')],
-                    ['field' => 'lastActivityDate', 'op' => 'lt', 'value' => $endDate->format('Y-m-d\TH:i:s\Z')]
+                    ['field' => 'lastActivityDate', 'op' => 'gte', 'value' => $startDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')],
+                    ['field' => 'lastActivityDate', 'op' => 'lt', 'value' => $endDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')]
                 ];
 
                 $response = $this->makeRequest('POST', '/Tickets/query', [
@@ -150,7 +150,22 @@ class AutotaskClient
                     break;
                 }
 
-                $allTickets = array_merge($allTickets, $items);
+                // Filter items to ensure they're within the date range
+                // API pagination by ID can return items outside the date filter
+                $filteredItems = array_filter($items, function($item) use ($startDate, $endDate) {
+                    $lastActivity = $item['lastActivityDate'] ?? null;
+                    if (!$lastActivity) {
+                        return false;
+                    }
+                    try {
+                        $activityDate = \Carbon\Carbon::parse($lastActivity);
+                        return $activityDate->gte($startDate) && $activityDate->lt($endDate);
+                    } catch (\Exception $e) {
+                        return false;
+                    }
+                });
+
+                $allTickets = array_merge($allTickets, $filteredItems);
                 $lastId = end($items)['id'];
             }
 
@@ -171,8 +186,8 @@ class AutotaskClient
             while ($hasMore) {
                 $filters = [
                     ['field' => 'id', 'op' => 'gt', 'value' => $lastId],
-                    ['field' => 'dateWorked', 'op' => 'gte', 'value' => $startDate->format('Y-m-d\TH:i:s\Z')],
-                    ['field' => 'dateWorked', 'op' => 'lt', 'value' => $endDate->format('Y-m-d\TH:i:s\Z')]
+                    ['field' => 'dateWorked', 'op' => 'gte', 'value' => $startDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')],
+                    ['field' => 'dateWorked', 'op' => 'lt', 'value' => $endDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')]
                 ];
 
                 $response = $this->makeRequest('POST', '/TimeEntries/query', [
@@ -193,7 +208,22 @@ class AutotaskClient
                     break;
                 }
 
-                $allEntries = array_merge($allEntries, $items);
+                // Filter items to ensure they're within the date range
+                // API pagination by ID can return items outside the date filter
+                $filteredItems = array_filter($items, function($item) use ($startDate, $endDate) {
+                    $dateWorked = $item['dateWorked'] ?? null;
+                    if (!$dateWorked) {
+                        return false;
+                    }
+                    try {
+                        $workedDate = \Carbon\Carbon::parse($dateWorked);
+                        return $workedDate->gte($startDate) && $workedDate->lt($endDate);
+                    } catch (\Exception $e) {
+                        return false;
+                    }
+                });
+
+                $allEntries = array_merge($allEntries, $filteredItems);
                 $lastId = end($items)['id'];
             }
 
@@ -274,6 +304,99 @@ class AutotaskClient
         }
 
         return $allResources;
+    }
+
+    public function getContacts(Carbon $startDate, Carbon $endDate): array
+    {
+        $allContacts = [];
+        $lastId = 0;
+        $hasMore = true;
+        $pageSize = 100;
+
+        try {
+            while ($hasMore) {
+                $filters = [
+                    ['field' => 'id', 'op' => 'gt', 'value' => $lastId],
+                    ['field' => 'lastActivityDate', 'op' => 'gte', 'value' => $startDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')],
+                    ['field' => 'lastActivityDate', 'op' => 'lt', 'value' => $endDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')]
+                ];
+
+                $response = $this->makeRequest('POST', '/Contacts/query', [
+                    'filter' => $filters,
+                    'MaxRecords' => $pageSize,
+                    'SortBy' => 'id',
+                    'SortOrder' => 'ASC'
+                ]);
+
+                if (!$response->successful()) {
+                    \Log::warning('Autotask API getContacts failed', [
+                        'status' => $response->status(),
+                        'body' => $response->body(),
+                    ]);
+                    break;
+                }
+
+                $items = $response->json('items') ?? [];
+                
+                if (empty($items)) {
+                    $hasMore = false;
+                    break;
+                }
+
+                $allContacts = array_merge($allContacts, $items);
+                $lastId = end($items)['id'];
+            }
+
+            return $allContacts;
+        } catch (\Exception $e) {
+            \Log::error('Autotask API getContacts exception', [
+                'error' => $e->getMessage(),
+            ]);
+            throw new \Exception("Failed to fetch contacts: {$e->getMessage()}");
+        }
+    }
+
+    public function getTicketNotes(Carbon $startDate, Carbon $endDate): array
+    {
+        $allNotes = [];
+        $lastId = 0;
+        $hasMore = true;
+        $pageSize = 100;
+
+        try {
+            while ($hasMore) {
+                $filters = [
+                    ['field' => 'id', 'op' => 'gt', 'value' => $lastId],
+                    ['field' => 'createDateTime', 'op' => 'gte', 'value' => $startDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')],
+                    ['field' => 'createDateTime', 'op' => 'lt', 'value' => $endDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')]
+                ];
+
+                $response = $this->makeRequest('POST', '/TicketNotes/query', [
+                    'filter' => $filters,
+                    'MaxRecords' => $pageSize,
+                    'SortBy' => 'id',
+                    'SortOrder' => 'ASC'
+                ]);
+
+                if (!$response->successful()) {
+                    break;
+                }
+
+                $items = $response->json('items') ?? [];
+                
+                if (empty($items)) {
+                    $hasMore = false;
+                    break;
+                }
+
+                $allNotes = array_merge($allNotes, $items);
+                $lastId = end($items)['id'];
+            }
+
+            return $allNotes;
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to fetch ticket notes: {$e->getMessage()}");
+        }
     }
 
     protected function makeRequest(string $method, string $endpoint, array $params = [])
