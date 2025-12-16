@@ -19,7 +19,7 @@ use App\Http\Controllers\Admin\ITGlueReportController;
 // Public Health Check (no auth required to implement)
 Route::get('/health', [HealthCheckController::class, 'index']);
 
-Route::middleware(['secure.header       s', 'throttle:300,1'])->group(function () {
+Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
 
     // Auth Routes - Stricter rate limiting for security-sensitive endpoints
     Route::middleware(['throttle:10,1'])->group(function () {
