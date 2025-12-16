@@ -150,6 +150,52 @@ class HealthCheckController extends Controller
         ]);
     }
 
+    public function monthlyReportAnalytics(Request $request)
+    {
+        $authUser = $request->user();
+        $months = $request->input('months', 6);
+
+        $startDate = now()->subMonths($months)->startOfMonth();
+
+        // Get reports grouped by month (PostgreSQL compatible)
+        $reports = GeneratedReport::where('company_id', $authUser->company_id)
+            ->where('generated_at', '>=', $startDate)
+            ->select(
+                DB::raw("TO_CHAR(generated_at, 'YYYY-MM') as month"),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy('month')
+            ->orderBy('month', 'asc')
+            ->get();
+
+        // Create array with all months in range (fill gaps with 0)
+        $monthlyData = [];
+        $currentDate = $startDate->copy();
+        $endDate = now();
+
+        while ($currentDate <= $endDate) {
+            $monthKey = $currentDate->format('Y-m');
+            $monthLabel = $currentDate->format('M Y');
+            
+            $reportCount = $reports->firstWhere('month', $monthKey);
+            
+            $monthlyData[] = [
+                'date' => $monthLabel,
+                'count' => $reportCount ? $reportCount->count : 0,
+            ];
+            
+            $currentDate->addMonth();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'period_months' => $months,
+                'monthly_data' => $monthlyData,
+            ]
+        ]);
+    }
+
     public function queueMetrics(Request $request)
     {
         try {

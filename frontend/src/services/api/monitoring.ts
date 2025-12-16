@@ -42,4 +42,30 @@ export const monitoringApi = {
     async getQueueMetrics(): Promise<QueueMetricsResponse> {
         return api.get('/monitoring/queue') as unknown as Promise<QueueMetricsResponse>
     },
+
+    /**
+     * Get monthly report analytics
+     * GET /api/monitoring/reports/monthly?months=6
+     */
+    async getMonthlyReportAnalytics(months: number = 6): Promise<{
+        status: string
+        data: {
+            period_months: number
+            monthly_data: Array<{
+                date: string
+                count: number
+            }>
+        }
+    }> {
+        return api.get(`/monitoring/reports/monthly?months=${months}`) as unknown as Promise<{
+            status: string
+            data: {
+                period_months: number
+                monthly_data: Array<{
+                    date: string
+                    count: number
+                }>
+            }
+        }>
+    },
 }

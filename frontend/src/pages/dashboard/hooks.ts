@@ -7,6 +7,7 @@ import { useCustomersStore } from "@/stores/useCustomersStore";
 import { useMonitoringStore } from "@/stores/useMonitoringStore";
 import { useSchedulesStore } from "@/stores/useSchedulesStore";
 import { useNotificationStore, type Notification } from "@/stores/useNotificationStore";
+import { monitoringApi } from "@/services/api/monitoring";
 import type { Integration, UpcomingReport, RecentActivity, Stat } from "./types";
 
 export const useQuickSync = (
@@ -192,24 +193,25 @@ export const useDashboard = () => {
     const successRate = reportMetrics?.metrics.success_rate || 0;
     const queueHealth = systemStatus?.queue.health || "unknown";
 
-    // Generate mock data for reports chart (last 6 months)
-    const reportsChartData = (() => {
-        const data = []
-        const today = new Date()
-        for (let i = 5; i >= 0; i--) {
-            const date = new Date(today)
-            date.setMonth(date.getMonth() - i)
-            const dateStr = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-            // Generate some realistic-looking data based on report metrics
-            const baseCount = Math.floor((reportMetrics?.metrics.total_reports || 0) / 6)
-            const variance = Math.floor(Math.random() * 10)
-            data.push({
-                date: dateStr,
-                count: Math.max(0, baseCount + variance)
-            })
+    // Fetch monthly report analytics data
+    const [reportsChartData, setReportsChartData] = useState<Array<{ date: string; count: number }>>([])
+
+    useEffect(() => {
+        const fetchMonthlyReports = async () => {
+            if (!isAuthenticated) return
+            
+            try {
+                const response = await monitoringApi.getMonthlyReportAnalytics(6)
+                setReportsChartData(response.data.monthly_data)
+            } catch (error) {
+                console.error('Failed to fetch monthly report analytics:', error)
+                // Fallback to empty array on error
+                setReportsChartData([])
+            }
         }
-        return data
-    })()
+
+        fetchMonthlyReports()
+    }, [isAuthenticated, reportMetrics])
 
     const stats: Stat[] = [
         {

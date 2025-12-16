@@ -146,6 +146,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::get('/monitoring/status', [HealthCheckController::class, 'status']);
         Route::get('/monitoring/integrations', [HealthCheckController::class, 'integrationMetrics']);
         Route::get('/monitoring/reports', [HealthCheckController::class, 'reportMetrics']);
+        Route::get('/monitoring/reports/monthly', [HealthCheckController::class, 'monthlyReportAnalytics']);
         Route::get('/monitoring/queue', [HealthCheckController::class, 'queueMetrics']);
     });
 });
