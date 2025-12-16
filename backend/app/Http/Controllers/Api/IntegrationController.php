@@ -294,7 +294,7 @@ class IntegrationController extends Controller
         // LibreNMS: add default base_url if not provided, or use provided value
         if ($validated['integration_type'] === 'LibreNMS') {
             if (!isset($credentials['base_url']) && isset($credentials['api_token'])) {
-                $credentials['base_url'] = 'http://172.17.0.1:8228/api/v0';
+                $credentials['base_url'] = 'http://192.168.228.7/api/v0';
                 Log::debug('LibreNMS: Added default base_url');
             }
             // Ensure base_url doesn't have trailing slash
