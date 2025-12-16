@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { UserPlus, Users, Search, SlidersHorizontal } from 'lucide-react'
+import { UserPlus, Search, SlidersHorizontal } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,43 +24,28 @@ export function UsersHeader({
   statusFilter
 }: UsersHeaderProps) {
   return (
-    <div className="flex flex-col gap-6 mb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-              <Users className="h-6 w-6" />
-            </div>
-            Users
-          </h1>
-          <p className="text-muted-foreground text-lg pl-14">
-            Manage access and permissions for your team.
-          </p>
-        </div>
-        <Button
-          onClick={onCreateUser}
-          size="lg"
-          className="shadow-lg hover:shadow-primary/25 transition-all duration-300 bg-primary hover:bg-primary/90"
-        >
-          <UserPlus className="mr-2 h-5 w-5" />
-          Add Team Member
-        </Button>
+    <div className="flex flex-col gap-4">
+      <div className="space-y-1">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">MSP Users</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage access and permissions for your team
+        </p>
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-4 p-1">
+      <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search users by name or email..."
-            className="pl-10 h-11 bg-background/50 border-muted-foreground/20 focus:border-primary/50 transition-colors"
+            placeholder="Search users..."
+            className="pl-10 h-9 text-sm"
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
           />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className={`h-11 w-11 border-muted-foreground/20 ${statusFilter !== 'all' ? 'text-primary border-primary/50 bg-primary/5' : ''}`}>
+            <Button variant="outline" size="icon" className={`h-9 w-9 ${statusFilter !== 'all' ? 'text-primary border-primary/50 bg-primary/5' : ''}`}>
               <SlidersHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -79,6 +64,13 @@ export function UsersHeader({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button
+          onClick={onCreateUser}
+          className="gap-2"
+        >
+          <UserPlus className="h-4 w-4" />
+          Add User
+        </Button>
       </div>
     </div>
   )

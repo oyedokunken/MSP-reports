@@ -47,6 +47,24 @@ class User extends Authenticatable
         'settings' => 'array',
     ];
 
+    protected $appends = ['last_login', 'created_at'];
+
+    /**
+     * Accessor for last_login (maps from last_login_at for frontend compatibility)
+     */
+    public function getLastLoginAttribute()
+    {
+        return $this->last_login_at?->toIso8601String();
+    }
+
+    /**
+     * Accessor for created_at (ensure it's always included)
+     */
+    public function getCreatedAtAttribute($value)
+    {
+        return $value ? \Carbon\Carbon::parse($value)->toIso8601String() : null;
+    }
+
     
     public function company()
     {

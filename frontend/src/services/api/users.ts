@@ -21,11 +21,11 @@ import type {
 
 export const userApi = {
     /**
-     * Get all users
-     * GET /api/users
+     * Get all users with pagination
+     * GET /api/users?page={page}&per_page={perPage}
      */
-    async getUsers(): Promise<UserListResponse> {
-        return api.get('/users') as unknown as Promise<UserListResponse>
+    async getUsers(page: number = 1, perPage: number = 10): Promise<UserListResponse> {
+        return api.get(`/users?page=${page}&per_page=${perPage}`) as unknown as Promise<UserListResponse>
     },
 
     /**

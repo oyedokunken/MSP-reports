@@ -3,7 +3,8 @@ import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUsersStore } from '@/stores/useUsersStore'
-import { UsersHeader, UsersGrid } from './components'
+import { UsersHeader } from './components'
+import { UsersTable } from './components/UsersTable'
 import { CreateUserModal } from './modals/CreateUserModal'
 import { EditPermissionsModal } from './modals/EditPermissionsModal'
 import { EditUserModal } from './modals/EditUserModal'
@@ -25,11 +26,15 @@ export default function UsersList() {
   const selectedUser = useUsersStore(state => state.selectedUser)
   const searchQuery = useUsersStore(state => state.searchQuery)
   const statusFilter = useUsersStore(state => state.statusFilter)
+  const currentPage = useUsersStore(state => state.currentPage)
+  const totalPages = useUsersStore(state => state.totalPages)
+  const totalUsers = useUsersStore(state => state.totalUsers)
   const fetchUsers = useUsersStore(state => state.fetchUsers)
   const deactivateUser = useUsersStore(state => state.deactivateUser)
   const reactivateUser = useUsersStore(state => state.reactivateUser)
   const setSearchQuery = useUsersStore(state => state.setSearchQuery)
   const setStatusFilter = useUsersStore(state => state.setStatusFilter)
+  const setPage = useUsersStore(state => state.setPage)
   const getFilteredUsers = useUsersStore(state => state.getFilteredUsers)
   const openModal = useUsersStore(state => state.openModal)
   const closeModal = useUsersStore(state => state.closeModal)
@@ -110,11 +115,15 @@ export default function UsersList() {
           statusFilter={statusFilter}
         />
 
-        <UsersGrid
+        <UsersTable
           users={filteredUsers}
           isLoading={isLoading}
           error={error}
           currentUserId={currentUser?.user_id}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalUsers={totalUsers}
+          onPageChange={setPage}
           onCreateUser={() => openModal('create')}
           onEdit={(user) => {
             if (!hasPermission(currentUser, 'users', 'manage')) {

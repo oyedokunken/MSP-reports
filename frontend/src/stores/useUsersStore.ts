@@ -8,6 +8,12 @@ interface UsersState {
   isLoading: boolean
   error: string | null
 
+  // Pagination
+  currentPage: number
+  perPage: number
+  totalUsers: number
+  totalPages: number
+
   // Search and filter
   searchQuery: string
   statusFilter: string // 'all' | 'active' | 'inactive' | 'admin'
@@ -23,9 +29,12 @@ interface UsersState {
   selectedUser: UserWithPermissions | null
 
   // Actions
-  fetchUsers: () => Promise<void>
+  fetchUsers: (page?: number) => Promise<void>
   deactivateUser: (userId: number) => Promise<void>
   reactivateUser: (userId: number) => Promise<void>
+
+  // Pagination actions
+  setPage: (page: number) => void
 
   // Search and filter actions
   setSearchQuery: (query: string) => void
@@ -43,6 +52,10 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   users: [],
   isLoading: true,
   error: null,
+  currentPage: 1,
+  perPage: 10,
+  totalUsers: 0,
+  totalPages: 1,
   searchQuery: '',
   statusFilter: 'all',
   modals: {
@@ -55,14 +68,26 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   selectedUser: null,
 
   // Fetch users
-  fetchUsers: async () => {
+  fetchUsers: async (page?: number) => {
+    const currentPage = page ?? get().currentPage
     set({ isLoading: true, error: null })
     try {
-      const response = await userApi.getUsers()
+      const response = await userApi.getUsers(currentPage, get().perPage)
       const usersList = response.data as UserWithPermissions[]
+      const pagination = response.pagination
+
+      // Debug: Check what last_login data we're getting
+      console.log('Users data from API:', usersList.map(u => ({ 
+        name: u.name, 
+        last_login: u.last_login,
+        created_at: u.created_at 
+      })))
 
       set({
         users: usersList,
+        currentPage: pagination?.current_page || 1,
+        totalUsers: pagination?.total || usersList.length,
+        totalPages: pagination?.last_page || 1,
         isLoading: false,
       })
     } catch (error) {
@@ -79,7 +104,7 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   deactivateUser: async (userId: number) => {
     try {
       await userApi.deactivateUser(userId)
-      await get().fetchUsers()
+      await get().fetchUsers(get().currentPage)
     } catch (error) {
       console.error('Failed to deactivate user:', error)
       throw error
@@ -90,11 +115,17 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   reactivateUser: async (userId: number) => {
     try {
       await userApi.reactivateUser(userId)
-      await get().fetchUsers()
+      await get().fetchUsers(get().currentPage)
     } catch (error) {
       console.error('Failed to reactivate user:', error)
       throw error
     }
+  },
+
+  // Pagination actions
+  setPage: (page: number) => {
+    set({ currentPage: page })
+    get().fetchUsers(page)
   },
 
   // Search and filter actions

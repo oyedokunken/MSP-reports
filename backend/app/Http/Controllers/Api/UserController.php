@@ -16,15 +16,31 @@ class UserController extends Controller
     {
         $authUser = $request->user();
 
-        $users = User::where('company_id', $authUser->company_id)
-                     ->with('role')
-                     ->get()
-                     
-                     ->makeHidden(['password']);
+        $perPage = $request->input('per_page', 10);
+        $page = $request->input('page', 1);
+
+        $query = User::where('company_id', $authUser->company_id)
+                     ->with('role');
+
+        // Get paginated results
+        $users = $query->paginate($perPage, ['*'], 'page', $page);
+
+        // Hide password from all users in the collection
+        $users->getCollection()->transform(function ($user) {
+            return $user->makeHidden(['password']);
+        });
 
         return response()->json([
             'status' => 'success',
-            'data' => $users
+            'data' => $users->items(),
+            'pagination' => [
+                'current_page' => $users->currentPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+                'last_page' => $users->lastPage(),
+                'from' => $users->firstItem(),
+                'to' => $users->lastItem(),
+            ]
         ]);
     }
 

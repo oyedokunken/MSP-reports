@@ -55,7 +55,16 @@ export interface User {
 }
 
 // API Response Types
-export type UserListResponse = ApiSuccessResponse<User[]>
+export interface UserListResponse extends ApiSuccessResponse<User[]> {
+    pagination?: {
+        current_page: number
+        per_page: number
+        total: number
+        last_page: number
+        from: number | null
+        to: number | null
+    }
+}
 
 export interface CreateUserRequest {
     name: string
