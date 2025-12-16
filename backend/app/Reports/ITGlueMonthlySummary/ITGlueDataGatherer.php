@@ -30,19 +30,11 @@ class ITGlueDataGatherer
             $payload = $item->data_payload;
             $traits = $payload['traits'] ?? [];
             
-            // Helper function to extract first value from array or return as-is
-            $extractValue = function($value) {
-                if (is_array($value)) {
-                    return !empty($value) ? $value[0] : null;
-                }
-                return $value;
-            };
-            
             // ITGlue uses: active (total), consumed (used), unused (available)
-            $active = $extractValue($traits['active'] ?? $traits['purchased'] ?? $traits['total-seats'] ?? null);
-            $consumed = $extractValue($traits['consumed'] ?? $traits['assigned'] ?? $traits['used-seats'] ?? null);
-            $unused = $extractValue($traits['unused'] ?? $traits['available'] ?? null);
-            $licenseName = $extractValue($traits['license-name'] ?? $payload['name'] ?? 'Unknown License');
+            $active = $this->extractValue($traits['active'] ?? $traits['purchased'] ?? $traits['total-seats'] ?? null);
+            $consumed = $this->extractValue($traits['consumed'] ?? $traits['assigned'] ?? $traits['used-seats'] ?? null);
+            $unused = $this->extractValue($traits['unused'] ?? $traits['available'] ?? null);
+            $licenseName = $this->extractValue($traits['license-name'] ?? $payload['name'] ?? 'Unknown License');
             
             return [
                 'name' => $licenseName,
@@ -148,13 +140,28 @@ class ITGlueDataGatherer
     }
 
     /**
+     * Extract first value from array or return as-is
+     */
+    private function extractValue($value)
+    {
+        if (is_array($value)) {
+            return !empty($value) ? $value[0] : null;
+        }
+        return $value;
+    }
+
+    /**
      * Calculate license utilization percentage
      */
     private function calculateUtilization(array $traits): int
     {
         // ITGlue uses: active (total), consumed (used)
-        $active = $traits['active'] ?? $traits['purchased'] ?? $traits['total-seats'] ?? null;
-        $consumed = $traits['consumed'] ?? $traits['assigned'] ?? $traits['used-seats'] ?? null;
+        $activeRaw = $traits['active'] ?? $traits['purchased'] ?? $traits['total-seats'] ?? null;
+        $consumedRaw = $traits['consumed'] ?? $traits['assigned'] ?? $traits['used-seats'] ?? null;
+        
+        // Extract values from arrays if needed (ITGlue sometimes returns arrays)
+        $active = $this->extractValue($activeRaw);
+        $consumed = $this->extractValue($consumedRaw);
         
         $total = is_numeric($active) ? (float)$active : 0;
         $used = is_numeric($consumed) ? (float)$consumed : 0;
