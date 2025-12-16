@@ -175,15 +175,38 @@ class CustomerMappingService
      */
     public function createFromSourceOfTruth(IntegrationCustomer $integrationCustomer, string $integrationType): array
     {
-        // Create unified customer
-        $unifiedCustomer = Customer::create([
-            'company_id' => $integrationCustomer->integration->company_id,
-            'canonical_name' => $integrationCustomer->name,
-            'status' => 'active',
-            'metadata' => [],
-        ]);
+        // Check for existing customer with the same name to prevent duplicates
+        $existingCustomer = Customer::where('company_id', $integrationCustomer->integration->company_id)
+            ->whereRaw('LOWER(canonical_name) = ?', [strtolower($integrationCustomer->name)])
+            ->first();
 
-        // Link integration customer to new unified customer
+        if ($existingCustomer) {
+            $unifiedCustomer = $existingCustomer;
+            $message = 'Auto-linked to existing customer from source of truth';
+            
+            \Log::info('Source of Truth: Linked to existing customer', [
+                'integration_type' => $integrationType,
+                'customer_name' => $integrationCustomer->name,
+                'existing_customer_id' => $unifiedCustomer->customer_id,
+            ]);
+        } else {
+            // Create unified customer
+            $unifiedCustomer = Customer::create([
+                'company_id' => $integrationCustomer->integration->company_id,
+                'canonical_name' => $integrationCustomer->name,
+                'status' => 'active',
+                'metadata' => [],
+            ]);
+            $message = 'Auto-created from source of truth integration';
+            
+            \Log::info('Source of Truth: Created new unified customer', [
+                'integration_type' => $integrationType,
+                'customer_name' => $integrationCustomer->name,
+                'new_customer_id' => $unifiedCustomer->customer_id,
+            ]);
+        }
+
+        // Link integration customer to the unified customer
         $integrationCustomer->customer_id = $unifiedCustomer->customer_id;
         $integrationCustomer->save();
 
@@ -194,13 +217,7 @@ class CustomerMappingService
             'mapping_type' => 'auto',
             'confidence_score' => 100,
             'mapped_at' => now(),
-            'notes' => 'Auto-created from source of truth integration',
-        ]);
-
-        \Log::info('Auto-created customer from source of truth', [
-            'integration_type' => $integrationType,
-            'customer_name' => $integrationCustomer->name,
-            'customer_id' => $unifiedCustomer->customer_id,
+            'notes' => $message,
         ]);
 
         return [
