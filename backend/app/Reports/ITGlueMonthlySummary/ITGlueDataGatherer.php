@@ -30,13 +30,22 @@ class ITGlueDataGatherer
             $payload = $item->data_payload;
             $traits = $payload['traits'] ?? [];
             
+            // Helper function to extract first value from array or return as-is
+            $extractValue = function($value) {
+                if (is_array($value)) {
+                    return !empty($value) ? $value[0] : null;
+                }
+                return $value;
+            };
+            
             // ITGlue uses: active (total), consumed (used), unused (available)
-            $active = $traits['active'] ?? $traits['purchased'] ?? $traits['total-seats'] ?? null;
-            $consumed = $traits['consumed'] ?? $traits['assigned'] ?? $traits['used-seats'] ?? null;
-            $unused = $traits['unused'] ?? $traits['available'] ?? null;
+            $active = $extractValue($traits['active'] ?? $traits['purchased'] ?? $traits['total-seats'] ?? null);
+            $consumed = $extractValue($traits['consumed'] ?? $traits['assigned'] ?? $traits['used-seats'] ?? null);
+            $unused = $extractValue($traits['unused'] ?? $traits['available'] ?? null);
+            $licenseName = $extractValue($traits['license-name'] ?? $payload['name'] ?? 'Unknown License');
             
             return [
-                'name' => $traits['license-name'] ?? $payload['name'] ?? 'Unknown License',
+                'name' => $licenseName,
                 'purchased' => $active,
                 'assigned' => $consumed,
                 'available' => $unused,

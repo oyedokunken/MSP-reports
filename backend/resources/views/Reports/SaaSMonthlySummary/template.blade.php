@@ -53,8 +53,12 @@
 <body>
     <div class="header">
         <h1>SaaS Alerts Monthly Security Report</h1>
-        <div class="company-name">{{ $branding['company_name'] ?? 'Territory Technology Solutions' }}</div>
-        <div class="meta">{{ $customer->canonical_name }} • {{ $date_range['start'] ?? 'N/A' }} - {{ $date_range['end'] ?? 'N/A' }}</div>
+        <div class="company-name">{{ is_array($branding) ? ($branding['company_name'] ?? 'Territory Technology Solutions') : 'Territory Technology Solutions' }}</div>
+        <div class="meta">
+            {{ is_object($customer) ? $customer->canonical_name : (is_array($customer) ? ($customer['canonical_name'] ?? 'Customer') : 'Customer') }} 
+            • 
+            {{ is_array($date_range) ? (($date_range['start'] ?? 'N/A') . ' - ' . ($date_range['end'] ?? 'N/A')) : 'N/A' }}
+        </div>
     </div>
 
     <div class="summary">

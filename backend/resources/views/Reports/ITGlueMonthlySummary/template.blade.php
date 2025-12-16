@@ -45,8 +45,12 @@
 <body>
     <div class="header">
         <h1>ITGlue Monthly Summary</h1>
-        <div class="company-name">{{ $branding['company_name'] ?? 'Territory Technology Solutions' }}</div>
-        <div class="meta">{{ $customer->canonical_name }} • {{ $period['formatted'] }}</div>
+        <div class="company-name">{{ is_array($branding) ? ($branding['company_name'] ?? 'Territory Technology Solutions') : 'Territory Technology Solutions' }}</div>
+        <div class="meta">
+            {{ is_object($customer) ? $customer->canonical_name : (is_array($customer) ? ($customer['canonical_name'] ?? 'Customer') : 'Customer') }} 
+            • 
+            {{ is_array($period) ? ($period['formatted'] ?? '') : $period }}
+        </div>
     </div>
 
     <div class="summary">
@@ -70,9 +74,9 @@
     @if(!empty($all_alerts) && is_array($all_alerts) && count($all_alerts) > 0)
     <div class="section">
         @foreach($all_alerts as $alert)
-        <div class="alert {{ $alert['severity'] ?? 'info' }}">
-            <div class="alert-title">{{ $alert['title'] ?? 'Alert' }}</div>
-            <div>{{ $alert['description'] ?? '' }}</div>
+        <div class="alert {{ is_array($alert) ? ($alert['severity'] ?? 'info') : 'info' }}">
+            <div class="alert-title">{{ is_array($alert) ? (is_array($alert['title'] ?? null) ? 'Alert' : ($alert['title'] ?? 'Alert')) : 'Alert' }}</div>
+            <div>{{ is_array($alert) ? (is_array($alert['description'] ?? null) ? '' : ($alert['description'] ?? '')) : '' }}</div>
         </div>
         @endforeach
     </div>
@@ -95,11 +99,11 @@
             <tbody>
                 @foreach($licenses['data'] as $license)
                 <tr>
-                    <td><strong>{{ $license['name'] ?? 'Unknown' }}</strong></td>
-                    <td>{{ $license['purchased'] ?? '—' }}</td>
-                    <td>{{ $license['assigned'] ?? '—' }}</td>
-                    <td>{{ $license['available'] ?? '—' }}</td>
-                    <td>{{ $license['utilization_percentage'] ?? 0 }}%</td>
+                    <td><strong>{{ is_array($license) ? ($license['name'] ?? 'Unknown') : 'Unknown' }}</strong></td>
+                    <td>{{ is_array($license) ? ($license['purchased'] ?? '—') : '—' }}</td>
+                    <td>{{ is_array($license) ? ($license['assigned'] ?? '—') : '—' }}</td>
+                    <td>{{ is_array($license) ? ($license['available'] ?? '—') : '—' }}</td>
+                    <td>{{ is_array($license) ? ($license['utilization_percentage'] ?? 0) : 0 }}%</td>
                     <td>
                         @if(($license['status'] ?? '') === 'over_provisioned')
                             <span class="badge warning">Over-provisioned</span>
@@ -135,44 +139,47 @@
                 @foreach($ssl_certificates['data'] as $cert)
                 <tr>
                     <td>
-                        @if(!empty($cert['resource_url']))
-                        <strong><a href="{{ $cert['resource_url'] }}" target="_blank" style="color: #0078d4; text-decoration: none;">{{ $cert['domain'] ?? 'Unknown' }}</a></strong>
+                        @if(is_array($cert) && !empty($cert['resource_url']))
+                        <strong><a href="{{ $cert['resource_url'] }}" target="_blank" style="color: #0078d4; text-decoration: none;">{{ is_array($cert['domain']) ? 'Unknown' : ($cert['domain'] ?? 'Unknown') }}</a></strong>
                         @else
-                        <strong>{{ $cert['domain'] ?? 'Unknown' }}</strong>
+                        <strong>{{ is_array($cert) ? (is_array($cert['domain'] ?? null) ? 'Unknown' : ($cert['domain'] ?? 'Unknown')) : 'Unknown' }}</strong>
                         @endif
-                        @if(!empty($cert['common_name']) && $cert['common_name'] !== $cert['domain'])
+                        @if(is_array($cert) && !empty($cert['common_name']) && !is_array($cert['common_name']) && $cert['common_name'] !== ($cert['domain'] ?? ''))
                         <div class="detail">Host: {{ $cert['common_name'] }}</div>
                         @endif
-                        @if(!empty($cert['organization_name']))
+                        @if(is_array($cert) && !empty($cert['organization_name']) && !is_array($cert['organization_name']))
                         <div class="detail">Org: {{ $cert['organization_name'] }}</div>
                         @endif
                     </td>
                     <td>
-                        {{ ($cert['issuer'] ?? 'Not Available') !== 'Not Available' ? $cert['issuer'] : '—' }}
-                        @if(!empty($cert['issued_by']))
+                        {{ is_array($cert) ? (is_array($cert['issuer'] ?? null) ? '—' : (($cert['issuer'] ?? 'Not Available') !== 'Not Available' ? $cert['issuer'] : '—')) : '—' }}
+                        @if(is_array($cert) && !empty($cert['issued_by']) && !is_array($cert['issued_by']))
                         <div class="detail">Issued by: {{ $cert['issued_by'] }}</div>
                         @endif
-                        @if(!empty($cert['issuer_country']))
+                        @if(is_array($cert) && !empty($cert['issuer_country']) && !is_array($cert['issuer_country']))
                         <div class="detail">Country: {{ $cert['issuer_country'] }}</div>
                         @endif
                     </td>
                     <td>
-                        {{ ($cert['expiry_date_formatted'] ?? 'Unknown') !== 'Unknown' ? $cert['expiry_date_formatted'] : '—' }}
-                        @if(!empty($cert['created_at']))
+                        {{ is_array($cert) ? (is_array($cert['expiry_date_formatted'] ?? null) ? '—' : (($cert['expiry_date_formatted'] ?? 'Unknown') !== 'Unknown' ? $cert['expiry_date_formatted'] : '—')) : '—' }}
+                        @if(is_array($cert) && !empty($cert['created_at']) && !is_array($cert['created_at']))
                         <div class="detail">Added: {{ \Carbon\Carbon::parse($cert['created_at'])->format('M d, Y') }}</div>
                         @endif
                     </td>
                     <td>
-                        @if(isset($cert['days_until_expiry']) && $cert['days_until_expiry'] !== null)
-                            {{ $cert['days_until_expiry'] <= 0 ? 'Expired' : $cert['days_until_expiry'] . ' days' }}
+                        @if(is_array($cert) && isset($cert['days_until_expiry']) && !is_array($cert['days_until_expiry']) && $cert['days_until_expiry'] !== null)
+                            {{ $cert['days_until_expiry'] <= 0 ? 'Expired' : (is_numeric($cert['days_until_expiry']) ? round($cert['days_until_expiry']) : $cert['days_until_expiry']) . ' days' }}
                         @else
                             —
                         @endif
                     </td>
                     <td>
-                        @if(in_array($cert['severity'] ?? '', ['expired', 'critical']))
+                        @php
+                            $certSeverity = is_array($cert) && isset($cert['severity']) && !is_array($cert['severity']) ? $cert['severity'] : '';
+                        @endphp
+                        @if(in_array($certSeverity, ['expired', 'critical']))
                             <span class="badge critical">Critical</span>
-                        @elseif(($cert['severity'] ?? '') === 'warning')
+                        @elseif($certSeverity === 'warning')
                             <span class="badge warning">Warning</span>
                         @else
                             <span class="badge healthy">Healthy</span>
@@ -204,39 +211,42 @@
                 @foreach($domains['data'] as $domain)
                 <tr>
                     <td>
-                        @if(!empty($domain['resource_url']))
-                        <strong><a href="{{ $domain['resource_url'] }}" target="_blank" style="color: #0078d4; text-decoration: none;">{{ $domain['domain_name'] ?? 'Unknown' }}</a></strong>
+                        @if(is_array($domain) && !empty($domain['resource_url']))
+                        <strong><a href="{{ $domain['resource_url'] }}" target="_blank" style="color: #0078d4; text-decoration: none;">{{ is_array($domain['domain_name'] ?? null) ? 'Unknown' : ($domain['domain_name'] ?? 'Unknown') }}</a></strong>
                         @else
-                        <strong>{{ $domain['domain_name'] ?? 'Unknown' }}</strong>
+                        <strong>{{ is_array($domain) ? (is_array($domain['domain_name'] ?? null) ? 'Unknown' : ($domain['domain_name'] ?? 'Unknown')) : 'Unknown' }}</strong>
                         @endif
-                        @if(!empty($domain['organization_name']))
+                        @if(is_array($domain) && !empty($domain['organization_name']) && !is_array($domain['organization_name']))
                         <div class="detail">Org: {{ $domain['organization_name'] }}</div>
                         @endif
-                        @if(!empty($domain['notes']))
+                        @if(is_array($domain) && !empty($domain['notes']) && !is_array($domain['notes']))
                         <div class="detail">{{ $domain['notes'] }}</div>
                         @endif
                     </td>
                     <td>
-                        {{ !empty($domain['registrar']) ? $domain['registrar'] : '—' }}
-                        @if(!empty($domain['created_at']))
+                        {{ is_array($domain) ? (!empty($domain['registrar']) && !is_array($domain['registrar']) ? $domain['registrar'] : '—') : '—' }}
+                        @if(is_array($domain) && !empty($domain['created_at']) && !is_array($domain['created_at']))
                         <div class="detail">Added: {{ \Carbon\Carbon::parse($domain['created_at'])->format('M d, Y') }}</div>
                         @endif
-                        @if(!empty($domain['updated_at']))
+                        @if(is_array($domain) && !empty($domain['updated_at']) && !is_array($domain['updated_at']))
                         <div class="detail">Updated: {{ \Carbon\Carbon::parse($domain['updated_at'])->format('M d, Y') }}</div>
                         @endif
                     </td>
-                    <td>{{ ($domain['expiry_date_formatted'] ?? 'Unknown') !== 'Unknown' ? $domain['expiry_date_formatted'] : '—' }}</td>
+                    <td>{{ is_array($domain) ? (is_array($domain['expiry_date_formatted'] ?? null) ? '—' : (($domain['expiry_date_formatted'] ?? 'Unknown') !== 'Unknown' ? $domain['expiry_date_formatted'] : '—')) : '—' }}</td>
                     <td>
-                        @if(isset($domain['days_until_expiry']) && $domain['days_until_expiry'] !== null)
-                            {{ $domain['days_until_expiry'] <= 0 ? 'Expired' : $domain['days_until_expiry'] . ' days' }}
+                        @if(is_array($domain) && isset($domain['days_until_expiry']) && !is_array($domain['days_until_expiry']) && $domain['days_until_expiry'] !== null)
+                            {{ $domain['days_until_expiry'] <= 0 ? 'Expired' : (is_numeric($domain['days_until_expiry']) ? round($domain['days_until_expiry']) : $domain['days_until_expiry']) . ' days' }}
                         @else
                             —
                         @endif
                     </td>
                     <td>
-                        @if(in_array($domain['severity'] ?? '', ['expired', 'critical']))
+                        @php
+                            $domainSeverity = is_array($domain) && isset($domain['severity']) && !is_array($domain['severity']) ? $domain['severity'] : '';
+                        @endphp
+                        @if(in_array($domainSeverity, ['expired', 'critical']))
                             <span class="badge critical">Critical</span>
-                        @elseif(($domain['severity'] ?? '') === 'warning')
+                        @elseif($domainSeverity === 'warning')
                             <span class="badge warning">Warning</span>
                         @else
                             <span class="badge healthy">Healthy</span>

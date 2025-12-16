@@ -36,9 +36,13 @@
 </head>
 <body>
     <div class="header">
-        <div class="company-name">{{ $branding['company_name'] ?? 'Territory Technology Solutions' }}</div>
+        <div class="company-name">{{ is_array($branding) ? ($branding['company_name'] ?? 'Territory Technology Solutions') : 'Territory Technology Solutions' }}</div>
         <h1>Sendmarc Monthly Summary</h1>
-        <div class="meta">{{ $customer->canonical_name }} • {{ $period['formatted'] }}</div>
+        <div class="meta">
+            {{ is_object($customer) ? $customer->canonical_name : (is_array($customer) ? ($customer['canonical_name'] ?? 'Customer') : 'Customer') }} 
+            • 
+            {{ is_array($period) ? ($period['formatted'] ?? '') : $period }}
+        </div>
     </div>
 
     <div class="summary">
