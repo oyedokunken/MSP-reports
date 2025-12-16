@@ -65,20 +65,20 @@ export default function MapCustomersPage() {
                 {/* Header */}
                 <div>
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
+                        {/* <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
                             <MapPin className="h-6 w-6 text-primary" />
-                        </div>
+                        </div> */}
                         <div className="flex-1">
-                            <h1 className="text-3  xl font-bold text-foreground">Map Customers</h1>
+                            <h1 className="text-3xl font-bold text-foreground">Map Customers</h1>
                             <p className="mt-1 text-muted-foreground">
                                 Link integration customers to existing clients or create new ones
                             </p>
                         </div>
-                        {unmappedCount > 0 && (
+                        {/* {unmappedCount > 0 && (
                             <Badge variant="secondary" className="text-lg px-4 py-2">
                                 {unmappedCount} unmapped
                             </Badge>
-                        )}
+                        )} */}
                     </div>
                 </div>
 
