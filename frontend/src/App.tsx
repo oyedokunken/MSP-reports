@@ -40,6 +40,7 @@ import NotificationsPage from '@/pages/notifications/NotificationsPage'
 import { PrivacyPolicy, TermsOfService } from '@/pages/legal'
 import { DocsIndex, DocPage } from '@/pages/docs'
 import { NotFound } from '@/pages/errors'
+import { WelcomeModal, TourOverlay } from '@/components/onboarding'
 import { Loader2 } from 'lucide-react'
 
 
@@ -396,6 +397,8 @@ function App() {
           <BrandingProvider>
             <AuthProvider>
               <AppRoutes />
+              <WelcomeModal />
+              <TourOverlay />
             </AuthProvider>
           </BrandingProvider>
         </ToastProvider>

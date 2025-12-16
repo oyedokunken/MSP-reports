@@ -55,11 +55,11 @@ export default function AppSidebar() {
   const unmappedCount = useCustomersStore((state) => state.unmappedCount)
 
   const navItems = [
-    { path: '/platform/dashboard', icon: Home, label: 'Dashboard', show: true },
-    { path: '/platform/integrations', icon: Cable, label: 'Integrations', show: hasPermission(user, 'integrations', 'view') },
-    { path: '/platform/reports', icon: FileText, label: 'Reports', show: hasPermission(user, 'reports', 'view') },
-    { path: '/platform/schedules', icon: Calendar, label: 'Schedules', show: hasPermission(user, 'reports', 'view') },
-    { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: true },
+    { path: '/platform/dashboard', icon: Home, label: 'Dashboard', show: true, tourId: 'nav-dashboard' },
+    { path: '/platform/integrations', icon: Cable, label: 'Integrations', show: hasPermission(user, 'integrations', 'view'), tourId: 'nav-integrations' },
+    { path: '/platform/reports', icon: FileText, label: 'Reports', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-reports' },
+    { path: '/platform/schedules', icon: Calendar, label: 'Schedules', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-schedules' },
+    { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: true, tourId: 'nav-notifications' },
   ].filter(item => item.show !== false)
 
   const customersSubItems = [
@@ -201,7 +201,7 @@ export default function AppSidebar() {
                         className="rounded-lg group-data-[collapsible=icon]:!p-0"
                         style={active ? { background: 'var(--brand-gradient)' } : undefined}
                       >
-                        <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
+                        <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} data-tour={item.tourId} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
                           <div className="relative flex-shrink-0">
                             <Icon className="h-4 w-4" />
                             {showBadge && (
@@ -218,7 +218,7 @@ export default function AppSidebar() {
 
                     {/* Insert Customers menu after Integrations */}
                     {item.path === '/platform/integrations' && hasPermission(user, 'customers', 'view') && (
-                      <SidebarMenuItem className="group-data-[collapsible=icon]:static">
+                      <SidebarMenuItem className="group-data-[collapsible=icon]:static" data-tour="nav-customers">
                         <div className="relative">
                           <span className="absolute left-[-14px] top-5 h-1.5 w-1.5 rounded-full bg-sidebar-border group-data-[collapsible=icon]:hidden" />
                           <SidebarMenuButton
@@ -319,7 +319,7 @@ export default function AppSidebar() {
               className="rounded-lg group-data-[collapsible=icon]:!p-0"
               style={isActive('/docs') ? { background: 'var(--brand-gradient)' } : undefined}
             >
-              <Link to="/docs" onClick={(e) => handleNavClick(e, '/docs')} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
+              <Link to="/docs" onClick={(e) => handleNavClick(e, '/docs')} data-tour="nav-help" className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
                 <HelpCircle className="h-4 w-4 flex-shrink-0" />
                 <span className="font-medium group-data-[collapsible=icon]:hidden">Help & Guides</span>
               </Link>

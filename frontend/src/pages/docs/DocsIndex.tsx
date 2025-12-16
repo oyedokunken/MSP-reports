@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Copy,
   Check,
+  PlayCircle,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -20,6 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { documentationData } from './data'
 import { DocArticle, DocCategory } from './types'
+import { useOnboardingStore } from '@/stores/useOnboardingStore'
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Rocket,
@@ -38,6 +40,7 @@ export default function DocsIndex() {
   const [searchQuery, setSearchQuery] = useState('')
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
   const navigate = useNavigate()
+  const { startTour, hasCompletedTour } = useOnboardingStore()
 
   const filteredData = useMemo(() => {
     if (!searchQuery.trim()) return documentationData
@@ -100,10 +103,26 @@ export default function DocsIndex() {
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
                 Documentation & Guides
               </h1>
-              <p className="text-lg text-muted-foreground mb-8">
+              <p className="text-lg text-muted-foreground mb-6">
                 Everything you need to know about using the reporting platform. Search for topics or
                 browse by category.
               </p>
+
+              {/* Take the Tour Button */}
+              <div className="mb-8">
+                <Button
+                  onClick={() => {
+                    navigate('/platform/dashboard')
+                    setTimeout(() => startTour(), 300)
+                  }}
+                  variant={hasCompletedTour ? 'outline' : 'default'}
+                  size="lg"
+                  className="gap-2"
+                >
+                  <PlayCircle className="h-5 w-5" />
+                  {hasCompletedTour ? 'Retake the Guided Tour' : 'Take the Guided Tour'}
+                </Button>
+              </div>
 
               {/* Search */}
               <div className="relative max-w-xl mx-auto">
