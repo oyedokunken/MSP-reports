@@ -24,7 +24,14 @@ class HealthCheckController extends Controller
             'storage' => $this->checkStorage(),
         ];
 
-        $allHealthy = collect($checks)->every(fn($check) => $check['status'] === 'healthy');
+        $allHealthy = collect($checks)
+            ->filter(function ($check, $key) {
+                if ($key === 'redis' && $this->isRedisRequired() === false) {
+                    return false;
+                }
+                return true;
+            })
+            ->every(fn($check) => $check['status'] === 'healthy');
 
         return response()->json([
             'status' => $allHealthy ? 'healthy' : 'unhealthy',
@@ -248,6 +255,13 @@ class HealthCheckController extends Controller
 
     private function checkRedis(): array
     {
+        if ($this->isRedisRequired() === false) {
+            return [
+                'status' => 'healthy',
+                'message' => 'Redis not required for current configuration',
+            ];
+        }
+
         try {
             Redis::ping();
             
@@ -261,6 +275,15 @@ class HealthCheckController extends Controller
                 'message' => 'Redis connection failed: ' . $e->getMessage(),
             ];
         }
+    }
+
+    private function isRedisRequired(): bool
+    {
+        $cacheDriver = config('cache.default');
+        $queueDriver = config('queue.default');
+        $sessionDriver = config('session.driver');
+
+        return $cacheDriver === 'redis' || $queueDriver === 'redis' || $sessionDriver === 'redis';
     }
 
     private function checkStorage(): array

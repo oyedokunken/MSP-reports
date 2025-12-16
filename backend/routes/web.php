@@ -9,6 +9,17 @@ use Illuminate\Support\Facades\Route;
  * Web routes are not used.
  */
 
+Route::get('/', function () {
+    return response()->json([
+        'status' => 'ok',
+        'message' => 'Reporting Platform backend is running',
+    ]);
+})->withoutMiddleware([
+    \Illuminate\Session\Middleware\StartSession::class,
+    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+    \Illuminate\Session\Middleware\AuthenticateSession::class,
+]);
+
 // Temporary test route for branding partials (Phase 1)
 // TODO: Remove this route after Phase 1 testing is complete
 Route::get('/test-branding', function () {
