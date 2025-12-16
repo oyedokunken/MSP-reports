@@ -39,6 +39,7 @@ import Monitoring from '@/pages/monitoring/Monitoring'
 import NotificationsPage from '@/pages/notifications/NotificationsPage'
 import { PrivacyPolicy, TermsOfService } from '@/pages/legal'
 import { DocsIndex, DocPage } from '@/pages/docs'
+import { NotFound } from '@/pages/errors'
 import { Loader2 } from 'lucide-react'
 
 
@@ -381,8 +382,8 @@ function AppRoutes() {
         }
       />
 
-      {/* Default redirect for unknown routes */}
-      <Route path="*" element={<Navigate to="/platform/dashboard" replace />} />
+      {/* 404 Not Found for unknown routes */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   )
 }
