@@ -14,12 +14,12 @@ use App\Http\Controllers\Api\ActiveDirectoryController;
 use App\Http\Controllers\Api\ExchangeController;
 use App\Http\Controllers\Admin\ITGlueReportController;
 
-// All routes are automatically prefixed with /api
+// All routes are automatically prefixed with /api prefix
 
-// Public Health Check (no auth required)
+// Public Health Check (no auth required to implement)
 Route::get('/health', [HealthCheckController::class, 'index']);
 
-Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
+Route::middleware(['secure.header       s', 'throttle:300,1'])->group(function () {
 
     // Auth Routes - Stricter rate limiting for security-sensitive endpoints
     Route::middleware(['throttle:10,1'])->group(function () {

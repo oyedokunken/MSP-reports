@@ -38,14 +38,14 @@ class GotenbergService
 
             // Build the multipart form data properly
             $multipart = [];
-            
+
             // Add main HTML file
             $multipart[] = [
                 'name' => 'files',
                 'contents' => $html,
                 'filename' => 'index.html',
             ];
-            
+
             // Add header HTML if provided
             if (isset($options['header_html']) && !empty($options['header_html'])) {
                 $multipart[] = [
@@ -54,7 +54,7 @@ class GotenbergService
                     'filename' => 'header.html',
                 ];
             }
-            
+
             // Add footer HTML if provided
             if (isset($options['footer_html']) && !empty($options['footer_html'])) {
                 $multipart[] = [
@@ -69,7 +69,7 @@ class GotenbergService
             foreach ($formData as $key => $value) {
                 $multipart[] = [
                     'name' => $key,
-                    'contents' => is_bool($value) ? ($value ? 'true' : 'false') : (string)$value,
+                    'contents' => is_bool($value) ? ($value ? 'true' : 'false') : (string) $value,
                 ];
             }
 
@@ -85,7 +85,6 @@ class GotenbergService
             }
 
             return $response->body();
-
         } catch (Exception $e) {
             Log::error('Gotenberg PDF generation failed', [
                 'error' => $e->getMessage(),
@@ -120,7 +119,7 @@ class GotenbergService
         $formData['preferCssPageSize'] = $options['prefer_css_page_size'] ?? false;
         $formData['printBackground'] = $options['print_background'] ?? true;
         $formData['landscape'] = $options['landscape'] ?? false;
-        
+
         // Allow loading external resources (images, fonts, etc.)
         $formData['skipNetworkIdleEvent'] = true;
         $formData['failOnHttpStatusCodes'] = '[499,599]';
@@ -147,7 +146,7 @@ class GotenbergService
     {
         try {
             $response = Http::timeout(5)->get("{$this->baseUrl}/health");
-            
+
             if ($response->successful()) {
                 $health = $response->json();
                 return isset($health['status']) && $health['status'] === 'up';
@@ -171,7 +170,7 @@ class GotenbergService
     {
         try {
             $response = Http::timeout(5)->get("{$this->baseUrl}/health");
-            
+
             if ($response->successful()) {
                 return [
                     'available' => true,

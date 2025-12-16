@@ -3,15 +3,16 @@
 namespace App\Services;
 
 use App\Reports\Contracts\ReportInterface;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
 class ReportRegistry
 {
     protected array $reports = [];
+
     protected const CACHE_KEY = 'report_registry';
-    protected const CACHE_TTL = 3600; // 1 hour
+    protected const CACHE_TTL = 3600;  // 1 hour
 
     /**
      * Register a report type
@@ -35,7 +36,7 @@ class ReportRegistry
         $className = $config['class'];
 
         if (!class_exists($className)) {
-            Log::warning("Report class not found", [
+            Log::warning('Report class not found', [
                 'report_id' => $reportId,
                 'class' => $className,
             ]);
@@ -45,7 +46,7 @@ class ReportRegistry
         try {
             return new $className($companyId);
         } catch (\Exception $e) {
-            Log::error("Failed to instantiate report", [
+            Log::error('Failed to instantiate report', [
                 'report_id' => $reportId,
                 'class' => $className,
                 'error' => $e->getMessage(),
@@ -71,7 +72,7 @@ class ReportRegistry
 
         foreach ($this->reports as $reportId => $config) {
             $report = $this->get($reportId, $companyId);
-            
+
             if ($report) {
                 $metadata = $report->getMetadata();
                 $available[] = array_merge($config, $metadata);
@@ -124,14 +125,14 @@ class ReportRegistry
             }
         } catch (\Exception $e) {
             // Cache might not be available during migration or setup
-            Log::warning("ReportRegistry cache unavailable: " . $e->getMessage());
+            Log::warning('ReportRegistry cache unavailable: ' . $e->getMessage());
         }
 
         $this->reports = [];
         $reportsPath = app_path('Reports');
 
         if (!File::exists($reportsPath)) {
-            Log::warning("Reports directory not found", ['path' => $reportsPath]);
+            Log::warning('Reports directory not found', ['path' => $reportsPath]);
             return;
         }
 
@@ -164,13 +165,13 @@ class ReportRegistry
                             }
                         }
 
-                        Log::info("Discovered report config", [
+                        Log::info('Discovered report config', [
                             'directory' => basename($directory),
                             'config_path' => $configPath,
                         ]);
                     }
                 } catch (\Exception $e) {
-                    Log::error("Failed to load report config", [
+                    Log::error('Failed to load report config', [
                         'config_path' => $configPath,
                         'error' => $e->getMessage(),
                     ]);
@@ -183,10 +184,10 @@ class ReportRegistry
         try {
             Cache::put(self::CACHE_KEY, $this->reports, self::CACHE_TTL);
         } catch (\Exception $e) {
-            Log::warning("Failed to cache report registry: " . $e->getMessage());
+            Log::warning('Failed to cache report registry: ' . $e->getMessage());
         }
 
-        Log::info("Report discovery completed", [
+        Log::info('Report discovery completed', [
             'total_reports' => count($this->reports),
             'report_ids' => array_keys($this->reports),
         ]);

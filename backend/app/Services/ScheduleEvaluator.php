@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\ReportSchedule;
 use App\Jobs\GenerateReportJob;
+use App\Models\ReportSchedule;
 use Carbon\Carbon;
 
 class ScheduleEvaluator
@@ -15,7 +15,7 @@ class ScheduleEvaluator
             'triggered' => 0,
             'skipped' => 0,
         ];
-        
+
         $schedules = ReportSchedule::where('active', true)
             ->with(['customer', 'company'])
             ->get();
@@ -60,7 +60,7 @@ class ScheduleEvaluator
         $timezone = $schedule->timezone ?? $schedule->company->settings['reports']['report_timezone'] ?? 'UTC';
         $config = $schedule->schedule_config;
         $timeOfDay = $schedule->time_of_day ?? '09:00';
-        
+
         [$hour, $minute] = explode(':', $timeOfDay);
 
         $now = Carbon::now($timezone);
@@ -84,7 +84,6 @@ class ScheduleEvaluator
                 break;
 
             default:
-                
                 $next = Carbon::now($timezone)->addYears(10);
         }
 
@@ -94,11 +93,11 @@ class ScheduleEvaluator
     private function calculateDailyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
     {
         $next->setTime($hour, $minute, 0);
-        
+
         if ($next->isPast()) {
             $next->addDay();
         }
-        
+
         if (isset($config['days_of_week'])) {
             while (!in_array($next->dayOfWeek, $config['days_of_week'])) {
                 $next->addDay();
@@ -110,11 +109,11 @@ class ScheduleEvaluator
 
     private function calculateWeeklyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
     {
-        $dayOfWeek = $config['day_of_week'] ?? 1; 
+        $dayOfWeek = $config['day_of_week'] ?? 1;
 
         $next->setTime($hour, $minute, 0);
         $next->next($dayOfWeek);
-        
+
         if ($next->dayOfWeek === $dayOfWeek && $next->isPast()) {
             $next->addWeek();
         }
@@ -129,12 +128,12 @@ class ScheduleEvaluator
 
         $next->setTime($hour, $minute, 0);
         $next->day = min($dayOfMonth, $next->daysInMonth);
-        
+
         if ($next->isPast()) {
             $next->addMonth();
             $next->day = min($dayOfMonth, $next->daysInMonth);
         }
-        
+
         if ($fallbackToLastDay && $dayOfMonth > $next->daysInMonth) {
             $next->day = $next->daysInMonth;
         }
@@ -150,7 +149,7 @@ class ScheduleEvaluator
         $next->setTime($hour, $minute, 0);
         $next->month = $month;
         $next->day = $dayOfMonth;
-        
+
         if ($next->isPast()) {
             $next->addYear();
         }
@@ -166,7 +165,7 @@ class ScheduleEvaluator
         for ($i = 0; $i < $count; $i++) {
             $nextRun = $this->calculateNextRun($tempSchedule);
             $runs[] = $nextRun->toDateTimeString();
-            
+
             $tempSchedule->next_scheduled_at = $nextRun;
             $tempSchedule->last_generated_at = $nextRun;
         }

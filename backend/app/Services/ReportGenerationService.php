@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\ReportSchedule;
-use App\Models\GeneratedReport;
 use App\Models\Customer;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
+use App\Models\GeneratedReport;
+use App\Models\ReportSchedule;
 use App\Services\GotenbergService;
 use App\Services\ReportRegistry;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ReportGenerationService
 {
@@ -34,7 +34,7 @@ class ReportGenerationService
         } else {
             $period = $this->calculateReportPeriod($schedule);
         }
-        
+
         $generatedReport = GeneratedReport::create([
             'company_id' => $schedule->company_id,
             'customer_id' => $schedule->customer_id,
@@ -51,32 +51,32 @@ class ReportGenerationService
             if (!$reportClass) {
                 throw new \Exception("Report type {$schedule->report_type} not found.");
             }
-            
+
             // Get report period
             $startDate = $period['start'];
             $endDate = $period['end'];
-            
+
             // Validate data availability
             if (!$reportClass->validate($schedule->customer, $startDate, $endDate)) {
-                throw new \Exception("Insufficient data to generate report.");
+                throw new \Exception('Insufficient data to generate report.');
             }
-            
+
             // Prepare options from schedule_config
             $options = [];
             if ($schedule->schedule_config) {
                 $options = is_array($schedule->schedule_config) ? $schedule->schedule_config : json_decode($schedule->schedule_config, true);
             }
-            
+
             // Generate report with Carbon dates and options
             $reportData = $reportClass->generate($schedule->customer, $startDate, $endDate, $options);
-            
+
             // Apply branding (if not already in report data)
             if (!isset($reportData['branding'])) {
                 $reportData = $this->applyBranding($reportData, $schedule->company, $schedule->customer);
             }
-            
+
             $pdfPath = $this->generatePDF($reportData, $schedule);
-            
+
             // Verify file exists and get size
             if (!Storage::disk('reports')->exists($pdfPath)) {
                 Log::error('PDF file not found after generation', [
@@ -86,10 +86,10 @@ class ReportGenerationService
                 ]);
                 throw new \Exception("Generated PDF file not found: {$pdfPath}");
             }
-            
+
             // Try to get file size, with fallback to direct file access
             $fileSize = Storage::disk('reports')->size($pdfPath);
-            
+
             if ($fileSize === false || $fileSize === null || $fileSize === 0) {
                 // Fallback: try getting size directly from filesystem
                 $fullPath = Storage::disk('reports')->path($pdfPath);
@@ -108,7 +108,7 @@ class ReportGenerationService
                     throw new \Exception("Unable to determine file size for: {$pdfPath}");
                 }
             }
-            
+
             $generatedReport->update([
                 'status' => 'completed',
                 'file_path' => $pdfPath,
@@ -117,7 +117,6 @@ class ReportGenerationService
             ]);
 
             return $generatedReport;
-
         } catch (\Exception $e) {
             Log::error('Report generation failed', [
                 'schedule_id' => $schedule->report_schedule_id,
@@ -165,7 +164,6 @@ class ReportGenerationService
                 ];
 
             default:
-                
                 return [
                     'start' => $now->copy()->subDays(30),
                     'end' => $now,
@@ -179,7 +177,7 @@ class ReportGenerationService
         $report = $this->registry->get($reportType, $companyId);
 
         if (!$report) {
-            Log::warning("Report type not found in registry", [
+            Log::warning('Report type not found in registry', [
                 'report_type' => $reportType,
                 'company_id' => $companyId,
                 'available_reports' => array_keys($this->registry->all()),
@@ -193,18 +191,18 @@ class ReportGenerationService
     {
         $whiteLabel = $company->settings['white_label'] ?? [];
         $customerBranding = $customer->report_configuration['report_branding'] ?? [];
-        
+
         // Convert logo URLs to base64 for PDF embedding
         $companyLogo = null;
         if (isset($whiteLabel['logo_url']) && $whiteLabel['logo_url']) {
             $companyLogo = $this->imageToBase64($whiteLabel['logo_url']);
         }
-        
+
         $customerLogo = null;
         if (isset($customerBranding['customer_logo_url']) && $customerBranding['customer_logo_url']) {
             $customerLogo = $this->imageToBase64($customerBranding['customer_logo_url']);
         }
-        
+
         $reportData['branding'] = [
             'company_name' => $whiteLabel['company_name'] ?? $company->name,
             'company_logo' => $companyLogo,
@@ -245,11 +243,11 @@ class ReportGenerationService
             @chown($reportsBasePath, 'www');
             @chgrp($reportsBasePath, 'www');
         }
-        
+
         // Ensure directory exists with proper permissions
         $directory = sprintf('%s/%s', $schedule->company_id, $schedule->report_type);
         $fullDirPath = Storage::disk('reports')->path($directory);
-        
+
         if (!file_exists($fullDirPath)) {
             // Use native PHP mkdir for better control and error handling
             if (!mkdir($fullDirPath, 0775, true)) {
@@ -261,12 +259,12 @@ class ReportGenerationService
                 ]);
                 throw new \Exception("Failed to create directory: {$fullDirPath}");
             }
-            
+
             // Ensure proper ownership and permissions (www user in container)
             @chmod($fullDirPath, 0775);
             @chown($fullDirPath, 'www');
             @chgrp($fullDirPath, 'www');
-            
+
             Log::info('Created report directory', [
                 'directory' => $directory,
                 'full_path' => $fullDirPath,
@@ -275,7 +273,7 @@ class ReportGenerationService
         }
 
         $html = $this->generateHTML($reportData, $schedule);
-        
+
         // Generate header and footer HTML for repeating on every page
         $headerHtml = $this->generatePDFHeader($reportData, $schedule);
         $footerHtml = $this->generatePDFFooter($reportData, $schedule);
@@ -283,16 +281,16 @@ class ReportGenerationService
         // Use Gotenberg to generate PDF with repeating header/footer
         $pdfContent = $this->gotenberg->htmlToPdf($html, [
             'paper_width' => '8.27',  // A4 width in inches
-            'paper_height' => '11.69', // A4 height in inches
-            'margin_top' => '1.0',    // 1.0 inch (~25mm) top margin for header
-            'margin_bottom' => '0.8', // 0.8 inch (~20mm) bottom margin for footer
-            'margin_left' => '0.4',   // 0.4 inch (~10mm) left margin
+            'paper_height' => '11.69',  // A4 height in inches
+            'margin_top' => '1.0',  // 1.0 inch (~25mm) top margin for header
+            'margin_bottom' => '0.8',  // 0.8 inch (~20mm) bottom margin for footer
+            'margin_left' => '0.4',  // 0.4 inch (~10mm) left margin
             'margin_right' => '0.4',  // 0.4 inch (~10mm) right margin
             'header_html' => $headerHtml,
             'footer_html' => $footerHtml,
             'print_background' => true,
             'prefer_css_page_size' => false,
-            'wait_delay' => '2s',     // Wait 2 seconds for images to load
+            'wait_delay' => '2s',  // Wait 2 seconds for images to load
         ]);
 
         // Log PDF content size for debugging
@@ -300,10 +298,10 @@ class ReportGenerationService
             'filename' => $filename,
             'content_size' => strlen($pdfContent),
         ]);
-        
+
         // Write the PDF file using native PHP for better error handling
         $fullPath = Storage::disk('reports')->path($filename);
-        
+
         Log::info('Attempting to write PDF file', [
             'filename' => $filename,
             'full_path' => $fullPath,
@@ -311,9 +309,9 @@ class ReportGenerationService
             'directory_writable' => is_writable(dirname($fullPath)),
             'content_size' => strlen($pdfContent),
         ]);
-        
+
         $bytesWritten = file_put_contents($fullPath, $pdfContent);
-        
+
         if ($bytesWritten === false) {
             Log::error('Failed to write PDF file', [
                 'filename' => $filename,
@@ -325,14 +323,14 @@ class ReportGenerationService
             ]);
             throw new \Exception("Failed to write PDF file: {$filename}");
         }
-        
+
         Log::info('PDF file written successfully', [
             'filename' => $filename,
             'full_path' => $fullPath,
             'bytes_written' => $bytesWritten,
             'file_exists' => file_exists($fullPath),
         ]);
-        
+
         // Set proper permissions and ownership
         @chmod($fullPath, 0664);
         @chown($fullPath, 'www');
@@ -341,20 +339,19 @@ class ReportGenerationService
         return $filename;
     }
 
-
     private function generateHTML(array $reportData, ReportSchedule $schedule): string
     {
         $reportClass = $this->loadReportClass($schedule->report_type, $schedule->company_id);
-        
+
         if ($reportClass && method_exists($reportClass, 'getTemplate')) {
             $templatePath = $reportClass->getTemplate();
-            
+
             Log::info('Generating report HTML', [
                 'report_type' => $schedule->report_type,
                 'report_class' => get_class($reportClass),
                 'template_path' => $templatePath,
             ]);
-            
+
             // Try to render using Blade view name (dot notation)
             try {
                 return view($templatePath, [
@@ -416,7 +413,7 @@ class ReportGenerationService
                     'template_path' => $templatePath,
                     'error' => $e->getMessage()
                 ]);
-                
+
                 // Fallback: try as file path if Blade view name doesn't work
                 if (file_exists($templatePath)) {
                     return view()->file($templatePath, [
@@ -476,7 +473,7 @@ class ReportGenerationService
                 }
             }
         }
-        
+
         return view('reports.template', [
             'reportData' => $reportData,
             'schedule' => $schedule,
@@ -494,26 +491,26 @@ class ReportGenerationService
 
     /**
      * Convert image URL or path to base64 data URI for PDF embedding
-     * 
+     *
      * @param string $url Image URL or storage path
      * @return string|null Base64 data URI or null on failure
      */
     private function imageToBase64(string $url): ?string
     {
         $cacheKey = 'logo_base64_' . md5($url);
-        
+
         return Cache::remember($cacheKey, 3600, function () use ($url) {
             try {
                 $content = null;
                 $mimeType = null;
-                
-                // Check if it's a storage path (relative path)
+
+                // Check if the URL is a relative storage path
                 if (!filter_var($url, FILTER_VALIDATE_URL)) {
                     // Try public disk first (for logos)
                     if (Storage::disk('public')->exists($url)) {
                         $content = Storage::disk('public')->get($url);
                         $mimeType = Storage::disk('public')->mimeType($url);
-                    } 
+                    }
                     // Fallback to default disk
                     elseif (Storage::exists($url)) {
                         $content = Storage::get($url);
@@ -522,7 +519,7 @@ class ReportGenerationService
                         Log::warning('Logo file not found in storage', ['path' => $url]);
                         return null;
                     }
-                } 
+                }
                 // It's a full URL
                 else {
                     $content = @file_get_contents($url);
@@ -530,15 +527,15 @@ class ReportGenerationService
                         Log::warning('Failed to fetch logo from URL', ['url' => $url]);
                         return null;
                     }
-                    
+
                     $finfo = new \finfo(FILEINFO_MIME_TYPE);
                     $mimeType = $finfo->buffer($content);
                 }
-                
+
                 if (!$content) {
                     return null;
                 }
-                
+
                 // Validate it's an image
                 if (!str_starts_with($mimeType, 'image/')) {
                     Log::warning('File is not an image', [
@@ -547,9 +544,8 @@ class ReportGenerationService
                     ]);
                     return null;
                 }
-                
+
                 return 'data:' . $mimeType . ';base64,' . base64_encode($content);
-                
             } catch (\Exception $e) {
                 Log::error('Failed to convert image to base64', [
                     'url' => $url,
@@ -567,7 +563,7 @@ class ReportGenerationService
     {
         $branding = $reportData['branding'] ?? [];
         $customer = $schedule->customer;
-        
+
         return view('reports.partials.pdf-header', [
             'branding' => $branding,
             'customer' => $customer,
@@ -580,7 +576,7 @@ class ReportGenerationService
     private function generatePDFFooter(array $reportData, ReportSchedule $schedule): string
     {
         $branding = $reportData['branding'] ?? [];
-        
+
         return view('reports.partials.pdf-footer', [
             'branding' => $branding,
         ])->render();

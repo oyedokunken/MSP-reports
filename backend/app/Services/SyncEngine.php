@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Jobs\SyncIntegrationJob;
 use App\Models\Integration;
 use App\Models\SyncLog;
-use App\Jobs\SyncIntegrationJob;
 use Illuminate\Support\Facades\Log;
 
 class SyncEngine
@@ -36,7 +36,6 @@ class SyncEngine
         foreach ($integrations as $integration) {
             $results['evaluated']++;
 
-            
             if ($this->isSyncDue($integration)) {
                 $this->triggerSync($integration);
                 $results['triggered']++;
@@ -56,7 +55,7 @@ class SyncEngine
         if (!$autoSyncEnabled) {
             return false;
         }
-        
+
         $syncSchedule = $company->settings['integrations']['sync_schedule'] ?? '0 */4 * * *';
 
         if (!$integration->last_sync_at) {
@@ -72,15 +71,13 @@ class SyncEngine
     private function parseSyncInterval(string $cronSchedule): int
     {
         if (preg_match('/\*\/(\d+)\s+\*/', $cronSchedule, $matches)) {
-            
             return (int) $matches[1];
         }
 
         if (preg_match('/\*\/(\d+)/', $cronSchedule, $matches)) {
-            
             return max(1, (int) ($matches[1] / 60));
         }
-   
+
         return 4;
     }
 
@@ -101,7 +98,6 @@ class SyncEngine
             'customers_mapped' => $customersMapped,
         ]);
 
-        
         $integration = $syncLog->integration;
         $integration->last_sync_at = now();
         $integration->last_sync_status = $status;
@@ -131,13 +127,13 @@ class SyncEngine
         if (empty($notificationEmails)) {
             return;
         }
-        
+
         Log::warning('Integration sync failed', [
             'integration_id' => $integration->integration_id,
             'integration_type' => $integration->integration_type,
             'company_id' => $company->company_id,
             'sync_log_id' => $syncLog->sync_log_id,
             'errors' => $syncLog->error_messages,
-        ]); 
+        ]);
     }
 }

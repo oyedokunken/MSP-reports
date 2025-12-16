@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Redis;
+use App\Models\Integration;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use App\Models\Integration;
+use Illuminate\Support\Facades\Redis;
 
 class RateLimiter
 {
@@ -23,25 +23,25 @@ class RateLimiter
             $limits = $this->getRateLimits($integration);
             $minuteKey = $this->getKey($integration, 'minute');
             $minuteCount = $this->get($minuteKey) ?? 0;
-            
+
             if ($minuteCount >= $limits['requests_per_minute']) {
                 return false;
             }
-            
+
             $hourKey = $this->getKey($integration, 'hour');
             $hourCount = $this->get($hourKey) ?? 0;
-            
+
             if ($hourCount >= $limits['requests_per_hour']) {
                 return false;
             }
-            
+
             return true;
         } catch (\Exception $e) {
             Log::warning('Rate limiter check failed, allowing request', [
                 'integration_id' => $integration->integration_id,
                 'error' => $e->getMessage()
             ]);
-            return true; // Fail open to not block legitimate requests
+            return true;  // Fail open to not block legitimate requests
         }
     }
 
@@ -50,7 +50,7 @@ class RateLimiter
         try {
             $minuteKey = $this->getKey($integration, 'minute');
             $hourKey = $this->getKey($integration, 'hour');
-            
+
             $this->increment($minuteKey, 60);
             $this->increment($hourKey, 3600);
         } catch (\Exception $e) {
@@ -65,16 +65,16 @@ class RateLimiter
     {
         try {
             $limits = $this->getRateLimits($integration);
-       
+
             $minuteKey = $this->getKey($integration, 'minute');
             $hourKey = $this->getKey($integration, 'hour');
-            
+
             $minuteCount = $this->get($minuteKey) ?? 0;
             $hourCount = $this->get($hourKey) ?? 0;
-            
+
             $minuteTtl = $this->useRedis ? Redis::ttl($minuteKey) : 60;
             $hourTtl = $this->useRedis ? Redis::ttl($hourKey) : 3600;
-            
+
             return [
                 'per_minute' => [
                     'limit' => $limits['requests_per_minute'],
@@ -94,7 +94,7 @@ class RateLimiter
                 'integration_id' => $integration->integration_id,
                 'error' => $e->getMessage()
             ]);
-            
+
             return [
                 'per_minute' => ['limit' => 60, 'used' => 0, 'remaining' => 60, 'resets_in_seconds' => 0],
                 'per_hour' => ['limit' => 1000, 'used' => 0, 'remaining' => 1000, 'resets_in_seconds' => 0],
@@ -105,23 +105,23 @@ class RateLimiter
     public function waitForSlot(Integration $integration, int $maxWaitSeconds = 60): bool
     {
         $waited = 0;
-        
+
         while (!$this->canMakeRequest($integration)) {
             if ($waited >= $maxWaitSeconds) {
                 return false;
             }
-            
+
             sleep(1);
             $waited++;
         }
-        
+
         return true;
     }
 
     private function getRateLimits(Integration $integration): array
     {
         $config = $integration->configuration ?? [];
-        
+
         return [
             'requests_per_minute' => $config['rate_limits']['requests_per_minute'] ?? 60,
             'requests_per_hour' => $config['rate_limits']['requests_per_hour'] ?? 1000,

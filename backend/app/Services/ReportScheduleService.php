@@ -23,13 +23,14 @@ class ReportScheduleService
     {
         $dueSchedules = ReportSchedule::where('active', true)
             ->where(function ($query) {
-                $query->where('next_scheduled_at', '<=', now())
+                $query
+                    ->where('next_scheduled_at', '<=', now())
                     ->orWhereNull('next_scheduled_at');
             })
             ->with(['customer', 'company'])
             ->get();
 
-        Log::info("Processing due report schedules", [
+        Log::info('Processing due report schedules', [
             'count' => $dueSchedules->count(),
             'schedule_ids' => $dueSchedules->pluck('report_schedule_id')->toArray(),
         ]);
@@ -43,7 +44,7 @@ class ReportScheduleService
 
         foreach ($dueSchedules as $schedule) {
             $results['processed']++;
-            
+
             try {
                 $this->processSchedule($schedule);
                 $results['succeeded']++;
@@ -55,8 +56,8 @@ class ReportScheduleService
                     'customer_id' => $schedule->customer_id,
                     'error' => $e->getMessage(),
                 ];
-                
-                Log::error("Failed to process schedule", [
+
+                Log::error('Failed to process schedule', [
                     'schedule_id' => $schedule->report_schedule_id,
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString(),
@@ -64,7 +65,7 @@ class ReportScheduleService
             }
         }
 
-        Log::info("Schedule processing completed", $results);
+        Log::info('Schedule processing completed', $results);
 
         return $results;
     }
@@ -74,7 +75,7 @@ class ReportScheduleService
      */
     public function processSchedule(ReportSchedule $schedule): void
     {
-        Log::info("Processing schedule", [
+        Log::info('Processing schedule', [
             'schedule_id' => $schedule->report_schedule_id,
             'report_type' => $schedule->report_type,
             'customer_id' => $schedule->customer_id,
@@ -90,7 +91,7 @@ class ReportScheduleService
             'next_scheduled_at' => $this->calculateNextRun($schedule),
         ]);
 
-        Log::info("Schedule processed successfully", [
+        Log::info('Schedule processed successfully', [
             'schedule_id' => $schedule->report_schedule_id,
             'generated_report_id' => $generatedReport->generated_report_id,
             'next_scheduled_at' => $schedule->next_scheduled_at,
@@ -106,7 +107,7 @@ class ReportScheduleService
         $time = Carbon::parse($schedule->time_of_day ?? '09:00', $timezone);
         $now = Carbon::now($timezone);
 
-        return match($schedule->frequency) {
+        return match ($schedule->frequency) {
             'daily' => $this->calculateDailyNext($schedule, $time, $now),
             'weekly' => $this->calculateWeeklyNext($schedule, $time, $now),
             'monthly' => $this->calculateMonthlyNext($schedule, $time, $now),
@@ -121,25 +122,25 @@ class ReportScheduleService
     protected function calculateDailyNext(ReportSchedule $schedule, Carbon $time, Carbon $now): Carbon
     {
         $next = $now->copy()->setTimeFrom($time);
-        
+
         // If time has passed today, schedule for tomorrow
         if ($next->isPast()) {
             $next->addDay();
         }
-        
+
         // Check if specific days of week are configured
         $daysOfWeek = $schedule->schedule_config['days_of_week'] ?? null;
         if ($daysOfWeek && is_array($daysOfWeek)) {
             // Find next valid day
-            $maxAttempts = 7; // Don't loop forever
+            $maxAttempts = 7;  // Don't loop forever
             $attempts = 0;
-            
+
             while (!in_array($next->dayOfWeek, $daysOfWeek) && $attempts < $maxAttempts) {
                 $next->addDay();
                 $attempts++;
             }
         }
-        
+
         return $next;
     }
 
@@ -149,10 +150,10 @@ class ReportScheduleService
     protected function calculateWeeklyNext(ReportSchedule $schedule, Carbon $time, Carbon $now): Carbon
     {
         $dayOfWeek = $schedule->schedule_config['day_of_week'] ?? Carbon::MONDAY;
-        
+
         // Get next occurrence of the target day
         $next = $now->copy()->setTimeFrom($time);
-        
+
         // If we're past the target day this week, or it's the target day but time has passed
         if ($next->dayOfWeek > $dayOfWeek || ($next->dayOfWeek == $dayOfWeek && $next->isPast())) {
             $next->next($dayOfWeek);
@@ -162,7 +163,7 @@ class ReportScheduleService
                 $next->addDay();
             }
         }
-        
+
         return $next;
     }
 
@@ -173,9 +174,9 @@ class ReportScheduleService
     {
         $dayOfMonth = $schedule->schedule_config['day_of_month'] ?? 1;
         $fallbackToLastDay = $schedule->schedule_config['fallback_to_last_day'] ?? true;
-        
+
         $next = $now->copy()->setTimeFrom($time);
-        
+
         // Try to set to the target day of current month
         try {
             $next->day($dayOfMonth);
@@ -188,7 +189,7 @@ class ReportScheduleService
                 $next->addMonth()->startOfMonth()->day(min($dayOfMonth, $next->daysInMonth));
             }
         }
-        
+
         // If we've passed this time in the current month, move to next month
         if ($next->isPast()) {
             $next->addMonth();
@@ -200,7 +201,7 @@ class ReportScheduleService
                 }
             }
         }
-        
+
         return $next;
     }
 
@@ -211,9 +212,9 @@ class ReportScheduleService
     {
         $month = $schedule->schedule_config['month'] ?? 1;
         $dayOfMonth = $schedule->schedule_config['day_of_month'] ?? 1;
-        
+
         $next = $now->copy()->setTimeFrom($time);
-        
+
         // Set to target month and day
         $next->month($month);
         try {
@@ -222,12 +223,12 @@ class ReportScheduleService
             // Day doesn't exist (e.g., Feb 30)
             $next->endOfMonth();
         }
-        
+
         // If we've passed this date this year, move to next year
         if ($next->isPast()) {
             $next->addYear();
         }
-        
+
         return $next;
     }
 
@@ -264,7 +265,7 @@ class ReportScheduleService
             'next_scheduled_at' => $this->calculateNextRun($schedule),
         ]);
 
-        Log::info("Schedule activated", [
+        Log::info('Schedule activated', [
             'schedule_id' => $schedule->report_schedule_id,
             'next_scheduled_at' => $schedule->next_scheduled_at,
         ]);
@@ -279,7 +280,7 @@ class ReportScheduleService
             'active' => false,
         ]);
 
-        Log::info("Schedule deactivated", [
+        Log::info('Schedule deactivated', [
             'schedule_id' => $schedule->report_schedule_id,
         ]);
     }

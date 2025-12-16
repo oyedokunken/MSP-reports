@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\AlertRule;
-use App\Models\AlertLog;
 use App\Mail\AlertNotificationMail;
-use Illuminate\Support\Facades\Mail;
+use App\Models\AlertLog;
+use App\Models\AlertRule;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class AlertNotificationService
 {
@@ -43,7 +43,9 @@ class AlertNotificationService
         $recipients = $config['email_recipients'] ?? [];
 
         if (empty($recipients)) {
-            $recipients = $rule->company->users()
+            $recipients = $rule
+                ->company
+                ->users()
                 ->whereJsonContains('permissions->company_settings->view', true)
                 ->pluck('email')
                 ->toArray();

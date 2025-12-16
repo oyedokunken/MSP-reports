@@ -12,20 +12,22 @@ class LicenseChecker
         $licenseEnforcement = $company->settings['licensing']['license_enforcement'] ?? false;
 
         if (!$licenseEnforcement) {
-            
             return true;
         }
 
-        return $company->licenses()
+        return $company
+            ->licenses()
             ->where('product_sku', $productSku)
             ->where('status', 'active')
             ->where(function ($query) {
-                $query->whereNull('expiry_date')
-                      ->orWhere('expiry_date', '>', now());
+                $query
+                    ->whereNull('expiry_date')
+                    ->orWhere('expiry_date', '>', now());
             })
             ->exists();
     }
 
+    //Active Integration Middleware for Backend Servcies
     public function canActivateIntegration(Company $company, string $integrationType): array
     {
         $productSku = "integration_{$integrationType}";
@@ -40,18 +42,22 @@ class LicenseChecker
         return ['allowed' => true, 'reason' => null];
     }
 
+    //Retention Middleware for licenses
     public function canExtendRetention(Company $company, int $requestedMonths): array
-    { 
+    {
         // Check for unlimited license first
-        $unlimitedLicense = $company->licenses()
+        $unlimitedLicense = $company
+            ->licenses()
             ->where('status', 'active')
             ->where(function ($query) {
-                $query->where('product_sku', 'unlimited')
-                      ->orWhere('license_type', 'unlimited');
+                $query
+                    ->where('product_sku', 'unlimited')
+                    ->orWhere('license_type', 'unlimited');
             })
             ->where(function ($query) {
-                $query->whereNull('expiry_date')
-                      ->orWhere('expiry_date', '>', now());
+                $query
+                    ->whereNull('expiry_date')
+                    ->orWhere('expiry_date', '>', now());
             })
             ->first();
 
@@ -60,12 +66,14 @@ class LicenseChecker
         }
 
         // Check for specific retention license
-        $retentionLicense = $company->licenses()
+        $retentionLicense = $company
+            ->licenses()
             ->where('license_type', 'retention')
             ->where('status', 'active')
             ->where(function ($query) {
-                $query->whereNull('expiry_date')
-                      ->orWhere('expiry_date', '>', now());
+                $query
+                    ->whereNull('expiry_date')
+                    ->orWhere('expiry_date', '>', now());
             })
             ->first();
 
@@ -75,7 +83,7 @@ class LicenseChecker
                 'reason' => 'No active retention license.',
             ];
         }
-        
+
         $allowedMonths = $retentionLicense->metadata['max_retention_months'] ?? 12;
 
         if ($requestedMonths > $allowedMonths) {
@@ -90,11 +98,13 @@ class LicenseChecker
 
     public function getActiveLicenses(Company $company)
     {
-        return $company->licenses()
+        return $company
+            ->licenses()
             ->where('status', 'active')
             ->where(function ($query) {
-                $query->whereNull('expiry_date')
-                      ->orWhere('expiry_date', '>', now());
+                $query
+                    ->whereNull('expiry_date')
+                    ->orWhere('expiry_date', '>', now());
             })
             ->get();
     }
@@ -107,12 +117,14 @@ class LicenseChecker
             return ['allowed' => true, 'reason' => null];
         }
 
-        $userLicense = $company->licenses()
+        $userLicense = $company
+            ->licenses()
             ->where('license_type', 'users')
             ->where('status', 'active')
             ->where(function ($query) {
-                $query->whereNull('expiry_date')
-                      ->orWhere('expiry_date', '>', now());
+                $query
+                    ->whereNull('expiry_date')
+                    ->orWhere('expiry_date', '>', now());
             })
             ->first();
 
@@ -141,12 +153,14 @@ class LicenseChecker
 
     public function getUserLicenseStatus(Company $company): array
     {
-        $userLicense = $company->licenses()
+        $userLicense = $company
+            ->licenses()
             ->where('license_type', 'users')
             ->where('status', 'active')
             ->where(function ($query) {
-                $query->whereNull('expiry_date')
-                      ->orWhere('expiry_date', '>', now());
+                $query
+                    ->whereNull('expiry_date')
+                    ->orWhere('expiry_date', '>', now());
             })
             ->first();
 
@@ -175,7 +189,8 @@ class LicenseChecker
 
     public function getExpiringLicenses(Company $company, int $daysThreshold = 30): array
     {
-        $expiringLicenses = $company->licenses()
+        $expiringLicenses = $company
+            ->licenses()
             ->where('status', 'active')
             ->whereNotNull('expiry_date')
             ->whereBetween('expiry_date', [now(), now()->addDays($daysThreshold)])

@@ -3,14 +3,14 @@
 namespace App\Services;
 
 use App\Models\Company;
-use App\Models\Integration;
-use App\Models\ExchangeMailbox;
 use App\Models\ExchangeEmailAlias;
+use App\Models\ExchangeMailbox;
 use App\Models\ExchangeMailboxPermission;
 use App\Models\ExchangeMailboxStatistic;
+use App\Models\Integration;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class ExchangeSyncService
 {
@@ -30,7 +30,7 @@ class ExchangeSyncService
                 'integration_type' => 'Exchange',
                 'display_name' => 'Microsoft Exchange Server',
                 'status' => 'active',
-                'credentials' => [], // No credentials - uses API keys per customer
+                'credentials' => [],  // No credentials - uses API keys per customer
                 'configuration' => [],
             ]);
 
@@ -109,10 +109,9 @@ class ExchangeSyncService
             DB::commit();
 
             return $result;
-
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             $integration->update([
                 'last_sync_at' => now(),
                 'last_sync_status' => 'failed',
@@ -133,16 +132,16 @@ class ExchangeSyncService
         foreach ($mailboxes as $mailboxData) {
             try {
                 // Convert sizes from bytes to MB
-                $totalItemSizeMB = isset($mailboxData['totalItemSize']) 
-                    ? round($mailboxData['totalItemSize'] / 1024 / 1024, 2) 
-                    : null;
-                
-                $totalDeletedItemSizeMB = isset($mailboxData['totalDeletedItemSize']) 
-                    ? round($mailboxData['totalDeletedItemSize'] / 1024 / 1024, 2) 
+                $totalItemSizeMB = isset($mailboxData['totalItemSize'])
+                    ? round($mailboxData['totalItemSize'] / 1024 / 1024, 2)
                     : null;
 
-                $archiveSizeMB = isset($mailboxData['archiveSize']) 
-                    ? round($mailboxData['archiveSize'] / 1024 / 1024, 2) 
+                $totalDeletedItemSizeMB = isset($mailboxData['totalDeletedItemSize'])
+                    ? round($mailboxData['totalDeletedItemSize'] / 1024 / 1024, 2)
+                    : null;
+
+                $archiveSizeMB = isset($mailboxData['archiveSize'])
+                    ? round($mailboxData['archiveSize'] / 1024 / 1024, 2)
                     : null;
 
                 ExchangeMailbox::updateOrCreate(
@@ -171,14 +170,14 @@ class ExchangeSyncService
                         'distinguished_name' => $mailboxData['distinguishedName'] ?? null,
                         'license_type' => $mailboxData['licenseType'] ?? null,
                         'assigned_licenses' => $mailboxData['assignedLicenses'] ?? null,
-                        'prohibit_send_quota_mb' => isset($mailboxData['prohibitSendQuota']) 
-                            ? round($mailboxData['prohibitSendQuota'] / 1024 / 1024, 2) 
+                        'prohibit_send_quota_mb' => isset($mailboxData['prohibitSendQuota'])
+                            ? round($mailboxData['prohibitSendQuota'] / 1024 / 1024, 2)
                             : null,
-                        'prohibit_send_receive_quota_mb' => isset($mailboxData['prohibitSendReceiveQuota']) 
-                            ? round($mailboxData['prohibitSendReceiveQuota'] / 1024 / 1024, 2) 
+                        'prohibit_send_receive_quota_mb' => isset($mailboxData['prohibitSendReceiveQuota'])
+                            ? round($mailboxData['prohibitSendReceiveQuota'] / 1024 / 1024, 2)
                             : null,
-                        'issue_warning_quota_mb' => isset($mailboxData['issueWarningQuota']) 
-                            ? round($mailboxData['issueWarningQuota'] / 1024 / 1024, 2) 
+                        'issue_warning_quota_mb' => isset($mailboxData['issueWarningQuota'])
+                            ? round($mailboxData['issueWarningQuota'] / 1024 / 1024, 2)
                             : null,
                         'use_database_quota_defaults' => $mailboxData['useDatabaseQuotaDefaults'] ?? true,
                         'total_item_size_mb' => $totalItemSizeMB,
@@ -191,11 +190,11 @@ class ExchangeSyncService
                         'archive_guid' => $mailboxData['archiveGuid'] ?? null,
                         'archive_name' => $mailboxData['archiveName'] ?? null,
                         'archive_database' => $mailboxData['archiveDatabase'] ?? null,
-                        'archive_quota_mb' => isset($mailboxData['archiveQuota']) 
-                            ? round($mailboxData['archiveQuota'] / 1024 / 1024, 2) 
+                        'archive_quota_mb' => isset($mailboxData['archiveQuota'])
+                            ? round($mailboxData['archiveQuota'] / 1024 / 1024, 2)
                             : null,
-                        'archive_warning_quota_mb' => isset($mailboxData['archiveWarningQuota']) 
-                            ? round($mailboxData['archiveWarningQuota'] / 1024 / 1024, 2) 
+                        'archive_warning_quota_mb' => isset($mailboxData['archiveWarningQuota'])
+                            ? round($mailboxData['archiveWarningQuota'] / 1024 / 1024, 2)
                             : null,
                         'archive_size_mb' => $archiveSizeMB,
                         'litigation_hold_enabled' => $mailboxData['litigationHoldEnabled'] ?? false,
@@ -398,12 +397,12 @@ class ExchangeSyncService
                 }
 
                 // Convert sizes from bytes to MB
-                $totalItemSizeMB = isset($statData['totalItemSize']) 
-                    ? round($statData['totalItemSize'] / 1024 / 1024, 2) 
+                $totalItemSizeMB = isset($statData['totalItemSize'])
+                    ? round($statData['totalItemSize'] / 1024 / 1024, 2)
                     : null;
-                
-                $totalDeletedItemSizeMB = isset($statData['totalDeletedItemSize']) 
-                    ? round($statData['totalDeletedItemSize'] / 1024 / 1024, 2) 
+
+                $totalDeletedItemSizeMB = isset($statData['totalDeletedItemSize'])
+                    ? round($statData['totalDeletedItemSize'] / 1024 / 1024, 2)
                     : null;
 
                 // Create statistics record

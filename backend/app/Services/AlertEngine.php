@@ -2,17 +2,18 @@
 
 namespace App\Services;
 
-use App\Models\AlertRule;
 use App\Models\AlertLog;
-use App\Models\Integration;
+use App\Models\AlertRule;
 use App\Models\GeneratedReport;
+use App\Models\Integration;
 use App\Models\SyncLog;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
+// Backend Alert Engine 
 class AlertEngine
 {
     protected AlertNotificationService $notificationService;
@@ -158,7 +159,7 @@ class AlertEngine
     protected function parsePeriod(string $period): Carbon
     {
         preg_match('/(\d+)([mhd])/', $period, $matches);
-        
+
         if (count($matches) !== 3) {
             return now()->subHour();
         }
@@ -166,9 +167,9 @@ class AlertEngine
         [$_, $value, $unit] = $matches;
 
         return match ($unit) {
-            'm' => now()->subMinutes((int)$value),
-            'h' => now()->subHours((int)$value),
-            'd' => now()->subDays((int)$value),
+            'm' => now()->subMinutes((int) $value),
+            'h' => now()->subHours((int) $value),
+            'd' => now()->subDays((int) $value),
             default => now()->subHour(),
         };
     }
@@ -179,9 +180,9 @@ class AlertEngine
     {
         try {
             DB::connection()->getPdo();
-            return 1; // Connected
+            return 1;  // Connected
         } catch (\Exception $e) {
-            return 0; // Disconnected
+            return 0;  // Disconnected
         }
     }
 
@@ -190,7 +191,7 @@ class AlertEngine
         $path = Storage::path('');
         $freeSpace = disk_free_space($path);
         $totalSpace = disk_total_space($path);
-        
+
         return ($freeSpace / $totalSpace) * 100;
     }
 
