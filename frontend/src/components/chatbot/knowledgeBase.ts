@@ -2,7 +2,7 @@
 
 export const knowledgeBase = {
   integrations: {
-    keywords: ['integration', 'connect', 'add integration', 'setup', 'autotask', 'datto', 'sync'],
+    keywords: ['integration', 'connect', 'add integration', 'setup', 'autotask', 'datto', 'sync', 'disconnect', 'credentials', 'api key', 'test connection'],
     answers: {
       'how to add': `**Adding an Integration:**
 
@@ -37,11 +37,20 @@ The Source of Truth (SOT) integration is your primary customer list source.
 - Set during integration setup or in settings
 
 This ensures consistent customer naming across all systems.`,
+
+      'disconnect': `**Disconnecting an Integration:**
+
+1. Go to **Integrations**
+2. Open the integration you want to disconnect
+3. Choose **Disconnect** (or disable)
+4. Confirm the action
+
+If you reconnect later, you may need to re-test credentials and re-sync.`,
     },
   },
 
   customers: {
-    keywords: ['customer', 'mapping', 'map', 'unmapped', 'master list', 'secondary list'],
+    keywords: ['customer', 'mapping', 'map', 'unmapped', 'master list', 'secondary list', 'merge', 'split', 'duplicate'],
     answers: {
       'mapping': `**Customer Mapping:**
 
@@ -83,7 +92,7 @@ When customers from different integrations have different names, you need to map
   },
 
   reports: {
-    keywords: ['report', 'schedule', 'generate', 'configure', 'pdf', 'email'],
+    keywords: ['report', 'schedule', 'generate', 'configure', 'pdf', 'email', 'download', 'run now', 'on-demand'],
     answers: {
       'configure': `**Configuring Reports:**
 
@@ -118,6 +127,14 @@ Reports are automatically:
 - Stored in the system for download
 
 Check delivery status in the **Reports** page.`,
+
+      'download': `**Downloading Reports:**
+
+1. Go to **Reports**
+2. Open the report you want
+3. Click **Download** (PDF)
+
+If you don’t see a report you expect, check the customer’s schedule and whether generation succeeded.`,
     },
   },
 
@@ -156,7 +173,7 @@ Check the **Notifications** page for all alerts.`,
   },
 
   users: {
-    keywords: ['user', 'permission', 'access', 'admin', 'role'],
+    keywords: ['user', 'permission', 'access', 'admin', 'role', 'invite', 'remove user'],
     answers: {
       'manage users': `**User Management:**
 
@@ -189,7 +206,7 @@ Set permissions per user based on their role.`,
   },
 
   general: {
-    keywords: ['help', 'support', 'guide', 'how to', 'what is', 'dashboard'],
+    keywords: ['help', 'support', 'guide', 'how to', 'what is', 'dashboard', 'where', 'find', 'navigate', 'page'],
     answers: {
       'dashboard': `**Dashboard Overview:**
 
@@ -210,33 +227,173 @@ Navigate using the sidebar menu to access all features.`,
 4. **Monitor**: Check the Monitoring page for system health
 
 Need help? Use this chatbot or contact support.`,
+
+      'navigation': `**Where do I find that?**
+
+Here are the most common places:
+
+- **Integrations**: connect systems, run syncs, view sync status
+- **Customers**: master list, mapping, merge/split
+- **Reports**: generated reports, delivery status, downloads
+- **Schedules**: configure and manage when reports run
+- **Monitoring**: system health and metrics
+- **Admin → Users**: user accounts and permissions
+
+Tell me what you’re trying to do and I’ll point you to the exact page.`,
     },
   },
 }
 
 // Simple pattern matching to find relevant answers
 export function findAnswer(question: string): string {
-  const lowerQuestion = question.toLowerCase()
+  const normalized = question
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 
-  // Check each category
-  for (const [, data] of Object.entries(knowledgeBase)) {
-    // Check if question contains category keywords
-    const hasKeyword = data.keywords.some(keyword => lowerQuestion.includes(keyword))
-    
-    if (hasKeyword) {
-      // Find best matching answer
-      for (const [key, answer] of Object.entries(data.answers)) {
-        const keyParts = key.split(' ')
-        const matchCount = keyParts.filter(part => lowerQuestion.includes(part)).length
-        
-        if (matchCount > 0) {
-          return answer
-        }
-      }
-      
-      // Return first answer if no specific match
-      return Object.values(data.answers)[0]
+  if (!normalized) {
+    return `Type a question and I’ll do my best to help.`
+  }
+
+  const stopwords = new Set([
+    'a',
+    'an',
+    'and',
+    'are',
+    'as',
+    'at',
+    'be',
+    'by',
+    'can',
+    'do',
+    'does',
+    'for',
+    'from',
+    'how',
+    'i',
+    'in',
+    'is',
+    'it',
+    'me',
+    'my',
+    'of',
+    'on',
+    'or',
+    'the',
+    'to',
+    'we',
+    'what',
+    'where',
+    'when',
+    'who',
+    'with',
+    'you',
+    'your',
+  ])
+
+  const rawTokens = normalized.split(' ').filter(Boolean)
+  const tokens = rawTokens.filter((t) => !stopwords.has(t))
+  const tokenSet = new Set(tokens)
+
+  const synonymGroups: Record<string, string[]> = {
+    sync: ['sync', 'synchronise', 'synchronize', 'pull', 'refresh', 'update'],
+    integration: ['integration', 'connector', 'connect', 'connected'],
+    customer: ['customer', 'client', 'account'],
+    mapping: ['mapping', 'map', 'match', 'link', 'merge'],
+    report: ['report', 'pdf', 'export', 'download', 'generated'],
+    schedule: ['schedule', 'scheduled', 'frequency', 'cron', 'timing', 'run'],
+    permissions: ['permission', 'permissions', 'role', 'roles', 'access'],
+    monitoring: ['monitoring', 'health', 'status', 'metrics', 'uptime'],
+  }
+
+  const expandedTokenSet = new Set<string>([...tokenSet])
+  for (const [canonical, words] of Object.entries(synonymGroups)) {
+    if (words.some((w) => tokenSet.has(w))) {
+      expandedTokenSet.add(canonical)
+      for (const w of words) expandedTokenSet.add(w)
     }
+  }
+
+  const isGreeting = /(\bhi\b|\bhello\b|\bhey\b|\bgood\s*(morning|afternoon|evening)\b)/i.test(normalized)
+  if (isGreeting) {
+    return `Hi! I can help with **Integrations**, **Customers**, **Reports**, **Schedules**, **Monitoring**, and **User permissions**.\n\nWhat are you trying to do?`
+  }
+
+  const isThanks = /(\bthanks\b|\bthank you\b|\bthx\b)/i.test(normalized)
+  if (isThanks) {
+    return `You’re welcome. If you tell me what screen you’re on and what you’re trying to achieve, I can guide you step-by-step.`
+  }
+
+  type ScoredAnswer = {
+    score: number
+    answer: string
+  }
+
+  const scoreKeyword = (keyword: string): number => {
+    const k = keyword
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (!k) return 0
+
+    if (normalized.includes(k)) return 6
+
+    const parts = k.split(' ').filter(Boolean)
+    if (parts.length === 0) return 0
+
+    const hitCount = parts.filter((p) => expandedTokenSet.has(p)).length
+    if (hitCount === 0) return 0
+
+    return hitCount >= Math.max(1, Math.ceil(parts.length * 0.6)) ? 4 : 2
+  }
+
+  const scoreAnswerKey = (key: string): number => {
+    const parts = key
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .filter(Boolean)
+      .filter((p) => !stopwords.has(p))
+
+    if (parts.length === 0) return 0
+
+    const hitCount = parts.filter((p) => expandedTokenSet.has(p)).length
+    if (hitCount === 0) return 0
+
+    if (hitCount === parts.length) return 8
+    if (hitCount >= Math.max(1, Math.ceil(parts.length * 0.6))) return 5
+    return 3
+  }
+
+  let best: ScoredAnswer | null = null
+
+  for (const [, data] of Object.entries(knowledgeBase)) {
+    const categoryScore = Math.max(0, ...data.keywords.map(scoreKeyword))
+    if (categoryScore === 0) continue
+
+    for (const [key, answer] of Object.entries(data.answers)) {
+      let score = categoryScore + scoreAnswerKey(key)
+
+      if (/(where|find|navigate|go to)\b/.test(normalized) && key.includes('navigation')) {
+        score += 3
+      }
+
+      if (!best || score > best.score) {
+        best = { score, answer }
+      }
+    }
+  }
+
+  if (best && best.score >= 6) {
+    return best.answer
+  }
+
+  if (/(where|find|navigate|page)\b/.test(normalized)) {
+    return knowledgeBase.general.answers.navigation
   }
 
   // Default response if no match found
