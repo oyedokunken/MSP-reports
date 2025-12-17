@@ -171,13 +171,13 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
     public function columnWidths(): array
     {
         return [
-            'B' => 30, // Company name
-            'C' => 30, // License name
-            'D' => 15, // Active licenses
-            'E' => 15, // Consumed licenses
-            'F' => 15, // Unused licenses
-            'G' => 18, // Consumption rate
-            'H' => 15, // Last updated
+            'B' => 35, // Company name - wider for long names
+            'C' => 40, // License name - wider for full license names
+            'D' => 18, // Active licenses
+            'E' => 18, // Consumed licenses
+            'F' => 18, // Unused licenses
+            'G' => 20, // Consumption rate
+            'H' => 18, // Last updated
         ];
     }
 
@@ -234,8 +234,11 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
         ];
         
         $sheet->getStyle('B2:H2')->applyFromArray($headerStyle);
-        $sheet->getRowDimension(2)->setRowHeight(30);
+        $sheet->getRowDimension(2)->setRowHeight(35);
         $sheet->setAutoFilter('B2:H' . $highestRow);
+        
+        // Freeze panes to keep header visible
+        $sheet->freezePane('C3');
         
         // Style data rows
         $dataStyle = [
@@ -244,10 +247,17 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
         ];
         $sheet->getStyle('B3:H' . $highestRow)->applyFromArray($dataStyle);
         
+        // Add thousand separators to numeric columns
+        $sheet->getStyle('D3:F' . $highestRow)->getNumberFormat()->setFormatCode('#,##0');
+        
+        // Right-align numeric columns for better readability
+        $sheet->getStyle('D3:F' . $highestRow)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        
         // Zebra striping and conditional formatting
         for ($row = 3; $row <= $highestRow; $row++) {
+            // Slightly better zebra striping
             if ($row % 2 == 0) {
-                $sheet->getStyle('B' . $row . ':H' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($this->lightGrayColor);
+                $sheet->getStyle('B' . $row . ':H' . $row)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F8F9FA');
             }
             
             $consumptionCell = 'G' . $row;
@@ -255,11 +265,11 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
             $numericValue = (float) str_replace('%', '', $consumptionValue);
             
             if ($numericValue > 90) {
-                $sheet->getStyle($consumptionCell)->getFont()->setColor(new Color($this->accentColor1));
-                $sheet->getStyle($consumptionCell)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFEEEE');
+                $sheet->getStyle($consumptionCell)->getFont()->setBold(true)->setColor(new Color($this->accentColor1));
+                $sheet->getStyle($consumptionCell)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FFE5E5');
             } elseif ($numericValue < 50) {
-                $sheet->getStyle($consumptionCell)->getFont()->setColor(new Color($this->accentColor2));
-                $sheet->getStyle($consumptionCell)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('EEFFEE');
+                $sheet->getStyle($consumptionCell)->getFont()->setBold(true)->setColor(new Color($this->accentColor2));
+                $sheet->getStyle($consumptionCell)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('E5FFE5');
             }
             
             $sheet->getStyle('D' . $row . ':G' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -273,16 +283,26 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
             }
         }
         
-        // Summary section
-        $summaryRow = $highestRow + 2;
-        $sheet->setCellValue('B' . $summaryRow, 'Summary');
-        $sheet->getStyle('B' . $summaryRow)->getFont()->setBold(true)->setSize(12)->setColor(new Color($this->primaryColor));
+        // Enhanced Summary section
+        $summaryRow = $highestRow + 3;
+        
+        // Summary header with background
+        $sheet->mergeCells('B' . $summaryRow . ':D' . $summaryRow);
+        $sheet->setCellValue('B' . $summaryRow, 'SUMMARY');
+        $sheet->getStyle('B' . $summaryRow)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 14, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $this->primaryColor]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['rgb' => $this->primaryColor]]],
+        ]);
+        $sheet->getRowDimension($summaryRow)->setRowHeight(30);
+        
+        // Calculate unique companies in PHP (more reliable)
+        $uniqueCompanies = $sheet->rangeToArray('B3:B' . $highestRow);
+        $uniqueCount = count(array_unique(array_column($uniqueCompanies, 0)));
         
         $sheet->setCellValue('B' . ($summaryRow + 1), 'Total Companies:');
-        $sheet->setCellValue('C' . ($summaryRow + 1), '=COUNTDISTINCT(B3:B' . $highestRow . ')'); // Note: COUNTDISTINCT might not work in all Excel versions, usually requires array formula or pivot. Using simple COUNT for now or just text.
-        // Actually COUNTDISTINCT is not a standard Excel function. Let's use COUNTA for now or remove formula.
-        // Better to calculate in PHP if we want accuracy, but formulas are nice.
-        // Let's stick to simple formulas.
+        $sheet->setCellValue('C' . ($summaryRow + 1), $uniqueCount);
         
         $sheet->setCellValue('B' . ($summaryRow + 2), 'Total Licenses:');
         $sheet->setCellValue('C' . ($summaryRow + 2), '=COUNTA(C3:C' . $highestRow . ')');
@@ -297,12 +317,43 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
         $sheet->setCellValue('C' . ($summaryRow + 5), '=AVERAGE(G3:G' . $highestRow . ')');
         $sheet->getStyle('C' . ($summaryRow + 5))->getNumberFormat()->setFormatCode('0.00%');
         
+        // Style summary rows with background and borders
+        for ($i = 1; $i <= 5; $i++) {
+            $currentRow = $summaryRow + $i;
+            $sheet->getStyle('B' . $currentRow . ':D' . $currentRow)->applyFromArray([
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F8F9FA']],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'CCCCCC']]],
+                'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+            ]);
+            $sheet->getRowDimension($currentRow)->setRowHeight(22);
+        }
+        
         $sheet->getStyle('B' . ($summaryRow + 1) . ':B' . ($summaryRow + 5))->getFont()->setBold(true);
-        $sheet->getStyle('C' . ($summaryRow + 1) . ':C' . ($summaryRow + 5))->getFont()->setBold(true);
+        $sheet->getStyle('C' . ($summaryRow + 1) . ':C' . ($summaryRow + 5))->getFont()->setBold(true)->setColor(new Color($this->primaryColor));
+        
+        // Format numbers in summary with thousand separators
+        $sheet->getStyle('C' . ($summaryRow + 1))->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('C' . ($summaryRow + 2))->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('C' . ($summaryRow + 3))->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('C' . ($summaryRow + 4))->getNumberFormat()->setFormatCode('#,##0');
         
         $footerRow = $summaryRow + 7;
-        $sheet->setCellValue('B' . $footerRow, 'Generated on: ' . date('Y-m-d H:i:s'));
+        $sheet->setCellValue('B' . $footerRow, 'Generated on: ' . date('F j, Y \a\t g:i A'));
         $sheet->getStyle('B' . $footerRow)->getFont()->setItalic(true)->setSize(9)->setColor(new Color('888888'));
+        
+        // Set print settings for better printing
+        $sheet->getPageSetup()
+            ->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE)
+            ->setPaperSize(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::PAPERSIZE_A4)
+            ->setFitToWidth(1)
+            ->setFitToHeight(0);
+        
+        // Set margins
+        $sheet->getPageMargins()
+            ->setTop(0.75)
+            ->setRight(0.25)
+            ->setLeft(0.25)
+            ->setBottom(0.75);
         
         return [];
     }

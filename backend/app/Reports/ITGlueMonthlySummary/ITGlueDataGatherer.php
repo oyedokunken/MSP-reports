@@ -45,13 +45,17 @@ class ITGlueDataGatherer
             $unused = $this->extractValue($traits['unused'] ?? $traits['available'] ?? null);
             $licenseName = $this->extractValue($traits['license-name'] ?? $payload['name'] ?? 'Unknown License');
             
+            // Calculate utilization using the EXTRACTED values, not traits
+            $utilization = $this->calculateUtilizationFromValues($active, $consumed);
+            $status = $this->determineStatusFromUtilization($utilization);
+            
             return [
                 'name' => $licenseName,
                 'purchased' => $active,
                 'assigned' => $consumed,
                 'available' => $unused,
-                'utilization_percentage' => $this->calculateUtilization($traits),
-                'status' => $this->determineLicenseStatus($traits),
+                'utilization_percentage' => $utilization,
+                'status' => $status,
             ];
         })->values();
     }
@@ -160,33 +164,44 @@ class ITGlueDataGatherer
     }
 
     /**
-     * Calculate license utilization percentage
+     * Calculate license utilization percentage from extracted values
      */
-    private function calculateUtilization(array $traits): int
+    private function calculateUtilizationFromValues($total, $used): int
     {
-        // ITGlue uses: active (total), consumed (used)
-        $activeRaw = $traits['active'] ?? $traits['purchased'] ?? $traits['total-seats'] ?? null;
-        $consumedRaw = $traits['consumed'] ?? $traits['assigned'] ?? $traits['used-seats'] ?? null;
+        // Convert to float, handling null/empty values
+        $totalFloat = is_numeric($total) ? (float)$total : 0;
+        $usedFloat = is_numeric($used) ? (float)$used : 0;
         
-        // Extract values from arrays if needed (ITGlue sometimes returns arrays)
-        $active = $this->extractValue($activeRaw);
-        $consumed = $this->extractValue($consumedRaw);
+        // Edge case: If we have assigned licenses but no total, treat as 100% utilized
+        if ($totalFloat <= 0) {
+            if ($usedFloat > 0) {
+                \Log::warning('ITGlue license has assigned seats but no total', [
+                    'used' => $usedFloat,
+                    'total' => $totalFloat,
+                ]);
+                return 100; // Fully utilized (or over-utilized)
+            }
+            return 0; // No licenses at all
+        }
         
-        $total = is_numeric($active) ? (float)$active : 0;
-        $used = is_numeric($consumed) ? (float)$consumed : 0;
+        $utilization = (int)round(($usedFloat / $totalFloat) * 100);
         
-        if ($total <= 0) return 0;
-        return (int)round(($used / $total) * 100);
+        // Cap at 100% for display purposes (though can be >100% if over-allocated)
+        return min($utilization, 100);
     }
 
     /**
-     * Determine license status based on utilization
+     * Determine license status based on utilization percentage
      */
-    private function determineLicenseStatus(array $traits): string
+    private function determineStatusFromUtilization(int $utilization): string
     {
-        $utilization = $this->calculateUtilization($traits);
+        // Under 70% = too many unused licenses
         if ($utilization < 70) return 'over_provisioned';
-        if ($utilization >= 90) return 'under_provisioned';
+        
+        // Over 100% = more assigned than purchased (need more licenses)
+        if ($utilization > 100) return 'under_provisioned';
+        
+        // 70-100% = healthy utilization range
         return 'well_utilized';
     }
 }
