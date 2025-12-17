@@ -207,7 +207,7 @@ class SaaSMonthlySummary extends BaseReport
             'description' => 'Comprehensive security analysis including user activity, threat detection, geographic access patterns, and application usage from SaaS Alerts',
             'category' => 'security',
             'data_types' => $this->getRequiredDataTypes(),
-            'frequencies' => ['monthly'],
+
             'formats' => ['pdf', 'html'],
             'supports_scheduling' => true,
             'supports_email_delivery' => true,

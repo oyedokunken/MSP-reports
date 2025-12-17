@@ -21,6 +21,7 @@ export interface ReportType {
   name: string
   description: string
   integration_source?: string
+  frequency_options?: string[]
 }
 
 export interface EnabledReport {

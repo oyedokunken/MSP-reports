@@ -8,7 +8,7 @@ return [
     'category' => 'security',
     'data_types' => ['bitdefender_endpoint', 'bitdefender_threat_detection'],
     'required_integrations' => ['BitDefender'],
-    'frequencies' => ['monthly', 'quarterly'],
+    'frequencies' => ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'on-demand'],
     'formats' => ['pdf', 'html'],
     'default_frequency' => 'monthly',
     'default_format' => 'pdf',

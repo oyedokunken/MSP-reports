@@ -90,7 +90,8 @@ export default function ConfigureReports() {
         id: r.report_type || r.id,
         name: r.name,
         description: r.description,
-        integration_source: r.integration_source
+        integration_source: r.integration_source,
+        frequency_options: r.frequency_options || ['on-demand']
       }))
 
       setAvailableReportTypes(reports)
@@ -211,11 +212,20 @@ export default function ConfigureReports() {
     // If changing report_type, remove the old schedule_id so it creates a new one
     if (field === 'report_type' && updated[index].schedule_id) {
       const oldScheduleId = updated[index].schedule_id
+      const newReportType = availableReportTypes.find(t => t.id === value)
+      const allowedFrequencies = newReportType?.frequency_options || ['on-demand']
+      const currentFrequency = updated[index].frequency || 'monthly'
+
       updated[index] = {
         ...updated[index],
         [field]: value as string,
         schedule_id: undefined, // Remove schedule_id so backend creates new one
         _old_schedule_id: oldScheduleId // Track old ID for deletion
+      }
+
+      // If current frequency is not supported by new report type, reset to first supported frequency
+      if (!allowedFrequencies.includes(currentFrequency)) {
+        updated[index].frequency = allowedFrequencies[0]
       }
 
       // If changing TO comprehensive report, set default sections
@@ -503,11 +513,17 @@ export default function ConfigureReports() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {FREQUENCIES.map((freq) => (
-                                <SelectItem key={freq.value} value={freq.value}>
-                                  {freq.label}
-                                </SelectItem>
-                              ))}
+                              {(() => {
+                                const selectedReport = availableReportTypes.find(t => t.id === report.report_type)
+                                const allowedFrequencies = selectedReport?.frequency_options || ['on-demand']
+                                return FREQUENCIES
+                                  .filter(freq => allowedFrequencies.includes(freq.value))
+                                  .map((freq) => (
+                                    <SelectItem key={freq.value} value={freq.value}>
+                                      {freq.label}
+                                    </SelectItem>
+                                  ))
+                              })()}
                             </SelectContent>
                           </Select>
                         </div>

@@ -66,6 +66,9 @@ class ReportGenerationService
             if ($schedule->schedule_config) {
                 $options = is_array($schedule->schedule_config) ? $schedule->schedule_config : json_decode($schedule->schedule_config, true);
             }
+            
+            // Add frequency to options so report can adjust title dynamically
+            $options['frequency'] = $schedule->frequency ?? 'monthly';
 
             // Generate report with Carbon dates and options
             $reportData = $reportClass->generate($schedule->customer, $startDate, $endDate, $options);
@@ -358,6 +361,7 @@ class ReportGenerationService
                     'reportData' => $reportData,
                     'schedule' => $schedule,
                     'customer' => $schedule->customer,
+                    'options' => $reportData['options'] ?? [], // Pass options for dynamic title
                     'branding' => $reportData['branding'] ?? [],
                     'metrics' => $reportData['metrics'] ?? [],
                     'period' => $reportData['period'] ?? [],

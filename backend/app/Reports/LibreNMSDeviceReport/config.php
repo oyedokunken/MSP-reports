@@ -6,7 +6,7 @@ return [
     'name' => 'LibreNMS Device Report',
     'description' => 'Device availability report showing 24h, 7d, 30d, and 365d uptime metrics',
     'category' => 'infrastructure',
-    'frequencies' => ['weekly', 'monthly'],
+    'frequencies' => ['daily', 'weekly', 'monthly', 'yearly', 'on-demand'],
     'formats' => ['pdf', 'html'],
     'required_integrations' => ['LibreNMS'],
 ];

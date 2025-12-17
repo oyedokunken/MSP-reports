@@ -8,7 +8,7 @@ return [
     'category' => 'executive',
     'data_types' => [], // Dynamic - depends on customer's integrations
     'required_integrations' => ['multiple'], // Requires multiple integrations to be useful
-    'frequencies' => ['monthly'],
+    'frequencies' => ['daily', 'weekly', 'monthly', 'yearly', 'on-demand'],
     'formats' => ['pdf', 'html'],
     'default_frequency' => 'monthly',
     'default_format' => 'pdf',

@@ -8,7 +8,7 @@ return [
     'category' => 'service_desk',
     'data_types' => ['ticket', 'time_entry', 'resource', 'contract'],
     'required_integrations' => ['Autotask'],
-    'frequencies' => ['monthly'],
+    'frequencies' => ['daily', 'weekly', 'monthly', 'yearly', 'on-demand'],
     'formats' => ['pdf', 'html'],
     'default_frequency' => 'monthly',
     'default_format' => 'pdf',

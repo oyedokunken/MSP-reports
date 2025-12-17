@@ -128,6 +128,7 @@ class AutotaskMonthlySummary extends BaseReport
                 'end' => $this->formatDate($endDate),
                 'formatted' => $this->formatDateRange($startDate, $endDate),
             ],
+            'options' => $options, // Pass options to template for dynamic title
             'executive_summary' => $executiveSummary,
             'tickets' => [
                 'data' => $tickets->toArray(),
@@ -150,7 +151,7 @@ class AutotaskMonthlySummary extends BaseReport
 
     public function getTemplate(): string
     {
-        return resource_path('views/Reports/AutotaskMonthlySummary/template.blade.php');
+        return 'Reports.AutotaskMonthlySummary.template';
     }
 
     public function getMetadata(): array
@@ -161,7 +162,6 @@ class AutotaskMonthlySummary extends BaseReport
             'description' => 'Comprehensive monthly report combining tickets, time entries, technician performance, and contracts from Autotask PSA',
             'category' => 'service_desk',
             'data_types' => $this->getRequiredDataTypes(),
-            'frequencies' => ['monthly'],
             'formats' => ['pdf', 'html'],
             'supports_scheduling' => true,
             'supports_email_delivery' => true,

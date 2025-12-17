@@ -291,20 +291,6 @@ class ReportConfigController extends Controller
         $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : null;
         $reportType = $request->input('report_type');
         
-        // If no custom dates provided and this is a manual generation, use previous month
-        // (current month likely has incomplete data)
-        $useCurrentMonth = $request->input('use_current_month', false);
-        if (!$startDate && !$endDate) {
-            if ($useCurrentMonth) {
-                $startDate = Carbon::now()->startOfMonth();
-                $endDate = Carbon::now()->endOfMonth();
-            } else {
-                // Default to previous month (complete data)
-                $startDate = Carbon::now()->subMonth()->startOfMonth();
-                $endDate = Carbon::now()->subMonth()->endOfMonth();
-            }
-        }
-        
         $schedules = ReportSchedule::where('customer_id', $customer->customer_id)
             ->where('company_id', $company->company_id)
             ->where('active', true);
@@ -328,7 +314,8 @@ class ReportConfigController extends Controller
 
         foreach ($schedules as $schedule) {
             try {
-                // Generate report with dates (either custom or current month)
+                // Generate report with custom dates only if explicitly provided
+                // Otherwise, let the schedule's frequency determine the date range
                 if ($startDate && $endDate) {
                     $generatedReport = $this->reportService->generateReport($schedule, $startDate, $endDate);
                 } else {

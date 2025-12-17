@@ -8,7 +8,7 @@ return [
     'category' => 'security',
     'data_types' => ['saas_security_event'],
     'required_integrations' => ['SaaS'],
-    'frequencies' => ['monthly'],
+    'frequencies' => ['daily', 'weekly', 'monthly', 'yearly', 'on-demand'],
     'formats' => ['pdf', 'html'],
     'default_frequency' => 'monthly',
     'default_format' => 'pdf',

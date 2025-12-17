@@ -112,7 +112,7 @@ class SecuritySummary extends BaseReport
             'description' => 'Security alerts, incidents, and threat analysis from security monitoring systems',
             'category' => 'security',
             'data_types' => $this->getRequiredDataTypes(),
-            'frequencies' => ['weekly', 'monthly'],
+
             'formats' => ['pdf', 'html'],
         ];
     }

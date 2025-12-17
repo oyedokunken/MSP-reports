@@ -8,7 +8,7 @@ return [
     'category' => 'security',
     'data_types' => ['security_alert', 'security_incident'],
     'required_integrations' => ['Datto', 'RocketCyber', 'ThreatLocker', 'Barracuda', 'WatchguardAuthPoint'], // Security tools
-    'frequencies' => ['weekly', 'monthly'],
+    'frequencies' => ['daily', 'weekly', 'monthly', 'yearly', 'on-demand'],
     'formats' => ['pdf', 'html'],
     'default_frequency' => 'monthly',
     'default_format' => 'pdf',

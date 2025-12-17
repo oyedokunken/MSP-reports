@@ -232,7 +232,7 @@ class LibreNMSDeviceReport implements ReportInterface
             'description' => 'Device availability report showing 24h, 7d, 30d, and 365d uptime metrics',
             'category' => 'infrastructure',
             'data_types' => $this->getRequiredDataTypes(),
-            'frequencies' => ['weekly', 'monthly'],
+
             'formats' => ['pdf', 'html'],
             'supports_scheduling' => true,
             'supports_email_delivery' => true,

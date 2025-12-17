@@ -87,7 +87,7 @@ class BackupStatus extends BaseReport
             'description' => 'Backup success rates, failures, and storage metrics from backup solutions',
             'category' => 'backup',
             'data_types' => $this->getRequiredDataTypes(),
-            'frequencies' => ['daily', 'weekly', 'monthly'],
+
             'formats' => ['pdf', 'html'],
         ];
     }

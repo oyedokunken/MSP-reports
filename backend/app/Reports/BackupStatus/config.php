@@ -8,7 +8,7 @@ return [
     'category' => 'backup',
     'data_types' => ['backup_status'],
     'required_integrations' => ['Datto', 'Veeam'], // Backup solutions
-    'frequencies' => ['daily', 'weekly', 'monthly'],
+    'frequencies' => ['daily', 'weekly', 'monthly', 'yearly', 'on-demand'],
     'formats' => ['pdf', 'html'],
     'default_frequency' => 'monthly',
     'default_format' => 'pdf',
