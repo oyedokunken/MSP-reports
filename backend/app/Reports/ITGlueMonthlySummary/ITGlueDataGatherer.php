@@ -24,7 +24,16 @@ class ITGlueDataGatherer
             ->orderBy('data_timestamp', 'desc')
             ->get();
 
-        return $rawData->unique(function($item) {
+        // Filter for only Microsoft License flexible asset types
+        $licenseData = $rawData->filter(function($item) {
+            $typeName = strtolower($item->data_payload['type_name'] ?? '');
+            // Only include assets that are explicitly license types
+            return str_contains($typeName, 'microsoft') && str_contains($typeName, 'license') ||
+                   str_contains($typeName, 'office 365') && str_contains($typeName, 'license') ||
+                   str_contains($typeName, 'o365') && str_contains($typeName, 'license');
+        });
+
+        return $licenseData->unique(function($item) {
             return $item->data_payload['asset_id'] ?? $item->integration_data_id;
         })->map(function($item) {
             $payload = $item->data_payload;
@@ -177,7 +186,7 @@ class ITGlueDataGatherer
     {
         $utilization = $this->calculateUtilization($traits);
         if ($utilization < 70) return 'over_provisioned';
-        if ($utilization >= 90) return 'well_utilized';
-        return 'normal';
+        if ($utilization >= 90) return 'under_provisioned';
+        return 'well_utilized';
     }
 }

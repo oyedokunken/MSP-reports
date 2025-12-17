@@ -57,7 +57,12 @@
         <div class="summary-card">
             <div class="number">{{ $licenses['summary']['total_licenses'] ?? 0 }}</div>
             <div class="label">Microsoft Licenses</div>
-            <div class="sublabel">{{ $licenses['summary']['over_provisioned'] ?? 0 }} over-provisioned</div>
+            <div class="sublabel">
+                {{ $licenses['summary']['under_provisioned'] ?? 0 }} under-provisioned
+                @if(($licenses['summary']['over_provisioned'] ?? 0) > 0)
+                    • {{ $licenses['summary']['over_provisioned'] ?? 0 }} over-provisioned
+                @endif
+            </div>
         </div>
         <div class="summary-card">
             <div class="number">{{ $ssl_certificates['summary']['total_certificates'] ?? 0 }}</div>
@@ -107,6 +112,8 @@
                     <td>
                         @if(($license['status'] ?? '') === 'over_provisioned')
                             <span class="badge warning">Over-provisioned</span>
+                        @elseif(($license['status'] ?? '') === 'under_provisioned')
+                            <span class="badge critical">Under-provisioned</span>
                         @elseif(($license['status'] ?? '') === 'well_utilized')
                             <span class="badge healthy">Well Utilized</span>
                         @else

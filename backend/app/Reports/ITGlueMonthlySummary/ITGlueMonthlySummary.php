@@ -173,6 +173,7 @@ class ITGlueMonthlySummary extends BaseReport
         return [
             'total_licenses' => $licenses->count(),
             'over_provisioned' => $licenses->where('status', 'over_provisioned')->count(),
+            'under_provisioned' => $licenses->where('status', 'under_provisioned')->count(),
             'well_utilized' => $licenses->where('status', 'well_utilized')->count(),
         ];
     }
@@ -181,6 +182,11 @@ class ITGlueMonthlySummary extends BaseReport
     {
         $recommendations = [];
         $overProvisioned = $licenses->where('status', 'over_provisioned');
+        $underProvisioned = $licenses->where('status', 'under_provisioned');
+        
+        if ($underProvisioned->count() > 0) {
+            $recommendations[] = "Consider purchasing additional licenses for {$underProvisioned->count()} under-provisioned license(s) to avoid capacity issues.";
+        }
         
         if ($overProvisioned->count() > 0) {
             $recommendations[] = "Consider reducing {$overProvisioned->count()} over-provisioned license(s) to optimize costs.";

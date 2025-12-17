@@ -128,7 +128,7 @@ export function HistoricalImportModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="days" className="text-sm font-medium mb-2 block">
-              Number of Days
+              {integration.type === 'itglue' ? 'Import Current State' : 'Number of Days'}
             </Label>
             <Input
               id="days"
@@ -138,11 +138,14 @@ export function HistoricalImportModal({
               placeholder={integration.type === 'itglue' ? '1' : '90'}
               value={days}
               onChange={(e) => setDays(e.target.value)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || integration.type === 'itglue'}
               className="w-full"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Import data from the last {days || '0'} days (max 365)
+              {integration.type === 'itglue' 
+                ? 'Imports current snapshot of all assets (licenses, SSL certs, domains)'
+                : `Import data from the last ${days || '0'} days (max 365)`
+              }
             </p>
           </div>
 
@@ -151,10 +154,10 @@ export function HistoricalImportModal({
               <div className="flex gap-2">
                 <span className="text-lg">💡</span>
                 <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium">IT Glue provides snapshots only</p>
+                  <p className="text-sm font-medium">Imports current state of all assets</p>
                   <p className="text-xs text-muted-foreground">
-                    Recommend <strong className="text-amber-600">1 day</strong> to capture initial state.
-                    More days won't add value as IT Glue doesn't store historical time-series data.
+                    This will import <strong>all current Microsoft licenses, SSL certificates, domains, and other assets</strong> from IT Glue right now. 
+                    IT Glue doesn't have historical time-series data - it only provides current snapshots.
                   </p>
                 </div>
               </div>
