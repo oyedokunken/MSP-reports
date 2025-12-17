@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
+use Carbon\Carbon;
 use Exception;
 
 class BitDefenderClient
@@ -105,6 +106,7 @@ class BitDefenderClient
         $page = 1;
         $perPage = 100;
         $totalProcessed = 0;
+        $allEndpoints = [];
 
         try {
             do {
@@ -136,6 +138,9 @@ class BitDefenderClient
                         $callback($endpoint);
                         $totalProcessed++;
                     }
+                } else {
+                    // Accumulate endpoints if no callback
+                    $allEndpoints = array_merge($allEndpoints, array_values($endpoints));
                 }
                 
                 $total = $response['result']['total'] ?? 0;
@@ -147,7 +152,7 @@ class BitDefenderClient
                     'page' => $page,
                     'items_this_page' => count($items),
                     'endpoints_this_page' => count($endpoints),
-                    'total_processed' => $totalProcessed,
+                    'total_processed' => $callback ? $totalProcessed : count($allEndpoints),
                 ]);
                 
                 $page++;
@@ -156,10 +161,11 @@ class BitDefenderClient
             Log::info('BitDefenderClient::getEndpointsForCompany completed', [
                 'integration_id' => $this->integration->integration_id,
                 'company_id' => $companyId,
-                'total_endpoints' => $totalProcessed,
+                'total_endpoints' => $callback ? $totalProcessed : count($allEndpoints),
             ]);
 
-            return ['total_processed' => $totalProcessed];
+            // Return endpoints array if no callback, otherwise return count
+            return $callback ? ['total_processed' => $totalProcessed] : $allEndpoints;
         } catch (Exception $e) {
             Log::error('BitDefenderClient::getEndpointsForCompany failed', [
                 'integration_id' => $this->integration->integration_id,
@@ -172,20 +178,34 @@ class BitDefenderClient
 
     /**
      * Get threat detections/quarantine items.
+     * @param Carbon|null $startDate Optional start date for filtering threats
+     * @param Carbon|null $endDate Optional end date for filtering threats
      */
-    public function getThreatDetections(): array
+    public function getThreatDetections(?Carbon $startDate = null, ?Carbon $endDate = null): array
     {
         try {
-            $response = $this->makeRequest('getQuarantineItemsList', [
+            $params = [
                 'perPage' => 100,
                 'page' => 1,
-            ], 'quarantine');
+            ];
+            
+            // Add date filters if provided
+            if ($startDate) {
+                $params['startDate'] = $startDate->format('Y-m-d\TH:i:s');
+            }
+            if ($endDate) {
+                $params['endDate'] = $endDate->format('Y-m-d\TH:i:s');
+            }
+            
+            $response = $this->makeRequest('getQuarantineItemsList', $params, 'quarantine');
 
             $items = $response['result']['items'] ?? [];
 
             Log::info('BitDefenderClient::getThreatDetections retrieved threats', [
                 'integration_id' => $this->integration->integration_id,
                 'count' => count($items),
+                'start_date' => $startDate?->toDateTimeString(),
+                'end_date' => $endDate?->toDateTimeString(),
             ]);
 
             return $items;

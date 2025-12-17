@@ -91,50 +91,19 @@ class SaaSIntegration implements IntegrationInterface
 
             $totalCustomers = count($saasCustomers);
             
+            // PHASE 1: Create ALL customers FIRST
+            // This ensures IntegrationCustomer records exist before historical import runs
+            Log::info('SaaS Alerts sync: Phase 1 - Creating all customers first', [
+                'integration_id' => $this->integration->integration_id,
+            ]);
+            
             // Process customers in chunks
-            collect($saasCustomers)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, &$totalEvents, $totalCustomers) {
+            collect($saasCustomers)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCustomers) {
                 foreach ($chunk as $customer) {
                     try {
                         $standardized = SaaSMapper::mapCustomer($customer);
                         $this->storeCustomer($standardized);
                         $totalProcessed++;
-                        
-                        // Fetch recent security events for this customer (last 24 hours)
-                        // Similar to Datto's 1-hour redundant window pattern
-                        try {
-                            $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-                                ->where('external_id', $customer['id'])
-                                ->first();
-                            
-                            if ($integrationCustomer) {
-                                $events = $this->client->getEvents([
-                                    'customerId' => $customer['id'],
-                                    'start' => now()->subHours(24)->format('Y-m-d'),
-                                    'end' => now()->format('Y-m-d'),
-                                    'size' => 100, // Reasonable batch for regular sync
-                                ]);
-                                
-                                foreach ($events as $event) {
-                                    try {
-                                        $mapped = SaaSMapper::mapEvent($event, $integrationCustomer->integration_customer_id);
-                                        $this->storeHistoricalData($mapped);
-                                        $totalEvents++;
-                                    } catch (\Exception $e) {
-                                        Log::warning('SaaS Alerts sync: Failed to process event', [
-                                            'customer_id' => $customer['id'],
-                                            'event_id' => $event['eventId'] ?? $event['_id'] ?? 'unknown',
-                                            'error' => $e->getMessage(),
-                                        ]);
-                                    }
-                                }
-                            }
-                        } catch (\Exception $e) {
-                            Log::warning('SaaS Alerts sync: Failed to fetch events for customer', [
-                                'customer_id' => $customer['id'],
-                                'error' => $e->getMessage(),
-                            ]);
-                        }
-                        
                     } catch (\Exception $e) {
                         $errors[] = "Failed to process customer {$customer['id']}: {$e->getMessage()}";
                         Log::error('SaaS Alerts sync: Failed to process customer', [
@@ -149,9 +118,62 @@ class SaaSIntegration implements IntegrationInterface
                     'integration_id' => $this->integration->integration_id,
                     'processed' => $totalProcessed,
                     'total' => $totalCustomers,
-                    'events' => $totalEvents,
                 ]);
             });
+
+            Log::info('SaaS Alerts sync: Phase 1 complete - All customers created', [
+                'integration_id' => $this->integration->integration_id,
+                'total_customers' => $totalProcessed,
+            ]);
+
+            // PHASE 2: Now fetch recent events for all customers
+            // Customers are guaranteed to exist now
+            Log::info('SaaS Alerts sync: Phase 2 - Fetching recent events for all customers', [
+                'integration_id' => $this->integration->integration_id,
+            ]);
+
+            foreach ($saasCustomers as $customer) {
+                try {
+                    // Fetch recent security events for this customer (last 24 hours)
+                    // Similar to Datto's 1-hour redundant window pattern
+                    $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                        ->where('external_id', $customer['id'])
+                        ->first();
+                    
+                    if ($integrationCustomer) {
+                        $events = $this->client->getEvents([
+                            'customerId' => $customer['id'],
+                            'start' => now()->subHours(24)->format('Y-m-d'),
+                            'end' => now()->format('Y-m-d'),
+                            'size' => 100, // Reasonable batch for regular sync
+                        ]);
+                        
+                        foreach ($events as $event) {
+                            try {
+                                $mapped = SaaSMapper::mapEvent($event, $integrationCustomer->integration_customer_id);
+                                $this->storeHistoricalData($mapped);
+                                $totalEvents++;
+                            } catch (\Exception $e) {
+                                Log::warning('SaaS Alerts sync: Failed to process event', [
+                                    'customer_id' => $customer['id'],
+                                    'event_id' => $event['eventId'] ?? $event['_id'] ?? 'unknown',
+                                    'error' => $e->getMessage(),
+                                ]);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('SaaS Alerts sync: Failed to fetch events for customer', [
+                        'customer_id' => $customer['id'],
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            Log::info('SaaS Alerts sync: Phase 2 complete - All events fetched', [
+                'integration_id' => $this->integration->integration_id,
+                'total_events' => $totalEvents,
+            ]);
 
         } catch (\Exception $e) {
             $errors[] = "Sync failed: {$e->getMessage()}";

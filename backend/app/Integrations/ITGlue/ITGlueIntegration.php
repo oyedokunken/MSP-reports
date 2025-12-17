@@ -107,6 +107,11 @@ class ITGlueIntegration implements IntegrationInterface
 
 
         } catch (\Exception $e) {
+            // Rethrow rate limit exceptions so the job can be released back to the queue
+            if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
+                throw $e;
+            }
+
             $errors[] = "Sync failed: {$e->getMessage()}";
             Log::error('ITGlue Integration: Sync failed', [
                 'integration_id' => $this->integration->integration_id,
@@ -183,42 +188,21 @@ class ITGlueIntegration implements IntegrationInterface
                 }
             }
 
-            // Fetch ONLY license-related flexible asset types (not all types)
+            // Fetch flexible asset types
             $flexibleAssetTypes = $this->client->getFlexibleAssetTypes();
             $totalFlexibleAssets = 0;
-            $licenseKeywords = ['license', 'microsoft', 'office', 'o365', 'm365', 'subscription', 'azure'];
             
             foreach ($flexibleAssetTypes as $assetType) {
                 try {
                     $typeId = $assetType['id'] ?? null;
-                    $typeName = strtolower($assetType['name'] ?? '');
                     
                     if (!$typeId) {
                         continue;
                     }
                     
-                    // Only fetch flexible assets if the type name contains license-related keywords
-                    $isLicenseType = false;
-                    foreach ($licenseKeywords as $keyword) {
-                        if (str_contains($typeName, $keyword)) {
-                            $isLicenseType = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!$isLicenseType) {
-                        Log::debug('ITGlue Integration: Skipping non-license flexible asset type', [
-                            'integration_id' => $this->integration->integration_id,
-                            'type_id' => $typeId,
-                            'type_name' => $typeName,
-                        ]);
-                        continue;
-                    }
-                    
-                    Log::info('ITGlue Integration: Fetching license flexible asset type', [
+                    Log::info('ITGlue Integration: Fetching flexible asset type', [
                         'integration_id' => $this->integration->integration_id,
                         'type_id' => $typeId,
-                        'type_name' => $typeName,
                     ]);
                     
                     $flexibleAssets = $this->client->getFlexibleAssets((int)$typeId);
@@ -357,9 +341,15 @@ class ITGlueIntegration implements IntegrationInterface
                 foreach ($flexibleAssetTypes as $assetType) {
                     try {
                         $typeId = $assetType['id'] ?? null;
+                        
                         if (!$typeId) {
                             continue;
                         }
+                        
+                        Log::info('ITGlue Integration: Fetching flexible asset type in historical import', [
+                            'integration_id' => $this->integration->integration_id,
+                            'type_id' => $typeId,
+                        ]);
                         
                         $flexibleAssets = $this->client->getFlexibleAssets((int)$typeId);
                         foreach ($flexibleAssets as $asset) {

@@ -64,6 +64,12 @@ class SendmarcIntegration implements IntegrationInterface
                 'integration_id' => $this->integration->integration_id,
             ]);
 
+            // PHASE 1: Create ALL customers FIRST
+            // This ensures IntegrationCustomer records exist before historical import runs
+            \Log::info('Sendmarc sync: Phase 1 - Creating all customers first', [
+                'integration_id' => $this->integration->integration_id,
+            ]);
+
             foreach ($accounts as $account) {
                 $accountUuid = $account['uuid'] ?? null;
                 
@@ -83,10 +89,8 @@ class SendmarcIntegration implements IntegrationInterface
                     foreach ($chunk as $domain) {
                         try {
                             $standardized = SendmarcMapper::mapDomain($domain);
-
                             $this->storeCustomer($standardized);
                             $totalProcessed++;
-
                         } catch (\Exception $e) {
                             $domainName = $domain['domain_name'] ?? 'unknown';
                             $errors[] = "Failed to process domain {$domainName}: {$e->getMessage()}";
@@ -97,15 +101,45 @@ class SendmarcIntegration implements IntegrationInterface
                             ]);
                         }
                     }
-                    
-                    \Log::info('Sendmarc sync: Processed chunk', [
-                        'integration_id' => $this->integration->integration_id,
-                        'processed' => $totalProcessed,
-                    ]);
                 });
             }
 
+            \Log::info('Sendmarc sync: Phase 1 complete - All customers created', [
+                'integration_id' => $this->integration->integration_id,
+                'total_customers' => $totalProcessed,
+            ]);
+
+            // PHASE 2: Now fetch metrics for all domains
+            // Customers are guaranteed to exist now
+            \Log::info('Sendmarc sync: Phase 2 - Fetching metrics for all domains', [
+                'integration_id' => $this->integration->integration_id,
+            ]);
+
+            foreach ($accounts as $account) {
+                $accountUuid = $account['uuid'] ?? null;
+                if (!$accountUuid) continue;
+
+                $domains = $this->client->getAccountDomains($accountUuid);
+
+                foreach ($domains as $domain) {
+                    $domainUuid = $domain['uuid'] ?? null;
+                    if (!$domainUuid) continue;
+
+                    // Fetch and store current metrics (volume totals + sender count)
+                    $this->fetchAndStoreCurrentMetrics($accountUuid, $domainUuid);
+                }
+            }
+
+            \Log::info('Sendmarc sync: Phase 2 complete - All metrics fetched', [
+                'integration_id' => $this->integration->integration_id,
+            ]);
+
         } catch (\Exception $e) {
+            // Rethrow rate limit exceptions so the job can be released back to the queue
+            if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
+                throw $e;
+            }
+            
             $errors[] = "Sync failed: {$e->getMessage()}";
             \Log::error('Sendmarc sync: Failed', [
                 'integration_id' => $this->integration->integration_id,
@@ -188,6 +222,38 @@ class SendmarcIntegration implements IntegrationInterface
         try {
             $accounts = $this->client->getAccounts();
 
+            // PHASE 1: Create all customers FIRST (like BitDefender)
+            // This ensures IntegrationCustomer records exist before we try to store data
+            \Log::info('Sendmarc historical: Creating customers first', [
+                'integration_id' => $this->integration->integration_id,
+                'account_count' => count($accounts),
+            ]);
+
+            foreach ($accounts as $account) {
+                $accountUuid = $account['uuid'] ?? null;
+                if (!$accountUuid) continue;
+
+                $domains = $this->client->getAccountDomains($accountUuid);
+                
+                foreach ($domains as $domain) {
+                    try {
+                        $standardized = SendmarcMapper::mapDomain($domain);
+                        $this->storeCustomer($standardized);
+                    } catch (\Exception $e) {
+                        $domainName = $domain['domain_name'] ?? 'unknown';
+                        \Log::warning('Sendmarc historical: Failed to create customer', [
+                            'domain' => $domainName,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            \Log::info('Sendmarc historical: Customers created, now fetching data', [
+                'integration_id' => $this->integration->integration_id,
+            ]);
+
+            // PHASE 2: Now fetch historical data (customers guaranteed to exist)
             foreach ($accounts as $account) {
                 $accountUuid = $account['uuid'] ?? null;
                 if (!$accountUuid) continue;
@@ -360,6 +426,79 @@ class SendmarcIntegration implements IntegrationInterface
             return;
         }
 
+        IntegrationData::create([
+            'company_id' => $this->integration->company_id,
+            'integration_id' => $this->integration->integration_id,
+            'integration_customer_id' => $integrationCustomer->integration_customer_id,
+            'data_type' => $data['data_type'],
+            'data_timestamp' => $data['timestamp'],
+            'data_payload' => $data['payload'],
+            'imported_at' => now(),
+            'data_version' => 1,
+        ]);
+    }
+
+    private function fetchAndStoreCurrentMetrics(string $accountUuid, string $domainUuid): void
+    {
+        // 1. Fetch and store volume totals
+        try {
+            $volumeTotals = $this->client->getDomainVolumeTotals($accountUuid, $domainUuid);
+            if (!empty($volumeTotals)) {
+                $volumeData = SendmarcMapper::mapVolumeTotals($volumeTotals, $domainUuid);
+                $this->storeCurrentMetrics($volumeData);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Sendmarc sync: Failed to fetch volume totals', [
+                'domain_uuid' => $domainUuid,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // 2. Fetch sender count (lightweight - just count, not details)
+        try {
+            $senders = $this->client->getDomainSenders($accountUuid, $domainUuid);
+            $senderCount = count($senders);
+            
+            // Store sender summary (not individual senders)
+            $senderSummary = [
+                'data_type' => 'sender_summary',
+                'timestamp' => now(),
+                'payload' => [
+                    'domain_uuid' => $domainUuid,
+                    'total_senders' => $senderCount,
+                    'fetched_at' => now()->toIso8601String(),
+                ],
+            ];
+            $this->storeCurrentMetrics($senderSummary);
+        } catch (\Exception $e) {
+            \Log::warning('Sendmarc sync: Failed to fetch sender count', [
+                'domain_uuid' => $domainUuid,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function storeCurrentMetrics(array $data): void
+    {
+        $domainUuid = $data['payload']['domain_uuid'] ?? null;
+        
+        if (!$domainUuid) {
+            return;
+        }
+        
+        // Find integration customer by domain UUID
+        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereJsonContains('metadata->uuid', $domainUuid)
+            ->first();
+
+        if (!$integrationCustomer) {
+            \Log::warning('Sendmarc sync: Integration customer not found for metrics', [
+                'domain_uuid' => $domainUuid
+            ]);
+            return;
+        }
+
+        // Store as IntegrationData (time-series)
         IntegrationData::create([
             'company_id' => $this->integration->company_id,
             'integration_id' => $this->integration->integration_id,

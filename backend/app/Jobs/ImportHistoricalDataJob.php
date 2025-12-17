@@ -41,6 +41,11 @@ class ImportHistoricalDataJob implements ShouldQueue
 
     public function handle(RateLimiter $rateLimiter): void
     {
+        Log::debug('ImportHistoricalDataJob started', [
+            'import_job_id' => $this->importJob->historical_import_job_id,
+            'chunk_date' => $this->chunkDate->toDateString(),
+        ]);
+        
         try {
             $integration = $this->importJob->integration;
 
@@ -69,14 +74,6 @@ class ImportHistoricalDataJob implements ShouldQueue
                 $endDate = $this->importJob->import_end_date->copy()->endOfDay();
             }
 
-            // Check rate limit WITHOUT blocking
-            if (!$rateLimiter->canMakeRequest($integration)) {
-                // Release the job back to the queue for 60 seconds
-                // This frees up the worker to do other things instead of sleeping
-                $this->release(60);
-                return;
-            }
-
             // Process the chunk (up to 7 days)
             // Set progress callback if supported
             if (method_exists($integrationClass, 'setProgressCallback')) {
@@ -85,10 +82,21 @@ class ImportHistoricalDataJob implements ShouldQueue
                 });
             }
 
+            Log::debug('Calling getHistoricalData', [
+                'import_job_id' => $this->importJob->historical_import_job_id,
+                'start_date' => $currentDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+            ]);
+            
             $result = $integrationClass->getHistoricalData(
                 $currentDate,
                 $endDate
             );
+
+            Log::debug('getHistoricalData completed', [
+                'import_job_id' => $this->importJob->historical_import_job_id,
+                'total_processed' => $result['total_processed'] ?? count($result['data'] ?? []),
+            ]);
 
             $rateLimiter->recordRequest($integration);
 
@@ -133,21 +141,35 @@ class ImportHistoricalDataJob implements ShouldQueue
 
             $this->importJob->save();
 
-            // Check if ALL chunks are complete (parallel processing)
-            // Since all jobs are dispatched upfront, we check if this is the final chunk
-            $isLastChunk = $endDate->gte($this->importJob->import_end_date);
+            // Check if ALL parallel jobs are complete
+            // Use fresh() instead of refresh() to avoid ModelNotFoundException if record was deleted
+            $freshJob = $this->importJob->fresh();
             
-            if ($isLastChunk) {
-                // Mark as complete - this job processed the last date range
-                $this->importJob->update([
+            // If the job was deleted or doesn't exist anymore, another worker already handled completion
+            if (!$freshJob) {
+                Log::info('Historical import job already completed by another worker', [
+                    'import_job_id' => $this->importJob->historical_import_job_id,
+                ]);
+                return;
+            }
+            
+            $allJobsComplete = isset($freshJob->total_jobs) 
+                && $freshJob->jobs_completed >= $freshJob->total_jobs;
+            
+            if ($allJobsComplete && $freshJob->status !== 'completed') {
+                // Mark as complete - all parallel jobs have finished
+                // Use the fresh instance to avoid stale data
+                $freshJob->update([
                     'status' => 'completed',
                     'completed_at' => now(),
                     'progress_percent' => 100,
                 ]);
 
                 Log::info('Historical import completed', [
-                    'import_job_id' => $this->importJob->historical_import_job_id,
-                    'records_imported' => $this->importJob->records_imported,
+                    'import_job_id' => $freshJob->historical_import_job_id,
+                    'records_imported' => $freshJob->records_imported,
+                    'jobs_completed' => $freshJob->jobs_completed,
+                    'total_jobs' => $freshJob->total_jobs,
                 ]);
             }
 

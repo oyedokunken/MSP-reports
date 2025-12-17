@@ -167,8 +167,12 @@ class BitDefenderIntegration implements IntegrationInterface
                     }
                     
                     // Also sync threat detections during regular sync
+                    // Only fetch threats from last 6 hours (matching sync frequency)
                     try {
-                        $threats = $this->client->getThreatDetections();
+                        $threats = $this->client->getThreatDetections(
+                            now()->subHours(6), // Start: 6 hours ago
+                            now()               // End: now
+                        );
                         
                         foreach ($threats as $threat) {
                             $threatCompanyId = $threat['companyId'] ?? null;
@@ -220,6 +224,11 @@ class BitDefenderIntegration implements IntegrationInterface
             ]);
 
         } catch (Exception $e) {
+            // Rethrow rate limit exceptions so the job can be released back to the queue
+            if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
+                throw $e;
+            }
+            
             $errors[] = "Sync failed: {$e->getMessage()}";
             Log::error('BitDefenderIntegration::sync failed', [
                 'integration_id' => $this->integration->integration_id,

@@ -358,11 +358,24 @@ class DattoClient
 
                 // Handle response status codes
                 if ($response->status() === 429) {
-                    Log::warning('Datto RMM: Rate limit hit, waiting 60s before retry', [
+                    // If this is our first attempt, wait and retry once
+                    if ($attempt === 0) { // Changed from $attempt === 1 to $attempt === 0 for first attempt
+                        Log::warning('Datto RMM: Rate limit hit, waiting 60s before retry', [
+                            'integration_id' => $this->integration->integration_id,
+                        ]);
+                        sleep(60);
+                        $attempt++;
+                        continue; // Retry the loop
+                    }
+                    
+                    // If we've already retried, throw exception to let caller handle it
+                    Log::error('Datto RMM: Rate limit exceeded after retry', [
                         'integration_id' => $this->integration->integration_id,
                     ]);
-                    sleep(60);
-                    return $this->makeRmmRequest($endpoint, $params);
+                    throw new \App\Integrations\Exceptions\RateLimitException(
+                        'Datto RMM API rate limit exceeded',
+                        429
+                    );
                 }
 
                 if ($response->status() === 401) {
@@ -371,7 +384,8 @@ class DattoClient
                     ]);
                     Cache::forget(self::TOKEN_CACHE_KEY_PREFIX . $this->integration->integration_id);
                     $this->accessToken = $this->getAccessToken();
-                    return $this->makeRmmRequest($endpoint, $params);
+                    $attempt++; // Increment attempt counter
+                    continue; // Retry the loop
                 }
 
                 if (!$response->successful()) {

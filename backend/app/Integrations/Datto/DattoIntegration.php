@@ -152,13 +152,35 @@ class DattoIntegration implements IntegrationInterface
             'last_sync' => now(),
         ], now()->addMinutes(10));
         
-        // ALERT POLLING (matches TTS-Security pattern)
-        // Fetch alerts for each site - same as TTS-Security's pull() method
-        $totalAlerts = 0;
-        try {
-            $sites = $this->client->getRmmSites();
-            
-            foreach ($sites as $site) {
+        // ALERT POLLING - ROTATING BATCH STRATEGY
+    // Instead of polling ALL sites every 5 min (220 API calls, 30 min sync),
+    // we poll 1/5th of sites each sync (44 API calls, 1-2 min sync)
+    // All sites covered every 25 minutes (5 syncs × 5 min)
+    $totalAlerts = 0;
+    try {
+        $sites = $this->client->getRmmSites();
+        $totalSites = count($sites);
+        
+        // Calculate rotating batch (0-9)
+        // Each batch processes 1/10th of sites to reduce API load
+        // All sites covered every 50 minutes (10 batches × 5 min)
+        $batchNumber = floor(now()->minute / 5) % 10;
+        $batchSize = (int) ceil($totalSites / 10);
+        $offset = $batchNumber * $batchSize;
+        
+        // Get only this batch of sites
+        $siteBatch = array_slice($sites, $offset, $batchSize);
+        
+        \Log::info('Datto Integration: Alert polling batch', [
+            'integration_id' => $this->integration->integration_id,
+            'batch_number' => $batchNumber,
+            'sites_in_batch' => count($siteBatch),
+            'total_sites' => $totalSites,
+            'offset' => $offset,
+        ]);
+        
+        foreach ($siteBatch as $site) {
+            try {
                 $siteUid = $site['uid'];
                 
                 // Get open alerts
@@ -174,7 +196,22 @@ class DattoIntegration implements IntegrationInterface
                     $this->storeAlertData($alert, $site);
                     $totalAlerts++;
                 }
+                
+                // Add delay between sites to avoid rate limiting
+                usleep(500000); // 500ms delay
+            } catch (\App\Integrations\Exceptions\RateLimitException $e) {
+                // If we hit rate limit during alert polling, stop and continue with what we have
+                // Alert polling is supplementary - we don't want to block the whole sync
+                \Log::warning('Datto Integration: Rate limit hit during alert polling, stopping early', [
+                    'integration_id' => $this->integration->integration_id,
+                    'alerts_collected' => $totalAlerts,
+                    'sites_processed' => array_search($site, $siteBatch) + 1,
+                    'sites_in_batch' => count($siteBatch),
+                    'batch_number' => $batchNumber,
+                ]);
+                break; // Exit the foreach loop
             }
+        }
             
             \Log::info('Datto Integration: Alert polling completed', [
                 'integration_id' => $this->integration->integration_id,
@@ -322,8 +359,6 @@ class DattoIntegration implements IntegrationInterface
                 'errors' => count($errors),
             ]);
 
-        } catch (\App\Integrations\Exceptions\RateLimitException $e) {
-            throw $e;
         } catch (\Exception $e) {
             $errors[] = "Historical data fetch failed: {$e->getMessage()}";
             \Log::error('Datto Integration: Historical import failed', [
