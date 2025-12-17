@@ -21,6 +21,7 @@ interface CustomerCardProps {
   onMerge: () => void
   onSplit: () => void
   onMoreInfo: () => void
+  onApplyTemplate?: () => void
 }
 
 export function CustomerCard({
@@ -32,6 +33,7 @@ export function CustomerCard({
   onMerge,
   onSplit,
   onMoreInfo,
+  onApplyTemplate,
 }: CustomerCardProps) {
   const { user } = useAuth()
   const hasReports = customer.report_schedules_count && customer.report_schedules_count > 0
@@ -147,6 +149,12 @@ export function CustomerCard({
                 <Cable className="mr-2 h-4 w-4" />
                 View Integrations
               </DropdownMenuItem>
+              {onApplyTemplate && user?.permissions?.reports?.configure && (
+                <DropdownMenuItem onClick={onApplyTemplate}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Apply Template
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onMerge}>
                 <GitMerge className="mr-2 h-4 w-4" />

@@ -368,7 +368,7 @@ export const useCustomerList = () => {
     }
   }
 
-  const handleCustomerAction = (customer: ExistingCustomer, action: 'edit' | 'integrations' | 'merge' | 'split') => {
+  const handleCustomerAction = (customer: ExistingCustomer, action: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate') => {
     setSelectedCustomer({
       customer_id: customer.customer_id!,
       name: customer.canonical_name!,
@@ -378,7 +378,7 @@ export const useCustomerList = () => {
     openModal(action)
   }
 
-  const handleModalSuccess = (modalType: 'edit' | 'integrations' | 'merge' | 'split', message: string, description: string) => {
+  const handleModalSuccess = (modalType: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate', message: string, description: string) => {
     fetchCustomers(currentPage, true)
     closeModal(modalType)
     toast.success(message, description)
@@ -504,7 +504,7 @@ export const useMasterCustomerList = () => {
     }
   }
 
-  const handleCustomerAction = (customer: ExistingCustomer, action: 'edit' | 'integrations' | 'merge' | 'split') => {
+  const handleCustomerAction = (customer: ExistingCustomer, action: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate') => {
     setSelectedCustomer({
       customer_id: customer.customer_id!,
       name: customer.canonical_name!,
@@ -514,7 +514,7 @@ export const useMasterCustomerList = () => {
     openModal(action)
   }
 
-  const handleModalSuccess = (modalType: 'edit' | 'integrations' | 'merge' | 'split', message: string, description: string) => {
+  const handleModalSuccess = (modalType: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate', message: string, description: string) => {
     fetchCustomers(currentPage, true, true)
     closeModal(modalType)
     toast.success(message, description)
@@ -619,7 +619,7 @@ export const useSecondaryCustomerList = () => {
   const mappedCustomers = getMappedCustomers()
   const totalMapped = customers.filter((c) => c.customer_id !== null).length
 
-  const handleCustomerAction = (customer: ExistingCustomer, action: 'edit' | 'integrations' | 'merge' | 'split') => {
+  const handleCustomerAction = (customer: ExistingCustomer, action: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate') => {
     setSelectedCustomer({
       customer_id: customer.customer_id!,
       name: customer.canonical_name!,
@@ -629,7 +629,7 @@ export const useSecondaryCustomerList = () => {
     openModal(action)
   }
 
-  const handleModalSuccess = (modalType: 'edit' | 'integrations' | 'merge' | 'split', message: string, description: string) => {
+  const handleModalSuccess = (modalType: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate', message: string, description: string) => {
     fetchCustomers(currentPage, true, false)
     closeModal(modalType)
     toast.success(message, description)

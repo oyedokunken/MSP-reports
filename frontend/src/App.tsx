@@ -21,6 +21,7 @@ import AuthLayout from '@/pages/auth/Layout'
 import { UsersList, CreateUser } from '@/pages/users'
 import { ReportsList, CustomerReports, ConfigureReports } from '@/pages/reports'
 import { ApiKeysList } from '@/pages/api-keys'
+import TemplateList from '@/pages/templates/TemplateList'
 // TODO: Create these pages when needed
 // import { 
 //   ActiveDirectoryDashboard, 
@@ -288,6 +289,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute permission={{ section: 'reports', action: 'view' }}>
             <ScheduleList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/platform/templates"
+        element={
+          <ProtectedRoute permission={{ section: 'reports', action: 'configure' }}>
+            <TemplateList />
           </ProtectedRoute>
         }
       />

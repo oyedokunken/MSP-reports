@@ -59,6 +59,7 @@ export default function AppSidebar() {
     { path: '/platform/integrations', icon: Cable, label: 'Integrations', show: hasPermission(user, 'integrations', 'view'), tourId: 'nav-integrations' },
     { path: '/platform/reports', icon: FileText, label: 'Reports', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-reports' },
     { path: '/platform/schedules', icon: Calendar, label: 'Schedules', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-schedules' },
+    { path: '/platform/templates', icon: FileText, label: 'Templates', show: hasPermission(user, 'reports', 'configure'), tourId: 'nav-templates' },
     { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: true, tourId: 'nav-notifications' },
   ].filter(item => item.show !== false)
 
@@ -91,25 +92,6 @@ export default function AppSidebar() {
       navigate(path)
     }
     // If expanded, let the Link component handle navigation normally
-  }
-
-  const initials = (user?.name ?? 'User')
-    .split(' ')
-    .filter(Boolean)
-    .map((w) => w.charAt(0))
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-
-  const companyName = user?.company_name || ''
-  const MAX_MAIN = 22
-  let companyMain = companyName
-  let companySub = ''
-  if (companyName.length > MAX_MAIN) {
-    const cut = companyName.lastIndexOf(' ', MAX_MAIN)
-    const idx = cut > 0 ? cut : MAX_MAIN
-    companyMain = companyName.slice(0, idx)
-    companySub = companyName.slice(idx).trimStart()
   }
 
   return (
@@ -168,14 +150,6 @@ export default function AppSidebar() {
                 </>
               )}
 
-              {companyName && (
-                <div className="flex min-w-0 flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                  <span className="font-semibold text-base truncate" title={companyName}>{companyMain}</span>
-                  {companySub ? (
-                    <span className="text-xs text-muted-foreground truncate" title={companyName}>{companySub}</span>
-                  ) : null}
-                </div>
-              )}
             </Link>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -310,7 +284,7 @@ export default function AppSidebar() {
 
       <SidebarFooter className="px-3 pb-3 group-data-[collapsible=icon]:px-2">
         {/* Help & Documentation Link */}
-        <SidebarMenu className="mb-2">
+        <SidebarMenu className="border-t border-sidebar-border pt-3 group-data-[collapsible=icon]:pt-2">
           <SidebarMenuItem className="relative group-data-[collapsible=icon]:static">
             <SidebarMenuButton
               asChild
@@ -326,17 +300,6 @@ export default function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="border-t border-sidebar-border pt-3 group-data-[collapsible=icon]:pt-2">
-          <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-sidebar-accent/50 cursor-pointer transition-colors group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-1">
-            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-primary font-semibold text-xs">{initials}</span>
-            </div>
-            <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-              <p className="text-sm font-medium text-foreground truncate">{user?.name || 'User'}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email || 'user@example.com'}</p>
-            </div>
-          </div>
-        </div>
       </SidebarFooter>
       {/* Collapsible rail to toggle icon mode */}
       <SidebarRail />

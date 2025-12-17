@@ -9,6 +9,7 @@ import { EditCustomerModal } from "./modals/EditCustomerModal";
 import { ViewCustomerIntegrationsModal } from "./modals/ViewCustomerIntegrationsModal";
 import { MergeCustomersModal } from "./modals/MergeCustomersModal";
 import { SplitCustomerModal } from "./modals/SplitCustomerModal";
+import { ApplyTemplateToCustomerModal } from "./modals/ApplyTemplateToCustomerModal";
 import { useMasterCustomerList } from "./hooks";
 
 export default function MasterCustomerList() {
@@ -84,6 +85,7 @@ export default function MasterCustomerList() {
                     onMerge={(customer) => handleCustomerAction(customer, 'merge')}
                     onSplit={(customer) => handleCustomerAction(customer, 'split')}
                     onMoreInfo={(id) => navigate(`/platform/customers/${id}/integrations`)}
+                    onApplyTemplate={(customer) => handleCustomerAction(customer, 'applyTemplate')}
                 />
 
                 {total > 0 && (
@@ -136,6 +138,13 @@ export default function MasterCustomerList() {
                     onOpenChange={(open) => open ? openModal("split") : closeModal("split")}
                     customer={selectedCustomer}
                     onSuccess={() => handleModalSuccess('split', "Customer Split", "Customer split successfully")}
+                />
+
+                <ApplyTemplateToCustomerModal
+                    open={modals.applyTemplate}
+                    onOpenChange={(open) => open ? openModal("applyTemplate") : closeModal("applyTemplate")}
+                    customer={selectedCustomer}
+                    onSuccess={() => handleModalSuccess('applyTemplate', "Template Applied", "Report schedule created from template")}
                 />
             </div>
         </FloatingLayout>

@@ -141,6 +141,13 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::post('/licenses/check/user', [LicenseController::class, 'checkUserLicense']);
     });
 
+    // Report Templates Routes
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
+        Route::apiResource('report-templates', \App\Http\Controllers\Api\ReportTemplateController::class);
+        Route::post('/report-templates/{template}/apply-to-customer', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomer']);
+        Route::post('/report-templates/{template}/apply-to-customers', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomers']);
+    });
+
     // Monitoring & Health Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/monitoring/status', [HealthCheckController::class, 'status']);
