@@ -205,10 +205,9 @@ export default function AppSidebar() {
                             <ChevronDown className={`h-4 w-4 transition-transform group-data-[collapsible=icon]:hidden ${customersExpanded ? 'rotate-180' : ''}`} />
                           </SidebarMenuButton>
                         </div>
-                        <div 
-                          className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                            customersExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                          }`}
+                        <div
+                          className={`overflow-hidden transition-all duration-300 ease-in-out ${customersExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                            }`}
                         >
                           <SidebarMenuSub className="group-data-[collapsible=icon]:hidden">
                             {customersSubItems.map((subItem) => {

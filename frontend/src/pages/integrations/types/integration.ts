@@ -8,5 +8,7 @@ export type Integration = {
   customers: number
   isSourceOfTruth?: boolean
   nextSyncAt?: string | null
+  recordsSynced?: number
+  lastError?: string | null
 }
 

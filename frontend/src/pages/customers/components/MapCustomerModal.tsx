@@ -8,12 +8,12 @@ import { Badge } from '@/components/ui/badge'
 import type { MapCustomerModalProps } from '../types'
 import { useMapCustomerModal } from '../hooks'
 
-export function MapCustomerModal({ 
-  open, 
-  onOpenChange, 
-  integrationCustomer,
+export function MapCustomerModal({
+  open,
+  onOpenChange,
+  integrationCustomers,
   existingCustomers,
-  onSuccess 
+  onSuccess
 }: MapCustomerModalProps) {
   const {
     isSubmitting,
@@ -30,7 +30,12 @@ export function MapCustomerModal({
     suggestedMatches,
     filteredCustomers,
     handleSubmit,
-  } = useMapCustomerModal(open, integrationCustomer, existingCustomers, () => {
+    currentCustomer,
+    totalCount,
+    isBulk,
+    mappedCount,
+    customers,
+  } = useMapCustomerModal(open, integrationCustomers, existingCustomers, () => {
     onOpenChange(false)
     onSuccess?.()
   })
@@ -49,9 +54,14 @@ export function MapCustomerModal({
             <div className="mb-4 rounded-full bg-green-500/10 p-3">
               <CheckCircle2 className="h-12 w-12 text-green-500" />
             </div>
-            <DialogTitle className="text-2xl text-green-600 mb-2">Customer Mapped!</DialogTitle>
+            <DialogTitle className="text-2xl text-green-600 mb-2">
+              {isBulk ? `${totalCount} Customers Mapped!` : 'Customer Mapped!'}
+            </DialogTitle>
             <DialogDescription className="text-center">
-              The integration customer has been mapped successfully.
+              {isBulk
+                ? `All ${totalCount} integration customers have been mapped successfully.`
+                : 'The integration customer has been mapped successfully.'
+              }
             </DialogDescription>
           </div>
         </DialogContent>
@@ -59,7 +69,7 @@ export function MapCustomerModal({
     )
   }
 
-  if (!integrationCustomer) return null
+  if (!currentCustomer) return null
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -67,26 +77,42 @@ export function MapCustomerModal({
         <DialogHeader>
           <div className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary" />
-            <DialogTitle>Map Customer</DialogTitle>
+            <DialogTitle>
+              {isBulk ? `Map ${totalCount} Customers` : 'Map Customer'}
+            </DialogTitle>
           </div>
           <DialogDescription>
-            Map <strong>{integrationCustomer.name}</strong> from {integrationCustomer.integration_type} to an existing customer
+            {isBulk
+              ? `Map ${totalCount} selected customers to the same existing customer or create a new one`
+              : <>Map <strong>{currentCustomer.name}</strong> from {currentCustomer.integration_type} to an existing customer</>
+            }
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col space-y-4">
           {/* Integration Customer Info */}
           <div className="rounded-lg border border-border bg-accent/50 p-3">
-            <p className="text-sm font-medium mb-1">Integration Customer:</p>
-            <p className="font-semibold">{integrationCustomer.name}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-xs">
-                {integrationCustomer.integration_type}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                ID: {integrationCustomer.external_id}
-              </span>
-            </div>
+            <p className="text-sm font-medium mb-1">
+              {isBulk ? `Selected Customers (${totalCount}):` : 'Integration Customer:'}
+            </p>
+            {isBulk ? (
+              <p className="font-semibold text-sm">
+                {integrationCustomers.slice(0, 3).map(c => c.name).join(', ')}
+                {totalCount > 3 && ` and ${totalCount - 3} more...`}
+              </p>
+            ) : (
+              <>
+                <p className="font-semibold">{currentCustomer.name}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="outline" className="text-xs">
+                    {currentCustomer.integration_type}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    ID: {currentCustomer.external_id}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Create New or Map to Existing */}
@@ -98,11 +124,10 @@ export function MapCustomerModal({
                   setCreateNew(false)
                   setSelectedCustomerId(null)
                 }}
-                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
-                  !createNew
-                    ? 'border-primary bg-primary/10 text-primary font-medium'
-                    : 'border-border hover:bg-accent/50'
-                }`}
+                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${!createNew
+                  ? 'border-primary bg-primary/10 text-primary font-medium'
+                  : 'border-border hover:bg-accent/50'
+                  }`}
               >
                 Map to Existing
               </button>
@@ -112,11 +137,10 @@ export function MapCustomerModal({
                   setCreateNew(true)
                   setSelectedCustomerId(null)
                 }}
-                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${
-                  createNew
-                    ? 'border-primary bg-primary/10 text-primary font-medium'
-                    : 'border-border hover:bg-accent/50'
-                }`}
+                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${createNew
+                  ? 'border-primary bg-primary/10 text-primary font-medium'
+                  : 'border-border hover:bg-accent/50'
+                  }`}
               >
                 Create New Customer
               </button>
@@ -126,21 +150,41 @@ export function MapCustomerModal({
           {/* Create New Customer Form */}
           {createNew ? (
             <div>
-              <Label htmlFor="newCustomerName" className="text-sm font-medium mb-2 block">
-                New Customer Name
-              </Label>
-              <Input
-                id="newCustomerName"
-                type="text"
-                placeholder="Enter customer name..."
-                value={newCustomerName}
-                onChange={(e) => setNewCustomerName(e.target.value)}
-                disabled={isSubmitting}
-                className="w-full"
-              />
-              <p className="text-xs text-muted-foreground mt-2">
-                This will create a new customer record and link the integration customer to it.
-              </p>
+              {isBulk ? (
+                <>
+                  <Label className="text-sm font-medium mb-2 block">
+                    New Customers to Create ({totalCount}):
+                  </Label>
+                  <div className="border rounded-lg p-3 bg-accent/30 space-y-1 max-h-32 overflow-y-auto">
+                    {customers.map(c => (
+                      <div key={c.integration_customer_id} className="text-sm font-medium">
+                        {c.name}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This will create {totalCount} separate customer records, one for each selected integration customer.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Label htmlFor="newCustomerName" className="text-sm font-medium mb-2 block">
+                    New Customer Name
+                  </Label>
+                  <Input
+                    id="newCustomerName"
+                    type="text"
+                    placeholder="Enter customer name..."
+                    value={newCustomerName}
+                    onChange={(e) => setNewCustomerName(e.target.value)}
+                    disabled={isSubmitting}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This will create a new customer record and link the integration customer to it.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <>
@@ -154,11 +198,10 @@ export function MapCustomerModal({
                         key={match.customer_id}
                         type="button"
                         onClick={() => setSelectedCustomerId(match.customer_id)}
-                        className={`w-full text-left rounded-lg border p-3 transition-all ${
-                          selectedCustomerId === match.customer_id
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border hover:bg-accent/50'
-                        }`}
+                        className={`w-full text-left rounded-lg border p-3 transition-all ${selectedCustomerId === match.customer_id
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:bg-accent/50'
+                          }`}
                       >
                         <div className="flex items-center justify-between">
                           <div>
@@ -207,11 +250,10 @@ export function MapCustomerModal({
                         key={customer.customer_id}
                         type="button"
                         onClick={() => setSelectedCustomerId(customer.customer_id)}
-                        className={`w-full text-left p-3 transition-all ${
-                          selectedCustomerId === customer.customer_id
-                            ? 'bg-primary/10'
-                            : 'hover:bg-accent/50'
-                        }`}
+                        className={`w-full text-left p-3 transition-all ${selectedCustomerId === customer.customer_id
+                          ? 'bg-primary/10'
+                          : 'hover:bg-accent/50'
+                          }`}
                       >
                         <p className="font-medium">{customer.canonical_name}</p>
                         <p className="text-xs text-muted-foreground">

@@ -14,12 +14,6 @@ Schedule::command('reports:process-scheduled')
     ->withoutOverlapping()
     ->runInBackground();
 
-// Legacy command (can be removed after migration)
-Schedule::command('reports:evaluate-schedules')
-    ->hourly()
-    ->withoutOverlapping()
-    ->runInBackground();
-
 // Schedule integration sync evaluation to run every minute
 // This command checks each integration's specific schedule stored in DB (for CUSTOMERS)
 Schedule::command('integrations:evaluate-syncs')
@@ -56,13 +50,6 @@ Schedule::command('alerts:evaluate')
 // Cleanup stale syncs (stuck in 'running' for >2hrs) to prevent scheduler blockage
 Schedule::command('syncs:cleanup-stale')
     ->hourly()
-    ->withoutOverlapping()
-    ->runInBackground();
-
-// Poll Datto devices separately from customer sync to avoid rate limits
-// Device data changes less frequently than alerts/customers, so separate schedule prevents rate limits
-Schedule::command('datto:poll-devices')
-    ->everyThirtyMinutes()
     ->withoutOverlapping()
     ->runInBackground();
 

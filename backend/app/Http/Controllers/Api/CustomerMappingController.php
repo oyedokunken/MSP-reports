@@ -137,36 +137,42 @@ class CustomerMappingController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        // Get pagination parameters
+        // Get pagination and search parameters
         $perPage = 15;
         $page = $request->input('page', 1);
+        $search = $request->input('search');
 
-        // Get total count for summary
-        $totalUnmapped = IntegrationCustomer::whereHas('integration', function ($q) use ($company) {
+        // Base query for unmapped customers
+        $query = IntegrationCustomer::whereHas('integration', function ($q) use ($company) {
             $q->where('company_id', $company->company_id);
         })
-            ->whereNull('customer_id')
-            ->count();
+            ->whereNull('customer_id');
 
-        // Get counts by integration type for summary
-        $countsByIntegrationType = IntegrationCustomer::with('integration:integration_id,integration_type')
-            ->whereHas('integration', function ($q) use ($company) {
-                $q->where('company_id', $company->company_id);
-            })
-            ->whereNull('customer_id')
+        // Apply search filter if provided
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'ILIKE', '%' . $search . '%')
+                  ->orWhere('external_id', 'ILIKE', '%' . $search . '%')
+                  ->orWhereHas('integration', function($innerQ) use ($search) {
+                      $innerQ->where('integration_type', 'ILIKE', '%' . $search . '%');
+                  });
+            });
+        }
+
+        // Get total count for summary (considering search)
+        $totalUnmapped = (clone $query)->count();
+
+        // Get counts by integration type for summary (considering search)
+        $countsByIntegrationType = (clone $query)->with('integration:integration_id,integration_type')
             ->get()
             ->groupBy(fn($ic) => $ic->integration->integration_type ?? 'Unknown')
             ->map(fn($group) => $group->count())
             ->toArray();
 
         // Get paginated unmapped customers
-        $unmappedIntegrationCustomers = IntegrationCustomer::with([
+        $unmappedIntegrationCustomers = $query->with([
             'integration:integration_id,company_id,display_name,integration_type'
         ])
-            ->whereHas('integration', function ($q) use ($company) {
-                $q->where('company_id', $company->company_id);
-            })
-            ->whereNull('customer_id')
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
 

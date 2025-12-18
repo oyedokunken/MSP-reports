@@ -76,8 +76,12 @@ class IntegrationController extends Controller
                 },
                 'integrationCustomers as total_customers_count'
             ])
+            ->with(['syncLogs' => function($query) {
+                $query->latest('started_at')->limit(1);
+            }])
             ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth', 'last_sync_at', 'last_sync_status', 'sync_schedule'])
             ->map(function($integration) {
+                $latestSync = $integration->syncLogs->first();
                 return [
                     'integration_id' => $integration->integration_id,
                     'integration_type' => $integration->integration_type,
@@ -90,6 +94,8 @@ class IntegrationController extends Controller
                     'unmapped_customers_count' => $integration->unmapped_customers_count ?? 0,
                     'total_customers_count' => $integration->total_customers_count ?? 0,
                     'next_sync_at' => $this->calculateNextSync($integration),
+                    'records_synced' => $latestSync ? $latestSync->records_synced : 0,
+                    'last_error' => $latestSync && $latestSync->status === 'failed' ? ($latestSync->error_messages[0] ?? null) : null,
                 ];
             });
 

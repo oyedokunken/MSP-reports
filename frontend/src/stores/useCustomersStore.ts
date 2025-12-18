@@ -23,6 +23,7 @@ interface CustomersState {
   unmappedCurrentPage: number
   unmappedTotalPages: number
   unmappedPerPage: number
+  unmappedSearchQuery: string
 
   // Filters
   searchQuery: string
@@ -49,7 +50,8 @@ interface CustomersState {
 
   // Actions
   fetchCustomers: (page?: number, silent?: boolean, sourceOfTruthOnly?: boolean | null) => Promise<void>
-  fetchUnmappedCustomers: (page?: number) => Promise<void>
+  fetchUnmappedCustomers: (page?: number, search?: string) => Promise<void>
+  setUnmappedSearchQuery: (query: string) => void
 
   // Filter actions
   setSearchQuery: (query: string) => void
@@ -105,6 +107,7 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   unmappedCurrentPage: 1,
   unmappedTotalPages: 1,
   unmappedPerPage: 21,
+  unmappedSearchQuery: '',
 
   // Fetch customers
   fetchCustomers: async (page: number = 1, silent: boolean = false, sourceOfTruthOnly: boolean | null = null) => {
@@ -139,9 +142,10 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   },
 
   // Fetch unmapped customers
-  fetchUnmappedCustomers: async (page: number = 1) => {
+  fetchUnmappedCustomers: async (page: number = 1, search?: string) => {
+    const s = search !== undefined ? search : get().unmappedSearchQuery
     try {
-      const response = await customerApi.getUnmappedCustomers(page)
+      const response = await customerApi.getUnmappedCustomers(page, s)
 
       set({
         unmappedCustomers: response.data,
@@ -154,6 +158,11 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
       console.error('Failed to fetch unmapped customers:', err)
       set({ unmappedCustomers: [], unmappedCount: 0, unmappedCurrentPage: 1, unmappedTotalPages: 1 })
     }
+  },
+
+  setUnmappedSearchQuery: (query: string) => {
+    set({ unmappedSearchQuery: query, unmappedCurrentPage: 1 })
+    get().fetchUnmappedCustomers(1, query)
   },
 
   // Filter actions

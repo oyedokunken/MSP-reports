@@ -143,6 +143,11 @@ class CompanyController extends Controller
                 'support_phone' => 'sometimes|nullable|string|max:50',
                 'footer_text' => 'sometimes|nullable|string|max:500',
                 'report_header_text' => 'sometimes|nullable|string|max:255',
+                'smtp_host' => 'sometimes|nullable|string|max:255',
+                'smtp_port' => 'sometimes|nullable|integer',
+                'smtp_encryption' => 'sometimes|nullable|string|in:tls,ssl,none',
+                'smtp_username' => 'sometimes|nullable|string|max:255',
+                'smtp_password' => 'sometimes|nullable|string|max:255',
             ]);
 
             // Get current settings or initialize empty array
@@ -151,6 +156,14 @@ class CompanyController extends Controller
             // Update white_label section
             if (!isset($settings['white_label'])) {
                 $settings['white_label'] = [];
+            }
+
+            // Update mail_settings section
+            if (!isset($settings['mail_settings'])) {
+                $settings['mail_settings'] = [];
+            }
+            if (!isset($settings['mail_settings']['smtp'])) {
+                $settings['mail_settings']['smtp'] = [];
             }
 
             // Map frontend field names to backend structure
@@ -187,6 +200,26 @@ class CompanyController extends Controller
             }
             if (array_key_exists('report_header_text', $validated)) {
                 $settings['white_label']['report_header_text'] = $validated['report_header_text'];
+            }
+
+            // SMTP Mapping
+            if (array_key_exists('smtp_host', $validated)) {
+                $settings['mail_settings']['smtp']['host'] = $validated['smtp_host'];
+            }
+            if (array_key_exists('smtp_port', $validated)) {
+                $settings['mail_settings']['smtp']['port'] = $validated['smtp_port'];
+            }
+            if (array_key_exists('smtp_encryption', $validated)) {
+                $settings['mail_settings']['smtp']['encryption'] = $validated['smtp_encryption'];
+            }
+            if (array_key_exists('smtp_username', $validated)) {
+                $settings['mail_settings']['smtp']['username'] = $validated['smtp_username'];
+            }
+            if (array_key_exists('smtp_password', $validated)) {
+                // Only update password if provided and not empty (to avoid overwriting with null/empty)
+                if (!empty($validated['smtp_password'])) {
+                    $settings['mail_settings']['smtp']['password'] = $validated['smtp_password'];
+                }
             }
 
             // Update company settings

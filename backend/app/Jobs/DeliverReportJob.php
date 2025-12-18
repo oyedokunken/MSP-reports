@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ReportDeliveryMail;
+use App\Services\MailService;
 
 class DeliverReportJob implements ShouldQueue
 {
@@ -97,7 +98,10 @@ class DeliverReportJob implements ShouldQueue
         // Otherwise, use configured CC addresses
         $ccAddresses = $additionalRecipients ?? ($customer->report_configuration['delivery']['cc'] ?? []);
 
-        $mail = Mail::to($destination);
+        $mailService = resolve(MailService::class);
+        $mailer = $mailService->getMailer($company);
+        
+        $mail = $mailer->to($destination);
         
         if (!empty($ccAddresses)) {
             $mail->cc($ccAddresses);

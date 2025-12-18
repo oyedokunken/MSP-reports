@@ -13,6 +13,8 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
       total_customers_count?: number
       is_source_of_truth?: boolean
       next_sync_at?: string | null
+      records_synced?: number
+      last_error?: string | null
     }>
   }
 
@@ -35,5 +37,7 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
     customers: int.unmapped_customers_count || 0,
     isSourceOfTruth: int.is_source_of_truth || false,
     nextSyncAt: int.next_sync_at,
+    recordsSynced: int.records_synced || 0,
+    lastError: int.last_error,
   }))
 }

@@ -47,6 +47,11 @@ export default function Settings() {
   const supportPhone = useSettingsStore(state => state.supportPhone)
   const footerText = useSettingsStore(state => state.footerText)
   const reportHeaderText = useSettingsStore(state => state.reportHeaderText)
+  const smtpHost = useSettingsStore(state => state.smtpHost)
+  const smtpPort = useSettingsStore(state => state.smtpPort)
+  const smtpEncryption = useSettingsStore(state => state.smtpEncryption)
+  const smtpUsername = useSettingsStore(state => state.smtpUsername)
+  const smtpPassword = useSettingsStore(state => state.smtpPassword)
   const setCompanyName = useSettingsStore(state => state.setCompanyName)
   const setPrimaryHex = useSettingsStore(state => state.setPrimaryHex)
   const setSecondaryHex = useSettingsStore(state => state.setSecondaryHex)
@@ -62,6 +67,11 @@ export default function Settings() {
   const setSupportPhone = useSettingsStore(state => state.setSupportPhone)
   const setFooterText = useSettingsStore(state => state.setFooterText)
   const setReportHeaderText = useSettingsStore(state => state.setReportHeaderText)
+  const setSmtpHost = useSettingsStore(state => state.setSmtpHost)
+  const setSmtpPort = useSettingsStore(state => state.setSmtpPort)
+  const setSmtpEncryption = useSettingsStore(state => state.setSmtpEncryption)
+  const setSmtpUsername = useSettingsStore(state => state.setSmtpUsername)
+  const setSmtpPassword = useSettingsStore(state => state.setSmtpPassword)
   const isValidHex = useSettingsStore(state => state.isValidHex)
   const isValidSecondaryHex = useSettingsStore(state => state.isValidSecondaryHex)
 
@@ -91,6 +101,14 @@ export default function Settings() {
               footer_text?: string;
               report_header_text?: string;
               website_url?: string;
+            };
+            mail_settings?: {
+              smtp?: {
+                host?: string;
+                port?: number;
+                encryption?: string;
+                username?: string;
+              };
             };
           };
         }
@@ -122,6 +140,16 @@ export default function Settings() {
         } else {
           console.warn('⚠️ No white_label settings found in response')
         }
+
+        // Load SMTP settings
+        if (data.settings?.mail_settings?.smtp) {
+          const smtp = data.settings.mail_settings.smtp
+          setSmtpHost(smtp.host || '')
+          setSmtpPort(smtp.port || 587)
+          setSmtpEncryption(smtp.encryption || 'tls')
+          setSmtpUsername(smtp.username || '')
+          // Don't set password from backend for security (it might be masked or empty anyway)
+        }
       }
     } catch (error) {
       console.error('❌ Failed to load company settings:', error)
@@ -146,7 +174,12 @@ export default function Settings() {
     setSecondaryHex,
     setSupportEmail,
     setSupportPhone,
-    setWebsiteUrl
+    setWebsiteUrl,
+    setSmtpHost,
+    setSmtpPort,
+    setSmtpEncryption,
+    setSmtpUsername,
+    setSmtpPassword
   ])
 
   useEffect(() => {
@@ -296,6 +329,11 @@ export default function Settings() {
       await api.patch('/company/branding', {
         email_from_address: fromEmail,
         email_from_name: fromName,
+        smtp_host: smtpHost,
+        smtp_port: smtpPort,
+        smtp_encryption: smtpEncryption,
+        smtp_username: smtpUsername,
+        smtp_password: smtpPassword,
       })
 
       toast.success('Saved', 'Email settings updated successfully')
@@ -360,8 +398,18 @@ export default function Settings() {
         <EmailDeliverySection
           fromEmail={fromEmail}
           fromName={fromName}
+          smtpHost={smtpHost}
+          smtpPort={smtpPort}
+          smtpEncryption={smtpEncryption}
+          smtpUsername={smtpUsername}
+          smtpPassword={smtpPassword}
           onFromEmailChange={setFromEmail}
           onFromNameChange={setFromName}
+          onSmtpHostChange={setSmtpHost}
+          onSmtpPortChange={setSmtpPort}
+          onSmtpEncryptionChange={setSmtpEncryption}
+          onSmtpUsernameChange={setSmtpUsername}
+          onSmtpPasswordChange={setSmtpPassword}
           onSave={handleSaveEmail}
         />
       </div>

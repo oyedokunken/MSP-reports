@@ -3,16 +3,36 @@ import { Button } from '@/components/ui/button'
 interface EmailDeliverySectionProps {
   fromEmail: string
   fromName: string
+  smtpHost: string
+  smtpPort: number
+  smtpEncryption: string
+  smtpUsername: string
+  smtpPassword?: string
   onFromEmailChange: (email: string) => void
   onFromNameChange: (name: string) => void
+  onSmtpHostChange: (host: string) => void
+  onSmtpPortChange: (port: number) => void
+  onSmtpEncryptionChange: (enc: string) => void
+  onSmtpUsernameChange: (user: string) => void
+  onSmtpPasswordChange: (pass: string) => void
   onSave: () => void
 }
 
 export function EmailDeliverySection({
   fromEmail,
   fromName,
+  smtpHost,
+  smtpPort,
+  smtpEncryption,
+  smtpUsername,
+  smtpPassword,
   onFromEmailChange,
   onFromNameChange,
+  onSmtpHostChange,
+  onSmtpPortChange,
+  onSmtpEncryptionChange,
+  onSmtpUsernameChange,
+  onSmtpPasswordChange,
   onSave,
 }: EmailDeliverySectionProps) {
   return (
@@ -38,6 +58,69 @@ export function EmailDeliverySection({
             placeholder="Your Company Reports"
             value={fromName}
             onChange={(e) => onFromNameChange(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div className="sm:col-span-2 pt-2 border-t dark:border-gray-800">
+          <h3 className="text-sm font-medium text-foreground">SMTP Configuration (Optional)</h3>
+          <p className="text-xs text-muted-foreground">Override system defaults with your own mail server</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground">SMTP Host</label>
+          <input
+            type="text"
+            placeholder="smtp.example.com"
+            value={smtpHost}
+            onChange={(e) => onSmtpHostChange(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-foreground">Port</label>
+            <input
+              type="number"
+              placeholder="587"
+              value={smtpPort}
+              onChange={(e) => onSmtpPortChange(parseInt(e.target.value) || 0)}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-foreground">Encryption</label>
+            <select
+              value={smtpEncryption}
+              onChange={(e) => onSmtpEncryptionChange(e.target.value)}
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="tls">TLS</option>
+              <option value="ssl">SSL</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground">SMTP Username</label>
+          <input
+            type="text"
+            placeholder="username@example.com"
+            value={smtpUsername}
+            onChange={(e) => onSmtpUsernameChange(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground">SMTP Password</label>
+          <input
+            type="password"
+            placeholder="••••••••"
+            value={smtpPassword}
+            onChange={(e) => onSmtpPasswordChange(e.target.value)}
             className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>

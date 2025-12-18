@@ -60,10 +60,10 @@ export const useCustomerMapping = (initialRows: MappingRow[], canonical: Canonic
   }
 }
 
-// Hook for MapCustomerModal
+// Hook for MapCustomerModal - supports single or bulk mapping
 export const useMapCustomerModal = (
   open: boolean,
-  integrationCustomer: IntegrationCustomer | null,
+  integrationCustomers: IntegrationCustomer[],
   existingCustomers: ExistingCustomer[],
   onSuccess?: () => void
 ) => {
@@ -76,11 +76,18 @@ export const useMapCustomerModal = (
   const [newCustomerName, setNewCustomerName] = useState('')
   const [suggestedMatches, setSuggestedMatches] = useState<SuggestedMatch[]>([])
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
+  const [mappedCount, setMappedCount] = useState(0)
+
+  // Defensive: ensure we have an array
+  const customers = integrationCustomers || []
+  const currentCustomer = customers[0] || null
+  const totalCount = customers.length
+  const isBulk = totalCount > 1
 
   // Reset form when modal opens
   useEffect(() => {
     const fetchSuggestedMatches = async () => {
-      if (!integrationCustomer) return
+      if (!currentCustomer) return
 
       try {
         setIsLoadingSuggestions(true)
@@ -88,17 +95,17 @@ export const useMapCustomerModal = (
         const rawData = response.data || response
         const data: unknown[] = Array.isArray(rawData) ? rawData : []
 
-        const currentCustomer = data.find(
+        const foundCustomer = data.find(
           (c: unknown) => {
             if (typeof c === 'object' && c !== null && 'integration_customer_id' in c) {
-              return (c as { integration_customer_id: number }).integration_customer_id === integrationCustomer.integration_customer_id
+              return (c as { integration_customer_id: number }).integration_customer_id === currentCustomer.integration_customer_id
             }
             return false
           }
         ) as { suggested_matches?: SuggestedMatch[] } | undefined
 
-        if (currentCustomer && currentCustomer.suggested_matches) {
-          setSuggestedMatches(currentCustomer.suggested_matches)
+        if (foundCustomer && foundCustomer.suggested_matches) {
+          setSuggestedMatches(foundCustomer.suggested_matches)
         } else {
           setSuggestedMatches([])
         }
@@ -109,16 +116,17 @@ export const useMapCustomerModal = (
       }
     }
 
-    if (open && integrationCustomer) {
+    if (open && currentCustomer) {
       setSearchTerm('')
       setSelectedCustomerId(null)
       setError('')
       setSuccess(false)
       setCreateNew(false)
-      setNewCustomerName(integrationCustomer.name)
+      setNewCustomerName(currentCustomer.name)
+      setMappedCount(0)
       fetchSuggestedMatches()
     }
-  }, [open, integrationCustomer])
+  }, [open, currentCustomer])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -129,7 +137,7 @@ export const useMapCustomerModal = (
         return
       }
     } else {
-      if (!selectedCustomerId || !integrationCustomer) {
+      if (!selectedCustomerId || !currentCustomer) {
         setError('Please select a customer to map to')
         return
       }
@@ -139,25 +147,34 @@ export const useMapCustomerModal = (
     setIsSubmitting(true)
 
     try {
-      const payload: {
-        integration_customer_id: number;
-        mapping_type: string;
-        create_new?: boolean;
-        canonical_name?: string;
-        customer_id?: number | null;
-      } = {
-        integration_customer_id: integrationCustomer!.integration_customer_id,
-        mapping_type: 'manual'
-      }
+      // Map all selected customers to the same target (for "Map to Existing")
+      // OR create separate customers for each (for "Create New")
+      let targetCustomerId = selectedCustomerId
 
-      if (createNew) {
-        payload.create_new = true
-        payload.canonical_name = newCustomerName.trim()
-      } else {
-        payload.customer_id = selectedCustomerId
-      }
+      for (const integrationCustomer of customers) {
+        const payload: {
+          integration_customer_id: number;
+          mapping_type: string;
+          create_new?: boolean;
+          canonical_name?: string;
+          customer_id?: number | null;
+        } = {
+          integration_customer_id: integrationCustomer.integration_customer_id,
+          mapping_type: 'manual'
+        }
 
-      await api.post('/customers/map', payload)
+        if (createNew) {
+          // Create a NEW customer for EACH integration customer using their own name
+          payload.create_new = true
+          payload.canonical_name = integrationCustomer.name
+        } else {
+          // Map to existing - all go to same target
+          payload.customer_id = targetCustomerId
+        }
+
+        await api.post('/customers/map', payload)
+        setMappedCount(prev => prev + 1)
+      }
 
       setSuccess(true)
       setTimeout(() => {
@@ -194,6 +211,11 @@ export const useMapCustomerModal = (
     isLoadingSuggestions,
     filteredCustomers,
     handleSubmit,
+    currentCustomer,
+    totalCount,
+    isBulk,
+    mappedCount,
+    customers,
   }
 }
 

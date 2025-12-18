@@ -46,7 +46,7 @@ export interface SuggestedMatch {
 export interface MapCustomerModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  integrationCustomer: IntegrationCustomer | null
+  integrationCustomers: IntegrationCustomer[]
   existingCustomers: ExistingCustomer[]
   onSuccess?: () => void
 }

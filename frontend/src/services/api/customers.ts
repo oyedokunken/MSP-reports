@@ -33,22 +33,22 @@ export const customerApi = {
         const queryParams = new URLSearchParams()
         if (params?.page) queryParams.append('page', params.page.toString())
         if (params?.search) queryParams.append('search', params.search)
-        
+
         // Add multiple status filters
         if (params?.statuses && params.statuses.length > 0) {
             params.statuses.forEach(status => queryParams.append('statuses[]', status))
         }
-        
+
         // Add multiple report filters
         if (params?.report_filters && params.report_filters.length > 0) {
             params.report_filters.forEach(filter => queryParams.append('report_filters[]', filter))
         }
-        
+
         // Add multiple integration type filters
         if (params?.integration_types && params.integration_types.length > 0) {
             params.integration_types.forEach(type => queryParams.append('integration_types[]', type))
         }
-        
+
         // Add source of truth filter
         if (params?.source_of_truth_only !== null && params?.source_of_truth_only !== undefined) {
             queryParams.append('source_of_truth_only', params.source_of_truth_only.toString())
@@ -62,8 +62,12 @@ export const customerApi = {
      * Get unmapped customers
      * GET /api/customers/unmapped
      */
-    async getUnmappedCustomers(page?: number): Promise<UnmappedCustomersResponse> {
-        const url = page ? `/customers/unmapped?page=${page}` : '/customers/unmapped'
+    async getUnmappedCustomers(page?: number, search?: string): Promise<UnmappedCustomersResponse> {
+        const queryParams = new URLSearchParams()
+        if (page) queryParams.append('page', page.toString())
+        if (search) queryParams.append('search', search)
+
+        const url = `/customers/unmapped${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
         return api.get(url) as unknown as Promise<UnmappedCustomersResponse>
     },
 

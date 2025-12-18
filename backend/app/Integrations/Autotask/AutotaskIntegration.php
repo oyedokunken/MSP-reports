@@ -124,7 +124,7 @@ class AutotaskIntegration implements IntegrationInterface
         $timeEntriesProcessed = 0;
         
         try {
-            $since = now()->subMinutes(10);
+            $since = $this->integration->last_sync_at ? Carbon::parse($this->integration->last_sync_at)->subMinutes(5) : now()->subMinutes(60);
             $until = now();
             
             // Pre-load customer map

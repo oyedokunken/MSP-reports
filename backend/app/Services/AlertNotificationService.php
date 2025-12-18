@@ -9,8 +9,17 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
+use App\Services\MailService;
+
 class AlertNotificationService
 {
+    protected MailService $mailService;
+
+    public function __construct(MailService $mailService)
+    {
+        $this->mailService = $mailService;
+    }
+
     public function sendAlert(AlertLog $alertLog, AlertRule $rule): array
     {
         $status = [];
@@ -56,7 +65,7 @@ class AlertNotificationService
         }
 
         try {
-            Mail::to($recipients)->send(new AlertNotificationMail($alertLog, $rule));
+            $this->mailService->send($rule->company, $recipients, new AlertNotificationMail($alertLog, $rule));
             return true;
         } catch (\Exception $e) {
             Log::error('Alert email failed', [

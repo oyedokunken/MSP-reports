@@ -27,13 +27,25 @@ class AutotaskDataGatherer
 
         return $rawData->unique(function($item) {
             return $item->data_payload['ticket_id'] ?? null;
-        })->map(function($item) {
+        })->map(function($item) use ($startDate, $endDate) {
             $payload = $item->data_payload;
             $createdDate = isset($payload['created_date']) ? Carbon::parse($payload['created_date']) : null;
             $completedDate = isset($payload['completed_date']) ? Carbon::parse($payload['completed_date']) : null;
             $dueDate = isset($payload['due_date_time']) ? Carbon::parse($payload['due_date_time']) : null;
             $resolvedDate = isset($payload['resolved_date_time']) ? Carbon::parse($payload['resolved_date_time']) : null;
             $lastActivityDate = isset($payload['last_activity_date']) ? Carbon::parse($payload['last_activity_date']) : null;
+            
+            $status = $payload['status'] ?? null;
+            $isOpen = $status != 5; // 5 is 'Complete' in Autotask
+            
+            // Filter by date range BEFORE formatting
+            $isCreated = $createdDate && $createdDate->between($startDate, $endDate);
+            $isCompleted = $completedDate && $completedDate->between($startDate, $endDate);
+            
+            // Include if created in period, completed in period, OR currently open
+            if (!$isCreated && !$isCompleted && !$isOpen) {
+                return null;
+            }
             
             $resolutionHours = null;
             if ($createdDate && $completedDate) {
@@ -72,20 +84,7 @@ class AutotaskDataGatherer
                 'purchase_order_number' => $payload['purchase_order_number'] ?? null,
                 'resolution' => $payload['resolution'] ?? null,
             ];
-        })->filter(function($item) use ($startDate, $endDate) {
-            $createdDate = isset($item['created_date']) && $item['created_date'] !== 'Unknown' 
-                ? Carbon::parse($item['created_date']) 
-                : null;
-            $completedDate = isset($item['completed_date']) 
-                ? Carbon::parse($item['completed_date']) 
-                : null;
-
-            // Include if created in range OR completed in range
-            $isCreated = $createdDate && $createdDate->between($startDate, $endDate);
-            $isCompleted = $completedDate && $completedDate->between($startDate, $endDate);
-
-            return $isCreated || $isCompleted;
-        })->values();
+        })->filter()->values();
     }
 
     /**

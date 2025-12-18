@@ -131,13 +131,13 @@ export function IntegrationCard({
         )}
         <div className="flex items-center gap-2 pt-2">
           {getStatusIcon(integration.status, integration.syncStatus)}
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground flex-1 truncate">
             {integration.syncStatus === 'success'
               ? isSourceOfTruth
-                ? 'Synced successfully'
+                ? `Synced ${integration.recordsSynced} records`
                 : 'Auto-synced with master list'
               : integration.syncStatus === 'failed'
-                ? 'Sync failed - check logs'
+                ? `Failed: ${integration.lastError || 'Check logs'}`
                 : integration.lastSync === 'Never'
                   ? 'Not synced yet'
                   : isSourceOfTruth

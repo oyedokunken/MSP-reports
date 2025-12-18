@@ -21,6 +21,13 @@ interface SettingsState {
   supportEmail: string
   supportPhone: string
 
+  // SMTP settings
+  smtpHost: string
+  smtpPort: number
+  smtpEncryption: string
+  smtpUsername: string
+  smtpPassword?: string
+
   // Report branding
   footerText: string
   reportHeaderText: string
@@ -50,6 +57,11 @@ interface SettingsState {
   setReportHeaderText: (text: string) => void
   setLastGenerated: (key: string | null) => void
   setChangePasswordModalOpen: (open: boolean) => void
+  setSmtpHost: (host: string) => void
+  setSmtpPort: (port: number) => void
+  setSmtpEncryption: (enc: string) => void
+  setSmtpUsername: (user: string) => void
+  setSmtpPassword: (pass: string) => void
 
   // Initialize from branding
   initializeFromBranding: (branding: CompanyBranding) => void
@@ -79,6 +91,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   apiKeyMasked: '•'.repeat(26),
   lastGenerated: null,
   changePasswordModalOpen: false,
+  smtpHost: '',
+  smtpPort: 587,
+  smtpEncryption: 'tls',
+  smtpUsername: '',
+  smtpPassword: '',
 
   // Actions
   setCompanyName: (name: string) => set({ companyName: name }),
@@ -94,6 +111,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setFromName: (name: string) => set({ fromName: name }),
   setSupportEmail: (email: string) => set({ supportEmail: email }),
   setSupportPhone: (phone: string) => set({ supportPhone: phone }),
+  setSmtpHost: (host: string) => set({ smtpHost: host }),
+  setSmtpPort: (port: number) => set({ smtpPort: port }),
+  setSmtpEncryption: (enc: string) => set({ smtpEncryption: enc }),
+  setSmtpUsername: (user: string) => set({ smtpUsername: user }),
+  setSmtpPassword: (pass: string) => set({ smtpPassword: pass }),
   setFooterText: (text: string) => set({ footerText: text }),
   setReportHeaderText: (text: string) => set({ reportHeaderText: text }),
   setLastGenerated: (key: string | null) => set({ lastGenerated: key }),
