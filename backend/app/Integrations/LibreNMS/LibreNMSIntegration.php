@@ -298,18 +298,50 @@ class LibreNMSIntegration implements IntegrationInterface
 
     private function storeHistoricalData(array $data): void
     {
-        // TimescaleDB hypertable - always INSERT, never UPDATE
-        // Updating data_timestamp can violate partition constraints
-        IntegrationData::create([
-            'company_id' => $this->integration->company_id,
-            'integration_id' => $this->integration->integration_id,
-            'integration_customer_id' => $data['integration_customer_id'],
-            'data_type' => $data['data_type'],
-            'data_timestamp' => $data['timestamp'],
-            'data_payload' => $data['payload'],
-            'imported_at' => now(),
-            'data_version' => 1,
-        ]);
+        $payload = $data['payload'];
+        $deviceId = $payload['device_id'] ?? null;
+        
+        if ($deviceId) {
+            // UPSERT: Use device_id + data_type + date as unique key (one record per device per day)
+            $dateOnly = Carbon::parse($data['timestamp'])->startOfDay();
+            
+            $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', $data['data_type'])
+                ->whereRaw("data_payload->>'device_id' = ?", [(string)$deviceId])
+                ->whereDate('data_timestamp', $dateOnly)
+                ->first();
+
+            if ($existing) {
+                $existing->update([
+                    'data_timestamp' => $data['timestamp'],
+                    'data_payload' => $payload,
+                    'imported_at' => now(),
+                ]);
+            } else {
+                IntegrationData::create([
+                    'company_id' => $this->integration->company_id,
+                    'integration_id' => $this->integration->integration_id,
+                    'integration_customer_id' => $data['integration_customer_id'],
+                    'data_type' => $data['data_type'],
+                    'data_timestamp' => $data['timestamp'],
+                    'data_payload' => $payload,
+                    'imported_at' => now(),
+                    'data_version' => 1,
+                ]);
+            }
+        } else {
+            // Fallback for data without device_id
+            IntegrationData::create([
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $data['integration_customer_id'],
+                'data_type' => $data['data_type'],
+                'data_timestamp' => $data['timestamp'],
+                'data_payload' => $payload,
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]);
+        }
     }
 
     public function getDisplayTemplate(): array

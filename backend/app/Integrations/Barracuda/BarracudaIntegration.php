@@ -243,15 +243,46 @@ class BarracudaIntegration implements IntegrationInterface
 
     private function storeHistoricalData(array $data): void
     {
-        IntegrationData::create([
-            'company_id' => $this->integration->company_id,
-            'integration_id' => $this->integration->integration_id,
-            'integration_customer_id' => $data['integration_customer_id'],
-            'data_type' => $data['data_type'],
-            'data_timestamp' => $data['timestamp'],
-            'data_payload' => $data['payload'],
-            'imported_at' => now(),
-            'data_version' => 1,
-        ]);
+        $payload = $data['payload'];
+        $recordId = $payload['record_id'] ?? $payload['id'] ?? null;
+        
+        if ($recordId) {
+            // UPSERT: Use record_id + data_type as unique key
+            $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', $data['data_type'])
+                ->whereRaw("data_payload->>'id' = ?", [(string)$recordId])
+                ->first();
+
+            if ($existing) {
+                $existing->update([
+                    'data_timestamp' => $data['timestamp'],
+                    'data_payload' => $payload,
+                    'imported_at' => now(),
+                ]);
+            } else {
+                IntegrationData::create([
+                    'company_id' => $this->integration->company_id,
+                    'integration_id' => $this->integration->integration_id,
+                    'integration_customer_id' => $data['integration_customer_id'],
+                    'data_type' => $data['data_type'],
+                    'data_timestamp' => $data['timestamp'],
+                    'data_payload' => $payload,
+                    'imported_at' => now(),
+                    'data_version' => 1,
+                ]);
+            }
+        } else {
+            // Fallback for data without unique ID
+            IntegrationData::create([
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $data['integration_customer_id'],
+                'data_type' => $data['data_type'],
+                'data_timestamp' => $data['timestamp'],
+                'data_payload' => $payload,
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]);
+        }
     }
 }

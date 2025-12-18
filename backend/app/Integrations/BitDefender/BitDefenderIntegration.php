@@ -139,6 +139,7 @@ class BitDefenderIntegration implements IntegrationInterface
                     foreach ($endpoints as $endpoint) {
                         try {
                             $mapped = BitDefenderMapper::mapEndpoint($endpoint);
+                            $endpointId = $endpoint['id'] ?? null;
                             
                             $intCustId = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
                                 ->where('external_id', $companyId)
@@ -149,16 +150,31 @@ class BitDefenderIntegration implements IntegrationInterface
                                 continue;
                             }
 
-                            IntegrationData::create([
-                                'company_id' => $this->integration->company_id,
-                                'integration_id' => $this->integration->integration_id,
-                                // Need to re-fetch customer ID as we are in new loop
-                                'integration_customer_id' => $intCustId,
-                                'data_type' => $mapped['data_type'],
-                                'data_timestamp' => $mapped['timestamp'],
-                                'data_payload' => $mapped['payload'],
-                                'imported_at' => now(),
-                            ]);
+                            // UPSERT: Use endpoint_id as unique key
+                            if ($endpointId) {
+                                $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
+                                    ->where('data_type', 'bitdefender_endpoint')
+                                    ->whereRaw("data_payload->>'endpoint_id' = ?", [$endpointId])
+                                    ->first();
+
+                                if ($existing) {
+                                    $existing->update([
+                                        'data_timestamp' => $mapped['timestamp'],
+                                        'data_payload' => $mapped['payload'],
+                                        'imported_at' => now(),
+                                    ]);
+                                } else {
+                                    IntegrationData::create([
+                                        'company_id' => $this->integration->company_id,
+                                        'integration_id' => $this->integration->integration_id,
+                                        'integration_customer_id' => $intCustId,
+                                        'data_type' => $mapped['data_type'],
+                                        'data_timestamp' => $mapped['timestamp'],
+                                        'data_payload' => $mapped['payload'],
+                                        'imported_at' => now(),
+                                    ]);
+                                }
+                            }
                             $totalNew++;
                         } catch (Exception $e) {
                             $endpointId = $endpoint['id'] ?? 'unknown';
@@ -183,16 +199,33 @@ class BitDefenderIntegration implements IntegrationInterface
                                     ->value('integration_customer_id');
 
                                 $mapped = BitDefenderMapper::mapThreatDetection($threat, $intCustId);
+                                $threatId = $threat['id'] ?? null;
                                 
-                                IntegrationData::create([
-                                    'company_id' => $this->integration->company_id,
-                                    'integration_id' => $this->integration->integration_id,
-                                    'integration_customer_id' => $intCustId,
-                                    'data_type' => $mapped['data_type'],
-                                    'data_timestamp' => $mapped['timestamp'],
-                                    'data_payload' => $mapped['payload'],
-                                    'imported_at' => now(),
-                                ]);
+                                // UPSERT: Use threat_id as unique key
+                                if ($threatId) {
+                                    $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
+                                        ->where('data_type', 'bitdefender_threat_detection')
+                                        ->whereRaw("data_payload->>'threat_id' = ?", [$threatId])
+                                        ->first();
+
+                                    if ($existing) {
+                                        $existing->update([
+                                            'data_timestamp' => $mapped['timestamp'],
+                                            'data_payload' => $mapped['payload'],
+                                            'imported_at' => now(),
+                                        ]);
+                                    } else {
+                                        IntegrationData::create([
+                                            'company_id' => $this->integration->company_id,
+                                            'integration_id' => $this->integration->integration_id,
+                                            'integration_customer_id' => $intCustId,
+                                            'data_type' => $mapped['data_type'],
+                                            'data_timestamp' => $mapped['timestamp'],
+                                            'data_payload' => $mapped['payload'],
+                                            'imported_at' => now(),
+                                        ]);
+                                    }
+                                }
                                 $totalNew++;
                             }
                         }

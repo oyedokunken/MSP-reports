@@ -452,16 +452,56 @@ class DattoIntegration implements IntegrationInterface
 
     private function storeHistoricalData(array $data): void
     {
-        IntegrationData::create([
-            'company_id' => $this->integration->company_id,
-            'integration_id' => $this->integration->integration_id,
-            'integration_customer_id' => $data['integration_customer_id'],
-            'data_type' => $data['data_type'],
-            'data_timestamp' => $data['timestamp'],
-            'data_payload' => $data['payload'],
-            'imported_at' => now(),
-            'data_version' => 1,
-        ]);
+        // Determine unique key based on data type
+        $payload = $data['payload'];
+        $uniqueKey = $this->getUniqueKeyFromPayload($data['data_type'], $payload);
+        
+        if ($uniqueKey) {
+            // Use upsert pattern - update if exists, insert if not
+            DB::table('integration_data')->updateOrInsert(
+                [
+                    'integration_id' => $this->integration->integration_id,
+                    'data_type' => $data['data_type'],
+                    'integration_customer_id' => $data['integration_customer_id'],
+                    // Use raw SQL to match on JSONB field
+                ],
+                [
+                    'company_id' => $this->integration->company_id,
+                    'integration_id' => $this->integration->integration_id,
+                    'integration_customer_id' => $data['integration_customer_id'],
+                    'data_type' => $data['data_type'],
+                    'data_timestamp' => $data['timestamp'],
+                    'data_payload' => json_encode($payload),
+                    'imported_at' => now(),
+                    'data_version' => 1,
+                ]
+            );
+        } else {
+            // Fallback to insert for data types without unique keys
+            IntegrationData::create([
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $data['integration_customer_id'],
+                'data_type' => $data['data_type'],
+                'data_timestamp' => $data['timestamp'],
+                'data_payload' => $payload,
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]);
+        }
+    }
+
+    /**
+     * Get unique key from payload based on data type
+     */
+    private function getUniqueKeyFromPayload(string $dataType, array $payload): ?string
+    {
+        return match($dataType) {
+            'alert' => $payload['alert_uid'] ?? null,
+            'device_status' => $payload['device_uid'] ?? null,
+            'uptime_metric' => $payload['device_uid'] ?? null,
+            default => null,
+        };
     }
 
     protected function storeAlertData(array $alert, array $site): void
@@ -477,6 +517,8 @@ class DattoIntegration implements IntegrationInterface
 
         // Extract alert data from Datto API response
         $alertUid = $alert['alertUid'] ?? $alert['uid'] ?? null;
+        if (!$alertUid) return; // Skip alerts without unique ID
+        
         $priority = $alert['priority'] ?? 'Information';
         $description = $alert['diagnostics'] ?? $alert['alertMessage'] ?? 'No details';
         $deviceName = $alert['alertSourceInfo']['deviceName'] ?? $alert['hostname'] ?? 'Unknown';
@@ -499,26 +541,47 @@ class DattoIntegration implements IntegrationInterface
             $resolvedAt = Carbon::createFromTimestampMs($alert['resolvedOn'])->toIso8601String();
         }
 
-        // Store alert data - TimescaleDB hypertable pattern
-        // Use standard storeHistoricalData method for consistency
-        $this->storeHistoricalData([
-            'integration_customer_id' => $integrationCustomer->integration_customer_id,
-            'data_type' => 'alert',
-            'timestamp' => $timestamp,
-            'payload' => [
-                'alert_uid' => $alertUid,
-                'device_uid' => $deviceUid,
-                'device_name' => $deviceName,
-                'priority' => $priority,
-                'description' => $description,
-                'source' => $alert['alertContext']['source'] ?? $alert['source'] ?? null,
-                'event_type' => $alert['alertContext']['type'] ?? $alert['category'] ?? null,
-                'resolved' => $resolved,
-                'resolved_at' => $resolvedAt,
-                'muted' => $muted,
-                'ticket_number' => $ticketNumber,
-            ]
-        ]);
+        $payload = [
+            'alert_uid' => $alertUid,
+            'device_uid' => $deviceUid,
+            'device_name' => $deviceName,
+            'priority' => $priority,
+            'description' => $description,
+            'source' => $alert['alertContext']['source'] ?? $alert['source'] ?? null,
+            'event_type' => $alert['alertContext']['type'] ?? $alert['category'] ?? null,
+            'resolved' => $resolved,
+            'resolved_at' => $resolvedAt,
+            'muted' => $muted,
+            'ticket_number' => $ticketNumber,
+        ];
+
+        // UPSERT: Update existing alert or insert new one
+        // Uses alert_uid as unique identifier to prevent duplicates
+        $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
+            ->where('data_type', 'alert')
+            ->whereRaw("data_payload->>'alert_uid' = ?", [$alertUid])
+            ->first();
+
+        if ($existing) {
+            // Update existing alert (e.g., resolved status changed)
+            $existing->update([
+                'data_timestamp' => $timestamp,
+                'data_payload' => $payload,
+                'imported_at' => now(),
+            ]);
+        } else {
+            // Insert new alert
+            IntegrationData::create([
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'data_type' => 'alert',
+                'data_timestamp' => $timestamp,
+                'data_payload' => $payload,
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]);
+        }
     }
 
     public function getDisplayTemplate(): array
@@ -966,6 +1029,11 @@ class DattoIntegration implements IntegrationInterface
             return; // Skip if customer not mapped
         }
         
+        $deviceUid = $device['uid'] ?? null;
+        if (!$deviceUid) {
+            return; // Skip devices without unique ID
+        }
+        
         // Add site info to device for mapping
         $device['siteUid'] = $siteUid;
         $device['siteName'] = $site['name'] ?? 'Unknown';
@@ -973,46 +1041,77 @@ class DattoIntegration implements IntegrationInterface
         // Map device data using DattoMapper
         $mappedDevice = DattoMapper::mapDeviceData($device);
         
-        // Store device_status - TimescaleDB hypertable pattern
-        // Always insert new snapshot, consistent with uptime_metric below
-        IntegrationData::create([
-            'company_id' => $this->integration->company_id,
-            'integration_id' => $this->integration->integration_id,
-            'integration_customer_id' => $integrationCustomer->integration_customer_id,
-            'data_type' => $mappedDevice['data_type'],
-            'data_timestamp' => $mappedDevice['timestamp'],
-            'data_payload' => $mappedDevice['payload'],
-            'imported_at' => now(),
-            'data_version' => 1,
-        ]);
+        // Use provided timestamp (for historical import) or now() (for sync)
+        $metricTimestamp = $timestamp ?? now();
+        $dateOnly = $metricTimestamp->copy()->startOfDay();
+        
+        // UPSERT device_status: One record per device per day
+        $existingDevice = IntegrationData::where('integration_id', $this->integration->integration_id)
+            ->where('data_type', 'device_status')
+            ->where('integration_customer_id', $integrationCustomer->integration_customer_id)
+            ->whereRaw("data_payload->>'device_uid' = ?", [$deviceUid])
+            ->whereDate('data_timestamp', $dateOnly)
+            ->first();
+
+        if ($existingDevice) {
+            $existingDevice->update([
+                'data_timestamp' => $mappedDevice['timestamp'],
+                'data_payload' => $mappedDevice['payload'],
+                'imported_at' => now(),
+            ]);
+        } else {
+            IntegrationData::create([
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'data_type' => $mappedDevice['data_type'],
+                'data_timestamp' => $mappedDevice['timestamp'],
+                'data_payload' => $mappedDevice['payload'],
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]);
+        }
         
         // Calculate uptime percentage based on online status
         $isOnline = $device['online'] ?? false;
         $uptimePercentage = $isOnline ? 100.0 : 0.0;
-        
-        // Use provided timestamp (for historical import) or now() (for sync)
-        $metricTimestamp = $timestamp ?? now();
 
-        // Store uptime_metric - TimescaleDB hypertable requires create() for time-series data
-        // Always insert new snapshot, never update across partition boundaries
-        IntegrationData::create([
-            'company_id' => $this->integration->company_id,
-            'integration_id' => $this->integration->integration_id,
-            'integration_customer_id' => $integrationCustomer->integration_customer_id,
-            'data_type' => 'uptime_metric',
-            'data_timestamp' => $metricTimestamp,
-            'data_payload' => [
-                'device_uid' => $device['uid'],
-                'device_name' => $device['hostname'] ?? 'Unknown',
-                'uptime_percentage' => $uptimePercentage,
-                'total_hours' => 24,
-                'online_hours' => $isOnline ? 24 : 0,
-                'offline_hours' => $isOnline ? 0 : 24,
-                'timestamp' => $metricTimestamp->toIso8601String(),
-            ],
-            'imported_at' => now(),
-            'data_version' => 1,
-        ]);
+        $uptimePayload = [
+            'device_uid' => $deviceUid,
+            'device_name' => $device['hostname'] ?? 'Unknown',
+            'uptime_percentage' => $uptimePercentage,
+            'total_hours' => 24,
+            'online_hours' => $isOnline ? 24 : 0,
+            'offline_hours' => $isOnline ? 0 : 24,
+            'timestamp' => $metricTimestamp->toIso8601String(),
+        ];
+
+        // UPSERT uptime_metric: One record per device per day
+        $existingUptime = IntegrationData::where('integration_id', $this->integration->integration_id)
+            ->where('data_type', 'uptime_metric')
+            ->where('integration_customer_id', $integrationCustomer->integration_customer_id)
+            ->whereRaw("data_payload->>'device_uid' = ?", [$deviceUid])
+            ->whereDate('data_timestamp', $dateOnly)
+            ->first();
+
+        if ($existingUptime) {
+            $existingUptime->update([
+                'data_timestamp' => $metricTimestamp,
+                'data_payload' => $uptimePayload,
+                'imported_at' => now(),
+            ]);
+        } else {
+            IntegrationData::create([
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'data_type' => 'uptime_metric',
+                'data_timestamp' => $metricTimestamp,
+                'data_payload' => $uptimePayload,
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]);
+        }
     }
 
 

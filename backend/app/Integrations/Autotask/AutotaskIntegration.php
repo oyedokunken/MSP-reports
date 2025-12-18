@@ -702,15 +702,72 @@ class AutotaskIntegration implements IntegrationInterface
 
     private function storeHistoricalData(array $data): void
     {
-        IntegrationData::create([
-            'company_id' => $this->integration->company_id,
-            'integration_id' => $this->integration->integration_id,
-            'integration_customer_id' => $data['integration_customer_id'],
-            'data_type' => $data['data_type'],
-            'data_timestamp' => $data['timestamp'],
-            'data_payload' => $data['payload'],
-            'imported_at' => now(),
-            'data_version' => 1,
-        ]);
+        // Determine unique key based on data type
+        $payload = $data['payload'];
+        $uniqueKey = $this->getUniqueKeyFromPayload($data['data_type'], $payload);
+        
+        if ($uniqueKey) {
+            // Use upsert pattern - update if exists, insert if not
+            $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', $data['data_type'])
+                ->whereRaw("data_payload->>'{$this->getUniqueKeyField($data['data_type'])}' = ?", [$uniqueKey])
+                ->first();
+
+            if ($existing) {
+                $existing->update([
+                    'data_timestamp' => $data['timestamp'],
+                    'data_payload' => $payload,
+                    'imported_at' => now(),
+                ]);
+            } else {
+                IntegrationData::create([
+                    'company_id' => $this->integration->company_id,
+                    'integration_id' => $this->integration->integration_id,
+                    'integration_customer_id' => $data['integration_customer_id'],
+                    'data_type' => $data['data_type'],
+                    'data_timestamp' => $data['timestamp'],
+                    'data_payload' => $payload,
+                    'imported_at' => now(),
+                    'data_version' => 1,
+                ]);
+            }
+        } else {
+            // Fallback to insert for data types without unique keys
+            IntegrationData::create([
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $data['integration_customer_id'],
+                'data_type' => $data['data_type'],
+                'data_timestamp' => $data['timestamp'],
+                'data_payload' => $payload,
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]);
+        }
+    }
+
+    /**
+     * Get unique key value from payload based on data type
+     */
+    private function getUniqueKeyFromPayload(string $dataType, array $payload): ?string
+    {
+        $keyField = $this->getUniqueKeyField($dataType);
+        return $keyField ? ($payload[$keyField] ?? null) : null;
+    }
+
+    /**
+     * Get the field name that contains the unique key for each data type
+     */
+    private function getUniqueKeyField(string $dataType): ?string
+    {
+        return match($dataType) {
+            'ticket' => 'ticket_id',
+            'time_entry' => 'time_entry_id',
+            'resource' => 'resource_id',
+            'contract' => 'contract_id',
+            'contact' => 'contact_id',
+            'ticket_note' => 'note_id',
+            default => null,
+        };
     }
 }

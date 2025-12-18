@@ -588,19 +588,51 @@ class ITGlueIntegration implements IntegrationInterface
             return;
         }
 
-        // TimescaleDB hypertable - always INSERT for time-series data
-        // This enables tracking asset changes over time (certificates expiring, domains changing, etc.)
-        // Reports deduplicate using ->unique() to show latest snapshot
-        IntegrationData::create([
-            'company_id' => $this->integration->company_id,
-            'integration_id' => $this->integration->integration_id,
-            'integration_customer_id' => $data['integration_customer_id'],
-            'data_type' => $data['data_type'],
-            'data_timestamp' => $data['timestamp'],
-            'data_payload' => $data['payload'],
-            'imported_at' => now(),
-            'data_version' => 1,
-        ]);
+        $payload = $data['payload'];
+        $assetId = $payload['asset_id'] ?? $payload['id'] ?? null;
+        
+        if ($assetId) {
+            // UPSERT: Use asset_id + data_type + date as unique key
+            $dateOnly = Carbon::parse($data['timestamp'])->startOfDay();
+            
+            $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', $data['data_type'])
+                ->where('integration_customer_id', $data['integration_customer_id'])
+                ->whereRaw("data_payload->>'id' = ?", [(string)$assetId])
+                ->whereDate('data_timestamp', $dateOnly)
+                ->first();
+
+            if ($existing) {
+                $existing->update([
+                    'data_timestamp' => $data['timestamp'],
+                    'data_payload' => $payload,
+                    'imported_at' => now(),
+                ]);
+            } else {
+                IntegrationData::create([
+                    'company_id' => $this->integration->company_id,
+                    'integration_id' => $this->integration->integration_id,
+                    'integration_customer_id' => $data['integration_customer_id'],
+                    'data_type' => $data['data_type'],
+                    'data_timestamp' => $data['timestamp'],
+                    'data_payload' => $payload,
+                    'imported_at' => now(),
+                    'data_version' => 1,
+                ]);
+            }
+        } else {
+            // Fallback for data without unique ID
+            IntegrationData::create([
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $data['integration_customer_id'],
+                'data_type' => $data['data_type'],
+                'data_timestamp' => $data['timestamp'],
+                'data_payload' => $payload,
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]);
+        }
     }
 
     /**

@@ -426,16 +426,33 @@ class SendmarcIntegration implements IntegrationInterface
             return;
         }
 
-        IntegrationData::create([
-            'company_id' => $this->integration->company_id,
-            'integration_id' => $this->integration->integration_id,
-            'integration_customer_id' => $integrationCustomer->integration_customer_id,
-            'data_type' => $data['data_type'],
-            'data_timestamp' => $data['timestamp'],
-            'data_payload' => $data['payload'],
-            'imported_at' => now(),
-            'data_version' => 1,
-        ]);
+        // UPSERT: Use domain_uuid + data_type + date as unique key
+        $dateOnly = Carbon::parse($data['timestamp'])->startOfDay();
+        
+        $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
+            ->where('data_type', $data['data_type'])
+            ->where('integration_customer_id', $integrationCustomer->integration_customer_id)
+            ->whereDate('data_timestamp', $dateOnly)
+            ->first();
+
+        if ($existing) {
+            $existing->update([
+                'data_timestamp' => $data['timestamp'],
+                'data_payload' => $data['payload'],
+                'imported_at' => now(),
+            ]);
+        } else {
+            IntegrationData::create([
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'data_type' => $data['data_type'],
+                'data_timestamp' => $data['timestamp'],
+                'data_payload' => $data['payload'],
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]);
+        }
     }
 
     private function fetchAndStoreCurrentMetrics(string $accountUuid, string $domainUuid): void
@@ -498,16 +515,32 @@ class SendmarcIntegration implements IntegrationInterface
             return;
         }
 
-        // Store as IntegrationData (time-series)
-        IntegrationData::create([
-            'company_id' => $this->integration->company_id,
-            'integration_id' => $this->integration->integration_id,
-            'integration_customer_id' => $integrationCustomer->integration_customer_id,
-            'data_type' => $data['data_type'],
-            'data_timestamp' => $data['timestamp'],
-            'data_payload' => $data['payload'],
-            'imported_at' => now(),
-            'data_version' => 1,
-        ]);
+        // UPSERT: Use domain_uuid + data_type + date as unique key (one metric per day)
+        $dateOnly = Carbon::parse($data['timestamp'])->startOfDay();
+        
+        $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
+            ->where('data_type', $data['data_type'])
+            ->where('integration_customer_id', $integrationCustomer->integration_customer_id)
+            ->whereDate('data_timestamp', $dateOnly)
+            ->first();
+
+        if ($existing) {
+            $existing->update([
+                'data_timestamp' => $data['timestamp'],
+                'data_payload' => $data['payload'],
+                'imported_at' => now(),
+            ]);
+        } else {
+            IntegrationData::create([
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'data_type' => $data['data_type'],
+                'data_timestamp' => $data['timestamp'],
+                'data_payload' => $data['payload'],
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]);
+        }
     }
 }
