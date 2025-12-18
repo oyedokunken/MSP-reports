@@ -62,33 +62,35 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   })
 
   useEffect(() => {
-    if (template) {
-      setFormData({
-        template_name: template.template_name,
-        description: template.description || '',
-        report_type: template.report_type,
-        frequency: template.frequency,
-        schedule_config: template.schedule_config || undefined,
-        time_of_day: template.time_of_day || '09:00',
-        timezone: template.timezone,
-        included_sections: template.included_sections || undefined,
-        delivery_settings: template.delivery_settings || undefined,
-        report_options: template.report_options || undefined,
-        active: template.active,
-      })
-    } else {
-      setFormData({
-        template_name: '',
-        description: '',
-        report_type: '',
-        frequency: 'monthly',
-        time_of_day: '09:00',
-        timezone: 'Australia/Brisbane',
-        active: true,
-      })
+    if (open) {
+      if (template) {
+        setFormData({
+          template_name: template.template_name,
+          description: template.description || '',
+          report_type: template.report_type,
+          frequency: template.frequency,
+          schedule_config: template.schedule_config || undefined,
+          time_of_day: template.time_of_day || '09:00',
+          timezone: template.timezone,
+          included_sections: template.included_sections || undefined,
+          delivery_settings: template.delivery_settings || undefined,
+          report_options: template.report_options || undefined,
+          active: template.active,
+        })
+      } else {
+        setFormData({
+          template_name: '',
+          description: '',
+          report_type: '',
+          frequency: 'monthly',
+          time_of_day: '09:00',
+          timezone: 'Australia/Brisbane',
+          active: true,
+        })
+      }
+      setError('')
     }
-    setError('')
-  }, [template, open])
+  }, [open, template])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -232,14 +232,14 @@ export default function TemplateList() {
 
       <ApplyTemplateModal
         open={!!applyingTemplate}
-        onOpenChange={(open: boolean) => !open && handleApplyModalClose()}
+        onOpenChange={(open: boolean) => { if (!open) handleApplyModalClose() }}
         template={applyingTemplate}
         onSuccess={handleApplyModalClose}
       />
 
       <DeleteTemplateModal
         open={!!deletingTemplate}
-        onOpenChange={(open: boolean) => !open && setDeletingTemplate(null)}
+        onOpenChange={(open: boolean) => { if (!open) setDeletingTemplate(null) }}
         template={deletingTemplate}
         onConfirm={handleDeleteConfirm}
         isDeleting={isDeleting}

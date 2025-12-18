@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -47,10 +47,18 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
     try {
       setLoading(true)
       const response = await api.get<Customer[]>('/customers')
-      setCustomers(response.data.filter(c => c.status === 'active'))
+      // The API returns wrapped response with data property
+      const customerData = response.data || []
+      if (Array.isArray(customerData)) {
+        setCustomers(customerData.filter(c => c.status === 'active'))
+      } else {
+        console.error('Unexpected customer data format:', customerData)
+        setCustomers([])
+      }
     } catch (error) {
       toast.error('Failed to load customers')
       console.error(error)
+      setCustomers([])
     } finally {
       setLoading(false)
     }
@@ -118,9 +126,11 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
     }
   }
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.canonical_name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(customer =>
+      customer.canonical_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [customers, searchQuery])
 
   if (success) {
     return (
@@ -207,15 +217,17 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
                   {filteredCustomers.map((customer) => (
                     <div
                       key={customer.customer_id}
-                      className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer"
-                      onClick={() => handleToggleCustomer(customer.customer_id)}
+                      className="flex items-center gap-3 p-3 hover:bg-muted/50"
                     >
                       <Checkbox
                         checked={selectedCustomers.includes(customer.customer_id)}
                         onCheckedChange={() => handleToggleCustomer(customer.customer_id)}
                         disabled={isSubmitting}
                       />
-                      <div className="flex-1">
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => handleToggleCustomer(customer.customer_id)}
+                      >
                         <div className="text-sm font-medium">{customer.canonical_name}</div>
                       </div>
                     </div>
