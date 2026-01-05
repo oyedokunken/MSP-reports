@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\AutotaskMonthlySummary;
+namespace App\Reports\AutotaskSummary;
 
 use App\Models\Customer;
 use App\Models\IntegrationData;

@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Reports\SaaSMonthlySummary;
+namespace App\Reports\SaaSSummary;
 
 use App\Models\Customer;
 use App\Reports\Contracts\BaseReport;
 use Carbon\Carbon;
 
-class SaaSMonthlySummary extends BaseReport
+class SaaSSummary extends BaseReport
 {
     protected SaaSDataGatherer $dataGatherer;
 
@@ -196,14 +196,14 @@ class SaaSMonthlySummary extends BaseReport
 
     public function getTemplate(): string
     {
-        return 'Reports.SaaSMonthlySummary.template';
+        return 'Reports.SaaSSummary.template';
     }
 
     public function getMetadata(): array
     {
         return [
-            'id' => 'saas_monthly_summary',
-            'name' => 'SaaS Alerts Monthly Security Report',
+            'id' => 'saas_summary',
+            'name' => 'SaaS Alerts Security Report',
             'description' => 'Comprehensive security analysis including user activity, threat detection, geographic access patterns, and application usage from SaaS Alerts',
             'category' => 'security',
             'data_types' => $this->getRequiredDataTypes(),

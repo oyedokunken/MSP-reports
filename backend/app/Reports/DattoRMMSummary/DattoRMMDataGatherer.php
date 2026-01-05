@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\DattoRMMMonthlySummary;
+namespace App\Reports\DattoRMMSummary;
 
 use App\Models\Customer;
 use App\Models\IntegrationData;

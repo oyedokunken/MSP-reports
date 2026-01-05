@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\ITGlueMonthlySummary;
+namespace App\Reports\ITGlueSummary;
 
 use App\Models\Customer;
 use App\Models\IntegrationData;

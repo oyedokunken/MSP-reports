@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\SendmarcMonthlySummary;
+namespace App\Reports\SendmarcSummary;
 
 use App\Models\Customer;
 use App\Reports\Contracts\BaseReport;
@@ -8,7 +8,7 @@ use App\Models\IntegrationData;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
-class SendmarcMonthlySummary extends BaseReport
+class SendmarcSummary extends BaseReport
 {
     protected SendmarcDataGatherer $dataGatherer;
 
@@ -139,7 +139,7 @@ class SendmarcMonthlySummary extends BaseReport
 
     public function getTemplate(): string
     {
-        return resource_path('views/Reports/SendmarcMonthlySummary/template.blade.php');
+        return resource_path('views/Reports/SendmarcSummary/template.blade.php');
     }
 
     public function getMetadata(): array

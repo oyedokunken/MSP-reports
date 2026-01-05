@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\BitDefenderMonthlySummary;
+namespace App\Reports\BitDefenderSummary;
 
 use App\Models\Customer;
 use App\Reports\Contracts\BaseReport;
@@ -8,7 +8,7 @@ use App\Models\IntegrationData;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
-class BitDefenderMonthlySummary extends BaseReport
+class BitDefenderSummary extends BaseReport
 {
     protected BitDefenderDataGatherer $dataGatherer;
 
@@ -127,7 +127,7 @@ class BitDefenderMonthlySummary extends BaseReport
 
     public function getTemplate(): string
     {
-        return resource_path('views/Reports/BitDefenderMonthlySummary/template.blade.php');
+        return resource_path('views/Reports/BitDefenderSummary/template.blade.php');
     }
 
     public function getMetadata(): array

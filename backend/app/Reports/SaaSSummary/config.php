@@ -1,10 +1,10 @@
 <?php
 
 return [
-    'id' => 'saas_monthly_summary',
-    'name' => 'SaaS Alerts Monthly Security Report',
+    'id' => 'saas_summary',
+    'name' => 'SaaS Alerts Security Report',
     'description' => 'Comprehensive security analysis including user activity, threat detection, geographic access patterns, and application usage',
-    'class' => \App\Reports\SaaSMonthlySummary\SaaSMonthlySummary::class,
+    'class' => \App\Reports\SaaSSummary\SaaSSummary::class,
     'category' => 'security',
     'data_types' => ['saas_security_event'],
     'required_integrations' => ['SaaS'],

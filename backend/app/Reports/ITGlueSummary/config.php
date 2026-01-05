@@ -1,10 +1,10 @@
 <?php
 
 return [
-    'id' => 'itglue_monthly_summary',
-    'name' => 'ITGlue Monthly Summary Report',
+    'id' => 'itglue_summary',
+    'name' => 'ITGlue Summary Report',
     'description' => 'Comprehensive monthly report covering Microsoft licenses, SSL certificates, and domain registrations from ITGlue',
-    'class' => \App\Reports\ITGlueMonthlySummary\ITGlueMonthlySummary::class,
+    'class' => \App\Reports\ITGlueSummary\ITGlueSummary::class,
     'category' => 'comprehensive',
     'data_types' => ['flexible_asset', 'ssl_certificate', 'domain'],
     'required_integrations' => ['ITGlue'],

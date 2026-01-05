@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\SendmarcMonthlySummary;
+namespace App\Reports\SendmarcSummary;
 
 use App\Models\Customer;
 use App\Models\IntegrationData;

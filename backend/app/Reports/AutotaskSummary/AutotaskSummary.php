@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\AutotaskMonthlySummary;
+namespace App\Reports\AutotaskSummary;
 
 use App\Models\Customer;
 use App\Reports\Contracts\BaseReport;
@@ -8,7 +8,7 @@ use Carbon\Carbon;
 use App\Models\IntegrationData;
 use Illuminate\Support\Collection;
 
-class AutotaskMonthlySummary extends BaseReport
+class AutotaskSummary extends BaseReport
 {
     protected AutotaskDataGatherer $dataGatherer;
 
@@ -151,14 +151,14 @@ class AutotaskMonthlySummary extends BaseReport
 
     public function getTemplate(): string
     {
-        return 'Reports.AutotaskMonthlySummary.template';
+        return 'Reports.AutotaskSummary.template';
     }
 
     public function getMetadata(): array
     {
         return [
-            'id' => 'autotask_monthly_summary',
-            'name' => 'Autotask Monthly Summary',
+            'id' => 'autotask_summary',
+            'name' => 'Autotask Summary',
             'description' => 'Comprehensive monthly report combining tickets, time entries, technician performance, and contracts from Autotask PSA',
             'category' => 'service_desk',
             'data_types' => $this->getRequiredDataTypes(),

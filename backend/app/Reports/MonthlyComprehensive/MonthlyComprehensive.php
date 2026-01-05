@@ -123,12 +123,12 @@ class MonthlyComprehensive extends BaseReport
             'uptime_monthly' => 'Reports/UptimeReport/template',
             'backup_status' => 'Reports/BackupStatus/template',
             'security_summary' => 'Reports/SecuritySummary/template',
-            'autotask_monthly_summary' => 'Reports/AutotaskMonthlySummary/template',
-            'datto_rmm_monthly_summary' => 'Reports/DattoRMMMonthlySummary/template',
-            'bitdefender_monthly_summary' => 'Reports/BitDefenderMonthlySummary/template',
-            'itglue_monthly_summary' => 'Reports/ITGlueMonthlySummary/template',
-            'saas_monthly_summary' => 'Reports/SaaSMonthlySummary/template',
-            'sendmarc_monthly_summary' => 'Reports/SendmarcMonthlySummary/template',
+            'autotask_summary' => 'Reports/AutotaskSummary/template',
+            'datto_rmm_summary' => 'Reports/DattoRMMSummary/template',
+            'bitdefender_summary' => 'Reports/BitDefenderSummary/template',
+            'itglue_summary' => 'Reports/ITGlueSummary/template',
+            'saas_summary' => 'Reports/SaaSSummary/template',
+            'sendmarc_summary' => 'Reports/SendmarcSummary/template',
         ];
         
         $template = $templateMap[$reportId] ?? 'Reports/' . ucfirst($reportInfo['type']) . '/template';

@@ -20,9 +20,12 @@ interface CreateTemplateModalProps {
 }
 
 const REPORT_TYPES = [
-  { value: 'autotask_monthly_summary', label: 'Autotask Monthly Summary' },
-  { value: 'datto_rmm_monthly_summary', label: 'Datto RMM Monthly Summary' },
-  { value: 'itglue_monthly_summary', label: 'IT Glue Monthly Summary' },
+  { value: 'autotask_summary', label: 'Autotask Summary' },
+  { value: 'datto_rmm_summary', label: 'Datto RMM Summary' },
+  { value: 'itglue_summary', label: 'IT Glue Summary' },
+  { value: 'bitdefender_summary', label: 'BitDefender Summary' },
+  { value: 'saas_summary', label: 'SaaS Alerts Security Report' },
+  { value: 'sendmarc_summary', label: 'Sendmarc Summary' },
   { value: 'monthly_comprehensive', label: 'Monthly Comprehensive' },
   { value: 'uptime_report', label: 'Uptime Report' },
   { value: 'backup_status', label: 'Backup Status' },

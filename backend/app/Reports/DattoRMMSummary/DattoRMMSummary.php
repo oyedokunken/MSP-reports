@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Reports\DattoRMMMonthlySummary;
+namespace App\Reports\DattoRMMSummary;
 
 use App\Models\Customer;
 use App\Models\IntegrationData;
 use App\Reports\Contracts\ReportInterface;
 use Carbon\Carbon;
 
-class DattoRMMMonthlySummary implements ReportInterface
+class DattoRMMSummary implements ReportInterface
 {
     private DattoRMMDataGatherer $dataGatherer;
 
@@ -139,14 +139,14 @@ class DattoRMMMonthlySummary implements ReportInterface
 
     public function getTemplate(): string
     {
-        return resource_path('views/Reports/DattoRMMMonthlySummary/template.blade.php');
+        return resource_path('views/Reports/DattoRMMSummary/template.blade.php');
     }
 
     public function getMetadata(): array
     {
         return [
-            'id' => 'datto_rmm_monthly_summary',
-            'name' => 'Datto RMM Monthly Summary',
+            'id' => 'datto_rmm_summary',
+            'name' => 'Datto RMM Summary',
             'description' => 'Comprehensive monthly report covering device health, alerts, compliance, security, and uptime metrics from Datto RMM',
             'category' => 'infrastructure',
             'data_types' => $this->getRequiredDataTypes(),

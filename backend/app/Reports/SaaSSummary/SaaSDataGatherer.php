@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\SaaSMonthlySummary;
+namespace App\Reports\SaaSSummary;
 
 use App\Models\Customer;
 use App\Models\IntegrationData;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\BitDefenderMonthlySummary;
+namespace App\Reports\BitDefenderSummary;
 
 use App\Models\Customer;
 use App\Models\IntegrationData;

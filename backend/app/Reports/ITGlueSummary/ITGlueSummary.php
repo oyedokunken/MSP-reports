@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Reports\ITGlueMonthlySummary;
+namespace App\Reports\ITGlueSummary;
 
 use App\Models\Customer;
 use App\Reports\Contracts\BaseReport;
@@ -8,7 +8,7 @@ use Carbon\Carbon;
 use App\Models\IntegrationData;
 use Illuminate\Support\Collection;
 
-class ITGlueMonthlySummary extends BaseReport
+class ITGlueSummary extends BaseReport
 {
     protected ITGlueDataGatherer $dataGatherer;
 
@@ -153,7 +153,7 @@ class ITGlueMonthlySummary extends BaseReport
 
     public function getTemplate(): string
     {
-        return resource_path('views/Reports/ITGlueMonthlySummary/template.blade.php');
+        return resource_path('views/Reports/ITGlueSummary/template.blade.php');
     }
 
     public function getMetadata(): array
