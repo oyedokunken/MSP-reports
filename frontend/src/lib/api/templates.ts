@@ -5,6 +5,7 @@ import type {
   UpdateTemplateRequest,
   ApplyTemplateRequest,
   ApplyTemplateBulkRequest,
+  AvailableReportTypesResponse,
 } from '@/pages/templates/types/template'
 
 export const templateApi = {
@@ -40,6 +41,14 @@ export const templateApi = {
 
   applyToCustomers: async (id: number, data: ApplyTemplateBulkRequest) => {
     const response = await api.post(`/report-templates/${id}/apply-to-customers`, data)
+    return response.data
+  },
+
+  getAvailableReportTypes: async (customerId: number) => {
+    const response = await api.get<AvailableReportTypesResponse>(
+      '/report-templates/available-for-customer',
+      { customer_id: customerId }
+    )
     return response.data
   },
 }

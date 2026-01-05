@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ReportTemplate;
 use App\Models\Customer;
 use App\Services\ReportTemplateService;
+use App\Services\ReportTypeRegistry;
 use Illuminate\Http\Request;
 
 class ReportTemplateController extends Controller
@@ -20,6 +21,7 @@ class ReportTemplateController extends Controller
     public function index(Request $request)
     {
         $templates = ReportTemplate::query()
+            ->with('customer')
             ->when($request->report_type, fn($q, $type) => $q->where('report_type', $type))
             ->when($request->active !== null, fn($q) => $q->where('active', $request->boolean('active')))
             ->orderBy('template_name')
@@ -48,6 +50,7 @@ class ReportTemplateController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'customer_id' => 'required|integer|exists:customers,customer_id',
             'template_name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'report_type' => 'required|string',
@@ -66,10 +69,24 @@ class ReportTemplateController extends Controller
             ...$validated,
         ]);
         
+        // Auto-create ReportSchedule for the customer
+        $schedule = \App\Models\ReportSchedule::create([
+            'company_id' => auth()->user()->company_id,
+            'customer_id' => $validated['customer_id'],
+            'report_template_id' => $template->template_id,
+            'report_type' => $validated['report_type'],
+            'frequency' => $validated['frequency'],
+            'schedule_config' => $validated['schedule_config'] ?? null,
+            'time_of_day' => $validated['time_of_day'] ?? '09:00',
+            'timezone' => $validated['timezone'] ?? 'Australia/Brisbane',
+            'active' => $validated['active'] ?? true,
+        ]);
+        
         return response()->json([
             'success' => true,
-            'data' => $template,
-            'message' => 'Template created successfully',
+            'data' => $template->load('customer'),
+            'schedule' => $schedule,
+            'message' => 'Template created and schedule activated for customer',
         ], 201);
     }
     
@@ -173,5 +190,32 @@ class ReportTemplateController extends Controller
             'data' => $schedules,
             'message' => 'Template applied to ' . count($schedules) . ' customers',
         ], 201);
+    }
+
+    /**
+     * Get available report types for a specific customer
+     */
+    public function getAvailableReportTypes(Request $request)
+    {
+        \Log::info('getAvailableReportTypes called', [
+            'all_input' => $request->all(),
+            'query' => $request->query(),
+            'customer_id' => $request->input('customer_id'),
+        ]);
+
+        $validated = $request->validate([
+            'customer_id' => 'required|integer|exists:customers,customer_id',
+        ]);
+
+        $customerId = (int) $validated['customer_id'];
+        $reportTypes = ReportTypeRegistry::getAvailableForCustomer($customerId);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'customer_id' => $customerId,
+                'report_types' => $reportTypes,
+            ],
+        ]);
     }
 }

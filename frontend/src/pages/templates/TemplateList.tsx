@@ -11,14 +11,14 @@ import {
   Search, 
   Edit, 
   Trash2, 
-  Users,
+  Eye,
   Clock,
-  Calendar
+  Calendar,
+  User
 } from 'lucide-react'
 import { templateApi } from '@/lib/api/templates'
 import type { ReportTemplate } from './types/template'
 import { CreateTemplateModal } from '@/pages/templates/modals/CreateTemplateModal'
-import { ApplyTemplateModal } from '@/pages/templates/modals/ApplyTemplateModal'
 import { DeleteTemplateModal } from '@/pages/templates/modals/DeleteTemplateModal'
 import { useToast } from '@/components/ui/Toast'
 
@@ -29,7 +29,6 @@ export default function TemplateList() {
   const [searchQuery, setSearchQuery] = useState('')
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<ReportTemplate | null>(null)
-  const [applyingTemplate, setApplyingTemplate] = useState<ReportTemplate | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<ReportTemplate | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -76,18 +75,16 @@ export default function TemplateList() {
     setCreateModalOpen(true)
   }
 
-  const handleApply = (template: ReportTemplate) => {
-    setApplyingTemplate(template)
+  const handleView = (template: ReportTemplate) => {
+    // TODO: Navigate to template detail view showing schedules and generated reports
+    console.log('View template:', template)
+    toast.info('Template detail view coming soon')
   }
 
   const handleModalClose = () => {
     setCreateModalOpen(false)
     setEditingTemplate(null)
     loadTemplates()
-  }
-
-  const handleApplyModalClose = () => {
-    setApplyingTemplate(null)
   }
 
   const filteredTemplates = (templates || []).filter(template =>
@@ -117,7 +114,7 @@ export default function TemplateList() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Report Templates</h1>
           <p className="text-muted-foreground mt-1">
-            Create and manage report templates to quickly apply to customers
+            Create and manage customer-specific report templates
           </p>
         </div>
         <Button onClick={() => setCreateModalOpen(true)}>
@@ -176,6 +173,12 @@ export default function TemplateList() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2 text-sm">
+                  {template.customer && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <User className="h-4 w-4" />
+                      <span className="font-medium">{template.customer.canonical_name}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <FileText className="h-4 w-4" />
                     <span>{template.report_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
@@ -197,10 +200,10 @@ export default function TemplateList() {
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() => handleApply(template)}
+                    onClick={() => handleView(template)}
                   >
-                    <Users className="mr-2 h-4 w-4" />
-                    Apply
+                    <Eye className="mr-2 h-4 w-4" />
+                    View
                   </Button>
                   <Button
                     variant="outline"
@@ -228,13 +231,6 @@ export default function TemplateList() {
         onOpenChange={setCreateModalOpen}
         template={editingTemplate}
         onSuccess={handleModalClose}
-      />
-
-      <ApplyTemplateModal
-        open={!!applyingTemplate}
-        onOpenChange={(open: boolean) => { if (!open) handleApplyModalClose() }}
-        template={applyingTemplate}
-        onSuccess={handleApplyModalClose}
       />
 
       <DeleteTemplateModal

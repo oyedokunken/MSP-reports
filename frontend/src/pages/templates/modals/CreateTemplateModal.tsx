@@ -7,10 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
-import { FileText, AlertCircle } from 'lucide-react'
+import { FileText, AlertCircle, ArrowLeft, ArrowRight, Save } from 'lucide-react'
 import { templateApi } from '@/lib/api/templates'
-import type { ReportTemplate, CreateTemplateRequest } from '../types/template'
+import { customerApi } from '@/services/api/customers'
+import type { ReportTemplate, CreateTemplateRequest, ReportTypeDefinition } from '../types/template'
+import type { Customer } from '@/types/api/customer'
 import { useToast } from '@/components/ui/Toast'
+import { CustomerIntegrationSelector } from '../components/CustomerIntegrationSelector'
+import { ReportTypeSelector } from '../components/ReportTypeSelector'
+import { SectionConfigurator } from '../components/SectionConfigurator'
 
 interface CreateTemplateModalProps {
   open: boolean
@@ -18,19 +23,6 @@ interface CreateTemplateModalProps {
   template?: ReportTemplate | null
   onSuccess?: () => void
 }
-
-const REPORT_TYPES = [
-  { value: 'autotask_summary', label: 'Autotask Summary' },
-  { value: 'datto_rmm_summary', label: 'Datto RMM Summary' },
-  { value: 'itglue_summary', label: 'IT Glue Summary' },
-  { value: 'bitdefender_summary', label: 'BitDefender Summary' },
-  { value: 'saas_summary', label: 'SaaS Alerts Security Report' },
-  { value: 'sendmarc_summary', label: 'Sendmarc Summary' },
-  { value: 'monthly_comprehensive', label: 'Monthly Comprehensive' },
-  { value: 'uptime_report', label: 'Uptime Report' },
-  { value: 'backup_status', label: 'Backup Status' },
-  { value: 'security_summary', label: 'Security Summary' },
-]
 
 const FREQUENCIES = [
   { value: 'daily', label: 'Daily' },
@@ -51,8 +43,16 @@ const TIMEZONES = [
 
 export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }: CreateTemplateModalProps) {
   const toast = useToast()
+  const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoadingData, setIsLoadingData] = useState(false)
   const [error, setError] = useState('')
+  
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null)
+  const [availableReportTypes, setAvailableReportTypes] = useState<ReportTypeDefinition[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   
   const [formData, setFormData] = useState<CreateTemplateRequest>({
     template_name: '',
@@ -62,10 +62,14 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     time_of_day: '09:00',
     timezone: 'Australia/Brisbane',
     active: true,
+    included_sections: [],
   })
 
+  // Load initial data
   useEffect(() => {
     if (open) {
+      fetchCustomers(1)
+      setCurrentPage(1)
       if (template) {
         setFormData({
           template_name: template.template_name,
@@ -75,36 +79,139 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
           schedule_config: template.schedule_config || undefined,
           time_of_day: template.time_of_day || '09:00',
           timezone: template.timezone,
-          included_sections: template.included_sections || undefined,
+          included_sections: template.included_sections || [],
           delivery_settings: template.delivery_settings || undefined,
           report_options: template.report_options || undefined,
           active: template.active,
         })
+        setStep(1)
       } else {
-        setFormData({
-          template_name: '',
-          description: '',
-          report_type: '',
-          frequency: 'monthly',
-          time_of_day: '09:00',
-          timezone: 'Australia/Brisbane',
-          active: true,
-        })
+        resetForm()
       }
       setError('')
     }
   }, [open, template])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      fetchCustomers(newPage)
+    }
+  }
+
+  // Fetch report types when customer is selected
+  useEffect(() => {
+    if (selectedCustomerId) {
+      fetchAvailableReportTypes(selectedCustomerId)
+    }
+  }, [selectedCustomerId])
+
+  // Auto-select default sections when report type changes
+  useEffect(() => {
+    if (formData.report_type) {
+      const reportType = availableReportTypes.find(rt => rt.type === formData.report_type)
+      if (reportType) {
+        const defaultSections = reportType.available_sections
+          .filter(s => s.default)
+          .map(s => s.id)
+        setFormData(prev => ({ ...prev, included_sections: defaultSections }))
+      }
+    }
+  }, [formData.report_type, availableReportTypes])
+
+  const resetForm = () => {
+    setFormData({
+      template_name: '',
+      description: '',
+      report_type: '',
+      frequency: 'monthly',
+      time_of_day: '09:00',
+      timezone: 'Australia/Brisbane',
+      active: true,
+      included_sections: [],
+    })
+    setStep(1)
+    setSelectedCustomerId(null)
+    setAvailableReportTypes([])
+  }
+
+  const fetchCustomers = async (page: number = 1) => {
+    try {
+      setIsLoadingData(true)
+      const response = await customerApi.getCustomers({ page })
+      setCustomers(response.data || [])
+      setCurrentPage(response.pagination?.current_page || 1)
+      setTotalPages(response.pagination?.last_page || 1)
+    } catch (err) {
+      console.error('Failed to fetch customers:', err)
+      toast.error('Failed to load customers')
+    } finally {
+      setIsLoadingData(false)
+    }
+  }
+
+  const fetchAvailableReportTypes = async (customerId: number) => {
+    try {
+      setIsLoadingData(true)
+      console.log('Fetching report types for customer:', customerId)
+      const data = await templateApi.getAvailableReportTypes(customerId)
+      console.log('Received report types:', data)
+      setAvailableReportTypes(data.report_types)
+      
+      if (formData.report_type && !data.report_types.some((rt: ReportTypeDefinition) => rt.type === formData.report_type)) {
+        setFormData(prev => ({ ...prev, report_type: '', included_sections: [] }))
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch report types:', err)
+      console.error('Error response:', err.response?.data)
+      console.error('Error status:', err.response?.status)
+      const errorMsg = err.response?.data?.message || err.response?.data?.errors || 'Failed to load available report types'
+      toast.error(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg))
+    } finally {
+      setIsLoadingData(false)
+    }
+  }
+
+  const handleNext = () => {
+    if (step < 4) setStep(step + 1)
+  }
+
+  const handleBack = () => {
+    if (step > 1) setStep(step - 1)
+  }
+
+  const canProceed = () => {
+    switch (step) {
+      case 1:
+        return selectedCustomerId !== null && formData.template_name.trim() !== ''
+      case 2:
+        return formData.report_type !== ''
+      case 3:
+        return (formData.included_sections?.length ?? 0) > 0
+      case 4:
+        return true
+      default:
+        return false
+    }
+  }
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+
+    if (!selectedCustomerId) {
+      setError('Customer is required')
+      setStep(1)
+      return
+    }
 
     if (!formData.template_name.trim()) {
       setError('Template name is required')
+      setStep(1)
       return
     }
 
     if (!formData.report_type) {
       setError('Report type is required')
+      setStep(2)
       return
     }
 
@@ -112,12 +219,17 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     setIsSubmitting(true)
 
     try {
+      const templateData = {
+        ...formData,
+        customer_id: selectedCustomerId,
+      }
+
       if (template) {
-        await templateApi.update(template.template_id, formData)
+        await templateApi.update(template.template_id, templateData)
         toast.success('Template updated successfully')
       } else {
-        await templateApi.create(formData)
-        toast.success('Template created successfully')
+        await templateApi.create(templateData)
+        toast.success('Template created and schedule activated for customer')
       }
       onSuccess?.()
       onOpenChange(false)
@@ -138,131 +250,187 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            <DialogTitle>{template ? 'Edit Template' : 'Create Template'}</DialogTitle>
+            <DialogTitle>
+              {template ? 'Edit Template' : 'Create Template'} - Step {step} of 4
+            </DialogTitle>
           </div>
           <DialogDescription>
-            {template ? 'Update template settings' : 'Create a new report template to apply to customers'}
+            {step === 1 && 'Basic information and customer selection'}
+            {step === 2 && 'Choose a report type compatible with customer integrations'}
+            {step === 3 && 'Select sections to include in the report'}
+            {step === 4 && 'Configure schedule and delivery settings'}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="template_name">Template Name *</Label>
-            <Input
-              id="template_name"
-              value={formData.template_name}
-              onChange={(e) => setFormData({ ...formData, template_name: e.target.value })}
-              placeholder="e.g., Standard Monthly Report"
-              disabled={isSubmitting}
-              className="mt-1"
-            />
-          </div>
+        <div className="py-4 space-y-6">
+          {step === 1 && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="template_name">Template Name *</Label>
+                <Input
+                  id="template_name"
+                  value={formData.template_name}
+                  onChange={(e) => setFormData({ ...formData, template_name: e.target.value })}
+                  placeholder="e.g., Standard Monthly Report"
+                  disabled={isSubmitting}
+                  className="mt-1"
+                />
+              </div>
 
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Optional description of this template"
-              disabled={isSubmitting}
-              className="mt-1"
-              rows={2}
-            />
-          </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Optional description of this template"
+                  disabled={isSubmitting}
+                  className="mt-1"
+                  rows={2}
+                />
+              </div>
 
-          <div>
-            <Label htmlFor="report_type">Report Type *</Label>
-            <Select
-              value={formData.report_type}
-              onValueChange={(value) => setFormData({ ...formData, report_type: value })}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select report type" />
-              </SelectTrigger>
-              <SelectContent>
-                {REPORT_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="frequency">Frequency</Label>
-              <Select
-                value={formData.frequency}
-                onValueChange={(value: any) => setFormData({ ...formData, frequency: value })}
-                disabled={isSubmitting}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {FREQUENCIES.map((freq) => (
-                    <SelectItem key={freq.value} value={freq.value}>
-                      {freq.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium">Select Customer</label>
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Page {currentPage} of {totalPages}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1 || isLoadingData}
+                        className="h-6 px-2 text-xs"
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages || isLoadingData}
+                        className="h-6 px-2 text-xs"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <CustomerIntegrationSelector
+                  customers={customers}
+                  selectedCustomerId={selectedCustomerId}
+                  onSelect={(customer) => setSelectedCustomerId(customer.customer_id)}
+                />
+              </div>
             </div>
+          )}
 
-            <div>
-              <Label htmlFor="time_of_day">Time of Day</Label>
-              <Input
-                id="time_of_day"
-                type="time"
-                value={formData.time_of_day}
-                onChange={(e) => setFormData({ ...formData, time_of_day: e.target.value })}
-                disabled={isSubmitting}
-                className="mt-1"
+          {step === 2 && (
+            <div className="space-y-4">
+              {isLoadingData ? (
+                <div className="flex flex-col items-center py-8">
+                  <Spinner className="h-8 w-8 mb-2" />
+                  <p className="text-sm text-muted-foreground">Loading compatible report types...</p>
+                </div>
+              ) : (
+                <ReportTypeSelector
+                  reportTypes={availableReportTypes}
+                  selectedType={formData.report_type}
+                  onSelect={(type) => setFormData({ ...formData, report_type: type })}
+                />
+              )}
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-4">
+              <SectionConfigurator
+                sections={availableReportTypes.find(rt => rt.type === formData.report_type)?.available_sections || []}
+                selectedSections={formData.included_sections || []}
+                onSectionsChange={(sections) => setFormData({ ...formData, included_sections: sections })}
               />
             </div>
-          </div>
+          )}
 
-          <div>
-            <Label htmlFor="timezone">Timezone</Label>
-            <Select
-              value={formData.timezone}
-              onValueChange={(value) => setFormData({ ...formData, timezone: value })}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TIMEZONES.map((tz) => (
-                  <SelectItem key={tz.value} value={tz.value}>
-                    {tz.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {step === 4 && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="frequency">Frequency</Label>
+                  <Select
+                    value={formData.frequency}
+                    onValueChange={(value: any) => setFormData({ ...formData, frequency: value })}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {FREQUENCIES.map((freq) => (
+                        <SelectItem key={freq.value} value={freq.value}>
+                          {freq.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <div className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <Label htmlFor="active">Active</Label>
-              <p className="text-sm text-muted-foreground">
-                Enable this template for use
-              </p>
+                <div>
+                  <Label htmlFor="time_of_day">Time of Day</Label>
+                  <Input
+                    id="time_of_day"
+                    type="time"
+                    value={formData.time_of_day}
+                    onChange={(e) => setFormData({ ...formData, time_of_day: e.target.value })}
+                    disabled={isSubmitting}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="timezone">Timezone</Label>
+                <Select
+                  value={formData.timezone}
+                  onValueChange={(value) => setFormData({ ...formData, timezone: value })}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIMEZONES.map((tz) => (
+                      <SelectItem key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="active">Active Status</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable this template for use
+                  </p>
+                </div>
+                <Switch
+                  id="active"
+                  checked={formData.active}
+                  onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
+                  disabled={isSubmitting}
+                />
+              </div>
             </div>
-            <Switch
-              id="active"
-              checked={formData.active}
-              onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
-              disabled={isSubmitting}
-            />
-          </div>
+          )}
 
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 flex items-start gap-2">
@@ -270,28 +438,56 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
               <p className="text-sm text-destructive font-medium">{error}</p>
             </div>
           )}
+        </div>
 
-          <DialogFooter>
+        <DialogFooter className="border-t pt-4">
+          <div className="flex justify-between w-full">
             <Button
               type="button"
               variant="outline"
-              onClick={handleClose}
+              onClick={step === 1 ? handleClose : handleBack}
               disabled={isSubmitting}
             >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
+              {step === 1 ? 'Cancel' : (
                 <>
-                  <Spinner className="mr-2 h-4 w-4" />
-                  {template ? 'Updating...' : 'Creating...'}
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
                 </>
-              ) : (
-                <>{template ? 'Update Template' : 'Create Template'}</>
               )}
             </Button>
-          </DialogFooter>
-        </form>
+
+            <div className="flex gap-2">
+              {step < 4 ? (
+                <Button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!canProceed() || isLoadingData}
+                >
+                  Next
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button 
+                  type="button" 
+                  onClick={() => handleSubmit()} 
+                  disabled={isSubmitting || !canProceed()}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Spinner className="mr-2 h-4 w-4" />
+                      {template ? 'Updating...' : 'Creating...'}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      {template ? 'Update Template' : 'Create Template'}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

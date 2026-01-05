@@ -15,7 +15,6 @@ interface CustomersGridProps {
   onMerge: (customer: MappedCustomer) => void
   onSplit: (customer: MappedCustomer) => void
   onMoreInfo: (customerId: number) => void
-  onApplyTemplate?: (customer: MappedCustomer) => void
 }
 
 export function CustomersGrid({
@@ -29,7 +28,6 @@ export function CustomersGrid({
   onMerge,
   onSplit,
   onMoreInfo,
-  onApplyTemplate,
 }: CustomersGridProps) {
   if (isLoading) {
     return (
@@ -91,7 +89,6 @@ export function CustomersGrid({
           onMerge={() => onMerge(customer)}
           onSplit={() => onSplit(customer)}
           onMoreInfo={() => onMoreInfo(customer.customer_id!)}
-          onApplyTemplate={onApplyTemplate ? () => onApplyTemplate(customer) : undefined}
         />
       ))}
     </div>

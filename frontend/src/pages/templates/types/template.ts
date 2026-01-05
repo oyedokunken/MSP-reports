@@ -1,6 +1,11 @@
 export interface ReportTemplate {
   template_id: number
   company_id: number
+  customer_id: number | null
+  customer?: {
+    customer_id: number
+    canonical_name: string
+  }
   template_name: string
   description: string | null
   report_type: string
@@ -31,6 +36,7 @@ export interface DeliverySettings {
 }
 
 export interface CreateTemplateRequest {
+  customer_id?: number
   template_name: string
   description?: string
   report_type: string
@@ -45,6 +51,40 @@ export interface CreateTemplateRequest {
 }
 
 export interface UpdateTemplateRequest extends Partial<CreateTemplateRequest> {}
+
+export interface ReportTypeDefinition {
+  type: string
+  name: string
+  description: string
+  required_integrations: string[]
+  optional_integrations?: string[]
+  available_sections: ReportSection[]
+}
+
+export interface ReportSection {
+  id: string
+  label: string
+  description?: string
+  default: boolean
+  requires?: string // Integration type required for this section
+  configurable?: boolean
+}
+
+export interface CustomerIntegrationInfo {
+  customer_id: number
+  customer_name: string
+  integrations: Array<{
+    integration_id: number
+    integration_type: string
+    integration_name: string
+    status: string
+  }>
+}
+
+export interface AvailableReportTypesResponse {
+  customer_id: number
+  report_types: ReportTypeDefinition[]
+}
 
 export interface ApplyTemplateRequest {
   customer_id: number

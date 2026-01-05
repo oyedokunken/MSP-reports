@@ -143,6 +143,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
 
     // Report Templates Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
+        Route::get('/report-templates/available-for-customer', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAvailableReportTypes']);
         Route::apiResource('report-templates', \App\Http\Controllers\Api\ReportTemplateController::class);
         Route::post('/report-templates/{template}/apply-to-customer', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomer']);
         Route::post('/report-templates/{template}/apply-to-customers', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomers']);
