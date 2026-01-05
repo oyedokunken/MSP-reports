@@ -47,25 +47,19 @@ class MonthlyComprehensive extends BaseReport
             ->unique('integration_id')
             ->filter();
         
-        \Log::info('MonthlyComprehensive: Found integrations for customer', [
-            'customer_id' => $customer->customer_id,
-            'customer_name' => $customer->canonical_name,
-            'integration_count' => $customerIntegrations->count(),
-            'integration_types' => $customerIntegrations->pluck('integration_type')->toArray(),
-        ]);
+
         
-        // Map integration types to their monthly summary report IDs
+
         $integrationReportMap = [
-            'Autotask' => 'autotask_monthly_summary',
-            'Datto' => 'datto_rmm_monthly_summary',
-            'DattoRMM' => 'datto_rmm_monthly_summary',
-            'BitDefender' => 'bitdefender_monthly_summary',
-            'ITGlue' => 'itglue_monthly_summary',
-            'SaaS' => 'saas_monthly_summary',
-            'Sendmarc' => 'sendmarc_monthly_summary',
+            'Autotask' => 'autotask_summary',
+            'Datto' => 'datto_rmm_summary',
+            'DattoRMM' => 'datto_rmm_summary',
+            'BitDefender' => 'bitdefender_summary',
+            'ITGlue' => 'itglue_summary',
+            'SaaS' => 'saas_summary',
+            'Sendmarc' => 'sendmarc_summary',
         ];
         
-        // Include integration-specific monthly summaries
         foreach ($customerIntegrations as $integration) {
             $integrationType = $integration->integration_type;
             
@@ -75,6 +69,7 @@ class MonthlyComprehensive extends BaseReport
                 
                 try {
                     $report = $registry->get($reportId, $customer->company_id);
+                    
                     if ($report && $report->validate($customer, $startDate, $endDate)) {
                         $config = $registry->getConfig($reportId);
                         $reportInfo = [
@@ -96,16 +91,11 @@ class MonthlyComprehensive extends BaseReport
                         'integration_type' => $integrationType,
                         'report_id' => $reportId,
                         'customer_id' => $customer->customer_id,
+                        'trace' => $e->getTraceAsString(),
                     ]);
                 }
             }
         }
-        
-        \Log::info('MonthlyComprehensive: Report generated', [
-            'customer_id' => $customer->customer_id,
-            'included_report_count' => count($reportData['included_reports']),
-            'report_titles' => array_column($reportData['included_reports'], 'title'),
-        ]);
         
         return $reportData;
     }

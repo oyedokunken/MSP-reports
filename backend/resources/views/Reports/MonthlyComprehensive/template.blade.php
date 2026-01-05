@@ -331,9 +331,27 @@
 
     <!-- FOLLOWING REPORT PAGES -->
     @foreach($included_reports ?? [] as $index => $report)
-        @if($index > 0)
-            <div class="page-break"></div>
-        @endif
+        <div class="page-break"></div>
+
+        <!-- SECTION COVER PAGE -->
+        <div class="cover-page section-cover">
+            <div class="cover-content">
+                <div class="report-badge">{{ strtoupper($report['type']) }}</div>
+                
+                <h1 class="cover-title">{{ $report['title'] }}</h1>
+                
+                <p class="cover-subtitle">Detailed Performance & Status Report</p>
+                
+                <div class="cover-divider"></div>
+                
+                <div class="cover-customer-box">
+                    <div class="cover-customer-label">Section {{ $index + 1 }}</div>
+                    <div class="cover-customer-name">{{ $report['title'] }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-break"></div>
 
         @include($report['template'], array_merge(
             $report['data'],

@@ -47,7 +47,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(false)
   const [error, setError] = useState('')
-  
+
   const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null)
   const [availableReportTypes, setAvailableReportTypes] = useState<ReportTypeDefinition[]>([])
@@ -55,7 +55,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const [totalPages, setTotalPages] = useState(1)
   const [customerSearch, setCustomerSearch] = useState('')
   const [searchDebounce, setSearchDebounce] = useState<number | null>(null)
-  
+
   const [formData, setFormData] = useState<CreateTemplateRequest>({
     template_name: '',
     description: '',
@@ -108,18 +108,18 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
 
   const handleSearchChange = (search: string) => {
     setCustomerSearch(search)
-    
+
     // Clear existing timeout
     if (searchDebounce) {
       clearTimeout(searchDebounce)
     }
-    
+
     // Set new timeout to search after 500ms of no typing
     const timeout = setTimeout(() => {
       setCurrentPage(1)
       fetchCustomers(1, search)
     }, 500)
-    
+
     setSearchDebounce(timeout)
   }
 
@@ -132,11 +132,11 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
 
   // Auto-select default sections when report type changes (only for new templates)
   useEffect(() => {
-    // Don't auto-select sections when editing an existing template
-    if (template) {
+    // Don't auto-select sections when editing an existing template, unless the type changed
+    if (template && formData.report_type === template.report_type) {
       return
     }
-    
+
     if (formData.report_type) {
       const reportType = availableReportTypes.find(rt => rt.type === formData.report_type)
       if (reportType) {
@@ -172,9 +172,9 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const fetchCustomers = async (page: number = 1, search: string = '') => {
     try {
       setIsLoadingData(true)
-      const response = await customerApi.getCustomers({ 
+      const response = await customerApi.getCustomers({
         page,
-        search: search || undefined 
+        search: search || undefined
       })
       setCustomers(response.data || [])
       setCurrentPage(response.pagination?.current_page || 1)
@@ -194,7 +194,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       const data = await templateApi.getAvailableReportTypes(customerId)
       console.log('Received report types:', data)
       setAvailableReportTypes(data.report_types)
-      
+
       if (formData.report_type && !data.report_types.some((rt: ReportTypeDefinition) => rt.type === formData.report_type)) {
         setFormData(prev => ({ ...prev, report_type: '', included_sections: [] }))
       }
@@ -214,10 +214,8 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   }
 
   const handleBack = () => {
-    // When editing, don't allow going back from step 3 (starts at step 3)
-    if (template && step === 3) {
-      return
-    }
+    // Constraint removed to allow navigation
+
     if (step > 1) setStep(step - 1)
   }
 
@@ -264,7 +262,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       // Clean the data before sending
       console.log('Form data before cleaning:', formData)
       console.log('time_of_day value:', formData.time_of_day, 'type:', typeof formData.time_of_day)
-      
+
       // Ensure time_of_day is in correct format (HH:MM)
       let cleanTimeOfDay = '09:00'
       if (formData.time_of_day) {
@@ -274,13 +272,13 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
           cleanTimeOfDay = timeStr
         }
       }
-      
+
       const templateData = {
         ...formData,
         customer_id: selectedCustomerId,
         time_of_day: cleanTimeOfDay,
       }
-      
+
       console.log('Template data being sent:', templateData)
 
       if (template) {
@@ -297,7 +295,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       console.error('Error response:', err.response)
       console.error('Error message:', err.message)
       console.error('Error errors:', err.errors)
-      
+
       // Handle validation errors (422)
       if (err.errors) {
         const errors = err.errors
@@ -397,7 +395,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                     </div>
                   )}
                 </div>
-                
+
                 {/* Customer Search */}
                 <div className="mb-3">
                   <Input
@@ -554,9 +552,9 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               ) : (
-                <Button 
-                  type="button" 
-                  onClick={() => handleSubmit()} 
+                <Button
+                  type="button"
+                  onClick={() => handleSubmit()}
                   disabled={isSubmitting || !canProceed()}
                 >
                   {isSubmitting ? (

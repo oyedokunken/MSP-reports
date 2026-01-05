@@ -68,13 +68,12 @@ class SyncIntegrationJob implements ShouldQueue
             
             $recordsSynced = $result['records_synced'] ?? 0;
             
-            // 2. UNIFIED DATA POLLING (Fetch tickets, devices, alerts, etc.)
             if (method_exists($integrationClass, 'getMetadata') && method_exists($integrationClass, 'getHistoricalData')) {
                 $metadata = $integrationClass->getMetadata();
                 
-                if ($metadata['supports_historical'] ?? false) {
-                    // Use a 4-hour window by default to ensure overlapping snapshots
-                    // This catches anything missed by the real-time polling in the integration's sync() method
+                $skipHistorical = $this->integration->integration_type === 'Datto';
+                
+                if (($metadata['supports_historical'] ?? false) && !$skipHistorical) {
                     $startDate = now()->subHours(4); 
                     $endDate = now();
                     

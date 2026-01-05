@@ -269,20 +269,16 @@ class ReportTemplateController extends Controller
             ], 404);
         }
 
-        // Get customer's integration types
         $customerIntegrations = $customer->integrationCustomers
             ->map(fn($ic) => strtolower($ic->integration->integration_type))
             ->unique()
             ->values()
             ->toArray();
 
-        // Get all available reports from the real registry
         $allReports = $reportRegistry->getAvailable($customer->company_id);
         
-        // Filter and format reports for this customer
         $reportTypes = [];
         foreach ($allReports as $report) {
-            // Get report instance to check metadata
             $reportInstance = $reportRegistry->get($report['id'], $customer->company_id);
             if (!$reportInstance) {
                 continue;
@@ -290,14 +286,19 @@ class ReportTemplateController extends Controller
             
             $metadata = $reportInstance->getMetadata();
             
-            // Get required integrations from config
             $requiredIntegrations = $report['required_integrations'] ?? [];
             
-            // Filter by customer's integrations
             if (!empty($requiredIntegrations)) {
-                // Check if customer has all required integrations
                 $hasAllRequired = true;
                 foreach ($requiredIntegrations as $required) {
+                    if (strtolower($required) === 'multiple') {
+                        if (count($customerIntegrations) < 2) {
+                            $hasAllRequired = false;
+                            break;
+                        }
+                        continue;
+                    }
+
                     $hasIntegration = in_array(strtolower($required), $customerIntegrations);
                     if (!$hasIntegration) {
                         $hasAllRequired = false;
@@ -305,13 +306,11 @@ class ReportTemplateController extends Controller
                     }
                 }
                 
-                // Skip this report if customer doesn't have required integrations
                 if (!$hasAllRequired) {
                     continue;
                 }
             }
             
-            // Add report to available list
             $reportTypes[] = [
                 'type' => $report['id'],
                 'name' => $report['name'] ?? $metadata['name'] ?? 'Unknown Report',
