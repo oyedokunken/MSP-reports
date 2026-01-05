@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\ReportTemplate;
 use App\Models\Customer;
-use App\Models\ReportSchedule;
 use App\Models\GeneratedReport;
-use Illuminate\Support\Collection;
+use App\Models\ReportSchedule;
+use App\Models\ReportTemplate;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class ReportTemplateService
 {
@@ -22,12 +22,12 @@ class ReportTemplateService
             'customer_id' => $customer->customer_id,
             'report_type' => $template->report_type,
             'frequency' => $template->frequency,
-            'schedule_config' => $template->schedule_config, // COPY, not reference
+            'schedule_config' => $template->schedule_config,  // COPY, not reference
             'time_of_day' => $template->time_of_day,
             'timezone' => $template->timezone ?? 'Australia/Brisbane',
             'active' => true,
         ]);
-        
+
         // Store additional settings in customer's report_configuration
         if ($template->included_sections || $template->delivery_settings || $template->report_options) {
             $customer->update([
@@ -41,30 +41,30 @@ class ReportTemplateService
                 ),
             ]);
         }
-        
+
         return $schedule->fresh();
     }
-    
+
     /**
      * Apply template to multiple customers
      */
     public function applyTemplateToCustomers(ReportTemplate $template, array $customerIds): Collection
     {
         $schedules = collect();
-        
+
         foreach ($customerIds as $customerId) {
             $customer = Customer::find($customerId);
             if ($customer) {
                 $schedules->push($this->applyTemplateToCustomer($template, $customer));
             }
         }
-        
+
         return $schedules;
     }
-    
+
     /**
      * Generate a preview report from template with real customer data
-     * 
+     *
      * This creates a temporary schedule and uses the existing report generation system.
      */
     public function generatePreviewReport(ReportTemplate $template): GeneratedReport
@@ -77,7 +77,7 @@ class ReportTemplateService
                 'report_options' => $template->report_options,
             ]
         );
-        
+
         // Create a temporary schedule for the preview
         $tempSchedule = ReportSchedule::create([
             'company_id' => $template->company_id,
@@ -88,22 +88,22 @@ class ReportTemplateService
             'schedule_config' => $scheduleConfig,
             'time_of_day' => '00:00',
             'timezone' => $template->timezone ?? 'Australia/Brisbane',
-            'active' => false, // Inactive so it won't be picked up by scheduler
+            'active' => false,  // Inactive so it won't be picked up by scheduler
         ]);
-        
+
         try {
             // Use the existing report generation service
             $reportService = app(\App\Services\ReportGenerationService::class);
-            
+
             // Generate the report for last month
             $startDate = Carbon::now()->subMonth()->startOfMonth();
             $endDate = Carbon::now()->subMonth()->endOfMonth();
-            
+
             $report = $reportService->generateReport($tempSchedule, $startDate, $endDate);
-            
+
             // Delete the temporary schedule
             $tempSchedule->delete();
-            
+
             return $report;
         } catch (\Exception $e) {
             // Clean up temporary schedule on error

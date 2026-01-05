@@ -27,7 +27,7 @@ class LicenseChecker
             ->exists();
     }
 
-    //Active Integration Middleware for Backend Servcies
+    // Active Integration Middleware for Backend Servcies
     public function canActivateIntegration(Company $company, string $integrationType): array
     {
         $productSku = "integration_{$integrationType}";
@@ -42,7 +42,7 @@ class LicenseChecker
         return ['allowed' => true, 'reason' => null];
     }
 
-    //Retention Middleware for licenses
+    // Retention Middleware for licenses
     public function canExtendRetention(Company $company, int $requestedMonths): array
     {
         // Check for unlimited license first

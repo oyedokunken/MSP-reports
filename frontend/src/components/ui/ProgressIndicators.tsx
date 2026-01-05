@@ -148,33 +148,30 @@ export function StepProgress({
                     <div key={index} className="flex items-start gap-4">
                         <div className="flex flex-col items-center">
                             <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-colors ${
-                                    step.status === "completed"
+                                className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-colors ${step.status === "completed"
                                         ? "bg-primary text-primary-foreground"
                                         : step.status === "current"
-                                        ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
-                                        : "bg-gray-200 dark:bg-gray-800 text-muted-foreground"
-                                }`}
+                                            ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                                            : "bg-gray-200 dark:bg-gray-800 text-muted-foreground"
+                                    }`}
                             >
                                 {step.status === "completed" ? "✓" : index + 1}
                             </div>
                             {index < steps.length - 1 && (
                                 <div
-                                    className={`w-0.5 h-12 ${
-                                        step.status === "completed"
+                                    className={`w-0.5 h-12 ${step.status === "completed"
                                             ? "bg-primary"
                                             : "bg-gray-200 dark:bg-gray-800"
-                                    }`}
+                                        }`}
                                 />
                             )}
                         </div>
                         <div className="flex-1 pt-1">
                             <p
-                                className={`text-sm font-medium ${
-                                    step.status === "upcoming"
+                                className={`text-sm font-medium ${step.status === "upcoming"
                                         ? "text-muted-foreground"
                                         : "text-foreground"
-                                }`}
+                                    }`}
                             >
                                 {step.label}
                             </p>
@@ -191,33 +188,30 @@ export function StepProgress({
                 <div key={index} className="flex items-center flex-1">
                     <div className="flex flex-col items-center flex-1">
                         <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
-                                step.status === "completed"
+                            className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${step.status === "completed"
                                     ? "bg-primary text-primary-foreground"
                                     : step.status === "current"
-                                    ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
-                                    : "bg-gray-200 dark:bg-gray-800 text-muted-foreground"
-                            }`}
+                                        ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                                        : "bg-gray-200 dark:bg-gray-800 text-muted-foreground"
+                                }`}
                         >
                             {step.status === "completed" ? "✓" : index + 1}
                         </div>
                         <p
-                            className={`mt-2 text-xs font-medium ${
-                                step.status === "upcoming"
+                            className={`mt-2 text-xs font-medium ${step.status === "upcoming"
                                     ? "text-muted-foreground"
                                     : "text-foreground"
-                            }`}
+                                }`}
                         >
                             {step.label}
                         </p>
                     </div>
                     {index < steps.length - 1 && (
                         <div
-                            className={`flex-1 h-0.5 ${
-                                step.status === "completed"
+                            className={`flex-1 h-0.5 ${step.status === "completed"
                                     ? "bg-primary"
                                     : "bg-gray-200 dark:bg-gray-800"
-                            }`}
+                                }`}
                         />
                     )}
                 </div>

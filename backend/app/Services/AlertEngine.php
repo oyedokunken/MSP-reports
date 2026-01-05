@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
 
-// Backend Alert Engine 
+// Backend Alert Engine
 class AlertEngine
 {
     protected AlertNotificationService $notificationService;

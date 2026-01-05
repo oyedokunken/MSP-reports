@@ -5,11 +5,10 @@ namespace App\Services;
 use App\Mail\AlertNotificationMail;
 use App\Models\AlertLog;
 use App\Models\AlertRule;
+use App\Services\MailService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-
-use App\Services\MailService;
 
 class AlertNotificationService
 {

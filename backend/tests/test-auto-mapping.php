@@ -4,21 +4,20 @@
  * Quick test script to verify auto-mapping functionality
  * Run with: docker exec reporting-app php tests/test-auto-mapping.php
  */
-
 require __DIR__ . '/../vendor/autoload.php';
 
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-use App\Models\Company;
-use App\Models\Integration;
-use App\Models\Customer;
-use App\Models\IntegrationCustomer;
 use App\Jobs\AutoMatchCustomersJob;
+use App\Models\Company;
+use App\Models\Customer;
+use App\Models\Integration;
+use App\Models\IntegrationCustomer;
 use App\Services\CustomerMappingService;
 
 echo "\n🧪 Testing Auto-Mapping Functionality\n";
-echo str_repeat("=", 60) . "\n\n";
+echo str_repeat('=', 60) . "\n\n";
 
 // Get test company
 $company = Company::first();
@@ -28,7 +27,7 @@ if (!$company) {
 }
 
 echo "✅ Company: {$company->name}\n";
-echo "   Auto-match enabled: " . ($company->settings['customer_mapping']['auto_match_enabled'] ? 'YES' : 'NO') . "\n";
+echo '   Auto-match enabled: ' . ($company->settings['customer_mapping']['auto_match_enabled'] ? 'YES' : 'NO') . "\n";
 echo "   Threshold: {$company->settings['customer_mapping']['auto_match_threshold']}%\n\n";
 
 // Get test integration
@@ -51,9 +50,9 @@ echo "✅ Existing Customer: {$existingCustomer->canonical_name}\n\n";
 
 // Test 1: Create integration customer with similar name (should auto-match)
 echo "📋 Test 1: Create exact match with suffix (should auto-match)\n";
-echo str_repeat("-", 60) . "\n";
+echo str_repeat('-', 60) . "\n";
 
-$testName1 = "ACME Corp"; // Abbreviation of "ACME Corporation"
+$testName1 = 'ACME Corp';  // Abbreviation of "ACME Corporation"
 echo "   Creating: '{$testName1}'\n";
 echo "   Should match: '{$existingCustomer->canonical_name}'\n\n";
 
@@ -85,7 +84,7 @@ AutoMatchCustomersJob::dispatchSync($integrationCustomer1);
 $integrationCustomer1->refresh();
 if ($integrationCustomer1->customer_id) {
     echo "   ✅ SUCCESS! Auto-mapped to customer_id: {$integrationCustomer1->customer_id}\n";
-    
+
     // Verify mapping record exists
     $mapping = $integrationCustomer1->customerMappings()->first();
     if ($mapping) {
@@ -101,9 +100,9 @@ echo "\n";
 
 // Test 2: Create integration customer with very different name (should NOT auto-match)
 echo "📋 Test 2: Create different name (should NOT auto-match)\n";
-echo str_repeat("-", 60) . "\n";
+echo str_repeat('-', 60) . "\n";
 
-$testName2 = "Completely Different Company XYZ";
+$testName2 = 'Completely Different Company XYZ';
 echo "   Creating: '{$testName2}'\n";
 echo "   Should match: '{$existingCustomer->canonical_name}'\n\n";
 
@@ -144,5 +143,5 @@ $integrationCustomer1->delete();
 $integrationCustomer2->delete();
 echo "✅ Cleanup complete\n\n";
 
-echo str_repeat("=", 60) . "\n";
+echo str_repeat('=', 60) . "\n";
 echo "✅ Auto-mapping tests complete!\n\n";

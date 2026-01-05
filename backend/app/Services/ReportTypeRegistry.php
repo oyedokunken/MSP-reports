@@ -51,7 +51,7 @@ class ReportTypeRegistry
                 'type' => 'combined_monthly',
                 'name' => 'Combined Monthly Report',
                 'description' => 'All-in-one report from multiple integrations',
-                'required_integrations' => ['autotask'], // At least Autotask required
+                'required_integrations' => ['autotask'],  // At least Autotask required
                 'optional_integrations' => ['datto', 'itglue'],
                 'available_sections' => [
                     ['id' => 'executive_summary', 'label' => 'Executive Summary', 'default' => true],
@@ -69,13 +69,14 @@ class ReportTypeRegistry
     public static function getAvailableForCustomer(int $customerId): array
     {
         $customer = Customer::with('integrationCustomers.integration')->find($customerId);
-        
+
         if (!$customer) {
             return [];
         }
 
         // Get customer's active integration types (e.g., ['autotask', 'datto'])
-        $customerIntegrations = $customer->integrationCustomers
+        $customerIntegrations = $customer
+            ->integrationCustomers
             ->map(function ($ic) {
                 return strtolower($ic->integration->integration_type);
             })
@@ -89,26 +90,26 @@ class ReportTypeRegistry
 
         foreach ($allReportTypes as $reportType) {
             $requiredIntegrations = $reportType['required_integrations'];
-            
+
             // Check if customer has all required integrations
             // Using array_diff to see if any required integrations are missing from customer's list
             $missingRequired = array_diff($requiredIntegrations, $customerIntegrations);
-            
+
             if (empty($missingRequired)) {
                 // Filter sections based on available integrations
                 $reportType['available_sections'] = array_filter(
                     $reportType['available_sections'],
-                    function($section) use ($customerIntegrations) {
+                    function ($section) use ($customerIntegrations) {
                         if (!isset($section['requires'])) {
                             return true;
                         }
                         return in_array($section['requires'], $customerIntegrations);
                     }
                 );
-                
+
                 // Re-index sections array
                 $reportType['available_sections'] = array_values($reportType['available_sections']);
-                
+
                 $availableReportTypes[] = $reportType;
             }
         }

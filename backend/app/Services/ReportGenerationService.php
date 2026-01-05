@@ -66,7 +66,7 @@ class ReportGenerationService
             if ($schedule->schedule_config) {
                 $options = is_array($schedule->schedule_config) ? $schedule->schedule_config : json_decode($schedule->schedule_config, true);
             }
-            
+
             // Add frequency to options so report can adjust title dynamically
             $options['frequency'] = $schedule->frequency ?? 'monthly';
 
@@ -361,7 +361,7 @@ class ReportGenerationService
                     'reportData' => $reportData,
                     'schedule' => $schedule,
                     'customer' => $schedule->customer,
-                    'options' => $reportData['options'] ?? [], // Pass options for dynamic title
+                    'options' => $reportData['options'] ?? [],  // Pass options for dynamic title
                     'branding' => $reportData['branding'] ?? [],
                     'metrics' => $reportData['metrics'] ?? [],
                     'period' => $reportData['period'] ?? [],
@@ -376,7 +376,7 @@ class ReportGenerationService
                     'recommendations' => $reportData['recommendations'] ?? [],
                     'generated_at' => $reportData['generated_at'] ?? now()->toDateTimeString(),
                     'included_reports' => $reportData['included_reports'] ?? [],
-                    'sections_to_render' => $reportData['sections_to_render'] ?? null, // For section filtering
+                    'sections_to_render' => $reportData['sections_to_render'] ?? null,  // For section filtering
                     // Autotask Monthly Summary specific variables
                     'executive_summary' => $reportData['executive_summary'] ?? [],
                     'tickets' => $reportData['tickets'] ?? [],

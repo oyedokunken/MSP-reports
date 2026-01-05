@@ -1,9 +1,6 @@
 <?php
 
-/**
- * Test auto-matching for Datto customers
- */
-
+/** Test auto-matching for Datto customers */
 require __DIR__ . '/../vendor/autoload.php';
 
 $app = require_once __DIR__ . '/../bootstrap/app.php';
@@ -13,14 +10,14 @@ use App\Models\IntegrationCustomer;
 use App\Services\CustomerMappingService;
 
 echo "\n🧪 Testing Auto-Match for Datto Customers\n";
-echo str_repeat("=", 70) . "\n\n";
+echo str_repeat('=', 70) . "\n\n";
 
 // Get unmapped Datto customers
-$dattoCustomers = IntegrationCustomer::whereHas('integration', function($q) {
+$dattoCustomers = IntegrationCustomer::whereHas('integration', function ($q) {
     $q->where('integration_type', 'Datto');
 })
-->whereNull('customer_id')
-->get();
+    ->whereNull('customer_id')
+    ->get();
 
 echo "Found {$dattoCustomers->count()} unmapped Datto customers\n\n";
 
@@ -40,8 +37,8 @@ echo "\n";
 
 foreach ($dattoCustomers as $customer) {
     echo "Testing: {$customer->name} (ID: {$customer->integration_customer_id})\n";
-    echo str_repeat("-", 70) . "\n";
-    
+    echo str_repeat('-', 70) . "\n";
+
     // Calculate similarity manually for debugging
     echo "Similarity scores:\n";
     foreach ($existingCustomers as $existing) {
@@ -49,15 +46,15 @@ foreach ($dattoCustomers as $customer) {
         echo "  vs '{$existing->canonical_name}': {$score}%\n";
     }
     echo "\n";
-    
+
     $match = $mappingService->autoMatch($customer);
-    
+
     if ($match) {
         echo "✅ MATCH FOUND!\n";
         echo "   Matched to: {$match['customer']->canonical_name}\n";
         echo "   Confidence: {$match['confidence_score']}%\n";
         echo "   Threshold: 85%\n";
-        
+
         if ($match['confidence_score'] >= 85) {
             echo "   Status: ✅ Would auto-map\n";
         } else {
@@ -67,9 +64,9 @@ foreach ($dattoCustomers as $customer) {
         echo "❌ NO MATCH FOUND\n";
         echo "   Requires manual mapping\n";
     }
-    
+
     echo "\n";
 }
 
-echo str_repeat("=", 70) . "\n";
+echo str_repeat('=', 70) . "\n";
 echo "✅ Test complete!\n\n";

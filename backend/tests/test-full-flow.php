@@ -1,20 +1,17 @@
 <?php
 
-/**
- * Test full auto-mapping flow with 15 second wait
- */
-
+/** Test full auto-mapping flow with 15 second wait */
 require __DIR__ . '/../vendor/autoload.php';
 
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-use App\Models\Integration;
 use App\Models\Customer;
+use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 
 echo "\n🧪 Testing Full Auto-Mapping Flow\n";
-echo str_repeat("=", 70) . "\n\n";
+echo str_repeat('=', 70) . "\n\n";
 
 // Step 1: Check initial state
 echo "📊 Initial State:\n";
@@ -28,7 +25,7 @@ echo "🔄 Triggering Autotask Sync (Source of Truth)...\n";
 $autotask = Integration::where('integration_type', 'Autotask')->first();
 $autotaskIntegration = new \App\Integrations\Autotask\AutotaskIntegration($autotask);
 $result = $autotaskIntegration->sync();
-echo "   ✅ Synced " . count($result['customers']) . " customers from Autotask\n\n";
+echo '   ✅ Synced ' . count($result['customers']) . " customers from Autotask\n\n";
 
 // Step 3: Wait for auto-create (source of truth)
 echo "⏳ Waiting 15 seconds for source of truth auto-create...\n";
@@ -47,7 +44,7 @@ echo "🔄 Triggering Datto Sync (Auto-Matching)...\n";
 $datto = Integration::where('integration_type', 'Datto')->first();
 $dattoIntegration = new \App\Integrations\Datto\DattoIntegration($datto);
 $result = $dattoIntegration->sync();
-echo "   ✅ Synced " . count($result['customers']) . " customers from Datto\n\n";
+echo '   ✅ Synced ' . count($result['customers']) . " customers from Datto\n\n";
 
 // Step 6: Wait for auto-match
 echo "⏳ Waiting 15 seconds for auto-matching jobs...\n";
@@ -72,5 +69,5 @@ foreach ($autoMapped as $mapping) {
 }
 
 echo "\n";
-echo str_repeat("=", 70) . "\n";
+echo str_repeat('=', 70) . "\n";
 echo "✅ Test complete!\n\n";

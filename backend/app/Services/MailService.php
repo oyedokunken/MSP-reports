@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\Company;
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class MailService
 {
@@ -39,7 +39,7 @@ class MailService
             // Use 'build' if available (Laravel 10+) or dynamically set config
             // For stability across different Laravel versions, we use dynamic config injection
             Config::set('mail.mailers.tenant_smtp', $config);
-            
+
             return Mail::mailer('tenant_smtp');
         } catch (\Exception $e) {
             Log::error('Failed to configure tenant SMTP, falling back to default', [
