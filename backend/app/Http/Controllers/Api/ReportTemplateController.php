@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ReportTemplate;
 use App\Models\Customer;
 use App\Services\ReportTemplateService;
-use App\Services\ReportTypeRegistry;
+use App\Services\ReportRegistry;
 use Illuminate\Http\Request;
 
 class ReportTemplateController extends Controller
@@ -56,7 +56,7 @@ class ReportTemplateController extends Controller
             'report_type' => 'required|string',
             'frequency' => 'required|in:daily,weekly,monthly,yearly,on-demand',
             'schedule_config' => 'nullable|array',
-            'time_of_day' => 'nullable|date_format:H:i',
+            'time_of_day' => 'nullable|string|date_format:H:i',
             'timezone' => 'nullable|string',
             'included_sections' => 'nullable|array',
             'delivery_settings' => 'nullable|array',
@@ -70,13 +70,22 @@ class ReportTemplateController extends Controller
         ]);
         
         // Auto-create ReportSchedule for the customer
+        // Merge included_sections into schedule_config for proper display
+        $scheduleConfig = $validated['schedule_config'] ?? [];
+        if (!empty($validated['included_sections'])) {
+            $scheduleConfig['included_sections'] = $validated['included_sections'];
+        }
+        if (!empty($validated['report_options'])) {
+            $scheduleConfig['report_options'] = $validated['report_options'];
+        }
+        
         $schedule = \App\Models\ReportSchedule::create([
             'company_id' => auth()->user()->company_id,
             'customer_id' => $validated['customer_id'],
             'report_template_id' => $template->template_id,
             'report_type' => $validated['report_type'],
             'frequency' => $validated['frequency'],
-            'schedule_config' => $validated['schedule_config'] ?? null,
+            'schedule_config' => !empty($scheduleConfig) ? $scheduleConfig : null,
             'time_of_day' => $validated['time_of_day'] ?? '09:00',
             'timezone' => $validated['timezone'] ?? 'Australia/Brisbane',
             'active' => $validated['active'] ?? true,
@@ -95,18 +104,24 @@ class ReportTemplateController extends Controller
      */
     public function update(Request $request, ReportTemplate $template)
     {
+        \Log::info('Template update request', [
+            'template_id' => $template->template_id,
+            'request_data' => $request->all(),
+        ]);
+
         $validated = $request->validate([
             'template_name' => 'string|max:255',
             'description' => 'nullable|string',
             'report_type' => 'string',
             'frequency' => 'in:daily,weekly,monthly,yearly,on-demand',
             'schedule_config' => 'nullable|array',
-            'time_of_day' => 'nullable|date_format:H:i',
+            'time_of_day' => 'nullable|string|date_format:H:i',
             'timezone' => 'nullable|string',
             'included_sections' => 'nullable|array',
             'delivery_settings' => 'nullable|array',
             'report_options' => 'nullable|array',
             'active' => 'boolean',
+            'customer_id' => 'sometimes|integer|exists:customers,customer_id',
         ]);
         
         $template->update($validated);
@@ -193,9 +208,46 @@ class ReportTemplateController extends Controller
     }
 
     /**
+     * Generate preview report from template
+     */
+    public function preview(ReportTemplate $template)
+    {
+        try {
+            // Load customer relationship
+            $template->load('customer');
+            
+            if (!$template->customer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Template has no associated customer',
+                ], 400);
+            }
+
+            // Generate a one-time preview report using the template configuration
+            $report = $this->templateService->generatePreviewReport($template);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $report,
+                'message' => 'Preview report generated successfully',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Template preview generation failed', [
+                'template_id' => $template->template_id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate preview: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Get available report types for a specific customer
      */
-    public function getAvailableReportTypes(Request $request)
+    public function getAvailableReportTypes(Request $request, ReportRegistry $reportRegistry)
     {
         \Log::info('getAvailableReportTypes called', [
             'all_input' => $request->all(),
@@ -208,7 +260,68 @@ class ReportTemplateController extends Controller
         ]);
 
         $customerId = (int) $validated['customer_id'];
-        $reportTypes = ReportTypeRegistry::getAvailableForCustomer($customerId);
+        $customer = Customer::with('integrationCustomers.integration')->find($customerId);
+        
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer not found',
+            ], 404);
+        }
+
+        // Get customer's integration types
+        $customerIntegrations = $customer->integrationCustomers
+            ->map(fn($ic) => strtolower($ic->integration->integration_type))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        // Get all available reports from the real registry
+        $allReports = $reportRegistry->getAvailable($customer->company_id);
+        
+        // Filter and format reports for this customer
+        $reportTypes = [];
+        foreach ($allReports as $report) {
+            // Get report instance to check metadata
+            $reportInstance = $reportRegistry->get($report['id'], $customer->company_id);
+            if (!$reportInstance) {
+                continue;
+            }
+            
+            $metadata = $reportInstance->getMetadata();
+            
+            // Get required integrations from config
+            $requiredIntegrations = $report['required_integrations'] ?? [];
+            
+            // Filter by customer's integrations
+            if (!empty($requiredIntegrations)) {
+                // Check if customer has all required integrations
+                $hasAllRequired = true;
+                foreach ($requiredIntegrations as $required) {
+                    $hasIntegration = in_array(strtolower($required), $customerIntegrations);
+                    if (!$hasIntegration) {
+                        $hasAllRequired = false;
+                        break;
+                    }
+                }
+                
+                // Skip this report if customer doesn't have required integrations
+                if (!$hasAllRequired) {
+                    continue;
+                }
+            }
+            
+            // Add report to available list
+            $reportTypes[] = [
+                'type' => $report['id'],
+                'name' => $report['name'] ?? $metadata['name'] ?? 'Unknown Report',
+                'description' => $report['description'] ?? $metadata['description'] ?? '',
+                'required_integrations' => $requiredIntegrations,
+                'available_sections' => $report['available_sections'] ?? [
+                    ['id' => 'all', 'label' => 'All Sections', 'default' => true],
+                ],
+            ];
+        }
 
         return response()->json([
             'success' => true,

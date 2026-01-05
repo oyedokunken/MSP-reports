@@ -14,4 +14,11 @@ return [
     'default_format' => 'pdf',
     'icon' => 'file-text',
     'enabled' => true,
+    'available_sections' => [
+        ['id' => 'executive_summary', 'label' => 'Executive Summary', 'default' => true],
+        ['id' => 'licenses', 'label' => 'Microsoft Licenses', 'default' => true],
+        ['id' => 'ssl_certificates', 'label' => 'SSL Certificates', 'default' => true],
+        ['id' => 'domains', 'label' => 'Domain Registrations', 'default' => true],
+        ['id' => 'alerts', 'label' => 'Alerts & Expiring Items', 'default' => true],
+    ],
 ];

@@ -51,4 +51,11 @@ export const templateApi = {
     )
     return response.data
   },
+
+  preview: async (id: number) => {
+    const response = await api.post<{ generated_report_id: number; status: string }>(
+      `/report-templates/${id}/preview`
+    )
+    return response.data
+  },
 }

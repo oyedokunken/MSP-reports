@@ -116,7 +116,7 @@ class AutotaskSummary extends BaseReport
             'total_alerts' => count($alerts),
         ];
 
-        return [
+        $reportData = [
             'generated_at' => now()->toDateTimeString(),
             'customer' => $customer,
             'customer_data' => [
@@ -147,6 +147,20 @@ class AutotaskSummary extends BaseReport
             ],
             'alerts' => $alerts,
         ];
+
+        // Apply section filtering based on template configuration
+        \Log::info('AutotaskSummary: Filtering sections', [
+            'included_sections' => $options['included_sections'] ?? 'not set',
+            'options_keys' => array_keys($options),
+        ]);
+        
+        $filtered = $this->filterSections($reportData, $options);
+        
+        \Log::info('AutotaskSummary: After filtering', [
+            'sections_to_render' => $filtered['sections_to_render'] ?? 'not set',
+        ]);
+        
+        return $filtered;
     }
 
     public function getTemplate(): string

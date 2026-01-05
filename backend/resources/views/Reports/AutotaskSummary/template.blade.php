@@ -65,6 +65,7 @@
         </div>
     </div>
 
+    @if(!isset($sections_to_render) || in_array('executive_summary', $sections_to_render) || in_array('all', $sections_to_render))
     <div class="summary">
         <div class="summary-card">
             <div class="number">{{ $executive_summary['tickets']['total'] }}</div>
@@ -94,8 +95,9 @@
             @endif
         </div>
     </div>
+    @endif
 
-    @if(count($alerts) > 0)
+    @if((!isset($sections_to_render) || in_array('alerts', $sections_to_render) || in_array('all', $sections_to_render)) && count($alerts) > 0)
     <div class="section">
         <h2 class="section-title">Alerts & Recommendations</h2>
         @foreach($alerts as $alert)
@@ -107,6 +109,7 @@
     </div>
     @endif
 
+    @if(!isset($sections_to_render) || in_array('tickets', $sections_to_render) || in_array('all', $sections_to_render))
     <div class="section">
         <h2 class="section-title">Ticket Summary</h2>
         
@@ -197,7 +200,9 @@
         </table>
         @endif
     </div>
+    @endif
 
+    @if(!isset($sections_to_render) || in_array('time_entries', $sections_to_render) || in_array('all', $sections_to_render))
     <div class="section">
         <h2 class="section-title">Time & Billing Summary</h2>
         
@@ -227,8 +232,9 @@
             </div>
         </div>
     </div>
+    @endif
 
-    @if(count($technicians['data']) > 0)
+    @if((!isset($sections_to_render) || in_array('technicians', $sections_to_render) || in_array('all', $sections_to_render)) && count($technicians['data']) > 0)
     <div class="section">
         <h2 class="section-title">Technician Performance</h2>
         
@@ -269,7 +275,7 @@
     </div>
     @endif
 
-    @if(count($contracts['data']) > 0)
+    @if((!isset($sections_to_render) || in_array('contracts', $sections_to_render) || in_array('all', $sections_to_render)) && count($contracts['data']) > 0)
     <div class="section">
         <h2 class="section-title">Contracts Overview</h2>
         

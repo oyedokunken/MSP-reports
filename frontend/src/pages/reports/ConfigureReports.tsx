@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Calendar, Clock, Mail, Save, Plus, Trash2, Bell, Play, Zap } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Mail, Save, Trash2, Bell, Play, Zap, Filter } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
@@ -42,10 +42,14 @@ export default function ConfigureReports() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [selectedSchedules, setSelectedSchedules] = useState<number[]>([])
+  const [modifiedSchedules, setModifiedSchedules] = useState<Set<number>>(new Set())
   const [config, setConfig] = useState<ReportConfig | null>(null)
   const [enabledReports, setEnabledReports] = useState<EnabledReport[]>([])
   const [destination, setDestination] = useState('')
   const [ccEmails, setCcEmails] = useState('')
+  const [originalDestination, setOriginalDestination] = useState('')
+  const [originalCcEmails, setOriginalCcEmails] = useState('')
   const [availableReportTypes, setAvailableReportTypes] = useState<ReportType[]>([])
   const [showValidationModal, setShowValidationModal] = useState(false)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
@@ -114,17 +118,26 @@ export default function ConfigureReports() {
       const schedules = reportData.report_schedules || []
       console.log('Schedules from backend:', schedules)
 
-      const mappedSchedules = schedules.map((s) => ({
-        report_type: s.report_type,
-        schedule_id: s.report_schedule_id,
-        frequency: s.frequency,
-        time_of_day: s.time_of_day,
-        active: s.active,
-        day_of_month: s.day_of_month,
-        day_of_week: s.day_of_week,
-        include_sections: s.include_sections,
-        _old_schedule_id: undefined
-      }))
+      const mappedSchedules = schedules.map((s) => {
+        console.log('Processing schedule:', {
+          id: s.report_schedule_id,
+          schedule_config: s.schedule_config,
+          included_sections_from_config: s.schedule_config?.included_sections,
+          include_sections_direct: s.include_sections
+        });
+        
+        return {
+          report_type: s.report_type,
+          schedule_id: s.report_schedule_id,
+          frequency: s.frequency,
+          time_of_day: s.time_of_day,
+          active: s.active,
+          day_of_month: s.day_of_month,
+          day_of_week: s.day_of_week,
+          include_sections: s.schedule_config?.included_sections || s.include_sections,
+          _old_schedule_id: undefined
+        };
+      })
 
       console.log('Mapped schedules:', mappedSchedules)
       setEnabledReports(mappedSchedules)
@@ -155,6 +168,8 @@ export default function ConfigureReports() {
 
       setDestination(emailDestination)
       setCcEmails(Array.isArray(ccEmailsList) ? ccEmailsList.join(', ') : '')
+      setOriginalDestination(emailDestination)
+      setOriginalCcEmails(Array.isArray(ccEmailsList) ? ccEmailsList.join(', ') : '')
     } catch (err: unknown) {
       console.error('Failed to load report configuration:', err)
       const error = err as { response?: { data?: { message?: string } }; message?: string }
@@ -169,24 +184,6 @@ export default function ConfigureReports() {
     fetchReportConfig()
   }, [fetchAvailableReports, fetchReportConfig])
 
-  const handleAddReport = () => {
-    // Use first available report type or monthly_comprehensive as fallback
-    const defaultReportType = availableReportTypes.length > 0
-      ? availableReportTypes[0].id
-      : 'monthly_comprehensive';
-
-    const newReport: EnabledReport = {
-      report_type: defaultReportType,
-      frequency: 'monthly',
-      time_of_day: '09:00',
-      active: true
-    };
-
-    setEnabledReports([
-      ...enabledReports,
-      newReport
-    ])
-  }
 
   const handleRemoveReport = async (index: number) => {
     const report = enabledReports[index]
@@ -208,34 +205,14 @@ export default function ConfigureReports() {
 
   const handleUpdateReport = (index: number, field: keyof EnabledReport, value: string | number | boolean | string[]) => {
     const updated = [...enabledReports]
+    const report = updated[index]
 
-    // If changing report_type, remove the old schedule_id so it creates a new one
-    if (field === 'report_type' && updated[index].schedule_id) {
-      const oldScheduleId = updated[index].schedule_id
-      const newReportType = availableReportTypes.find(t => t.id === value)
-      const allowedFrequencies = newReportType?.frequency_options || ['on-demand']
-      const currentFrequency = updated[index].frequency || 'monthly'
-
-      updated[index] = {
-        ...updated[index],
-        [field]: value as string,
-        schedule_id: undefined, // Remove schedule_id so backend creates new one
-        _old_schedule_id: oldScheduleId // Track old ID for deletion
-      }
-
-      // If current frequency is not supported by new report type, reset to first supported frequency
-      if (!allowedFrequencies.includes(currentFrequency)) {
-        updated[index].frequency = allowedFrequencies[0]
-      }
-
-      // If changing TO comprehensive report, set default sections
-      if (value === 'monthly_comprehensive') {
-        updated[index].include_sections = ['uptime', 'tickets', 'backups', 'security']
-      }
-    } else {
-      updated[index] = { ...updated[index], [field]: value } as EnabledReport
+    // Mark this schedule as modified
+    if (report.schedule_id) {
+      setModifiedSchedules(prev => new Set(prev).add(report.schedule_id!))
     }
 
+    updated[index] = { ...updated[index], [field]: value } as EnabledReport
     setEnabledReports(updated)
   }
 
@@ -284,64 +261,61 @@ export default function ConfigureReports() {
 
     try {
       setIsSaving(true)
+      const updatePromises = []
 
-      // Delete old schedules if report_type was changed
-      const oldSchedulesToDelete = enabledReports
-        .filter(report => report._old_schedule_id)
-        .map(report => report._old_schedule_id)
+      // Update only modified schedules
+      for (const report of enabledReports) {
+        if (report.schedule_id && modifiedSchedules.has(report.schedule_id)) {
+          const scheduleConfig: Record<string, unknown> = {}
 
-      for (const oldScheduleId of oldSchedulesToDelete) {
-        try {
-          await api.delete(`/reports/schedules/${oldScheduleId}`)
-        } catch (err) {
-          console.error('Failed to delete old schedule:', err)
-          // Continue anyway
+          // Add day_of_month for monthly reports
+          if (report.frequency === 'monthly' && report.day_of_month) {
+            scheduleConfig.day_of_month = report.day_of_month
+          }
+
+          // Add day_of_week for weekly reports
+          if (report.frequency === 'weekly' && report.day_of_week !== undefined) {
+            scheduleConfig.day_of_week = report.day_of_week
+          }
+
+          const updateData = {
+            frequency: report.frequency || 'monthly',
+            time_of_day: report.time_of_day || '09:00',
+            active: report.active !== false,
+            schedule_config: Object.keys(scheduleConfig).length > 0 ? scheduleConfig : undefined
+          }
+
+          updatePromises.push(
+            api.patch(`/reports/schedules/${report.schedule_id}`, updateData)
+          )
         }
       }
 
-      const ccArray = ccEmails
-        .split(',')
-        .map(email => email.trim())
-        .filter(email => email.length > 0)
+      // Update email destination if changed
+      if (destination !== originalDestination || ccEmails !== originalCcEmails) {
+        const ccArray = ccEmails
+          .split(',')
+          .map(email => email.trim())
+          .filter(email => email.length > 0)
 
-      const schedules = enabledReports.map(report => {
-        const scheduleConfig: Record<string, unknown> = {}
+        updatePromises.push(
+          api.patch(`/customers/${id}/report-destination`, {
+            method: 'email',
+            destination,
+            cc: ccArray
+          })
+        )
+      }
 
-        // Add day_of_month for monthly reports
-        if (report.frequency === 'monthly' && report.day_of_month) {
-          scheduleConfig.day_of_month = report.day_of_month
-        }
+      // Execute all updates in parallel
+      await Promise.all(updatePromises)
 
-        // Add day_of_week for weekly reports
-        if (report.frequency === 'weekly' && report.day_of_week !== undefined) {
-          scheduleConfig.day_of_week = report.day_of_week
-        }
+      // Clear modified schedules tracking
+      setModifiedSchedules(new Set())
+      setOriginalDestination(destination)
+      setOriginalCcEmails(ccEmails)
 
-        // Add include_sections for comprehensive reports
-        if (report.report_type === 'monthly_comprehensive' && report.include_sections) {
-          scheduleConfig.include_sections = report.include_sections
-        }
-
-        return {
-          report_type: report.report_type,
-          frequency: report.frequency || 'monthly',
-          time_of_day: report.time_of_day || '09:00',
-          active: report.active !== false,
-          schedule_config: Object.keys(scheduleConfig).length > 0 ? scheduleConfig : null
-        }
-      })
-
-      await api.patch(`/customers/${id}/reports`, {
-        schedules: schedules
-      })
-
-      await api.patch(`/customers/${id}/report-destination`, {
-        method: 'email',
-        destination,
-        cc: ccArray
-      })
-
-      toast.success('Saved', 'Report configuration updated successfully')
+      toast.success('Saved', `Updated ${modifiedSchedules.size} schedule(s) successfully`)
       fetchReportConfig()
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
@@ -351,19 +325,44 @@ export default function ConfigureReports() {
     }
   }
 
-  const handleGenerateNow = async () => {
-    // Validate before generating
-    const errors = validateConfiguration()
-    if (errors.length > 0) {
-      setValidationErrors(errors)
+  const handleToggleScheduleSelection = (scheduleId: number) => {
+    setSelectedSchedules(prev => 
+      prev.includes(scheduleId)
+        ? prev.filter(id => id !== scheduleId)
+        : [...prev, scheduleId]
+    )
+  }
+
+  const handleSelectAllSchedules = () => {
+    const allScheduleIds = enabledReports
+      .filter(r => r.schedule_id)
+      .map(r => r.schedule_id!)
+    setSelectedSchedules(allScheduleIds)
+  }
+
+  const handleDeselectAllSchedules = () => {
+    setSelectedSchedules([])
+  }
+
+  const handleGenerateSelectedSchedules = async () => {
+    // Validate
+    if (selectedSchedules.length === 0) {
+      setValidationErrors(['Please select at least one schedule to generate.'])
       setShowValidationModal(true)
       return
     }
 
-    // Check if any enabled report is "on-demand"
-    const isOnDemand = enabledReports.some(r => r.frequency === 'on-demand')
+    if (!destination.trim()) {
+      setValidationErrors(['Email destination is required for report delivery.'])
+      setShowValidationModal(true)
+      return
+    }
 
-    if (isOnDemand) {
+    // Check if any selected schedule is on-demand
+    const selectedReports = enabledReports.filter(r => selectedSchedules.includes(r.schedule_id!))
+    const hasOnDemand = selectedReports.some(r => r.frequency === 'on-demand')
+
+    if (hasOnDemand) {
       // Show modal for date selection
       const end = new Date()
       const start = new Date()
@@ -373,23 +372,29 @@ export default function ConfigureReports() {
       setCustomEndDate(end.toISOString().split('T')[0])
       setShowGenerateModal(true)
     } else {
-      // Generate immediately using schedule defaults
-      await performGeneration()
+      // Generate immediately
+      await performSelectedSchedulesGeneration()
     }
   }
 
-  const performGeneration = async (startDate?: string, endDate?: string) => {
+  const performSelectedSchedulesGeneration = async (startDate?: string, endDate?: string) => {
     try {
       setIsGenerating(true)
       setShowGenerateModal(false)
 
       const payload = (startDate && endDate) ? { start_date: startDate, end_date: endDate } : {}
+      
+      // Generate reports for all selected schedules
+      const promises = selectedSchedules.map(scheduleId => 
+        api.post(`/reports/schedules/${scheduleId}/generate`, payload)
+      )
 
-      const response = await api.post(`/reports/generate/${id}`, payload)
-      const data = response as unknown as { data?: { data?: unknown[] } } | { data?: unknown[] }
-      const responseData = (data as { data?: { data?: unknown[] } }).data || data as { data?: unknown[] }
-
-      toast.success('Report Generated!', `Successfully generated ${responseData.data?.length || 1} report(s)`)
+      await Promise.all(promises)
+      
+      toast.success('Reports Generated!', `Successfully generated ${selectedSchedules.length} report(s)`)
+      
+      // Clear selection
+      setSelectedSchedules([])
 
       setTimeout(() => {
         navigate('/platform/reports')
@@ -403,7 +408,7 @@ export default function ConfigureReports() {
   }
 
   const confirmGenerate = () => {
-    performGeneration(customStartDate, customEndDate)
+    performSelectedSchedulesGeneration(customStartDate, customEndDate)
   }
 
   if (isLoading) {
@@ -439,36 +444,71 @@ export default function ConfigureReports() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  Automatic Report Schedules
-                </CardTitle>
-                <CardDescription>
-                  Configure which reports to generate automatically and when
-                </CardDescription>
-              </div>
-              <Button onClick={handleAddReport} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Report
-              </Button>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Automatic Report Schedules
+            </CardTitle>
+            <CardDescription>
+              Report schedules created from templates. Use the Templates page to create new schedules.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {enabledReports.length === 0 ? (
               <div className="text-center py-8">
                 <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground">No automatic reports configured</p>
-                <Button onClick={handleAddReport} variant="outline" className="mt-4">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Your First Report
-                </Button>
+                <p className="text-sm text-muted-foreground mb-2">No report schedules configured</p>
+                <p className="text-xs text-muted-foreground">
+                  Go to the Templates page to create report schedules for this customer
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
-                {enabledReports.map((report, index) => (
-                  <div key={index} className="p-4 rounded-lg border border-border space-y-4">
+                {enabledReports.map((report, index) => {
+                  const hasFilteredSections = report.include_sections && report.include_sections.length > 0
+                  
+                  return (
+                  <div 
+                    key={index} 
+                    className={`p-4 rounded-lg border space-y-4 ${
+                      hasFilteredSections 
+                        ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20' 
+                        : 'border-border'
+                    }`}
+                  >
+                    {/* Header with checkbox and badges */}
+                    <div className="flex items-center gap-3 mb-2">
+                      {report.schedule_id && (
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id={`select-schedule-${index}`}
+                            checked={selectedSchedules.includes(report.schedule_id)}
+                            onChange={() => handleToggleScheduleSelection(report.schedule_id!)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                          <label htmlFor={`select-schedule-${index}`} className="sr-only">
+                            Select schedule {report.schedule_id}
+                          </label>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 flex-1">
+                        <Badge variant={report.active !== false ? "default" : "secondary"}>
+                          {report.active !== false ? 'Active' : 'Inactive'}
+                        </Badge>
+                        {hasFilteredSections && (
+                          <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900 dark:text-blue-300">
+                            <Filter className="h-3 w-3 mr-1" />
+                            Filtered Sections ({report.include_sections?.length})
+                          </Badge>
+                        )}
+                        {report.schedule_id && (
+                          <Badge variant="secondary" className="text-xs">
+                            ID: {report.schedule_id}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="flex items-start justify-between">
                       <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -647,13 +687,37 @@ export default function ConfigureReports() {
                       </div>
                     )}
 
-                    {report.schedule_id && (
-                      <Badge variant="secondary" className="text-xs text-white">
-                        Schedule ID: {report.schedule_id}
-                      </Badge>
+                    {/* Filtered Sections Display */}
+                    {hasFilteredSections && (
+                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-md border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Filter className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          <Label className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                            Included Sections ({report.include_sections?.length})
+                          </Label>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {report.include_sections?.map((section) => (
+                            <div 
+                              key={section} 
+                              className="flex items-center gap-1.5 text-xs bg-white dark:bg-blue-900/50 px-2 py-1.5 rounded border border-blue-200 dark:border-blue-700"
+                            >
+                              <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                              <span className="text-blue-900 dark:text-blue-100 font-medium capitalize">
+                                {section.replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                          Only these sections will be included in the generated report
+                        </p>
+                      </div>
                     )}
+
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -730,57 +794,86 @@ export default function ConfigureReports() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5" />
+              Actions
             </CardTitle>
             <CardDescription>
-              Save your configuration or generate a report immediately
+              Save your configuration or generate selected reports
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={handleSaveConfiguration} disabled={isSaving || isGenerating} size="lg">
-                {isSaving ? (
-                  <>
-                    <Spinner className="h-4 w-4 mr-2" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Configuration
-                  </>
-                )}
-              </Button>
+            <div className="space-y-4">
+              {/* Selection Controls */}
+              {enabledReports.length > 0 && (
+                <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md">
+                  <span className="text-sm font-medium">
+                    {selectedSchedules.length} of {enabledReports.filter(r => r.schedule_id).length} selected
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSelectAllSchedules}
+                    disabled={selectedSchedules.length === enabledReports.filter(r => r.schedule_id).length}
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDeselectAllSchedules}
+                    disabled={selectedSchedules.length === 0}
+                  >
+                    Deselect All
+                  </Button>
+                </div>
+              )}
 
-              <Button
-                onClick={handleGenerateNow}
-                disabled={isGenerating || isSaving || enabledReports.length === 0}
-                variant="secondary"
-                size="lg"
-                className="text-white"
-              >
-                {isGenerating ? (
-                  <>
-                    <Spinner className="h-4 w-4 mr-2" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Generate Report Now
-                  </>
-                )}
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={handleSaveConfiguration} disabled={isSaving || isGenerating} size="lg">
+                  {isSaving ? (
+                    <>
+                      <Spinner className="h-4 w-4 mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Configuration
+                    </>
+                  )}
+                </Button>
 
-              <Button variant="outline" onClick={() => navigate('/schedules')} size="lg">
-                Cancel
-              </Button>
+                <Button
+                  onClick={handleGenerateSelectedSchedules}
+                  disabled={isGenerating || isSaving || selectedSchedules.length === 0}
+                  variant="secondary"
+                  size="lg"
+                  className="text-white"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Spinner className="h-4 w-4 mr-2" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Generate Selected Reports ({selectedSchedules.length})
+                    </>
+                  )}
+                </Button>
+
+                <Button variant="outline" onClick={() => navigate('/schedules')} size="lg">
+                  Cancel
+                </Button>
+              </div>
+
+              {enabledReports.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  💡 Select schedules using the checkboxes, then click "Generate Selected Reports" to generate them immediately
+                </p>
+              )}
             </div>
-
-            {enabledReports.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-3">
-                💡 Add at least one report to enable immediate generation
-              </p>
-            )}
           </CardContent>
         </Card>
       </div>

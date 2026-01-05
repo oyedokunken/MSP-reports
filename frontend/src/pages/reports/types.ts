@@ -57,6 +57,12 @@ export interface ReportSchedule {
   day_of_month?: number
   day_of_week?: number
   include_sections?: string[]
+  schedule_config?: {
+    included_sections?: string[]
+    report_options?: Record<string, unknown>
+    day_of_month?: number
+    day_of_week?: number
+  }
   email_destination?: string
   cc_emails?: string[]
 }

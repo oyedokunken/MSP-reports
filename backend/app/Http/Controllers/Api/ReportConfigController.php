@@ -159,6 +159,9 @@ class ReportConfigController extends Controller
                     'active' => $schedule->active,
                     'next_scheduled_at' => $schedule->next_scheduled_at,
                     'last_generated_at' => $schedule->last_generated_at,
+                    'schedule_config' => $schedule->schedule_config,
+                    'day_of_month' => $schedule->schedule_config['day_of_month'] ?? null,
+                    'day_of_week' => $schedule->schedule_config['day_of_week'] ?? null,
                 ];
             });
 
@@ -351,6 +354,119 @@ class ReportConfigController extends Controller
                 'generated' => count($generatedReports),
                 'errors' => $errors,
                 'reports' => $generatedReports
+            ]
+        ]);
+    }
+
+    /**
+     * Generate report from a specific schedule
+     */
+    public function generateFromSchedule(Request $request, $schedule_id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        // Find the schedule
+        $schedule = ReportSchedule::where('report_schedule_id', $schedule_id)
+            ->where('company_id', $company->company_id)
+            ->firstOrFail();
+
+        // Get custom date range from request if provided
+        $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : null;
+        $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : null;
+
+        try {
+            // Generate report with custom dates if provided
+            if ($startDate && $endDate) {
+                $generatedReport = $this->reportService->generateReport($schedule, $startDate, $endDate);
+            } else {
+                $generatedReport = $this->reportService->generateReport($schedule);
+            }
+            
+            // Queue delivery
+            DeliverReportJob::dispatch($generatedReport);
+            
+            // Get customer email destination
+            $customer = $generatedReport->customer;
+            $emailDestination = $customer->report_destination 
+                ?? $customer->report_configuration['delivery']['destination'] 
+                ?? null;
+            
+            // Update last generated timestamp
+            $schedule->update(['last_generated_at' => now()]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Report generated successfully',
+                'data' => [
+                    'report_id' => $generatedReport->generated_report_id,
+                    'report_type' => $generatedReport->report_type,
+                    'customer_name' => $customer->canonical_name,
+                    'email_status' => 'queued',
+                    'email_destination' => $emailDestination,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to generate report: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an individual schedule's settings
+     */
+    public function updateSchedule(Request $request, $schedule_id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        // Find the schedule
+        $schedule = ReportSchedule::where('report_schedule_id', $schedule_id)
+            ->where('company_id', $company->company_id)
+            ->firstOrFail();
+
+        // Validate input
+        $validated = $request->validate([
+            'frequency' => 'nullable|string|in:daily,weekly,monthly,yearly,on-demand',
+            'time_of_day' => 'nullable|string',
+            'active' => 'nullable|boolean',
+            'schedule_config' => 'nullable|array',
+        ]);
+
+        // Update schedule fields
+        if (isset($validated['frequency'])) {
+            $schedule->frequency = $validated['frequency'];
+        }
+
+        if (isset($validated['time_of_day'])) {
+            $schedule->time_of_day = $validated['time_of_day'];
+        }
+
+        if (isset($validated['active'])) {
+            $schedule->active = $validated['active'];
+        }
+
+        if (isset($validated['schedule_config'])) {
+            // Merge with existing schedule_config to preserve included_sections
+            $existingConfig = $schedule->schedule_config ?? [];
+            $schedule->schedule_config = array_merge($existingConfig, $validated['schedule_config']);
+        }
+
+        $schedule->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Schedule updated successfully',
+            'data' => [
+                'report_schedule_id' => $schedule->report_schedule_id,
+                'report_type' => $schedule->report_type,
+                'frequency' => $schedule->frequency,
+                'time_of_day' => $schedule->time_of_day,
+                'active' => $schedule->active,
+                'schedule_config' => $schedule->schedule_config,
             ]
         ]);
     }

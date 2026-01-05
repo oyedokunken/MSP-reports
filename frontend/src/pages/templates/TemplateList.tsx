@@ -9,7 +9,7 @@ import {
   FileText, 
   Plus, 
   Search, 
-  Edit, 
+  Settings, 
   Trash2, 
   Eye,
   Clock,
@@ -21,9 +21,11 @@ import type { ReportTemplate } from './types/template'
 import { CreateTemplateModal } from '@/pages/templates/modals/CreateTemplateModal'
 import { DeleteTemplateModal } from '@/pages/templates/modals/DeleteTemplateModal'
 import { useToast } from '@/components/ui/Toast'
+import { useNavigate } from 'react-router-dom'
 
 export default function TemplateList() {
   const toast = useToast()
+  const navigate = useNavigate()
   const [templates, setTemplates] = useState<ReportTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -70,15 +72,14 @@ export default function TemplateList() {
     }
   }
 
-  const handleEdit = (template: ReportTemplate) => {
-    setEditingTemplate(template)
-    setCreateModalOpen(true)
+  const handleViewReports = (template: ReportTemplate) => {
+    // Navigate to customer's configure reports page
+    navigate(`/platform/customers/${template.customer_id}/configure-reports`)
   }
 
-  const handleView = (template: ReportTemplate) => {
-    // TODO: Navigate to template detail view showing schedules and generated reports
-    console.log('View template:', template)
-    toast.info('Template detail view coming soon')
+  const handleViewSchedule = (template: ReportTemplate) => {
+    setEditingTemplate(template)
+    setCreateModalOpen(true)
   }
 
   const handleModalClose = () => {
@@ -200,22 +201,24 @@ export default function TemplateList() {
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() => handleView(template)}
+                    onClick={() => handleViewReports(template)}
                   >
                     <Eye className="mr-2 h-4 w-4" />
-                    View
+                    View Reports
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleEdit(template)}
+                    onClick={() => handleViewSchedule(template)}
+                    title="View Schedule"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Settings className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteClick(template)}
+                    title="Delete Template"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

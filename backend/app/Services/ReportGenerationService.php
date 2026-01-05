@@ -376,6 +376,7 @@ class ReportGenerationService
                     'recommendations' => $reportData['recommendations'] ?? [],
                     'generated_at' => $reportData['generated_at'] ?? now()->toDateTimeString(),
                     'included_reports' => $reportData['included_reports'] ?? [],
+                    'sections_to_render' => $reportData['sections_to_render'] ?? null, // For section filtering
                     // Autotask Monthly Summary specific variables
                     'executive_summary' => $reportData['executive_summary'] ?? [],
                     'tickets' => $reportData['tickets'] ?? [],

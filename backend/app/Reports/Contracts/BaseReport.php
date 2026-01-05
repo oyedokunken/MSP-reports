@@ -127,6 +127,58 @@ abstract class BaseReport implements ReportInterface
     }
 
     /**
+     * Check if a section should be included based on template configuration
+     * 
+     * @param string $sectionId The section ID to check
+     * @param array $options The options array passed to generate()
+     * @return bool True if section should be included
+     */
+    protected function shouldIncludeSection(string $sectionId, array $options): bool
+    {
+        // If no included_sections specified, include all sections
+        if (!isset($options['included_sections']) || empty($options['included_sections'])) {
+            return true;
+        }
+
+        // If 'all' is in included_sections, include everything
+        if (in_array('all', $options['included_sections'])) {
+            return true;
+        }
+
+        // Check if this specific section is in the included list
+        return in_array($sectionId, $options['included_sections']);
+    }
+
+    /**
+     * Filter report data to only include selected sections
+     * 
+     * @param array $reportData The full report data
+     * @param array $options The options array with included_sections
+     * @return array Filtered report data
+     */
+    protected function filterSections(array $reportData, array $options): array
+    {
+        // If no filtering needed, return as-is
+        if (!isset($options['included_sections']) || empty($options['included_sections'])) {
+            return $reportData;
+        }
+
+        // If 'all' is selected, return everything
+        if (in_array('all', $options['included_sections'])) {
+            return $reportData;
+        }
+
+        // Filter out sections not in included_sections
+        $includedSections = $options['included_sections'];
+        $filtered = $reportData;
+
+        // Mark which sections to include in the template
+        $filtered['sections_to_render'] = $includedSections;
+
+        return $filtered;
+    }
+
+    /**
      * Get default metadata structure (can be overridden)
      */
     public function getMetadata(): array

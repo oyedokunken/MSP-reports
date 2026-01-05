@@ -109,6 +109,8 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::patch('/customers/{id}/reports', [ReportConfigController::class, 'updateCustomerReports']);
         Route::patch('/customers/{id}/report-destination', [ReportConfigController::class, 'updateCustomerReportDestination']);
         Route::post('/reports/generate/{customer_id}', [ReportConfigController::class, 'generateReport']);
+        Route::post('/reports/schedules/{schedule_id}/generate', [ReportConfigController::class, 'generateFromSchedule']);
+        Route::patch('/reports/schedules/{schedule_id}', [ReportConfigController::class, 'updateSchedule']);
     });
 
     // Reporting & Analytics Routes
@@ -144,6 +146,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     // Report Templates Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/report-templates/available-for-customer', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAvailableReportTypes']);
+        Route::post('/report-templates/{template}/preview', [\App\Http\Controllers\Api\ReportTemplateController::class, 'preview']);
         Route::apiResource('report-templates', \App\Http\Controllers\Api\ReportTemplateController::class);
         Route::post('/report-templates/{template}/apply-to-customer', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomer']);
         Route::post('/report-templates/{template}/apply-to-customers', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomers']);

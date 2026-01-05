@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\ReportTemplate;
 use App\Models\Customer;
 use App\Models\ReportSchedule;
+use App\Models\GeneratedReport;
 use Illuminate\Support\Collection;
+use Carbon\Carbon;
 
 class ReportTemplateService
 {
@@ -58,5 +60,55 @@ class ReportTemplateService
         }
         
         return $schedules;
+    }
+    
+    /**
+     * Generate a preview report from template with real customer data
+     * 
+     * This creates a temporary schedule and uses the existing report generation system.
+     */
+    public function generatePreviewReport(ReportTemplate $template): GeneratedReport
+    {
+        // Prepare schedule config with template's section and report options
+        $scheduleConfig = array_merge(
+            $template->schedule_config ?? [],
+            [
+                'included_sections' => $template->included_sections,
+                'report_options' => $template->report_options,
+            ]
+        );
+        
+        // Create a temporary schedule for the preview
+        $tempSchedule = ReportSchedule::create([
+            'company_id' => $template->company_id,
+            'customer_id' => $template->customer_id,
+            'report_template_id' => $template->template_id,
+            'report_type' => $template->report_type,
+            'frequency' => 'on-demand',
+            'schedule_config' => $scheduleConfig,
+            'time_of_day' => '00:00',
+            'timezone' => $template->timezone ?? 'Australia/Brisbane',
+            'active' => false, // Inactive so it won't be picked up by scheduler
+        ]);
+        
+        try {
+            // Use the existing report generation service
+            $reportService = app(\App\Services\ReportGenerationService::class);
+            
+            // Generate the report for last month
+            $startDate = Carbon::now()->subMonth()->startOfMonth();
+            $endDate = Carbon::now()->subMonth()->endOfMonth();
+            
+            $report = $reportService->generateReport($tempSchedule, $startDate, $endDate);
+            
+            // Delete the temporary schedule
+            $tempSchedule->delete();
+            
+            return $report;
+        } catch (\Exception $e) {
+            // Clean up temporary schedule on error
+            $tempSchedule->delete();
+            throw $e;
+        }
     }
 }

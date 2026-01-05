@@ -14,4 +14,12 @@ return [
     'default_format' => 'pdf',
     'icon' => 'mail',
     'enabled' => true,
+    'available_sections' => [
+        ['id' => 'executive_summary', 'label' => 'Executive Summary', 'default' => true],
+        ['id' => 'compliance', 'label' => 'DMARC Compliance', 'default' => true],
+        ['id' => 'senders', 'label' => 'Sender Analysis', 'default' => true],
+        ['id' => 'volume_timeline', 'label' => 'Email Volume Timeline', 'default' => true],
+        ['id' => 'ip_sources', 'label' => 'Source IP Analysis', 'default' => true],
+        ['id' => 'recommendations', 'label' => 'Recommendations', 'default' => true],
+    ],
 ];

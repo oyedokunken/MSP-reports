@@ -14,4 +14,12 @@ return [
     'default_format' => 'pdf',
     'icon' => 'chart-bar',
     'enabled' => true,
+    'available_sections' => [
+        ['id' => 'executive_summary', 'label' => 'Executive Summary', 'default' => true],
+        ['id' => 'tickets', 'label' => 'Ticket Summary', 'default' => true],
+        ['id' => 'time_entries', 'label' => 'Time Entries', 'default' => true],
+        ['id' => 'technicians', 'label' => 'Technician Performance', 'default' => true],
+        ['id' => 'contracts', 'label' => 'Contract Status', 'default' => true],
+        ['id' => 'alerts', 'label' => 'Alerts & Notifications', 'default' => true],
+    ],
 ];

@@ -14,4 +14,13 @@ return [
     'default_format' => 'pdf',
     'icon' => 'shield-check',
     'enabled' => true,
+    'available_sections' => [
+        ['id' => 'executive_summary', 'label' => 'Executive Summary', 'default' => true],
+        ['id' => 'user_activity', 'label' => 'User Activity', 'default' => true],
+        ['id' => 'geographic_data', 'label' => 'Geographic Access Patterns', 'default' => true],
+        ['id' => 'application_usage', 'label' => 'Application Usage', 'default' => true],
+        ['id' => 'threat_statistics', 'label' => 'Threat Statistics', 'default' => true],
+        ['id' => 'device_statistics', 'label' => 'Device Statistics', 'default' => true],
+        ['id' => 'recommendations', 'label' => 'Security Recommendations', 'default' => true],
+    ],
 ];

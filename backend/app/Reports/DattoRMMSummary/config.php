@@ -14,4 +14,13 @@ return [
     'default_format' => 'pdf',
     'icon' => 'shield-check',
     'enabled' => true,
+    'available_sections' => [
+        ['id' => 'executive_summary', 'label' => 'Executive Summary', 'default' => true],
+        ['id' => 'devices', 'label' => 'Device Health & Status', 'default' => true],
+        ['id' => 'alerts', 'label' => 'Alerts & Monitoring', 'default' => true],
+        ['id' => 'compliance', 'label' => 'Compliance & Patching', 'default' => true],
+        ['id' => 'security', 'label' => 'Security Status', 'default' => true],
+        ['id' => 'uptime', 'label' => 'Uptime Metrics', 'default' => true],
+        ['id' => 'recommendations', 'label' => 'Recommendations', 'default' => true],
+    ],
 ];

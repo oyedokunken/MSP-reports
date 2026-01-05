@@ -14,4 +14,12 @@ return [
     'default_format' => 'pdf',
     'icon' => 'shield',
     'enabled' => true,
+    'available_sections' => [
+        ['id' => 'executive_summary', 'label' => 'Executive Summary', 'default' => true],
+        ['id' => 'endpoints', 'label' => 'Endpoint Status', 'default' => true],
+        ['id' => 'policies', 'label' => 'Policy Compliance', 'default' => true],
+        ['id' => 'operating_systems', 'label' => 'Operating System Distribution', 'default' => true],
+        ['id' => 'threats', 'label' => 'Threat Detections', 'default' => true],
+        ['id' => 'recommendations', 'label' => 'Security Recommendations', 'default' => true],
+    ],
 ];
