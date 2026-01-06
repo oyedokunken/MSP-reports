@@ -20,6 +20,7 @@ class ReportTemplateService
         $schedule = ReportSchedule::create([
             'company_id' => $customer->company_id,
             'customer_id' => $customer->customer_id,
+            'template_id' => $template->template_id,  // Link to template for cascade delete
             'report_type' => $template->report_type,
             'frequency' => $template->frequency,
             'schedule_config' => $template->schedule_config,  // COPY, not reference
@@ -82,7 +83,7 @@ class ReportTemplateService
         $tempSchedule = ReportSchedule::create([
             'company_id' => $template->company_id,
             'customer_id' => $template->customer_id,
-            'report_template_id' => $template->template_id,
+            'template_id' => $template->template_id,
             'report_type' => $template->report_type,
             'frequency' => 'on-demand',
             'schedule_config' => $scheduleConfig,

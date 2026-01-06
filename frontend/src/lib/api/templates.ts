@@ -30,7 +30,7 @@ export const templateApi = {
   },
 
   delete: async (id: number) => {
-    const response = await api.delete<{ message: string }>(`/report-templates/${id}`)
+    const response = await api.delete<{ message: string; schedules_deleted: number }>(`/report-templates/${id}`)
     return response.data
   },
 

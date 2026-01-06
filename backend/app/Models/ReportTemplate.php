@@ -59,4 +59,9 @@ class ReportTemplate extends Model
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
     }
+
+    public function schedules()
+    {
+        return $this->hasMany(ReportSchedule::class, 'template_id', 'template_id');
+    }
 }

@@ -12,7 +12,16 @@ class ReportRegistry
     protected array $reports = [];
 
     protected const CACHE_KEY = 'report_registry';
-    protected const CACHE_TTL = 3600;  // 1 hour
+    
+    /**
+     * Get cache TTL based on environment
+     * Development: 0 (no cache)
+     * Production: 3600 seconds (1 hour)
+     */
+    protected function getCacheTtl(): int
+    {
+        return env('APP_ENV') === 'local' ? 0 : 3600;
+    }
 
     /**
      * Register a report type
@@ -68,6 +77,11 @@ class ReportRegistry
      */
     public function getAvailable(int $companyId): array
     {
+        // In development, always re-discover to pick up new report types
+        if (env('APP_ENV') === 'local') {
+            $this->discover();
+        }
+
         $available = [];
 
         foreach ($this->reports as $reportId => $config) {
@@ -120,17 +134,21 @@ class ReportRegistry
      */
     public function discover(): void
     {
-        // Check cache first
-        // Check cache first
-        try {
-            $cached = Cache::get(self::CACHE_KEY);
-            if ($cached !== null) {
-                $this->reports = $cached;
-                return;
+        // In development, skip cache entirely and always discover fresh
+        $isDevelopment = env('APP_ENV') === 'local';
+        
+        // Check cache first (only in production)
+        if (!$isDevelopment) {
+            try {
+                $cached = Cache::get(self::CACHE_KEY);
+                if ($cached !== null) {
+                    $this->reports = $cached;
+                    return;
+                }
+            } catch (\Exception $e) {
+                // Cache might not be available during migration or setup
+                Log::warning('ReportRegistry cache unavailable: ' . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            // Cache might not be available during migration or setup
-            Log::warning('ReportRegistry cache unavailable: ' . $e->getMessage());
         }
 
         $this->reports = [];
@@ -185,9 +203,11 @@ class ReportRegistry
         }
 
         // Cache the discovered reports
-        // Cache the discovered reports
         try {
-            Cache::put(self::CACHE_KEY, $this->reports, self::CACHE_TTL);
+            $ttl = $this->getCacheTtl();
+            if ($ttl > 0) {
+                Cache::put(self::CACHE_KEY, $this->reports, $ttl);
+            }
         } catch (\Exception $e) {
             Log::warning('Failed to cache report registry: ' . $e->getMessage());
         }

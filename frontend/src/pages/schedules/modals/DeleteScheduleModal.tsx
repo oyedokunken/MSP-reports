@@ -105,6 +105,21 @@ export function DeleteScheduleModal({
             </p>
           </div>
 
+          {/* Template Info */}
+          {schedule.template_id && (
+            <div className="rounded-lg border border-blue-500/50 bg-blue-50/50 dark:bg-blue-950/20 p-3">
+              <p className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
+                📋 Associated Template
+              </p>
+              <p className="text-sm text-blue-600 dark:text-blue-400">
+                Template ID: {schedule.template_id}
+              </p>
+              <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-1">
+                This template will also be deleted
+              </p>
+            </div>
+          )}
+
           {/* Warning */}
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
             <p className="text-sm text-destructive font-medium mb-2">
@@ -112,6 +127,9 @@ export function DeleteScheduleModal({
             </p>
             <ul className="text-xs text-destructive/80 space-y-1 list-disc list-inside">
               <li>The schedule will be permanently deleted</li>
+              {schedule.template_id && (
+                <li className="font-semibold">The associated template (ID: {schedule.template_id}) will also be deleted</li>
+              )}
               <li>No future reports will be generated</li>
               <li>Historical reports will be retained</li>
             </ul>

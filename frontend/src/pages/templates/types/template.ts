@@ -17,6 +17,7 @@ export interface ReportTemplate {
   delivery_settings: DeliverySettings | null
   report_options: Record<string, any> | null
   active: boolean
+  schedules_count?: number
   created_at: string
   updated_at: string
 }

@@ -16,12 +16,13 @@ class ReportTemplateController extends Controller
     ) {}
     
     /**
-     * List all templates
+     * List all templates with schedule counts
      */
     public function index(Request $request)
     {
         $templates = ReportTemplate::query()
             ->with('customer')
+            ->withCount('schedules')
             ->when($request->report_type, fn($q, $type) => $q->where('report_type', $type))
             ->when($request->active !== null, fn($q) => $q->where('active', $request->boolean('active')))
             ->orderBy('template_name')
@@ -82,7 +83,7 @@ class ReportTemplateController extends Controller
         $schedule = \App\Models\ReportSchedule::create([
             'company_id' => auth()->user()->company_id,
             'customer_id' => $validated['customer_id'],
-            'report_template_id' => $template->template_id,
+            'template_id' => $template->template_id,
             'report_type' => $validated['report_type'],
             'frequency' => $validated['frequency'],
             'schedule_config' => !empty($scheduleConfig) ? $scheduleConfig : null,
@@ -134,7 +135,7 @@ class ReportTemplateController extends Controller
     }
     
     /**
-     * Delete template
+     * Delete template and cascade delete associated schedules
      */
     public function destroy(Request $request, $report_template)
     {
@@ -144,25 +145,33 @@ class ReportTemplateController extends Controller
             'request_method' => $request->method(),
         ]);
         
-        // Manually find the template
-        $template = ReportTemplate::where('template_id', $report_template)->firstOrFail();
+        // Manually find the template with schedules
+        $template = ReportTemplate::where('template_id', $report_template)
+            ->with('schedules')
+            ->firstOrFail();
         
-        \Log::info('Template found', [
+        $schedulesCount = $template->schedules()->count();
+        
+        \Log::info('Template found with schedules', [
             'template_id' => $template->template_id,
             'template_name' => $template->template_name,
             'company_id' => $template->company_id,
+            'schedules_count' => $schedulesCount,
         ]);
         
+        // Delete template (cascade will handle schedules via foreign key)
         $deleted = $template->delete();
         
         \Log::info('Delete result', [
             'deleted' => $deleted,
             'template_id' => $template->template_id,
+            'schedules_deleted' => $schedulesCount,
         ]);
         
         return response()->json([
             'success' => true,
             'message' => 'Template deleted successfully',
+            'schedules_deleted' => $schedulesCount,
         ]);
     }
     

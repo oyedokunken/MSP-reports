@@ -8,6 +8,7 @@ export interface ReportSchedule {
   next_scheduled_at: string | null
   last_generated_at: string | null
   active: boolean
+  template_id?: number | null
 }
 
 export type ScheduleFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'on-demand'

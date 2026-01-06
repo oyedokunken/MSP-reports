@@ -11,6 +11,7 @@ export interface ReportSchedule {
   next_scheduled_at: string | null
   last_generated_at: string | null
   active: boolean
+  template_id?: number | null
 }
 
 interface SchedulesState {
@@ -73,7 +74,7 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     }
   },
 
-  // Delete schedule
+  // Delete schedule (backend also deletes associated template)
   deleteSchedule: async (scheduleId: number) => {
     try {
       await api.delete(`/reports/schedules/${scheduleId}`)

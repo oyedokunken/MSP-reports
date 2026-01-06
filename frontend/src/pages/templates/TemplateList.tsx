@@ -5,6 +5,14 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { 
   FileText, 
   Plus, 
@@ -14,7 +22,8 @@ import {
   Eye,
   Clock,
   Calendar,
-  User
+  User,
+  Filter
 } from 'lucide-react'
 import { templateApi } from '@/lib/api/templates'
 import type { ReportTemplate } from './types/template'
@@ -22,6 +31,7 @@ import { CreateTemplateModal } from '@/pages/templates/modals/CreateTemplateModa
 import { DeleteTemplateModal } from '@/pages/templates/modals/DeleteTemplateModal'
 import { useToast } from '@/components/ui/Toast'
 import { useNavigate } from 'react-router-dom'
+import { Pagination } from '@/pages/customers/components/Pagination'
 
 export default function TemplateList() {
   const toast = useToast()
@@ -29,6 +39,10 @@ export default function TemplateList() {
   const [templates, setTemplates] = useState<ReportTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [reportTypeFilter, setReportTypeFilter] = useState<string>('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [perPage] = useState(9)
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<ReportTemplate | null>(null)
   const [deletingTemplate, setDeletingTemplate] = useState<ReportTemplate | null>(null)
@@ -60,8 +74,16 @@ export default function TemplateList() {
 
     try {
       setIsDeleting(true)
-      await templateApi.delete(deletingTemplate.template_id)
-      toast.success('Template deleted successfully')
+      const response = await templateApi.delete(deletingTemplate.template_id)
+      
+      // Show feedback about cascade deletion
+      const schedulesDeleted = response?.schedules_deleted || 0
+      if (schedulesDeleted > 0) {
+        toast.success(`Template deleted successfully. ${schedulesDeleted} schedule${schedulesDeleted !== 1 ? 's' : ''} also removed.`)
+      } else {
+        toast.success('Template deleted successfully')
+      }
+      
       setDeletingTemplate(null)
       loadTemplates()
     } catch (error) {
@@ -88,11 +110,33 @@ export default function TemplateList() {
     loadTemplates()
   }
 
-  const filteredTemplates = (templates || []).filter(template =>
-    template.template_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    template.report_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    template.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredTemplates = (templates || []).filter(template => {
+    const matchesSearch = template.template_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      template.report_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      template.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'active' && template.active) ||
+      (statusFilter === 'inactive' && !template.active)
+    
+    const matchesReportType = reportTypeFilter === 'all' || template.report_type === reportTypeFilter
+    
+    return matchesSearch && matchesStatus && matchesReportType
+  })
+
+  const uniqueReportTypes = Array.from(new Set(templates.map(t => t.report_type)))
+  const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + (reportTypeFilter !== 'all' ? 1 : 0)
+
+  // Pagination
+  const totalPages = Math.ceil(filteredTemplates.length / perPage)
+  const startIndex = (currentPage - 1) * perPage
+  const endIndex = startIndex + perPage
+  const paginatedTemplates = filteredTemplates.slice(startIndex, endIndex)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, statusFilter, reportTypeFilter])
 
   const getFrequencyLabel = (frequency: string) => {
     return frequency.charAt(0).toUpperCase() + frequency.slice(1).replace('-', ' ')
@@ -111,35 +155,89 @@ export default function TemplateList() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="space-y-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Report Templates</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-2">
             Create and manage customer-specific report templates
           </p>
         </div>
-        <Button onClick={() => setCreateModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Template
-        </Button>
+
+        {/* Filters and Search */}
+        <div className="flex flex-col md:flex-row gap-3">
+          {/* Count */}
+          <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap px-3 h-10 border rounded-md">
+            {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''}
+          </div>
+
+          {/* Filter Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full md:w-auto h-10 border">
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {/* Status Section */}
+              <DropdownMenuLabel>Status</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={statusFilter === 'active'}
+                onCheckedChange={() => setStatusFilter(statusFilter === 'active' ? 'all' : 'active')}
+              >
+                Active
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={statusFilter === 'inactive'}
+                onCheckedChange={() => setStatusFilter(statusFilter === 'inactive' ? 'all' : 'inactive')}
+              >
+                Inactive
+              </DropdownMenuCheckboxItem>
+
+              {/* Report Type Section */}
+              {uniqueReportTypes.length > 0 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Report Type</DropdownMenuLabel>
+                  {uniqueReportTypes.map((type) => (
+                    <DropdownMenuCheckboxItem
+                      key={type}
+                      checked={reportTypeFilter === type}
+                      onCheckedChange={() => setReportTypeFilter(reportTypeFilter === type ? 'all' : type)}
+                    >
+                      {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or report type..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-10"
+            />
+          </div>
+
+          {/* Create Template Button */}
+          <Button onClick={() => setCreateModalOpen(true)} className="h-10">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Template
+          </Button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search templates..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="text-sm text-muted-foreground">
-          {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''}
-        </div>
-      </div>
-
-      {filteredTemplates.length === 0 ? (
+      {paginatedTemplates.length === 0 && filteredTemplates.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
@@ -147,17 +245,27 @@ export default function TemplateList() {
             <p className="text-sm text-muted-foreground mb-4">
               {searchQuery ? 'Try adjusting your search' : 'Get started by creating your first template'}
             </p>
-            {!searchQuery && (
+            {/* {!searchQuery && (
               <Button onClick={() => setCreateModalOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Template
               </Button>
-            )}
+            )} */}
+          </CardContent>
+        </Card>
+      ) : paginatedTemplates.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No templates on this page</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Try going to a different page or adjusting your filters
+            </p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTemplates.map((template) => (
+          {paginatedTemplates.map((template) => (
             <Card key={template.template_id} className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -198,7 +306,6 @@ export default function TemplateList() {
 
                 <div className="flex gap-2 pt-2 border-t">
                   <Button
-                    variant="outline"
                     size="sm"
                     className="flex-1"
                     onClick={() => handleViewReports(template)}
@@ -227,6 +334,18 @@ export default function TemplateList() {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && filteredTemplates.length > perPage && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          total={filteredTemplates.length}
+          onPageChange={setCurrentPage}
+          itemLabel="templates"
+          perPage={perPage}
+        />
       )}
 
       <CreateTemplateModal

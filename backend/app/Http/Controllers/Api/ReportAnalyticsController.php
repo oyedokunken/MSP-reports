@@ -276,16 +276,40 @@ class ReportAnalyticsController extends Controller
 
         $customerName = $schedule->customer->canonical_name ?? 'Unknown';
         $reportType = $schedule->report_type;
+        $templateId = $schedule->template_id;
 
+        // Delete the schedule
         $schedule->delete();
+
+        // If schedule has a template_id, also delete the template
+        $templateDeleted = false;
+        if ($templateId) {
+            try {
+                $template = \App\Models\ReportTemplate::where('template_id', $templateId)
+                    ->where('company_id', $authUser->company_id)
+                    ->first();
+                
+                if ($template) {
+                    $template->delete();
+                    $templateDeleted = true;
+                }
+            } catch (\Exception $e) {
+                \Log::warning('Failed to delete associated template', [
+                    'template_id' => $templateId,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
 
         return response()->json([
             'status' => 'success',
-            'message' => "Schedule deleted successfully: {$reportType} for {$customerName}",
+            'message' => "Schedule deleted successfully: {$reportType} for {$customerName}" . 
+                        ($templateDeleted ? " (template also deleted)" : ""),
             'data' => [
                 'deleted_schedule_id' => $id,
                 'customer_name' => $customerName,
                 'report_type' => $reportType,
+                'template_deleted' => $templateDeleted,
             ]
         ], 200);
     }

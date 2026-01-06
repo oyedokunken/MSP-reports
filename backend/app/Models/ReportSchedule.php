@@ -20,6 +20,7 @@ class ReportSchedule extends Model
     protected $fillable = [
         'company_id',
         'customer_id',
+        'template_id',
         'report_type',
         'frequency',
         'schedule_config',
@@ -51,6 +52,11 @@ class ReportSchedule extends Model
     public function generatedReports()
     {
         return $this->hasMany(GeneratedReport::class, 'report_schedule_id', 'report_schedule_id');
+    }
+
+    public function template()
+    {
+        return $this->belongsTo(ReportTemplate::class, 'template_id', 'template_id');
     }
 
     // Scopes

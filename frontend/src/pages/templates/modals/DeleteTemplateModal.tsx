@@ -33,11 +33,20 @@ export function DeleteTemplateModal({
             <br />
             <br />
             This action cannot be undone. The template will be permanently removed from the system.
-            <br />
-            <br />
-            <span className="text-muted-foreground text-sm">
-              Note: Existing report schedules created from this template will not be affected.
-            </span>
+            {template?.schedules_count !== undefined && template.schedules_count > 0 && (
+              <>
+                <br />
+                <br />
+                <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
+                  <p className="text-destructive font-semibold text-sm">
+                    ⚠️ Warning: This will also delete {template.schedules_count} active schedule{template.schedules_count !== 1 ? 's' : ''} for this customer.
+                  </p>
+                  <p className="text-destructive/80 text-xs mt-1">
+                    The associated report schedule(s) will be permanently removed and will no longer generate reports.
+                  </p>
+                </div>
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
