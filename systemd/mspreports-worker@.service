@@ -1,0 +1,26 @@
+[Unit]
+Description=MSP Reports Laravel Queue Worker (Instance %i)
+After=network.target redis.service postgresql.service
+Wants=redis.service
+
+[Service]
+User=athena
+Group=athena
+WorkingDirectory=/var/www/mspreports/backend
+ExecStart=/usr/bin/php artisan queue:work redis --queue=high,default,low --sleep=3 --tries=5 --max-time=3600 --timeout=900
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/www/mspreports/backend/storage/logs/worker.log
+StandardError=append:/var/www/mspreports/backend/storage/logs/worker.log
+
+# Process management
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=60
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
