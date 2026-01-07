@@ -17,6 +17,11 @@ class ReportTemplateController extends Controller
     
     /**
      * List all templates with schedule counts
+     * 
+     * Query params:
+     * - report_type: Filter by report type
+     * - active: Filter by active status (true/false)
+     * - global: Filter for global templates only (true) or customer-specific only (false)
      */
     public function index(Request $request)
     {
@@ -25,8 +30,19 @@ class ReportTemplateController extends Controller
             ->withCount('schedules')
             ->when($request->report_type, fn($q, $type) => $q->where('report_type', $type))
             ->when($request->active !== null, fn($q) => $q->where('active', $request->boolean('active')))
-            ->orderBy('template_name')
-            ->get();
+            ->when($request->has('global'), function($q) use ($request) {
+                if ($request->boolean('global')) {
+                    return $q->whereNull('customer_id');
+                } else {
+                    return $q->whereNotNull('customer_id');
+                }
+            })
+            ->orderByRaw('customer_id IS NOT NULL, template_name') // Global templates first
+            ->get()
+            ->map(function ($template) {
+                $template->is_global = $template->customer_id === null;
+                return $template;
+            });
             
         return response()->json([
             'success' => true,
@@ -47,11 +63,14 @@ class ReportTemplateController extends Controller
     
     /**
      * Create template
+     * 
+     * If customer_id is provided, creates a customer-specific template and auto-creates a schedule.
+     * If customer_id is null, creates a global template that can be applied to any customer later.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'customer_id' => 'required|integer|exists:customers,customer_id',
+            'customer_id' => 'nullable|integer|exists:customers,customer_id',
             'template_name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'report_type' => 'required|string',
@@ -70,33 +89,43 @@ class ReportTemplateController extends Controller
             ...$validated,
         ]);
         
-        // Auto-create ReportSchedule for the customer
-        // Merge included_sections into schedule_config for proper display
-        $scheduleConfig = $validated['schedule_config'] ?? [];
-        if (!empty($validated['included_sections'])) {
-            $scheduleConfig['included_sections'] = $validated['included_sections'];
-        }
-        if (!empty($validated['report_options'])) {
-            $scheduleConfig['report_options'] = $validated['report_options'];
+        $schedule = null;
+        
+        // Only auto-create schedule if customer_id is provided (customer-specific template)
+        if (!empty($validated['customer_id'])) {
+            // Merge included_sections into schedule_config for proper display
+            $scheduleConfig = $validated['schedule_config'] ?? [];
+            if (!empty($validated['included_sections'])) {
+                $scheduleConfig['included_sections'] = $validated['included_sections'];
+            }
+            if (!empty($validated['report_options'])) {
+                $scheduleConfig['report_options'] = $validated['report_options'];
+            }
+            
+            $schedule = \App\Models\ReportSchedule::create([
+                'company_id' => auth()->user()->company_id,
+                'customer_id' => $validated['customer_id'],
+                'template_id' => $template->template_id,
+                'report_type' => $validated['report_type'],
+                'frequency' => $validated['frequency'],
+                'schedule_config' => !empty($scheduleConfig) ? $scheduleConfig : null,
+                'time_of_day' => $validated['time_of_day'] ?? '09:00',
+                'timezone' => $validated['timezone'] ?? 'Australia/Brisbane',
+                'active' => $validated['active'] ?? true,
+            ]);
         }
         
-        $schedule = \App\Models\ReportSchedule::create([
-            'company_id' => auth()->user()->company_id,
-            'customer_id' => $validated['customer_id'],
-            'template_id' => $template->template_id,
-            'report_type' => $validated['report_type'],
-            'frequency' => $validated['frequency'],
-            'schedule_config' => !empty($scheduleConfig) ? $scheduleConfig : null,
-            'time_of_day' => $validated['time_of_day'] ?? '09:00',
-            'timezone' => $validated['timezone'] ?? 'Australia/Brisbane',
-            'active' => $validated['active'] ?? true,
-        ]);
+        $isGlobal = empty($validated['customer_id']);
+        $message = $isGlobal 
+            ? 'Global template created successfully. Apply it to customers to create schedules.'
+            : 'Template created and schedule activated for customer';
         
         return response()->json([
             'success' => true,
             'data' => $template->load('customer'),
             'schedule' => $schedule,
-            'message' => 'Template created and schedule activated for customer',
+            'is_global' => $isGlobal,
+            'message' => $message,
         ], 201);
     }
     
@@ -218,17 +247,27 @@ class ReportTemplateController extends Controller
 
     /**
      * Generate preview report from template
+     * 
+     * For global templates, requires customer_id in request to preview with a specific customer.
      */
-    public function preview(ReportTemplate $template)
+    public function preview(Request $request, ReportTemplate $template)
     {
         try {
             // Load customer relationship
             $template->load('customer');
             
+            // For global templates, allow specifying a customer for preview
+            if (!$template->customer && $request->has('customer_id')) {
+                $customer = Customer::find($request->customer_id);
+                if ($customer) {
+                    $template->setRelation('customer', $customer);
+                }
+            }
+            
             if (!$template->customer) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Template has no associated customer',
+                    'message' => 'Template has no associated customer. For global templates, provide customer_id parameter.',
                 ], 400);
             }
 

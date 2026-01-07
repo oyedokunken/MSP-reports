@@ -23,7 +23,9 @@ import {
   Clock,
   Calendar,
   User,
-  Filter
+  Filter,
+  Globe,
+  Users
 } from 'lucide-react'
 import { templateApi } from '@/lib/api/templates'
 import type { ReportTemplate } from './types/template'
@@ -95,8 +97,13 @@ export default function TemplateList() {
   }
 
   const handleViewReports = (template: ReportTemplate) => {
-    // Navigate to customer's configure reports page
-    navigate(`/platform/customers/${template.customer_id}/configure-reports`)
+    if (template.customer_id) {
+      // Navigate to customer's configure reports page
+      navigate(`/platform/customers/${template.customer_id}/configure-reports`)
+    } else {
+      // For global templates, open the apply modal or show a message
+      toast.info('Global template - use "Apply to Customers" to create schedules')
+    }
   }
 
   const handleViewSchedule = (template: ReportTemplate) => {
@@ -275,9 +282,17 @@ export default function TemplateList() {
                       <CardDescription className="mt-1">{template.description}</CardDescription>
                     )}
                   </div>
-                  {!template.active && (
-                    <Badge variant="secondary">Inactive</Badge>
-                  )}
+                  <div className="flex gap-1">
+                    {!template.customer_id && (
+                      <Badge variant="default" className="bg-primary/10 text-primary border-primary/20">
+                        <Globe className="h-3 w-3 mr-1" />
+                        Global
+                      </Badge>
+                    )}
+                    {!template.active && (
+                      <Badge variant="secondary">Inactive</Badge>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -310,8 +325,17 @@ export default function TemplateList() {
                     className="flex-1"
                     onClick={() => handleViewReports(template)}
                   >
-                    <Eye className="mr-2 h-4 w-4" />
-                    View Reports
+                    {template.customer_id ? (
+                      <>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Reports
+                      </>
+                    ) : (
+                      <>
+                        <Users className="mr-2 h-4 w-4" />
+                        Apply to Customers
+                      </>
+                    )}
                   </Button>
                   <Button
                     variant="outline"

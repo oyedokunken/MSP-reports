@@ -37,7 +37,7 @@ export interface DeliverySettings {
 }
 
 export interface CreateTemplateRequest {
-  customer_id?: number
+  customer_id?: number | null
   template_name: string
   description?: string
   report_type: string
@@ -51,7 +51,9 @@ export interface CreateTemplateRequest {
   active?: boolean
 }
 
-export interface UpdateTemplateRequest extends Partial<CreateTemplateRequest> {}
+export interface UpdateTemplateRequest extends Partial<CreateTemplateRequest> {
+  customer_id?: number | null
+}
 
 export interface ReportTypeDefinition {
   type: string

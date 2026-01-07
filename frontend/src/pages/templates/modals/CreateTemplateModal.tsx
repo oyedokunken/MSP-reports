@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
-import { FileText, AlertCircle, ArrowLeft, ArrowRight, Save } from 'lucide-react'
+import { FileText, AlertCircle, ArrowLeft, ArrowRight, Save, Globe, User } from 'lucide-react'
 import { templateApi } from '@/lib/api/templates'
 import { customerApi } from '@/services/api/customers'
 import type { ReportTemplate, CreateTemplateRequest, ReportTypeDefinition } from '../types/template'
@@ -55,6 +55,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const [totalPages, setTotalPages] = useState(1)
   const [customerSearch, setCustomerSearch] = useState('')
   const [searchDebounce, setSearchDebounce] = useState<number | null>(null)
+  const [isGlobalTemplate, setIsGlobalTemplate] = useState(false)
 
   const [formData, setFormData] = useState<CreateTemplateRequest>({
     template_name: '',
@@ -87,6 +88,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
           active: template.active,
         })
         setSelectedCustomerId(template.customer_id)
+        setIsGlobalTemplate(template.customer_id === null)
         // Skip customer and report type selection when editing - go straight to sections
         setStep(3)
         // Load report types for the customer (needed for section configuration)
@@ -161,6 +163,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     })
     setStep(1)
     setSelectedCustomerId(null)
+    setIsGlobalTemplate(false)
     setAvailableReportTypes([])
     setCustomerSearch('')
     if (searchDebounce) {
@@ -222,6 +225,10 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const canProceed = () => {
     switch (step) {
       case 1:
+        // For global templates, only need template name. For customer-specific, need customer selection too.
+        if (isGlobalTemplate) {
+          return formData.template_name.trim() !== ''
+        }
         return selectedCustomerId !== null && formData.template_name.trim() !== ''
       case 2:
         return formData.report_type !== ''
@@ -237,8 +244,9 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
 
-    if (!selectedCustomerId) {
-      setError('Customer is required')
+    // For customer-specific templates, require customer selection
+    if (!isGlobalTemplate && !selectedCustomerId) {
+      setError('Customer is required for customer-specific templates')
       setStep(1)
       return
     }
@@ -259,10 +267,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     setIsSubmitting(true)
 
     try {
-      // Clean the data before sending
-      console.log('Form data before cleaning:', formData)
-      console.log('time_of_day value:', formData.time_of_day, 'type:', typeof formData.time_of_day)
-
       // Ensure time_of_day is in correct format (HH:MM)
       let cleanTimeOfDay = '09:00'
       if (formData.time_of_day) {
@@ -275,18 +279,19 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
 
       const templateData = {
         ...formData,
-        customer_id: selectedCustomerId,
+        customer_id: isGlobalTemplate ? null : selectedCustomerId,
         time_of_day: cleanTimeOfDay,
       }
-
-      console.log('Template data being sent:', templateData)
 
       if (template) {
         await templateApi.update(template.template_id, templateData)
         toast.success('Template updated successfully')
       } else {
         await templateApi.create(templateData)
-        toast.success('Template created and schedule activated for customer')
+        toast.success(isGlobalTemplate 
+          ? 'Global template created. Apply it to customers to create schedules.'
+          : 'Template created and schedule activated for customer'
+        )
       }
       onSuccess?.()
       onOpenChange(false)
@@ -341,13 +346,46 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
         <div className="py-4 space-y-6">
           {step === 1 && (
             <div className="space-y-4">
+              {/* Global Template Toggle */}
+              <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
+                <div className="flex items-center gap-3">
+                  {isGlobalTemplate ? (
+                    <Globe className="h-5 w-5 text-primary" />
+                  ) : (
+                    <User className="h-5 w-5 text-muted-foreground" />
+                  )}
+                  <div className="space-y-0.5">
+                    <Label htmlFor="global-toggle" className="cursor-pointer">
+                      {isGlobalTemplate ? 'Global Template' : 'Customer-Specific Template'}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      {isGlobalTemplate 
+                        ? 'Can be applied to any customer later'
+                        : 'Creates a schedule for a specific customer'
+                      }
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  id="global-toggle"
+                  checked={isGlobalTemplate}
+                  onCheckedChange={(checked) => {
+                    setIsGlobalTemplate(checked)
+                    if (checked) {
+                      setSelectedCustomerId(null)
+                    }
+                  }}
+                  disabled={isSubmitting || !!template}
+                />
+              </div>
+
               <div>
                 <Label htmlFor="template_name">Template Name *</Label>
                 <Input
                   id="template_name"
                   value={formData.template_name}
                   onChange={(e) => setFormData({ ...formData, template_name: e.target.value })}
-                  placeholder="e.g., Standard Monthly Report"
+                  placeholder={isGlobalTemplate ? "e.g., End of Month Report" : "e.g., ACME Corp Monthly Report"}
                   disabled={isSubmitting}
                   className="mt-1"
                 />
@@ -366,9 +404,11 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                 />
               </div>
 
+              {/* Customer Selection - only show for customer-specific templates */}
+              {!isGlobalTemplate && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium">Select Customer</label>
+                  <label className="text-sm font-medium">Select Customer *</label>
                   {totalPages > 1 && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>Page {currentPage} of {totalPages}</span>
@@ -414,6 +454,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                   onSelect={(customer) => setSelectedCustomerId(customer.customer_id)}
                 />
               </div>
+            )}
             </div>
           )}
 
