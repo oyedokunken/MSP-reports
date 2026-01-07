@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Scopes\CompanyScope;
+use App\Models\Scopes\CustomerScope;
 
 class ActiveDirectoryGroup extends Model
 {
@@ -33,6 +34,7 @@ class ActiveDirectoryGroup extends Model
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
+        static::addGlobalScope(new CustomerScope);
     }
 
     /**

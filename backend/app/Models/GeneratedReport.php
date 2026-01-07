@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Scopes\CompanyScope;
+use App\Models\Scopes\CustomerScope;
 
 class GeneratedReport extends Model
 {
@@ -16,6 +17,7 @@ class GeneratedReport extends Model
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
+        static::addGlobalScope(new CustomerScope);
     }
 
     protected $fillable = [

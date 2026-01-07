@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Scopes\CompanyScope;
+use App\Models\Scopes\CustomerScope;
 
 class ActiveDirectoryUser extends Model
 {
@@ -52,6 +53,7 @@ class ActiveDirectoryUser extends Model
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
+        static::addGlobalScope(new CustomerScope);
     }
 
     /**

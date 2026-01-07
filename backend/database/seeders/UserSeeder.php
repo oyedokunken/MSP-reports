@@ -29,103 +29,84 @@ class UserSeeder extends Seeder
         );
 
         // Create admin user (if not exists) - Light theme
-        User::firstOrCreate(
-            ['email' => 'admin@tts.com.au'],
-            [
-            'company_id' => $company->company_id,
-            'role_id' => $adminRole->id,
-            'name' => 'TTS Administrator',
-            'email' => 'admin@tts.com.au',
-            'password' => Hash::make('ChangeMe123!'),
-            'status' => 'active',
-            'auth_method' => 'local',
-            'permissions' => [
-                'integrations' => [
-                    'view' => true,
-                    'manage' => true,
-                    'sync' => true,
+        $adminUser = User::withoutGlobalScopes()->where('email', 'admin@tts.com.au')->first();
+        if (!$adminUser) {
+            User::create([
+                'company_id' => $company->company_id,
+                'role_id' => $adminRole->id,
+                'name' => 'TTS Administrator',
+                'email' => 'admin@tts.com.au',
+                'password' => Hash::make('ChangeMe123!'),
+                'status' => 'active',
+                'auth_method' => 'local',
+                'permissions' => [
+                    'integrations' => ['view' => true, 'manage' => true, 'sync' => true],
+                    'customers' => ['view' => true, 'edit' => true, 'map' => true],
+                    'reports' => ['view' => true, 'configure' => true, 'generate' => true, 'download' => true],
+                    'users' => ['view' => true, 'manage' => true],
+                    'company_settings' => ['view' => true, 'edit' => true],
                 ],
-                'customers' => [
-                    'view' => true,
-                    'edit' => true,
-                    'map' => true,
+                'settings' => [
+                    'theme' => 'light',
+                    'notifications' => ['email' => true, 'browser' => true],
                 ],
-                'reports' => [
-                    'view' => true,
-                    'configure' => true,
-                    'generate' => true,
-                    'download' => true,
-                ],
-                'users' => [
-                    'view' => true,
-                    'manage' => true,
-                ],
-                'company_settings' => [
-                    'view' => true,
-                    'edit' => true,
-                ],
-            ],
-            'settings' => [
-                'theme' => 'light',
-                'notifications' => [
-                    'email' => true,
-                    'browser' => true,
-                ],
-            ],
-            'email_verified_at' => now(),
-            ]
-        );
+                'email_verified_at' => now(),
+            ]);
+        }
 
         // Create test user (Kristian) - Dark theme
-        User::firstOrCreate(
-            ['email' => 'kristianbas14@gmail.com'],
-            [
-            'company_id' => $company->company_id,
-            'role_id' => $adminRole->id,
-            'name' => 'User',
-            'email' => 'user@tts.com.au',
-            'password' => Hash::make('password123'),
-            'status' => 'active',
-            'auth_method' => 'local',
-            'permissions' => [
-                'integrations' => [
-                    'view' => true,
-                    'manage' => true,
-                    'sync' => true,
+        $kristianUser = User::withoutGlobalScopes()->where('email', 'kristianbas14@gmail.com')->first();
+        if (!$kristianUser) {
+            User::create([
+                'company_id' => $company->company_id,
+                'role_id' => $adminRole->id,
+                'name' => 'Kristian',
+                'email' => 'kristianbas14@gmail.com',
+                'password' => Hash::make('password123'),
+                'status' => 'active',
+                'auth_method' => 'local',
+                'permissions' => [
+                    'integrations' => ['view' => true, 'manage' => true, 'sync' => true],
+                    'customers' => ['view' => true, 'edit' => true, 'map' => true],
+                    'reports' => ['view' => true, 'configure' => true, 'generate' => true, 'download' => true],
+                    'users' => ['view' => true, 'manage' => true],
+                    'company_settings' => ['view' => true, 'edit' => true],
                 ],
-                'customers' => [
-                    'view' => true,
-                    'edit' => true,
-                    'map' => true,
+                'settings' => [
+                    'theme' => 'dark',
+                    'notifications' => ['email' => true, 'browser' => false],
                 ],
-                'reports' => [
-                    'view' => true,
-                    'configure' => true,
-                    'generate' => true,
-                    'download' => true,
-                ],
-                'users' => [
-                    'view' => true,
-                    'manage' => true,
-                ],
-                'company_settings' => [
-                    'view' => true,
-                    'edit' => true,
-                ],
-            ],
-            'settings' => [
-                'theme' => 'dark',
-                'notifications' => [
-                    'email' => true,
-                    'browser' => false,
-                ],
-            ],
-            'email_verified_at' => now(),
-            ]
-        );
+                'email_verified_at' => now(),
+            ]);
+        }
 
         $this->command->info('Admin user created: admin@tts.com.au (password: ChangeMe123!)');
         $this->command->info('Test user created: kristianbas14@gmail.com (password: password123)');
+
+        // Create Scoped Viewer (Test customer-level scoping)
+        $viewerRole = Role::where('name', 'Viewer')->first();
+        $viewerUser = User::withoutGlobalScopes()->where('email', 'viewer@tts.com.au')->first();
+        if (!$viewerUser) {
+            User::create([
+                'company_id' => $company->company_id,
+                'role_id' => $viewerRole->id,
+                'name' => 'Scoped Viewer',
+                'email' => 'viewer@tts.com.au',
+                'password' => Hash::make('password123'),
+                'status' => 'active',
+                'auth_method' => 'local',
+                'scoped_customers' => [1], // Scoped to first customer only
+                'permissions' => [
+                    'integrations' => ['view' => true, 'manage' => false, 'sync' => false],
+                    'customers' => ['view' => true, 'edit' => false, 'map' => false],
+                    'reports' => ['view' => true, 'configure' => false, 'generate' => true, 'download' => true],
+                    'users' => ['view' => false, 'manage' => false],
+                    'company_settings' => ['view' => false, 'edit' => false],
+                ],
+            ]);
+        }
+
+        $this->command->info('Scoped viewer created: viewer@tts.com.au (password: password123) - Scoped to Customer ID 1');
         $this->command->warn('IMPORTANT: Change the default password after first login!');
     }
 }

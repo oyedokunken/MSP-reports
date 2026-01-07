@@ -4,12 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Scopes\CompanyScope;
+use App\Models\Scopes\CustomerScope;
 
 class IntegrationCustomer extends Model
 {
     use HasFactory;
 
     protected $primaryKey = 'integration_customer_id';
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new CompanyScope);
+        static::addGlobalScope(new CustomerScope);
+    }
 
     protected $fillable = [
         'integration_id',

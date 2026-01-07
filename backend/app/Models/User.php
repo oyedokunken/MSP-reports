@@ -44,6 +44,7 @@ class User extends Authenticatable
         'last_login_at' => 'datetime',
         'email_verified_at' => 'datetime',
         'permissions' => 'array',
+        'scoped_customers' => 'array',
         'settings' => 'array',
     ];
 

@@ -17,6 +17,7 @@ class IntegrationData extends Model
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
+        static::addGlobalScope(new CustomerScope);
     }
 
     protected $fillable = [

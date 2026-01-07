@@ -96,6 +96,7 @@ class UserController extends Controller
             'status' => $validated['status'],
             'auth_method' => $validated['auth_method'],
             'permissions' => $permissions,
+            'scoped_customers' => $validated['scoped_customers'],
         ]);
 
         $sanitisedUser = $user->makeHidden(['password']);
@@ -183,12 +184,15 @@ class UserController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
             'role_id' => 'sometimes|exists:roles,id',
+            'scoped_customers' => 'nullable|array',
+            'scoped_customers.*' => 'integer|exists:customers,customer_id',
         ]);
 
         $oldData = [
             'name' => $user->name,
             'email' => $user->email,
             'role_id' => $user->role_id,
+            'scoped_customers' => $user->scoped_customers,
         ];
         
         if (isset($validated['name'])) {
@@ -201,6 +205,10 @@ class UserController extends Controller
         
         if (isset($validated['role_id'])) {
             $user->role_id = $validated['role_id'];
+        }
+
+        if (array_key_exists('scoped_customers', $validated)) {
+            $user->scoped_customers = $validated['scoped_customers'];
         }
 
         $user->save();
@@ -218,6 +226,7 @@ class UserController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'role_id' => $user->role_id,
+                    'scoped_customers' => $user->scoped_customers,
                 ],
             ]),
             'ip_address' => $request->ip(),

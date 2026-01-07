@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
+use App\Models\Scopes\CustomerScope;
 
 class ReportSchedule extends Model
 {
@@ -15,6 +16,7 @@ class ReportSchedule extends Model
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
+        static::addGlobalScope(new CustomerScope);
     }
 
     protected $fillable = [

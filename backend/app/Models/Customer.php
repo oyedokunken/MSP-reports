@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
+use App\Models\Scopes\CustomerScope;
 
 class Customer extends Model
 {
@@ -12,13 +13,10 @@ class Customer extends Model
 
     protected $primaryKey = 'customer_id';
 
-    
-
-
-
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
+        static::addGlobalScope(new CustomerScope);
     }
 
     protected $fillable = [
