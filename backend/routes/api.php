@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\HealthCheckController;
 use App\Http\Controllers\Api\ActiveDirectoryController;
 use App\Http\Controllers\Api\ExchangeController;
 use App\Http\Controllers\Admin\ITGlueReportController;
+use App\Http\Controllers\Api\DeliveryConfigController;
 
 // All routes are automatically prefixed with /api prefix
 
@@ -111,6 +112,14 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::post('/reports/generate/{customer_id}', [ReportConfigController::class, 'generateReport']);
         Route::post('/reports/schedules/{schedule_id}/generate', [ReportConfigController::class, 'generateFromSchedule']);
         Route::patch('/reports/schedules/{schedule_id}', [ReportConfigController::class, 'updateSchedule']);
+    });
+
+    // Delivery Configuration Routes
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
+        Route::get('/delivery/methods', [DeliveryConfigController::class, 'getAvailableMethods']);
+        Route::get('/customers/{id}/delivery', [DeliveryConfigController::class, 'getCustomerDeliveryConfig']);
+        Route::patch('/customers/{id}/delivery', [DeliveryConfigController::class, 'updateCustomerDeliveryConfig']);
+        Route::post('/customers/{id}/delivery/test', [DeliveryConfigController::class, 'testConnection']);
     });
 
     // Reporting & Analytics Routes

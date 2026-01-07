@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ReportDeliveryMail;
 use App\Services\MailService;
+use App\Services\Delivery\DeliveryManager;
 
 class DeliverReportJob implements ShouldQueue
 {
@@ -30,8 +31,10 @@ class DeliverReportJob implements ShouldQueue
         $this->customRecipients = $customRecipients;
     }
 
-    public function handle(): void
+    public function handle(DeliveryManager $deliveryManager): void
     {
+        $deliveryMethods = [];
+        
         try {
             // Eager load relationships to ensure they're available
             $this->generatedReport->load(['customer', 'reportSchedule', 'company']);
@@ -39,38 +42,48 @@ class DeliverReportJob implements ShouldQueue
             $customer = $this->generatedReport->customer;
             $company = $this->generatedReport->company;
 
-            $destination = $customer->report_destination 
-                ?? $customer->report_configuration['delivery']['destination'] 
-                ?? null;
+            // Use the new DeliveryManager for extensible delivery
+            $results = $deliveryManager->deliver(
+                $this->generatedReport,
+                $customer,
+                $company,
+                $this->customRecipients
+            );
 
-            if (!$destination) {
-                throw new \Exception("No delivery destination configured for customer.");
+            // Check if any delivery method succeeded
+            $anySuccess = false;
+            $failedMethods = [];
+            $successMethods = [];
+            
+            foreach ($results as $method => $result) {
+                $deliveryMethods[] = $method;
+                if ($result['success']) {
+                    $anySuccess = true;
+                    $successMethods[] = $method;
+                } else {
+                    $failedMethods[$method] = $result['message'] ?? 'Unknown error';
+                }
             }
 
-            $deliveryMethod = $customer->report_configuration['delivery']['method'] ?? 'email';
-
-            switch ($deliveryMethod) {
-                case 'email':
-                    $this->deliverViaEmail($destination, $company);
-                    break;
-
-                case 'api':
-                    $this->deliverViaAPI($destination);
-                    break;
-
-                default:
-                    throw new \Exception("Unsupported delivery method: {$deliveryMethod}");
+            if (!$anySuccess) {
+                $errorMessages = array_map(
+                    fn($m, $e) => "{$m}: {$e}",
+                    array_keys($failedMethods),
+                    array_values($failedMethods)
+                );
+                throw new \Exception("All delivery methods failed: " . implode('; ', $errorMessages));
             }
 
             $this->generatedReport->update([
                 'delivered' => true,
                 'delivered_at' => now(),
-                'delivery_method' => $deliveryMethod,
+                'delivery_method' => implode(',', $successMethods),
             ]);
 
             Log::info('Report delivered successfully', [
                 'generated_report_id' => $this->generatedReport->generated_report_id,
-                'delivery_method' => $deliveryMethod,
+                'delivery_methods' => $successMethods,
+                'failed_methods' => array_keys($failedMethods),
             ]);
 
         } catch (\Exception $e) {
@@ -80,7 +93,8 @@ class DeliverReportJob implements ShouldQueue
             ]);
 
             // Create user-friendly error message
-            $errorMessage = $this->formatErrorMessage($e->getMessage(), $deliveryMethod ?? 'email');
+            $primaryMethod = $deliveryMethods[0] ?? 'email';
+            $errorMessage = $this->formatErrorMessage($e->getMessage(), $primaryMethod);
 
             $this->generatedReport->update([
                 'error_message' => $errorMessage,
@@ -88,40 +102,6 @@ class DeliverReportJob implements ShouldQueue
 
             throw $e;
         }
-    }
-
-    private function deliverViaEmail(string $destination, $company, ?array $additionalRecipients = null): void
-    {
-        $customer = $this->generatedReport->customer;
-        
-        // If additional recipients provided (from custom email), use them
-        // Otherwise, use configured CC addresses
-        $ccAddresses = $additionalRecipients ?? ($customer->report_configuration['delivery']['cc'] ?? []);
-
-        $mailService = resolve(MailService::class);
-        $mailer = $mailService->getMailer($company);
-        
-        $mail = $mailer->to($destination);
-        
-        if (!empty($ccAddresses)) {
-            $mail->cc($ccAddresses);
-        }
-
-        $mail->send(new ReportDeliveryMail($this->generatedReport, $company));
-
-        Log::info('Report delivered via email', [
-            'to' => $destination,
-            'cc' => $ccAddresses,
-            'report_id' => $this->generatedReport->generated_report_id,
-        ]);
-    }
-
-    private function deliverViaAPI(string $webhookUrl): void
-    { 
-        Log::info('API delivery (placeholder)', [
-            'webhook_url' => $webhookUrl,
-            'report_id' => $this->generatedReport->generated_report_id,
-        ]);  
     }
 
     public function failed(\Throwable $exception): void
@@ -179,11 +159,16 @@ class DeliverReportJob implements ShouldQueue
         }
         
         // Check for no destination
-        if (str_contains($rawError, 'No delivery destination')) {
-            return 'Email delivery failed: No recipient email configured';
+        if (str_contains($rawError, 'No delivery destination') || str_contains($rawError, 'No email destination')) {
+            return 'Delivery failed: No recipient configured';
+        }
+        
+        // Check for SharePoint errors
+        if (str_contains($rawError, 'SharePoint')) {
+            return "SharePoint delivery failed: {$rawError}";
         }
         
         // Default message for other errors
-        return "Email delivery failed: {$rawError}";
+        return "Delivery failed: {$rawError}";
     }
 }
