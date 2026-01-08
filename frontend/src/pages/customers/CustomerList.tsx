@@ -10,9 +10,13 @@ import { EditCustomerModal } from "./modals/EditCustomerModal";
 import { ViewCustomerIntegrationsModal } from "./modals/ViewCustomerIntegrationsModal";
 import { MergeCustomersModal } from "./modals/MergeCustomersModal";
 import { SplitCustomerModal } from "./modals/SplitCustomerModal";
+import { CreateStaticCustomerModal } from "./modals/CreateStaticCustomerModal";
 import { useCustomerList } from "./hooks";
+import { useState } from "react";
 
 export default function CustomerList() {
+    const [showCreateStatic, setShowCreateStatic] = useState(false);
+
     const {
         navigate,
         searchQuery,
@@ -44,7 +48,7 @@ export default function CustomerList() {
     return (
         <FloatingLayout>
             <div className="space-y-6 max-w-full overflow-hidden">
-                <CustomersHeader />
+                <CustomersHeader onCreateStatic={() => setShowCreateStatic(true)} />
 
                 <CustomersFilters
                     searchQuery={searchQuery}
@@ -87,7 +91,7 @@ export default function CustomerList() {
                 <MapCustomerModal
                     open={modals.map}
                     onOpenChange={(open) => open ? openModal("map") : closeModal("map")}
-                    integrationCustomer={selectedUnmappedCustomer}
+                    integrationCustomers={selectedUnmappedCustomer ? [selectedUnmappedCustomer] : []}
                     existingCustomers={mappedCustomers}
                     onSuccess={handleMapSuccess}
                 />
@@ -124,6 +128,15 @@ export default function CustomerList() {
                     onOpenChange={(open) => open ? openModal("split") : closeModal("split")}
                     customer={selectedCustomer}
                     onSuccess={() => handleModalSuccess('split', "Customer Split", "Customer split successfully")}
+                />
+
+                <CreateStaticCustomerModal
+                    open={showCreateStatic}
+                    onOpenChange={setShowCreateStatic}
+                    onSuccess={() => {
+                        setShowCreateStatic(false);
+                        fetchCustomers();
+                    }}
                 />
             </div>
         </FloatingLayout>

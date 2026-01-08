@@ -21,6 +21,7 @@ export interface Customer {
   company_id: number
   canonical_name: string
   status: 'active' | 'inactive'
+  is_static: boolean
   metadata: Record<string, unknown>
   created_at: string
   updated_at: string

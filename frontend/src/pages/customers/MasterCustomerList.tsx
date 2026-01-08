@@ -9,9 +9,15 @@ import { EditCustomerModal } from "./modals/EditCustomerModal";
 import { ViewCustomerIntegrationsModal } from "./modals/ViewCustomerIntegrationsModal";
 import { MergeCustomersModal } from "./modals/MergeCustomersModal";
 import { SplitCustomerModal } from "./modals/SplitCustomerModal";
+import { CreateStaticCustomerModal } from "./modals/CreateStaticCustomerModal";
 import { useMasterCustomerList } from "./hooks";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { UserPlus } from "lucide-react";
 
 export default function MasterCustomerList() {
+    const [showCreateStatic, setShowCreateStatic] = useState(false);
+
     const {
         navigate,
         searchQuery,
@@ -44,18 +50,24 @@ export default function MasterCustomerList() {
     return (
         <FloatingLayout>
             <div className="space-y-6 max-w-full overflow-hidden">
-                <div>
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-bold text-foreground">Master Customer List</h1>
-                        {sotIntegrationName && (
-                            <span className="px-3 py-1 text-sm font-medium bg-primary/10 text-primary rounded-full border border-primary/20">
-                                {sotIntegrationName}
-                            </span>
-                        )}
+                <div className="flex items-start justify-between">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-3xl font-bold text-foreground">Master Customer List</h1>
+                            {sotIntegrationName && (
+                                <span className="px-3 py-1 text-sm font-medium bg-primary/10 text-primary rounded-full border border-primary/20">
+                                    {sotIntegrationName}
+                                </span>
+                            )}
+                        </div>
+                        <p className="mt-2 text-muted-foreground">
+                            Customers from your Source of Truth integration
+                        </p>
                     </div>
-                    <p className="mt-2 text-muted-foreground">
-                        Customers from your Source of Truth integration
-                    </p>
+                    <Button onClick={() => setShowCreateStatic(true)} className="flex items-center gap-2">
+                        <UserPlus className="h-4 w-4" />
+                        Create Static Customer
+                    </Button>
                 </div>
 
                 <CustomersFilters
@@ -136,6 +148,15 @@ export default function MasterCustomerList() {
                     onOpenChange={(open) => open ? openModal("split") : closeModal("split")}
                     customer={selectedCustomer}
                     onSuccess={() => handleModalSuccess('split', "Customer Split", "Customer split successfully")}
+                />
+
+                <CreateStaticCustomerModal
+                    open={showCreateStatic}
+                    onOpenChange={setShowCreateStatic}
+                    onSuccess={() => {
+                        setShowCreateStatic(false);
+                        fetchCustomers(currentPage);
+                    }}
                 />
 
             </div>

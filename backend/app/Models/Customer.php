@@ -23,6 +23,7 @@ class Customer extends Model
         'company_id',
         'canonical_name',
         'status',
+        'is_static',
         'report_configuration',
         'report_destination',
         'metadata',
@@ -31,7 +32,24 @@ class Customer extends Model
     protected $casts = [
         'report_configuration' => 'array',
         'metadata' => 'array',
+        'is_static' => 'boolean',
     ];
+
+    /**
+     * Decode HTML entities in canonical_name when retrieving
+     */
+    public function getCanonicalNameAttribute($value)
+    {
+        return $value ? html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8') : $value;
+    }
+
+    /**
+     * Encode HTML entities in canonical_name when setting
+     */
+    public function setCanonicalNameAttribute($value)
+    {
+        $this->attributes['canonical_name'] = $value;
+    }
 
     public function company()
     {

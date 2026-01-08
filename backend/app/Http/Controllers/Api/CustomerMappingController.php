@@ -91,8 +91,9 @@ class CustomerMappingController extends Controller
         $data = $customers->map(function ($customer) {
             return [
                 'customer_id' => $customer->customer_id,
-                'canonical_name' => e($customer->canonical_name),
+                'canonical_name' => $customer->canonical_name,
                 'status' => e($customer->status),
+                'is_static' => $customer->is_static,
                 'report_destination' => e($customer->report_destination),
                 'report_schedules_count' => $customer->reportSchedules->count(),
                 'integrations' => $customer->integrationCustomers->map(function ($ic) {
@@ -191,13 +192,14 @@ class CustomerMappingController extends Controller
                 'integration_type' => e($ic->integration->integration_type ?? null),
                 'display_name' => e($ic->integration->display_name ?? null),
                 'external_id' => e($ic->external_id),
-                'name' => e($ic->name),
+                'name' => html_entity_decode($ic->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                 'active' => (bool) $ic->active,
                 'last_seen_at' => $ic->last_seen_at ? (int)($ic->last_seen_at->timestamp * 1000) : null,
                 'suggested_matches' => array_map(function($suggestion) {
                     return [
                         'customer_id' => $suggestion['customer']->customer_id,
                         'canonical_name' => $suggestion['customer']->canonical_name,
+                        'is_static' => $suggestion['customer']->is_static ?? false,
                         'confidence_score' => $suggestion['confidence_score'],
                     ];
                 }, $suggestions),
@@ -220,6 +222,67 @@ class CustomerMappingController extends Controller
                 'by_integration_type' => $countsByIntegrationType,
             ],
         ]);
+    }
+
+    /**
+     * Create a static customer (not linked to any integration)
+     */
+    public function createStaticCustomer(Request $request)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $validated = $request->validate([
+            'canonical_name' => 'required|string|max:255',
+            'status' => 'sometimes|in:active,inactive',
+            'report_destination' => 'sometimes|email|nullable',
+            'metadata' => 'sometimes|array',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $customer = Customer::create([
+                'company_id' => $company->company_id,
+                'canonical_name' => $validated['canonical_name'],
+                'status' => $validated['status'] ?? 'active',
+                'is_static' => true,
+                'report_destination' => $validated['report_destination'] ?? null,
+                'metadata' => $validated['metadata'] ?? [],
+            ]);
+
+            AuditLog::create([
+                'company_id' => $company->company_id,
+                'event_type' => 'static_customer_created',
+                'actor_type' => 'User',
+                'actor_id' => $authUser->user_id,
+                'target_type' => 'Customer',
+                'target_id' => $customer->customer_id,
+                'event_data' => [
+                    'canonical_name' => $customer->canonical_name,
+                    'is_static' => true,
+                ],
+                'ip_address' => $request->ip(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Static customer created successfully.',
+                'data' => [
+                    'customer_id' => $customer->customer_id,
+                    'canonical_name' => $customer->canonical_name,
+                    'status' => $customer->status,
+                    'is_static' => $customer->is_static,
+                ],
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to create static customer: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function mapCustomer(Request $request)
@@ -285,6 +348,7 @@ class CustomerMappingController extends Controller
                     'company_id' => $company->company_id,
                     'canonical_name' => $request->canonical_name,
                     'status' => $request->status ?? 'active',
+                    'is_static' => false,
                     'report_destination' => $request->report_destination,
                     'metadata' => $request->metadata ?? [],
                 ]);
@@ -351,7 +415,8 @@ class CustomerMappingController extends Controller
                 'data' => [
                     'integration_customer_id' => $integrationCustomer->integration_customer_id,
                     'customer_id' => $customer->customer_id,
-                    'canonical_name' => e($customer->canonical_name),
+                    'canonical_name' => $customer->canonical_name,
+                    'is_static' => $customer->is_static,
                     'created_new' => $request->create_new ?? false,
                 ],
             ]);
