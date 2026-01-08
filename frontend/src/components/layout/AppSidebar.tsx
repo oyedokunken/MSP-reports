@@ -38,6 +38,7 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { CreateUserModal } from '@/pages/users/modals/CreateUserModal'
 
 export default function AppSidebar() {
@@ -193,52 +194,108 @@ export default function AppSidebar() {
                     {/* Insert Customers menu after Integrations */}
                     {item.path === '/platform/integrations' && hasPermission(user, 'customers', 'view') && (
                       <SidebarMenuItem className="group-data-[collapsible=icon]:static" data-tour="nav-customers">
-                        <div className="relative">
-                          <span className="absolute left-[-14px] top-5 h-1.5 w-1.5 rounded-full bg-sidebar-border group-data-[collapsible=icon]:hidden" />
-                          <SidebarMenuButton
-                            tooltip="Customers"
-                            onClick={() => setCustomersExpanded(!customersExpanded)}
-                            className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10"
-                          >
-                            <Users className="h-4 w-4 flex-shrink-0" />
-                            <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">Customers</span>
-                            <ChevronDown className={`h-4 w-4 transition-transform group-data-[collapsible=icon]:hidden ${customersExpanded ? 'rotate-180' : ''}`} />
-                          </SidebarMenuButton>
-                        </div>
-                        <div
-                          className={`overflow-hidden transition-all duration-300 ease-in-out ${customersExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                            }`}
-                        >
-                          <SidebarMenuSub className="group-data-[collapsible=icon]:hidden">
-                            {customersSubItems.map((subItem) => {
-                              const SubIcon = subItem.icon
-                              const subActive = isActive(subItem.path)
-                              const showBadge = typeof subItem.badge === 'number' && subItem.badge > 0
-                              return (
-                                <SidebarMenuSubItem key={subItem.path} className="relative">
-                                  <span className="absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-border" />
-                                  {showBadge && (
-                                    <span className="absolute -top-2 -right-2 h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center ring-1 ring-background z-10">
-                                      {subItem.badge}
-                                    </span>
-                                  )}
-                                  <SidebarMenuSubButton
-                                    asChild
-                                    isActive={subActive}
-                                    style={subActive ? { background: 'var(--brand-gradient)' } : undefined}
-                                  >
-                                    <Link to={subItem.path} onClick={(e) => handleNavClick(e, subItem.path)}>
-                                      <div className="relative flex-shrink-0">
-                                        <SubIcon className="h-4 w-4" />
-                                      </div>
-                                      <span className="flex-1">{subItem.label}</span>
+                        {state === 'collapsed' ? (
+                          <Tooltip delayDuration={0}>
+                            <TooltipTrigger asChild>
+                              <div className="relative">
+                                <SidebarMenuButton
+                                  tooltip="Customers"
+                                  className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10"
+                                >
+                                  <Users className="h-4 w-4 flex-shrink-0" />
+                                  <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">Customers</span>
+                                </SidebarMenuButton>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="p-0 min-w-[180px]">
+                              <div className="flex flex-col">
+                                {customersSubItems.map((subItem, index) => {
+                                  const SubIcon = subItem.icon
+                                  const subActive = isActive(subItem.path)
+                                  const showBadge = typeof subItem.badge === 'number' && subItem.badge > 0
+                                  const isFirst = index === 0
+                                  const isLast = index === customersSubItems.length - 1
+                                  return (
+                                    <Link
+                                      key={subItem.path}
+                                      to={subItem.path}
+                                      className={`flex items-center gap-3 px-3 py-2.5 transition-colors relative ${isFirst ? 'rounded-t-md' : ''
+                                        } ${isLast ? 'rounded-b-md' : ''}`}
+                                      style={subActive ? { background: 'var(--brand-gradient)' } : undefined}
+                                      onMouseEnter={(e) => {
+                                        if (!subActive) {
+                                          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.1)'
+                                        }
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        if (!subActive) {
+                                          e.currentTarget.style.background = ''
+                                        }
+                                      }}
+                                    >
+                                      <SubIcon className="h-4 w-4 flex-shrink-0" />
+                                      <span className="flex-1 text-sm whitespace-nowrap">{subItem.label}</span>
+                                      {showBadge && (
+                                        <span className="h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                                          {subItem.badge}
+                                        </span>
+                                      )}
                                     </Link>
-                                  </SidebarMenuSubButton>
-                                </SidebarMenuSubItem>
-                              )
-                            })}
-                          </SidebarMenuSub>
-                        </div>
+                                  )
+                                })}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <>
+                            <div className="relative">
+                              <span className="absolute left-[-14px] top-5 h-1.5 w-1.5 rounded-full bg-sidebar-border group-data-[collapsible=icon]:hidden" />
+                              <SidebarMenuButton
+                                tooltip="Customers"
+                                onClick={() => setCustomersExpanded(!customersExpanded)}
+                                className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10"
+                              >
+                                <Users className="h-4 w-4 flex-shrink-0" />
+                                <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">Customers</span>
+                                <ChevronDown className={`h-4 w-4 transition-transform group-data-[collapsible=icon]:hidden ${customersExpanded ? 'rotate-180' : ''}`} />
+                              </SidebarMenuButton>
+                            </div>
+                            <div
+                              className={`overflow-hidden transition-all duration-300 ease-in-out ${customersExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                                }`}
+                            >
+                              <SidebarMenuSub className="group-data-[collapsible=icon]:hidden">
+                                {customersSubItems.map((subItem) => {
+                                  const SubIcon = subItem.icon
+                                  const subActive = isActive(subItem.path)
+                                  const showBadge = typeof subItem.badge === 'number' && subItem.badge > 0
+                                  return (
+                                    <SidebarMenuSubItem key={subItem.path} className="relative">
+                                      <span className="absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-border" />
+                                      {showBadge && (
+                                        <span className="absolute -top-2 -right-2 h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center ring-1 ring-background z-10">
+                                          {subItem.badge}
+                                        </span>
+                                      )}
+                                      <SidebarMenuSubButton
+                                        asChild
+                                        isActive={subActive}
+                                        style={subActive ? { background: 'var(--brand-gradient)' } : undefined}
+                                      >
+                                        <Link to={subItem.path} onClick={(e) => handleNavClick(e, subItem.path)}>
+                                          <div className="relative flex-shrink-0">
+                                            <SubIcon className="h-4 w-4" />
+                                          </div>
+                                          <span className="flex-1 whitespace-nowrap">{subItem.label}</span>
+                                        </Link>
+                                      </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                  )
+                                })}
+                              </SidebarMenuSub>
+                            </div>
+                          </>
+                        )}
                       </SidebarMenuItem>
                     )}
                   </Fragment>
