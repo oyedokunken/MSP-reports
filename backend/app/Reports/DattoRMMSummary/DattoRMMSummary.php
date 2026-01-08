@@ -5,14 +5,16 @@ namespace App\Reports\DattoRMMSummary;
 use App\Models\Customer;
 use App\Models\IntegrationData;
 use App\Reports\Contracts\ReportInterface;
+use App\Reports\Contracts\BaseReport;
 use Carbon\Carbon;
 
-class DattoRMMSummary implements ReportInterface
+class DattoRMMSummary extends BaseReport
 {
     private DattoRMMDataGatherer $dataGatherer;
 
-    public function __construct()
+    public function __construct(int $companyId)
     {
+        parent::__construct($companyId);
         $this->dataGatherer = new DattoRMMDataGatherer();
     }
 
@@ -378,23 +380,4 @@ class DattoRMMSummary implements ReportInterface
         return $recommendations;
     }
 
-    /**
-     * Format a single date
-     */
-    private function formatDate(Carbon $date): string
-    {
-        return $date->format('F j, Y');
-    }
-
-    /**
-     * Format a date range
-     */
-    private function formatDateRange(Carbon $startDate, Carbon $endDate): string
-    {
-        if ($startDate->month === $endDate->month && $startDate->year === $endDate->year) {
-            return $startDate->format('F Y');
-        }
-        
-        return $startDate->format('M j') . ' - ' . $endDate->format('M j, Y');
-    }
 }

@@ -193,4 +193,129 @@ abstract class BaseReport implements ReportInterface
             'formats' => ['pdf'],
         ];
     }
+
+    /**
+     * Check if integration has data for the given frequency
+     * 
+     * @param int $customerId Customer ID to check
+     * @param string $frequency Frequency to check (monthly, weekly, daily, yearly, on-demand)
+     * @return bool True if data exists for the frequency period
+     */
+    public static function hasDataForFrequency(int $customerId, string $frequency = 'monthly'): bool
+    {
+        if ($frequency === 'on-demand') {
+            return true;
+        }
+        
+        $dateRange = static::getDateRangeForFrequency($frequency);
+        
+        return static::hasDataInRange(
+            $customerId, 
+            $dateRange['start'], 
+            $dateRange['end']
+        );
+    }
+
+    /**
+     * Check if integration has any data in the last 30 days
+     * Used for UI availability indicators
+     */
+    public static function hasRecentData(int $customerId): bool
+    {
+        $now = Carbon::now();
+        return static::hasDataInRange(
+            $customerId,
+            $now->copy()->subDays(30),
+            $now
+        );
+    }
+
+    /**
+     * Get date range based on frequency
+     * 
+     * @param string $frequency Frequency type
+     * @return array Array with 'start' and 'end' Carbon instances
+     */
+    protected static function getDateRangeForFrequency(string $frequency): array
+    {
+        $now = Carbon::now();
+        
+        return match($frequency) {
+            'monthly' => [
+                'start' => $now->copy()->subMonth()->startOfMonth(),
+                'end' => $now->copy()->subMonth()->endOfMonth(),
+            ],
+            'weekly' => [
+                'start' => $now->copy()->subWeek()->startOfWeek(),
+                'end' => $now->copy()->subWeek()->endOfWeek(),
+            ],
+            'daily' => [
+                'start' => $now->copy()->subDay()->startOfDay(),
+                'end' => $now->copy()->subDay()->endOfDay(),
+            ],
+            'yearly' => [
+                'start' => $now->copy()->subYear()->startOfYear(),
+                'end' => $now->copy()->subYear()->endOfYear(),
+            ],
+            'on-demand' => [
+                'start' => $now->copy()->subDays(30),
+                'end' => $now,
+            ],
+            default => [
+                'start' => $now->copy()->subMonth(),
+                'end' => $now,
+            ],
+        };
+    }
+
+    /**
+     * Check if data exists in date range for this report type
+     * 
+     * @param int $customerId Customer ID
+     * @param Carbon $startDate Start date
+     * @param Carbon $endDate End date
+     * @return bool True if data exists
+     */
+    protected static function hasDataInRange(int $customerId, Carbon $startDate, Carbon $endDate): bool
+    {
+        // Get report config from child class
+        $configPath = dirname((new \ReflectionClass(static::class))->getFileName()) . '/config.php';
+        
+        if (!file_exists($configPath)) {
+            return false;
+        }
+        
+        $config = require $configPath;
+        $dataTypes = $config['data_types'] ?? [];
+        $requiredIntegrations = $config['required_integrations'] ?? [];
+        
+        if (empty($dataTypes) || empty($requiredIntegrations)) {
+            return false;
+        }
+        
+        // Get customer's integration customer IDs for required integrations
+        $customer = \App\Models\Customer::find($customerId);
+        if (!$customer) {
+            return false;
+        }
+        
+        $integrationCustomerIds = $customer->integrationCustomers()
+            ->whereHas('integration', function($q) use ($requiredIntegrations) {
+                $q->whereIn('integration_type', $requiredIntegrations)
+                  ->where('status', 'active');
+            })
+            ->pluck('integration_customers.integration_customer_id')
+            ->toArray();
+        
+        if (empty($integrationCustomerIds)) {
+            return false;
+        }
+        
+        // Check if data exists in the date range
+        return \App\Models\IntegrationData::where('company_id', $customer->company_id)
+            ->whereIn('data_type', $dataTypes)
+            ->whereIn('integration_customer_id', $integrationCustomerIds)
+            ->whereBetween('data_timestamp', [$startDate, $endDate])
+            ->exists();
+    }
 }

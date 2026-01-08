@@ -47,10 +47,7 @@ class AutotaskIntegration implements IntegrationInterface
         $this->mappedDuringSync = [];
         $totalProcessed = 0;
 
-        // Pre-load customer map for efficiency (though less critical if only syncing companies)
-
         try {
-            // 1. Sync Companies
             $autotaskCompanies = $this->client->getCompanies();
             
             \Log::info('Autotask sync: Retrieved companies', [
@@ -86,7 +83,6 @@ class AutotaskIntegration implements IntegrationInterface
 
 
         } catch (\Exception $e) {
-            // Rethrow rate limit exceptions so the job can be released back to the queue
             if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
                 throw $e;
             }
@@ -118,8 +114,6 @@ class AutotaskIntegration implements IntegrationInterface
             'last_sync' => now(),
         ], now()->addMinutes(10));
 
-        // TICKET & TIME ENTRY POLLING (database-driven schedule)
-        // Fetch tickets + time entries from last 10 minutes
         $ticketsProcessed = 0;
         $timeEntriesProcessed = 0;
         
@@ -127,12 +121,10 @@ class AutotaskIntegration implements IntegrationInterface
             $since = $this->integration->last_sync_at ? Carbon::parse($this->integration->last_sync_at)->subMinutes(5) : now()->subMinutes(60);
             $until = now();
             
-            // Pre-load customer map
             $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
                 ->pluck('integration_customer_id', 'external_id')
                 ->toArray();
             
-            // Fetch tickets
             $recentTickets = $this->client->getTickets($since, $until);
             $ticketToCompanyMap = [];
             
@@ -155,7 +147,6 @@ class AutotaskIntegration implements IntegrationInterface
                 }
             }
             
-            // Fetch time entries
             $recentTimeEntries = $this->client->getTimeEntries($since, $until);
             
             foreach ($recentTimeEntries as $entry) {
@@ -236,17 +227,14 @@ class AutotaskIntegration implements IntegrationInterface
                 ->pluck('integration_customer_id', 'external_id')
                 ->toArray();
 
-            // Process tickets
             $ticketsProcessed = 0;
             $tickets = $this->client->getTickets($startDate, $endDate);
             
-            // Build a ticket-to-company map for time entries
             $ticketToCompanyMap = [];
             foreach ($tickets as $ticket) {
                 $ticketToCompanyMap[$ticket['id']] = $ticket['companyID'] ?? null;
             }
             
-            // Process tickets in chunks
             foreach (array_chunk($tickets, 1000) as $chunk) {
                 $batchRecords = [];
 
@@ -291,12 +279,11 @@ class AutotaskIntegration implements IntegrationInterface
             unset($tickets);
             gc_collect_cycles();
             
-            \Log::info('Autotask historical (OPTIMIZED): Tickets processed', [
+            \Log::info('Autotask historical: Tickets processed', [
                 'integration_id' => $this->integration->integration_id,
                 'tickets_processed' => $ticketsProcessed,
             ]);
 
-            // Process time entries
             $timeEntriesProcessed = 0;
             $timeEntries = $this->client->getTimeEntries($startDate, $endDate);
             
@@ -347,12 +334,11 @@ class AutotaskIntegration implements IntegrationInterface
             unset($timeEntries, $ticketToCompanyMap);
             gc_collect_cycles();
             
-            \Log::info('Autotask historical (OPTIMIZED): Time entries processed', [
+            \Log::info('Autotask historical: Time entries processed', [
                 'integration_id' => $this->integration->integration_id,
                 'time_entries_processed' => $timeEntriesProcessed,
             ]);
 
-            // Process resources
             try {
                 $resources = $this->client->getResources();
                 $resourcesProcessed = 0;
@@ -396,11 +382,6 @@ class AutotaskIntegration implements IntegrationInterface
                 $errors[] = "Failed to fetch resources: {$e->getMessage()}";
             }
 
-
-
-            // Process Contracts (Active contracts - no date range, so just fetch/update)
-            // Fetch fewer times if possible? Logic here runs per chunk.
-            // Since contracts are usually low volume, we'll fetch them every chunk to be safe/simple.
             try {
                 $contracts = $this->client->getContracts(); 
                 $contractsProcessed = 0;
@@ -430,14 +411,13 @@ class AutotaskIntegration implements IntegrationInterface
                     if (!empty($batchRecords)) $this->storeHistoricalDataBatch($batchRecords);
                 }
                 $totalProcessed += $contractsProcessed;
-                 \Log::info('Autotask historical (OPTIMIZED): Contracts processed', [
+                 \Log::info('Autotask historical: Contracts processed', [
                     'count' => $contractsProcessed
                 ]);
             } catch (\Exception $e) {
                  $errors[] = "Failed to fetch contracts: {$e->getMessage()}";
             }
 
-            // Process Contacts
              try {
                 $contacts = $this->client->getContacts($startDate, $endDate);
                 $contactsProcessed = 0;
@@ -447,7 +427,6 @@ class AutotaskIntegration implements IntegrationInterface
                     foreach ($chunk as $contact) {
                         try {
                             $standardized = AutotaskMapper::mapContact($contact);
-                            // Try to map to integration customer
                              $integrationCustomerId = null;
                             if ($contact['companyID'] ?? false) {
                                  $integrationCustomerId = $customerMap[(string)$contact['companyID']] ?? null;
@@ -473,14 +452,13 @@ class AutotaskIntegration implements IntegrationInterface
                     if (!empty($batchRecords)) $this->storeHistoricalDataBatch($batchRecords);
                 }
                 $totalProcessed += $contactsProcessed;
-                 \Log::info('Autotask historical (OPTIMIZED): Contacts processed', [
+                 \Log::info('Autotask historical: Contacts processed', [
                     'count' => $contactsProcessed
                 ]);
             } catch (\Exception $e) {
                  $errors[] = "Failed to fetch contacts: {$e->getMessage()}";
             }
 
-            // Process Ticket Notes
             try {
                 $notes = $this->client->getTicketNotes($startDate, $endDate);
                 $notesProcessed = 0;
@@ -490,21 +468,6 @@ class AutotaskIntegration implements IntegrationInterface
                     foreach ($chunk as $note) {
                         try {
                             $standardized = AutotaskMapper::mapTicketNote($note);
-                            
-                            $ticketId = $note['ticketID'] ?? null;
-                            $integrationCustomerId = null;
-                            // Map to customer via ticket if we have the map
-                            // Note: we don't have ticket->company map persisted here easily unless we refetch or use what we got from getTickets if they overlap
-                            // For simplicity, we might miss the customer ID for notes if we don't look it up.
-                            // However, we did fetch tickets earlier in this method.
-                            
-                            // Optimization: Check if ticket ID was in the tickets we just fetched?
-                            // $ticketToCompanyMap was unset. 
-                            // Re-building map is hard since we unset it. 
-                            // But usually notes come with ticket ID. 
-                            // If we really need integration_customer_id on notes, we need that map.
-                            // Let's use null for now or try to improve later if needed. 
-                            // Ticket Notes are usually children of tickets.
 
                             $batchRecords[] = [
                                 'company_id' => $this->integration->company_id,
@@ -531,7 +494,7 @@ class AutotaskIntegration implements IntegrationInterface
                  $errors[] = "Failed to fetch ticket notes: {$e->getMessage()}";
             }
 
-            \Log::info('Autotask historical (OPTIMIZED): Completed', [
+            \Log::info('Autotask historical: Completed', [
                 'integration_id' => $this->integration->integration_id,
                 'total_processed' => $totalProcessed,
                 'errors' => count($errors),
@@ -539,7 +502,7 @@ class AutotaskIntegration implements IntegrationInterface
 
         } catch (\Exception $e) {
             $errors[] = "Historical data fetch failed: {$e->getMessage()}";
-            \Log::error('Autotask historical (OPTIMIZED): Failed', [
+            \Log::error('Autotask historical: Failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
@@ -557,10 +520,34 @@ class AutotaskIntegration implements IntegrationInterface
             return;
         }
 
-        // TimescaleDB hypertable - always INSERT for time-series data
-        // Creates snapshots for all data types (tickets, time entries, resources)
-        // Reports deduplicate using ->unique() to show latest per entity
-        DB::table('integration_data')->insert($records);
+        foreach (array_chunk($records, 500) as $chunk) {
+            foreach ($chunk as $record) {
+                $uniqueKeyField = $this->getUniqueKeyField($record['data_type']);
+                
+                if ($uniqueKeyField) {
+                    $payload = json_decode($record['data_payload'], true);
+                    $uniqueKey = $payload[$uniqueKeyField] ?? null;
+                    
+                    if ($uniqueKey) {
+                        $existing = IntegrationData::where('integration_id', $record['integration_id'])
+                            ->where('data_type', $record['data_type'])
+                            ->whereRaw("data_payload->>'$uniqueKeyField' = ?", [$uniqueKey])
+                            ->first();
+
+                        if ($existing) {
+                            $existing->update([
+                                'data_timestamp' => $record['data_timestamp'],
+                                'data_payload' => $payload,
+                                'imported_at' => $record['imported_at'],
+                            ]);
+                            continue;
+                        }
+                    }
+                }
+                
+                IntegrationData::create($record);
+            }
+        }
     }
 
     public function getAvailableHistoryRange(): ?Carbon
@@ -672,7 +659,6 @@ class AutotaskIntegration implements IntegrationInterface
 
     private function storeCustomer(array $customer): void
     {
-        // Validate required fields
         if (empty($customer['external_id']) || empty($customer['name'])) {
             Log::warning('Autotask: Skipping customer with missing required fields', [
                 'customer' => $customer
@@ -695,19 +681,15 @@ class AutotaskIntegration implements IntegrationInterface
             );
 
             $integrationCustomer->refresh();
-
-            // Batch job processes all unmapped customers at end of sync
         });
     }
 
     private function storeHistoricalData(array $data): void
     {
-        // Determine unique key based on data type
         $payload = $data['payload'];
         $uniqueKey = $this->getUniqueKeyFromPayload($data['data_type'], $payload);
         
         if ($uniqueKey) {
-            // Use upsert pattern - update if exists, insert if not
             $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
                 ->where('data_type', $data['data_type'])
                 ->whereRaw("data_payload->>'{$this->getUniqueKeyField($data['data_type'])}' = ?", [$uniqueKey])
@@ -732,7 +714,6 @@ class AutotaskIntegration implements IntegrationInterface
                 ]);
             }
         } else {
-            // Fallback to insert for data types without unique keys
             IntegrationData::create([
                 'company_id' => $this->integration->company_id,
                 'integration_id' => $this->integration->integration_id,
@@ -746,18 +727,12 @@ class AutotaskIntegration implements IntegrationInterface
         }
     }
 
-    /**
-     * Get unique key value from payload based on data type
-     */
     private function getUniqueKeyFromPayload(string $dataType, array $payload): ?string
     {
         $keyField = $this->getUniqueKeyField($dataType);
         return $keyField ? ($payload[$keyField] ?? null) : null;
     }
 
-    /**
-     * Get the field name that contains the unique key for each data type
-     */
     private function getUniqueKeyField(string $dataType): ?string
     {
         return match($dataType) {

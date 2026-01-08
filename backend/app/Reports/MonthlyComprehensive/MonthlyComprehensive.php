@@ -20,6 +20,57 @@ class MonthlyComprehensive extends BaseReport
         return 30;
     }
 
+    /**
+     * Override check to return true if ANY of the underlying integration reports have data
+     */
+    protected static function hasDataInRange(int $customerId, Carbon $startDate, Carbon $endDate): bool
+    {
+        $customer = Customer::find($customerId);
+        if (!$customer) {
+            return false;
+        }
+
+        $registry = app(\App\Services\ReportRegistry::class);
+        
+        // Get all customer's integrations
+        $customerIntegrations = $customer->integrationCustomers()
+            ->with('integration')
+            ->get()
+            ->pluck('integration')
+            ->unique('integration_id')
+            ->filter();
+            
+        $integrationReportMap = [
+            'Autotask' => 'autotask_summary',
+            'Datto' => 'datto_rmm_summary',
+            'DattoRMM' => 'datto_rmm_summary',
+            'BitDefender' => 'bitdefender_summary',
+            'ITGlue' => 'itglue_summary',
+            'SaaS' => 'saas_summary',
+            'Sendmarc' => 'sendmarc_summary',
+        ];
+        
+        foreach ($customerIntegrations as $integration) {
+            $integrationType = $integration->integration_type;
+            
+            if (isset($integrationReportMap[$integrationType])) {
+                $reportId = $integrationReportMap[$integrationType];
+                
+                try {
+                    $report = $registry->get($reportId, $customer->company_id);
+                    
+                    if ($report && $report->validate($customer, $startDate, $endDate)) {
+                        return true;
+                    }
+                } catch (\Exception $e) {
+                    continue;
+                }
+            }
+        }
+        
+        return false;
+    }
+
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
         $reportData = [

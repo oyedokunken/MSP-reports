@@ -359,11 +359,27 @@ class ReportTemplateController extends Controller
                 }
             }
             
+            // Check data availability
+            $hasData = null;
+            $reportClass = $report['class'] ?? (is_object($reportInstance) ? get_class($reportInstance) : null);
+            
+            if ($reportClass && method_exists($reportClass, 'hasRecentData')) {
+                try {
+                    // Check last 30 days to see if integration is active/has data
+                    $hasData = $reportClass::hasRecentData($customerId);
+                } catch (\Exception $e) {
+                    \Log::warning("Failed to check data availability for template selector {$report['id']}", [
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
             $reportTypes[] = [
                 'type' => $report['id'],
                 'name' => $report['name'] ?? $metadata['name'] ?? 'Unknown Report',
                 'description' => $report['description'] ?? $metadata['description'] ?? '',
                 'required_integrations' => $requiredIntegrations,
+                'has_data' => $hasData,
                 'available_sections' => $report['available_sections'] ?? [
                     ['id' => 'all', 'label' => 'All Sections', 'default' => true],
                 ],

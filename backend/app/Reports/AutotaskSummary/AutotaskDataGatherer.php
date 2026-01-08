@@ -18,12 +18,25 @@ class AutotaskDataGatherer
             return collect([]);
         }
 
-        $rawData = IntegrationData::where('company_id', $customer->company_id)
+        $startUtc = $startDate->copy()->setTimezone('UTC');
+        $endUtc = $endDate->copy()->setTimezone('UTC');
+
+        $ticketsInRange = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'ticket')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->whereBetween('data_timestamp', [$startDate, $endDate])
+            ->whereBetween('data_timestamp', [$startUtc, $endUtc])
             ->orderBy('data_timestamp', 'desc')
             ->get();
+
+        $openTickets = IntegrationData::where('company_id', $customer->company_id)
+            ->where('data_type', 'ticket')
+            ->whereIn('integration_customer_id', $integrationCustomerIds)
+            ->whereRaw("data_payload->>'status' != '5'")
+            ->whereRaw("(data_payload->>'created_date')::timestamp <= ?", [$endUtc->toDateTimeString()])
+            ->orderBy('data_timestamp', 'desc')
+            ->get();
+
+        $rawData = $ticketsInRange->merge($openTickets);
 
         return $rawData->unique(function($item) {
             return $item->data_payload['ticket_id'] ?? null;
@@ -36,13 +49,11 @@ class AutotaskDataGatherer
             $lastActivityDate = isset($payload['last_activity_date']) ? Carbon::parse($payload['last_activity_date']) : null;
             
             $status = $payload['status'] ?? null;
-            $isOpen = $status != 5; // 5 is 'Complete' in Autotask
+            $isOpen = $status != 5;
             
-            // Filter by date range BEFORE formatting
             $isCreated = $createdDate && $createdDate->between($startDate, $endDate);
             $isCompleted = $completedDate && $completedDate->between($startDate, $endDate);
             
-            // Include if created in period, completed in period, OR currently open
             if (!$isCreated && !$isCompleted && !$isOpen) {
                 return null;
             }

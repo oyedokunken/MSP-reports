@@ -14,6 +14,7 @@ import { useMasterCustomerList } from "./hooks";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { UserPlus } from "lucide-react";
+import { ApplyTemplateToCustomerModal } from "@/pages/customers/modals/ApplyTemplateToCustomerModal";
 
 export default function MasterCustomerList() {
     const [showCreateStatic, setShowCreateStatic] = useState(false);
@@ -96,6 +97,7 @@ export default function MasterCustomerList() {
                     onMerge={(customer) => handleCustomerAction(customer, 'merge')}
                     onSplit={(customer) => handleCustomerAction(customer, 'split')}
                     onMoreInfo={(id) => navigate(`/platform/customers/${id}/integrations`)}
+                    onApplyTemplate={(customer) => handleCustomerAction(customer, 'applyTemplate')}
                 />
 
                 {total > 0 && (
@@ -148,6 +150,13 @@ export default function MasterCustomerList() {
                     onOpenChange={(open) => open ? openModal("split") : closeModal("split")}
                     customer={selectedCustomer}
                     onSuccess={() => handleModalSuccess('split', "Customer Split", "Customer split successfully")}
+                />
+
+                <ApplyTemplateToCustomerModal
+                    open={modals.applyTemplate}
+                    onOpenChange={(open) => open ? openModal("applyTemplate") : closeModal("applyTemplate")}
+                    customer={selectedCustomer}
+                    onSuccess={() => handleModalSuccess('applyTemplate', "Template Applied", "Report template successfully applied")}
                 />
 
                 <CreateStaticCustomerModal

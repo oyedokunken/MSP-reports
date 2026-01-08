@@ -27,6 +27,47 @@ class AutotaskSummary extends BaseReport
         return 30; // Need at least 30 days for monthly report
     }
 
+    /**
+     * Override data check to include open tickets outside the date range
+     */
+    protected static function hasDataInRange(int $customerId, Carbon $startDate, Carbon $endDate): bool
+    {
+        // Standard check for data in range (tickets, time entries, etc)
+        $hasDataInPeriod = parent::hasDataInRange($customerId, $startDate, $endDate);
+        
+        if ($hasDataInPeriod) {
+            return true;
+        }
+
+        // Additional check for OPEN tickets that were created BEFORE the end of the period
+        // This matches the logic in validate() and gatherTickets()
+        $customer = Customer::find($customerId);
+        if (!$customer) {
+            return false;
+        }
+
+        $integrationCustomerIds = $customer->integrationCustomers()
+            ->whereHas('integration', function($query) {
+                $query->where('integration_type', 'Autotask')
+                      ->where('status', 'active');
+            })
+            ->pluck('integration_customers.integration_customer_id')
+            ->toArray();
+
+        if (empty($integrationCustomerIds)) {
+            return false;
+        }
+
+        $endUtc = $endDate->copy()->setTimezone('UTC');
+
+        return IntegrationData::where('company_id', $customer->company_id)
+            ->where('data_type', 'ticket')
+            ->whereIn('integration_customer_id', $integrationCustomerIds)
+            ->whereRaw("data_payload->>'status' != '5'")
+            ->whereRaw("(data_payload->>'created_date')::timestamp <= ?", [$endUtc->toDateTimeString()])
+            ->exists();
+    }
+
     public function validate(Customer $customer, Carbon $startDate, Carbon $endDate): bool
     {
         // Check if customer has any Autotask integration
@@ -57,19 +98,42 @@ class AutotaskSummary extends BaseReport
             return false;
         }
 
-        $hasData = IntegrationData::where('company_id', $customer->company_id)
+        $startUtc = $startDate->copy()->setTimezone('UTC');
+        $endUtc = $endDate->copy()->setTimezone('UTC');
+
+        $hasDataInRange = IntegrationData::where('company_id', $customer->company_id)
             ->whereIn('data_type', ['ticket', 'time_entry'])
             ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->whereBetween('data_timestamp', [$startDate, $endDate])
+            ->whereBetween('data_timestamp', [$startUtc, $endUtc])
             ->exists();
 
-        \Log::info("Autotask Monthly Summary validation", [
+        if ($hasDataInRange) {
+            \Log::info("Autotask Summary validation - has data in range", [
+                'customer_id' => $customer->customer_id,
+            ]);
+            return true;
+        }
+
+        $hasOpenTickets = IntegrationData::where('company_id', $customer->company_id)
+            ->where('data_type', 'ticket')
+            ->whereIn('integration_customer_id', $integrationCustomerIds)
+            ->whereRaw("data_payload->>'status' != '5'")
+            ->whereRaw("(data_payload->>'created_date')::timestamp <= ?", [$endUtc->toDateTimeString()])
+            ->exists();
+
+        \Log::info("Autotask Summary validation", [
             'customer_id' => $customer->customer_id,
+            'company_id' => $customer->company_id,
             'integration_customer_ids' => $integrationCustomerIds,
-            'has_data' => $hasData,
+            'start_date_local' => $startDate->toDateTimeString(),
+            'end_date_local' => $endDate->toDateTimeString(),
+            'start_date_utc' => $startUtc->toDateTimeString(),
+            'end_date_utc' => $endUtc->toDateTimeString(),
+            'has_data_in_range' => $hasDataInRange,
+            'has_open_tickets' => $hasOpenTickets,
         ]);
 
-        return $hasData;
+        return $hasOpenTickets;
     }
 
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array

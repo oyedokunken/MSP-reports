@@ -69,6 +69,9 @@ class ReportConfigController extends Controller
             ], 404);
         }
 
+        // Get frequency parameter for data availability check
+        $frequency = $request->input('frequency', 'monthly');
+
         // Get customer's linked integrations
         $customerIntegrations = $customer->integrationCustomers()
             ->with('integration')
@@ -97,11 +100,25 @@ class ReportConfigController extends Controller
             
             // Check if customer has at least one of the required integrations
             return !empty(array_intersect($requiredIntegrations, $customerIntegrations));
-        })->map(function ($report) use ($customerIntegrations) {
+        })->map(function ($report) use ($customerIntegrations, $customerId, $frequency) {
             $requiredIntegrations = $report['required_integrations'] ?? [];
             $matchedIntegrations = array_intersect($requiredIntegrations, $customerIntegrations);
             
+            // Check if report has data for the given frequency
+            $hasData = false;
+            if (isset($report['class']) && method_exists($report['class'], 'hasDataForFrequency')) {
+                try {
+                    $hasData = $report['class']::hasDataForFrequency($customerId, $frequency);
+                } catch (\Exception $e) {
+                    \Log::warning("Failed to check data availability for {$report['id']}", [
+                        'error' => $e->getMessage()
+                    ]);
+                    $hasData = false;
+                }
+            }
+            
             return [
+                'id' => $report['id'],
                 'report_type' => $report['id'],
                 'name' => $report['name'],
                 'description' => $report['description'],
@@ -112,6 +129,7 @@ class ReportConfigController extends Controller
                 'enabled' => $report['enabled'] ?? true,
                 'data_types' => $report['data_types'] ?? [],
                 'integration_source' => !empty($matchedIntegrations) ? reset($matchedIntegrations) : 'Multiple',
+                'has_data' => $hasData,
             ];
         })->values()->all();
 

@@ -5,11 +5,17 @@ namespace App\Reports\LibreNMSDeviceReport;
 use App\Models\Customer;
 use App\Models\IntegrationData;
 use App\Reports\Contracts\ReportInterface;
+use App\Reports\Contracts\BaseReport;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class LibreNMSDeviceReport implements ReportInterface
+class LibreNMSDeviceReport extends BaseReport
 {
+    public function __construct(int $companyId)
+    {
+        parent::__construct($companyId);
+    }
+
     public function getRequiredDataTypes(): array
     {
         return ['device_uptime', 'device_availability'];

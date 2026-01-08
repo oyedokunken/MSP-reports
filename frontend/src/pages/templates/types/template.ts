@@ -60,6 +60,7 @@ export interface ReportTypeDefinition {
   name: string
   description: string
   required_integrations: string[]
+  has_data?: boolean
   optional_integrations?: string[]
   available_sections: ReportSection[]
 }

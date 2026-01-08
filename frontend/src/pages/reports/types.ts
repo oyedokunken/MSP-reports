@@ -21,7 +21,8 @@ export interface ReportType {
   name: string
   description: string
   integration_source?: string
-  frequency_options?: string[]
+  frequency_options: string[]
+  has_data?: boolean
 }
 
 export interface EnabledReport {
@@ -34,6 +35,7 @@ export interface EnabledReport {
   include_sections?: string[]
   day_of_month?: number
   day_of_week?: number
+  has_data?: boolean
 }
 
 export interface ReportDelivery {
@@ -65,6 +67,7 @@ export interface ReportSchedule {
   }
   email_destination?: string
   cc_emails?: string[]
+  has_data?: boolean
 }
 
 export interface ReportConfig {

@@ -37,8 +37,8 @@ export function ReportTypeSelector({
               onClick={() => onSelect(reportType.type)}
               className={`
                 p-4 rounded-lg border text-left transition-colors
-                ${isSelected 
-                  ? 'border-primary bg-primary/5' 
+                ${isSelected
+                  ? 'border-primary bg-primary/5'
                   : 'border-border hover:border-primary/50'
                 }
               `}
@@ -47,6 +47,11 @@ export function ReportTypeSelector({
                 <div className="flex-1">
                   <div className="font-medium flex items-center gap-2">
                     {reportType.name}
+                    {reportType.has_data === false && (
+                      <Badge variant="outline" className="h-5 px-1 bg-orange-50 text-orange-700 border-orange-200 text-[10px]">
+                        No Data
+                      </Badge>
+                    )}
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>

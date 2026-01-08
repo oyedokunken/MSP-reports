@@ -192,7 +192,7 @@
                         @endif
                     </td>
                     <td>{{ $ticket['created_date'] }}</td>
-                    <td>{{ $ticket['completed_date'] ?? '-' }}</td>
+                    <td>{{ $ticket['completed_date'] ?? 'In Progress' }}</td>
                     <td style="text-align: right;">{{ $ticket['resolution_hours'] ? number_format($ticket['resolution_hours'], 1) : '-' }}</td>
                 </tr>
                 @endforeach

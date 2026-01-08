@@ -15,6 +15,7 @@ interface CustomersGridProps {
   onMerge: (customer: MappedCustomer) => void
   onSplit: (customer: MappedCustomer) => void
   onMoreInfo: (customerId: number) => void
+  onApplyTemplate: (customer: MappedCustomer) => void
 }
 
 export function CustomersGrid({
@@ -28,6 +29,7 @@ export function CustomersGrid({
   onMerge,
   onSplit,
   onMoreInfo,
+  onApplyTemplate,
 }: CustomersGridProps) {
   if (isLoading) {
     return (
@@ -67,7 +69,7 @@ export function CustomersGrid({
           <Users className="h-12 w-12 text-muted-foreground mb-4" />
           <p className="text-lg font-medium">No Mapped Customers</p>
           <p className="text-sm text-muted-foreground">
-            {hasUnmapped 
+            {hasUnmapped
               ? 'Map the unmapped customers above to get started'
               : 'Integration customers will appear here once synced'}
           </p>
@@ -89,6 +91,7 @@ export function CustomersGrid({
           onMerge={() => onMerge(customer)}
           onSplit={() => onSplit(customer)}
           onMoreInfo={() => onMoreInfo(customer.customer_id!)}
+          onApplyTemplate={() => onApplyTemplate(customer)}
         />
       ))}
     </div>

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Calendar, Clock, Mail, Save, Bell, Play, Zap, Filter, ExternalLink, Plus } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Mail, Save, Bell, Play, Zap, Filter, ExternalLink, Plus, AlertTriangle } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
@@ -95,7 +95,8 @@ export default function ConfigureReports() {
         name: r.name,
         description: r.description,
         integration_source: r.integration_source,
-        frequency_options: r.frequency_options || ['on-demand']
+        frequency_options: r.frequency_options || ['on-demand'],
+        has_data: r.has_data
       }))
 
       setAvailableReportTypes(reports)
@@ -125,7 +126,7 @@ export default function ConfigureReports() {
           included_sections_from_config: s.schedule_config?.included_sections,
           include_sections_direct: s.include_sections
         });
-        
+
         return {
           report_type: s.report_type,
           schedule_id: s.report_schedule_id,
@@ -139,8 +140,29 @@ export default function ConfigureReports() {
         };
       })
 
-      console.log('Mapped schedules:', mappedSchedules)
-      setEnabledReports(mappedSchedules)
+      const schedulesWithDataCheck = await Promise.all(
+        mappedSchedules.map(async (schedule) => {
+          try {
+            const checkResponse = await api.get<{ available_reports: ReportType[] }>(
+              `/customers/${id}/available-reports?frequency=${schedule.frequency}`
+            )
+            const checkData = checkResponse as unknown as { data?: { available_reports: ReportType[] } } | { available_reports: ReportType[] }
+            const reportData = (checkData as { data?: { available_reports: ReportType[] } }).data || checkData as { available_reports: ReportType[] }
+
+            const reportType = reportData.available_reports?.find(r => r.id === schedule.report_type)
+            return {
+              ...schedule,
+              has_data: reportType?.has_data ?? true
+            }
+          } catch (error) {
+            console.error(`Failed to check data for schedule ${schedule.schedule_id}:`, error)
+            return { ...schedule, has_data: true }
+          }
+        })
+      )
+
+      console.log('Mapped schedules with data check:', schedulesWithDataCheck)
+      setEnabledReports(schedulesWithDataCheck)
 
       let emailDestination = ''
       let ccEmailsList: string[] = []
@@ -308,7 +330,7 @@ export default function ConfigureReports() {
   }
 
   const handleToggleScheduleSelection = (scheduleId: number) => {
-    setSelectedSchedules(prev => 
+    setSelectedSchedules(prev =>
       prev.includes(scheduleId)
         ? prev.filter(id => id !== scheduleId)
         : [...prev, scheduleId]
@@ -365,16 +387,16 @@ export default function ConfigureReports() {
       setShowGenerateModal(false)
 
       const payload = (startDate && endDate) ? { start_date: startDate, end_date: endDate } : {}
-      
+
       // Generate reports for all selected schedules
-      const promises = selectedSchedules.map(scheduleId => 
+      const promises = selectedSchedules.map(scheduleId =>
         api.post(`/reports/schedules/${scheduleId}/generate`, payload)
       )
 
       await Promise.all(promises)
-      
+
       toast.success('Reports Generated!', `Successfully generated ${selectedSchedules.length} report(s)`)
-      
+
       // Clear selection
       setSelectedSchedules([])
 
@@ -469,257 +491,272 @@ export default function ConfigureReports() {
               <div className="grid gap-4 md:grid-cols-2">
                 {enabledReports.map((report, index) => {
                   const hasFilteredSections = report.include_sections && report.include_sections.length > 0
-                  
+
                   return (
-                  <Card 
-                    key={index} 
-                    className={`relative ${
-                      hasFilteredSections 
-                        ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20' 
+                    <Card
+                      key={index}
+                      className={`relative ${hasFilteredSections
+                        ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
                         : ''
-                    }`}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <CardTitle className="text-base flex items-center gap-2">
-                            {availableReportTypes.find(t => t.id === report.report_type)?.name || 'Report'}
-                            <Badge variant={report.active !== false ? "default" : "secondary"} className="text-xs">
-                              {report.active !== false ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </CardTitle>
-                          {report.schedule_id && (
-                            <CardDescription className="text-xs mt-1">
-                              Schedule ID: {report.schedule_id}
-                            </CardDescription>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {report.schedule_id && (
-                            <label 
-                              htmlFor={`select-schedule-${index}`}
-                              className="flex items-center justify-center h-8 w-8 cursor-pointer hover:bg-muted rounded-md"
-                            >
-                              <input
-                                type="checkbox"
-                                id={`select-schedule-${index}`}
-                                checked={selectedSchedules.includes(report.schedule_id)}
-                                onChange={() => handleToggleScheduleSelection(report.schedule_id!)}
-                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                              />
-                            </label>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate('/platform/templates')}
-                            className="text-primary hover:text-primary h-8 w-8 p-0"
-                            title="Go to Templates"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      {hasFilteredSections && (
-                        <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900 dark:text-blue-300 w-fit mt-2">
-                          <Filter className="h-3 w-3 mr-1" />
-                          {report.include_sections?.length} Filtered Sections
-                        </Badge>
-                      )}
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid gap-3">
-                        <div>
-                          <Label htmlFor={`report-type-${index}`} className="text-xs">Report Type</Label>
-                          <Select
-                            value={report.report_type || ''}
-                            onValueChange={(value) => handleUpdateReport(index, 'report_type', value)}
-                          >
-                            <SelectTrigger id={`report-type-${index}`} className="mt-1 h-9">
-                              <SelectValue placeholder="Select report type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableReportTypes.length === 0 ? (
-                                <div className="p-2 text-sm text-muted-foreground">
-                                  No reports available. Please link an integration first.
-                                </div>
-                              ) : (
-                                availableReportTypes.map((type) => (
-                                  <SelectItem key={type.id} value={type.id}>
-                                    <div className="flex items-center justify-between w-full">
-                                      <span>{type.name}</span>
-                                      {type.integration_source && (
-                                        <Badge variant="outline" className="ml-2 text-xs">
-                                          {type.integration_source}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label htmlFor={`frequency-${index}`} className="text-xs">Frequency</Label>
-                            <Select
-                              value={report.frequency || 'monthly'}
-                              onValueChange={(value) => handleUpdateReport(index, 'frequency', value)}
-                            >
-                              <SelectTrigger id={`frequency-${index}`} className="mt-1 h-9">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {(() => {
-                                  const selectedReport = availableReportTypes.find(t => t.id === report.report_type)
-                                  const allowedFrequencies = selectedReport?.frequency_options || ['on-demand']
-                                  return FREQUENCIES
-                                    .filter(freq => allowedFrequencies.includes(freq.value))
-                                    .map((freq) => (
-                                      <SelectItem key={freq.value} value={freq.value}>
-                                        {freq.label}
-                                      </SelectItem>
-                                    ))
-                                })()}
-                              </SelectContent>
-                            </Select>
+                        }`}
+                    >
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <CardTitle className="text-base flex items-center gap-2">
+                              {availableReportTypes.find(t => t.id === report.report_type)?.name || 'Report'}
+                              <Badge variant={report.active !== false ? "default" : "secondary"} className="text-xs">
+                                {report.active !== false ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </CardTitle>
+                            {report.schedule_id && (
+                              <CardDescription className="text-xs mt-1">
+                                Schedule ID: {report.schedule_id}
+                              </CardDescription>
+                            )}
                           </div>
-
-                          {report.frequency !== 'on-demand' && (
-                            <div>
-                              <Label htmlFor={`time-${index}`} className="text-xs">Time</Label>
-                              <Input
-                                id={`time-${index}`}
-                                type="time"
-                                value={report.time_of_day || '09:00'}
-                                onChange={(e) => handleUpdateReport(index, 'time_of_day', e.target.value)}
-                                className="mt-1 h-9"
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        {report.frequency === 'monthly' && (
-                          <div>
-                            <Label htmlFor={`day-${index}`} className="text-xs">Day of Month</Label>
-                            <Select
-                              value={String(report.day_of_month || '1')}
-                              onValueChange={(value) => handleUpdateReport(index, 'day_of_month', parseInt(value))}
+                          <div className="flex items-center gap-1">
+                            {report.schedule_id && (
+                              <label
+                                htmlFor={`select-schedule-${index}`}
+                                className="flex items-center justify-center h-8 w-8 cursor-pointer hover:bg-muted rounded-md"
+                              >
+                                <input
+                                  type="checkbox"
+                                  id={`select-schedule-${index}`}
+                                  checked={selectedSchedules.includes(report.schedule_id)}
+                                  onChange={() => handleToggleScheduleSelection(report.schedule_id!)}
+                                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                />
+                              </label>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate('/platform/templates')}
+                              className="text-primary hover:text-primary h-8 w-8 p-0"
+                              title="Go to Templates"
                             >
-                              <SelectTrigger id={`day-${index}`} className="mt-1 h-9">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                                  <SelectItem key={day} value={String(day)}>
-                                    {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
                           </div>
+                        </div>
+                        {hasFilteredSections && (
+                          <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900 dark:text-blue-300 w-fit mt-2">
+                            <Filter className="h-3 w-3 mr-1" />
+                            {report.include_sections?.length} Filtered Sections
+                          </Badge>
                         )}
-
-                        {report.frequency === 'weekly' && (
+                        {report.has_data === false && (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300 dark:bg-orange-950 dark:text-orange-400 w-fit mt-2">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            No Data for {report.frequency || 'this frequency'}
+                          </Badge>
+                        )}
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid gap-3">
                           <div>
-                            <Label htmlFor={`weekday-${index}`} className="text-xs">Day of Week</Label>
+                            <Label htmlFor={`report-type-${index}`} className="text-xs">Report Type</Label>
                             <Select
-                              value={String(report.day_of_week || '1')}
-                              onValueChange={(value) => handleUpdateReport(index, 'day_of_week', parseInt(value))}
+                              value={report.report_type || ''}
+                              onValueChange={(value) => handleUpdateReport(index, 'report_type', value)}
                             >
-                              <SelectTrigger id={`weekday-${index}`} className="mt-1 h-9">
-                                <SelectValue />
+                              <SelectTrigger id={`report-type-${index}`} className="mt-1 h-9">
+                                <SelectValue placeholder="Select report type" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="1">Monday</SelectItem>
-                                <SelectItem value="2">Tuesday</SelectItem>
-                                <SelectItem value="3">Wednesday</SelectItem>
-                                <SelectItem value="4">Thursday</SelectItem>
-                                <SelectItem value="5">Friday</SelectItem>
-                                <SelectItem value="6">Saturday</SelectItem>
-                                <SelectItem value="0">Sunday</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-2 pt-1">
-                          <Switch
-                            id={`active-${index}`}
-                            checked={report.active !== false}
-                            onCheckedChange={(checked: boolean) => handleUpdateReport(index, 'active', checked)}
-                          />
-                          <Label htmlFor={`active-${index}`} className="cursor-pointer text-xs">
-                            Schedule {report.active !== false ? 'Active' : 'Inactive'}
-                          </Label>
-                        </div>
-                      </div>
-
-                      {availableReportTypes.find(t => t.id === report.report_type)?.description && (
-                        <p className="text-xs text-muted-foreground pt-2 border-t">
-                          {availableReportTypes.find(t => t.id === report.report_type)?.description}
-                        </p>
-                      )}
-
-                      {report.report_type === 'monthly_comprehensive' && (
-                        <div className="p-2 bg-muted/50 rounded-md border-t">
-                          <Label className="text-xs font-medium mb-1 block">📋 Included Reports:</Label>
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Auto-includes all monthly summaries from active integrations
-                          </p>
-                          <div className="space-y-1">
-                            {config && (
-                              <div className="grid grid-cols-1 gap-1">
-                                {availableReportTypes
-                                  .filter(rt => rt.id.includes('monthly_summary'))
-                                  .map(rt => (
-                                    <div key={rt.id} className="flex items-center gap-1.5 text-xs">
-                                      <span className="text-green-500">✓</span>
-                                      <span className="flex-1">{rt.name}</span>
-                                      {rt.integration_source && (
-                                        <Badge variant="outline" className="text-xs h-5">
-                                          {rt.integration_source}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  ))}
-                                {availableReportTypes.filter(rt => rt.id.includes('monthly_summary')).length === 0 && (
-                                  <div className="text-xs text-muted-foreground italic">
-                                    No summaries available
+                                {availableReportTypes.length === 0 ? (
+                                  <div className="p-2 text-sm text-muted-foreground">
+                                    No reports available. Please link an integration first.
                                   </div>
+                                ) : (
+                                  availableReportTypes.map((type) => (
+                                    <SelectItem
+                                      key={type.id}
+                                      value={type.id}
+                                    >
+                                      <div className="flex items-center justify-between w-full gap-2">
+                                        <div className="flex items-center gap-2">
+                                          <span>{type.name}</span>
+                                          {type.has_data === false && (
+                                            <Badge variant="outline" className="h-5 px-1 bg-orange-50 text-orange-700 border-orange-200 text-[10px]">
+                                              No Data
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        {type.integration_source && (
+                                          <Badge variant="outline" className="text-xs">
+                                            {type.integration_source}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </SelectItem>
+                                  ))
                                 )}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label htmlFor={`frequency-${index}`} className="text-xs">Frequency</Label>
+                              <Select
+                                value={report.frequency || 'monthly'}
+                                onValueChange={(value) => handleUpdateReport(index, 'frequency', value)}
+                              >
+                                <SelectTrigger id={`frequency-${index}`} className="mt-1 h-9">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(() => {
+                                    const selectedReport = availableReportTypes.find(t => t.id === report.report_type)
+                                    const allowedFrequencies = selectedReport?.frequency_options || ['on-demand']
+                                    return FREQUENCIES
+                                      .filter(freq => allowedFrequencies.includes(freq.value))
+                                      .map((freq) => (
+                                        <SelectItem key={freq.value} value={freq.value}>
+                                          {freq.label}
+                                        </SelectItem>
+                                      ))
+                                  })()}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {report.frequency !== 'on-demand' && (
+                              <div>
+                                <Label htmlFor={`time-${index}`} className="text-xs">Time</Label>
+                                <Input
+                                  id={`time-${index}`}
+                                  type="time"
+                                  value={report.time_of_day || '09:00'}
+                                  onChange={(e) => handleUpdateReport(index, 'time_of_day', e.target.value)}
+                                  className="mt-1 h-9"
+                                />
                               </div>
                             )}
                           </div>
-                        </div>
-                      )}
 
-                      {/* Filtered Sections Display */}
-                      {hasFilteredSections && (
-                        <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-md border border-blue-200 dark:border-blue-800">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Filter className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                            <Label className="text-xs font-medium text-blue-900 dark:text-blue-100">
-                              Filtered Sections ({report.include_sections?.length})
+                          {report.frequency === 'monthly' && (
+                            <div>
+                              <Label htmlFor={`day-${index}`} className="text-xs">Day of Month</Label>
+                              <Select
+                                value={String(report.day_of_month || '1')}
+                                onValueChange={(value) => handleUpdateReport(index, 'day_of_month', parseInt(value))}
+                              >
+                                <SelectTrigger id={`day-${index}`} className="mt-1 h-9">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                                    <SelectItem key={day} value={String(day)}>
+                                      {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
+                          {report.frequency === 'weekly' && (
+                            <div>
+                              <Label htmlFor={`weekday-${index}`} className="text-xs">Day of Week</Label>
+                              <Select
+                                value={String(report.day_of_week || '1')}
+                                onValueChange={(value) => handleUpdateReport(index, 'day_of_week', parseInt(value))}
+                              >
+                                <SelectTrigger id={`weekday-${index}`} className="mt-1 h-9">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="1">Monday</SelectItem>
+                                  <SelectItem value="2">Tuesday</SelectItem>
+                                  <SelectItem value="3">Wednesday</SelectItem>
+                                  <SelectItem value="4">Thursday</SelectItem>
+                                  <SelectItem value="5">Friday</SelectItem>
+                                  <SelectItem value="6">Saturday</SelectItem>
+                                  <SelectItem value="0">Sunday</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2 pt-1">
+                            <Switch
+                              id={`active-${index}`}
+                              checked={report.active !== false}
+                              onCheckedChange={(checked: boolean) => handleUpdateReport(index, 'active', checked)}
+                            />
+                            <Label htmlFor={`active-${index}`} className="cursor-pointer text-xs">
+                              Schedule {report.active !== false ? 'Active' : 'Inactive'}
                             </Label>
                           </div>
-                          <div className="flex flex-wrap gap-1">
-                            {report.include_sections?.map((section) => (
-                              <Badge 
-                                key={section} 
-                                variant="outline"
-                                className="text-xs bg-white dark:bg-blue-900/50 border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-100"
-                              >
-                                {section.replace(/_/g, ' ')}
-                              </Badge>
-                            ))}
-                          </div>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
+
+                        {availableReportTypes.find(t => t.id === report.report_type)?.description && (
+                          <p className="text-xs text-muted-foreground pt-2 border-t">
+                            {availableReportTypes.find(t => t.id === report.report_type)?.description}
+                          </p>
+                        )}
+
+                        {report.report_type === 'monthly_comprehensive' && (
+                          <div className="p-2 bg-muted/50 rounded-md border-t">
+                            <Label className="text-xs font-medium mb-1 block">📋 Included Reports:</Label>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Auto-includes all monthly summaries from active integrations
+                            </p>
+                            <div className="space-y-1">
+                              {config && (
+                                <div className="grid grid-cols-1 gap-1">
+                                  {availableReportTypes
+                                    .filter(rt => rt.id.includes('monthly_summary'))
+                                    .map(rt => (
+                                      <div key={rt.id} className="flex items-center gap-1.5 text-xs">
+                                        <span className="text-green-500">✓</span>
+                                        <span className="flex-1">{rt.name}</span>
+                                        {rt.integration_source && (
+                                          <Badge variant="outline" className="text-xs h-5">
+                                            {rt.integration_source}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    ))}
+                                  {availableReportTypes.filter(rt => rt.id.includes('monthly_summary')).length === 0 && (
+                                    <div className="text-xs text-muted-foreground italic">
+                                      No summaries available
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Filtered Sections Display */}
+                        {hasFilteredSections && (
+                          <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-md border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Filter className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                              <Label className="text-xs font-medium text-blue-900 dark:text-blue-100">
+                                Filtered Sections ({report.include_sections?.length})
+                              </Label>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {report.include_sections?.map((section) => (
+                                <Badge
+                                  key={section}
+                                  variant="outline"
+                                  className="text-xs bg-white dark:bg-blue-900/50 border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-100"
+                                >
+                                  {section.replace(/_/g, ' ')}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>

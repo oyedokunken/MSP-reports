@@ -9,6 +9,7 @@ import { EditCustomerModal } from "./modals/EditCustomerModal";
 import { ViewCustomerIntegrationsModal } from "./modals/ViewCustomerIntegrationsModal";
 import { MergeCustomersModal } from "./modals/MergeCustomersModal";
 import { SplitCustomerModal } from "./modals/SplitCustomerModal";
+import { ApplyTemplateToCustomerModal } from "@/pages/customers/modals/ApplyTemplateToCustomerModal";
 import { useSecondaryCustomerList } from "./hooks";
 
 export default function SecondaryCustomerList() {
@@ -40,7 +41,7 @@ export default function SecondaryCustomerList() {
     return (
         <FloatingLayout>
             <div className="space-y-6 max-w-full overflow-hidden">
-                <CustomersHeader 
+                <CustomersHeader
                     title="Secondary Customers"
                     subtitle="Customers from non-source of truth integrations"
                 />
@@ -69,6 +70,7 @@ export default function SecondaryCustomerList() {
                     onMerge={(customer) => handleCustomerAction(customer, 'merge')}
                     onSplit={(customer) => handleCustomerAction(customer, 'split')}
                     onMoreInfo={(id) => navigate(`/platform/customers/${id}/integrations`)}
+                    onApplyTemplate={(customer) => handleCustomerAction(customer, 'applyTemplate')}
                 />
 
                 {total > 0 && (
@@ -113,6 +115,13 @@ export default function SecondaryCustomerList() {
                     onOpenChange={(open) => open ? openModal("split") : closeModal("split")}
                     customer={selectedCustomer}
                     onSuccess={() => handleModalSuccess('split', "Customer Split", "Customer split successfully")}
+                />
+
+                <ApplyTemplateToCustomerModal
+                    open={modals.applyTemplate}
+                    onOpenChange={(open) => open ? openModal("applyTemplate") : closeModal("applyTemplate")}
+                    customer={selectedCustomer}
+                    onSuccess={() => handleModalSuccess('applyTemplate', "Template Applied", "Report template successfully applied")}
                 />
             </div>
         </FloatingLayout>
