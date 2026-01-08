@@ -14,7 +14,23 @@ class CompanyScope implements Scope
             $companyId = auth()->user()->company_id;
             
             if ($companyId) {
-                $builder->where($model->getTable() . '.company_id', $companyId);
+                $table = $model->getTable();
+                
+                // Handle tables without direct company_id column
+                if ($table === 'integration_customers') {
+                    // Filter through integration relationship
+                    $builder->whereHas('integration', function ($query) use ($companyId) {
+                        $query->where('integrations.company_id', $companyId);
+                    });
+                } elseif ($table === 'customer_mappings') {
+                    // Filter through customer relationship
+                    $builder->whereHas('customer', function ($query) use ($companyId) {
+                        $query->where('customers.company_id', $companyId);
+                    });
+                } else {
+                    // Standard company_id filtering
+                    $builder->where($table . '.company_id', $companyId);
+                }
             }
         }
     }

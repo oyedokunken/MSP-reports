@@ -48,7 +48,12 @@ class ReportAnalyticsController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $schedules
+            'data' => $schedules,
+            'meta' => [
+                'total_count' => $schedules->count(),
+                'scoped_to_customers' => $authUser->scoped_customers,
+                'is_scoped_user' => !empty($authUser->scoped_customers),
+            ]
         ], 200);
     }
     

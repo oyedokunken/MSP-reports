@@ -1,10 +1,12 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { UserPlus, Search, SlidersHorizontal } from 'lucide-react'
+import { UserPlus, Search, Filter } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
@@ -14,6 +16,7 @@ interface UsersHeaderProps {
   searchQuery: string
   onFilterChange: (filter: string) => void
   statusFilter: string
+  filteredCount: number
 }
 
 export function UsersHeader({
@@ -21,54 +24,79 @@ export function UsersHeader({
   onSearch,
   searchQuery,
   onFilterChange,
-  statusFilter
+  statusFilter,
+  filteredCount
 }: UsersHeaderProps) {
+  const activeFilterCount = statusFilter !== 'all' ? 1 : 0
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">MSP Users</h1>
-        <p className="text-sm text-muted-foreground">
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+        <p className="text-muted-foreground mt-2">
           Manage access and permissions for your team
         </p>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search users..."
-            className="pl-10 h-9 text-sm"
-            value={searchQuery}
-            onChange={(e) => onSearch(e.target.value)}
-          />
+      {/* Filters and Search */}
+      <div className="flex flex-col md:flex-row gap-3">
+        {/* Count */}
+        <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap px-3 h-10 border rounded-md">
+          {filteredCount} user{filteredCount !== 1 ? 's' : ''}
         </div>
+
+        {/* Filter Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className={`h-9 w-9 ${statusFilter !== 'all' ? 'text-primary border-primary/50 bg-primary/5' : ''}`}>
-              <SlidersHorizontal className="h-4 w-4" />
+            <Button variant="outline" className="w-full md:w-auto h-10 border">
+              <Filter className="h-4 w-4 mr-2" />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                  {activeFilterCount}
+                </span>
+              )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onFilterChange('all')}>
-              All Users
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onFilterChange('active')}>
-              Active Only
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onFilterChange('inactive')}>
-              Inactive Only
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onFilterChange('admin')}>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuLabel>Status</DropdownMenuLabel>
+            <DropdownMenuCheckboxItem
+              checked={statusFilter === 'active'}
+              onCheckedChange={() => onFilterChange(statusFilter === 'active' ? 'all' : 'active')}
+            >
+              Active
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={statusFilter === 'inactive'}
+              onCheckedChange={() => onFilterChange(statusFilter === 'inactive' ? 'all' : 'inactive')}
+            >
+              Inactive
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Role</DropdownMenuLabel>
+            <DropdownMenuCheckboxItem
+              checked={statusFilter === 'admin'}
+              onCheckedChange={() => onFilterChange(statusFilter === 'admin' ? 'all' : 'admin')}
+            >
               Admins Only
-            </DropdownMenuItem>
+            </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button
-          onClick={onCreateUser}
-          className="gap-2"
-        >
-          <UserPlus className="h-4 w-4" />
+
+        {/* Search */}
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => onSearch(e.target.value)}
+            className="pl-10 h-10"
+          />
+        </div>
+
+        {/* Create User Button */}
+        <Button onClick={onCreateUser} className="h-10">
+          <UserPlus className="h-4 w-4 mr-2" />
           Add User
         </Button>
       </div>

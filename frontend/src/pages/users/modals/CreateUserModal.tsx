@@ -1,13 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Mail, Lock, User as UserIcon, CheckCircle2, Eye, EyeOff } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Mail, Lock, User as UserIcon, CheckCircle2, Eye, EyeOff, Users, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
+import { customerApi } from '@/services/api/customers'
+import type { Customer } from '@/types/api/customer'
 
 interface CreateUserModalProps {
   open: boolean
@@ -22,6 +26,7 @@ interface CreateUserForm {
   role_id: number
   status: 'active' | 'inactive' | 'locked'
   auth_method: 'local' | 'saml' | 'm365' | 'ldap'
+  scoped_customers?: number[]
 }
 
 export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserModalProps) {
@@ -38,7 +43,43 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     role_id: 2,
     status: 'active',
     auth_method: 'local',
+    scoped_customers: [],
   })
+
+  const [selectedCustomers, setSelectedCustomers] = useState<number[]>([])
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [searchDebounce, setSearchDebounce] = useState<number | null>(null)
+
+  // Fetch customers with pagination
+  const fetchCustomers = async (page: number = 1, search: string = '') => {
+    try {
+      setIsLoadingCustomers(true)
+      const response = await customerApi.getCustomers({
+        page,
+        search: search || undefined
+      })
+      setCustomers(response.data || [])
+      setCurrentPage(response.pagination?.current_page || 1)
+      setTotalPages(response.pagination?.last_page || 1)
+    } catch (err) {
+      console.error('Failed to fetch customers:', err)
+      toast.error('Error', 'Failed to load customers')
+    } finally {
+      setIsLoadingCustomers(false)
+    }
+  }
+
+  // Load initial customers
+  useEffect(() => {
+    if (open) {
+      fetchCustomers(1)
+      setCurrentPage(1)
+    }
+  }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,7 +87,11 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     setIsSubmitting(true)
 
     try {
-      const response = await api.post('/users', formData)
+      const payload = {
+        ...formData,
+        scoped_customers: selectedCustomers.length > 0 ? selectedCustomers : undefined,
+      }
+      const response = await api.post('/users', payload)
 
       if (response.data) {
         setSuccess(true)
@@ -61,7 +106,15 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
             role_id: 2,
             status: 'active',
             auth_method: 'local',
+            scoped_customers: [],
           })
+          setSelectedCustomers([])
+          setCustomerSearch('')
+          setCurrentPage(1)
+          if (searchDebounce) {
+            clearTimeout(searchDebounce)
+            setSearchDebounce(null)
+          }
           onOpenChange(false)
           onSuccess?.()
         }, 1000)
@@ -82,7 +135,54 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     if (!isSubmitting) {
       setError('')
       setSuccess(false)
+      setSelectedCustomers([])
+      setCustomerSearch('')
+      setCurrentPage(1)
+      if (searchDebounce) {
+        clearTimeout(searchDebounce)
+        setSearchDebounce(null)
+      }
       onOpenChange(false)
+    }
+  }
+
+  const toggleCustomer = (customerId: number) => {
+    setSelectedCustomers(prev => 
+      prev.includes(customerId)
+        ? prev.filter(id => id !== customerId)
+        : [...prev, customerId]
+    )
+  }
+
+  const removeCustomer = (customerId: number) => {
+    setSelectedCustomers(prev => prev.filter(id => id !== customerId))
+  }
+
+  const getCustomerName = (customerId: number) => {
+    const customer = customers.find(c => c.customer_id === customerId)
+    return customer?.canonical_name || `Customer ${customerId}`
+  }
+
+  const handleSearchChange = (search: string) => {
+    setCustomerSearch(search)
+
+    // Clear existing timeout
+    if (searchDebounce) {
+      clearTimeout(searchDebounce)
+    }
+
+    // Set new timeout to search after 500ms of no typing
+    const timeout = setTimeout(() => {
+      setCurrentPage(1)
+      fetchCustomers(1, search)
+    }, 500)
+
+    setSearchDebounce(timeout)
+  }
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      fetchCustomers(newPage, customerSearch)
     }
   }
 
@@ -106,7 +206,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto p-6">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
@@ -114,129 +214,235 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="modal-name">Full Name *</Label>
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="modal-name"
-                type="text"
-                placeholder="John Doe"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                className="pl-10"
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-4 pb-0">
+          {/* Two Column Grid */}
+          <div className="grid grid-cols-2 gap-6 divide-x divide-border">
+            {/* Left Column */}
+            <div className="space-y-4 pr-6">
+              {/* Name */}
+              <div className="space-y-2">
+                <Label htmlFor="modal-name">Full Name *</Label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="modal-name"
+                    type="text"
+                    placeholder="John Doe"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className="pl-10"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
 
-          {/* Email */}
-          <div className="space-y-2">
-            <Label htmlFor="modal-email">Email Address *</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="modal-email"
-                type="email"
-                placeholder="john.doe@company.com"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className="pl-10"
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="modal-email">Email Address *</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="modal-email"
+                    type="email"
+                    placeholder="john.doe@company.com"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className="pl-10"
+                    required
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
 
-          {/* Password */}
-          <div className="space-y-2">
-            <Label htmlFor="modal-password">Password *</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="modal-password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Minimum 6 characters"
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                className="pl-10 pr-10"
-                required
-                minLength={6}
-                disabled={isSubmitting}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
+              {/* Password */}
+              <div className="space-y-2">
+                <Label htmlFor="modal-password">Password *</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="modal-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Minimum 6 characters"
+                    value={formData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    className="pl-10 pr-10"
+                    required
+                    minLength={6}
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Role */}
+              <div className="space-y-2">
+                <Label htmlFor="modal-role">Role *</Label>
+                <Select
+                  value={formData.role_id.toString()}
+                  onValueChange={(value: string) => handleInputChange('role_id', parseInt(value))}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger id="modal-role">
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Admin</SelectItem>
+                    <SelectItem value="2">Manager</SelectItem>
+                    <SelectItem value="3">Viewer</SelectItem>
+                    <SelectItem value="4">Technician</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <Label htmlFor="modal-status">Status *</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: string) => handleInputChange('status', value)}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger id="modal-status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="locked">Locked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-4 pl-6">
+              {/* Auth Method */}
+              <div className="space-y-2">
+                <Label htmlFor="modal-auth">Authentication Method *</Label>
+                <Select
+                  value={formData.auth_method}
+                  onValueChange={(value: string) => handleInputChange('auth_method', value)}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger id="modal-auth">
+                    <SelectValue placeholder="Select authentication method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="local">Local (Email/Password)</SelectItem>
+                    <SelectItem value="saml">SAML</SelectItem>
+                    <SelectItem value="m365">Microsoft 365</SelectItem>
+                    <SelectItem value="ldap">LDAP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Customer Scoping */}
+              <div className="space-y-2">
+                <Label htmlFor="modal-customers" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Customer Access Scope
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Leave empty for full access. Select specific customers to restrict this user's access.
+                </p>
+                
+                {/* Selected Customers */}
+                {selectedCustomers.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/30">
+                    {selectedCustomers.map(customerId => (
+                      <Badge key={customerId} variant="secondary" className="pl-2 pr-1">
+                        {getCustomerName(customerId)}
+                        <button
+                          type="button"
+                          onClick={() => removeCustomer(customerId)}
+                          className="ml-1 hover:bg-destructive/20 rounded-sm p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
                 )}
-              </button>
+
+                {/* Customer Search */}
+                <Input
+                  id="modal-customers"
+                  type="text"
+                  placeholder="Search customers..."
+                  value={customerSearch}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  disabled={isSubmitting || isLoadingCustomers}
+                />
+
+                {/* Customer List */}
+                <div className="border rounded-md max-h-48 overflow-y-auto">
+                  {isLoadingCustomers ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      <Spinner className="h-4 w-4 mx-auto mb-2" />
+                      Loading customers...
+                    </div>
+                  ) : customers.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No customers found
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {customers.map(customer => (
+                        <div
+                          key={customer.customer_id}
+                          className="flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer"
+                          onClick={() => toggleCustomer(customer.customer_id)}
+                        >
+                          <Checkbox
+                            checked={selectedCustomers.includes(customer.customer_id)}
+                            onCheckedChange={() => toggleCustomer(customer.customer_id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span className="text-sm flex-1">{customer.canonical_name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || isLoadingCustomers}
+                    className="px-3 py-1 border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || isLoadingCustomers}
+                    className="px-3 py-1 border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-
-          {/* Role */}
-          <div className="space-y-2">
-            <Label htmlFor="modal-role">Role *</Label>
-            <Select
-              value={formData.role_id.toString()}
-              onValueChange={(value: string) => handleInputChange('role_id', parseInt(value))}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger id="modal-role">
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Admin</SelectItem>
-                <SelectItem value="2">User</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Status */}
-          <div className="space-y-2">
-            <Label htmlFor="modal-status">Status *</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value: string) => handleInputChange('status', value)}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger id="modal-status">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="locked">Locked</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Auth Method */}
-          <div className="space-y-2">
-            <Label htmlFor="modal-auth">Authentication Method *</Label>
-            <Select
-              value={formData.auth_method}
-              onValueChange={(value: string) => handleInputChange('auth_method', value)}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger id="modal-auth">
-                <SelectValue placeholder="Select authentication method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="local">Local (Email/Password)</SelectItem>
-                <SelectItem value="saml">SAML</SelectItem>
-                <SelectItem value="m365">Microsoft 365</SelectItem>
-                <SelectItem value="ldap">LDAP</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Error Message */}

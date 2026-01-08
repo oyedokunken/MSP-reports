@@ -33,36 +33,11 @@ class UserProvisioningService
             ]);
         }
 
-        // Default permissions for Viewer role (read-only)
-        $defaultPermissions = [
-            'integrations' => [
-                'view' => true,
-                'manage' => false,
-                'sync' => false,
-            ],
-            'customers' => [
-                'view' => true,
-                'edit' => false,
-                'map' => false,
-            ],
-            'reports' => [
-                'view' => true,
-                'configure' => false,
-                'generate' => false,
-                'download' => true,
-            ],
-            'users' => [
-                'view' => false,
-                'manage' => false,
-            ],
-            'company_settings' => [
-                'view' => false,
-                'edit' => false,
-            ],
-        ];
-
-        // Merge with any custom permissions from additional data
-        $permissions = array_merge($defaultPermissions, $additionalData['permissions'] ?? []);
+        // Get role-based default permissions (Viewer role)
+        $permissions = RolePermissionService::mergePermissions(
+            'Viewer',
+            $additionalData['permissions'] ?? null
+        );
 
         // Create the user
         $user = User::withoutGlobalScopes()->create([

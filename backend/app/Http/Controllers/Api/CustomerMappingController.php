@@ -129,6 +129,10 @@ class CustomerMappingController extends Controller
                 'from' => $customers->firstItem(),
                 'to' => $customers->lastItem(),
             ],
+            'meta' => [
+                'scoped_to_customers' => $authUser->scoped_customers,
+                'is_scoped_user' => !empty($authUser->scoped_customers),
+            ],
         ]);
     }
 

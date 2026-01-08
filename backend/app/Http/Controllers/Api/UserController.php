@@ -67,25 +67,55 @@ class UserController extends Controller
             'status' => 'sometimes|in:active,inactive,locked',
             'auth_method' => 'sometimes|in:local,saml,m365,ldap',
             'permissions' => 'nullable|array',
+            'scoped_customers' => 'nullable|array',
         ]);
+        
+        // Validate scoped_customers separately to provide better error messages
+        if (isset($validated['scoped_customers']) && is_array($validated['scoped_customers'])) {
+            $invalidCustomerIds = [];
+            foreach ($validated['scoped_customers'] as $customerId) {
+                if (!is_numeric($customerId)) {
+                    $invalidCustomerIds[] = $customerId;
+                    continue;
+                }
+                
+                $exists = \App\Models\Customer::withoutGlobalScopes()
+                    ->where('company_id', $authUser->company_id)
+                    ->where('customer_id', $customerId)
+                    ->exists();
+                    
+                if (!$exists) {
+                    $invalidCustomerIds[] = $customerId;
+                }
+            }
+            
+            if (!empty($invalidCustomerIds)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid customer IDs provided.',
+                    'errors' => [
+                        'scoped_customers' => [
+                            'The following customer IDs do not exist: ' . implode(', ', $invalidCustomerIds)
+                        ]
+                    ]
+                ], 422);
+            }
+        }
 
         $validated['name'] = trim(strip_tags($validated['name']));
         $validated['email'] = trim(strtolower($validated['email']));
         $validated['auth_method'] = trim($validated['auth_method'] ?? 'local');
         $validated['status'] = trim($validated['status'] ?? 'active');
 
-        $defaultPermissions = [
-            "integrations" => ["view" => true, "manage" => true, "sync" => true],
-            "customers" => ["view" => true, "edit" => true, "map" => true],
-            "reports" => ["view" => true, "configure" => true, "generate" => true, "download" => true],
-            "users" => ["view" => true, "manage" => true],
-            "company_settings" => ["view" => true, "edit" => true]
-        ];
-
-        $permissions = $validated['permissions'] ?? [];
-        foreach ($defaultPermissions as $section => $actions) {
-            $permissions[$section] = array_merge($actions, $permissions[$section] ?? []);
-        }
+        // Get role-based default permissions
+        $role = \App\Models\Role::find($validated['role_id']);
+        $roleName = $role->name ?? 'Viewer';
+        
+        // Merge role defaults with any custom permissions provided
+        $permissions = \App\Services\RolePermissionService::mergePermissions(
+            $roleName,
+            $validated['permissions'] ?? null
+        );
 
         $user = User::create([
             'company_id' => $authUser->company_id,
@@ -96,7 +126,7 @@ class UserController extends Controller
             'status' => $validated['status'],
             'auth_method' => $validated['auth_method'],
             'permissions' => $permissions,
-            'scoped_customers' => $validated['scoped_customers'],
+            'scoped_customers' => $validated['scoped_customers'] ?? null,
         ]);
 
         $sanitisedUser = $user->makeHidden(['password']);
@@ -185,8 +215,39 @@ class UserController extends Controller
             'email' => 'sometimes|email|unique:users,email,' . $user->user_id . ',user_id',
             'role_id' => 'sometimes|exists:roles,id',
             'scoped_customers' => 'nullable|array',
-            'scoped_customers.*' => 'integer|exists:customers,customer_id',
         ]);
+        
+        // Validate scoped_customers separately to provide better error messages
+        if (isset($validated['scoped_customers']) && is_array($validated['scoped_customers'])) {
+            $invalidCustomerIds = [];
+            foreach ($validated['scoped_customers'] as $customerId) {
+                if (!is_numeric($customerId)) {
+                    $invalidCustomerIds[] = $customerId;
+                    continue;
+                }
+                
+                $exists = \App\Models\Customer::withoutGlobalScopes()
+                    ->where('company_id', $authUser->company_id)
+                    ->where('customer_id', $customerId)
+                    ->exists();
+                    
+                if (!$exists) {
+                    $invalidCustomerIds[] = $customerId;
+                }
+            }
+            
+            if (!empty($invalidCustomerIds)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid customer IDs provided.',
+                    'errors' => [
+                        'scoped_customers' => [
+                            'The following customer IDs do not exist: ' . implode(', ', $invalidCustomerIds)
+                        ]
+                    ]
+                ], 422);
+            }
+        }
 
         $oldData = [
             'name' => $user->name,

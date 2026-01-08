@@ -113,6 +113,7 @@ export default function UsersList() {
           onFilterChange={setStatusFilter}
           searchQuery={searchQuery}
           statusFilter={statusFilter}
+          filteredCount={filteredUsers.length}
         />
 
         <UsersTable

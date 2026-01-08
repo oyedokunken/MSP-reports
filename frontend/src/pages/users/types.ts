@@ -12,6 +12,7 @@ export interface UserWithPermissions {
   last_login: string | null
   created_at: string
   permissions: UserPermissions
+  scoped_customers: number[] | null
 }
 
 export interface UserPermissions {
@@ -48,12 +49,14 @@ export interface CreateUserForm {
   role_id: number
   status: 'active' | 'inactive'
   auth_method: 'local' | 'saml' | 'm365' | 'ldap'
+  scoped_customers?: number[]
 }
 
 export interface UpdateUserForm {
   name: string
   email: string
   role_id: number
+  scoped_customers?: number[]
 }
 
 export interface Role {

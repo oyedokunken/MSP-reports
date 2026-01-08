@@ -109,12 +109,12 @@ export function UsersTable({
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-border/50">
-                <TableHead className="w-[300px]">User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Auth Method</TableHead>
-                <TableHead>Last Active</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
+                <TableHead className="w-[300px] h-10 py-2">User</TableHead>
+                <TableHead className="h-10 py-2">Role</TableHead>
+                <TableHead className="h-10 py-2">Status</TableHead>
+                <TableHead className="h-10 py-2">Auth Method</TableHead>
+                <TableHead className="h-10 py-2">Last Active</TableHead>
+                <TableHead className="w-[80px] h-10 py-2"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -222,17 +222,17 @@ export function UsersTable({
   }
 
   return (
-    <Card className="border-border/50">
+    <Card className="border-border/50 py-0">
       <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border/50">
-              <TableHead className="w-[300px] font-medium">User</TableHead>
-              <TableHead className="font-medium">Role</TableHead>
-              <TableHead className="font-medium">Status</TableHead>
-              <TableHead className="font-medium">Auth Method</TableHead>
-              <TableHead className="font-medium">Last Active</TableHead>
-              <TableHead className="w-[80px]"></TableHead>
+              <TableHead className="w-[300px] font-medium h-10 py-2">User</TableHead>
+              <TableHead className="font-medium h-10 py-2">Role</TableHead>
+              <TableHead className="font-medium h-10 py-2">Status</TableHead>
+              <TableHead className="font-medium h-10 py-2">Auth Method</TableHead>
+              <TableHead className="font-medium h-10 py-2">Last Active</TableHead>
+              <TableHead className="w-[80px] h-10 py-2"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -251,7 +251,7 @@ export function UsersTable({
                   )}
                 >
                   {/* User Info */}
-                  <TableCell>
+                  <TableCell className="py-3">
                     <div className="flex items-center gap-3">
                       <div className="relative flex-shrink-0">
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
@@ -279,7 +279,7 @@ export function UsersTable({
                   </TableCell>
 
                   {/* Role */}
-                  <TableCell>
+                  <TableCell className="py-3">
                     <Badge 
                       variant={isAdmin ? "default" : "secondary"}
                       className={cn(
@@ -293,7 +293,7 @@ export function UsersTable({
                   </TableCell>
 
                   {/* Status */}
-                  <TableCell>
+                  <TableCell className="py-3">
                     <Badge 
                       variant="outline" 
                       className={cn("text-xs border-transparent", statusConfig.bg, statusConfig.color)}
@@ -303,19 +303,19 @@ export function UsersTable({
                   </TableCell>
 
                   {/* Auth Method */}
-                  <TableCell>
+                  <TableCell className="py-3">
                     <span className="text-sm text-muted-foreground capitalize">{user.auth_method}</span>
                   </TableCell>
 
                   {/* Last Active */}
-                  <TableCell>
+                  <TableCell className="py-3">
                     <span className="text-sm text-muted-foreground">
                       {user.last_login ? formatDateOnly(user.last_login) : 'Never'}
                     </span>
                   </TableCell>
 
                   {/* Actions */}
-                  <TableCell>
+                  <TableCell className="py-3">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
