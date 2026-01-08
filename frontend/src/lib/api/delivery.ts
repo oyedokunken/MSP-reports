@@ -44,12 +44,12 @@ export interface CustomerDeliveryResponse {
 }
 
 export async function getAvailableDeliveryMethods(): Promise<Record<string, DeliveryMethod>> {
-    const response = await api.get('/delivery/methods');
+    const response = await api.get('/delivery/methods') as { data: { data: Record<string, DeliveryMethod> } };
     return response.data.data;
 }
 
 export async function getCustomerDeliveryConfig(customerId: number): Promise<CustomerDeliveryResponse> {
-    const response = await api.get(`/customers/${customerId}/delivery`);
+    const response = await api.get(`/customers/${customerId}/delivery`) as { data: { data: CustomerDeliveryResponse } };
     return response.data.data;
 }
 
@@ -57,7 +57,7 @@ export async function updateCustomerDeliveryConfig(
     customerId: number,
     config: DeliveryConfig
 ): Promise<DeliveryConfig> {
-    const response = await api.patch(`/customers/${customerId}/delivery`, config);
+    const response = await api.patch(`/customers/${customerId}/delivery`, config) as { data: { data: DeliveryConfig } };
     return response.data.data;
 }
 
@@ -69,6 +69,6 @@ export async function testDeliveryConnection(
     const response = await api.post(`/customers/${customerId}/delivery/test`, {
         method,
         config,
-    });
+    }) as { data: { success: boolean; message: string } };
     return response.data;
 }

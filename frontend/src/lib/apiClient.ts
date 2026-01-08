@@ -55,8 +55,12 @@ class TenantApiClient {
                     config.headers["X-Company-ID"] = this.companyId;
                 }
 
-                // Add authentication token
-                const token = localStorage.getItem("auth_token");
+                // Add authentication token - check both localStorage and sessionStorage
+                // User might have logged in with or without "Remember Me"
+                let token = localStorage.getItem("auth_token");
+                if (!token) {
+                    token = sessionStorage.getItem("auth_token");
+                }
                 if (token) {
                     config.headers["Authorization"] = `Bearer ${token}`;
                 }

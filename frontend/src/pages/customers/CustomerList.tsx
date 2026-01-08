@@ -76,6 +76,7 @@ export default function CustomerList() {
                     onMerge={(customer) => handleCustomerAction(customer, 'merge')}
                     onSplit={(customer) => handleCustomerAction(customer, 'split')}
                     onMoreInfo={(id) => navigate(`/platform/customers/${id}/integrations`)}
+                    onApplyTemplate={(customer) => handleCustomerAction(customer, 'applyTemplate')}
                 />
 
                 {total > 0 && (

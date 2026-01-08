@@ -70,17 +70,20 @@ class CustomerMappingController extends Controller
             $isSourceOfTruth = filter_var($sourceOfTruthOnly, FILTER_VALIDATE_BOOLEAN);
             
             if ($isSourceOfTruth) {
-                // Show customers that have at least one SOT integration
-                $query->whereHas('integrationCustomers.integration', function ($q) {
-                    $q->where('is_source_of_truth', true);
+                // Show customers that have at least one SOT integration OR are static customers
+                $query->where(function ($q) {
+                    $q->whereHas('integrationCustomers.integration', function ($subQ) {
+                        $subQ->where('is_source_of_truth', true);
+                    })->orWhere('is_static', true);
                 });
             } else {
                 // Show customers that have ONLY non-SOT integrations (exclude customers with any SOT integration)
+                // Also exclude static customers from secondary list
                 $query->whereHas('integrationCustomers.integration', function ($q) {
                     $q->where('is_source_of_truth', false);
                 })->whereDoesntHave('integrationCustomers.integration', function ($q) {
                     $q->where('is_source_of_truth', true);
-                });
+                })->where('is_static', false);
             }
         }
 
@@ -105,7 +108,7 @@ class CustomerMappingController extends Controller
                         'integration_type' => e($ic->integration->integration_type ?? null),
                         'display_name' => e($ic->integration->display_name ?? null),
                         'external_id' => e($ic->external_id),
-                        'name' => e($ic->name),
+                        'name' => html_entity_decode($ic->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                         'active' => (bool) $ic->active,
                         'last_seen_at' => $ic->last_seen_at ? (int)($ic->last_seen_at->timestamp * 1000) : null,
                         'mapping' => $mapping ? [
@@ -113,7 +116,7 @@ class CustomerMappingController extends Controller
                             'confidence_score' => $mapping->confidence_score,
                             'mapped_at' => $mapping->mapped_at,
                             'notes' => $mapping->notes,
-                        ] : null,
+                        ] : null,   
                     ];
                 })->toArray(),
             ];
@@ -201,6 +204,9 @@ class CustomerMappingController extends Controller
                         'canonical_name' => $suggestion['customer']->canonical_name,
                         'is_static' => $suggestion['customer']->is_static ?? false,
                         'confidence_score' => $suggestion['confidence_score'],
+                        'integrations' => $suggestion['customer']->integrationCustomers->map(function($ic) {
+                            return ['id' => $ic->integration_customer_id];
+                        }),
                     ];
                 }, $suggestions),
             ];

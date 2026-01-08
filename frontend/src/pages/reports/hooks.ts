@@ -200,7 +200,9 @@ export const useConfigureReports = () => {
         id: r.id,
         name: r.name,
         description: r.description,
-        integration_source: r.integration_source
+        integration_source: r.integration_source,
+        frequency_options: r.frequency_options || ['monthly', 'weekly', 'daily'],
+        has_data: r.has_data
       }))
 
       setAvailableReportTypes(reports)

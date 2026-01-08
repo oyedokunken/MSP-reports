@@ -157,7 +157,8 @@ class CustomerMappingService
     {
         $company = $integrationCustomer->integration->company;
 
-        $existingCustomers = Customer::where('company_id', $company->company_id)
+        $existingCustomers = Customer::with('integrationCustomers')
+            ->where('company_id', $company->company_id)
             ->where('status', 'active')
             ->get();
 

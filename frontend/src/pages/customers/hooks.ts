@@ -64,7 +64,7 @@ export const useCustomerMapping = (initialRows: MappingRow[], canonical: Canonic
 export const useMapCustomerModal = (
   open: boolean,
   integrationCustomers: IntegrationCustomer[],
-  existingCustomers: ExistingCustomer[],
+  _existingCustomers: ExistingCustomer[],
   onSuccess?: () => void
 ) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -78,13 +78,32 @@ export const useMapCustomerModal = (
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
   const [mappedCount, setMappedCount] = useState(0)
 
+  // Infinite scroll search states
+  const [candidates, setCandidates] = useState<ExistingCustomer[]>([])
+  const [searchPage, setSearchPage] = useState(1)
+  const [hasMoreCandidates, setHasMoreCandidates] = useState(true)
+  const [isLoadingCandidates, setIsLoadingCandidates] = useState(false)
+  const [isLoadingMoreCandidates, setIsLoadingMoreCandidates] = useState(false)
+
+  const [currentIndex, setCurrentIndex] = useState(0)
+
   // Defensive: ensure we have an array
   const customers = integrationCustomers || []
-  const currentCustomer = customers[0] || null
+  const currentCustomer = customers[currentIndex] || null
   const totalCount = customers.length
   const isBulk = totalCount > 1
 
-  // Reset form when modal opens
+  // Reset state when modal opens
+  useEffect(() => {
+    if (open) {
+      setMappedCount(0)
+      setCurrentIndex(0)
+      setSuccess(false)
+      setError('')
+    }
+  }, [open])
+
+  // Fetch suggestions when current customer changes
   useEffect(() => {
     const fetchSuggestedMatches = async () => {
       if (!currentCustomer) return
@@ -120,22 +139,89 @@ export const useMapCustomerModal = (
       setSearchTerm('')
       setSelectedCustomerId(null)
       setError('')
-      setSuccess(false)
       setCreateNew(false)
       setNewCustomerName(currentCustomer.name)
-      setMappedCount(0)
+      setSuggestedMatches([]) // Clear previous suggestions
+
+      // Reset candidates list
+      setCandidates([])
+      setSearchPage(1)
+      setHasMoreCandidates(true)
+      fetchCandidates(1, '')
+
       fetchSuggestedMatches()
     }
-  }, [open, currentCustomer])
+  }, [currentCustomer, open])
+
+  // Fetch candidates (customers) with pagination and search
+  const fetchCandidates = async (page: number, search: string, append: boolean = false) => {
+    if (append) {
+      setIsLoadingMoreCandidates(true)
+    } else {
+      setIsLoadingCandidates(true)
+    }
+
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        per_page: '20'
+      })
+
+      if (search.trim()) {
+        params.append('search', search)
+      }
+
+      const response = await api.get(`/customers?${params.toString()}`)
+      const rawData = response as { data?: ExistingCustomer[]; pagination?: { current_page?: number; last_page?: number } }
+      // Handle both direct array response (if any) or paginated response
+      const data = (rawData.data || rawData) as ExistingCustomer[]
+
+      // Safely handle pagination if it exists, otherwise assume no more pages
+      const pagination = rawData.pagination || { current_page: 1, last_page: 1 }
+
+      if (append) {
+        setCandidates(prev => [...prev, ...data])
+      } else {
+        setCandidates(data)
+      }
+
+      const currentPageNum = pagination.current_page || page
+      const lastPage = pagination.last_page || 1 // default to 1 if missing
+
+      setHasMoreCandidates(currentPageNum < lastPage)
+      setSearchPage(currentPageNum)
+    } catch (err) {
+      console.error("Failed to fetch candidates", err)
+      if (!append) setCandidates([])
+      setHasMoreCandidates(false)
+    } finally {
+      setIsLoadingCandidates(false)
+      setIsLoadingMoreCandidates(false)
+    }
+  }
+
+  // Debounced search effect
+  useEffect(() => {
+    if (!open) return
+
+    // Skip the initial effect call if we just opened (handled by the other useEffect)
+    // But actually simpler to just debounce everything.
+    // To avoid double fetch on open, we could use a ref or just accept it.
+    // For now, let's just debounce.
+
+    const timer = setTimeout(() => {
+      // Only fetch if open
+      fetchCandidates(1, searchTerm, false)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (createNew) {
-      if (!newCustomerName.trim()) {
-        setError('Please enter a customer name')
-        return
-      }
+      // No validation needed - we use each customer's name
     } else {
       if (!selectedCustomerId || !currentCustomer) {
         setError('Please select a customer to map to')
@@ -147,40 +233,58 @@ export const useMapCustomerModal = (
     setIsSubmitting(true)
 
     try {
-      // Map all selected customers to the same target (for "Map to Existing")
-      // OR create separate customers for each (for "Create New")
-      let targetCustomerId = selectedCustomerId
+      if (createNew) {
+        // BULK CREATE: Create all customers at once
+        const promises = customers.map(customer =>
+          api.post('/customers/map', {
+            integration_customer_id: customer.integration_customer_id,
+            mapping_type: 'manual',
+            create_new: true,
+            canonical_name: customer.name
+          })
+        )
 
-      for (const integrationCustomer of customers) {
-        const payload: {
-          integration_customer_id: number;
-          mapping_type: string;
-          create_new?: boolean;
-          canonical_name?: string;
-          customer_id?: number | null;
-        } = {
-          integration_customer_id: integrationCustomer.integration_customer_id,
-          mapping_type: 'manual'
-        }
+        await Promise.all(promises)
+        setMappedCount(customers.length)
 
-        if (createNew) {
-          // Create a NEW customer for EACH integration customer using their own name
-          payload.create_new = true
-          payload.canonical_name = integrationCustomer.name
-        } else {
-          // Map to existing - all go to same target
-          payload.customer_id = targetCustomerId
-        }
-
-        await api.post('/customers/map', payload)
-        setMappedCount(prev => prev + 1)
+        setSuccess(true)
+        setTimeout(() => {
+          setSuccess(false)
+          onSuccess?.()
+        }, 2000)
+        return
       }
 
-      setSuccess(true)
-      setTimeout(() => {
-        setSuccess(false)
-        onSuccess?.()
-      }, 2000)
+      // Map individual customer (one-by-one for "Map to Existing")
+      const payload: {
+        integration_customer_id: number;
+        mapping_type: string;
+        create_new?: boolean;
+        canonical_name?: string;
+        customer_id?: number | null;
+      } = {
+        integration_customer_id: currentCustomer.integration_customer_id,
+        mapping_type: 'manual'
+      }
+
+      payload.customer_id = selectedCustomerId
+
+      await api.post('/customers/map', payload)
+      setMappedCount(prev => prev + 1)
+
+      // If there are more customers, move to next (only for "Map to Existing")
+      if (currentIndex < customers.length - 1) {
+        setCurrentIndex(prev => prev + 1)
+        // Reset for next customer handled by useEffect
+      } else {
+        // All done
+        setSuccess(true)
+        setTimeout(() => {
+          setSuccess(false)
+          onSuccess?.()
+        }, 2000)
+      }
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to map customer'
       setError(errorMessage)
@@ -189,11 +293,10 @@ export const useMapCustomerModal = (
     }
   }
 
-  const filteredCustomers = existingCustomers.filter(customer =>
-    customer.customer_id !== null &&
-    customer.canonical_name &&
-    customer.canonical_name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Determine which list to show: Search results if searching, otherwise existing/passed customers
+  // No longer use local filtering
+  // const filteredCustomers = searchTerm.trim() ? searchResults : existingCustomers
+  const filteredCustomers = candidates
 
   return {
     isSubmitting,
@@ -216,6 +319,12 @@ export const useMapCustomerModal = (
     isBulk,
     mappedCount,
     customers,
+    currentIndex,
+    isSearching: isLoadingCandidates && searchPage === 1,
+    candidates,
+    hasMoreCandidates,
+    isLoadingMoreCandidates,
+    loadMoreCandidates: () => fetchCandidates(searchPage + 1, searchTerm, true),
   }
 }
 

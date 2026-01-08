@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/accordion";
 import { Spinner } from "@/components/ui/spinner";
 import { Send, Mail, Cloud, AlertCircle, CheckCircle2, TestTube } from "lucide-react";
-import { 
-    getCustomerDeliveryConfig, 
+import {
+    getCustomerDeliveryConfig,
     updateCustomerDeliveryConfig,
     testDeliveryConnection,
     type DeliveryConfig,
@@ -46,9 +46,9 @@ export function DeliveryConfigModal({
     const [isTesting, setIsTesting] = useState<string | null>(null);
     const [error, setError] = useState("");
     const [testResult, setTestResult] = useState<{ method: string; success: boolean; message: string } | null>(null);
-    
-    const [deliveryData, setDeliveryData] = useState<CustomerDeliveryResponse | null>(null);
-    
+
+    const [, setDeliveryData] = useState<CustomerDeliveryResponse | null>(null);
+
     // Form state
     const [enabledMethods, setEnabledMethods] = useState<string[]>(['email']);
     const [emailDestination, setEmailDestination] = useState("");
@@ -68,14 +68,14 @@ export function DeliveryConfigModal({
 
     const loadDeliveryConfig = async () => {
         if (!customer) return;
-        
+
         setIsLoading(true);
         setError("");
-        
+
         try {
             const data = await getCustomerDeliveryConfig(customer.customer_id);
             setDeliveryData(data);
-            
+
             // Populate form from config
             const config = data.delivery_config;
             setEnabledMethods(config.enabled_methods || (config.method ? [config.method] : ['email']));
@@ -105,13 +105,13 @@ export function DeliveryConfigModal({
 
     const handleTestConnection = async (method: string) => {
         if (!customer) return;
-        
+
         setIsTesting(method);
         setTestResult(null);
-        
+
         try {
             let config: Record<string, unknown> = {};
-            
+
             if (method === 'sharepoint') {
                 config = {
                     tenant_id: spTenantId,
@@ -127,15 +127,15 @@ export function DeliveryConfigModal({
                     cc: emailCc ? emailCc.split(',').map(e => e.trim()).filter(Boolean) : [],
                 };
             }
-            
+
             const result = await testDeliveryConnection(customer.customer_id, method, config);
             setTestResult({ method, ...result });
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } }; message?: string };
-            setTestResult({ 
-                method, 
-                success: false, 
-                message: error.response?.data?.message || error.message || "Test failed" 
+            setTestResult({
+                method,
+                success: false,
+                message: error.response?.data?.message || error.message || "Test failed"
             });
         } finally {
             setIsTesting(null);
@@ -144,9 +144,9 @@ export function DeliveryConfigModal({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!customer) return;
-        
+
         if (enabledMethods.length === 0) {
             setError("Please enable at least one delivery method");
             return;
@@ -420,19 +420,17 @@ export function DeliveryConfigModal({
 
                         {/* Test Result */}
                         {testResult && (
-                            <div className={`rounded-lg border p-3 flex items-start gap-2 ${
-                                testResult.success 
-                                    ? 'border-green-500/50 bg-green-500/10' 
+                            <div className={`rounded-lg border p-3 flex items-start gap-2 ${testResult.success
+                                    ? 'border-green-500/50 bg-green-500/10'
                                     : 'border-destructive/50 bg-destructive/10'
-                            }`}>
+                                }`}>
                                 {testResult.success ? (
                                     <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                                 ) : (
                                     <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
                                 )}
-                                <p className={`text-sm font-medium ${
-                                    testResult.success ? 'text-green-500' : 'text-destructive'
-                                }`}>
+                                <p className={`text-sm font-medium ${testResult.success ? 'text-green-500' : 'text-destructive'
+                                    }`}>
                                     {testResult.message}
                                 </p>
                             </div>
