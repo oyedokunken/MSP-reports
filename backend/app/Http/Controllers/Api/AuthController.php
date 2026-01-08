@@ -16,6 +16,8 @@ use Illuminate\Validation\ValidationException;
 use App\Http\Requests\LoginRequest;
 use App\Mail\PasswordResetMail;
 use App\Rules\StrongPassword;
+use App\Services\LdapAuthenticationService;
+use App\Services\UserProvisioningService;
 
 class AuthController extends Controller
 {
@@ -64,6 +66,7 @@ class AuthController extends Controller
             ]);
         }
 
+        // Handle authentication based on auth_method
         if ($validated['auth_method'] === 'local') {
             if (
                 empty($validated['password']) ||
@@ -73,6 +76,49 @@ class AuthController extends Controller
                 throw ValidationException::withMessages([
                     'password' => ['Invalid credentials.'],
                 ]);
+            }
+        } elseif ($validated['auth_method'] === 'ldap') {
+            // LDAP authentication
+            if (empty($validated['password'])) {
+                $this->recordFailedAttempt($request, $validated['email'], $user->company_id ?? null);
+                throw ValidationException::withMessages([
+                    'password' => ['Password is required for LDAP authentication.'],
+                ]);
+            }
+
+            $ldapService = new LdapAuthenticationService();
+            
+            // Extract username from email (before @)
+            $username = explode('@', $validated['email'])[0];
+            
+            $ldapUser = $ldapService->authenticate($username, $validated['password']);
+            
+            if (!$ldapUser) {
+                $this->recordFailedAttempt($request, $validated['email'], $user->company_id ?? null);
+                throw ValidationException::withMessages([
+                    'password' => ['Invalid LDAP credentials.'],
+                ]);
+            }
+
+            // If user doesn't exist locally, provision via JIT
+            if (!$user) {
+                $provisioningService = new UserProvisioningService();
+                $user = $provisioningService->provisionUser(
+                    $user->company_id,
+                    $ldapUser['email'],
+                    $ldapUser['name'],
+                    'ldap',
+                    [
+                        'username' => $ldapUser['username'],
+                        'first_name' => $ldapUser['first_name'],
+                        'last_name' => $ldapUser['last_name'],
+                    ]
+                );
+                
+                // Reload user with relationships
+                $user = User::where('user_id', $user->user_id)
+                    ->with('company', 'role')
+                    ->first();
             }
         }
 

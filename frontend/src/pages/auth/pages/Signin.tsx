@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   BrandingPanel,
   MobileLogo,
@@ -6,8 +7,12 @@ import {
   AuthDivider,
   AuthFooter,
   ContactAdminLink,
+  LdapLoginModal,
 } from "../components";
 import { useSignin } from "../hooks";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/Toast";
 
 const Signin = () => {
   const {
@@ -25,6 +30,33 @@ const Signin = () => {
     setShowAuthOptions,
     setShowPassword
   } = useSignin();
+
+  const [showLdapModal, setShowLdapModal] = useState(false);
+  const [ldapConfigured] = useState(false); // Set to true once LDAP is configured
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const toast = useToast();
+
+  const handleLdapLogin = async (username: string, password: string) => {
+    try {
+      // Construct email from username (add domain if needed)
+      const email = username.includes('@') ? username : `${username}@domain.local`;
+      
+      await login({
+        email,
+        password,
+        auth_method: "ldap",
+        rememberMe: false,
+      });
+
+      toast.success('Login Successful', 'Welcome back!');
+      setShowLdapModal(false);
+      navigate('/platform/dashboard');
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || err.message || 'LDAP authentication failed';
+      throw new Error(errorMessage);
+    }
+  };
 
   return (
     <div className="min-h-screen flex">
