@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home,
@@ -49,11 +49,29 @@ export default function AppSidebar() {
   const { state } = useSidebar()
   const [createUserOpen, setCreateUserOpen] = useState(false)
   const [customersExpanded, setCustomersExpanded] = useState(() => {
+    // Check sessionStorage first, then fallback to pathname check
+    const stored = sessionStorage.getItem('customersExpanded')
+    if (stored !== null) {
+      return stored === 'true'
+    }
     return location.pathname.startsWith('/platform/customers')
   })
   const getUnreadCount = useNotificationStore((state) => state.getUnreadCount)
   const unreadCount = getUnreadCount()
   const unmappedCount = useCustomersStore((state) => state.unmappedCount)
+
+  // Keep customers dropdown open when navigating within customers section
+  useEffect(() => {
+    if (location.pathname.startsWith('/platform/customers')) {
+      setCustomersExpanded(true)
+      sessionStorage.setItem('customersExpanded', 'true')
+    }
+  }, [location.pathname])
+
+  // Persist dropdown state to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('customersExpanded', String(customersExpanded))
+  }, [customersExpanded])
 
   const navItems = [
     { path: '/platform/dashboard', icon: Home, label: 'Dashboard', show: true, tourId: 'nav-dashboard' },
@@ -167,8 +185,8 @@ export default function AppSidebar() {
 
                 return (
                   <Fragment key={item.path}>
-                    <SidebarMenuItem className="relative group-data-[collapsible=icon]:static">
-                      <span className="absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-border group-data-[collapsible=icon]:hidden" />
+                    <SidebarMenuItem className="relative group-data-[collapsible=icon]:static group">
+                      <span className={`absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full transition-colors group-data-[collapsible=icon]:hidden ${active ? 'bg-primary' : 'bg-sidebar-border'}`} />
                       <SidebarMenuButton
                         asChild
                         isActive={active}
@@ -248,8 +266,8 @@ export default function AppSidebar() {
                           </Tooltip>
                         ) : (
                           <>
-                            <div className="relative">
-                              <span className="absolute left-[-14px] top-5 h-1.5 w-1.5 rounded-full bg-sidebar-border group-data-[collapsible=icon]:hidden" />
+                            <div className="relative group">
+                              <span className={`absolute left-[-14px] top-5 h-1.5 w-1.5 rounded-full transition-colors group-data-[collapsible=icon]:hidden ${location.pathname.startsWith('/platform/customers') ? 'bg-primary' : 'bg-sidebar-border'}`} />
                               <SidebarMenuButton
                                 tooltip="Customers"
                                 onClick={() => setCustomersExpanded(!customersExpanded)}
@@ -270,8 +288,8 @@ export default function AppSidebar() {
                                   const subActive = isActive(subItem.path)
                                   const showBadge = typeof subItem.badge === 'number' && subItem.badge > 0
                                   return (
-                                    <SidebarMenuSubItem key={subItem.path} className="relative">
-                                      <span className="absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-border" />
+                                    <SidebarMenuSubItem key={subItem.path} className="relative group">
+                                      <span className={`absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full transition-colors ${subActive ? 'bg-primary' : 'bg-sidebar-border'}`} />
                                       {showBadge && (
                                         <span className="absolute -top-2 -right-2 h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center ring-1 ring-background z-10">
                                           {subItem.badge}
@@ -315,8 +333,8 @@ export default function AppSidebar() {
                   const Icon = item.icon
                   const active = isActive(item.path)
                   return (
-                    <SidebarMenuItem key={item.path} className="relative group-data-[collapsible=icon]:static">
-                      <span className="absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-sidebar-border group-data-[collapsible=icon]:hidden" />
+                    <SidebarMenuItem key={item.path} className="relative group-data-[collapsible=icon]:static group">
+                      <span className={`absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full transition-colors group-data-[collapsible=icon]:hidden ${active ? 'bg-primary' : 'bg-sidebar-border'}`} />
                       <SidebarMenuButton
                         asChild
                         isActive={active}

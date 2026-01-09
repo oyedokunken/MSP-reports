@@ -1,19 +1,14 @@
 /* Import custom Athletics font */
 @import './styles/fonts.css';
 
-/* Import professional Google Fonts for trial */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700;900&family=Open+Sans:wght@300;400;500;600;700;800&display=swap');
+/* Import Inter font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Default to Inter, with Roboto and Open Sans as alternatives to trial */
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-/* Keep Athletics font available for logo */
+/* Athletics font utility class for branding/logo */
 .font-athletics {
   font-family: 'Athletics', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -133,6 +128,9 @@ body {
 @layer base {
   * {
     @apply border-border;
+  }
+  html {
+    font-size: 16px;
   }
   body {
     @apply bg-background text-foreground tracking-[-0.01em];

@@ -73,7 +73,7 @@ export default {
   		},
   		fontFamily: {
   			sans: [
-  				'Athletics',
+  				'Inter',
   				'-apple-system',
   				'BlinkMacSystemFont',
   				'Segoe UI',
