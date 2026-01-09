@@ -394,4 +394,59 @@ class ReportTemplateController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Get all available report types (for global templates - no customer filtering)
+     */
+    public function getAllReportTypes(ReportRegistry $reportRegistry)
+    {
+        $companyId = auth()->user()->company_id;
+        $allReports = $reportRegistry->getAvailable($companyId);
+        
+        $reportTypes = [];
+        foreach ($allReports as $report) {
+            $reportInstance = $reportRegistry->get($report['id'], $companyId);
+            if (!$reportInstance) {
+                continue;
+            }
+            
+            $metadata = $reportInstance->getMetadata();
+            
+            $reportTypes[] = [
+                'type' => $report['id'],
+                'name' => $report['name'] ?? $metadata['name'] ?? 'Unknown Report',
+                'description' => $report['description'] ?? $metadata['description'] ?? '',
+                'required_integrations' => $report['required_integrations'] ?? [],
+                'available_sections' => $report['available_sections'] ?? [
+                    ['id' => 'all', 'label' => 'All Sections', 'default' => true],
+                ],
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'report_types' => $reportTypes,
+            ],
+        ]);
+    }
+    
+    /**
+     * Get customers who have this template applied via their schedules
+     */
+    public function getAppliedCustomers(ReportTemplate $template)
+    {
+        $customers = Customer::query()
+            ->whereIn('customer_id', function($query) use ($template) {
+                $query->select('customer_id')
+                    ->from('report_schedules')
+                    ->where('template_id', $template->template_id);
+            })
+            ->get();
+            
+        return response()->json([
+            'success' => true,
+            'data' => $customers,
+        ]);
+    }
 }

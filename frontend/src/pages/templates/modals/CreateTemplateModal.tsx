@@ -125,12 +125,14 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     setSearchDebounce(timeout)
   }
 
-  // Fetch report types when customer is selected
+  // Fetch report types when customer is selected OR when global template mode is enabled
   useEffect(() => {
-    if (selectedCustomerId) {
+    if (isGlobalTemplate) {
+      fetchAllReportTypes()
+    } else if (selectedCustomerId) {
       fetchAvailableReportTypes(selectedCustomerId)
     }
-  }, [selectedCustomerId])
+  }, [selectedCustomerId, isGlobalTemplate])
 
   // Auto-select default sections when report type changes (only for new templates)
   useEffect(() => {
@@ -206,6 +208,22 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       console.error('Error response:', err.response?.data)
       console.error('Error status:', err.response?.status)
       const errorMsg = err.response?.data?.message || err.response?.data?.errors || 'Failed to load available report types'
+      toast.error(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg))
+    } finally {
+      setIsLoadingData(false)
+    }
+  }
+
+  const fetchAllReportTypes = async () => {
+    try {
+      setIsLoadingData(true)
+      console.log('Fetching all report types for global template')
+      const data = await templateApi.getAllReportTypes()
+      console.log('Received all report types:', data)
+      setAvailableReportTypes(data.report_types)
+    } catch (err: any) {
+      console.error('Failed to fetch all report types:', err)
+      const errorMsg = err.response?.data?.message || 'Failed to load report types'
       toast.error(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg))
     } finally {
       setIsLoadingData(false)
@@ -288,7 +306,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
         toast.success('Template updated successfully')
       } else {
         await templateApi.create(templateData)
-        toast.success(isGlobalTemplate 
+        toast.success(isGlobalTemplate
           ? 'Global template created. Apply it to customers to create schedules.'
           : 'Template created and schedule activated for customer'
         )
@@ -359,7 +377,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                       {isGlobalTemplate ? 'Global Template' : 'Customer-Specific Template'}
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      {isGlobalTemplate 
+                      {isGlobalTemplate
                         ? 'Can be applied to any customer later'
                         : 'Creates a schedule for a specific customer'
                       }
@@ -406,55 +424,55 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
 
               {/* Customer Selection - only show for customer-specific templates */}
               {!isGlobalTemplate && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium">Select Customer *</label>
-                  {totalPages > 1 && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>Page {currentPage} of {totalPages}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1 || isLoadingData}
-                        className="h-6 px-2 text-xs"
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages || isLoadingData}
-                        className="h-6 px-2 text-xs"
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium">Select Customer *</label>
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Page {currentPage} of {totalPages}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1 || isLoadingData}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages || isLoadingData}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    )}
+                  </div>
 
-                {/* Customer Search */}
-                <div className="mb-3">
-                  <Input
-                    type="text"
-                    placeholder="Search customers..."
-                    value={customerSearch}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    disabled={isLoadingData}
-                    className="h-8 text-sm"
+                  {/* Customer Search */}
+                  <div className="mb-3">
+                    <Input
+                      type="text"
+                      placeholder="Search customers..."
+                      value={customerSearch}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      disabled={isLoadingData}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+
+                  <CustomerIntegrationSelector
+                    customers={customers}
+                    selectedCustomerId={selectedCustomerId}
+                    onSelect={(customer) => setSelectedCustomerId(customer.customer_id)}
                   />
                 </div>
-
-                <CustomerIntegrationSelector
-                  customers={customers}
-                  selectedCustomerId={selectedCustomerId}
-                  onSelect={(customer) => setSelectedCustomerId(customer.customer_id)}
-                />
-              </div>
-            )}
+              )}
             </div>
           )}
 

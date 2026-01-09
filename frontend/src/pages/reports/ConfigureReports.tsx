@@ -283,6 +283,7 @@ export default function ConfigureReports() {
           }
 
           const updateData = {
+            report_type: report.report_type,
             frequency: report.frequency || 'monthly',
             time_of_day: report.time_of_day || '09:00',
             active: report.active !== false,

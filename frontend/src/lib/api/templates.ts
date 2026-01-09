@@ -52,10 +52,22 @@ export const templateApi = {
     return response.data
   },
 
+  getAllReportTypes: async () => {
+    const response = await api.get<{ report_types: import('@/pages/templates/types/template').ReportTypeDefinition[] }>(
+      '/report-templates/all-report-types'
+    )
+    return response.data
+  },
+
   preview: async (id: number) => {
     const response = await api.post<{ generated_report_id: number; status: string }>(
       `/report-templates/${id}/preview`
     )
+    return response.data
+  },
+
+  getAppliedCustomers: async (id: number) => {
+    const response = await api.get<any[]>(`/report-templates/${id}/applied-customers`)
     return response.data
   },
 }

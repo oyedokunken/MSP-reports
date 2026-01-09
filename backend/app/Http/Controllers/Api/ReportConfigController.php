@@ -448,6 +448,7 @@ class ReportConfigController extends Controller
 
         // Validate input
         $validated = $request->validate([
+            'report_type' => 'nullable|string',
             'frequency' => 'nullable|string|in:daily,weekly,monthly,yearly,on-demand',
             'time_of_day' => 'nullable|string',
             'active' => 'nullable|boolean',
@@ -455,6 +456,10 @@ class ReportConfigController extends Controller
         ]);
 
         // Update schedule fields
+        if (isset($validated['report_type'])) {
+            $schedule->report_type = $validated['report_type'];
+        }
+
         if (isset($validated['frequency'])) {
             $schedule->frequency = $validated['frequency'];
         }
