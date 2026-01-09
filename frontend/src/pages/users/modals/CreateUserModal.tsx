@@ -11,7 +11,9 @@ import { Mail, Lock, User as UserIcon, CheckCircle2, Eye, EyeOff, Users, X } fro
 import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
 import { customerApi } from '@/services/api/customers'
+import { userApi } from '@/services/api/users'
 import type { Customer } from '@/types/api/customer'
+import type { Role } from '@/types/api/user'
 
 interface CreateUserModalProps {
   open: boolean
@@ -48,6 +50,8 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
 
   const [selectedCustomers, setSelectedCustomers] = useState<number[]>([])
   const [customerSearch, setCustomerSearch] = useState('')
+  const [roles, setRoles] = useState<Role[]>([])
+  const [loadingRoles, setLoadingRoles] = useState(true)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -72,6 +76,26 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
       setIsLoadingCustomers(false)
     }
   }
+
+  // Fetch roles on mount
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        setLoadingRoles(true)
+        const response = await userApi.getRoles()
+        if (response.data) {
+          setRoles(response.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch roles:', error)
+        toast.error('Error', 'Failed to load roles')
+      } finally {
+        setLoadingRoles(false)
+      }
+    }
+
+    fetchRoles()
+  }, [])
 
   // Load initial customers
   useEffect(() => {
@@ -206,15 +230,18 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto p-6">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <DialogHeader>
-          <DialogTitle>Create New User</DialogTitle>
+          <div className="flex items-center gap-2">
+            <UserIcon className="h-5 w-5 text-primary" />
+            <DialogTitle>Create New User</DialogTitle>
+          </div>
           <DialogDescription>
             Add a new user to your organization
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pb-0">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Two Column Grid */}
           <div className="grid grid-cols-2 gap-6 divide-x divide-border">
             {/* Left Column */}
@@ -298,10 +325,17 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Admin</SelectItem>
-                    <SelectItem value="2">Manager</SelectItem>
-                    <SelectItem value="3">Viewer</SelectItem>
-                    <SelectItem value="4">Technician</SelectItem>
+                    {loadingRoles ? (
+                      <SelectItem value="0" disabled>Loading roles...</SelectItem>
+                    ) : roles.length > 0 ? (
+                      roles.map((role) => (
+                        <SelectItem key={role.id} value={role.id.toString()}>
+                          {role.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="0" disabled>No roles available</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -400,18 +434,16 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                   ) : (
                     <div className="divide-y">
                       {customers.map(customer => (
-                        <div
+                        <label
                           key={customer.customer_id}
                           className="flex items-center gap-2 p-2 hover:bg-muted/50 cursor-pointer"
-                          onClick={() => toggleCustomer(customer.customer_id)}
                         >
                           <Checkbox
                             checked={selectedCustomers.includes(customer.customer_id)}
                             onCheckedChange={() => toggleCustomer(customer.customer_id)}
-                            onClick={(e) => e.stopPropagation()}
                           />
                           <span className="text-sm flex-1">{customer.canonical_name}</span>
-                        </div>
+                        </label>
                       ))}
                     </div>
                   )}
@@ -420,7 +452,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
                   <button
                     type="button"
                     onClick={() => handlePageChange(currentPage - 1)}
@@ -452,7 +484,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="mt-6">
             <Button
               type="button"
               variant="outline"

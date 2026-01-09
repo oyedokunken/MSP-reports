@@ -7,11 +7,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Spinner } from '@/components/ui/spinner'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { CheckCircle2, User, AlertCircle, Users, X } from 'lucide-react'
+import { CheckCircle2, User as UserIcon, AlertCircle, Users, X } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
 import { customerApi } from '@/services/api/customers'
+import { userApi } from '@/services/api/users'
+import type { Role } from '@/types/api/user'
 import type { Customer } from '@/types/api/customer'
 
 interface EditUserModalProps {
@@ -35,6 +37,8 @@ export function EditUserModal({
   const [roleId, setRoleId] = useState('')
   const [selectedCustomers, setSelectedCustomers] = useState<number[]>([])
   const [customerSearch, setCustomerSearch] = useState('')
+  const [roles, setRoles] = useState<Role[]>([])
+  const [loadingRoles, setLoadingRoles] = useState(true)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -79,6 +83,22 @@ export function EditUserModal({
       setSuccess(false)
     }
   }, [open, user])
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        setLoadingRoles(true)
+        const response = await userApi.getRoles()
+        setRoles(response.data || [])
+      } catch (err) {
+        console.error('Failed to fetch roles:', err)
+        toast.error('Error', 'Failed to load roles')
+      } finally {
+        setLoadingRoles(false)
+      }
+    }
+    fetchRoles()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -198,7 +218,7 @@ export function EditUserModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
+            <UserIcon className="h-5 w-5 text-primary" />
             <DialogTitle>Edit User</DialogTitle>
           </div>
           <DialogDescription>
@@ -245,14 +265,21 @@ export function EditUserModal({
               Role
             </Label>
             <Select value={roleId} onValueChange={setRoleId} disabled={isSubmitting}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select role" />
+              <SelectTrigger id="edit-role">
+                <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Admin</SelectItem>
-                <SelectItem value="2">Manager</SelectItem>
-                <SelectItem value="3">Viewer</SelectItem>
-                <SelectItem value="4">Technician</SelectItem>
+                {loadingRoles ? (
+                  <SelectItem value="0" disabled>Loading roles...</SelectItem>
+                ) : roles.length > 0 ? (
+                  roles.map((role) => (
+                    <SelectItem key={role.id} value={role.id.toString()}>
+                      {role.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="0" disabled>No roles available</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

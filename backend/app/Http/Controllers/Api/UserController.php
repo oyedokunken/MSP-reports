@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Models\Role;
 use App\Models\AuditLog;
 use App\Services\LicenseChecker;
+use App\Services\RolePermissionService;
 use App\Rules\StrongPassword;
 
 class UserController extends Controller
@@ -489,6 +491,19 @@ class UserController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'User password reset successfully.'
+        ]);
+    }
+
+    /**
+     * Get all available roles
+     */
+    public function getRoles(Request $request)
+    {
+        $roles = Role::select('id', 'name')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $roles
         ]);
     }
 }

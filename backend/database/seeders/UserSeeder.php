@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Company;
 use App\Models\Role;
+use App\Services\RolePermissionService;
 use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
@@ -39,13 +40,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('ChangeMe123!'),
                 'status' => 'active',
                 'auth_method' => 'local',
-                'permissions' => [
-                    'integrations' => ['view' => true, 'manage' => true, 'sync' => true],
-                    'customers' => ['view' => true, 'edit' => true, 'map' => true],
-                    'reports' => ['view' => true, 'configure' => true, 'generate' => true, 'download' => true],
-                    'users' => ['view' => true, 'manage' => true],
-                    'company_settings' => ['view' => true, 'edit' => true],
-                ],
+                'permissions' => RolePermissionService::getDefaultPermissions('Admin'),
                 'settings' => [
                     'theme' => 'light',
                     'notifications' => ['email' => true, 'browser' => true],
@@ -65,13 +60,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password123'),
                 'status' => 'active',
                 'auth_method' => 'local',
-                'permissions' => [
-                    'integrations' => ['view' => true, 'manage' => true, 'sync' => true],
-                    'customers' => ['view' => true, 'edit' => true, 'map' => true],
-                    'reports' => ['view' => true, 'configure' => true, 'generate' => true, 'download' => true],
-                    'users' => ['view' => true, 'manage' => true],
-                    'company_settings' => ['view' => true, 'edit' => true],
-                ],
+                'permissions' => RolePermissionService::getDefaultPermissions('Admin'),
                 'settings' => [
                     'theme' => 'dark',
                     'notifications' => ['email' => true, 'browser' => false],
@@ -96,13 +85,7 @@ class UserSeeder extends Seeder
                 'status' => 'active',
                 'auth_method' => 'local',
                 'scoped_customers' => [1], // Scoped to first customer only
-                'permissions' => [
-                    'integrations' => ['view' => true, 'manage' => false, 'sync' => false],
-                    'customers' => ['view' => true, 'edit' => false, 'map' => false],
-                    'reports' => ['view' => true, 'configure' => false, 'generate' => true, 'download' => true],
-                    'users' => ['view' => false, 'manage' => false],
-                    'company_settings' => ['view' => false, 'edit' => false],
-                ],
+                'permissions' => RolePermissionService::getDefaultPermissions('Viewer'),
             ]);
         }
 

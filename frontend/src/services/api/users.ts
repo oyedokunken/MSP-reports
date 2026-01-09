@@ -17,7 +17,9 @@ import type {
     DeactivateUserResponse,
     ReactivateUserResponse,
     DeleteUserResponse,
+    Role,
 } from '@/types/api/user'
+import type { ApiSuccessResponse } from '@/types/api/common'
 
 export const userApi = {
     /**
@@ -85,5 +87,13 @@ export const userApi = {
      */
     async resetPassword(userId: number, data: ResetPasswordRequest): Promise<ResetPasswordResponse> {
         return api.post(`/users/${userId}/reset-password`, data) as unknown as Promise<ResetPasswordResponse>
+    },
+
+    /**
+     * Get all available roles
+     * GET /api/users/roles
+     */
+    async getRoles(): Promise<ApiSuccessResponse<Role[]>> {
+        return api.get('/users/roles') as unknown as Promise<ApiSuccessResponse<Role[]>>
     },
 }

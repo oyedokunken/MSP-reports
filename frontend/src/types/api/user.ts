@@ -29,7 +29,44 @@ export interface UserPermissions {
         generate: boolean
         download: boolean
     }
+    schedules: {
+        view: boolean
+        create: boolean
+        edit: boolean
+        delete: boolean
+    }
+    templates: {
+        view: boolean
+        create: boolean
+        edit: boolean
+        delete: boolean
+    }
     users: {
+        view: boolean
+        manage: boolean
+    }
+    api_keys: {
+        view: boolean
+        create: boolean
+        revoke: boolean
+    }
+    licenses: {
+        view: boolean
+        manage: boolean
+    }
+    monitoring: {
+        view: boolean
+        configure: boolean
+    }
+    notifications: {
+        view: boolean
+        configure: boolean
+    }
+    security: {
+        view_logs: boolean
+        configure: boolean
+    }
+    exchange: {
         view: boolean
         manage: boolean
     }
@@ -48,6 +85,7 @@ export interface User {
     status: 'active' | 'inactive' | 'locked'
     auth_method: 'local' | 'saml' | 'm365' | 'ldap'
     permissions: UserPermissions
+    scoped_customers?: number[] | null
     role?: Role
     last_login?: string | null
     created_at?: string

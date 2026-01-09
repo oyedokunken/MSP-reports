@@ -47,7 +47,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     Route::post('/auth/password/change', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');
 
     // Company Routes
-    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
+    Route::middleware(['auth:sanctum', 'session.timeout', 'scope.customers'])->group(function () {
         Route::get('/company/settings', [CompanyController::class, 'getSettings']);
         Route::patch('/company/settings', [CompanyController::class, 'updateSettings']);
         Route::patch('/company/branding', [CompanyController::class, 'updateBranding']);
@@ -58,6 +58,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     // Users Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/users', [UserController::class, 'getUser']);
+        Route::get('/users/roles', [UserController::class, 'getRoles']);
         Route::post('/users', [UserController::class, 'createUser']);
         Route::patch('/users/{id}', [UserController::class, 'updateUser']);
         Route::patch('/users/{id}/permissions', [UserController::class, 'updatePermissions']);

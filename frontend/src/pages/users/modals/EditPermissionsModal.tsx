@@ -11,7 +11,15 @@ import {
   Users,
   FileText,
   Settings,
-  Building2
+  Building2,
+  Calendar,
+  FileCode,
+  Key,
+  Award,
+  Activity,
+  Bell,
+  ShieldAlert,
+  Mail
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { UserWithPermissions, UserPermissions as UserPerms } from '../types'
@@ -32,7 +40,15 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
     integrations: { view: true, manage: false, sync: false },
     customers: { view: true, edit: false, map: false },
     reports: { view: true, configure: false, generate: false, download: false },
+    schedules: { view: false, create: false, edit: false, delete: false },
+    templates: { view: false, create: false, edit: false, delete: false },
     users: { view: false, manage: false },
+    api_keys: { view: false, create: false, revoke: false },
+    licenses: { view: false, manage: false },
+    monitoring: { view: false, configure: false },
+    notifications: { view: false, configure: false },
+    security: { view_logs: false, configure: false },
+    exchange: { view: false, manage: false },
     company_settings: { view: false, edit: false },
   })
 
@@ -45,7 +61,15 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
         integrations: { view: true, manage: false, sync: false },
         customers: { view: true, edit: false, map: false },
         reports: { view: true, configure: false, generate: false, download: true },
+        schedules: { view: false, create: false, edit: false, delete: false },
+        templates: { view: false, create: false, edit: false, delete: false },
         users: { view: false, manage: false },
+        api_keys: { view: false, create: false, revoke: false },
+        licenses: { view: false, manage: false },
+        monitoring: { view: false, configure: false },
+        notifications: { view: false, configure: false },
+        security: { view_logs: false, configure: false },
+        exchange: { view: false, manage: false },
         company_settings: { view: false, edit: false },
       })
     }
@@ -150,12 +174,89 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
       ]
     },
     {
+      id: 'schedules',
+      label: 'Report Schedules',
+      icon: Calendar,
+      items: [
+        { key: 'view', label: 'View Schedules' },
+        { key: 'create', label: 'Create Schedules' },
+        { key: 'edit', label: 'Edit Schedules' },
+        { key: 'delete', label: 'Delete Schedules' },
+      ]
+    },
+    {
+      id: 'templates',
+      label: 'Report Templates',
+      icon: FileCode,
+      items: [
+        { key: 'view', label: 'View Templates' },
+        { key: 'create', label: 'Create Templates' },
+        { key: 'edit', label: 'Edit Templates' },
+        { key: 'delete', label: 'Delete Templates' },
+      ]
+    },
+    {
       id: 'users',
       label: 'User Management',
       icon: Shield,
       items: [
         { key: 'view', label: 'View Users' },
         { key: 'manage', label: 'Manage Users' },
+      ]
+    },
+    {
+      id: 'api_keys',
+      label: 'API Keys',
+      icon: Key,
+      items: [
+        { key: 'view', label: 'View API Keys' },
+        { key: 'create', label: 'Create API Keys' },
+        { key: 'revoke', label: 'Revoke API Keys' },
+      ]
+    },
+    {
+      id: 'licenses',
+      label: 'Licenses',
+      icon: Award,
+      items: [
+        { key: 'view', label: 'View Licenses' },
+        { key: 'manage', label: 'Manage Licenses' },
+      ]
+    },
+    {
+      id: 'monitoring',
+      label: 'System Monitoring',
+      icon: Activity,
+      items: [
+        { key: 'view', label: 'View Monitoring' },
+        { key: 'configure', label: 'Configure Alerts' },
+      ]
+    },
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      icon: Bell,
+      items: [
+        { key: 'view', label: 'View Notifications' },
+        { key: 'configure', label: 'Configure Notifications' },
+      ]
+    },
+    {
+      id: 'security',
+      label: 'Security & Audit',
+      icon: ShieldAlert,
+      items: [
+        { key: 'view_logs', label: 'View Audit Logs' },
+        { key: 'configure', label: 'Configure Security' },
+      ]
+    },
+    {
+      id: 'exchange',
+      label: 'Exchange/Email',
+      icon: Mail,
+      items: [
+        { key: 'view', label: 'View Exchange' },
+        { key: 'manage', label: 'Manage Mailboxes' },
       ]
     },
     {

@@ -17,6 +17,7 @@ class RolePermissionService
             'manager' => self::getManagerPermissions(),
             'technician' => self::getTechnicianPermissions(),
             'viewer' => self::getViewerPermissions(),
+            'customer' => self::getCustomerPermissions(),
             default => self::getViewerPermissions(), // Default to most restrictive
         };
     }
@@ -43,7 +44,44 @@ class RolePermissionService
                 'generate' => true,
                 'download' => true,
             ],
+            'schedules' => [
+                'view' => true,
+                'create' => true,
+                'edit' => true,
+                'delete' => true,
+            ],
+            'templates' => [
+                'view' => true,
+                'create' => true,
+                'edit' => true,
+                'delete' => true,
+            ],
             'users' => [
+                'view' => true,
+                'manage' => true,
+            ],
+            'api_keys' => [
+                'view' => true,
+                'create' => true,
+                'revoke' => true,
+            ],
+            'licenses' => [
+                'view' => true,
+                'manage' => true,
+            ],
+            'monitoring' => [
+                'view' => true,
+                'configure' => true,
+            ],
+            'notifications' => [
+                'view' => true,
+                'configure' => true,
+            ],
+            'security' => [
+                'view_logs' => true,
+                'configure' => true,
+            ],
+            'exchange' => [
                 'view' => true,
                 'manage' => true,
             ],
@@ -76,8 +114,45 @@ class RolePermissionService
                 'generate' => true,
                 'download' => true,
             ],
+            'schedules' => [
+                'view' => true,
+                'create' => true,
+                'edit' => true,
+                'delete' => true,
+            ],
+            'templates' => [
+                'view' => true,
+                'create' => false,
+                'edit' => false,
+                'delete' => false,
+            ],
             'users' => [
                 'view' => true,
+                'manage' => false,
+            ],
+            'api_keys' => [
+                'view' => false,
+                'create' => false,
+                'revoke' => false,
+            ],
+            'licenses' => [
+                'view' => true,
+                'manage' => false,
+            ],
+            'monitoring' => [
+                'view' => false,
+                'configure' => false,
+            ],
+            'notifications' => [
+                'view' => true,
+                'configure' => true,
+            ],
+            'security' => [
+                'view_logs' => false,
+                'configure' => false,
+            ],
+            'exchange' => [
+                'view' => false,
                 'manage' => false,
             ],
             'company_settings' => [
@@ -109,9 +184,46 @@ class RolePermissionService
                 'generate' => false,
                 'download' => true,
             ],
+            'schedules' => [
+                'view' => true,
+                'create' => false,
+                'edit' => false,
+                'delete' => false,
+            ],
+            'templates' => [
+                'view' => true,
+                'create' => false,
+                'edit' => false,
+                'delete' => false,
+            ],
             'users' => [
                 'view' => false,
                 'manage' => false,
+            ],
+            'api_keys' => [
+                'view' => true,
+                'create' => true,
+                'revoke' => false,
+            ],
+            'licenses' => [
+                'view' => false,
+                'manage' => false,
+            ],
+            'monitoring' => [
+                'view' => true,
+                'configure' => false,
+            ],
+            'notifications' => [
+                'view' => true,
+                'configure' => false,
+            ],
+            'security' => [
+                'view_logs' => false,
+                'configure' => false,
+            ],
+            'exchange' => [
+                'view' => true,
+                'manage' => true,
             ],
             'company_settings' => [
                 'view' => false,
@@ -142,7 +254,114 @@ class RolePermissionService
                 'generate' => false,
                 'download' => true,
             ],
+            'schedules' => [
+                'view' => true,
+                'create' => false,
+                'edit' => false,
+                'delete' => false,
+            ],
+            'templates' => [
+                'view' => false,
+                'create' => false,
+                'edit' => false,
+                'delete' => false,
+            ],
             'users' => [
+                'view' => false,
+                'manage' => false,
+            ],
+            'api_keys' => [
+                'view' => false,
+                'create' => false,
+                'revoke' => false,
+            ],
+            'licenses' => [
+                'view' => false,
+                'manage' => false,
+            ],
+            'monitoring' => [
+                'view' => false,
+                'configure' => false,
+            ],
+            'notifications' => [
+                'view' => true,
+                'configure' => false,
+            ],
+            'security' => [
+                'view_logs' => false,
+                'configure' => false,
+            ],
+            'exchange' => [
+                'view' => false,
+                'manage' => false,
+            ],
+            'company_settings' => [
+                'view' => false,
+                'edit' => false,
+            ],
+        ];
+    }
+
+    /**
+     * Customer - Customer-facing read-only access to own reports
+     */
+    private static function getCustomerPermissions(): array
+    {
+        return [
+            'integrations' => [
+                'view' => false,
+                'manage' => false,
+                'sync' => false,
+            ],
+            'customers' => [
+                'view' => false,
+                'edit' => false,
+                'map' => false,
+            ],
+            'reports' => [
+                'view' => true,
+                'configure' => false,
+                'generate' => false,
+                'download' => true,
+            ],
+            'schedules' => [
+                'view' => false,
+                'create' => false,
+                'edit' => false,
+                'delete' => false,
+            ],
+            'templates' => [
+                'view' => false,
+                'create' => false,
+                'edit' => false,
+                'delete' => false,
+            ],
+            'users' => [
+                'view' => false,
+                'manage' => false,
+            ],
+            'api_keys' => [
+                'view' => false,
+                'create' => false,
+                'revoke' => false,
+            ],
+            'licenses' => [
+                'view' => false,
+                'manage' => false,
+            ],
+            'monitoring' => [
+                'view' => false,
+                'configure' => false,
+            ],
+            'notifications' => [
+                'view' => false,
+                'configure' => false,
+            ],
+            'security' => [
+                'view_logs' => false,
+                'configure' => false,
+            ],
+            'exchange' => [
                 'view' => false,
                 'manage' => false,
             ],

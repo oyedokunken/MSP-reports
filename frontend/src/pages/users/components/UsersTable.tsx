@@ -288,7 +288,7 @@ export function UsersTable({
                       )}
                     >
                       {isAdmin && <Shield className="mr-1 h-3 w-3" />}
-                      {isAdmin ? 'Administrator' : 'Team Member'}
+                      {user.role.name}
                     </Badge>
                   </TableCell>
 
