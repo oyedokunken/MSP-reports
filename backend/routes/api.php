@@ -20,6 +20,9 @@ use App\Http\Controllers\Api\DeliveryConfigController;
 // Public Health Check (no auth required to implement)
 Route::get('/health', [HealthCheckController::class, 'index']);
 
+// Public SAML Metadata (no auth required)
+Route::get('/saml/metadata', [AuthController::class, 'getSamlMetadata']);
+
 Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
 
     // Auth Routes - Stricter rate limiting for security-sensitive endpoints
@@ -28,6 +31,16 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::post('/auth/password/request', [AuthController::class, 'requestPasswordReset']);
         Route::post('/auth/password/reset', [AuthController::class, 'resetPassword']);
     });
+    
+    // OAuth Routes
+    Route::get('/auth/microsoft/redirect', [AuthController::class, 'redirectToMicrosoft']);
+    Route::get('/auth/microsoft/callback', [AuthController::class, 'handleMicrosoftCallback']);
+    
+    // SAML Routes
+    Route::get('/auth/saml/login', [AuthController::class, 'initiateSamlLogin']);
+    Route::post('/auth/saml/acs', [AuthController::class, 'handleSamlAcs']);
+    Route::get('/auth/saml/sls', [AuthController::class, 'handleSamlSls']);
+    Route::post('/auth/saml/sls', [AuthController::class, 'handleSamlSls']);
     
     Route::post('/auth/logout', [AuthController::class, 'authLogout'])->middleware('auth:sanctum');
     Route::get('/auth/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
