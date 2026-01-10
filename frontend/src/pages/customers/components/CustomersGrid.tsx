@@ -16,6 +16,7 @@ interface CustomersGridProps {
   onSplit: (customer: MappedCustomer) => void
   onMoreInfo: (customerId: number) => void
   onApplyTemplate: (customer: MappedCustomer) => void
+  onConfigureDelivery: (customer: MappedCustomer) => void
 }
 
 export function CustomersGrid({
@@ -30,6 +31,7 @@ export function CustomersGrid({
   onSplit,
   onMoreInfo,
   onApplyTemplate,
+  onConfigureDelivery,
 }: CustomersGridProps) {
   if (isLoading) {
     return (
@@ -92,6 +94,7 @@ export function CustomersGrid({
           onSplit={() => onSplit(customer)}
           onMoreInfo={() => onMoreInfo(customer.customer_id!)}
           onApplyTemplate={() => onApplyTemplate(customer)}
+          onConfigureDelivery={() => onConfigureDelivery(customer)}
         />
       ))}
     </div>

@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { FileText, Settings, MoreVertical, Edit, Cable, GitMerge, GitBranch, Info, Building2, CheckCircle, XCircle } from 'lucide-react'
+import { FileText, Settings, MoreVertical, Edit, Cable, GitMerge, GitBranch, Info, Building2, CheckCircle, XCircle, Send } from 'lucide-react'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { useAuth } from '@/contexts/AuthContext'
 import type { MappedCustomer } from '@/stores/useCustomersStore'
@@ -22,6 +22,7 @@ interface CustomerCardProps {
   onSplit: () => void
   onMoreInfo: () => void
   onApplyTemplate: () => void
+  onConfigureDelivery: () => void
 }
 
 export function CustomerCard({
@@ -34,6 +35,7 @@ export function CustomerCard({
   onSplit,
   onMoreInfo,
   onApplyTemplate,
+  onConfigureDelivery,
 }: CustomerCardProps) {
   const { user } = useAuth()
   const hasReports = customer.report_schedules_count && customer.report_schedules_count > 0
@@ -152,6 +154,10 @@ export function CustomerCard({
               <DropdownMenuItem onClick={onApplyTemplate}>
                 <FileText className="mr-2 h-4 w-4" />
                 Apply Report Template
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onConfigureDelivery}>
+                <Send className="mr-2 h-4 w-4" />
+                Delivery Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onMerge}>

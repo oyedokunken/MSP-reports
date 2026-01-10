@@ -39,6 +39,7 @@ interface CustomersState {
     merge: boolean
     split: boolean
     applyTemplate: boolean
+    delivery: boolean
   }
   selectedUnmappedCustomer: IntegrationCustomer | null
   selectedCustomer: {
@@ -93,6 +94,7 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
     merge: false,
     split: false,
     applyTemplate: false,
+    delivery: false,
   },
   selectedUnmappedCustomer: null,
   selectedCustomer: null,

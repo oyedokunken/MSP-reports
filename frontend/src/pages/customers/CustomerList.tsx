@@ -11,6 +11,7 @@ import { ViewCustomerIntegrationsModal } from "./modals/ViewCustomerIntegrations
 import { MergeCustomersModal } from "./modals/MergeCustomersModal";
 import { SplitCustomerModal } from "./modals/SplitCustomerModal";
 import { CreateStaticCustomerModal } from "./modals/CreateStaticCustomerModal";
+import { DeliveryConfigModal } from "./modals/DeliveryConfigModal";
 import { useCustomerList } from "./hooks";
 import { useState } from "react";
 
@@ -77,6 +78,7 @@ export default function CustomerList() {
                     onSplit={(customer) => handleCustomerAction(customer, 'split')}
                     onMoreInfo={(id) => navigate(`/platform/customers/${id}/integrations`)}
                     onApplyTemplate={(customer) => handleCustomerAction(customer, 'applyTemplate')}
+                    onConfigureDelivery={(customer) => handleCustomerAction(customer, 'delivery')}
                 />
 
                 {total > 0 && (
@@ -138,6 +140,14 @@ export default function CustomerList() {
                         setShowCreateStatic(false);
                         fetchCustomers();
                     }}
+                />
+
+                <DeliveryConfigModal
+                    open={modals.delivery}
+                    onOpenChange={(open) => open ? openModal("delivery") : closeModal("delivery")}
+                    customerId={selectedCustomer?.customer_id ?? null}
+                    customerName={selectedCustomer?.name ?? ""}
+                    onSuccess={() => handleModalSuccess('delivery', "Delivery Settings Updated", "Customer delivery settings saved successfully")}
                 />
             </div>
         </FloatingLayout>
