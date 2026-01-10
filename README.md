@@ -16,6 +16,7 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 
 - 🏢 **Multi-Tenant Architecture** - Complete tenant isolation at every layer
 - 🔐 **Enterprise Security** - ISO 27001 compliant with comprehensive audit logging
+- 🔑 **Flexible Authentication** - Local, LDAP/AD, SAML, and OAuth support
 - 🔌 **Modular Integrations** - Extensible framework for rapid integration additions
 - 📊 **Smart Customer Mapping** - AI-powered fuzzy matching with manual override
 - 📈 **Time-Series Analytics** - TimescaleDB-powered historical data analysis
@@ -31,6 +32,8 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 - 📄 **Professional PDF Export** - Enhanced integration preview exports with company branding and styling
 - 📊 **Report History** - Track all generated reports with filtering and download capabilities
 - 📧 **Email Reports** - Send reports directly via email with success confirmation
+- 📤 **SharePoint Delivery** - Upload reports directly to customer SharePoint sites
+- 🔄 **Extensible Delivery System** - Easy to add new delivery methods (Email, SharePoint, more)
 - ✅ **Form Validation** - Smart validation modals for required fields
 - 🔍 **Search & Filter** - Search functionality across integrations, reports, and schedules
 - 📄 **Smart Pagination** - 9 items per page with dynamic labels
@@ -451,7 +454,7 @@ The platform currently supports:
 ### Core Integrations
 - ✅ **Autotask PSA** - Tickets, time entries, projects
 - ✅ **DattoRMM** - Device monitoring, backup status
-- ✅ **Active Directory** - Users, groups, memberships (push-based)
+- ✅ **Active Directory** - Users, groups, memberships (push-based with status endpoint)
 - ✅ **Exchange** - Mailboxes, permissions, statistics (push-based)
 
 ### Additional Integrations
@@ -582,13 +585,28 @@ See [CONFIGURATION.md](CONFIGURATION.md) for detailed deployment guide.
 - Source of truth designation
 - Merge/split capabilities
 
-### 🚧 Phase 4: Report Framework (In Progress)
+### ✅ Phase 4: Report Framework (Completed)
 - Report generation engine
-- Multiple report types
-- Scheduled generation
+- Multiple report types (5 implemented)
+- Scheduled generation with flexible frequencies
 - White-label PDF output
+- Global/template schedules for reusable configurations
 
-### 📋 Phase 5: Advanced Features (Planned)
+### ✅ Phase 5: Report Delivery (Completed)
+- Email delivery with SMTP configuration
+- **SharePoint delivery** via Microsoft Graph API
+- Extensible delivery driver system
+- Per-customer delivery configuration
+- Connection testing for delivery methods
+
+### ✅ Phase 6: Authentication & RBAC (Completed)
+- LDAP/Active Directory authentication
+- SAML and OAuth configuration
+- Role-based access control (RBAC)
+- Customer-level scoping for users
+- JIT user provisioning
+
+### 📋 Phase 7: Advanced Features (Planned)
 - Advanced analytics dashboard
 - Custom report builder
 - API webhook integrations
