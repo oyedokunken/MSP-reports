@@ -72,7 +72,7 @@ class ActiveDirectoryController extends Controller
             
             // Create sync log
             $syncLog = SyncLog::create([
-                'integration_id' => $integration->id,
+                'integration_id' => $integration->integration_id,
                 'sync_type' => $validated['syncType'],
                 'started_at' => now(),
                 'status' => 'running',
@@ -130,7 +130,7 @@ class ActiveDirectoryController extends Controller
                 'actor_type' => 'System',
                 'actor_id' => null,
                 'target_type' => 'Integration',
-                'target_id' => $integration->id,
+                'target_id' => $integration->integration_id,
                 'event_data' => [
                     'sync_type' => $validated['syncType'],
                     'users_processed' => $usersProcessed,
@@ -147,7 +147,7 @@ class ActiveDirectoryController extends Controller
             
             Log::info('Active Directory sync completed successfully', [
                 'company_id' => $integration->company_id,
-                'integration_id' => $integration->id,
+                'integration_id' => $integration->integration_id,
                 'sync_type' => $validated['syncType'],
                 'users' => $usersProcessed,
                 'groups' => $groupsProcessed,
@@ -159,7 +159,7 @@ class ActiveDirectoryController extends Controller
                 'success' => true,
                 'message' => 'Active Directory data synced successfully',
                 'data' => [
-                    'integrationId' => $integration->id,
+                    'integrationId' => $integration->integration_id,
                     'syncLogId' => $syncLog->id,
                     'usersProcessed' => $usersProcessed,
                     'groupsProcessed' => $groupsProcessed,
@@ -210,6 +210,58 @@ class ActiveDirectoryController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to process Active Directory data',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get Active Directory integration status for the authenticated company/customer
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function status(Request $request)
+    {
+        $companyId = $request->input('_company_id');
+        $customerId = $request->input('_customer_id');
+
+        if (!$companyId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required - company context not found',
+            ], 401);
+        }
+
+        try {
+            $integration = $this->syncService->getOrCreateIntegration($companyId);
+            
+            // Get sync statistics for this customer (if customer-scoped key)
+            $stats = $this->syncService->getCustomerStatus($integration, $customerId);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'integration_id' => $integration->integration_id,
+                    'integration_status' => $integration->status,
+                    'last_sync_at' => $integration->last_sync_at?->toIso8601String(),
+                    'last_sync_status' => $integration->last_sync_status,
+                    'error_message' => $integration->error_message,
+                    'customer_id' => $customerId,
+                    'customer_stats' => $stats,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get Active Directory status', [
+                'company_id' => $companyId,
+                'customer_id' => $customerId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get status',
                 'error' => $e->getMessage(),
             ], 500);
         }

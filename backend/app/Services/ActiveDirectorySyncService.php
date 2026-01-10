@@ -46,7 +46,7 @@ class ActiveDirectorySyncService
                         'user_principal_name' => $userData['userPrincipalName'],
                     ],
                     [
-                        'integration_id' => $integration->id,
+                        'integration_id' => $integration->integration_id,
                         'sam_account_name' => $userData['samAccountName'] ?? null,
                         'display_name' => $userData['displayName'] ?? null,
                         'given_name' => $userData['givenName'] ?? null,
@@ -101,7 +101,7 @@ class ActiveDirectorySyncService
                         'distinguished_name' => $groupData['distinguishedName'],
                     ],
                     [
-                        'integration_id' => $integration->id,
+                        'integration_id' => $integration->integration_id,
                         'name' => $groupData['name'],
                         'sam_account_name' => $groupData['samAccountName'] ?? null,
                         'group_category' => $groupData['groupCategory'] ?? 'Security',
@@ -136,7 +136,7 @@ class ActiveDirectorySyncService
         // For full sync, remove all existing memberships for this customer first
         // This handles removed memberships
         ActiveDirectoryGroupMembership::where('company_id', $integration->company_id)
-            ->where('integration_id', $integration->id)
+            ->where('integration_id', $integration->integration_id)
             ->where('customer_id', $customerId)
             ->delete();
 
@@ -144,7 +144,7 @@ class ActiveDirectorySyncService
             try {
                 ActiveDirectoryGroupMembership::create([
                     'company_id' => $integration->company_id,
-                    'integration_id' => $integration->id,
+                    'integration_id' => $integration->integration_id,
                     'customer_id' => $customerId,
                     'group_name' => $membershipData['groupName'],
                     'group_dn' => $membershipData['groupDN'],
@@ -207,5 +207,54 @@ class ActiveDirectorySyncService
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    /**
+     * Get status and statistics for a specific customer
+     */
+    public function getCustomerStatus(Integration $integration, ?int $customerId): array
+    {
+        $baseQuery = fn($model) => $model::where('company_id', $integration->company_id)
+            ->where('integration_id', $integration->integration_id);
+
+        // If customer-scoped, filter by customer
+        if ($customerId) {
+            $baseQuery = fn($model) => $model::where('company_id', $integration->company_id)
+                ->where('integration_id', $integration->integration_id)
+                ->where('customer_id', $customerId);
+        }
+
+        $userCount = $baseQuery(ActiveDirectoryUser::class)->count();
+        $enabledUserCount = $baseQuery(ActiveDirectoryUser::class)->where('enabled', true)->count();
+        $disabledUserCount = $baseQuery(ActiveDirectoryUser::class)->where('enabled', false)->count();
+        $lockedOutCount = $baseQuery(ActiveDirectoryUser::class)->where('locked_out', true)->count();
+        $groupCount = $baseQuery(ActiveDirectoryGroup::class)->count();
+        $membershipCount = $baseQuery(ActiveDirectoryGroupMembership::class)->count();
+
+        // Get last sync log for this integration
+        $lastSync = \App\Models\SyncLog::where('integration_id', $integration->integration_id)
+            ->orderBy('started_at', 'desc')
+            ->first();
+
+        return [
+            'users' => [
+                'total' => $userCount,
+                'enabled' => $enabledUserCount,
+                'disabled' => $disabledUserCount,
+                'locked_out' => $lockedOutCount,
+            ],
+            'groups' => [
+                'total' => $groupCount,
+            ],
+            'memberships' => [
+                'total' => $membershipCount,
+            ],
+            'last_sync' => $lastSync ? [
+                'started_at' => $lastSync->started_at?->toIso8601String(),
+                'completed_at' => $lastSync->completed_at?->toIso8601String(),
+                'status' => $lastSync->status,
+                'records_synced' => $lastSync->records_synced,
+            ] : null,
+        ];
     }
 }
