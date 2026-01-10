@@ -383,8 +383,7 @@ export default function AppSidebar() {
         open={createUserOpen}
         onOpenChange={setCreateUserOpen}
         onSuccess={() => {
-          // Optionally refresh user list or show toast
-          console.log('User created successfully')
+          // User created successfully - list will refresh automatically
         }}
       />
     </Sidebar>

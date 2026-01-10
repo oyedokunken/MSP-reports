@@ -41,10 +41,7 @@ export const useIntegrationConfig = (integrationType: string | null): UseIntegra
           `/integrations/config/${integrationType}`
         );
 
-        console.log('API Data:', response);
-
         if (!response) {
-          console.error('No data returned');
           setError('Invalid response from server');
           return;
         }
@@ -53,11 +50,9 @@ export const useIntegrationConfig = (integrationType: string | null): UseIntegra
         const data = response as ApiResponse;
 
         if (data.success && data.config) {
-          console.log('Setting config:', data.config);
           // Store the full config (including hidden fields for default values)
           setConfig(data.config);
         } else {
-          console.error('Success false or no config:', data);
           setError(data.error || 'Failed to load integration configuration');
         }
       } catch (err: unknown) {

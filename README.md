@@ -6,7 +6,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat&logo=postgresql)](https://www.postgresql.org)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![Pipeline](https://img.shields.io/badge/Pipeline-Passing-success)](https://gitlab.athenanetworks.com.au/athenanetworks/reporting/pipelines)
-[![Version](https://img.shields.io/badge/Version-0.1.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.0.0-blue)](CHANGELOG.md)
 
 ## Overview
 
@@ -451,23 +451,39 @@ After seeding, you can log in with:
 
 The platform currently supports:
 
-### Core Integrations
-- ✅ **Autotask PSA** - Tickets, time entries, projects
-- ✅ **DattoRMM** - Device monitoring, backup status
-- ✅ **Active Directory** - Users, groups, memberships (push-based with status endpoint)
-- ✅ **Exchange** - Mailboxes, permissions, statistics (push-based)
+### PSA & Documentation
+- ✅ **Autotask PSA** - Tickets, time entries, projects, contracts
+- ✅ **ITGlue** - Documentation platform with license consumption tracking
 
-### Additional Integrations
-- ✅ **ITGlue** - Documentation platform integration
-- ✅ **Kaseya VSA** - RMM platform
+### RMM & Monitoring
+- ✅ **DattoRMM** - Device monitoring, backup status, alerts
+- ✅ **Kaseya VSA** - RMM platform integration
+- ✅ **LibreNMS** - Network monitoring and device reports
+
+### Identity & Directory
+- ✅ **Active Directory** - Users, groups, memberships (agent-based push)
+- ✅ **Exchange** - Mailboxes, permissions, statistics (agent-based push)
+- ✅ **Microsoft 365** - Cloud identity and services
+- ✅ **AdminDroid** - Microsoft 365 management reporting
+
+### Security
 - ✅ **BitDefender GravityZone** - Endpoint security
-- ✅ **Veeam Backup** - Backup monitoring
 - ✅ **RocketCyber** - Security operations platform
-- ✅ **AdminDroid** - Microsoft 365 management
-- ✅ **Barracuda** - Email security
-- ⚡ More integrations added regularly
+- ✅ **ThreatLocker** - Application whitelisting
+- ✅ **WatchGuard AuthPoint** - MFA platform
+- ✅ **Sendmarc** - DMARC monitoring and compliance
+- ✅ **Vonahi** - Penetration testing platform
 
-Each integration follows a modular design pattern making it easy to add new ones.
+### Backup & Infrastructure
+- ✅ **Veeam Backup** - Backup monitoring
+- ✅ **Barracuda** - Email security and backup
+- ✅ **Kemp** - Load balancer monitoring
+
+### SaaS & Cloud
+- ✅ **SaaS Alerts** - SaaS application monitoring
+- ✅ **SAT (Security Awareness Training)** - Training platform
+
+**24 integrations** implemented following a modular design pattern. Adding new integrations is straightforward - see [Integration Scaffold](backend/docs/INTEGRATION_SCAFFOLD.md).
 
 ---
 
@@ -586,10 +602,14 @@ See [CONFIGURATION.md](CONFIGURATION.md) for detailed deployment guide.
 - Merge/split capabilities
 
 ### ✅ Phase 4: Report Framework (Completed)
-- Report generation engine
-- Multiple report types (5 implemented)
-- Scheduled generation with flexible frequencies
-- White-label PDF output
+- Report generation engine with Gotenberg PDF service
+- **14 report types** implemented:
+  - Autotask Summary, Backup Status, BitDefender Summary
+  - Datto RMM Summary, ITGlue Summary, LibreNMS Device Report
+  - Monthly Comprehensive, SaaS Summary, Security Summary
+  - Sendmarc Summary, Uptime Report, and more
+- Scheduled generation with flexible frequencies (daily/weekly/monthly/yearly)
+- White-label PDF output with company branding
 - Global/template schedules for reusable configurations
 
 ### ✅ Phase 5: Report Delivery (Completed)

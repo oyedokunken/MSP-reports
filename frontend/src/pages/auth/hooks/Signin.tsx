@@ -20,7 +20,7 @@ const Signin = () => {
     } = useAuthForm({
         redirectTo: "/dashboard",
         onSuccess: () => {
-            console.log("Login successful!");
+            // Login successful
         },
         onError: (err) => {
             console.error("Login failed:", err);

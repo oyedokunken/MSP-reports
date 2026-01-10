@@ -29,16 +29,11 @@ export function useIntegrationPreview() {
       setLoading(true)
       setError(null)
 
-      console.log('Loading preview for integration:', integrationId)
-      console.log('Auth token:', localStorage.getItem('auth_token'))
-
       const params = customerId ? { customer_id: customerId } : {}
       const response = await api.get<unknown>(
         `/integrations/${integrationId}/preview`,
         params
       )
-
-      console.log('Preview response:', response)
 
       // Handle both direct data and nested data structures
       const data = (response as { data?: unknown }).data || response
@@ -151,16 +146,6 @@ export function useIntegrationPreview() {
     }
   }
 
-  // Debug log to verify integration type
-  if (preview?.integration) {
-    console.log('Integration check:', {
-      id: preview.integration.id,
-      type: preview.integration.type,
-      normalizedType: integrationType,
-      isITGlue: isITGlueIntegration,
-      isLibreNMS: isLibreNMSIntegration
-    })
-  }
 
   return {
     integrationId,

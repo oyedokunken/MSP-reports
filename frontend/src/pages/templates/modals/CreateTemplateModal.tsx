@@ -195,9 +195,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const fetchAvailableReportTypes = async (customerId: number) => {
     try {
       setIsLoadingData(true)
-      console.log('Fetching report types for customer:', customerId)
       const data = await templateApi.getAvailableReportTypes(customerId)
-      console.log('Received report types:', data)
       setAvailableReportTypes(data.report_types)
 
       if (formData.report_type && !data.report_types.some((rt: ReportTypeDefinition) => rt.type === formData.report_type)) {
@@ -217,9 +215,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const fetchAllReportTypes = async () => {
     try {
       setIsLoadingData(true)
-      console.log('Fetching all report types for global template')
       const data = await templateApi.getAllReportTypes()
-      console.log('Received all report types:', data)
       setAvailableReportTypes(data.report_types)
     } catch (err: any) {
       console.error('Failed to fetch all report types:', err)

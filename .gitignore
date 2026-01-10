@@ -1,53 +1,114 @@
-*.log
+# ===========================================
+# MSP Reports Platform - Git Ignore
+# ===========================================
+
+# ----- OS Generated Files -----
 .DS_Store
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ----- IDE & Editor Files -----
 /.fleet
 /.idea
 /.nova
-/.phpunit.cache
 /.vscode
 /.zed
-/auth.json
+*.sublime-project
+*.sublime-workspace
+.phpactor.json
+
+# ----- Environment & Secrets -----
+.env
+.env.*
+!.env.example
+!.env.docker
+*.key
+*.pem
+*.p12
+id_rsa*
+*.crt
+*.cer
+
+# ----- Logs -----
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ----- Dependencies -----
 /node_modules
+/vendor
+
+# ----- Build Outputs -----
 /public/build
 /public/hot
 /public/storage
+
+# ----- Testing -----
+.phpunit.result.cache
+/.phpunit.cache
+/coverage
+.nyc_output
+
+# ----- Laravel Specific -----
+/auth.json
 /storage/*.key
 /storage/pail
-/vendor
 Homestead.json
 Homestead.yaml
-Thumbs.db
 
-# Backend Laravel ignores
+# ===========================================
+# Backend (Laravel) Ignores
+# ===========================================
 /backend/vendor
 /backend/node_modules
 /backend/.env
 /backend/.env.backup
 /backend/.env.production
+/backend/.env.local
 /backend/storage/*.key
 /backend/storage/logs/*.log
 /backend/storage/framework/cache/*
 /backend/storage/framework/sessions/*
 /backend/storage/framework/views/*
 /backend/bootstrap/cache/*
+/backend/coverage
 !.gitkeep
 
-# Frontend ignores
-/frontend/node_modules
-/frontend/dist
-/frontend/.env
-/frontend/.env.local
-/frontend/.env.production
-
-# Frontend build output in backend/public (ignore everything except index.php, .htaccess, robots.txt, favicon.ico)
+# Frontend build output in backend/public
 /backend/public/*
 !/backend/public/index.php
 !/backend/public/.htaccess
 !/backend/public/robots.txt
 !/backend/public/favicon.ico
+
+# ===========================================
+# Frontend (React/Vite) Ignores
+# ===========================================
+/frontend/node_modules
+/frontend/dist
+/frontend/dist-ssr
+/frontend/.env
+/frontend/.env.local
+/frontend/.env.production
+/frontend/coverage
+*.local
+
+# ===========================================
+# Agent Scripts (Keep examples, ignore local configs)
+# ===========================================
 .agent/
+
+# ===========================================
+# Docker & Infrastructure
+# ===========================================
+docker-compose.override.yml
+*.bak

@@ -65,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                         // Set branding from company settings
                         if (companyData?.settings?.white_label) {
-                            console.log('🎨 Loading branding from localStorage:', companyData.settings.white_label);
                             setBranding(companyData.settings.white_label);
                         }
                     }

@@ -96,7 +96,6 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
     const now = Date.now();
     const state = get();
     if (!force && state.integrations.length > 0 && now - lastFetchTime < CACHE_DURATION) {
-      console.log('Using cached integrations data');
       return;
     }
 
@@ -166,8 +165,6 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
       let previousUnmappedCount = initialIntegration?.customers || 0
       let stableCountCycles = 0
 
-      console.log(`🏁 Starting sync for ID ${integrationId}. Initial Last Sync: ${initialLastSync}, Unmapped: ${previousUnmappedCount}`)
-
       await api.get(`/integrations/${integrationId}/sync`)
       clearInterval(interval)
       set({ syncProgress: 100 })
@@ -179,7 +176,6 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
 
       // Start polling for updates (sync is processed asynchronously in backend)
       const pollInterval = setInterval(async () => {
-        console.log('🔄 Polling for sync updates...')
         await get().fetchIntegrations(true, true)
 
         // Check allIntegrations (not paginated) to ensure we find the integration
@@ -194,7 +190,6 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
 
         // Check 2: Is the unmapped count changing? (Auto-match activity)
         if (currentUnmappedCount !== previousUnmappedCount) {
-          console.log(`📉 Activity detected! Unmapped: ${previousUnmappedCount} -> ${currentUnmappedCount}`)
           stableCountCycles = 0 // Reset stability counter
         } else {
           stableCountCycles++
@@ -202,7 +197,6 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
 
         // Stop Condition: Sync is done AND Count is stable for 2 cycles (4 seconds)
         if (isSyncUpdated && stableCountCycles >= 2) {
-          console.log(`✅ Sync done & Activity settled (${currentUnmappedCount} unmapped). Stopping.`)
           clearInterval(pollInterval)
         }
 
@@ -212,7 +206,6 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
 
       // Stop polling after 60 seconds (safety timeout)
       setTimeout(() => {
-        console.log('⚠️ Polling timeout (60s). Stopping.')
         clearInterval(pollInterval)
       }, 60000)
 

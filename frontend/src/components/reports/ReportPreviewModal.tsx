@@ -38,8 +38,6 @@ export function ReportPreviewModal({
       setLoading(true)
       setError(null)
 
-      console.log('Fetching PDF for report ID:', reportId)
-
       // Use apiClient which handles the correct base URL and auth headers automatically
       const response = await apiClient.get(`/reports/${reportId}/download`, {
         responseType: 'blob',
@@ -98,8 +96,6 @@ export function ReportPreviewModal({
 
   const handleEmailReport = async (emails: string) => {
     try {
-      console.log('Sending email for report ID:', reportId, 'to:', emails)
-
       await apiClient.post(`/reports/${reportId}/email`, {
         emails: emails
       })

@@ -165,17 +165,6 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     const gradient = `linear-gradient(135deg, ${primaryColor} 0%, ${adjustBrightness(primaryColor, -20)} 100%)`
     root.style.setProperty('--brand-gradient', gradient)
 
-    console.log('🎨 Branding applied:', {
-      companyName: currentBranding.company_name,
-      primaryColor,
-      primaryForeground,
-      secondaryColor,
-      secondaryForeground,
-      primaryHSL,
-      secondaryHSL,
-      gradient
-    })
-
     // Update page title
     document.title = currentBranding.company_name
 

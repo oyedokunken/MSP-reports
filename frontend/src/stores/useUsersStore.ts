@@ -76,13 +76,6 @@ export const useUsersStore = create<UsersState>((set, get) => ({
       const usersList = response.data as unknown as UserWithPermissions[]
       const pagination = response.pagination
 
-      // Debug: Check what last_login data we're getting
-      console.log('Users data from API:', usersList.map(u => ({
-        name: u.name,
-        last_login: u.last_login,
-        created_at: u.created_at
-      })))
-
       set({
         users: usersList,
         currentPage: pagination?.current_page || 1,

@@ -108,8 +108,6 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
 
       const data = response.data as { status?: string; message?: string; data?: { logo_url?: string } }
       if (data.status === 'success') {
-        console.log('Upload response:', data)
-        console.log('Logo URL:', data.data?.logo_url)
         toast.success('Upload Successful', data.message || 'Logo uploaded successfully')
         if (data.data?.logo_url) {
           onUploadSuccess(data.data.logo_url)
@@ -163,8 +161,6 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
   }
 
   const displayImageUrl = preview || currentLogoUrl
-
-  console.log('LogoUpload render:', { type, preview, currentLogoUrl, displayImageUrl })
 
   return (
     <div className="space-y-3">

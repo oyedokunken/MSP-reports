@@ -69,10 +69,6 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
     setError('')
     setIsSubmitting(true)
 
-    console.log('=== SUBMITTING INTEGRATION ===')
-    console.log('Form Data:', JSON.stringify(formData, null, 2))
-    console.log('Credentials:', formData.credentials)
-
     try {
       const response = await api.post('/integrations', formData)
 

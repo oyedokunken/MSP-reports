@@ -87,8 +87,6 @@ export default function ConfigureReports() {
       const data = response as unknown as { data?: { available_reports: ReportType[] } } | { available_reports: ReportType[] }
       const reportData = (data as { data?: { available_reports: ReportType[] } }).data || data as { available_reports: ReportType[] }
 
-      console.log('Available reports for customer:', reportData)
-
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const reports = (reportData.available_reports || []).map((r: any) => ({
         id: r.report_type || r.id,
@@ -113,20 +111,10 @@ export default function ConfigureReports() {
       const data = response as unknown as { data?: ReportConfig } | ReportConfig
       const reportData = (data as { data?: ReportConfig }).data || data as ReportConfig
 
-      console.log('Fetched report config:', reportData)
-
       setConfig(reportData)
       const schedules = reportData.report_schedules || []
-      console.log('Schedules from backend:', schedules)
 
       const mappedSchedules = schedules.map((s) => {
-        console.log('Processing schedule:', {
-          id: s.report_schedule_id,
-          schedule_config: s.schedule_config,
-          included_sections_from_config: s.schedule_config?.included_sections,
-          include_sections_direct: s.include_sections
-        });
-
         return {
           report_type: s.report_type,
           schedule_id: s.report_schedule_id,
@@ -161,32 +149,23 @@ export default function ConfigureReports() {
         })
       )
 
-      console.log('Mapped schedules with data check:', schedulesWithDataCheck)
       setEnabledReports(schedulesWithDataCheck)
 
       let emailDestination = ''
       let ccEmailsList: string[] = []
 
-      console.log('Full reportData:', reportData)
-
       if (reportData.email_destination) {
-        console.log('Using email from root level:', reportData.email_destination)
         emailDestination = reportData.email_destination
         ccEmailsList = reportData.cc_emails || []
       }
       else if (schedules.length > 0 && schedules[0].email_destination) {
-        console.log('Using email from schedule:', schedules[0].email_destination)
         emailDestination = schedules[0].email_destination
         ccEmailsList = schedules[0].cc_emails || []
       }
       else if (reportData.delivery?.destination) {
-        console.log('Using email from delivery config')
         emailDestination = reportData.delivery.destination
         ccEmailsList = reportData.delivery.cc || []
       }
-
-      console.log('Final email destination:', emailDestination)
-      console.log('Final CC emails:', ccEmailsList)
 
       setDestination(emailDestination)
       setCcEmails(Array.isArray(ccEmailsList) ? ccEmailsList.join(', ') : '')

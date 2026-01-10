@@ -85,8 +85,6 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
 
       const reportsList = response.data.reports
       const pagination = response.data.pagination
-      console.log('Reports fetched:', reportsList)
-      console.log('Pagination:', pagination)
 
       // Set customer name from first report if filtering by customer
       const customerName = customerId && reportsList.length > 0

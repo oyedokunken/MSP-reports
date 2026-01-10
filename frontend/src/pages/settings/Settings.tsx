@@ -112,8 +112,6 @@ export default function Settings() {
             };
           };
         }
-        console.log('🏢 Company data:', data)
-
         setCompanyName(data.name || '')
         setContactEmail(data.contact_email || '')
         setContactPhone(data.contact_phone || '')
@@ -122,8 +120,6 @@ export default function Settings() {
         // Load branding from settings
         if (data.settings?.white_label) {
           const branding = data.settings.white_label
-          console.log('🎨 Branding data:', branding)
-
           setPrimaryHex(branding.primary_color || '#3b82f6')
           setSecondaryHex(branding.secondary_color || '#7c3aed')
           setLogoUrl(branding.logo_url || null)
@@ -135,10 +131,6 @@ export default function Settings() {
           setFooterText(branding.footer_text || '')
           setReportHeaderText(branding.report_header_text || 'Monthly Service Report')
           setWebsiteUrl(branding.website_url || '')
-
-          console.log('✅ Settings loaded - Secondary color:', branding.secondary_color)
-        } else {
-          console.warn('⚠️ No white_label settings found in response')
         }
 
         // Load SMTP settings
@@ -201,23 +193,13 @@ export default function Settings() {
     try {
       setSaving(true)
 
-      console.log('💾 Starting save process...')
-      console.log('📝 Current values:', {
-        primaryHex,
-        secondaryHex,
-        logoUrl,
-        supportEmail,
-      })
-
       // Save company info
-      console.log('1️⃣ Saving company info...')
       await api.patch('/company/settings', {
         name: companyName,
         contact_email: contactEmail,
         contact_phone: contactPhone,
         address: address,
       })
-      console.log('✅ Company info saved')
 
       // Save branding
       const brandingData = {
@@ -233,18 +215,13 @@ export default function Settings() {
         website_url: websiteUrl || null,
       }
 
-      console.log('2️⃣ Saving branding data:', brandingData)
-
       const response = await api.patch('/company/branding', brandingData)
-
-      console.log('✅ Branding saved! Response:', response)
 
       // Update branding context immediately with response from backend
       // Response structure: { status: 'success', message: '...', data: { ...branding } }
       const savedBranding = (response as { data?: unknown })?.data || response
 
       if (savedBranding && typeof savedBranding === 'object') {
-        console.log('🎨 Updating branding context with:', savedBranding)
         const brandingObj = savedBranding as {
           company_name?: string;
           logo_url?: string;
@@ -273,7 +250,6 @@ export default function Settings() {
           report_header_text: brandingObj.report_header_text || '',
         }
 
-        console.log('📦 Final branding object to save:', newBranding)
         setBranding(newBranding)
 
         // Also update localStorage company data so it persists on refresh
@@ -284,9 +260,8 @@ export default function Settings() {
             company.settings = company.settings || {}
             company.settings.white_label = newBranding
             localStorage.setItem('company', JSON.stringify(company))
-            console.log('💾 Updated company in localStorage with new branding')
-          } catch (error) {
-            console.error('Failed to update localStorage:', error)
+          } catch {
+            // Silently handle localStorage errors
           }
         }
       }
