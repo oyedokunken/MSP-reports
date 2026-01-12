@@ -283,7 +283,7 @@ class AutotaskIntegration implements IntegrationInterface
                             'integration_customer_id' => $integrationCustomerId,
                             'data_type' => $standardized['data_type'],
                             'data_timestamp' => $standardized['timestamp'],
-                            'data_payload' => json_encode($standardized['payload']),
+                            'data_payload' => $standardized['payload'],
                             'imported_at' => now(),
                             'data_version' => 1,
                         ];
@@ -338,7 +338,7 @@ class AutotaskIntegration implements IntegrationInterface
                             'integration_customer_id' => $integrationCustomerId,
                             'data_type' => $standardized['data_type'],
                             'data_timestamp' => $standardized['timestamp'],
-                            'data_payload' => json_encode($standardized['payload']),
+                            'data_payload' => $standardized['payload'],
                             'imported_at' => now(),
                             'data_version' => 1,
                         ];
@@ -383,7 +383,7 @@ class AutotaskIntegration implements IntegrationInterface
                                 'integration_customer_id' => null,
                                 'data_type' => $standardized['data_type'],
                                 'data_timestamp' => $standardized['timestamp'],
-                                'data_payload' => json_encode($standardized['payload']),
+                                'data_payload' => $standardized['payload'],
                                 'imported_at' => now(),
                                 'data_version' => 1,
                             ];
@@ -426,7 +426,7 @@ class AutotaskIntegration implements IntegrationInterface
                                 'integration_customer_id' => null, // Contracts are company-wide but we don't have direct mapping here easily
                                 'data_type' => $standardized['data_type'],
                                 'data_timestamp' => $standardized['timestamp'],
-                                'data_payload' => json_encode($standardized['payload']),
+                                'data_payload' => $standardized['payload'],
                                 'imported_at' => now(),
                                 'data_version' => 1,
                             ];
@@ -467,7 +467,7 @@ class AutotaskIntegration implements IntegrationInterface
                                 'integration_customer_id' => $integrationCustomerId,
                                 'data_type' => $standardized['data_type'],
                                 'data_timestamp' => $standardized['timestamp'],
-                                'data_payload' => json_encode($standardized['payload']),
+                                'data_payload' => $standardized['payload'],
                                 'imported_at' => now(),
                                 'data_version' => 1,
                             ];
@@ -502,7 +502,7 @@ class AutotaskIntegration implements IntegrationInterface
                                 'integration_customer_id' => null,
                                 'data_type' => $standardized['data_type'],
                                 'data_timestamp' => $standardized['timestamp'],
-                                'data_payload' => json_encode($standardized['payload']),
+                                'data_payload' => $standardized['payload'],
                                 'imported_at' => now(),
                                 'data_version' => 1,
                             ];
@@ -552,11 +552,14 @@ class AutotaskIntegration implements IntegrationInterface
                 $uniqueKeyField = $this->getUniqueKeyField($record['data_type']);
                 
                 if ($uniqueKeyField) {
-                    $payload = json_decode($record['data_payload'], true);
+                    $payload = is_string($record['data_payload']) 
+                        ? json_decode($record['data_payload'], true) 
+                        : $record['data_payload'];
+                        
                     $uniqueKey = $payload[$uniqueKeyField] ?? null;
                     
                     if ($uniqueKey) {
-                        $existing = IntegrationData::where('integration_id', $record['integration_id'])
+                        $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
                             ->where('data_type', $record['data_type'])
                             ->whereRaw("data_payload->>'$uniqueKeyField' = ?", [$uniqueKey])
                             ->first();

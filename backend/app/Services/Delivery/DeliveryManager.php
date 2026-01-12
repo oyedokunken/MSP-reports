@@ -109,6 +109,11 @@ class DeliveryManager
 
             $methodConfig = $deliveryConfig[$method] ?? [];
             
+            // Legacy support: if method config is empty but root config matches this method
+            if (empty($methodConfig) && ($deliveryConfig['method'] ?? null) === $method) {
+                $methodConfig = $deliveryConfig;
+            }
+
             // For email, handle override recipients
             if ($method === 'email' && $overrideRecipients !== null) {
                 $methodConfig['override_recipients'] = $overrideRecipients;

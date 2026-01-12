@@ -385,7 +385,7 @@ class DattoIntegration implements IntegrationInterface
                     'integration_customer_id' => $data['integration_customer_id'],
                     'data_type' => $data['data_type'],
                     'data_timestamp' => $data['timestamp'],
-                    'data_payload' => json_encode($payload),
+                    'data_payload' => $payload,
                     'imported_at' => now(),
                     'data_version' => 1,
                 ]

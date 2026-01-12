@@ -289,6 +289,7 @@ class ReportConfigController extends Controller
         $reportConfig['delivery'] = $validated;
 
         $customer->report_configuration = $reportConfig;
+        $customer->report_destination = $validated['destination'];
         $customer->save();
 
         return response()->json([
