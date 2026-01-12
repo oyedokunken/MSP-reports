@@ -1,9 +1,0 @@
-services:
-  gotenberg:
-    image: gotenberg/gotenberg:8
-    container_name: reporting-gotenberg
-    ports:
-      - "3000:3000"
-    restart: unless-stopped
-    # Depending on your needs, you might want to adjust resources or arguments
-    # command: ["--api-timeout=30s"]
