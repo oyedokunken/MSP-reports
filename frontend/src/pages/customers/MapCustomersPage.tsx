@@ -140,9 +140,9 @@ export default function MapCustomersPage() {
                 {/* Header */}
                 <div>
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 flex-shrink-0">
+                        {/* <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 flex-shrink-0">
                             <MapPin className="h-6 w-6 text-primary" />
-                        </div>
+                        </div> */}
                         <div className="flex-1">
                             <h1 className="text-3xl font-bold text-foreground">Map Customers</h1>
                             <p className="mt-1 text-muted-foreground">

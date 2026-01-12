@@ -34,7 +34,7 @@ class HealthCheckController extends Controller
             ->every(fn($check) => $check['status'] === 'healthy');
 
         return response()->json([
-            'status' => $allHealthy ? 'healthy' : 'unhealthy',
+            'status' => $allHealthy ? 'healthy111' : 'unhealthy',
             'timestamp' => now()->toIso8601String(),
             'checks' => $checks,
         ], $allHealthy ? 200 : 503);

@@ -19,7 +19,13 @@ class AppServiceProvider extends ServiceProvider
         // Configure database to store timestamps in UTC
         // while keeping PHP timezone (Australia/Brisbane) for display
         if (config('database.default') === 'pgsql') {
-            \DB::connection()->getPdo()->exec("SET timezone TO 'UTC'");
+            try {
+                \DB::connection()->getPdo()->exec("SET timezone TO 'UTC'");
+            } catch (\Throwable $e) {
+                \Log::warning('Failed to set database timezone to UTC', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
         
         // Register middleware

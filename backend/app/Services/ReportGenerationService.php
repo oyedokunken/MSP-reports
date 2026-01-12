@@ -325,38 +325,17 @@ class ReportGenerationService
             throw new \Exception("Failed to write PDF file: {$filename}");
         }
 
-        // Clear file status cache to ensure fresh file info
-        clearstatcache(true, $fullPath);
-        
-        // Verify file was written correctly
-        if (!file_exists($fullPath)) {
-            throw new \Exception("PDF file was not created: {$filename}");
-        }
-        
-        $actualSize = filesize($fullPath);
-        if ($actualSize === false || $actualSize === 0) {
-            throw new \Exception("PDF file is empty or unreadable: {$filename}");
-        }
-
         Log::info('PDF file written successfully', [
             'filename' => $filename,
             'full_path' => $fullPath,
             'bytes_written' => $bytesWritten,
-            'actual_file_size' => $actualSize,
             'file_exists' => file_exists($fullPath),
-            'file_readable' => is_readable($fullPath),
         ]);
 
         // Set proper permissions and ownership
         @chmod($fullPath, 0664);
         @chown($fullPath, 'www');
         @chgrp($fullPath, 'www');
-        
-        // Final verification before returning
-        clearstatcache(true, $fullPath);
-        if (!is_readable($fullPath)) {
-            throw new \Exception("PDF file is not readable after permissions set: {$filename}");
-        }
 
         return $filename;
     }

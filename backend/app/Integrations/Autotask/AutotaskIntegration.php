@@ -536,7 +536,6 @@ class AutotaskIntegration implements IntegrationInterface
 
                         if ($existing) {
                             $existing->update([
-                                'data_timestamp' => $record['data_timestamp'],
                                 'data_payload' => $payload,
                                 'imported_at' => $record['imported_at'],
                             ]);
@@ -697,7 +696,6 @@ class AutotaskIntegration implements IntegrationInterface
 
             if ($existing) {
                 $existing->update([
-                    'data_timestamp' => $data['timestamp'],
                     'data_payload' => $payload,
                     'imported_at' => now(),
                 ]);
