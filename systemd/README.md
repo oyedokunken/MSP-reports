@@ -1,14 +1,23 @@
 # MSP Reports - Systemd Services
 
-This directory contains systemd service files for managing the Laravel queue workers and scheduler.
+Production-ready systemd service files for managing the Laravel queue workers and scheduler.
 
 ## Services
 
 | Service | Description |
 |---------|-------------|
+| `mspreports.target` | Target to manage all MSP Reports services together |
 | `mspreports-worker@.service` | Template for queue worker instances (run multiple) |
 | `mspreports-worker.service` | Single queue worker (alternative to template) |
 | `mspreports-scheduler.service` | Laravel scheduler (runs scheduled tasks every minute) |
+
+## Features
+
+- **Security Hardening**: `ProtectSystem`, `ProtectHome`, `NoNewPrivileges`
+- **Resource Limits**: Memory and CPU quotas to prevent runaway processes
+- **Automatic Restart**: Services restart on failure with rate limiting
+- **Unified Target**: Start/stop all services together with `mspreports.target`
+- **Logging**: Dedicated log files for workers and scheduler
 
 ## Quick Installation
 
@@ -111,6 +120,31 @@ To modify these, edit the `.service` files before installation.
 2. Verify paths in service file match actual installation
 3. Verify user `athena` exists and has permissions
 
+## Managing All Services Together
+
+```bash
+# Start all MSP Reports services
+sudo systemctl start mspreports.target
+
+# Stop all MSP Reports services
+sudo systemctl stop mspreports.target
+
+# Restart all services
+sudo systemctl restart mspreports.target
+
+# Check status of all services
+systemctl list-dependencies mspreports.target
+```
+
+## Resource Limits
+
+Default limits (adjust in service files as needed):
+
+| Service | Memory | CPU |
+|---------|--------|-----|
+| Worker | 512MB | 50% |
+| Scheduler | 256MB | - |
+
 ## Why Systemd over Supervisor?
 
 - **Native integration:** Works with system boot/shutdown
@@ -118,3 +152,4 @@ To modify these, edit the `.service` files before installation.
 - **Process isolation:** Security hardening options
 - **Simpler management:** Standard systemctl commands
 - **Automatic restart:** Built-in restart policies
+- **Resource control:** Memory and CPU limits via cgroups

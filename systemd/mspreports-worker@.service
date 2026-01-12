@@ -1,15 +1,30 @@
 [Unit]
 Description=MSP Reports Laravel Queue Worker (Instance %i)
 After=network.target redis.service postgresql.service
-Wants=redis.service
+Wants=redis.service postgresql.service
+PartOf=mspreports.target
 
 [Service]
+Type=simple
 User=athena
 Group=athena
 WorkingDirectory=/var/www/mspreports/backend
+
+# Queue worker command with production settings
+# --queue: Priority order (high first, then default, then low)
+# --sleep: Seconds to wait when no jobs available
+# --tries: Max attempts before marking job as failed
+# --max-time: Restart worker after this many seconds (prevents memory leaks)
+# --timeout: Max seconds a job can run before being killed
 ExecStart=/usr/bin/php artisan queue:work redis --queue=high,default,low --sleep=3 --tries=5 --max-time=3600 --timeout=900
+
+# Restart policy
 Restart=always
 RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+# Logging
 StandardOutput=append:/var/www/mspreports/backend/storage/logs/worker.log
 StandardError=append:/var/www/mspreports/backend/storage/logs/worker.log
 
@@ -21,6 +36,14 @@ TimeoutStopSec=60
 # Security hardening
 NoNewPrivileges=true
 PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/mspreports/backend/storage
+ReadWritePaths=/var/www/mspreports/backend/bootstrap/cache
+
+# Resource limits (adjust based on server capacity)
+MemoryMax=512M
+CPUQuota=50%
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.target mspreports.target

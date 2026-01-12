@@ -65,6 +65,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cp "$SCRIPT_DIR/mspreports-worker.service" /etc/systemd/system/
 cp "$SCRIPT_DIR/mspreports-worker@.service" /etc/systemd/system/
 cp "$SCRIPT_DIR/mspreports-scheduler.service" /etc/systemd/system/
+cp "$SCRIPT_DIR/mspreports.target" /etc/systemd/system/
 
 # Reload systemd daemon
 echo -e "${YELLOW}Reloading systemd daemon...${NC}"
@@ -72,6 +73,7 @@ systemctl daemon-reload
 
 # Enable services to start on boot
 echo -e "${YELLOW}Enabling services...${NC}"
+systemctl enable mspreports.target
 systemctl enable mspreports-scheduler.service
 for i in $(seq 1 $WORKER_COUNT); do
     systemctl enable "mspreports-worker@$i.service"
