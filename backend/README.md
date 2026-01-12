@@ -3,7 +3,7 @@
 **Project:** MSP Reports Platform 
 **Client:** Territory Technology Solutions (First Customer)  
 **Status:** ✅ **Phase 7 (98%) - Production Ready, Deployment Pending**  
-**Last Updated:** 2026-01-10
+**Last Updated:** 2026-01-12
 
 ---
 
@@ -108,7 +108,9 @@ Configurable retention policies, TimescaleDB compression (7 days) and drop (1095
 Company-level branding (logos, colors, contact info), customer-specific overrides, branding API endpoints, report/email branding, and configuration in Company settings JSON.
 
 ### 14. Technology Stack
-Laravel 12, PHP 8.2+, TimescaleDB (PostgreSQL 16), Redis 8.2+, Docker + Docker Compose, NGINX, Supervisor, Laravel Sanctum, Gotenberg PDF service.
+Laravel 12, PHP 8.3+, TimescaleDB (PostgreSQL 16), Redis 7+, NGINX, Systemd services, Laravel Sanctum, Gotenberg PDF service.
+
+**Deployment:** Native Linux server (see `docs/DEPLOYMENT_NATIVE.md`)
 
 ### 15. Custom Alerting System
 AlertRule/AlertLog models, AlertEngine service, multi-channel notifications (Email/Slack/Webhook), automatic evaluation (every 5 minutes), cooldown periods, 5 default rules (DB connectivity, disk space, report failures, sync failures, queue depth), and 8 supported metrics.

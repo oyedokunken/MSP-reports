@@ -62,10 +62,10 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 - **Routing**: React Router v7
 
 ### Infrastructure
-- **Containerization**: Docker + Docker Compose
-- **Web Server**: NGINX
-- **Process Management**: Supervisor (queue workers)
-- **Monitoring**: Laravel Horizon (optional)
+- **Web Server**: NGINX (production config in `nginx/`)
+- **Process Management**: Systemd services (see `systemd/`)
+- **Deployment**: Native Linux server (see `docs/DEPLOYMENT_NATIVE.md`)
+- **Monitoring**: Built-in health checks + custom alerting system
 
 ---
 
@@ -106,12 +106,11 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 
 ### Prerequisites
 
-- Docker & Docker Compose (recommended)
-- **OR** Manual installation:
-  - PHP 8.2+
-  - Node.js 18+
-  - PostgreSQL 16+
-  - Redis (optional but recommended)
+- PHP 8.3+
+- Node.js 20+
+- PostgreSQL 16+ with TimescaleDB
+- Redis 7+
+- NGINX
 
 ### Installation
 
@@ -121,21 +120,13 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
    cd reporting
    ```
 
-2. **Using Docker (Recommended)**
+2. **Quick Setup (Development)**
    ```bash
-   # Copy environment files
-   cp backend/.env.example backend/.env
-   cp frontend/.env.example frontend/.env
+   # Run the setup script
+   ./setup-local.sh
    
-   # Start containers
-   docker-compose up -d
-   
-   # Install dependencies and setup
-   docker-compose exec backend composer install
-   docker-compose exec backend php artisan key:generate
-   docker-compose exec backend php artisan migrate --seed
-   
-   docker-compose exec frontend npm install
+   # Start development servers
+   ./start-dev.sh
    ```
 
 3. **Manual Installation**
@@ -146,7 +137,7 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
    cp .env.example .env
    php artisan key:generate
    php artisan migrate --seed
-   php artisan serve
+   php artisan serve --port=8000
    
    # Frontend setup (new terminal)
    cd frontend
@@ -154,7 +145,11 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
    npm run dev
    ```
 
-4. **Access the Application**
+4. **Production Deployment**
+   
+   See `docs/DEPLOYMENT_NATIVE.md` for complete production deployment guide.
+
+5. **Access the Application**
    - Frontend: http://localhost:5173
    - Backend API: http://localhost:8000
    - Default credentials: Check seeder or create first user
@@ -730,6 +725,42 @@ Share link endpoints:
 - All database queries use Eloquent ORM or parameterized queries
 - JSONB queries use bound parameters for values
 - Input validation on all API endpoints
+
+---
+
+## 📋 Recent Changes (Last 30 Commits)
+
+### Infrastructure & Deployment
+- **Native Deployment** - Shifted from Docker to native Linux deployment
+- **Production Nginx Config** - Added `nginx/mspreports.conf` with full routing
+- **Systemd Services** - Enhanced with security hardening, resource limits, unified target
+- **Deployment Guide** - Comprehensive `docs/DEPLOYMENT_NATIVE.md` for TTS
+
+### Integrations
+- **14 Integrations** - Standardized all integrations to unified sync protocol
+- **Push-Based Agents** - Active Directory and Exchange with heartbeats and checkpointing
+- **Parallel Batch Processing** - Improved sync performance across all integrations
+
+### Reports & Delivery
+- **ConfigureReports Redesign** - Clickable cards and unified delivery panel
+- **SharePoint Delivery** - Upload reports directly to customer SharePoint sites
+- **Data Availability Indicators** - Visual indicators for report template data
+
+### Authentication & Security
+- **LDAP/Active Directory** - Full enterprise directory integration
+- **SAML & OAuth** - Single sign-on support configured
+- **RBAC with Customer Scoping** - Granular role-based permissions
+
+### UI/UX Improvements
+- **Professional Fonts** - Updated typography across the platform
+- **Sidebar Navigation** - Fixed and improved navigation experience
+- **Customer Mapping Fix** - Resolved display and mapping issues
+- **Static Customer Creation** - Create customers not linked to integrations
+
+### Code Quality
+- **Console.log Cleanup** - Removed all debug statements from production code
+- **Security Hardening** - Enhanced .gitignore, credential protection
+- **Windows Support** - Added PowerShell setup script for Windows development
 
 ---
 
