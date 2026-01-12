@@ -1,4 +1,12 @@
 #!/bin/bash
+#
+# MSP Reports - Development Server Starter (Linux/macOS)
+#
+# Starts queue workers and scheduler for local development.
+# Run setup-local.sh first if you haven't already.
+#
+# Usage: ./start-dev.sh
+#
 
 # Function to check service status
 check_service() {
@@ -37,6 +45,16 @@ php artisan schedule:work &
 PID_SCHED=$!
 
 # Trap Ctrl+C to kill background processes
-trap "kill $PID_QUEUE1 $PID_QUEUE2 $PID_QUEUE3 $PID_SCHED; exit" SIGINT
+echo ""
+echo "Workers and Scheduler running!"
+echo "Press Ctrl+C to stop all processes"
+echo ""
+echo "In separate terminals, run:"
+echo "  Backend:   cd backend && php artisan serve --port=8000"
+echo "  Frontend:  cd frontend && npm run dev"
+echo ""
+
+# Trap Ctrl+C to kill background processes
+trap "echo ''; echo 'Stopping workers...'; kill $PID_QUEUE1 $PID_QUEUE2 $PID_QUEUE3 $PID_SCHED 2>/dev/null; echo 'Done.'; exit" SIGINT SIGTERM
 
 wait

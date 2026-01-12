@@ -1,9 +1,20 @@
 #!/bin/bash
+#
+# MSP Reports - Local Development Setup Script (Linux/macOS)
+#
+# This script sets up the development environment on a local machine.
+# For production deployment, see docs/DEPLOYMENT_NATIVE.md
+#
+# Usage: ./setup-local.sh
+#
 
-# Exit on error
 set -e
 
-echo "🚀 Starting Local Setup..."
+echo ""
+echo "========================================"
+echo " MSP Reports - Local Development Setup"
+echo "========================================"
+echo ""
 
 # Check for required commands
 command -v php >/dev/null 2>&1 || { echo >&2 "❌ PHP is not installed. Please run: sudo apt install php8.3-cli php8.3-fpm php8.3-common php8.3-pgsql php8.3-gd php8.3-curl php8.3-xml php8.3-mbstring php8.3-zip php8.3-bcmath php8.3-ldap php8.3-dev"; exit 1; }
@@ -118,7 +129,21 @@ npm install
 npm run build
 cd ..
 
-echo "🎉 Setup Complete!"
-echo "To start the backend queue workers: cd backend && php artisan queue:work"
-echo "To start the scheduler: cd backend && php artisan schedule:work"
-echo "Ensure Nginx is running with the provided configuration."
+echo ""
+echo "========================================"
+echo " 🎉 Setup Complete!"
+echo "========================================"
+echo ""
+echo "To start development:"
+echo "  Option 1 (Simple):   ./start-dev.sh"
+echo "  Option 2 (Manual):"
+echo "    - Backend API:     cd backend && php artisan serve --port=8000"
+echo "    - Queue workers:   cd backend && php artisan queue:work"
+echo "    - Scheduler:       cd backend && php artisan schedule:work"
+echo "    - Frontend:        cd frontend && npm run dev"
+echo ""
+echo "Default URLs:"
+echo "  Backend API:  http://localhost:8000"
+echo "  Frontend:     http://localhost:5173"
+echo ""
+echo "For production deployment, see: docs/DEPLOYMENT_NATIVE.md"
