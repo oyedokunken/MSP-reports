@@ -1,18 +1,24 @@
 # Windows Setup Script (setup-local.ps1)
-# Run as Administrator for service installations
 # Usage: .\setup-local.ps1
+#
+# PRE-REQUISITES - Install these BEFORE running this script:
+#   1. PHP 8.3+ with extensions: ldap, pgsql, gd, curl, xml, mbstring, zip, bcmath, redis
+#      Download: https://windows.php.net/download/ (use Thread Safe version)
+#      Enable extensions in php.ini: extension=ldap, extension=pgsql, extension=pdo_pgsql, etc.
+#   2. Composer - https://getcomposer.org/download/
+#   3. Node.js LTS - https://nodejs.org/
+#   4. PostgreSQL 16 - https://www.postgresql.org/download/windows/
+#   5. TimescaleDB - https://docs.timescale.com/self-hosted/latest/install/installation-windows/
+#   6. Redis (Memurai) - https://www.memurai.com/ OR run Redis in Docker
+#   7. Docker Desktop (optional, for Gotenberg PDF) - https://www.docker.com/products/docker-desktop
+#
+# This script configures the application after pre-requisites are installed.
 
-Write-Host "🚀 Starting Local Setup (Windows)..." -ForegroundColor Cyan
-Write-Host "This script will install and configure all required services." -ForegroundColor Gray
+Write-Host "" 
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host " Local Development Setup (Windows)" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-
-# Check if running as Administrator
-$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    Write-Host "⚠️  Not running as Administrator. Some installations may fail." -ForegroundColor Yellow
-    Write-Host "   Recommend: Right-click PowerShell -> Run as Administrator" -ForegroundColor Yellow
-    Write-Host ""
-}
 
 # Function to check command availability
 function Test-CommandExists {
@@ -20,134 +26,90 @@ function Test-CommandExists {
     return [bool](Get-Command $name -ErrorAction SilentlyContinue)
 }
 
-# Function to check if Chocolatey is installed
-function Install-Chocolatey {
-    if (-not (Test-CommandExists "choco")) {
-        Write-Host "📦 Installing Chocolatey package manager..." -ForegroundColor Cyan
-        Set-ExecutionPolicy Bypass -Scope Process -Force
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-        refreshenv
-    }
-}
-
 # ============================================
-# STEP 1: Install Package Manager (Chocolatey)
+# STEP 1: Check Pre-requisites
 # ============================================
-Write-Host "" 
-Write-Host "=== Step 1: Package Manager ===" -ForegroundColor Magenta
-Install-Chocolatey
-
-# ============================================
-# STEP 2: Install Core Dependencies
-# ============================================
+Write-Host "=== Step 1: Checking Pre-requisites ===" -ForegroundColor Magenta
 Write-Host ""
-Write-Host "=== Step 2: Core Dependencies ===" -ForegroundColor Magenta
+
+$missingDeps = @()
 
 # PHP
-if (-not (Test-CommandExists "php")) {
-    Write-Host "📦 Installing PHP 8.3..." -ForegroundColor Cyan
-    choco install php --version=8.3 -y
-    refreshenv
+if (Test-CommandExists "php") {
+    $phpVersion = (php -v | Select-Object -First 1) -replace 'PHP (\d+\.\d+).*', '$1'
+    Write-Host "[OK] PHP installed ($phpVersion)" -ForegroundColor Green
+    
+    # Check PHP version
+    if ([version]$phpVersion -lt [version]"8.3") {
+        Write-Host "[WARN] PHP 8.3+ required, you have $phpVersion" -ForegroundColor Yellow
+        $missingDeps += "PHP 8.3+"
+    }
 } else {
-    Write-Host "✅ PHP is installed" -ForegroundColor Green
+    Write-Host "[MISSING] PHP" -ForegroundColor Red
+    $missingDeps += "PHP 8.3+"
 }
 
 # Composer
-if (-not (Test-CommandExists "composer")) {
-    Write-Host "📦 Installing Composer..." -ForegroundColor Cyan
-    choco install composer -y
-    refreshenv
+if (Test-CommandExists "composer") {
+    Write-Host "[OK] Composer installed" -ForegroundColor Green
 } else {
-    Write-Host "✅ Composer is installed" -ForegroundColor Green
+    Write-Host "[MISSING] Composer" -ForegroundColor Red
+    $missingDeps += "Composer"
 }
 
 # Node.js
-if (-not (Test-CommandExists "node")) {
-    Write-Host "📦 Installing Node.js LTS..." -ForegroundColor Cyan
-    choco install nodejs-lts -y
-    refreshenv
+if (Test-CommandExists "node") {
+    $nodeVersion = (node -v)
+    Write-Host "[OK] Node.js installed ($nodeVersion)" -ForegroundColor Green
 } else {
-    Write-Host "✅ Node.js is installed" -ForegroundColor Green
+    Write-Host "[MISSING] Node.js" -ForegroundColor Red
+    $missingDeps += "Node.js"
 }
 
-# ============================================
-# STEP 3: Install Database (PostgreSQL + TimescaleDB)
-# ============================================
-Write-Host ""
-Write-Host "=== Step 3: Database (PostgreSQL + TimescaleDB) ===" -ForegroundColor Magenta
-
-if (-not (Test-CommandExists "psql")) {
-    Write-Host "📦 Installing PostgreSQL 16..." -ForegroundColor Cyan
-    choco install postgresql16 --params '/Password:postgres' -y
-    refreshenv
-    
-    # Add to PATH if not already
-    $pgPath = "C:\Program Files\PostgreSQL\16\bin"
-    if (Test-Path $pgPath) {
-        $env:Path += ";$pgPath"
-    }
+# PostgreSQL
+if (Test-CommandExists "psql") {
+    Write-Host "[OK] PostgreSQL installed" -ForegroundColor Green
 } else {
-    Write-Host "✅ PostgreSQL is installed" -ForegroundColor Green
+    Write-Host "[MISSING] PostgreSQL (psql not in PATH)" -ForegroundColor Red
+    $missingDeps += "PostgreSQL 16"
 }
 
-# TimescaleDB
-Write-Host "📦 TimescaleDB installation..." -ForegroundColor Cyan
-Write-Host "   ⚠️  TimescaleDB must be installed manually on Windows:" -ForegroundColor Yellow
-Write-Host "   1. Download from: https://docs.timescale.com/self-hosted/latest/install/installation-windows/" -ForegroundColor Yellow
-Write-Host "   2. Run the installer and select your PostgreSQL 16 installation" -ForegroundColor Yellow
-Write-Host "   3. Restart PostgreSQL service after installation" -ForegroundColor Yellow
-Write-Host ""
-
-# ============================================
-# STEP 4: Install Redis
-# ============================================
-Write-Host "=== Step 4: Redis ===" -ForegroundColor Magenta
-
-# Check if Redis is running
-$redisRunning = Get-Process redis-server -ErrorAction SilentlyContinue
-if (-not $redisRunning) {
-    Write-Host "📦 Installing Redis..." -ForegroundColor Cyan
-    
-    # Option 1: Use Memurai (Redis-compatible for Windows)
-    if (-not (Test-CommandExists "memurai")) {
-        Write-Host "   Installing Memurai (Redis-compatible server for Windows)..." -ForegroundColor Gray
-        choco install memurai-developer -y
-    }
-    
-    # Start Memurai service
-    Start-Service Memurai -ErrorAction SilentlyContinue
-    Write-Host "✅ Redis (Memurai) installed and started" -ForegroundColor Green
+# Redis/Memurai
+$redisRunning = Get-Service -Name "Memurai" -ErrorAction SilentlyContinue
+if ($redisRunning -or (Test-CommandExists "redis-cli")) {
+    Write-Host "[OK] Redis/Memurai installed" -ForegroundColor Green
 } else {
-    Write-Host "✅ Redis is running" -ForegroundColor Green
+    Write-Host "[WARN] Redis/Memurai not detected (optional but recommended)" -ForegroundColor Yellow
 }
 
-# ============================================
-# STEP 5: Install Gotenberg (PDF Generation)
-# ============================================
-Write-Host ""
-Write-Host "=== Step 5: Gotenberg (PDF Generation) ===" -ForegroundColor Magenta
-
+# Docker (optional)
 if (Test-CommandExists "docker") {
-    Write-Host "📦 Starting Gotenberg via Docker..." -ForegroundColor Cyan
-    docker pull gotenberg/gotenberg:8
-    docker run -d --name gotenberg -p 3000:3000 gotenberg/gotenberg:8 2>$null
-    if ($?) {
-        Write-Host "✅ Gotenberg running on http://localhost:3000" -ForegroundColor Green
-    } else {
-        Write-Host "⚠️  Gotenberg container may already exist. Try: docker start gotenberg" -ForegroundColor Yellow
-    }
+    Write-Host "[OK] Docker installed" -ForegroundColor Green
 } else {
-    Write-Host "⚠️  Docker not found. Gotenberg requires Docker:" -ForegroundColor Yellow
-    Write-Host "   Install Docker Desktop: https://www.docker.com/products/docker-desktop" -ForegroundColor Yellow
-    Write-Host "   Then run: docker run -d --name gotenberg -p 3000:3000 gotenberg/gotenberg:8" -ForegroundColor Yellow
+    Write-Host "[WARN] Docker not installed (needed for Gotenberg PDF generation)" -ForegroundColor Yellow
+}
+
+Write-Host ""
+
+# Stop if critical dependencies missing
+if ($missingDeps.Count -gt 0) {
+    Write-Host "============================================" -ForegroundColor Red
+    Write-Host " Missing required dependencies:" -ForegroundColor Red
+    foreach ($dep in $missingDeps) {
+        Write-Host "   - $dep" -ForegroundColor Red
+    }
+    Write-Host ""
+    Write-Host " Please install the missing dependencies and run this script again." -ForegroundColor Yellow
+    Write-Host " See the comments at the top of this script for download links." -ForegroundColor Yellow
+    Write-Host "============================================" -ForegroundColor Red
+    exit 1
 }
 
 # ============================================
-# STEP 6: Setup Backend
+# STEP 2: Setup Backend
 # ============================================
 Write-Host ""
-Write-Host "=== Step 6: Backend Setup ===" -ForegroundColor Magenta
+Write-Host "=== Step 2: Backend Setup ===" -ForegroundColor Magenta
 Set-Location "backend"
 
 # Environment File
@@ -168,21 +130,21 @@ $envContent = $envContent -replace 'GOTENBERG_URL=http://gotenberg:3000', 'GOTEN
 $envContent = $envContent -replace 'DB_SSLMODE=require', 'DB_SSLMODE=prefer'
 
 Set-Content ".env" $envContent
-Write-Host "✅ .env configured for local development" -ForegroundColor Green
+Write-Host " .env configured for local development" -ForegroundColor Green
 
 # Database Setup
 Write-Host ""
-Write-Host "🐘 Setting up Database..." -ForegroundColor Cyan
+Write-Host " Setting up Database..." -ForegroundColor Cyan
 
 try {
     $env:PGPASSWORD = "postgres"
     $dbExists = psql -U postgres -h 127.0.0.1 -lqt 2>$null | Select-String "reporting"
     if ($dbExists) {
-        Write-Host "✅ Database 'reporting' already exists." -ForegroundColor Green
+        Write-Host " Database 'reporting' already exists." -ForegroundColor Green
     } else {
         Write-Host "Creating database 'reporting'..."
         createdb -U postgres -h 127.0.0.1 reporting
-        Write-Host "✅ Database created" -ForegroundColor Green
+        Write-Host " Database created" -ForegroundColor Green
     }
     
     # Create user if needed
@@ -194,16 +156,17 @@ try {
     # Enable TimescaleDB
     Write-Host "Enabling TimescaleDB extension..."
     psql -U postgres -h 127.0.0.1 -d reporting -c "CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;" 2>$null
-    Write-Host "✅ TimescaleDB extension enabled" -ForegroundColor Green
+    Write-Host " TimescaleDB extension enabled" -ForegroundColor Green
 } catch {
-    Write-Host "⚠️  Database setup encountered issues. You may need to configure manually." -ForegroundColor Yellow
+    Write-Host "  Database setup encountered issues. You may need to configure manually." -ForegroundColor Yellow
     Write-Host "   Ensure PostgreSQL is running and accessible." -ForegroundColor Yellow
 }
 
 # Install PHP Dependencies
 Write-Host ""
 Write-Host "Installing Composer dependencies..." -ForegroundColor Cyan
-composer install
+Write-Host "(If this fails due to missing extensions, enable them in your php.ini)" -ForegroundColor Gray
+composer install --ignore-platform-req=ext-ldap
 
 # Generate App Key
 Write-Host "Generating application key..." -ForegroundColor Cyan
@@ -219,16 +182,16 @@ $response = Read-Host "Run database migrations? (y/n)"
 if ($response -eq 'y') {
     Write-Host "Running migrations..." -ForegroundColor Cyan
     php artisan migrate
-    Write-Host "✅ Migrations complete" -ForegroundColor Green
+    Write-Host " Migrations complete" -ForegroundColor Green
 }
 
 Set-Location ..
 
 # ============================================
-# STEP 7: Setup Frontend
+# STEP 3: Setup Frontend
 # ============================================
 Write-Host ""
-Write-Host "=== Step 7: Frontend Setup ===" -ForegroundColor Magenta
+Write-Host "=== Step 3: Frontend Setup ===" -ForegroundColor Magenta
 Set-Location "frontend"
 
 Write-Host "Installing npm dependencies..." -ForegroundColor Cyan
@@ -244,17 +207,8 @@ Set-Location ..
 # ============================================
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
-Write-Host "🎉 Setup Complete!" -ForegroundColor Green
+Write-Host " Setup Complete!" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Green
-Write-Host ""
-Write-Host "Services installed:" -ForegroundColor Cyan
-Write-Host "  ✅ PHP 8.3"
-Write-Host "  ✅ Composer"
-Write-Host "  ✅ Node.js"
-Write-Host "  ✅ PostgreSQL 16"
-Write-Host "  ✅ Redis (Memurai)"
-Write-Host "  ⚠️  TimescaleDB (manual install required)"
-Write-Host "  ⚠️  Gotenberg (requires Docker)"
 Write-Host ""
 Write-Host "To start development:" -ForegroundColor Cyan
 Write-Host "  1. Start workers:    .\start-dev.ps1"
@@ -265,3 +219,4 @@ Write-Host "Default URLs:" -ForegroundColor Cyan
 Write-Host "  Backend API:  http://localhost:8000"
 Write-Host "  Frontend:     http://localhost:5173"
 Write-Host "  Gotenberg:    http://localhost:3000"
+
