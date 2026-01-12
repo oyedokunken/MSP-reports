@@ -36,6 +36,32 @@ class DeliverReportJob implements ShouldQueue
         $deliveryMethods = [];
         
         try {
+            // Small delay to ensure file system has synced (especially important for NFS/network storage)
+            usleep(100000); // 100ms delay
+            
+            // CRITICAL: Refresh the model from database to get the latest file_path
+            // The model might have been serialized before file_path was set
+            $this->generatedReport = $this->generatedReport->fresh();
+            
+            if (!$this->generatedReport) {
+                throw new \Exception("Generated report not found in database");
+            }
+            
+            // Clear file stat cache to ensure fresh file info
+            if ($this->generatedReport->file_path) {
+                $fullPath = Storage::disk('reports')->path($this->generatedReport->file_path);
+                clearstatcache(true, $fullPath);
+                
+                Log::info('DeliverReportJob file check', [
+                    'report_id' => $this->generatedReport->generated_report_id,
+                    'file_path' => $this->generatedReport->file_path,
+                    'full_path' => $fullPath,
+                    'file_exists' => file_exists($fullPath),
+                    'file_size' => file_exists($fullPath) ? filesize($fullPath) : 0,
+                    'file_readable' => is_readable($fullPath),
+                ]);
+            }
+            
             // Eager load relationships to ensure they're available
             $this->generatedReport->load(['customer', 'reportSchedule', 'company']);
             

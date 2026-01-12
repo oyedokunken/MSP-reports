@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { flushSync } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
@@ -8,8 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Calendar, Clock, Mail, Save, Bell, Play, Zap, Filter, ExternalLink, Plus, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Mail, Save, Bell, Play, Zap, ExternalLink, Plus, Check } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog"
 
 import type { ReportConfig, ReportType, EnabledReport } from './types'
+import { cn } from '@/lib/utils'
 
 
 const FREQUENCIES = [
@@ -56,8 +57,8 @@ export default function ConfigureReports() {
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
-
-
+  const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 })
+  const [failedSchedules, setFailedSchedules] = useState<Array<{ scheduleId: number; error: string }>>([])
 
   // Validate and fix invalid report types when availableReportTypes loads
   useEffect(() => {
@@ -294,12 +295,26 @@ export default function ConfigureReports() {
       // Execute all updates in parallel
       await Promise.all(updatePromises)
 
+      // Count what was actually updated
+      const schedulesUpdated = modifiedSchedules.size
+      const emailUpdated = (destination !== originalDestination || ccEmails !== originalCcEmails) ? 1 : 0
+      
       // Clear modified schedules tracking
       setModifiedSchedules(new Set())
       setOriginalDestination(destination)
       setOriginalCcEmails(ccEmails)
 
-      toast.success('Saved', `Updated ${modifiedSchedules.size} schedule(s) successfully`)
+      // Show appropriate success message
+      if (schedulesUpdated > 0 && emailUpdated > 0) {
+        toast.success('Saved', `Updated ${schedulesUpdated} schedule(s) and email settings successfully`)
+      } else if (schedulesUpdated > 0) {
+        toast.success('Saved', `Updated ${schedulesUpdated} schedule(s) successfully`)
+      } else if (emailUpdated > 0) {
+        toast.success('Saved', 'Email delivery settings updated successfully')
+      } else {
+        toast.success('Saved', 'No changes detected')
+      }
+      
       fetchReportConfig()
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
@@ -365,29 +380,102 @@ export default function ConfigureReports() {
     try {
       setIsGenerating(true)
       setShowGenerateModal(false)
+      setGenerationProgress({ current: 0, total: selectedSchedules.length })
+      setFailedSchedules([])
 
       const payload = (startDate && endDate) ? { start_date: startDate, end_date: endDate } : {}
 
-      // Generate reports for all selected schedules
-      const promises = selectedSchedules.map(scheduleId =>
-        api.post(`/reports/schedules/${scheduleId}/generate`, payload)
-      )
+      // Generate reports sequentially to show progress
+      const results: Array<{ status: 'fulfilled' | 'rejected'; value?: unknown; reason?: unknown; scheduleId: number }> = []
+      
+      for (let i = 0; i < selectedSchedules.length; i++) {
+        const scheduleId = selectedSchedules[i]
+        
+        try {
+          const result = await api.post(`/reports/schedules/${scheduleId}/generate`, payload)
+          results.push({ status: 'fulfilled', value: result, scheduleId })
+        } catch (error) {
+          results.push({ status: 'rejected', reason: error, scheduleId })
+        }
+        
+        // Update progress after each request - use flushSync to force immediate render
+        flushSync(() => {
+          setGenerationProgress({ current: i + 1, total: selectedSchedules.length })
+        })
+      }
 
-      await Promise.all(promises)
+      // Separate succeeded and failed
+      const succeeded = results.filter(r => r.status === 'fulfilled')
+      const failed = results.filter(r => r.status === 'rejected')
 
-      toast.success('Reports Generated!', `Successfully generated ${selectedSchedules.length} report(s)`)
+      // Store failed schedules for retry
+      if (failed.length > 0) {
+        const failedItems = failed.map(f => ({
+          scheduleId: f.scheduleId,
+          error: (f.reason as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message 
+            || (f.reason as { message?: string })?.message 
+            || 'Unknown error'
+        }))
+        setFailedSchedules(failedItems)
+      }
 
-      // Clear selection
-      setSelectedSchedules([])
+      // Show results
+      if (succeeded.length > 0) {
+        toast.success('Reports Generated!', `Successfully generated ${succeeded.length} of ${selectedSchedules.length} report(s)`)
+        
+        // Show browser notification for completion
+        showCompletionNotification(succeeded.length, failed.length)
+      }
 
-      setTimeout(() => {
-        navigate('/platform/reports')
-      }, 1500)
+      if (failed.length > 0) {
+        toast.error('Some Reports Failed', `${failed.length} report(s) failed to generate. Click "Retry Failed" to try again.`)
+      }
+
+      // Clear selection only if all succeeded
+      if (failed.length === 0) {
+        setSelectedSchedules([])
+        setTimeout(() => {
+          navigate('/platform/reports')
+        }, 1500)
+      }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       toast.error('Generation Failed', error.response?.data?.message || error.message)
     } finally {
       setIsGenerating(false)
+      setGenerationProgress({ current: 0, total: 0 })
+    }
+  }
+
+  const retryFailedReports = async () => {
+    if (failedSchedules.length === 0) return
+
+    const failedScheduleIds = failedSchedules.map(f => f.scheduleId)
+    setSelectedSchedules(failedScheduleIds)
+    await performSelectedSchedulesGeneration(customStartDate, customEndDate)
+  }
+
+  const showCompletionNotification = (succeeded: number, failed: number) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      const title = failed > 0 
+        ? `${succeeded} Reports Generated, ${failed} Failed`
+        : `${succeeded} Report${succeeded > 1 ? 's' : ''} Generated Successfully`
+      
+      const body = failed > 0
+        ? `${succeeded} of ${succeeded + failed} reports completed. Click to view failed reports.`
+        : 'All reports have been generated and are ready for delivery.'
+      
+      const notification = new Notification(title, {
+        body,
+        icon: '/favicon.ico',
+        tag: 'report-generation',
+        requireInteraction: failed > 0, // Keep notification visible if there are failures
+      })
+
+      notification.onclick = () => {
+        window.focus()
+        notification.close()
+      }
     }
   }
 
@@ -414,489 +502,393 @@ export default function ConfigureReports() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Configure Automatic Reports</h1>
-            <p className="mt-2 text-muted-foreground">
-              Set up automated report generation and delivery schedules
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="hover:bg-muted">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Configure Reports</h1>
+              <p className="text-muted-foreground mt-1">
+                Manage automated generation and delivery for <span className="font-medium text-foreground">{config.customer_name}</span>
+              </p>
+            </div>
           </div>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="h-5 w-5" />
-                  Automatic Report Schedules
-                </CardTitle>
-                <CardDescription>
-                  Report schedules created from templates. Use the Templates page to create new schedules.
-                </CardDescription>
-              </div>
-              {/* <Button
+          {/* <div className="flex items-center gap-2">
+             <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/platform/templates')}
                 className="flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Create Template
-              </Button> */}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {enabledReports.length === 0 ? (
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground mb-2">No report schedules configured</p>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Go to the Templates page to create report schedules for this customer
-                </p>
-                <div className="flex justify-center">
-                  <Button
-                    onClick={() => navigate('/platform/templates')}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Create Template
-                  </Button>
+                Templates
+              </Button>
+          </div> */}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Schedules */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="border border-border shadow-sm">
+              <CardHeader className="pb-0">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                      <Bell className="h-5 w-5 text-primary" />
+                      Report Schedules
+                    </CardTitle>
+                    <CardDescription>
+                      Automated schedules inherited from templates
+                    </CardDescription>
+                  </div>
+                  {enabledReports.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleSelectAllSchedules}
+                        disabled={selectedSchedules.length === enabledReports.filter(r => r.schedule_id).length}
+                        className="text-xs h-8"
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleDeselectAllSchedules}
+                        disabled={selectedSchedules.length === 0}
+                        className="text-xs h-8 text-destructive hover:text-destructive"
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {enabledReports.map((report, index) => {
-                  const hasFilteredSections = report.include_sections && report.include_sections.length > 0
-
-                  return (
-                    <Card
-                      key={index}
-                      className={`relative ${hasFilteredSections
-                        ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
-                        : ''
-                        }`}
+              </CardHeader>
+              
+              <CardContent>
+                {enabledReports.length === 0 ? (
+                  <div className="text-center py-12 bg-background rounded-xl border-2 border-dashed">
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
+                    <p className="text-sm font-medium text-muted-foreground">No report schedules found</p>
+                    <p className="text-xs text-muted-foreground mt-1 mb-6">
+                      Templates define the base schedules for your customers
+                    </p>
+                    <Button
+                      onClick={() => navigate('/platform/templates')}
+                      size="sm"
+                      className="gap-2"
                     >
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <CardTitle className="text-base flex items-center gap-2">
-                              {availableReportTypes.find(t => t.id === report.report_type)?.name || 'Report'}
-                              <Badge variant={report.active !== false ? "default" : "secondary"} className="text-xs">
-                                {report.active !== false ? 'Active' : 'Inactive'}
-                              </Badge>
-                            </CardTitle>
-                            {report.schedule_id && (
-                              <CardDescription className="text-xs mt-1">
-                                Schedule ID: {report.schedule_id}
-                              </CardDescription>
+                      <Plus className="h-4 w-4" />
+                      Browse Templates
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2">
+                    {enabledReports.map((report, index) => {
+                      const reportType = availableReportTypes.find(t => t.id === report.report_type)
+
+                      return (
+                        <Card
+                          key={index}
+                          onClick={() => report.schedule_id && handleToggleScheduleSelection(report.schedule_id)}
+                          className={cn(
+                            "group relative overflow-hidden rounded-xl border-2 transition-all cursor-pointer",
+                            "hover:shadow-lg",
+                            report.schedule_id && selectedSchedules.includes(report.schedule_id)
+                              ? "border-primary bg-primary/5 shadow-md"
+                              : "border-border hover:border-primary/30",
+                            report.active === false && "opacity-70 grayscale-[0.4]"
+                          )}
+                        >
+                          {/* Left Accent */}
+                          {/* <div
+                            className={cn(
+                              "absolute left-0 top-0 h-full w-1",
+                              report.schedule_id && selectedSchedules.includes(report.schedule_id)
+                                ? "bg-primary"
+                                : report.active !== false ? "bg-primary/50" : "bg-muted"
                             )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {report.schedule_id && (
-                              <label
-                                htmlFor={`select-schedule-${index}`}
-                                className="flex items-center justify-center h-8 w-8 cursor-pointer hover:bg-muted rounded-md"
-                              >
-                                <input
-                                  type="checkbox"
-                                  id={`select-schedule-${index}`}
-                                  checked={selectedSchedules.includes(report.schedule_id)}
-                                  onChange={() => handleToggleScheduleSelection(report.schedule_id!)}
-                                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                />
-                              </label>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => navigate('/platform/templates')}
-                              className="text-primary hover:text-primary h-8 w-8 p-0"
-                              title="Go to Templates"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        {hasFilteredSections && (
-                          <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900 dark:text-blue-300 w-fit mt-2">
-                            <Filter className="h-3 w-3 mr-1" />
-                            {report.include_sections?.length} Filtered Sections
-                          </Badge>
-                        )}
-                        {report.has_data === false && (
-                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-300 dark:bg-orange-950 dark:text-orange-400 w-fit mt-2">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            No Data for {report.frequency || 'this frequency'}
-                          </Badge>
-                        )}
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="grid gap-3">
-                          <div>
-                            <Label htmlFor={`report-type-${index}`} className="text-xs">Report Type</Label>
-                            <Select
-                              value={report.report_type || ''}
-                              onValueChange={(value) => handleUpdateReport(index, 'report_type', value)}
-                            >
-                              <SelectTrigger id={`report-type-${index}`} className="mt-1 h-9">
-                                <SelectValue placeholder="Select report type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableReportTypes.length === 0 ? (
-                                  <div className="p-2 text-sm text-muted-foreground">
-                                    No reports available. Please link an integration first.
-                                  </div>
-                                ) : (
-                                  availableReportTypes.map((type) => (
-                                    <SelectItem
-                                      key={type.id}
-                                      value={type.id}
+                          /> */}
+
+                          <CardHeader className="pl-5 pr-4 pt-0 pb-2">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <h3 className="text-sm font-semibold tracking-tight">
+                                    {reportType?.name || "Unknown Report"}
+                                  </h3>
+
+                                  <Badge
+                                    variant={report.active !== false ? "default" : "secondary"}
+                                    className="h-4 px-1.5 text-[10px] font-bold uppercase tracking-wider"
+                                  >
+                                    {report.active !== false ? "Active" : "Paused"}
+                                  </Badge>
+                                </div>
+
+                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
+                                  <span>ID: {report.schedule_id}</span>
+
+                                  {report.has_data === false && (
+                                    <Badge
+                                      variant="outline"
+                                      className="h-4 border-orange-200 bg-orange-50 px-1 text-orange-700"
                                     >
-                                      <div className="flex items-center justify-between w-full gap-2">
-                                        <div className="flex items-center gap-2">
-                                          <span>{type.name}</span>
-                                          {type.has_data === false && (
-                                            <Badge variant="outline" className="h-5 px-1 bg-orange-50 text-orange-700 border-orange-200 text-[10px]">
-                                              No Data
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        {type.integration_source && (
-                                          <Badge variant="outline" className="text-xs">
-                                            {type.integration_source}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <div>
-                              <Label htmlFor={`frequency-${index}`} className="text-xs">Frequency</Label>
-                              <Select
-                                value={report.frequency || 'monthly'}
-                                onValueChange={(value) => handleUpdateReport(index, 'frequency', value)}
-                              >
-                                <SelectTrigger id={`frequency-${index}`} className="mt-1 h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {(() => {
-                                    const selectedReport = availableReportTypes.find(t => t.id === report.report_type)
-                                    const allowedFrequencies = selectedReport?.frequency_options || ['on-demand']
-                                    return FREQUENCIES
-                                      .filter(freq => allowedFrequencies.includes(freq.value))
-                                      .map((freq) => (
-                                        <SelectItem key={freq.value} value={freq.value}>
-                                          {freq.label}
-                                        </SelectItem>
-                                      ))
-                                  })()}
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {report.frequency !== 'on-demand' && (
-                              <div>
-                                <Label htmlFor={`time-${index}`} className="text-xs">Time</Label>
-                                <Input
-                                  id={`time-${index}`}
-                                  type="time"
-                                  value={report.time_of_day || '09:00'}
-                                  onChange={(e) => handleUpdateReport(index, 'time_of_day', e.target.value)}
-                                  className="mt-1 h-9"
-                                />
-                              </div>
-                            )}
-                          </div>
-
-                          {report.frequency === 'monthly' && (
-                            <div>
-                              <Label htmlFor={`day-${index}`} className="text-xs">Day of Month</Label>
-                              <Select
-                                value={String(report.day_of_month || '1')}
-                                onValueChange={(value) => handleUpdateReport(index, 'day_of_month', parseInt(value))}
-                              >
-                                <SelectTrigger id={`day-${index}`} className="mt-1 h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                                    <SelectItem key={day} value={String(day)}>
-                                      {day}{day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-
-                          {report.frequency === 'weekly' && (
-                            <div>
-                              <Label htmlFor={`weekday-${index}`} className="text-xs">Day of Week</Label>
-                              <Select
-                                value={String(report.day_of_week || '1')}
-                                onValueChange={(value) => handleUpdateReport(index, 'day_of_week', parseInt(value))}
-                              >
-                                <SelectTrigger id={`weekday-${index}`} className="mt-1 h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="1">Monday</SelectItem>
-                                  <SelectItem value="2">Tuesday</SelectItem>
-                                  <SelectItem value="3">Wednesday</SelectItem>
-                                  <SelectItem value="4">Thursday</SelectItem>
-                                  <SelectItem value="5">Friday</SelectItem>
-                                  <SelectItem value="6">Saturday</SelectItem>
-                                  <SelectItem value="0">Sunday</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )}
-
-                          <div className="flex items-center gap-2 pt-1">
-                            <Switch
-                              id={`active-${index}`}
-                              checked={report.active !== false}
-                              onCheckedChange={(checked: boolean) => handleUpdateReport(index, 'active', checked)}
-                            />
-                            <Label htmlFor={`active-${index}`} className="cursor-pointer text-xs">
-                              Schedule {report.active !== false ? 'Active' : 'Inactive'}
-                            </Label>
-                          </div>
-                        </div>
-
-                        {availableReportTypes.find(t => t.id === report.report_type)?.description && (
-                          <p className="text-xs text-muted-foreground pt-2 border-t">
-                            {availableReportTypes.find(t => t.id === report.report_type)?.description}
-                          </p>
-                        )}
-
-                        {report.report_type === 'monthly_comprehensive' && (
-                          <div className="p-2 bg-muted/50 rounded-md border-t">
-                            <Label className="text-xs font-medium mb-1 block">📋 Included Reports:</Label>
-                            <p className="text-xs text-muted-foreground mb-2">
-                              Auto-includes all monthly summaries from active integrations
-                            </p>
-                            <div className="space-y-1">
-                              {config && (
-                                <div className="grid grid-cols-1 gap-1">
-                                  {availableReportTypes
-                                    .filter(rt => rt.id.includes('monthly_summary'))
-                                    .map(rt => (
-                                      <div key={rt.id} className="flex items-center gap-1.5 text-xs">
-                                        <span className="text-green-500">✓</span>
-                                        <span className="flex-1">{rt.name}</span>
-                                        {rt.integration_source && (
-                                          <Badge variant="outline" className="text-xs h-5">
-                                            {rt.integration_source}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    ))}
-                                  {availableReportTypes.filter(rt => rt.id.includes('monthly_summary')).length === 0 && (
-                                    <div className="text-xs text-muted-foreground italic">
-                                      No summaries available
-                                    </div>
+                                      No Data
+                                    </Badge>
                                   )}
                                 </div>
+                              </div>
+
+                              {report.schedule_id && (
+                                <Badge
+                                  variant={selectedSchedules.includes(report.schedule_id) ? "default" : "outline"}
+                                  className={cn(
+                                    "h-6 px-2 text-[10px] font-semibold transition-all",
+                                    selectedSchedules.includes(report.schedule_id)
+                                      ? "bg-primary text-primary-foreground"
+                                      : "text-muted-foreground hover:bg-muted"
+                                  )}
+                                >
+                                  {selectedSchedules.includes(report.schedule_id) ? (
+                                    <>
+                                      <Check className="h-3 w-3 mr-1" />
+                                      Selected
+                                    </>
+                                  ) : (
+                                    "Select"
+                                  )}
+                                </Badge>
                               )}
                             </div>
-                          </div>
-                        )}
+                          </CardHeader>
 
-                        {/* Filtered Sections Display */}
-                        {hasFilteredSections && (
-                          <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-md border border-blue-200 dark:border-blue-800">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Filter className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                              <Label className="text-xs font-medium text-blue-900 dark:text-blue-100">
-                                Filtered Sections ({report.include_sections?.length})
-                              </Label>
+                          <CardContent className="pl-5 pr-4 pb-3 space-y-3">
+                            {/* Frequency + Schedule */}
+                            <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-2.5">
+                              <div className="space-y-0.5">
+                                <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                                  Frequency
+                                </span>
+                                <div className="flex items-center gap-1.5 text-sm font-medium">
+                                  <Calendar className="h-3 w-3 text-muted-foreground" />
+                                  {FREQUENCIES.find(f => f.value === report.frequency)?.label ||
+                                    report.frequency}
+                                </div>
+                              </div>
+
+                              <div className="space-y-0.5 text-right">
+                                <span className="block text-[10px] font-semibold uppercase text-muted-foreground">
+                                  Schedule
+                                </span>
+                                <div className="flex items-center justify-end gap-1.5 text-sm font-medium">
+                                  <Clock className="h-3 w-3 text-muted-foreground" />
+                                  {report.frequency === "on-demand"
+                                    ? "Manual"
+                                    : report.time_of_day}
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex flex-wrap gap-1">
-                              {report.include_sections?.map((section) => (
-                                <Badge
-                                  key={section}
-                                  variant="outline"
-                                  className="text-xs bg-white dark:bg-blue-900/50 border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-100"
-                                >
-                                  {section.replace(/_/g, ' ')}
-                                </Badge>
-                              ))}
+
+                            {(report.frequency === "monthly" ||
+                              report.frequency === "weekly") && (
+                              <div className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-[11px]">
+                                <Zap className="h-3 w-3 text-primary" />
+                                <span>
+                                  Runs on{" "}
+                                  <span className="font-semibold">
+                                    {report.frequency === "monthly"
+                                      ? `Day ${report.day_of_month}`
+                                      : [
+                                          "Sunday",
+                                          "Monday",
+                                          "Tuesday",
+                                          "Wednesday",
+                                          "Thursday",
+                                          "Friday",
+                                          "Saturday",
+                                        ][report.day_of_week || 0]}
+                                  </span>{" "}
+                                  each {report.frequency}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between border-t pt-2">
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={report.active !== false}
+                                  onCheckedChange={checked =>
+                                    handleUpdateReport(index, "active", checked)
+                                  }
+                                  className="scale-75"
+                                />
+                                <span className="text-[10px] text-muted-foreground">
+                                  Status
+                                </span>
+                              </div>
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate("/platform/templates")}
+                                className="h-6 px-2 text-[10px] gap-1"
+                              >
+                                Edit Template
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
                             </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Delivery Settings
-            </CardTitle>
-            <CardDescription>
-              Configure where reports should be delivered
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="destination">Email Destination</Label>
-              <Input
-                id="destination"
-                type="email"
-                placeholder="reports@customer.com"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                className="mt-1"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Primary email address for report delivery
-              </p>
-            </div>
-
-            <div>
-              <Label htmlFor="cc">CC Emails (comma-separated)</Label>
-              <Input
-                id="cc"
-                type="text"
-                placeholder="manager@customer.com, admin@customer.com"
-                value={ccEmails}
-                onChange={(e) => setCcEmails(e.target.value)}
-                className="mt-1"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Additional recipients (separate with commas)
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              System Settings
-            </CardTitle>
-            <CardDescription>
-              Company-wide settings inherited by this customer
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground mb-1">Timezone</p>
-                <p className="font-medium">{config.timezone || 'UTC'}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground mb-1">Retention Period</p>
-                <p className="font-medium">{config.retention_days || 1095} days</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5" />
-              Actions
-            </CardTitle>
-            <CardDescription>
-              Save your configuration or generate selected reports
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Selection Controls */}
-              {enabledReports.length > 0 && (
-                <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md">
-                  <span className="text-sm font-medium">
-                    {selectedSchedules.length} of {enabledReports.filter(r => r.schedule_id).length} selected
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSelectAllSchedules}
-                    disabled={selectedSchedules.length === enabledReports.filter(r => r.schedule_id).length}
-                  >
-                    Select All
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDeselectAllSchedules}
-                    disabled={selectedSchedules.length === 0}
-                  >
-                    Deselect All
-                  </Button>
+          {/* Right Column: Settings & Actions */}
+          <div className="space-y-6">
+            {/* Delivery & Actions Card */}
+            <Card className="shadow-md border border-border">
+              <CardHeader className="pb-0">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-primary" />
+                  Delivery & Actions
+                </CardTitle>
+                <CardDescription>
+                  Configure delivery settings and generate reports.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                {/* Delivery Settings */}
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sidebar-destination" className="text-xs font-bold text-muted-foreground uppercase">Recipient</Label>
+                    <Input
+                      id="sidebar-destination"
+                      type="email"
+                      placeholder="reports@customer.com"
+                      value={destination}
+                      onChange={(e) => setDestination(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="sidebar-cc" className="text-xs font-bold text-muted-foreground uppercase">CC Recipients</Label>
+                    <Input
+                      id="sidebar-cc"
+                      type="text"
+                      placeholder="manager@customer.com"
+                      value={ccEmails}
+                      onChange={(e) => setCcEmails(e.target.value)}
+                      className="h-9"
+                    />
+                    <p className="text-[10px] text-muted-foreground italic">Comma-separated addresses</p>
+                  </div>
                 </div>
-              )}
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-3">
-                <Button onClick={handleSaveConfiguration} disabled={isSaving || isGenerating} size="lg">
+                {/* Save Button */}
+                <Button 
+                  onClick={handleSaveConfiguration} 
+                  disabled={isSaving || isGenerating}
+                  className="w-full h-11"
+                >
                   {isSaving ? (
-                    <>
-                      <Spinner className="h-4 w-4 mr-2" />
-                      Saving...
-                    </>
+                    <Spinner className="h-4 w-4 mr-2" />
                   ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Configuration
-                    </>
+                    <Save className="h-4 w-4 mr-2" />
                   )}
+                  Save Configuration
                 </Button>
 
+                {/* Divider with note */}
+                <div className="relative py-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-card px-2 text-[10px] text-muted-foreground uppercase tracking-wider">
+                      Generate Reports
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Save configuration before generating reports
+                </p>
+
+                {/* Generate Button */}
                 <Button
                   onClick={handleGenerateSelectedSchedules}
                   disabled={isGenerating || isSaving || selectedSchedules.length === 0}
                   variant="secondary"
-                  size="lg"
-                  className="text-white"
+                  className="w-full h-11 text-white"
                 >
                   {isGenerating ? (
-                    <>
-                      <Spinner className="h-4 w-4 mr-2" />
-                      Generating...
-                    </>
+                    <Spinner className="h-4 w-4 mr-2" />
                   ) : (
-                    <>
-                      <Play className="h-4 w-4 mr-2" />
-                      Generate Selected Reports ({selectedSchedules.length})
-                    </>
+                    <Play className="h-4 w-4 mr-2" />
                   )}
+                  Generate ({selectedSchedules.length})
                 </Button>
 
-                <Button variant="outline" onClick={() => navigate('/schedules')} size="lg">
-                  Cancel
-                </Button>
-              </div>
+                {isGenerating && generationProgress.total > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span>Progress</span>
+                      <span>{Math.round((generationProgress.current / generationProgress.total) * 100)}%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-1.5">
+                      <div
+                        className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                        style={{ width: `${(generationProgress.current / generationProgress.total) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
 
-              {enabledReports.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  💡 Select schedules using the checkboxes, then click "Generate Selected Reports" to generate them immediately
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                {failedSchedules.length > 0 && !isGenerating && (
+                  <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20 text-destructive">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold uppercase">Failures: {failedSchedules.length}</span>
+                      <Button
+                        onClick={retryFailedReports}
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[10px] hover:bg-destructive/10"
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* System Info */}
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Timezone</span>
+                  <span className="font-semibold">{config.timezone || 'UTC'}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Retention</span>
+                  <span className="font-semibold">{config.retention_days || 1095} Days</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Schedules</span>
+                  <span className="font-semibold">{enabledReports.length} Active</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
 
       {/* Validation Error Modal */}

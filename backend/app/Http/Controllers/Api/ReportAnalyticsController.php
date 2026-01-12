@@ -27,10 +27,13 @@ class ReportAnalyticsController extends Controller
             ->map(function ($schedule) {
                 $customer = $schedule->customer;
                 
-                $emailDestination = $customer->report_destination 
-                    ?? $customer->report_configuration['delivery']['destination'] ?? null;
+                $deliveryConfig = $customer->report_configuration['delivery'] ?? [];
+                $method = $deliveryConfig['method'] ?? 'email';
                 
-                $ccEmails = $customer->report_configuration['delivery']['cc'] ?? [];
+                $emailDestination = $customer->report_destination 
+                    ?? $deliveryConfig[$method]['destination'] ?? null;
+                
+                $ccEmails = $deliveryConfig[$method]['cc'] ?? [];
                 
                 return [
                     'report_schedule_id' => $schedule->report_schedule_id,

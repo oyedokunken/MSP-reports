@@ -80,6 +80,7 @@ export interface ReportConfig {
   email_destination?: string
   cc_emails?: string[]
   report_schedules?: ReportSchedule[]
+  customer_name?: string
 }
 
 

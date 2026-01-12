@@ -160,10 +160,14 @@ class ReportConfigController extends Controller
             ], 404);
         }
 
-        $emailDestination = $customer->report_destination 
-            ?? $customer->report_configuration['delivery']['destination'] ?? null;
+        // Get delivery configuration from nested structure
+        $deliveryConfig = $customer->report_configuration['delivery'] ?? [];
+        $method = $deliveryConfig['method'] ?? 'email';
         
-        $ccEmails = $customer->report_configuration['delivery']['cc'] ?? [];
+        $emailDestination = $customer->report_destination 
+            ?? $deliveryConfig[$method]['destination'] ?? null;
+        
+        $ccEmails = $deliveryConfig[$method]['cc'] ?? [];
         
         $schedules = ReportSchedule::where('customer_id', $customer->customer_id)
             ->where('company_id', $company->company_id)
@@ -286,7 +290,15 @@ class ReportConfigController extends Controller
         ]);
 
         $reportConfig = $customer->report_configuration ?? [];
-        $reportConfig['delivery'] = $validated;
+        
+        // Store in nested structure expected by DeliveryManager
+        $reportConfig['delivery'] = [
+            'method' => $validated['method'],
+            $validated['method'] => [
+                'destination' => $validated['destination'],
+                'cc' => $validated['cc'] ?? [],
+            ]
+        ];
 
         $customer->report_configuration = $reportConfig;
         $customer->save();
@@ -346,8 +358,10 @@ class ReportConfigController extends Controller
                 DeliverReportJob::dispatch($generatedReport);
                 
                 $customer = $generatedReport->customer;
+                $deliveryConfig = $customer->report_configuration['delivery'] ?? [];
+                $method = $deliveryConfig['method'] ?? 'email';
                 $emailDestination = $customer->report_destination 
-                    ?? $customer->report_configuration['delivery']['destination'] 
+                    ?? $deliveryConfig[$method]['destination'] 
                     ?? null;
                 
                 $reportArray = $generatedReport->toArray();
@@ -406,8 +420,10 @@ class ReportConfigController extends Controller
             
             // Get customer email destination
             $customer = $generatedReport->customer;
+            $deliveryConfig = $customer->report_configuration['delivery'] ?? [];
+            $method = $deliveryConfig['method'] ?? 'email';
             $emailDestination = $customer->report_destination 
-                ?? $customer->report_configuration['delivery']['destination'] 
+                ?? $deliveryConfig[$method]['destination'] 
                 ?? null;
             
             // Update last generated timestamp
