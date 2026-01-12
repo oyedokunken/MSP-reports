@@ -71,6 +71,7 @@ export default function SecondaryCustomerList() {
                     onSplit={(customer) => handleCustomerAction(customer, 'split')}
                     onMoreInfo={(id) => navigate(`/platform/customers/${id}/integrations`)}
                     onApplyTemplate={(customer) => handleCustomerAction(customer, 'applyTemplate')}
+                    onConfigureDelivery={(customer) => handleCustomerAction(customer, 'delivery')}
                 />
 
                 {total > 0 && (

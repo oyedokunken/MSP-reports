@@ -145,8 +145,7 @@ export default function CustomerList() {
                 <DeliveryConfigModal
                     open={modals.delivery}
                     onOpenChange={(open) => open ? openModal("delivery") : closeModal("delivery")}
-                    customerId={selectedCustomer?.customer_id ?? null}
-                    customerName={selectedCustomer?.name ?? ""}
+                    customer={selectedCustomer}
                     onSuccess={() => handleModalSuccess('delivery', "Delivery Settings Updated", "Customer delivery settings saved successfully")}
                 />
             </div>
