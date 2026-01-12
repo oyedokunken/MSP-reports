@@ -10,12 +10,15 @@ use App\Jobs\AutoMatchCustomersJob;
 use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
+use App\Integrations\Concerns\HasHeartbeat;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class LibreNMSIntegration implements IntegrationInterface
 {
+    use HasHeartbeat;
+
     protected Integration $integration;
     protected LibreNMSClient $client;
     protected CustomerMappingService $mappingService;
@@ -47,7 +50,64 @@ class LibreNMSIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    protected function saveSyncState(string $phase, int $offset, int $total): void
+    {
+        $this->integration->update([
+            'sync_state' => json_encode([
+                'phase' => $phase,
+                'offset' => $offset,
+                'total' => $total,
+                'timestamp' => now()->timestamp,
+            ])
+        ]);
+    }
+
+    public function processBatch(string $type, array $items): void
+    {
+        switch ($type) {
+            case 'groups':
+                foreach ($items as $group) {
+                    try {
+                        $standardized = LibreNMSMapper::mapDeviceGroup($group);
+                        $this->storeCustomer($standardized);
+                        
+                        // Heartbeat
+                        if (method_exists($this, 'sendHeartbeat')) {
+                            $this->sendHeartbeat();
+                        }
+                    } catch (\Exception $e) {
+                         $groupId = $group['id'] ?? 'unknown';
+                         Log::error('LibreNMS Batch: Failed to process group', ['group_id' => $groupId, 'error' => $e->getMessage()]);
+                    }
+                }
+                break;
+
+            case 'devices':
+                foreach ($items as $device) {
+                    try {
+                         // Store device details
+                        $deviceDetails = LibreNMSMapper::mapDeviceDetails($device, []);
+                        $this->storeHistoricalData($deviceDetails);
+
+                        // Store device uptime data
+                        $uptimeData = LibreNMSMapper::mapDeviceUptime($device);
+                        $this->storeHistoricalData($uptimeData);
+                        
+                        // Heartbeat
+                        if (method_exists($this, 'sendHeartbeat')) {
+                            $this->sendHeartbeat();
+                        }
+                    } catch (\Exception $e) {
+                        $deviceId = $device['device_id'] ?? 'unknown';
+                        Log::error('LibreNMS Batch: Failed to process device', ['device_id' => $deviceId, 'error' => $e->getMessage()]);
+                    }
+                }
+                break;
+        }
+    }
+
     protected $mappedDuringSync = [];
+
 
     public function sync(): array
     {
@@ -56,46 +116,66 @@ class LibreNMSIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
-            // Sync device groups as customers
-            $groups = $this->client->getDeviceGroups();
-            
-            Log::info('LibreNMS Integration: Starting sync', [
-                'integration_id' => $this->integration->integration_id,
-                'group_count' => count($groups),
-            ]);
+            // Load state
+            $state = json_decode($this->integration->sync_state, true);
+            $phase = $state['phase'] ?? 'groups';
 
-            foreach ($groups as $group) {
-                try {
-                    $standardized = LibreNMSMapper::mapDeviceGroup($group);
-                    $this->storeCustomer($standardized);
-                    $totalProcessed++;
-                } catch (\Exception $e) {
-                    $groupId = $group['id'] ?? 'unknown';
-                    $errors[] = "Failed to process group {$groupId}: {$e->getMessage()}";
-                    Log::error('LibreNMS Integration: Failed to process group', [
-                        'integration_id' => $this->integration->integration_id,
-                        'group_id' => $groupId,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+            // PHASE 1: DEVICE GROUPS (Customers)
+            if ($phase === 'groups') {
+                $groups = $this->client->getDeviceGroups();
+                Log::info('LibreNMS Integration: Syncing Groups', ['count' => count($groups)]);
+                
+                collect($groups)->chunk(50)->each(function ($chunk) {
+                     \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'groups', $chunk->toArray(), $this->currentSyncLogId);
+                });
+                
+                $totalProcessed += count($groups);
+                $this->saveSyncState('devices', 0, 0); // Move to next phase
+                $phase = 'devices';
             }
 
+            // PHASE 2: DEVICES (Data)
+            if ($phase === 'devices') {
+                try {
+                    $devices = $this->client->getAllDevices();
+                    Log::info('LibreNMS Integration: Syncing Devices', ['count' => count($devices)]);
+                    
+                    collect($devices)->chunk(50)->each(function ($chunk) {
+                        \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'devices', $chunk->toArray(), $this->currentSyncLogId);
+                    });
+                    $totalProcessed += count($devices);
+                } catch (\Exception $e) {
+                     $errors[] = "Device sync failed: " . $e->getMessage();
+                }
+                
+                // Clear state
+                $this->integration->update(['sync_state' => null]);
+            }
 
         } catch (\Exception $e) {
+            if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
+                throw $e;
+            }
             $errors[] = "Sync failed: {$e->getMessage()}";
-            Log::error('LibreNMS Integration: Sync failed', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('LibreNMS Integration: Sync failed', ['error' => $e->getMessage()]);
         }
 
-        // Sync device data (details, uptime, availability)
-        // Network monitoring data changes frequently, so sync with groups
-        $this->syncDevices($errors);
+        // Auto-match Logic (via Cache Helper or inline)
+        $this->updateStatsCache();
 
-        $additionalMapped = $this->processUnmappedCustomers();
-        $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
+        $this->processUnmappedCustomers();
 
+        return [
+            'records_synced' => $totalProcessed,
+            'records_new' => 0,
+            'customers_mapped' => [],
+            'records_failed' => count($errors),
+            'errors' => $errors,
+        ];
+    }
+    
+    protected function updateStatsCache(): void 
+    {
         $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
         Cache::forget($cacheKey);
         
@@ -112,69 +192,9 @@ class LibreNMSIntegration implements IntegrationInterface
             'unmapped' => $unmappedCount,
             'last_sync' => now(),
         ], now()->addMinutes(10));
-        
-        Log::info('LibreNMS Integration: Sync completed', [
-            'integration_id' => $this->integration->integration_id,
-            'total_processed' => $totalProcessed,
-            'mapped_count' => $mappedCount,
-            'unmapped_count' => $unmappedCount,
-            'errors' => count($errors),
-        ]);
-
-        return [
-            'records_synced' => $totalProcessed,
-            'records_new' => $unmappedCount,
-            'customers_mapped' => $mappedCustomers,
-            'records_failed' => count($errors),
-            'errors' => $errors,
-        ];
     }
 
-    protected function syncDevices(array &$errors): void
-    {
-        try {
-            $devices = $this->client->getAllDevices();
-            
-            Log::info('LibreNMS Integration: Syncing devices', [
-                'integration_id' => $this->integration->integration_id,
-                'device_count' => count($devices),
-            ]);
 
-            foreach ($devices as $device) {
-                try {
-                    $deviceId = $device['device_id'];
-                    
-                    // Store device details (without groups to avoid per-device API calls)
-                    // Groups and availability will be fetched on-demand during report generation
-                    $deviceDetails = LibreNMSMapper::mapDeviceDetails($device, []);
-                    $this->storeHistoricalData($deviceDetails);
-
-                    // Store device uptime data
-                    $uptimeData = LibreNMSMapper::mapDeviceUptime($device);
-                    $this->storeHistoricalData($uptimeData);
-                    
-                    // Skip per-device availability API calls during sync to prevent timeout
-                    // Availability metrics will be fetched on-demand during report generation
-                    
-                } catch (\Exception $e) {
-                    $deviceId = $device['device_id'] ?? 'unknown';
-                    $errors[] = "Failed to sync device {$deviceId}: {$e->getMessage()}";
-                    Log::error('LibreNMS Integration: Failed to sync device', [
-                        'integration_id' => $this->integration->integration_id,
-                        'device_id' => $deviceId,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
-        } catch (\Exception $e) {
-            $errors[] = "Failed to sync devices: {$e->getMessage()}";
-            Log::error('LibreNMS Integration: Failed to sync devices', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
 
     private function processUnmappedCustomers(): array
     {
@@ -191,38 +211,11 @@ class LibreNMSIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        $errors = [];
-
-        try {
-            // LibreNMS provides current availability metrics, not historical time-series
-            // We sync current state as a snapshot using the same syncDevices() method
-            
-            Log::info('LibreNMS Integration: Starting historical data import', [
-                'integration_id' => $this->integration->integration_id,
-                'start_date' => $startDate->toDateString(),
-                'end_date' => $endDate->toDateString(),
-            ]);
-
-            // Use syncDevices() for consistency - fetches complete device data
-            $this->syncDevices($errors);
-
-            Log::info('LibreNMS Integration: Historical data import completed', [
-                'integration_id' => $this->integration->integration_id,
-                'errors' => count($errors),
-            ]);
-
-        } catch (\Exception $e) {
-            $errors[] = "Historical data fetch failed: {$e->getMessage()}";
-            Log::error('LibreNMS Integration: Historical import failed', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
+        // Historical data is now handled via processBatch dispatching during sync()
         return [
             'success' => true,
-            'total_processed' => count($errors) === 0 ? 1 : 0,
-            'errors' => $errors,
+            'total_processed' => 0,
+            'errors' => [],
         ];
     }
 

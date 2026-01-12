@@ -45,7 +45,7 @@ class SyncIntegrationJob implements ShouldQueue
         return [
             (new WithoutOverlapping($this->integration->integration_id))
                 ->releaseAfter(60) 
-                ->expireAfter(900) 
+                ->expireAfter(3600) 
         ];
     }
 
@@ -241,9 +241,33 @@ class SyncIntegrationJob implements ShouldQueue
         $className = $integrationClasses[$this->integration->integration_type] ?? null;
 
         if ($className && class_exists($className)) {
-            return new $className($this->integration);
+            $instance = new $className($this->integration);
+            
+            // Inject heartbeat callback if supported
+            if (method_exists($instance, 'setHeartbeatCallback')) {
+                $instance->setHeartbeatCallback(function() {
+                    $this->sendHeartbeat();
+                });
+            }
+
+            // Inject SyncLogID if supported (via HasHeartbeat trait)
+            if (method_exists($instance, 'setSyncLogId') && $this->syncLog) {
+                $instance->setSyncLogId($this->syncLog->sync_id);
+            }
+            
+            return $instance;
         }
 
         return null;
+    }
+
+    public function sendHeartbeat(): void
+    {
+        if ($this->syncLog) {
+            // Update timestamp directly in DB to avoid model event overhead/cache issues
+            \Illuminate\Support\Facades\DB::table('sync_logs')
+                ->where('sync_id', $this->syncLog->sync_id)
+                ->update(['last_heartbeat_at' => now()]);
+        }
     }
 }

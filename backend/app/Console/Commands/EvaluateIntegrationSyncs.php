@@ -37,7 +37,7 @@ class EvaluateIntegrationSyncs extends Command
             // Use integration-specific schedule, or type-based default
             $syncSchedule = $integration->sync_schedule ?? $this->getDefaultSchedule($integration->integration_type);
             
-            // Mark syncs stuck in 'running' for > 2 hours as failed (job timeout is 1 hour)
+            // Mark syncs stuck in 'running' for > 2 hours as failed (hard timeout)
             $staleRunningThreshold = $now->copy()->subHours(2);
             $staleRunningCount = \App\Models\SyncLog::where('integration_id', $integration->integration_id)
                 ->where('status', 'running')
@@ -47,6 +47,23 @@ class EvaluateIntegrationSyncs extends Command
                     'completed_at' => $now,
                     'error_messages' => ['Sync marked as failed due to timeout (exceeded 2 hours)']
                 ]);
+
+            // Heartbeat Check: Mark syncs as failed if they haven't pulsed for 10 minutes (crashed worker)
+            $heartbeatThreshold = $now->copy()->subMinutes(10);
+            $crashedCount = \App\Models\SyncLog::where('integration_id', $integration->integration_id)
+                ->where('status', 'running')
+                ->whereNotNull('last_heartbeat_at')
+                ->where('last_heartbeat_at', '<', $heartbeatThreshold)
+                ->update([
+                    'status' => 'failed',
+                    'completed_at' => $now,
+                    'error_messages' => ['Sync marked as failed due to inactivity (worker potentially crashed)']
+                ]);
+
+            if ($crashedCount > 0) {
+                 $this->warn("Marked {$crashedCount} crashed sync(s) as failed for integration {$integration->integration_id}");
+            }
+            
             
             if ($staleRunningCount > 0) {
                 $this->warn("Marked {$staleRunningCount} stale running sync(s) as failed for integration {$integration->integration_id}");
@@ -74,6 +91,8 @@ class EvaluateIntegrationSyncs extends Command
                 ->exists();
             
             if ($existingSync) {
+                // If it's been running for > 15 minutes, log a warning but don't force fail it here 
+                // (cleanup-stale handles widely stuck ones, but we simply want to avoid overlap)
                 $this->info("Skipping integration {$integration->integration_id} ({$integration->integration_type}) - sync already queued/running");
                 continue;
             }

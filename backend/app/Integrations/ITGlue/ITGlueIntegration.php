@@ -11,6 +11,7 @@ use App\Jobs\AutoMatchCustomersJob;
 use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
+use App\Integrations\Concerns\HasHeartbeat;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\Log;
 class ITGlueIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
+    use HasHeartbeat;
     protected Integration $integration;
     protected ITGlueClient $client;
     protected CustomerMappingService $mappingService;
@@ -62,6 +64,82 @@ class ITGlueIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    protected function saveSyncState(string $phase, int $offset, int $total): void
+    {
+        $this->integration->update([
+            'sync_state' => json_encode([
+                'phase' => $phase,
+                'offset' => $offset,
+                'total' => $total,
+                'timestamp' => now()->timestamp,
+            ])
+        ]);
+    }
+
+    public function processBatch(string $type, array $items): void
+    {
+        switch ($type) {
+            case 'organizations':
+                foreach ($items as $organization) {
+                    try {
+                        $standardized = ITGlueMapper::mapCustomer($organization);
+                        $this->storeCustomer($standardized);
+                        
+                        // Heartbeat
+                        if (method_exists($this, 'sendHeartbeat')) {
+                            $this->sendHeartbeat();
+                        }
+                    } catch (\Exception $e) {
+                        $orgId = $organization['id'] ?? 'unknown';
+                        Log::error('ITGlue Batch: Failed to process organization', ['org_id' => $orgId, 'error' => $e->getMessage()]);
+                    }
+                }
+                break;
+
+            case 'ssl_certs':
+                foreach ($items as $cert) {
+                    try {
+                        $data = ITGlueMapper::mapSslCertificate($cert);
+                        $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
+                        if ($data['integration_customer_id']) {
+                             $this->storeHistoricalData($data);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('ITGlue Batch: Failed to process SSL cert', ['error' => $e->getMessage()]);
+                    }
+                }
+                break;
+
+            case 'domains':
+                 foreach ($items as $domain) {
+                    try {
+                        $data = ITGlueMapper::mapDomain($domain);
+                        $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
+                        if ($data['integration_customer_id']) {
+                             $this->storeHistoricalData($data);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('ITGlue Batch: Failed to process domain', ['error' => $e->getMessage()]);
+                    }
+                }
+                break;
+
+            case 'flexible_assets':
+                 foreach ($items as $asset) {
+                    try {
+                        $data = ITGlueMapper::mapFlexibleAsset($asset);
+                        $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
+                        if ($data['integration_customer_id']) {
+                             $this->storeHistoricalData($data);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('ITGlue Batch: Failed to process flexible asset', ['error' => $e->getMessage()]);
+                    }
+                }
+                break;
+        }
+    }
+
     protected $mappedDuringSync = [];
 
     public function sync(): array
@@ -71,61 +149,118 @@ class ITGlueIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
-            $organizations = $this->client->getOrganizations();
+            // Load state
+            $state = json_decode($this->integration->sync_state, true);
+            $phase = $state['phase'] ?? 'organizations';
             
-            Log::info('ITGlue Integration: Starting sync', [
-                'integration_id' => $this->integration->integration_id,
-                'organization_count' => count($organizations),
-            ]);
+            // PHASE 1: ORGANIZATIONS
+            if ($phase === 'organizations') {
+                $organizations = $this->client->getOrganizations();
+                $totalOrgs = count($organizations);
+                
+                Log::info('ITGlue Integration: Syncing Organizations', ['count' => $totalOrgs]);
+                
+                collect($organizations)->chunk(50)->each(function ($chunk) use ($totalOrgs) {
+                     \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'organizations', $chunk->toArray(), $this->currentSyncLogId);
+                });
+                
+                $totalProcessed += $totalOrgs;
+                $this->saveSyncState('ssl_certs', 0, 0); // Move to next phase
+                $phase = 'ssl_certs';
+            }
 
-            $totalOrganizations = count($organizations);
-            collect($organizations)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalOrganizations) {
-                foreach ($chunk as $organization) {
-                    try {
-                        $standardized = ITGlueMapper::mapCustomer($organization);
-
-                        $this->storeCustomer($standardized);
-                        $totalProcessed++;
-
-                    } catch (\Exception $e) {
-                        $orgId = $organization['id'] ?? 'unknown';
-                        $errors[] = "Failed to process organization {$orgId}: {$e->getMessage()}";
-                        Log::error('ITGlue Integration: Failed to process organization', [
-                            'integration_id' => $this->integration->integration_id,
-                            'organization_id' => $orgId,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
+            // PHASE 2: SSL CERTS
+            if ($phase === 'ssl_certs') {
+                try {
+                    $sslCerts = $this->client->getSslCertificates('next90days');
+                    Log::info('ITGlue Integration: Syncing SSL Certs', ['count' => count($sslCerts)]);
+                    
+                    collect($sslCerts)->chunk(50)->each(function ($chunk) {
+                        \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'ssl_certs', $chunk->toArray(), $this->currentSyncLogId);
+                    });
+                     $totalProcessed += count($sslCerts);
+                } catch (\Exception $e) {
+                    $errors[] = "SSL Cert sync failed: " . $e->getMessage();
                 }
                 
-                Log::info('ITGlue Integration: Processed chunk', [
-                    'integration_id' => $this->integration->integration_id,
-                    'processed' => $totalProcessed,
-                    'total' => $totalOrganizations,
-                ]);
-            });
+                $this->saveSyncState('domains', 0, 0);
+                $phase = 'domains';
+            }
 
+            // PHASE 3: DOMAINS
+            if ($phase === 'domains') {
+                try {
+                    $domains = $this->client->getDomains('next90days');
+                    Log::info('ITGlue Integration: Syncing Domains', ['count' => count($domains)]);
+                    
+                    collect($domains)->chunk(50)->each(function ($chunk) {
+                        \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'domains', $chunk->toArray(), $this->currentSyncLogId);
+                    });
+                    $totalProcessed += count($domains);
+                } catch (\Exception $e) {
+                     $errors[] = "Domain sync failed: " . $e->getMessage();
+                }
+
+                $this->saveSyncState('flexible_assets', 0, 0);
+                $phase = 'flexible_assets';
+            }
+
+            // PHASE 4: FLEXIBLE ASSETS
+            if ($phase === 'flexible_assets') {
+                try {
+                    $flexibleAssetTypes = $this->client->getFlexibleAssetTypes();
+                     Log::info('ITGlue Integration: Syncing Flexible Assets', ['types_count' => count($flexibleAssetTypes)]);
+                    
+                    foreach ($flexibleAssetTypes as $assetType) {
+                        try {
+                            $typeId = $assetType['id'] ?? null;
+                            if (!$typeId) continue;
+
+                            $flexibleAssets = $this->client->getFlexibleAssets((int)$typeId);
+                            
+                            collect($flexibleAssets)->chunk(50)->each(function ($chunk) {
+                                \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'flexible_assets', $chunk->toArray(), $this->currentSyncLogId);
+                            });
+                             $totalProcessed += count($flexibleAssets);
+                             
+                        } catch (\Exception $e) {
+                            $errors[] = "Flexible Asset Type {$assetType['id']} failed: " . $e->getMessage();
+                        }
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = "Flexible Asset sync failed: " . $e->getMessage();
+                }
+            }
+
+            // COMPLETION
+            $this->integration->update(['sync_state' => null]);
 
         } catch (\Exception $e) {
-            // Rethrow rate limit exceptions so the job can be released back to the queue
             if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
                 throw $e;
             }
-
             $errors[] = "Sync failed: {$e->getMessage()}";
-            Log::error('ITGlue Integration: Sync failed', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('ITGlue Integration: Sync failed', ['error' => $e->getMessage()]);
         }
+        
+        // Auto-match Logic (via Cache Helper or inline)
+        $this->updateStatsCache();
 
-        // Sync additional data (SSL certs, domains, licenses)
-        // This tracks expiry dates and license utilization
-        $this->syncAdditionalData($errors);
+        // Dispatch unmapped matcher - using the existing helper method logic inline or keeping the method?
+        // The original sync called processUnmappedCustomers(). We can keep calling it.
+        $this->processUnmappedCustomers();
 
-        $additionalMapped = $this->processUnmappedCustomers();
-        $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
-
+        return [
+            'records_synced' => $totalProcessed,
+            'records_new' => 0,
+            'customers_mapped' => [],
+            'records_failed' => count($errors),
+            'errors' => $errors,
+        ];
+    }
+    
+    protected function updateStatsCache(): void 
+    {
         $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
         Cache::forget($cacheKey);
         
@@ -142,102 +277,9 @@ class ITGlueIntegration implements IntegrationInterface
             'unmapped' => $unmappedCount,
             'last_sync' => now(),
         ], now()->addMinutes(10));
-        
-        Log::info('ITGlue Integration: Sync completed', [
-            'integration_id' => $this->integration->integration_id,
-            'total_processed' => $totalProcessed,
-            'mapped_count' => $mappedCount,
-            'unmapped_count' => $unmappedCount,
-            'errors' => count($errors),
-        ]);
-
-        return [
-            'records_synced' => $totalProcessed,
-            'records_new' => $unmappedCount,
-            'records_mapped' => $mappedCount,
-            'customers_mapped' => $mappedCustomers,
-            'records_failed' => count($errors),
-            'errors' => $errors,
-        ];
     }
 
-    protected function syncAdditionalData(array &$errors): void
-    {
-        try {
-            $sslCerts = $this->client->getSslCertificates('next90days');
-            foreach ($sslCerts as $cert) {
-                try {
-                    $data = ITGlueMapper::mapSslCertificate($cert);
-                    // Convert IT Glue organization_id to our integration_customer_id
-                    $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
-                    $this->storeHistoricalData($data);
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to process SSL certificate: {$e->getMessage()}";
-                }
-            }
 
-            $domains = $this->client->getDomains('next90days');
-            foreach ($domains as $domain) {
-                try {
-                    $data = ITGlueMapper::mapDomain($domain);
-                    // Convert IT Glue organization_id to our integration_customer_id
-                    $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
-                    $this->storeHistoricalData($data);
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to process domain: {$e->getMessage()}";
-                }
-            }
-
-            // Fetch flexible asset types
-            $flexibleAssetTypes = $this->client->getFlexibleAssetTypes();
-            $totalFlexibleAssets = 0;
-            
-            foreach ($flexibleAssetTypes as $assetType) {
-                try {
-                    $typeId = $assetType['id'] ?? null;
-                    
-                    if (!$typeId) {
-                        continue;
-                    }
-                    
-                    Log::info('ITGlue Integration: Fetching flexible asset type', [
-                        'integration_id' => $this->integration->integration_id,
-                        'type_id' => $typeId,
-                    ]);
-                    
-                    $flexibleAssets = $this->client->getFlexibleAssets((int)$typeId);
-                    foreach ($flexibleAssets as $asset) {
-                        try {
-                            $data = ITGlueMapper::mapFlexibleAsset($asset);
-                            // Convert IT Glue organization_id to our integration_customer_id
-                            $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
-                            $this->storeHistoricalData($data);
-                            $totalFlexibleAssets++;
-                        } catch (\Exception $e) {
-                            $errors[] = "Failed to process flexible asset: {$e->getMessage()}";
-                        }
-                    }
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to fetch flexible assets for type {$typeId}: {$e->getMessage()}";
-                }
-            }
-
-            Log::info('ITGlue Integration: Additional data synced', [
-                'integration_id' => $this->integration->integration_id,
-                'ssl_certs' => count($sslCerts),
-                'domains' => count($domains),
-                'flexible_asset_types_checked' => count($flexibleAssetTypes ?? []),
-                'flexible_assets_fetched' => $totalFlexibleAssets,
-            ]);
-
-        } catch (\Exception $e) {
-            $errors[] = "Failed to sync additional data: {$e->getMessage()}";
-            Log::error('ITGlue Integration: Failed to sync additional data', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
 
     private function processUnmappedCustomers(): array
     {
@@ -256,145 +298,11 @@ class ITGlueIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        // NO MORE $data = [] bucket! Just track stats
-        $errors = [];
-        $totalProcessed = 0;
-
-        try {
-            // ITGlue doesn't have traditional historical data with date ranges
-            // Instead, we sync current state of organizations, SSL certs, domains, and flexible assets
-            // This captures a snapshot of the current state for historical tracking
-            
-            Log::info('ITGlue Integration: Starting historical data import', [
-                'integration_id' => $this->integration->integration_id,
-                'start_date' => $startDate->toDateString(),
-                'end_date' => $endDate->toDateString(),
-            ]);
-
-            // 1. Sync organization data
-            $organizations = $this->client->getOrganizations();
-            foreach ($organizations as $org) {
-                try {
-                    $standardized = ITGlueMapper::mapOrganizationData($org);
-                    // Resolve organization ID to integration_customer_id
-                    $standardized['integration_customer_id'] = $this->resolveIntegrationCustomerId($standardized['integration_customer_id']);
-                    if ($standardized['integration_customer_id']) {
-                        $this->storeHistoricalData($standardized);
-                        $totalProcessed++;
-                    }
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to process organization data: {$e->getMessage()}";
-                }
-            }
-
-            // 2. Sync SSL certificates (expiring in next 90 days)
-            try {
-                $sslCerts = $this->client->getSslCertificates('next90days');
-                foreach ($sslCerts as $cert) {
-                    try {
-                        $certData = ITGlueMapper::mapSslCertificate($cert);
-                        $certData['integration_customer_id'] = $this->resolveIntegrationCustomerId($certData['integration_customer_id']);
-                        if ($certData['integration_customer_id']) {
-                            $this->storeHistoricalData($certData);
-                            $totalProcessed++;
-                        }
-                    } catch (\Exception $e) {
-                        $errors[] = "Failed to process SSL certificate: {$e->getMessage()}";
-                    }
-                }
-                Log::info('ITGlue Integration: SSL certificates synced', [
-                    'integration_id' => $this->integration->integration_id,
-                    'count' => count($sslCerts),
-                ]);
-            } catch (\Exception $e) {
-                $errors[] = "Failed to fetch SSL certificates: {$e->getMessage()}";
-            }
-
-            // 3. Sync domains (expiring in next 90 days)
-            try {
-                $domains = $this->client->getDomains('next90days');
-                foreach ($domains as $domain) {
-                    try {
-                        $domainData = ITGlueMapper::mapDomain($domain);
-                        $domainData['integration_customer_id'] = $this->resolveIntegrationCustomerId($domainData['integration_customer_id']);
-                        if ($domainData['integration_customer_id']) {
-                            $this->storeHistoricalData($domainData);
-                            $totalProcessed++;
-                        }
-                    } catch (\Exception $e) {
-                        $errors[] = "Failed to process domain: {$e->getMessage()}";
-                    }
-                }
-                Log::info('ITGlue Integration: Domains synced', [
-                    'integration_id' => $this->integration->integration_id,
-                    'count' => count($domains),
-                ]);
-            } catch (\Exception $e) {
-                $errors[] = "Failed to fetch domains: {$e->getMessage()}";
-            }
-
-            // 4. Sync flexible assets
-            try {
-                $flexibleAssetTypes = $this->client->getFlexibleAssetTypes();
-                $totalFlexibleAssets = 0;
-                
-                foreach ($flexibleAssetTypes as $assetType) {
-                    try {
-                        $typeId = $assetType['id'] ?? null;
-                        
-                        if (!$typeId) {
-                            continue;
-                        }
-                        
-                        Log::info('ITGlue Integration: Fetching flexible asset type in historical import', [
-                            'integration_id' => $this->integration->integration_id,
-                            'type_id' => $typeId,
-                        ]);
-                        
-                        $flexibleAssets = $this->client->getFlexibleAssets((int)$typeId);
-                        foreach ($flexibleAssets as $asset) {
-                            try {
-                                $assetData = ITGlueMapper::mapFlexibleAsset($asset);
-                                $assetData['integration_customer_id'] = $this->resolveIntegrationCustomerId($assetData['integration_customer_id']);
-                                if ($assetData['integration_customer_id']) {
-                                    $this->storeHistoricalData($assetData);
-                                    $totalProcessed++;
-                                }
-                            } catch (\Exception $e) {
-                                $errors[] = "Failed to process flexible asset: {$e->getMessage()}";
-                            }
-                        }
-                    } catch (\Exception $e) {
-                        $errors[] = "Failed to fetch flexible assets for type {$typeId}: {$e->getMessage()}";
-                    }
-                }
-                
-                Log::info('ITGlue Integration: Flexible assets synced', [
-                    'integration_id' => $this->integration->integration_id,
-                    'asset_types' => count($flexibleAssetTypes),
-                ]);
-            } catch (\Exception $e) {
-                $errors[] = "Failed to fetch flexible assets: {$e->getMessage()}";
-            }
-
-            Log::info('ITGlue Integration: Historical data import completed', [
-                'integration_id' => $this->integration->integration_id,
-                'total_processed' => $totalProcessed,
-                'errors' => count($errors),
-            ]);
-
-        } catch (\Exception $e) {
-            $errors[] = "Historical data fetch failed: {$e->getMessage()}";
-            Log::error('ITGlue Integration: Historical data import failed', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
+        // Historical data is now handled via processBatch dispatching during sync()
         return [
             'success' => true,
-            'total_processed' => $totalProcessed,
-            'errors' => $errors,
+            'total_processed' => 0,
+            'errors' => [],
         ];
     }
 

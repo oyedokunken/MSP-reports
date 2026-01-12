@@ -475,6 +475,14 @@ class IntegrationController extends Controller
         //     ], 403);
         // }
 
+        // Check for existing running/queued syncs to prevent overlap
+        if ($integration->syncLogs()->whereIn('status', ['queued', 'running'])->exists()) {
+             return response()->json([
+                'status' => 'error',
+                'message' => 'A sync is already in progress for this integration.'
+            ], 409);
+        }
+
         // Use SyncEngine to queue the sync (consistent with scheduled syncs)
         $syncEngine = app(\App\Services\SyncEngine::class);
         // Use 'high' priority for user-initiated syncs

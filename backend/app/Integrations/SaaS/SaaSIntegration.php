@@ -4,6 +4,7 @@ namespace App\Integrations\SaaS;
 
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\Traits\HasDefaultPreview;
+use App\Integrations\Concerns\HasHeartbeat;
 use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 class SaaSIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
+    use HasHeartbeat;
     
     protected Integration $integration;
     protected SaaSClient $client;
@@ -73,121 +75,140 @@ class SaaSIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
-    public function sync(): array
+    protected function saveSyncState(string $phase, int $processed, int $total): void
     {
-        $errors = [];
-        $this->mappedDuringSync = [];
-        $totalProcessed = 0;
-        $totalEvents = 0;
-
-        try {
-            // Fetch customers
-            $saasCustomers = $this->client->getCustomers();
-            
-            Log::info('SaaS Alerts sync: Retrieved customers', [
-                'count' => count($saasCustomers),
-                'integration_id' => $this->integration->integration_id,
+        DB::table('integrations')
+            ->where('integration_id', $this->integration->integration_id)
+            ->update([
+                'sync_state' => json_encode([
+                    'phase' => $phase,
+                    'offset' => $processed,
+                    'total' => $total,
+                    'timestamp' => now()->timestamp,
+                ])
             ]);
+    }
 
-            $totalCustomers = count($saasCustomers);
-            
-            // PHASE 1: Create ALL customers FIRST
-            // This ensures IntegrationCustomer records exist before historical import runs
-            Log::info('SaaS Alerts sync: Phase 1 - Creating all customers first', [
-                'integration_id' => $this->integration->integration_id,
-            ]);
-            
-            // Process customers in chunks
-            collect($saasCustomers)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCustomers) {
-                foreach ($chunk as $customer) {
-                    try {
-                        $standardized = SaaSMapper::mapCustomer($customer);
-                        $this->storeCustomer($standardized);
-                        $totalProcessed++;
-                    } catch (\Exception $e) {
-                        $errors[] = "Failed to process customer {$customer['id']}: {$e->getMessage()}";
-                        Log::error('SaaS Alerts sync: Failed to process customer', [
-                            'integration_id' => $this->integration->integration_id,
-                            'customer_id' => $customer['id'] ?? 'unknown',
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
+    public function processBatch(string $type, array $items): void
+    {
+         if ($type === 'customers') {
+            foreach ($items as $customer) {
+                // Heartbeat per item
+                $this->sendHeartbeat();
                 
-                Log::info('SaaS Alerts sync: Processed chunk', [
-                    'integration_id' => $this->integration->integration_id,
-                    'processed' => $totalProcessed,
-                    'total' => $totalCustomers,
-                ]);
-            });
-
-            Log::info('SaaS Alerts sync: Phase 1 complete - All customers created', [
-                'integration_id' => $this->integration->integration_id,
-                'total_customers' => $totalProcessed,
-            ]);
-
-            // PHASE 2: Now fetch recent events for all customers
-            // Customers are guaranteed to exist now
-            Log::info('SaaS Alerts sync: Phase 2 - Fetching recent events for all customers', [
-                'integration_id' => $this->integration->integration_id,
-            ]);
-
-            foreach ($saasCustomers as $customer) {
-                try {
-                    // Fetch recent security events for this customer (last 24 hours)
-                    // Similar to Datto's 1-hour redundant window pattern
-                    $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-                        ->where('external_id', $customer['id'])
-                        ->first();
+                 try {
+                     // 1. Create Customer (Sync Logic)
+                     // Validate required fields
+                    if (empty($customer['external_id']) || empty($customer['name'])) {
+                        continue;
+                    }
+            
+                    $integrationCustomer = DB::transaction(function () use ($customer) {
+                        return IntegrationCustomer::updateOrCreate(
+                            [
+                                'integration_id' => $this->integration->integration_id,
+                                'external_id' => $customer['external_id'],
+                            ],
+                            [
+                                'name' => $customer['name'],
+                                'metadata' => $customer['metadata'],
+                                'active' => $customer['active'],
+                                'last_seen_at' => now(),
+                            ]
+                        );
+                    });
+                     
+                     // 2. Fetch Events (Sync Logic)
+                     // Fetch recent security events for this customer (last 24 hours)
+                     $events = $this->client->getEvents([
+                        'customerId' => $customer['id'],
+                        'start' => now()->subHours(24)->format('Y-m-d'),
+                        'end' => now()->format('Y-m-d'),
+                        'size' => 100, // Reasonable batch for regular sync
+                    ]);
                     
-                    if ($integrationCustomer) {
-                        $events = $this->client->getEvents([
-                            'customerId' => $customer['id'],
-                            'start' => now()->subHours(24)->format('Y-m-d'),
-                            'end' => now()->format('Y-m-d'),
-                            'size' => 100, // Reasonable batch for regular sync
-                        ]);
-                        
-                        foreach ($events as $event) {
-                            try {
+                    foreach ($events as $event) {
+                         try {
                                 $mapped = SaaSMapper::mapEvent($event, $integrationCustomer->integration_customer_id);
                                 $this->storeHistoricalData($mapped);
-                                $totalEvents++;
                             } catch (\Exception $e) {
-                                Log::warning('SaaS Alerts sync: Failed to process event', [
+                                \Log::warning('SaaS Alerts batch: Failed to process event', [
                                     'customer_id' => $customer['id'],
                                     'event_id' => $event['eventId'] ?? $event['_id'] ?? 'unknown',
                                     'error' => $e->getMessage(),
                                 ]);
                             }
-                        }
                     }
+
                 } catch (\Exception $e) {
-                    Log::warning('SaaS Alerts sync: Failed to fetch events for customer', [
-                        'customer_id' => $customer['id'],
-                        'error' => $e->getMessage(),
+                    \Log::error('SaaS Alerts batch: Failed to process customer', [
+                        'customer_id' => $customer['id'] ?? 'unknown',
+                        'error' => $e->getMessage()
                     ]);
                 }
             }
+         }
+    }
 
-            Log::info('SaaS Alerts sync: Phase 2 complete - All events fetched', [
-                'integration_id' => $this->integration->integration_id,
-                'total_events' => $totalEvents,
-            ]);
+    public function sync(): array
+    {
+        $errors = [];
+        $this->mappedDuringSync = [];
+        $totalProcessed = 0;
+        $totalEvents = 0; // Not strictly tracked in sync() return anymore as it happens in batches
+
+        try {
+             // 1. Checkpoint: Resume
+            $state = json_decode($this->integration->sync_state, true);
+            $phase = $state['phase'] ?? 'customers';
+            $resumeOffset = $state['offset'] ?? 0;
+            
+             // Fetch customers
+            $saasCustomers = $this->client->getCustomers();
+            
+            if ($phase === 'customers') {
+                $totalCustomers = count($saasCustomers);
+                
+                if ($resumeOffset > 0) {
+                     $saasCustomers = array_slice($saasCustomers, $resumeOffset);
+                     $totalProcessed = $resumeOffset;
+                }
+                
+                Log::info('SaaS Alerts sync: Dispatching customers', [
+                    'count' => count($saasCustomers),
+                    'total' => $totalCustomers,
+                    'offset' => $resumeOffset
+                ]);
+                
+                 collect($saasCustomers)->chunk(10)->each(function ($chunk) use (&$totalProcessed, $totalCustomers) {
+                     \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'customers', $chunk->toArray(), $this->currentSyncLogId);
+                     
+                     $totalProcessed += count($chunk);
+                     $this->saveSyncState('customers', $totalProcessed, $totalCustomers);
+                });
+            }
+
+             $this->integration->update(['sync_state' => null]);
+             
+             // Initial cache update
+             $this->updateStatsCache();
 
         } catch (\Exception $e) {
             $errors[] = "Sync failed: {$e->getMessage()}";
-            Log::error('SaaS Alerts sync: Failed', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('SaaS Alerts sync: Failed', ['error' => $e->getMessage()]);
         }
 
-        // Process unmapped customers
-        $additionalMapped = $this->processUnmappedCustomers();
-        $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
-
-        // Update cache with customer counts
+        return [
+            'records_synced' => $totalProcessed,
+            'records_new' => 0,
+            'customers_mapped' => [],
+            'records_failed' => count($errors),
+            'errors' => $errors,
+        ];
+    }
+    
+    private function updateStatsCache(): void
+    {
         $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
         Cache::forget($cacheKey);
         
@@ -204,23 +225,6 @@ class SaaSIntegration implements IntegrationInterface
             'unmapped' => $unmappedCount,
             'last_sync' => now(),
         ], now()->addMinutes(10));
-
-        Log::info('SaaS Alerts sync: Completed', [
-            'integration_id' => $this->integration->integration_id,
-            'total_processed' => $totalProcessed,
-            'total_events' => $totalEvents,
-            'mapped_count' => $mappedCount,
-            'unmapped_count' => $unmappedCount,
-            'errors' => count($errors),
-        ]);
-
-        return [
-            'records_synced' => $totalProcessed,
-            'records_new' => $unmappedCount,
-            'customers_mapped' => $mappedCustomers,
-            'records_failed' => count($errors),
-            'errors' => $errors,
-        ];
     }
 
     private function processUnmappedCustomers(): array
@@ -255,7 +259,8 @@ class SaaSIntegration implements IntegrationInterface
                 'customer_count' => $integrationCustomers->count(),
             ]);
 
-            foreach ($integrationCustomers as $integrationCustomer) {
+            foreach ($integrationCustomers as $index => $integrationCustomer) {
+                if ($index % 5 === 0) $this->sendHeartbeat();
                 try {
                     // Fetch events for this customer
                     $events = $this->client->getEvents([

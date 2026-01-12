@@ -59,7 +59,7 @@ class AutotaskClient
         return true;
     }
 
-    public function getCompanies(): array
+    public function getCompanies(?Carbon $since = null): array
     {
         if ($this->useMockData) {
             return $this->getMockCompanies();
@@ -72,10 +72,16 @@ class AutotaskClient
 
         try {
             while ($hasMore) {
+                $filters = [
+                    ['field' => 'id', 'op' => 'gt', 'value' => $lastId]
+                ];
+
+                if ($since) {
+                    $filters[] = ['field' => 'lastActivityDate', 'op' => 'gte', 'value' => $since->copy()->utc()->format('Y-m-d\TH:i:s\Z')];
+                }
+
                 $response = $this->makeRequest('POST', '/Companies/query', [
-                    'filter' => [
-                        ['field' => 'id', 'op' => 'gt', 'value' => $lastId]
-                    ],
+                    'filter' => $filters,
                     'MaxRecords' => $pageSize,
                     'SortBy' => 'id',
                     'SortOrder' => 'ASC'

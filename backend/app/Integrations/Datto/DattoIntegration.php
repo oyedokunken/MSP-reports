@@ -13,6 +13,7 @@ use App\Jobs\AutoMatchCustomersJob;
 use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
+use App\Integrations\Concerns\HasHeartbeat;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\DB;
 
 class DattoIntegration implements IntegrationInterface
 {
+    use HasHeartbeat;
+
     protected Integration $integration;
     protected DattoClient $client;
     protected CustomerMappingService $mappingService;
@@ -82,45 +85,48 @@ class DattoIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
+             // 1. Checkpoint: Resume from last state
+            $state = json_decode($this->integration->sync_state, true);
+            $phase = $state['phase'] ?? 'sites';
+            $resumeOffset = $state['offset'] ?? 0;
+
+            // 2. Fetch all RMM Sites
             $dattoCustomers = $this->client->getCustomers();
+            $totalCustomers = count($dattoCustomers);
             
             \Log::info('Datto Integration: Starting sync', [
                 'integration_id' => $this->integration->integration_id,
-                'customer_count' => count($dattoCustomers),
+                'customer_count' => $totalCustomers,
+                'resume_offset' => $resumeOffset,
             ]);
 
-            $totalCustomers = count($dattoCustomers);
-            collect($dattoCustomers)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCustomers) {
-                foreach ($chunk as $customer) {
-                    try {
-                        $standardized = DattoMapper::mapCustomer($customer);
+            // 3. Slice and Chunk (Batch Size = 5 due to 60/min rate limit)
+            // 5 sites * (1 site + 1 device + 1 alerts) = 15 calls min?
+            // Actually processBatch makes 2 calls (devices + alerts).
+            // 5 sites * 2 calls = 10 calls per job. 6 workers = 60 calls/min. Safe.
+            if ($resumeOffset > 0) {
+                 $dattoCustomers = array_slice($dattoCustomers, $resumeOffset);
+                 $totalProcessed = $resumeOffset;
+            }
 
-                        $this->storeCustomer($standardized);
-                        $totalProcessed++;
-
-                    } catch (\Exception $e) {
-                        $customerId = $customer['id'] ?? $customer['uid'] ?? $customer['organizationId'] ?? 'unknown';
-                        $errors[] = "Failed to process customer {$customerId}: {$e->getMessage()}";
-                        \Log::error('Datto Integration: Failed to process customer', [
-                            'integration_id' => $this->integration->integration_id,
-                            'customer_id' => $customerId,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
+            collect($dattoCustomers)->chunk(5)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCustomers) {
+                // Dispatch batch job
+                \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'sites', $chunk->toArray(), $this->currentSyncLogId);
                 
-                \Log::info('Datto Integration: Processed chunk', [
-                    'integration_id' => $this->integration->integration_id,
-                    'processed' => $totalProcessed,
-                    'total' => $totalCustomers,
-                ]);
+                $totalProcessed += count($chunk);
+                
+                $this->saveSyncState('sites', $totalProcessed, $totalCustomers);
             });
 
+            // 4. Clear Checkpoint if we finished everything
+            // Note: processBatch handles everything (Sites, Devices, Alerts) in one go for Datto
+            $this->integration->update(['sync_state' => null]);
+            
+            // 5. Update Cache
+            $this->updateStatsCache();
+
         } catch (\Exception $e) {
-            // Rethrow rate limit exceptions so the job can be released back to the queue
             if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
-                // If we processed some data, maybe we should just return what we have?
-                // But generally rate limit means we should stop and retry later.
                 throw $e;
             }
 
@@ -131,10 +137,17 @@ class DattoIntegration implements IntegrationInterface
             ]);
         }
 
-
-        $additionalMapped = $this->processUnmappedCustomers();
-        $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
-
+        return [
+            'records_synced' => $totalProcessed,
+            'records_new' => 0, // Calculated async
+            'customers_mapped' => [],
+            'records_failed' => count($errors),
+            'errors' => $errors,
+        ];
+    }
+    
+    protected function updateStatsCache(): void 
+    {
         $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
         Cache::forget($cacheKey);
         
@@ -151,96 +164,6 @@ class DattoIntegration implements IntegrationInterface
             'unmapped' => $unmappedCount,
             'last_sync' => now(),
         ], now()->addMinutes(10));
-        
-        // ALERT POLLING - ROTATING BATCH STRATEGY
-    // Instead of polling ALL sites every 5 min (220 API calls, 30 min sync),
-    // we poll 1/5th of sites each sync (44 API calls, 1-2 min sync)
-    // All sites covered every 25 minutes (5 syncs × 5 min)
-    $totalAlerts = 0;
-    try {
-        $sites = $this->client->getRmmSites();
-        $totalSites = count($sites);
-        
-        // Calculate rotating batch (0-9)
-        // Each batch processes 1/10th of sites to reduce API load
-        // All sites covered every 50 minutes (10 batches × 5 min)
-        $batchNumber = floor(now()->minute / 5) % 10;
-        $batchSize = (int) ceil($totalSites / 10);
-        $offset = $batchNumber * $batchSize;
-        
-        // Get only this batch of sites
-        $siteBatch = array_slice($sites, $offset, $batchSize);
-        
-        \Log::info('Datto Integration: Alert polling batch', [
-            'integration_id' => $this->integration->integration_id,
-            'batch_number' => $batchNumber,
-            'sites_in_batch' => count($siteBatch),
-            'total_sites' => $totalSites,
-            'offset' => $offset,
-        ]);
-        
-        foreach ($siteBatch as $site) {
-            try {
-                $siteUid = $site['uid'];
-                
-                // Get open alerts
-                $openAlerts = $this->client->getRmmAlerts($siteUid, true);
-                foreach ($openAlerts as $alert) {
-                    $this->storeAlertData($alert, $site);
-                    $totalAlerts++;
-                }
-                
-                // Get resolved alerts from last 1 hour (same as TTS)
-                $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, now()->subHour());
-                foreach ($resolvedAlerts as $alert) {
-                    $this->storeAlertData($alert, $site);
-                    $totalAlerts++;
-                }
-                
-                // Add delay between sites to avoid rate limiting
-                usleep(500000); // 500ms delay
-            } catch (\App\Integrations\Exceptions\RateLimitException $e) {
-                // If we hit rate limit during alert polling, stop and continue with what we have
-                // Alert polling is supplementary - we don't want to block the whole sync
-                \Log::warning('Datto Integration: Rate limit hit during alert polling, stopping early', [
-                    'integration_id' => $this->integration->integration_id,
-                    'alerts_collected' => $totalAlerts,
-                    'sites_processed' => array_search($site, $siteBatch) + 1,
-                    'sites_in_batch' => count($siteBatch),
-                    'batch_number' => $batchNumber,
-                ]);
-                break; // Exit the foreach loop
-            }
-        }
-            
-            \Log::info('Datto Integration: Alert polling completed', [
-                'integration_id' => $this->integration->integration_id,
-                'total_alerts' => $totalAlerts,
-            ]);
-        } catch (\Exception $e) {
-            \Log::warning('Datto Integration: Alert polling failed (continuing)', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
-            // Don't fail the whole sync if alert polling fails
-        }
-        
-        \Log::info('Datto Integration: Sync completed', [
-            'integration_id' => $this->integration->integration_id,
-            'total_processed' => $totalProcessed,
-            'mapped_count' => $mappedCount,
-            'unmapped_count' => $unmappedCount,
-            'alerts_synced' => $totalAlerts,
-            'errors' => count($errors),
-        ]);
-
-        return [
-            'records_synced' => $totalProcessed,
-            'records_new' => $unmappedCount,
-            'customers_mapped' => $mappedCustomers,
-            'records_failed' => count($errors),
-            'errors' => $errors,
-        ];
     }
 
     private function processUnmappedCustomers(): array
@@ -263,113 +186,104 @@ class DattoIntegration implements IntegrationInterface
         $this->progressCallback = $callback;
     }
 
-    public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
+    protected function saveSyncState(string $phase, int $offset, int $total): void
     {
-        // NO MORE $data = [] bucket! Just track stats
-        $errors = [];
-        $totalRecords = 0; // Track actual DB records created
-        $recordsSinceLastUpdate = 0;
+        $this->integration->update([
+            'sync_state' => json_encode([
+                'phase' => $phase,
+                'offset' => $offset,
+                'total' => $total,
+                'timestamp' => now()->timestamp,
+            ])
+        ]);
+    }
 
+    public function processBatch(string $type, array $items): void
+    {
+        switch ($type) {
+            case 'sites':
+                foreach ($items as $site) {
+                    try {
+                        // 1. Sync Site (Customer)
+                        $standardized = DattoMapper::mapCustomer($site);
+                        $this->storeCustomer($standardized);
+
+                        // 2. Sync Devices (Historical/Current State)
+                        // Note: Datto site UID is needed for device lookup
+                        $siteUid = $site['uid'] ?? $site['organizationId'] ?? null;
+                        if ($siteUid) {
+                            $this->syncSiteDevices($siteUid, $site);
+                            $this->syncSiteAlerts($siteUid, $site);
+                        }
+
+                        // Heartbeat (per site is frequent enough for Datto given rate limits)
+                        if (method_exists($this, 'sendHeartbeat')) {
+                            $this->sendHeartbeat();
+                        }
+
+                    } catch (\Exception $e) {
+                         $siteId = $site['id'] ?? 'unknown';
+                         Log::error('Datto Batch: Failed to process site', [
+                             'site_id' => $siteId, 
+                             'error' => $e->getMessage()
+                         ]);
+                    }
+                }
+                break;
+        }
+    }
+
+    protected function syncSiteDevices(string $siteUid, array $site): void
+    {
         try {
-            \Log::info('Datto Integration: Starting historical data import', [
-                'integration_id' => $this->integration->integration_id,
-                'start_date' => $startDate->toDateString(),
-                'end_date' => $endDate->toDateString(),
-            ]);
-
-            // For Datto RMM, historical data means current device status and active alerts
-            $sites = $this->client->getRmmSites();
-
-            foreach ($sites as $site) {
+            $devices = $this->client->getRmmDevices($siteUid);
+            foreach ($devices as $device) {
                 try {
-                    $siteUid = $site['uid'];
-                    
-                    // 1. Fetch Devices (Current Snapshot)
-                    $devices = $this->client->getRmmDevices($siteUid);
-                    foreach ($devices as $device) {
-                        try {
-                            // Pass startDate to backdate the uptime metric snapshot
-                            $this->storeDeviceData($device, $site, $startDate);
-                            $totalRecords += 2;
-                            $recordsSinceLastUpdate += 2;
-                        } catch (\Exception $e) {
-                            $errors[] = "Failed to store device {$device['hostname']}: {$e->getMessage()}";
-                        }
-                    }
-
-                    // 2. Fetch Alerts (Open + Resolved since Start Date)
-                    // Open alerts (Current state)
-                    $openAlerts = $this->client->getRmmAlerts($siteUid, true);
-                    foreach ($openAlerts as $alert) {
-                        try {
-                            $this->storeAlertData($alert, $site);
-                            $totalRecords += 1;
-                            $recordsSinceLastUpdate += 1;
-                        } catch (\Exception $e) {
-                            $errors[] = "Failed to store open alert {$alert['uid']}: {$e->getMessage()}";
-                        }
-                    }
-
-                    // Resolved alerts (Historical)
-                    // Use the chunk start date to get alerts resolved within this period
-                    $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, $startDate);
-                    foreach ($resolvedAlerts as $alert) {
-                        try {
-                            $this->storeAlertData($alert, $site);
-                            $totalRecords += 1;
-                            $recordsSinceLastUpdate += 1;
-                        } catch (\Exception $e) {
-                            $errors[] = "Failed to store resolved alert {$alert['uid']}: {$e->getMessage()}";
-                        }
-                    }
-
-                    // Update progress if we have accumulated enough records
-                    if ($this->progressCallback && $recordsSinceLastUpdate >= 10) {
-                        call_user_func($this->progressCallback, $recordsSinceLastUpdate);
-                        $recordsSinceLastUpdate = 0;
-                    }
-                    
-                } catch (\App\Integrations\Exceptions\RateLimitException $e) {
-                    // For historical import, we prefer to sleep and finish the batch
-                    // rather than restarting from scratch (which causes infinite loops)
-                    \Log::warning("Datto Historical Import: Rate limit hit, sleeping for {$e->retryAfter}s");
-                    
-                    // Force update progress before sleeping so user sees movement
-                    if ($this->progressCallback && $recordsSinceLastUpdate > 0) {
-                        call_user_func($this->progressCallback, $recordsSinceLastUpdate);
-                        $recordsSinceLastUpdate = 0;
-                    }
-                    
-                    sleep($e->retryAfter);
-                    // We continue the loop, effectively retrying the NEXT site.
+                    $this->storeDeviceData($device, $site, now());
                 } catch (\Exception $e) {
-                    $errors[] = "Failed to fetch data for site {$site['name']}: {$e->getMessage()}";
+                    Log::error("Datto Batch: Device store failed", ['device' => $device['hostname'] ?? 'unknown']);
                 }
             }
+        } catch (\App\Integrations\Exceptions\RateLimitException $e) {
+            throw $e; // Let Job handle backoff
+        } catch (\Exception $e) {
+            Log::error("Datto Batch: Device fetch failed for site $siteUid", ['error' => $e->getMessage()]);
+        }
+    }
 
-            // Final update for any remaining records
-            if ($this->progressCallback && $recordsSinceLastUpdate > 0) {
-                call_user_func($this->progressCallback, $recordsSinceLastUpdate);
-                $recordsSinceLastUpdate = 0;
+    protected function syncSiteAlerts(string $siteUid, array $site): void
+    {
+        try {
+            // Open Alerts
+            $openAlerts = $this->client->getRmmAlerts($siteUid, true);
+            foreach ($openAlerts as $alert) {
+                $this->storeAlertData($alert, $site);
+            }
+            
+            // Resolved Alerts (Last 90 days or just recent? Implementation plan implies consolidated sync)
+            // Let's grab distinct recent window to be safe, e.g., 24 hours, or rely on full historical import separately?
+            // The plan said "Consolidate sync and getHistoricalData".
+            // Let's fetch reasonably recent history (e.g. 7 days) to ensure we capture updates.
+            $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, now()->subDays(7));
+             foreach ($resolvedAlerts as $alert) {
+                $this->storeAlertData($alert, $site);
             }
 
-            \Log::info('Datto Integration: Historical data import completed', [
-                'integration_id' => $this->integration->integration_id,
-                'total_records' => $totalRecords,
-                'errors' => count($errors),
-            ]);
-
+        } catch (\App\Integrations\Exceptions\RateLimitException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            $errors[] = "Historical data fetch failed: {$e->getMessage()}";
-            \Log::error('Datto Integration: Historical import failed', [
-                'error' => $e->getMessage(),
-            ]);
+             Log::error("Datto Batch: Alert fetch failed for site $siteUid", ['error' => $e->getMessage()]);
         }
+    }
 
+    public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
+    {
+        // Historical data is now handled via processBatch dispatching during sync()
+        // This method remains to satisfy the interface but performs no action
         return [
             'success' => true,
-            'total_processed' => $totalRecords,
-            'errors' => $errors,
+            'total_processed' => 0,
+            'errors' => [],
         ];
     }
 

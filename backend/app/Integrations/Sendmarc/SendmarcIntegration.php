@@ -11,12 +11,15 @@ use App\Jobs\AutoMatchCustomersJob;
 use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
+use App\Integrations\Concerns\HasHeartbeat;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class SendmarcIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
+    use HasHeartbeat;
     protected Integration $integration;
     protected SendmarcClient $client;
     protected CustomerMappingService $mappingService;
@@ -57,100 +60,76 @@ class SendmarcIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
+             // 1. Checkpoint: Resume
+            $state = json_decode($this->integration->sync_state, true);
+            $phase = $state['phase'] ?? 'domains';
+            $resumeOffset = $state['offset'] ?? 0;
+            
             $accounts = $this->client->getAccounts();
             
-            \Log::info('Sendmarc sync: Retrieved accounts', [
-                'count' => count($accounts),
-                'integration_id' => $this->integration->integration_id,
-            ]);
-
-            // PHASE 1: Create ALL customers FIRST
-            // This ensures IntegrationCustomer records exist before historical import runs
-            \Log::info('Sendmarc sync: Phase 1 - Creating all customers first', [
-                'integration_id' => $this->integration->integration_id,
-            ]);
-
-            foreach ($accounts as $account) {
-                $accountUuid = $account['uuid'] ?? null;
-                
-                if (!$accountUuid) {
-                    \Log::warning('Sendmarc sync: Account missing UUID', ['account' => $account]);
-                    continue;
+            if ($phase === 'domains') {
+                $allDomains = [];
+                foreach ($accounts as $account) {
+                    $accountUuid = $account['uuid'] ?? null;
+                    if (!$accountUuid) continue;
+                    
+                    try {
+                        $domains = $this->client->getAccountDomains($accountUuid);
+                        // Inject account_uuid into domain for batch processing context
+                        foreach ($domains as &$domain) {
+                            $domain['account_uuid'] = $accountUuid;
+                        }
+                        $allDomains = array_merge($allDomains, $domains);
+                    } catch (\Exception $e) {
+                         \Log::warning('Sendmarc sync: Failed to fetch domains for account', ['account' => $accountUuid]);
+                    }
                 }
-
-                $domains = $this->client->getAccountDomains($accountUuid);
                 
-                \Log::info('Sendmarc sync: Retrieved domains for account', [
-                    'account_uuid' => $accountUuid,
-                    'domain_count' => count($domains),
+                $totalDomains = count($allDomains);
+                
+                if ($resumeOffset > 0) {
+                     $allDomains = array_slice($allDomains, $resumeOffset);
+                     $totalProcessed = $resumeOffset;
+                }
+                
+                 \Log::info('Sendmarc sync: Dispatching domains', [
+                    'count' => count($allDomains),
+                    'total' => $totalDomains,
+                    'offset' => $resumeOffset
                 ]);
 
-                collect($domains)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed) {
-                    foreach ($chunk as $domain) {
-                        try {
-                            $standardized = SendmarcMapper::mapDomain($domain);
-                            $this->storeCustomer($standardized);
-                            $totalProcessed++;
-                        } catch (\Exception $e) {
-                            $domainName = $domain['domain_name'] ?? 'unknown';
-                            $errors[] = "Failed to process domain {$domainName}: {$e->getMessage()}";
-                            \Log::error('Sendmarc sync: Failed to process domain', [
-                                'integration_id' => $this->integration->integration_id,
-                                'domain' => $domainName,
-                                'error' => $e->getMessage(),
-                            ]);
-                        }
-                    }
+                collect($allDomains)->chunk(10)->each(function ($chunk) use (&$totalProcessed, $totalDomains) {
+                     \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'domains', $chunk->toArray(), $this->currentSyncLogId);
+                     
+                     $totalProcessed += count($chunk);
+                     $this->saveSyncState('domains', $totalProcessed, $totalDomains);
                 });
             }
-
-            \Log::info('Sendmarc sync: Phase 1 complete - All customers created', [
-                'integration_id' => $this->integration->integration_id,
-                'total_customers' => $totalProcessed,
-            ]);
-
-            // PHASE 2: Now fetch metrics for all domains
-            // Customers are guaranteed to exist now
-            \Log::info('Sendmarc sync: Phase 2 - Fetching metrics for all domains', [
-                'integration_id' => $this->integration->integration_id,
-            ]);
-
-            foreach ($accounts as $account) {
-                $accountUuid = $account['uuid'] ?? null;
-                if (!$accountUuid) continue;
-
-                $domains = $this->client->getAccountDomains($accountUuid);
-
-                foreach ($domains as $domain) {
-                    $domainUuid = $domain['uuid'] ?? null;
-                    if (!$domainUuid) continue;
-
-                    // Fetch and store current metrics (volume totals + sender count)
-                    $this->fetchAndStoreCurrentMetrics($accountUuid, $domainUuid);
-                }
-            }
-
-            \Log::info('Sendmarc sync: Phase 2 complete - All metrics fetched', [
-                'integration_id' => $this->integration->integration_id,
-            ]);
+            
+            // Completion
+            $this->integration->update(['sync_state' => null]);
+            $this->updateStatsCache();
 
         } catch (\Exception $e) {
-            // Rethrow rate limit exceptions so the job can be released back to the queue
             if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
                 throw $e;
             }
-            
             $errors[] = "Sync failed: {$e->getMessage()}";
-            \Log::error('Sendmarc sync: Failed', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
+             \Log::error('Sendmarc sync: Failed', ['error' => $e->getMessage()]);
         }
 
-        $additionalMapped = $this->processUnmappedCustomers();
-        $mappedCustomers = array_merge($this->mappedDuringSync, $additionalMapped);
-
-        $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
+        return [
+            'records_synced' => $totalProcessed,
+            'records_new' => 0, // Calculated by batches
+            'customers_mapped' => [],
+            'records_failed' => count($errors),
+            'errors' => $errors,
+        ];
+    }
+    
+    private function updateStatsCache(): void
+    {
+         $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
         Cache::forget($cacheKey);
         
         $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
@@ -160,28 +139,12 @@ class SendmarcIntegration implements IntegrationInterface
         $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->count();
-
+            
         Cache::put($cacheKey, [
             'mapped' => $mappedCount,
             'unmapped' => $unmappedCount,
             'last_sync' => now(),
         ], now()->addMinutes(10));
-
-        \Log::info('Sendmarc sync: Completed', [
-            'integration_id' => $this->integration->integration_id,
-            'total_processed' => $totalProcessed,
-            'mapped_count' => $mappedCount,
-            'unmapped_count' => $unmappedCount,
-            'errors' => count($errors),
-        ]);
-
-        return [
-            'records_synced' => $totalProcessed,
-            'records_new' => $unmappedCount,
-            'customers_mapped' => $mappedCustomers,
-            'records_failed' => count($errors),
-            'errors' => $errors,
-        ];
     }
 
     private function processUnmappedCustomers(): array
@@ -235,7 +198,8 @@ class SendmarcIntegration implements IntegrationInterface
 
                 $domains = $this->client->getAccountDomains($accountUuid);
                 
-                foreach ($domains as $domain) {
+                foreach ($domains as $index => $domain) {
+                    if ($index % 10 === 0) $this->sendHeartbeat();
                     try {
                         $standardized = SendmarcMapper::mapDomain($domain);
                         $this->storeCustomer($standardized);
@@ -261,7 +225,8 @@ class SendmarcIntegration implements IntegrationInterface
                 $domains = $this->client->getAccountDomains($accountUuid);
 
                 collect($domains)->chunk(50)->each(function ($chunk) use ($accountUuid, &$errors, &$totalProcessed) {
-                    foreach ($chunk as $domain) {
+                    foreach ($chunk as $index => $domain) {
+                        if ($index % 10 === 0) $this->sendHeartbeat();
                         $domainUuid = $domain['uuid'] ?? null;
                         if (!$domainUuid) continue;
 
@@ -541,6 +506,50 @@ class SendmarcIntegration implements IntegrationInterface
                 'imported_at' => now(),
                 'data_version' => 1,
             ]);
+        }
+    }
+
+    protected function saveSyncState(string $phase, int $processed, int $total): void
+    {
+        DB::table('integrations')
+            ->where('integration_id', $this->integration->integration_id)
+            ->update([
+                'sync_state' => json_encode([
+                    'phase' => $phase,
+                    'offset' => $processed,
+                    'total' => $total,
+                    'timestamp' => now()->timestamp,
+                ])
+            ]);
+    }
+
+    public function processBatch(string $type, array $items): void
+    {
+        if ($type === 'domains') {
+            foreach ($items as $domain) {
+                // Heartbeat per item in batch
+                $this->sendHeartbeat();
+                
+                try {
+                    // 1. Create Customer (Phase 1 Logic)
+                    $standardized = SendmarcMapper::mapDomain($domain);
+                    $this->storeCustomer($standardized);
+
+                    // 2. Fetch Metrics (Phase 2 Logic)
+                    $accountUuid = $domain['account_uuid'] ?? null; // Ensure this is passed in item
+                    $domainUuid = $domain['uuid'] ?? null;
+
+                    if ($accountUuid && $domainUuid) {
+                         $this->fetchAndStoreCurrentMetrics($accountUuid, $domainUuid);
+                    }
+
+                } catch (\Exception $e) {
+                    \Log::error('Sendmarc batch: Failed to process domain', [
+                        'domain' => $domain['domain_name'] ?? 'unknown',
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
         }
     }
 }
