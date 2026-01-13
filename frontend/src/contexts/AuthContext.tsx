@@ -14,6 +14,7 @@ import type {
 } from "@/types/auth";
 import { api } from "@/lib/api";
 import { useBranding } from "./BrandingContext";
+import { useNotificationStore } from "@/stores/useNotificationStore";
 
 interface AuthContextType extends AuthState {
     company: Company | null;
@@ -26,6 +27,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const { setBranding } = useBranding();
+    const listenForNotifications = useNotificationStore(state => state.listenForNotifications);
+    const disconnectEcho = useNotificationStore(state => state.disconnectEcho);
     const [state, setState] = useState<AuthState>({
         user: null,
         token: null,
@@ -75,6 +78,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         isAuthenticated: true,
                         isLoading: false,
                     });
+
+                    // Start listening for real-time notifications
+                    listenForNotifications(user.user_id, token);
 
                     // Optionally verify token with backend (non-blocking)
                     // DISABLED: This can cause race conditions and redirect loops
@@ -145,6 +151,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isLoading: false,
         });
         setCompany(companyData);
+
+        // Start listening for real-time notifications
+        listenForNotifications(user.user_id, token);
     };
 
     const logout = async () => {
@@ -173,6 +182,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 isLoading: false,
             });
             setCompany(null);
+
+            // Disconnect notifications
+            disconnectEcho();
         }
     };
 

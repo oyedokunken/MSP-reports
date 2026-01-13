@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect } from "react";
+import { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/Toast";
 import { FileText, Cable, Users, Activity } from "lucide-react";
@@ -6,8 +6,8 @@ import { useIntegrationStore } from "@/stores/useIntegrationStore";
 import { useCustomersStore } from "@/stores/useCustomersStore";
 import { useMonitoringStore } from "@/stores/useMonitoringStore";
 import { useSchedulesStore } from "@/stores/useSchedulesStore";
-import { useNotificationStore, type Notification } from "@/stores/useNotificationStore";
 import { monitoringApi } from "@/services/api/monitoring";
+import { useNotificationStore } from "@/stores/useNotificationStore";
 import type { Integration, UpcomingReport, RecentActivity, Stat } from "./types";
 
 export const useQuickSync = (
@@ -62,16 +62,8 @@ export const useDashboard = () => {
     const fetchSystemStatus = useMonitoringStore((state) => state.fetchSystemStatus);
     const fetchReportMetrics = useMonitoringStore((state) => state.fetchReportMetrics);
     const fetchSchedules = useSchedulesStore((state) => state.fetchSchedules);
-    const setNotifications = useNotificationStore((state) => state.setNotifications);
-
-    useEffect(() => {
-        if (isAuthenticated) {
-            loadDashboardData();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAuthenticated]);
-
-    const recentActivity: RecentActivity[] = (() => {
+    const notifications = useNotificationStore((state) => state.notifications);
+    const recentActivity: RecentActivity[] = useMemo(() => {
         const activities: RecentActivity[] = [];
 
         integrations.slice(0, 5).forEach((int, index) => {
@@ -94,30 +86,28 @@ export const useDashboard = () => {
             }
         });
 
-        if (reportMetrics?.metrics.completed_reports) {
-            activities.push({
-                id: activities.length + 1,
-                type: "report",
-                title: `${reportMetrics.metrics.completed_reports} reports generated successfully`,
-                time: "Recently",
-                severity: "green",
-            });
+        // Blend real notifications with legacy metrics
+        const realActivities: RecentActivity[] = notifications.map((n, idx) => ({
+            id: typeof n.id === 'number' ? n.id : (1000 + idx),
+            type: n.type,
+            title: n.title,
+            time: n.time,
+            severity: n.severity === 'blue' ? 'green' : (n.severity as any)
+        }));
+
+        if (realActivities.length > 0) {
+            return realActivities.slice(0, 5);
         }
 
         return activities.slice(0, 5);
-    })();
+    }, [notifications, integrations, reportMetrics]);
 
     useEffect(() => {
-        const notifications = recentActivity.map((activity, index) => ({
-            id: Date.now() + index,
-            title: activity.title,
-            time: activity.time,
-            read: false,
-            type: activity.type as Notification['type'],
-            severity: activity.severity,
-        }));
-        setNotifications(notifications);
-    }, [integrations, reportMetrics, setNotifications, recentActivity]);
+        if (isAuthenticated) {
+            loadDashboardData();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAuthenticated]);
 
     const loadDashboardData = async () => {
         if (!isAuthenticated) {

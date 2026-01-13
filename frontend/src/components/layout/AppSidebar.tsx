@@ -56,8 +56,13 @@ export default function AppSidebar() {
     }
     return location.pathname.startsWith('/platform/customers')
   })
-  const getUnreadCount = useNotificationStore((state) => state.getUnreadCount)
-  const unreadCount = getUnreadCount()
+  const unreadCount = useNotificationStore((state) => state.unreadCount)
+  const fetchNotifications = useNotificationStore((state) => state.fetchNotifications)
+
+  useEffect(() => {
+    fetchNotifications()
+  }, [fetchNotifications])
+
   const unmappedCount = useCustomersStore((state) => state.unmappedCount)
 
   // Keep customers dropdown open when navigating within customers section
@@ -181,7 +186,7 @@ export default function AppSidebar() {
               {navItems.map((item) => {
                 const Icon = item.icon
                 const active = isActive(item.path)
-                const showBadge = item.path === '/notifications' && unreadCount > 0
+                const showBadge = item.path === '/platform/notifications' && unreadCount > 0
 
                 return (
                   <Fragment key={item.path}>

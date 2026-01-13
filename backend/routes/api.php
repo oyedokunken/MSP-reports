@@ -178,6 +178,15 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::get('/report-templates/{template}/applied-customers', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAppliedCustomers']);
     });
 
+    // Notification Routes
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
+        Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
+        Route::patch('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead']);
+        Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']);
+        Route::delete('/notifications/read', [\App\Http\Controllers\Api\NotificationController::class, 'deleteAllRead']);
+        Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\NotificationController::class, 'destroy']);
+    });
+
     // Monitoring & Health Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/monitoring/status', [HealthCheckController::class, 'status']);

@@ -26,3 +26,6 @@ dev-watch.sh
 DOCKER_SCRIPTS.md
 quick-restart.sh
 rebuild.sh
+
+# Docker
+docker-compose.yml
