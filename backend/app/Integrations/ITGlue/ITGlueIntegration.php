@@ -160,11 +160,24 @@ class ITGlueIntegration implements IntegrationInterface
                 
                 Log::info('ITGlue Integration: Syncing Organizations', ['count' => $totalOrgs]);
                 
-                collect($organizations)->chunk(50)->each(function ($chunk) use ($totalOrgs) {
-                     \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'organizations', $chunk->toArray(), $this->currentSyncLogId);
-                });
+                // 1. Synchronous Customer Sync (Standard Pattern)
+                foreach ($organizations as $org) {
+                    try {
+                        $standardized = ITGlueMapper::mapCustomer($org);
+                        $this->storeCustomer($standardized);
+                    } catch (\Exception $e) {
+                         Log::warning('ITGlue Sync: Organization store failed', ['id' => $org['id'] ?? 'unknown', 'error' => $e->getMessage()]);
+                    }
+                }
+                
+                // 2. Immediate Automap
+                $this->processUnmappedCustomers();
                 
                 $totalProcessed += $totalOrgs;
+                
+                // Note: We do NOT dispatch organization batches anymore as they are handled above.
+                // We proceed directly to data phases which depend on these customers existing.
+                
                 $this->saveSyncState('ssl_certs', 0, 0); // Move to next phase
                 $phase = 'ssl_certs';
             }
@@ -283,10 +296,18 @@ class ITGlueIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        // Dispatch single batch job to process all unmapped customers
-        // This reduces queue load from 397 individual jobs to 1 batch job
-        BatchAutoMatchCustomersJob::dispatch($this->integration);
-
+        // Only dispatch if there are actually unmapped customers
+        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
+        
+        if ($unmappedCount > 0) {
+            BatchAutoMatchCustomersJob::dispatchSync($this->integration);
+            \Log::info('ITGlue: Dispatched auto-match job', [
+                'integration_id' => $this->integration->integration_id,
+                'unmapped_count' => $unmappedCount,
+            ]);
+        }
         return []; // Batch job handles mapping asynchronously
     }
 

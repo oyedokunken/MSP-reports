@@ -90,19 +90,29 @@ class AutotaskIntegration implements IntegrationInterface
             ]);
 
             $totalCompanies = count($autotaskCompanies);
-            collect($autotaskCompanies)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCompanies) {
-                // Dispatch batch job
-                \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'companies', $chunk->toArray(), $this->currentSyncLogId);
-                
-                $totalProcessed += count($chunk);
-                
-                \Log::info('Autotask sync: Dispatched company batch', [
-                    'integration_id' => $this->integration->integration_id,
-                    'count' => count($chunk),
-                ]);
+            
+            Log::info('Autotask sync: Processing companies synchronously', [
+                'count' => $totalCompanies
+            ]);
 
-                $this->saveSyncState('companies', $totalProcessed, $totalCompanies);
-            });
+            // 1. Synchronous Company Sync
+            foreach ($autotaskCompanies as $company) {
+                try {
+                    $standardized = AutotaskMapper::mapCompany($company);
+                    $this->storeCustomer($standardized);
+                    $totalProcessed++;
+                } catch (\Exception $e) {
+                    Log::warning('Autotask Sync: Company store failed', [
+                        'id' => $company['id'] ?? 'unknown', 
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+            
+            // 2. Immediate Automap
+            $this->processUnmappedCustomers();
+
+            $this->saveSyncState('companies', $totalProcessed, $totalCompanies);
             
             // Save state if we just finished companies
             if (!empty($autotaskCompanies)) {
@@ -226,8 +236,28 @@ class AutotaskIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        // Dispatch single batch job to process all unmapped customers
-        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        // For source of truth integrations, customers are mapped inline in storeCustomer()
+        // Skip the async job to avoid redundant processing
+        // For source of truth integrations, customers are usually mapped inline in storeCustomer()
+        // However, we allow the batch job to run as a safety net/self-healing mechanism
+        // in case any customers were missed or created manually.
+
+        // Dispatch batch job ONLY if there are unmapped customers
+        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
+        
+        if ($unmappedCount > 0) {
+            BatchAutoMatchCustomersJob::dispatchSync($this->integration);
+            \Log::info('Autotask: Dispatched auto-match job', [
+                'integration_id' => $this->integration->integration_id,
+                'unmapped_count' => $unmappedCount,
+            ]);
+        } else {
+            \Log::info('Autotask: Skipped auto-match - all customers mapped', [
+                'integration_id' => $this->integration->integration_id,
+            ]);
+        }
         return [];
     }
 
@@ -710,6 +740,16 @@ class AutotaskIntegration implements IntegrationInterface
             );
 
             $integrationCustomer->refresh();
+
+            // For source of truth integrations, auto-create unified customer inline
+            // This fixes the race condition where BatchAutoMatchCustomersJob runs
+            // before all company batch jobs complete, leaving customers unmapped
+            if ($this->integration->is_source_of_truth && !$integrationCustomer->customer_id) {
+                $this->mappingService->createFromSourceOfTruth(
+                    $integrationCustomer,
+                    $this->integration->integration_type
+                );
+            }
         });
     }
 

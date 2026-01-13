@@ -29,17 +29,27 @@ echo "Press Ctrl+C to stop"
 # In a real daemon setup updates Supervisord, but this is for "running it"
 cd backend
 
+# Clear stale jobs and restart signal to ensure clean state
+echo "Clearing stale queue jobs..."
+php artisan queue:restart 2>/dev/null
+php artisan queue:flush 2>/dev/null
+php artisan queue:clear 2>/dev/null
+
+# Fix any stuck queued sync logs from previous runs
+php artisan tinker --execute="\App\Models\SyncLog::where('status', 'queued')->update(['status' => 'failed', 'completed_at' => now()]);" 2>/dev/null
+
 echo "Starting Worker 1..."
-php artisan queue:work --queue=high,default,low &
+php artisan queue:work --queue=high,default,low --memory=128 --timeout=300 --sleep=3 &
 PID_QUEUE1=$!
 
-echo "Starting Worker 2..."
-php artisan queue:work --queue=high,default,low &
-PID_QUEUE2=$!
+# Worker 2 and 3 commented out - enable if you have 4GB+ free RAM
+# echo "Starting Worker 2..."
+# php artisan queue:work --queue=high,default,low --memory=128 --timeout=300 --sleep=3 &
+# PID_QUEUE2=$!
 
-echo "Starting Worker 3..."
-php artisan queue:work --queue=high,default,low &
-PID_QUEUE3=$!
+# echo "Starting Worker 3..."
+# php artisan queue:work --queue=high,default,low --memory=128 --timeout=300 --sleep=3 &
+# PID_QUEUE3=$!
 
 php artisan schedule:work &
 PID_SCHED=$!
@@ -55,6 +65,6 @@ echo "  Frontend:  cd frontend && npm run dev"
 echo ""
 
 # Trap Ctrl+C to kill background processes
-trap "echo ''; echo 'Stopping workers...'; kill $PID_QUEUE1 $PID_QUEUE2 $PID_QUEUE3 $PID_SCHED 2>/dev/null; echo 'Done.'; exit" SIGINT SIGTERM
+trap "echo ''; echo 'Stopping workers...'; kill $PID_QUEUE1 $PID_SCHED 2>/dev/null; echo 'Done.'; exit" SIGINT SIGTERM
 
 wait

@@ -34,6 +34,12 @@ class BatchAutoMatchCustomersJob implements ShouldQueue
                 'integration_type' => $this->integration->integration_type,
             ]);
 
+            // CRITICAL: Clear the customer cache to ensure fresh data on first sync
+            // Without this, the first sync may use stale cache and fail to match
+            $companyId = $this->integration->company_id;
+            \Illuminate\Support\Facades\Cache::forget("customer_mapping_list_{$companyId}");
+            Log::debug('Cleared customer mapping cache', ['company_id' => $companyId]);
+
             // Get unmapped customers, but only those that are NEW or UPDATED since last sync
             // This avoids wasteful re-processing of the same unchanged customers every sync
             $query = IntegrationCustomer::where('integration_id', $this->integration->integration_id)

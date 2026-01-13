@@ -85,12 +85,12 @@ class DattoIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
-             // 1. Checkpoint: Resume from last state
+            // 1. Checkpoint: Resume from last state
             $state = json_decode($this->integration->sync_state, true);
-            $phase = $state['phase'] ?? 'sites';
+            $phase = $state['phase'] ?? 'customers';
             $resumeOffset = $state['offset'] ?? 0;
 
-            // 2. Fetch all RMM Sites
+            // 2. Fetch all RMM Sites (single API call - fast)
             $dattoCustomers = $this->client->getCustomers();
             $totalCustomers = count($dattoCustomers);
             
@@ -98,28 +98,68 @@ class DattoIntegration implements IntegrationInterface
                 'integration_id' => $this->integration->integration_id,
                 'customer_count' => $totalCustomers,
                 'resume_offset' => $resumeOffset,
+                'phase' => $phase,
             ]);
 
-            // 3. Slice and Chunk (Batch Size = 5 due to 60/min rate limit)
-            // 5 sites * (1 site + 1 device + 1 alerts) = 15 calls min?
-            // Actually processBatch makes 2 calls (devices + alerts).
-            // 5 sites * 2 calls = 10 calls per job. 6 workers = 60 calls/min. Safe.
-            if ($resumeOffset > 0) {
-                 $dattoCustomers = array_slice($dattoCustomers, $resumeOffset);
-                 $totalProcessed = $resumeOffset;
+            // PHASE 1: Sync ALL customers first (fast - no additional API calls)
+            // This ensures all customers are available for mapping immediately
+            if ($phase === 'customers' || $phase === 'sites') {
+                foreach ($dattoCustomers as $site) {
+                    try {
+                        $standardized = DattoMapper::mapCustomer($site);
+                        $this->storeCustomer($standardized);
+                        $totalProcessed++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Failed to sync customer: {$e->getMessage()}";
+                    }
+                }
+                
+                \Log::info('Datto Integration: All customers synced', [
+                    'integration_id' => $this->integration->integration_id,
+                    'total_customers' => $totalProcessed,
+                ]);
+                
+                // Run auto-match ONLY if there are unmapped customers
+                if (!$this->integration->is_source_of_truth) {
+                    $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                        ->whereNull('customer_id')
+                        ->count();
+                    
+                    if ($unmappedCount > 0) {
+                        BatchAutoMatchCustomersJob::dispatch($this->integration);
+                        \Log::info('Datto Integration: Dispatched auto-match job', [
+                            'integration_id' => $this->integration->integration_id,
+                            'unmapped_count' => $unmappedCount,
+                        ]);
+                    } else {
+                        \Log::info('Datto Integration: Skipped auto-match - all customers mapped', [
+                            'integration_id' => $this->integration->integration_id,
+                        ]);
+                    }
+                }
+                
+                $this->saveSyncState('devices', 0, $totalCustomers);
             }
 
-            collect($dattoCustomers)->chunk(5)->each(function ($chunk) use (&$errors, &$totalProcessed, $totalCustomers) {
-                // Dispatch batch job
-                \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'sites', $chunk->toArray(), $this->currentSyncLogId);
+            // PHASE 2: Dispatch device/alert sync jobs (slow - separate from customers)
+            // Skip if resuming past this phase
+            if ($phase !== 'complete') {
+                $offset = ($phase === 'devices') ? $resumeOffset : 0;
+                $sitesToProcess = array_slice($dattoCustomers, $offset);
                 
-                $totalProcessed += count($chunk);
-                
-                $this->saveSyncState('sites', $totalProcessed, $totalCustomers);
-            });
+                collect($sitesToProcess)->chunk(5)->each(function ($chunk, $index) use ($offset, $totalCustomers) {
+                    \App\Jobs\ProcessIntegrationBatchJob::dispatch(
+                        $this->integration, 
+                        'devices_alerts', 
+                        $chunk->toArray(), 
+                        $this->currentSyncLogId
+                    );
+                    
+                    $this->saveSyncState('devices', $offset + (($index + 1) * 5), $totalCustomers);
+                });
+            }
 
-            // 4. Clear Checkpoint if we finished everything
-            // Note: processBatch handles everything (Sites, Devices, Alerts) in one go for Datto
+            // 4. Clear Checkpoint
             $this->integration->update(['sync_state' => null]);
             
             // 5. Update Cache
@@ -139,7 +179,7 @@ class DattoIntegration implements IntegrationInterface
 
         return [
             'records_synced' => $totalProcessed,
-            'records_new' => 0, // Calculated async
+            'records_new' => 0,
             'customers_mapped' => [],
             'records_failed' => count($errors),
             'errors' => $errors,
@@ -168,8 +208,24 @@ class DattoIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        // Dispatch single batch job to process all unmapped customers
-        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        // For source of truth integrations, customers are mapped inline in storeCustomer()
+        // Skip the async job to avoid redundant processing
+        // For source of truth integrations, customers are usually mapped inline in storeCustomer()
+        // However, we allow the batch job to run as a safety net/self-healing mechanism
+        // in case any customers were missed or created manually.
+
+        // Only dispatch if there are actually unmapped customers
+        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
+        
+        if ($unmappedCount > 0) {
+            BatchAutoMatchCustomersJob::dispatchSync($this->integration);
+            \Log::info('Datto: Dispatched auto-match job', [
+                'integration_id' => $this->integration->integration_id,
+                'unmapped_count' => $unmappedCount,
+            ]);
+        }
         return [];
     }
 
@@ -202,21 +258,18 @@ class DattoIntegration implements IntegrationInterface
     {
         switch ($type) {
             case 'sites':
+                // Legacy: sync site + devices + alerts together
                 foreach ($items as $site) {
                     try {
-                        // 1. Sync Site (Customer)
                         $standardized = DattoMapper::mapCustomer($site);
                         $this->storeCustomer($standardized);
 
-                        // 2. Sync Devices (Historical/Current State)
-                        // Note: Datto site UID is needed for device lookup
                         $siteUid = $site['uid'] ?? $site['organizationId'] ?? null;
                         if ($siteUid) {
                             $this->syncSiteDevices($siteUid, $site);
                             $this->syncSiteAlerts($siteUid, $site);
                         }
 
-                        // Heartbeat (per site is frequent enough for Datto given rate limits)
                         if (method_exists($this, 'sendHeartbeat')) {
                             $this->sendHeartbeat();
                         }
@@ -224,6 +277,30 @@ class DattoIntegration implements IntegrationInterface
                     } catch (\Exception $e) {
                          $siteId = $site['id'] ?? 'unknown';
                          Log::error('Datto Batch: Failed to process site', [
+                             'site_id' => $siteId, 
+                             'error' => $e->getMessage()
+                         ]);
+                    }
+                }
+                break;
+                
+            case 'devices_alerts':
+                // New: sync ONLY devices and alerts (customers already synced)
+                foreach ($items as $site) {
+                    try {
+                        $siteUid = $site['uid'] ?? $site['organizationId'] ?? null;
+                        if ($siteUid) {
+                            $this->syncSiteDevices($siteUid, $site);
+                            $this->syncSiteAlerts($siteUid, $site);
+                        }
+
+                        if (method_exists($this, 'sendHeartbeat')) {
+                            $this->sendHeartbeat();
+                        }
+
+                    } catch (\Exception $e) {
+                         $siteId = $site['id'] ?? 'unknown';
+                         Log::error('Datto Batch: Failed to sync devices/alerts', [
                              'site_id' => $siteId, 
                              'error' => $e->getMessage()
                          ]);
@@ -360,7 +437,16 @@ class DattoIntegration implements IntegrationInterface
             );
 
             $integrationCustomer->refresh();
-            // Batch job processes all unmapped customers at end of sync
+
+            // For source of truth integrations, auto-create unified customer inline
+            // This fixes the race condition where BatchAutoMatchCustomersJob runs
+            // before all batch jobs complete, leaving customers unmapped
+            if ($this->integration->is_source_of_truth && !$integrationCustomer->customer_id) {
+                $this->mappingService->createFromSourceOfTruth(
+                    $integrationCustomer,
+                    $this->integration->integration_type
+                );
+            }
         });
     }
 

@@ -92,23 +92,43 @@ class SendmarcIntegration implements IntegrationInterface
                      $totalProcessed = $resumeOffset;
                 }
                 
-                 \Log::info('Sendmarc sync: Dispatching domains', [
+                \Log::info('Sendmarc sync: Processing domains synchronously', [
                     'count' => count($allDomains),
                     'total' => $totalDomains,
                     'offset' => $resumeOffset
                 ]);
 
-                collect($allDomains)->chunk(10)->each(function ($chunk) use (&$totalProcessed, $totalDomains) {
+                // 1. Synchronous Domain Sync (Customer Creation)
+                foreach ($allDomains as $domain) {
+                     try {
+                        // Create Customer (Phase 1 Logic)
+                        $standardized = SendmarcMapper::mapDomain($domain);
+                        $this->storeCustomer($standardized);
+                        
+                        $totalProcessed++;
+                     } catch (\Exception $e) {
+                         \Log::warning('Sendmarc sync: Domain store failed', [
+                             'domain' => $domain['domain_name'] ?? 'unknown',
+                             'error' => $e->getMessage()
+                         ]);
+                     }
+                }
+                
+                // 2. Immediate Automap
+                $this->processUnmappedCustomers();
+
+                // 3. Dispatch Metric Batches (Phase 2 Logic) - NOW we can do async/batch for data
+                collect($allDomains)->chunk(10)->each(function ($chunk) {
                      \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'domains', $chunk->toArray(), $this->currentSyncLogId);
-                     
-                     $totalProcessed += count($chunk);
-                     $this->saveSyncState('domains', $totalProcessed, $totalDomains);
                 });
+                
+                $this->saveSyncState('domains', $totalProcessed, $totalDomains);
             }
             
             // Completion
             $this->integration->update(['sync_state' => null]);
             $this->updateStatsCache();
+            $this->processUnmappedCustomers();
 
         } catch (\Exception $e) {
             if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
@@ -149,8 +169,18 @@ class SendmarcIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        // Dispatch single batch job to process all unmapped customers
-        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        // Only dispatch if there are actually unmapped customers
+        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
+        
+        if ($unmappedCount > 0) {
+            BatchAutoMatchCustomersJob::dispatchSync($this->integration);
+            \Log::info('Sendmarc: Dispatched auto-match job', [
+                'integration_id' => $this->integration->integration_id,
+                'unmapped_count' => $unmappedCount,
+            ]);
+        }
         return []; // Batch job handles mapping asynchronously
     }
 

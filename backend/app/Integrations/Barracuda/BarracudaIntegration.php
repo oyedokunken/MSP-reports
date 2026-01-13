@@ -113,8 +113,18 @@ class BarracudaIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        // Dispatch single batch job to process all unmapped customers
-        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        // Only dispatch if there are actually unmapped customers
+        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
+        
+        if ($unmappedCount > 0) {
+            BatchAutoMatchCustomersJob::dispatchSync($this->integration);
+            \Log::info('Barracuda: Dispatched auto-match job', [
+                'integration_id' => $this->integration->integration_id,
+                'unmapped_count' => $unmappedCount,
+            ]);
+        }
         return []; // Batch job handles mapping asynchronously
     }
 

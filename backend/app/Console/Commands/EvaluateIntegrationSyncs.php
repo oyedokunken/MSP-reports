@@ -120,7 +120,7 @@ class EvaluateIntegrationSyncs extends Command
     private function isSyncDue(Integration $integration, string $cronSchedule, Carbon $now): bool
     {
         if (!$integration->last_sync_at) {
-            return true;
+            return false; // Wait for manual initial sync
         }
 
         $intervalMinutes = $this->parseCronInterval($cronSchedule);

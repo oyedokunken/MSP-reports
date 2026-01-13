@@ -96,23 +96,25 @@ class SaaSIntegration implements IntegrationInterface
                 // Heartbeat per item
                 $this->sendHeartbeat();
                 
-                 try {
-                     // 1. Create Customer (Sync Logic)
-                     // Validate required fields
-                    if (empty($customer['external_id']) || empty($customer['name'])) {
+                try {
+                    // 1. Map to Standard Format
+                    $mappedCustomer = SaaSMapper::mapCustomer($customer);
+
+                    // Validate required fields
+                    if (empty($mappedCustomer['external_id']) || empty($mappedCustomer['name'])) {
                         continue;
                     }
-            
-                    $integrationCustomer = DB::transaction(function () use ($customer) {
+
+                    $integrationCustomer = DB::transaction(function () use ($mappedCustomer) {
                         return IntegrationCustomer::updateOrCreate(
                             [
                                 'integration_id' => $this->integration->integration_id,
-                                'external_id' => $customer['external_id'],
+                                'external_id' => $mappedCustomer['external_id'],
                             ],
                             [
-                                'name' => $customer['name'],
-                                'metadata' => $customer['metadata'],
-                                'active' => $customer['active'],
+                                'name' => $mappedCustomer['name'],
+                                'metadata' => $mappedCustomer['metadata'],
+                                'active' => $mappedCustomer['active'],
                                 'last_seen_at' => now(),
                             ]
                         );
@@ -121,7 +123,7 @@ class SaaSIntegration implements IntegrationInterface
                      // 2. Fetch Events (Sync Logic)
                      // Fetch recent security events for this customer (last 24 hours)
                      $events = $this->client->getEvents([
-                        'customerId' => $customer['id'],
+                        'customerId' => $mappedCustomer['external_id'],
                         'start' => now()->subHours(24)->format('Y-m-d'),
                         'end' => now()->format('Y-m-d'),
                         'size' => 100, // Reasonable batch for regular sync
@@ -174,17 +176,31 @@ class SaaSIntegration implements IntegrationInterface
                      $totalProcessed = $resumeOffset;
                 }
                 
-                Log::info('SaaS Alerts sync: Dispatching customers', [
+                // 1. Synchronous Customer Sync (Match Datto Pattern)
+                foreach ($saasCustomers as $customer) {
+                    try {
+                        $standardized = SaaSMapper::mapCustomer($customer);
+                        $this->storeCustomer($standardized);
+                        $totalProcessed++;
+                    } catch (\Exception $e) {
+                         // Gracefully handle individual failures
+                         Log::warning('SaaS Sync: Customer store failed', ['error' => $e->getMessage()]);
+                    }
+                }
+                
+                // 2. Auto-Map Logic (Fetch unmapped -> Auto Map)
+                $this->processUnmappedCustomers();
+
+                Log::info('SaaS Alerts sync: Customers synced, dispatching event batches', [
                     'count' => count($saasCustomers),
-                    'total' => $totalCustomers,
-                    'offset' => $resumeOffset
+                    'total_processed' => $totalProcessed,
                 ]);
                 
-                 collect($saasCustomers)->chunk(10)->each(function ($chunk) use (&$totalProcessed, $totalCustomers) {
+                // 3. Dispatch Event Fetching Batches
+                 collect($saasCustomers)->chunk(10)->each(function ($chunk) use ($totalCustomers) {
+                     // Note: processBatch will still verify customer existence/update metadata
                      \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'customers', $chunk->toArray(), $this->currentSyncLogId);
-                     
-                     $totalProcessed += count($chunk);
-                     $this->saveSyncState('customers', $totalProcessed, $totalCustomers);
+                     $this->saveSyncState('customers', 0, $totalCustomers); // Tracking handled partly by batches
                 });
             }
 
@@ -229,8 +245,18 @@ class SaaSIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        // Dispatch single batch job to process all unmapped customers
-        BatchAutoMatchCustomersJob::dispatch($this->integration);
+        // Only dispatch if there are actually unmapped customers
+        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
+        
+        if ($unmappedCount > 0) {
+            BatchAutoMatchCustomersJob::dispatchSync($this->integration);
+            \Log::info('SaaS: Dispatched auto-match job', [
+                'integration_id' => $this->integration->integration_id,
+                'unmapped_count' => $unmappedCount,
+            ]);
+        }
         return []; // Batch job handles mapping asynchronously
     }
 
