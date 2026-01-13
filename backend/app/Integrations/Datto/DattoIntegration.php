@@ -143,17 +143,19 @@ class DattoIntegration implements IntegrationInterface
 
             // PHASE 2: Dispatch device/alert sync jobs (slow - separate from customers)
             // Skip if resuming past this phase
+            $batchesDispatched = 0;
             if ($phase !== 'complete') {
                 $offset = ($phase === 'devices') ? $resumeOffset : 0;
                 $sitesToProcess = array_slice($dattoCustomers, $offset);
                 
-                collect($sitesToProcess)->chunk(5)->each(function ($chunk, $index) use ($offset, $totalCustomers) {
+                collect($sitesToProcess)->chunk(5)->each(function ($chunk, $index) use ($offset, $totalCustomers, &$batchesDispatched) {
                     \App\Jobs\ProcessIntegrationBatchJob::dispatch(
                         $this->integration, 
                         'devices_alerts', 
                         $chunk->toArray(), 
                         $this->currentSyncLogId
                     );
+                    $batchesDispatched++;
                     
                     $this->saveSyncState('devices', $offset + (($index + 1) * 5), $totalCustomers);
                 });
@@ -183,6 +185,7 @@ class DattoIntegration implements IntegrationInterface
             'customers_mapped' => [],
             'records_failed' => count($errors),
             'errors' => $errors,
+            'batches_dispatched' => $batchesDispatched ?? 0,
         ];
     }
     
@@ -208,13 +211,6 @@ class DattoIntegration implements IntegrationInterface
 
     private function processUnmappedCustomers(): array
     {
-        // For source of truth integrations, customers are mapped inline in storeCustomer()
-        // Skip the async job to avoid redundant processing
-        // For source of truth integrations, customers are usually mapped inline in storeCustomer()
-        // However, we allow the batch job to run as a safety net/self-healing mechanism
-        // in case any customers were missed or created manually.
-
-        // Only dispatch if there are actually unmapped customers
         $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->count();
@@ -254,8 +250,17 @@ class DattoIntegration implements IntegrationInterface
         ]);
     }
 
+    protected $lastBatchProcessedCount = 0;
+
+    public function getLastBatchProcessedCount(): int
+    {
+        return $this->lastBatchProcessedCount;
+    }
+
     public function processBatch(string $type, array $items): void
     {
+        $this->lastBatchProcessedCount = 0;
+
         switch ($type) {
             case 'sites':
                 // Legacy: sync site + devices + alerts together
@@ -314,15 +319,15 @@ class DattoIntegration implements IntegrationInterface
     {
         try {
             $devices = $this->client->getRmmDevices($siteUid);
-            foreach ($devices as $device) {
-                try {
-                    $this->storeDeviceData($device, $site, now());
-                } catch (\Exception $e) {
-                    Log::error("Datto Batch: Device store failed", ['device' => $device['hostname'] ?? 'unknown']);
-                }
-            }
+            
+            // Chunk to avoid massive SQL queries (e.g. 65k parameters limit)
+            collect($devices)->chunk(500)->each(function ($chunk) use ($site) {
+                $this->bulkStoreDevices($chunk->toArray(), $site);
+                $this->lastBatchProcessedCount += count($chunk);
+            });
+            
         } catch (\App\Integrations\Exceptions\RateLimitException $e) {
-            throw $e; // Let Job handle backoff
+            throw $e; 
         } catch (\Exception $e) {
             Log::error("Datto Batch: Device fetch failed for site $siteUid", ['error' => $e->getMessage()]);
         }
@@ -331,26 +336,187 @@ class DattoIntegration implements IntegrationInterface
     protected function syncSiteAlerts(string $siteUid, array $site): void
     {
         try {
+            $allAlerts = [];
+            
             // Open Alerts
             $openAlerts = $this->client->getRmmAlerts($siteUid, true);
-            foreach ($openAlerts as $alert) {
-                $this->storeAlertData($alert, $site);
-            }
+            $allAlerts = array_merge($allAlerts, $openAlerts);
             
-            // Resolved Alerts (Last 90 days or just recent? Implementation plan implies consolidated sync)
-            // Let's grab distinct recent window to be safe, e.g., 24 hours, or rely on full historical import separately?
-            // The plan said "Consolidate sync and getHistoricalData".
-            // Let's fetch reasonably recent history (e.g. 7 days) to ensure we capture updates.
+            // Resolved Alerts (Recent 7 days)
             $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, now()->subDays(7));
-             foreach ($resolvedAlerts as $alert) {
-                $this->storeAlertData($alert, $site);
-            }
+            $allAlerts = array_merge($allAlerts, $resolvedAlerts);
+
+            collect($allAlerts)->chunk(500)->each(function ($chunk) use ($site) {
+                $this->bulkStoreAlerts($chunk->toArray(), $site);
+                $this->lastBatchProcessedCount += count($chunk);
+            });
 
         } catch (\App\Integrations\Exceptions\RateLimitException $e) {
             throw $e;
         } catch (\Exception $e) {
              Log::error("Datto Batch: Alert fetch failed for site $siteUid", ['error' => $e->getMessage()]);
         }
+    }
+
+    protected function bulkStoreDevices(array $devices, array $site): void
+    {
+        $siteUid = $site['uid'] ?? $site['id'] ?? null;
+        if (!$siteUid) return;
+
+        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('external_id', $siteUid)
+            ->first();
+
+        if (!$integrationCustomer) return;
+
+        $insertData = [];
+        $deviceUids = [];
+        $now = now();
+
+        foreach ($devices as $device) {
+            $deviceUid = $device['uid'] ?? null;
+            if (!$deviceUid) continue;
+
+            $deviceUids[] = $deviceUid;
+
+            $payload = [
+                'device_uid' => $deviceUid,
+                'hostname' => $device['hostname'] ?? 'Unknown',
+                'type' => $device['deviceType']['category'] ?? 'server',
+                'os' => $device['operatingSystem']['name'] ?? 'Unknown',
+                'ip_address' => $device['internalIp'] ?? null,
+                'status' => $device['online'] ? 'online' : 'offline',
+                'last_seen' => isset($device['lastAuditDate']) ? Carbon::parse($device['lastAuditDate'])->toIso8601String() : null,
+                'model' => $device['model'] ?? null,
+                'manufacturer' => $device['manufacturer'] ?? null,
+                // Add backup status if available
+            ];
+
+            $insertData[] = [
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'data_type' => 'device_status',
+                'data_timestamp' => isset($device['lastAuditDate']) ? Carbon::parse($device['lastAuditDate']) : $now,
+                'data_payload' => json_encode($payload),
+                'imported_at' => $now,
+                'data_version' => 1,
+            ];
+        }
+
+        if (empty($insertData)) return;
+
+        DB::transaction(function () use ($deviceUids, $insertData) {
+            // 1. Delete existing (Simulation of Upsert)
+             // We use native raw query for JSON extraction efficiency if needed, but string matching is robust enough here
+            IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', 'device_status')
+                ->where(function($query) use ($deviceUids) {
+                    // Safe approach: Since UIDs are strings, we can rely on proper quoting?
+                    // Or better, just fetch IDs to delete? No, that's a Select.
+                    // Postgres JSONB containment: data_payload @> '{"device_uid": "xyz"}'
+                    // BUT that's hard to batch.
+                    // Let's rely on the textual extraction.
+                    // "whereRaw" with bindings is safest.
+                    // But bindings limit? 65k. 500 items * 1 params = 500. Safe.
+                    
+                    // Actually, simpler: Assuming data_payload is cast to array in model, but here we query DB.
+                    // Let's use string operations on JSON if simple, or just use the fact that we can't easily index it.
+                    // Wait, if no unique index, maybe we don't care to delete?
+                    // NO, we MUST delete, otherwise we get duplicates every sync.
+                    
+                    // Optimized Delete:
+                    // Postgres: DELETE FROM integration_data WHERE integration_id = ? AND data_type = 'device_status' 
+                    // AND data_payload->>'device_uid' = ANY(?)
+                    $query->whereRaw("data_payload->>'device_uid' = ANY(?)", ['{' . implode(',', $deviceUids) . '}']); 
+                })
+                ->delete();
+
+            // 2. Insert New
+            IntegrationData::insert($insertData);
+        });
+    }
+
+    protected function bulkStoreAlerts(array $alerts, array $site): void
+    {
+        $siteUid = $site['uid'] ?? $site['id'] ?? null;
+        if (!$siteUid) return;
+
+        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('external_id', $siteUid)
+            ->first();
+
+        if (!$integrationCustomer) return;
+
+        $insertData = [];
+        $alertUids = [];
+        $now = now();
+
+        foreach ($alerts as $alert) {
+            $alertUid = $alert['alertUid'] ?? $alert['uid'] ?? null;
+            if (!$alertUid) continue;
+            
+            $alertUids[] = $alertUid;
+
+            // ... (Logic from storeAlertData) ...
+            $priority = $alert['priority'] ?? 'Information';
+            $description = $alert['diagnostics'] ?? $alert['alertMessage'] ?? 'No details';
+            $deviceName = $alert['alertSourceInfo']['deviceName'] ?? $alert['hostname'] ?? 'Unknown';
+            $deviceUid = $alert['alertSourceInfo']['deviceUid'] ?? $alert['deviceUid'] ?? null;
+            $resolved = $alert['resolved'] ?? false;
+            $muted = $alert['muted'] ?? false;
+            $ticketNumber = $alert['ticketNumber'] ?? null;
+            
+            $timestamp = $now;
+            if (isset($alert['timestamp'])) {
+                $timestamp = Carbon::createFromTimestampMs($alert['timestamp']);
+            } elseif (isset($alert['alertDate'])) {
+                $timestamp = Carbon::parse($alert['alertDate']);
+            }
+            
+            $resolvedAt = null;
+            if ($resolved && isset($alert['resolvedOn'])) {
+                $resolvedAt = Carbon::createFromTimestampMs($alert['resolvedOn'])->toIso8601String();
+            }
+
+            $payload = [
+                'alert_uid' => $alertUid,
+                'device_uid' => $deviceUid,
+                'device_name' => $deviceName,
+                'priority' => $priority,
+                'description' => $description,
+                'source' => $alert['alertContext']['source'] ?? $alert['source'] ?? null,
+                'event_type' => $alert['alertContext']['type'] ?? $alert['category'] ?? null,
+                'resolved' => $resolved,
+                'resolved_at' => $resolvedAt,
+                'muted' => $muted,
+                'ticket_number' => $ticketNumber,
+            ];
+
+            $insertData[] = [
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'data_type' => 'alert',
+                'data_timestamp' => $timestamp,
+                'data_payload' => json_encode($payload),
+                'imported_at' => $now,
+                'data_version' => 1,
+            ];
+        }
+
+        if (empty($insertData)) return;
+
+        DB::transaction(function () use ($alertUids, $insertData) {
+            // Delete existing
+            IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', 'alert')
+                ->whereRaw("data_payload->>'alert_uid' = ANY(?)", ['{' . implode(',', $alertUids) . '}'])
+                ->delete();
+
+            // Insert New
+            IntegrationData::insert($insertData);
+        });
     }
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array

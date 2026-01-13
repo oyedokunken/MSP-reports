@@ -18,6 +18,11 @@ class SyncEngine
             'started_at' => now(),
         ]);
 
+        // IMMEDIATELY update status so UI reflects "Syncing" instantly (removes race condition)
+        $integration->update([
+            'last_sync_status' => 'syncing'
+        ]);
+
         SyncIntegrationJob::dispatch($integration, $syncLog)->onQueue($priority);
 
         return $syncLog;

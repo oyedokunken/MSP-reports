@@ -57,6 +57,24 @@ class SyncIntegrationJob implements ShouldQueue
                 'status' => 'running',
                 'error_messages' => null // Clear any errors from previous retries
             ]);
+
+            // Update Integration status to reflect active sync in UI immediately
+            $this->integration->update([
+                'last_sync_status' => 'syncing' 
+            ]);
+
+            // Prevent overlapping syncs (Double-check)
+            // The WithoutOverlapping middleware handles job locking, but since we dispatch batches and return,
+            // the lock releases early. We must check DB state to ensure no other logical sync is active.
+            $activeSyncExists = \App\Models\SyncLog::where('integration_id', $this->integration->integration_id)
+                ->whereIn('status', ['running', 'processing_batches']) // 'processing_batches' is legacy but safe to check
+                ->where('sync_id', '!=', $this->syncLog->sync_id)
+                ->where('created_at', '>', now()->subHours(2)) // Ignore stale (>2h) syncs that cleanup hasn't caught yet
+                ->exists();
+
+            if ($activeSyncExists) {
+                throw new \Exception("Sync aborted: Another sync is currently in progress.");
+            }
             
             $integrationClass = $this->loadIntegrationClass();
 
@@ -103,21 +121,46 @@ class SyncIntegrationJob implements ShouldQueue
                 'records_failed' => $recordsFailed,
                 'customers_mapped_count' => count($customersMapped),
                 'customers_mapped' => $customersMapped,
+                'batches_dispatched' => $result['batches_dispatched'] ?? 0
             ]);
             
-            $syncEngine->completeSyncLog(
-                $this->syncLog,
-                'success',
-                $recordsSynced,
-                $recordsFailed,
-                $result['errors'] ?? [],
-                $customersMapped
-            );
+            // DEFER COMPLETIION IF BATCHES ARE RUNNING
+            if (($result['batches_dispatched'] ?? 0) > 0) {
+                 $batchCount = $result['batches_dispatched'];
+                 
+                 // Initialize Redis counters
+                 \Illuminate\Support\Facades\Redis::connection()->set("sync_log:{$this->syncLog->sync_id}:pending", $batchCount);
+                 // 1 day expiry
+                 \Illuminate\Support\Facades\Redis::connection()->expire("sync_log:{$this->syncLog->sync_id}:pending", 86400);
 
-            Log::info('Integration sync completed', [
-                'integration_id' => $this->integration->integration_id,
-                'records_synced' => $recordsSynced,
-            ]);
+                 // Update status to intermediate state
+                 $this->syncLog->update([
+                     'status' => 'running', 
+                     'records_synced' => $recordsSynced // Update initial count (customers)
+                 ]);
+                 
+                 Log::info('Integration sync deferred - processing background batches', [
+                     'integration_id' => $this->integration->integration_id,
+                     'batches' => $batchCount,
+                     'sync_id' => $this->syncLog->sync_id
+                 ]);
+                 
+                 // DO NOT call completeSyncLog here - let the final batch job do it
+            } else {
+                $syncEngine->completeSyncLog(
+                    $this->syncLog,
+                    'success',
+                    $recordsSynced,
+                    $recordsFailed,
+                    $result['errors'] ?? [],
+                    $customersMapped
+                );
+    
+                Log::info('Integration sync completed', [
+                    'integration_id' => $this->integration->integration_id,
+                    'records_synced' => $recordsSynced,
+                ]);
+            }
 
         } catch (\Exception $e) {
             Log::error('Integration sync failed', [

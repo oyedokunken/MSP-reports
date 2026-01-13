@@ -57,7 +57,61 @@ class ProcessIntegrationBatchJob implements ShouldQueue
             }
             
             if (method_exists($instance, 'processBatch')) {
-                $instance->processBatch($this->type, $this->items);
+                
+                try {
+                    $instance->processBatch($this->type, $this->items);
+                } catch (\Exception $e) {
+                    Log::error("Batch processing failed for Sync #{$this->syncLogId}", [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    // We arguably should re-throw so the job fails and retries?
+                    // But if we re-throw, we DON'T decrement the counter, so the sync hangs.
+                    // If we catch and continue, we decrement, sync finishes (maybe partial), but data is lost.
+                    // Better approach: Decrement here (mark done), but log error. 
+                    // Ideally we would have a 'records_failed' counter in Redis too.
+                    throw $e;
+                } finally {
+                    // ALWAYS decrement the pending counter, even on failure
+                    if ($this->syncLogId) {
+                        try {
+                            $redis = \Illuminate\Support\Facades\Redis::connection();
+                            $remaining = $redis->decr("sync_log:{$this->syncLogId}:pending");
+                            
+                            // UPDATE LIVE RECORD COUNT
+                            if (method_exists($instance, 'getLastBatchProcessedCount')) {
+                                $addedRecords = $instance->getLastBatchProcessedCount();
+                                if ($addedRecords > 0) {
+                                    \App\Models\SyncLog::where('sync_id', $this->syncLogId)
+                                        ->increment('records_synced', $addedRecords);
+                                }
+                            }
+
+                            Log::info("Method batch finished. Remaining: {$remaining}", ['sync_id' => $this->syncLogId]);
+                            
+                            if ($remaining <= 0) {
+                                $syncEngine = app(\App\Services\SyncEngine::class);
+                                $syncLog = \App\Models\SyncLog::find($this->syncLogId);
+                                
+                                if ($syncLog) {
+                                     // Mark success (or we could check for failures if we tracked them)
+                                     // Pass NULL for records_synced so we don't overwrite the incremented value
+                                     // Or re-fetch the latest value
+                                     $syncLog->refresh();
+                                     $syncEngine->completeSyncLog($syncLog, 'success', $syncLog->records_synced ?? 0);
+                                     
+                                     Log::info("Final batch completed for Sync #{$this->syncLogId}. Marked as success.");
+                                     
+                                     // Clean up redis key
+                                     $redis->del("sync_log:{$this->syncLogId}:pending");
+                                }
+                            }
+                        } catch (\Exception $redisEx) {
+                           Log::error("Failed to update sync status in Redis", ['error' => $redisEx->getMessage()]);
+                        }
+                    }
+                }
+                
             } else {
                 throw new \Exception("Integration {$className} does not support batch processing");
             }

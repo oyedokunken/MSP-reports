@@ -30,25 +30,26 @@ echo "Press Ctrl+C to stop"
 cd backend
 
 # Clear stale jobs and restart signal to ensure clean state
-echo "Clearing stale queue jobs..."
+# Clear stale jobs and restart signal to ensure clean state
+echo "Restarting queues..."
 php artisan queue:restart 2>/dev/null
-php artisan queue:flush 2>/dev/null
-php artisan queue:clear 2>/dev/null
+# php artisan queue:flush 2>/dev/null  <-- DISABLED: Do not wipe pending jobs
+# php artisan queue:clear 2>/dev/null  <-- DISABLED: Do not wipe pending jobs
 
 # Fix any stuck queued sync logs from previous runs
 php artisan tinker --execute="\App\Models\SyncLog::where('status', 'queued')->update(['status' => 'failed', 'completed_at' => now()]);" 2>/dev/null
 
 echo "Starting Worker 1..."
-php artisan queue:work --queue=high,default,low --memory=128 --timeout=300 --sleep=3 &
+php artisan queue:work --queue=high,default,low --memory=1024 --timeout=300 --sleep=3 &
 PID_QUEUE1=$!
 
-# Worker 2 and 3 commented out - enable if you have 4GB+ free RAM
-# echo "Starting Worker 2..."
-# php artisan queue:work --queue=high,default,low --memory=128 --timeout=300 --sleep=3 &
-# PID_QUEUE2=$!
+echo "Starting Worker 2..."
+php artisan queue:work --queue=high,default,low --memory=1024 --timeout=300 --sleep=3 &
+PID_QUEUE2=$!
 
+# Worker 3 DISABLED for stability (Prevents OOM)
 # echo "Starting Worker 3..."
-# php artisan queue:work --queue=high,default,low --memory=128 --timeout=300 --sleep=3 &
+# php artisan queue:work --queue=high,default,low --memory=1024 --timeout=300 --sleep=3 &
 # PID_QUEUE3=$!
 
 php artisan schedule:work &

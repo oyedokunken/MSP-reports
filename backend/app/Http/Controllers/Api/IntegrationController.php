@@ -111,6 +111,11 @@ class IntegrationController extends Controller
             return null;
         }
 
+        // If currently syncing, return a past date to trigger "Syncing soon..." in frontend
+        if ($integration->last_sync_status === 'syncing') {
+            return now()->subSeconds(5)->toISOString();
+        }
+
         $syncSchedule = $integration->sync_schedule ?? $this->getDefaultSchedule($integration->integration_type);
         $intervalMinutes = $this->parseCronInterval($syncSchedule);
         
