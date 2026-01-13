@@ -5,6 +5,14 @@ import Pusher from 'pusher-js';
 window.Pusher = Pusher;
 
 export const initEcho = (token: string) => {
+  // Only initialize if WebSocket is enabled (useful for development)
+  const isEnabled = import.meta.env.VITE_REVERB_ENABLED !== 'false';
+  
+  if (!isEnabled) {
+    console.log('📡 Echo disabled (VITE_REVERB_ENABLED=false)');
+    return null;
+  }
+
   const echo = new Echo({
     broadcaster: 'reverb',
     key: import.meta.env.VITE_REVERB_APP_KEY || 'reporting_key',

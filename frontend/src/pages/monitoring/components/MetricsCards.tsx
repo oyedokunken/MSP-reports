@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Cable, FileText, ListChecks, TrendingUp, TrendingDown, CheckCircle, XCircle } from 'lucide-react'
 import type { IntegrationMetrics, ReportMetrics, QueueMetrics, SystemStatus } from '@/stores/useMonitoringStore'
 import { SystemStatusMetricCard } from './SystemStatusMetricCard'
@@ -69,7 +70,13 @@ export function MetricsCards({ systemStatus, integrationMetrics, reportMetrics, 
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-full" />
+            </div>
           )}
         </CardContent>
       </Card>
@@ -115,7 +122,13 @@ export function MetricsCards({ systemStatus, integrationMetrics, reportMetrics, 
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-full" />
+            </div>
           )}
         </CardContent>
       </Card>
@@ -158,7 +171,11 @@ export function MetricsCards({ systemStatus, integrationMetrics, reportMetrics, 
               </div>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+            </div>
           )}
         </CardContent>
       </Card>

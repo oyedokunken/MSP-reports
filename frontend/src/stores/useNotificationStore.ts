@@ -247,6 +247,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     const echoInstance = initEcho(token)
     
+    // If Echo is disabled, don't try to listen
+    if (!echoInstance) {
+      console.log('📡 Real-time notifications disabled')
+      return
+    }
+    
     // Listen for Laravel Notifications on private channel
     echoInstance.private(`App.Models.User.${user_id}`)
       .notification((notification: any) => {

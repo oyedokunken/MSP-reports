@@ -16,57 +16,47 @@ Check-Service "postgresql*"
 Check-Service "redis*"
 
 Write-Host "--------------------------------"
-Write-Host "🚀 Starting Laravel Workers..."
-Write-Host "The window will stay open to keep workers running." -ForegroundColor Cyan
-Write-Host "Press Ctrl+C to stop all workers." -ForegroundColor Yellow
+Write-Host "🚀 Starting Laravel Workers in Docker..." -ForegroundColor Cyan
 
 # Ensure we are in the backend directory
 if (Test-Path "backend") {
+    $originalDir = Get-Location
     Set-Location "backend"
+    
+    # Check if Docker is running
+    try {
+        docker ps > $null
+    } catch {
+        Write-Host "❌ Docker is NOT running. Please start Docker Desktop." -ForegroundColor Red
+        Set-Location $originalDir
+        exit
+    }
+
+    Write-Host "Starting workers and Gotenberg..." -ForegroundColor Gray
+    docker compose up -d --build --scale queue-worker=3
+    
+    Write-Host ""
+    Write-Host "✅ Workers and Gotenberg are running in Docker." -ForegroundColor Green
+    Write-Host "   - 3 Queue Workers" -ForegroundColor Gray
+    Write-Host "   - 1 Scheduler" -ForegroundColor Gray
+    Write-Host "   - Gotenberg" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Logs: docker compose logs -f" -ForegroundColor Cyan
+} else {
+    Write-Host "❌ Backend directory not found." -ForegroundColor Red
+    exit
 }
 
-$backendPath = (Get-Location).Path
-$jobs = @()
+Write-Host "Press Ctrl+C to stop all workers and exit." -ForegroundColor Yellow
 
-# Function to start a worker job
-function Start-LaravelJob {
-    param($name, $command)
-    Write-Host "Starting $name..."
-    return Start-Job -Name $name -ScriptBlock {
-        param($path, $cmd)
-        Set-Location $path
-        # Run php artisan via cmd to ensure separate process context
-        Invoke-Expression "php artisan $cmd"
-    } -ArgumentList $backendPath, $command
-}
-
-$jobs += Start-LaravelJob "Worker-1" "queue:work --queue=high,default,low"
-$jobs += Start-LaravelJob "Worker-2" "queue:work --queue=high,default,low"
-$jobs += Start-LaravelJob "Worker-3" "queue:work --queue=high,default,low"
-$jobs += Start-LaravelJob "Scheduler" "schedule:work"
-
-Write-Host ""
-Write-Host "✅ All workers started." -ForegroundColor Green
-Write-Host "Monitoring workers (errors will appear here)..." -ForegroundColor Gray
-
+# Keep this script running to allow easy Ctrl+C to stop
 try {
-    # Keep the script running and output job errors if they finish
     while ($true) {
-        foreach ($job in $jobs) {
-            if ($job.State -ne "Running" -and $job.State -ne "Completed") {
-                Write-Host "⚠️  Job $($job.Name) is in state: $($job.State)" -ForegroundColor Yellow
-            }
-            # Receive results (errors or output)
-            Receive-Job -Job $job
-        }
-        Start-Sleep -Seconds 2
+        Start-Sleep -Seconds 10
     }
 }
 finally {
-    Write-Host "`nStopping all workers..." -ForegroundColor Yellow
-    foreach ($job in $jobs) {
-        Stop-Job -Job $job -ErrorAction SilentlyContinue
-        Remove-Job -Job $job -ErrorAction SilentlyContinue
-    }
-    Write-Host "✅ All workers stopped." -ForegroundColor Green
+    Write-Host "`n🛑 Stopping Docker containers..." -ForegroundColor Yellow
+    docker compose stop
+    Write-Host "Done." -ForegroundColor Gray
 }

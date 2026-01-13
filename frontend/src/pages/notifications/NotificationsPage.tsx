@@ -36,6 +36,7 @@ import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { useToast } from '@/components/ui/Toast'
 import { groupNotificationsByDate } from '@/utils/notificationUtils'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function NotificationsPage() {
   const toast = useToast()
@@ -351,9 +352,29 @@ export default function NotificationsPage() {
         {/* List Section */}
         <AnimatedCard className="p-0 overflow-hidden min-h-[400px]">
           {isLoading ? (
-            <div className="p-20 flex flex-col items-center justify-center gap-4">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
-              <p className="text-muted-foreground animate-pulse">Loading notifications...</p>
+            <div className="divide-y divide-border">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 mt-1">
+                      <Skeleton className="h-3 w-3 rounded-full" />
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-2 w-2 rounded-full" />
+                      </div>
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                      <div className="flex items-center gap-3 mt-2">
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-1 w-1 rounded-full" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : error ? (
             <div className="p-12">

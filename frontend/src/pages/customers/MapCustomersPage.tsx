@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { IntegrationCustomer } from "./types";
 
 type SortField = 'name' | 'integration_type' | 'external_id' | 'last_seen_at';
@@ -30,7 +31,7 @@ export default function MapCustomersPage() {
     const setUnmappedSearchQuery = useCustomersStore((state) => state.setUnmappedSearchQuery);
 
     const [searchQuery, setSearchQuery] = useState(unmappedSearchQuery);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [sortField, setSortField] = useState<SortField>('name');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -266,14 +267,33 @@ export default function MapCustomersPage() {
                                             </thead>
                                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                                 {isLoading ? (
-                                                    <tr>
-                                                        <td colSpan={7} className="p-12 text-center text-muted-foreground">
-                                                            <div className="flex flex-col items-center gap-2">
-                                                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                                                                Fetching customers...
-                                                            </div>
-                                                        </td>
-                                                    </tr>
+                                                    <>
+                                                        {[1, 2, 3, 4, 5].map((i) => (
+                                                            <tr key={i}>
+                                                                <td className="w-12 p-4">
+                                                                    <Skeleton className="h-4 w-4" />
+                                                                </td>
+                                                                <td className="p-4">
+                                                                    <Skeleton className="h-5 w-48" />
+                                                                </td>
+                                                                <td className="p-4">
+                                                                    <Skeleton className="h-5 w-20" />
+                                                                </td>
+                                                                <td className="p-4">
+                                                                    <Skeleton className="h-5 w-24" />
+                                                                </td>
+                                                                <td className="p-4">
+                                                                    <Skeleton className="h-4 w-28" />
+                                                                </td>
+                                                                <td className="p-4">
+                                                                    <Skeleton className="h-5 w-16" />
+                                                                </td>
+                                                                <td className="p-4 text-right">
+                                                                    <Skeleton className="h-8 w-28 ml-auto" />
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </>
                                                 ) : sortedCustomers.length === 0 ? (
                                                     <tr>
                                                         <td colSpan={7} className="p-12 text-center text-muted-foreground">
