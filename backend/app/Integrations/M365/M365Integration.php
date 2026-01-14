@@ -96,4 +96,12 @@ class M365Integration implements IntegrationInterface
             'requests_per_hour' => 1000,
         ];
     }
+
+    /**
+     * Get licensing info for a specific user
+     */
+    public function getUserLicensing(string $upn): array
+    {
+        return $this->client->getUserLicensing($upn);
+    }
 }
