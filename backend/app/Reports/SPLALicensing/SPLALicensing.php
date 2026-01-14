@@ -3,23 +3,21 @@
 namespace App\Reports\SPLALicensing;
 
 use App\Models\Customer;
+use App\Models\ActiveDirectoryLicenseAssignment;
+use App\Models\ActiveDirectoryUser;
 use App\Reports\Contracts\BaseReport;
 use Carbon\Carbon;
-use App\Services\ActiveDirectorySPLAService;
 
 class SPLALicensing extends BaseReport
 {
-    protected ActiveDirectorySPLAService $splaService;
-
     public function __construct(int $companyId)
     {
         parent::__construct($companyId);
-        $this->splaService = new ActiveDirectorySPLAService();
     }
 
     public function getRequiredDataTypes(): array
     {
-        return ['active_directory_user', 'active_directory_group'];
+        return ['active_directory_license_assignment', 'active_directory_user'];
     }
 
     public function getRequiredHistoricalRange(): int
@@ -41,39 +39,62 @@ class SPLALicensing extends BaseReport
             return false;
         }
 
-        // Check if there are users and groups mapped
-        // Note: We check if any AD users exist for this customer
-        $hasUsers = \App\Models\ActiveDirectoryUser::where('company_id', $this->companyId)
+        // Check if there are license assignments
+        $hasLicenses = ActiveDirectoryLicenseAssignment::where('company_id', $this->companyId)
             ->where('customer_id', $customer->customer_id)
             ->exists();
 
-        return $hasUsers;
+        return $hasLicenses;
     }
 
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
-        // Check for custom keywords in options or customer config
-        $customKeywords = $options['keywords'] ?? $customer->report_configuration['spla_keywords'] ?? null;
+        // 1. Fetch License Assignments
+        $assignments = ActiveDirectoryLicenseAssignment::where('company_id', $this->companyId)
+            ->where('customer_id', $customer->customer_id)
+            ->get();
 
-        if ($customKeywords) {
-            $this->splaService->setProductKeywords($customKeywords);
+        // 2. Fetch User details for these assignments (to get Display Name, etc)
+        // Note: The assignment model has user_sam_account_name. We need to map it to real users.
+        $samAccountNames = $assignments->pluck('user_sam_account_name')->unique();
+        
+        $users = ActiveDirectoryUser::where('company_id', $this->companyId)
+            ->where('customer_id', $customer->customer_id)
+            ->whereIn('sam_account_name', $samAccountNames)
+            ->get()
+            ->keyBy('sam_account_name');
+
+        // 3. Group by License Name (Product)
+        $splaCounts = [];
+        $grouped = $assignments->groupBy('license_name');
+
+        foreach ($grouped as $licenseName => $items) {
+            $userList = [];
+            foreach ($items as $item) {
+                $user = $users->get($item->user_sam_account_name);
+                $userList[] = [
+                    'upn' => $user ? $user->user_principal_name : $item->user_dn,
+                    'display_name' => $user ? $user->display_name : ($item->user_sam_account_name),
+                    'qualifying_groups' => [$item->assigned_via_group], // Agent sends single group source per row usually
+                ];
+            }
+            
+            $splaCounts[$licenseName] = [
+                'count' => count($userList),
+                'users' => $userList,
+            ];
         }
 
-        $splaCounts = $this->splaService->getSPLACounts($this->companyId, $customer->customer_id);
-
-        $totalSPLAUsers = collect($splaCounts)->sum('count');
+        $totalSPLAUsers = $assignments->unique('user_sam_account_name')->count();
 
         // Identify products with users
-        $activeProducts = collect($splaCounts)
-            ->filter(fn($data) => $data['count'] > 0)
-            ->keys()
-            ->toArray();
+        $activeProducts = array_keys($splaCounts);
 
         // Create executive summary
         $executiveSummary = [
             'total_spla_users' => $totalSPLAUsers,
             'active_products' => $activeProducts,
-            'product_breakdown' => collect($splaCounts)->map(fn($data) => $data['count'])->filter(fn($c) => $c > 0)->toArray(),
+            'product_breakdown' => collect($splaCounts)->map(fn($data) => $data['count'])->toArray(),
         ];
 
         return [

@@ -4,8 +4,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Models\Customer;
-use App\Models\Integration;
-use App\Services\ActiveDirectorySPLAService;
+use App\Models\ActiveDirectoryLicenseAssignment;
+use App\Models\ActiveDirectoryUser;
 
 class CheckADSPLALicensing extends Command
 {
@@ -21,12 +21,12 @@ class CheckADSPLALicensing extends Command
      *
      * @var string
      */
-    protected $description = 'Determine SPLA licensing counts for a customer based on AD groups';
+    protected $description = 'Determine SPLA licensing counts from Agent Synced Data';
 
     /**
      * Execute the console command.
      */
-    public function handle(ActiveDirectorySPLAService $splaService)
+    public function handle()
     {
         $customerId = $this->argument('customer_id');
         $customer = Customer::find($customerId);
@@ -36,38 +36,53 @@ class CheckADSPLALicensing extends Command
             return 1;
         }
 
-        $this->info("Checking SPLA licensing for Customer: {$customer->name} (#{$customerId})");
+        $this->info("Checking SPLA licensing for Customer: {$customer->name} (#{$customerId}) (Source: Agent Data)");
 
         try {
-            $results = $splaService->getSPLACounts($customer->company_id, $customer->customer_id);
+            // 1. Fetch License Assignments
+            $assignments = ActiveDirectoryLicenseAssignment::where('company_id', $customer->company_id)
+                ->where('customer_id', $customer->customer_id)
+                ->get();
 
-            if (empty($results)) {
-                $this->warn('No SPLA products identified.');
+            if ($assignments->isEmpty()) {
+                $this->warn('No SPLA records found in active_directory_license_assignments table.');
+                $this->line('Ensure the AD Agent is running with the new licenseGroups configuration.');
                 return 0;
             }
 
-            foreach ($results as $product => $data) {
+            // 2. Fetch User details for these assignments
+            $samAccountNames = $assignments->pluck('user_sam_account_name')->unique();
+            
+            $users = ActiveDirectoryUser::where('company_id', $customer->company_id)
+                ->where('customer_id', $customer->customer_id)
+                ->whereIn('sam_account_name', $samAccountNames)
+                ->get()
+                ->keyBy('sam_account_name');
+
+            // 3. Group by License Name
+            $grouped = $assignments->groupBy('license_name');
+
+            foreach ($grouped as $licenseName => $items) {
                 $this->newLine();
-                $this->info("Product: {$product} - Total Count: {$data['count']}");
+                $this->info("Product: {$licenseName} - Total Count: {$items->count()}");
 
-                if ($data['count'] > 0) {
-                    $headers = ['User UPN', 'Display Name', 'Qualifying Groups'];
-                    $rows = array_map(function ($user) {
-                        return [
-                            $user['upn'],
-                            $user['display_name'],
-                            implode(', ', $user['qualifying_groups']),
-                        ];
-                    }, $data['users']);
-
-                    $this->table($headers, $rows);
-                } else {
-                    $this->line("No users found for {$product}.");
+                $headers = ['User UPN', 'Display Name', 'Source Group'];
+                $rows = [];
+                
+                foreach ($items as $item) {
+                    $user = $users->get($item->user_sam_account_name);
+                    $rows[] = [
+                        $user ? $user->user_principal_name : ($item->user_dn ?? 'N/A'),
+                        $user ? $user->display_name : ($item->user_sam_account_name),
+                        $item->assigned_via_group,
+                    ];
                 }
+
+                $this->table($headers, $rows);
             }
 
         } catch (\Exception $e) {
-            $this->error('Failed to calculate SPLA counts: ' . $e->getMessage());
+            $this->error('Failed to retrieve SPLA counts: ' . $e->getMessage());
             return 1;
         }
 
