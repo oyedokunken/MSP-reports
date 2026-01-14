@@ -6,32 +6,27 @@ import {
   Shield, 
   FileText, 
   Users,
-  ChevronDown,
-  ChevronUp,
+  Eye,
   Clock,
   MapPin,
-  Monitor,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { AuditLog } from '../types'
 import { EVENT_TYPES } from '../types'
+import { AuditLogDetailDialog } from './AuditLogDetailDialog'
 
 interface AuditLogsTableProps {
   logs: AuditLog[]
   isLoading: boolean
   error: string | null
-  currentPage: number
-  totalPages: number
-  totalLogs: number
-  onPageChange: (page: number) => void
 }
 
 // Helper function to format relative time
 function formatRelativeTime(date: Date): string {
   const now = new Date()
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-  
+
   if (diffInSeconds < 60) return 'just now'
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`
@@ -43,12 +38,8 @@ export function AuditLogsTable({
   logs,
   isLoading,
   error,
-  currentPage,
-  totalPages,
-  totalLogs,
-  onPageChange,
 }: AuditLogsTableProps) {
-  const [expandedRow, setExpandedRow] = useState<number | null>(null)
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null)
 
   const getEventIcon = (eventType: string) => {
     if (eventType.includes('user')) return User
@@ -59,21 +50,23 @@ export function AuditLogsTable({
     return Shield
   }
 
-  const getEventColor = (eventType: string): "default" | "secondary" | "destructive" | "outline" => {
-    if (eventType.includes('deleted')) return 'destructive'
-    if (eventType.includes('created')) return 'default'
-    if (eventType.includes('updated')) return 'secondary'
-    return 'outline'
+  const getEventColorScale = (eventType: string) => {
+    if (eventType.includes('deleted') || eventType.includes('failed')) {
+      return { bg: 'bg-red-100/80 dark:bg-red-900/30', iconBg: 'bg-red-500', text: 'text-red-600 dark:text-red-400', badge: 'destructive' as const }
+    }
+    if (eventType.includes('created') || eventType.includes('login') || eventType.includes('synced')) {
+      return { bg: 'bg-emerald-100/80 dark:bg-emerald-900/30', iconBg: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', badge: 'default' as const }
+    }
+    if (eventType.includes('updated') || eventType.includes('merged')) {
+      return { bg: 'bg-amber-100/80 dark:bg-amber-900/30', iconBg: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', badge: 'secondary' as const }
+    }
+    return { bg: 'bg-blue-100/80 dark:bg-blue-900/30', iconBg: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400', badge: 'outline' as const }
   }
 
   const getActorBadgeColor = (actorType: string): "default" | "secondary" | "outline" => {
     if (actorType === 'System') return 'secondary'
     if (actorType === 'ApiKey') return 'outline'
     return 'default'
-  }
-
-  const toggleRow = (logId: number) => {
-    setExpandedRow(expandedRow === logId ? null : logId)
   }
 
   if (isLoading) {
@@ -98,7 +91,7 @@ export function AuditLogsTable({
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center dark:border-red-800 dark:bg-red-900/20">
+      <div className="rounded-xl border border-red-100 bg-red-50 p-8 text-center dark:border-red-900/30 dark:bg-red-900/10">
         <p className="text-red-600 dark:text-red-400">{error}</p>
       </div>
     )
@@ -106,7 +99,7 @@ export function AuditLogsTable({
 
   if (logs.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div className="rounded-xl border border-dashed border-gray-200 bg-white p-12 text-center dark:border-gray-700 dark:bg-gray-800">
         <Shield className="mx-auto h-12 w-12 text-gray-400" />
         <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
           No audit logs found
@@ -120,8 +113,8 @@ export function AuditLogsTable({
 
   return (
     <div className="space-y-4">
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
@@ -141,139 +134,98 @@ export function AuditLogsTable({
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
                   IP Address
                 </th>
-                <th className="w-12 px-4 py-3"></th>
+                <th className="w-10 px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {logs.map((log) => {
                 const EventIcon = getEventIcon(log.event_type)
-                const isExpanded = expandedRow === log.audit_log_id
+                const colors = getEventColorScale(log.event_type)
                 
                 return (
-                  <>
-                    <tr
-                      key={log.audit_log_id}
-                      className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                    >
-                      {/* Event */}
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600">
-                            <EventIcon className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900 dark:text-white">
-                              {EVENT_TYPES[log.event_type as keyof typeof EVENT_TYPES] || log.event_type}
-                            </div>
-                            <Badge variant={getEventColor(log.event_type)} className="mt-1">
-                              {log.event_type}
-                            </Badge>
-                          </div>
+                  <tr
+                    key={log.audit_log_id}
+                    className="group transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                  >
+                    {/* Event */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colors.bg}`}>
+                          <EventIcon className={`h-5 w-5 ${colors.text}`} />
                         </div>
-                      </td>
-
-                      {/* Actor */}
-                      <td className="px-4 py-4">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {log.actor_name || 'Unknown'}
-                          </span>
-                          <Badge variant={getActorBadgeColor(log.actor_type)}>
-                            {log.actor_type}
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {EVENT_TYPES[log.event_type as keyof typeof EVENT_TYPES] || log.event_type}
+                          </div>
+                          <Badge variant={colors.badge} className="mt-1">
+                            {log.event_type}
                           </Badge>
                         </div>
-                      </td>
+                      </div>
+                    </td>
 
-                      {/* Target */}
-                      <td className="px-4 py-4">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-sm text-gray-900 dark:text-white">
-                            {log.target_name || '-'}
+                    {/* Actor */}
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {log.actor_name || 'Unknown'}
+                        </span>
+                        <Badge variant={getActorBadgeColor(log.actor_type)}>
+                          {log.actor_type}
+                        </Badge>
+                      </div>
+                    </td>
+
+                    {/* Target */}
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm text-gray-900 dark:text-white">
+                          {log.target_name || '-'}
+                        </span>
+                        {log.target_type && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {log.target_type}
                           </span>
-                          {log.target_type && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              {log.target_type}
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                        )}
+                      </div>
+                    </td>
 
-                      {/* Time */}
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-                          <Clock className="h-4 w-4" />
-                          <span>
-                            {formatRelativeTime(new Date(log.created_at))}
-                          </span>
-                        </div>
-                        <div className="mt-1 text-xs text-gray-500 dark:text-gray-500">
-                          {new Date(log.created_at).toLocaleString()}
-                        </div>
-                      </td>
+                    {/* Time */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+                        <Clock className="h-4 w-4 text-gray-400" />
+                        <span>
+                          {formatRelativeTime(new Date(log.created_at))}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs text-gray-500 dark:text-gray-500">
+                        {new Date(log.created_at).toLocaleString()}
+                      </div>
+                    </td>
 
-                      {/* IP Address */}
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-                          <MapPin className="h-4 w-4" />
-                          <span className="font-mono text-xs">
-                            {log.ip_address || '-'}
-                          </span>
-                        </div>
-                      </td>
+                    {/* IP Address */}
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+                        <MapPin className="h-4 w-4 text-gray-400" />
+                        <span className="font-mono text-xs">
+                          {log.ip_address || '-'}
+                        </span>
+                      </div>
+                    </td>
 
-                      {/* Expand Button */}
-                      <td className="px-4 py-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleRow(log.audit_log_id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          {isExpanded ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </td>
-                    </tr>
-
-                    {/* Expanded Row */}
-                    {isExpanded && (
-                      <tr className="bg-gray-50 dark:bg-gray-900/50">
-                        <td colSpan={6} className="px-4 py-4">
-                          <div className="space-y-3">
-                            {/* User Agent */}
-                            {log.user_agent && (
-                              <div>
-                                <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                                  <Monitor className="h-3.5 w-3.5" />
-                                  User Agent
-                                </div>
-                                <div className="rounded-lg bg-white p-3 font-mono text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300">
-                                  {log.user_agent}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Event Data */}
-                            {log.event_data && Object.keys(log.event_data).length > 0 && (
-                              <div>
-                                <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
-                                  Event Data
-                                </div>
-                                <div className="rounded-lg bg-white p-3 dark:bg-gray-800">
-                                  <pre className="overflow-x-auto text-xs text-gray-700 dark:text-gray-300">
-                                    {JSON.stringify(log.event_data, null, 2)}
-                                  </pre>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </>
+                    {/* View Button */}
+                    <td className="px-4 py-4 text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelectedLog(log)}
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="View technical details"
+                      >
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      </Button>
+                    </td>
+                  </tr>
                 )
               })}
             </tbody>
@@ -281,34 +233,79 @@ export function AuditLogsTable({
         </div>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing page {currentPage} of {totalPages} ({totalLogs} total logs)
-          </div>
-          
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
+      {/* Mobile Card View */}
+      <div className="grid grid-cols-1 gap-4 md:hidden">
+        {logs.map((log) => {
+          const EventIcon = getEventIcon(log.event_type)
+          const colors = getEventColorScale(log.event_type)
+
+          return (
+            <div 
+              key={log.audit_log_id}
+              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm active:bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
+              onClick={() => setSelectedLog(log)}
             >
-              Previous
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${colors.bg}`}>
+                    <EventIcon className={`h-5 w-5 ${colors.text}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-gray-900 truncate dark:text-white">
+                      {EVENT_TYPES[log.event_type as keyof typeof EVENT_TYPES] || log.event_type}
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-2">
+                       <Badge variant={colors.badge} className="px-1.5 py-0 text-[10px]">
+                        {log.event_type}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                  <Eye className="h-4 w-4 text-gray-400" />
+                </Button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-y-3 border-t pt-3 dark:border-gray-700">
+                <div>
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Actor</div>
+                  <div className="mt-0.5 text-xs font-medium text-gray-900 dark:text-white truncate">
+                    {log.actor_name || 'System'}
+                  </div>
+                   <Badge variant={getActorBadgeColor(log.actor_type)} className="mt-1 h-4 px-1.5 text-[9px]">
+                    {log.actor_type}
+                  </Badge>
+                </div>
+                <div>
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Target</div>
+                  <div className="mt-0.5 text-xs text-gray-900 dark:text-white truncate">
+                    {log.target_name || '-'}
+                  </div>
+                  {log.target_type && (
+                    <div className="text-[9px] text-gray-500 mt-0.5">{log.target_type}</div>
+                  )}
+                </div>
+                <div className="col-span-2 flex items-center justify-between border-t pt-2 dark:border-gray-700">
+                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                    <Clock className="h-3 w-3" />
+                    <span>{formatRelativeTime(new Date(log.created_at))}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                    <MapPin className="h-3 w-3" />
+                    <span className="font-mono">{log.ip_address || '-'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <AuditLogDetailDialog
+        log={selectedLog}
+        isOpen={!!selectedLog}
+        onClose={() => setSelectedLog(null)}
+      />
     </div>
   )
 }

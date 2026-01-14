@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
-import { AuditLogsHeader } from './components/AuditLogsHeader'
-import { AuditLogsTable } from './components/AuditLogsTable'
-import { AuditLogsFilters } from './components/AuditLogsFilters'
+import { 
+  AuditLogsHeader, 
+  AuditLogsTable, 
+  AuditLogsControls, 
+  Pagination 
+} from './components'
 import { useAuditLogsStore, type AuditLogsState } from '../../stores/useAuditLogsStore'
 
 export default function AuditLogs() {
@@ -16,7 +19,9 @@ export default function AuditLogs() {
   const totalPages = useAuditLogsStore((state: AuditLogsState) => state.totalPages)
   const totalLogs = useAuditLogsStore((state: AuditLogsState) => state.totalLogs)
   const filters = useAuditLogsStore((state: AuditLogsState) => state.filters)
+  const stats = useAuditLogsStore((state: AuditLogsState) => state.stats)
   const fetchAuditLogs = useAuditLogsStore((state: AuditLogsState) => state.fetchAuditLogs)
+  const fetchStats = useAuditLogsStore((state: AuditLogsState) => state.fetchStats)
   const setPage = useAuditLogsStore((state: AuditLogsState) => state.setPage)
   const setFilters = useAuditLogsStore((state: AuditLogsState) => state.setFilters)
   const exportLogs = useAuditLogsStore((state: AuditLogsState) => state.exportLogs)
@@ -24,16 +29,12 @@ export default function AuditLogs() {
   // Fetch data on mount
   useEffect(() => {
     fetchAuditLogs()
-  }, [fetchAuditLogs])
-
-  // Refetch when filters change
-  useEffect(() => {
-    fetchAuditLogs()
-  }, [filters, fetchAuditLogs])
+    fetchStats()
+  }, [fetchAuditLogs, fetchStats])
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
-    await fetchAuditLogs()
+    await Promise.all([fetchAuditLogs(), fetchStats()])
     setIsRefreshing(false)
   }
 
@@ -46,25 +47,32 @@ export default function AuditLogs() {
       <div className="space-y-6">
         <AuditLogsHeader
           onRefresh={handleRefresh}
-          onExport={handleExport}
           isRefreshing={isRefreshing || isLoading}
           totalLogs={totalLogs}
+          stats={stats}
         />
 
-        <AuditLogsFilters
-          filters={filters}
-          onFiltersChange={setFilters}
-        />
+        <div className="flex flex-col gap-6">
+          <AuditLogsControls
+            filters={filters}
+            onFiltersChange={setFilters}
+            onExport={handleExport}
+          />
 
-        <AuditLogsTable
-          logs={auditLogs}
-          isLoading={isLoading}
-          error={error}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalLogs={totalLogs}
-          onPageChange={setPage}
-        />
+          <AuditLogsTable
+            logs={auditLogs}
+            isLoading={isLoading}
+            error={error}
+          />
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            total={totalLogs}
+            onPageChange={setPage}
+            itemLabel="events"
+          />
+        </div>
       </div>
     </FloatingLayout>
   )

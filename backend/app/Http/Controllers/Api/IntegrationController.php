@@ -420,23 +420,6 @@ class IntegrationController extends Controller
             $company->save();
         }
 
-        // Log the creation
-        AuditLog::create([
-            'company_id' => $company->company_id,
-            'event_type' => 'integration_created',
-            'actor_type' => 'User',
-            'actor_id' => $authUser->user_id,
-            'target_type' => 'Integration',
-            'target_id' => $integration->integration_id,
-            'event_data' => [
-                'integration_type' => $integration->integration_type,
-                'display_name' => $integration->display_name,
-                'is_source_of_truth' => $isSourceOfTruth,
-                'is_first_integration' => $isFirstIntegration,
-            ],
-            'ip_address' => $request->ip(),
-        ]);
-
         return response()->json([
             'status' => 'success',
             'data' => $integration
@@ -636,25 +619,6 @@ class IntegrationController extends Controller
 
         $integration->save();
 
-        AuditLog::create([
-            'company_id' => $company->company_id,
-            'event_type' => 'integration_updated',
-            'actor_type' => 'User',
-            'actor_id' => $authUser->user_id,
-            'target_type' => 'Integration',
-            'target_id' => $integration->integration_id,
-            'event_data' => [
-                'integration_type' => $integration->integration_type,
-                'old_data' => $oldData,
-                'new_data' => [
-                    'display_name' => $integration->display_name,
-                    'status' => $integration->status,
-                ],
-            ],
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
         return response()->json([
             'status' => 'success',
             'data' => $integration
@@ -684,22 +648,6 @@ class IntegrationController extends Controller
             ], 400);
         }
   
-        AuditLog::create([
-            'company_id' => $company->company_id,
-            'event_type' => 'integration_deleted',
-            'actor_type' => 'User',
-            'actor_id' => $authUser->user_id,
-            'target_type' => 'Integration',
-            'target_id' => $integration->integration_id,
-            'event_data' => [
-                'integration_type' => $integration->integration_type,
-                'display_name' => $integration->display_name,
-                'customer_count' => $integration->integrationCustomers()->count(),
-            ],
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
         $integration->delete();
 
         return response()->json([

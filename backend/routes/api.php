@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\ActiveDirectoryController;
 use App\Http\Controllers\Api\ExchangeController;
 use App\Http\Controllers\Admin\ITGlueReportController;
 use App\Http\Controllers\Api\DeliveryConfigController;
+use App\Http\Controllers\Api\AuditLogController;
 
 // All routes are automatically prefixed with /api prefix
 
@@ -195,5 +196,10 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::get('/monitoring/reports/monthly', [HealthCheckController::class, 'monthlyReportAnalytics']);
         Route::get('/monitoring/queue', [HealthCheckController::class, 'queueMetrics']);
         Route::get('/monitoring/activity-trends', [HealthCheckController::class, 'activityTrends']);
+        
+        // Audit Log Routes
+        Route::get('/audit-logs', [AuditLogController::class, 'index']);
+        Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
+        Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
     });
 });

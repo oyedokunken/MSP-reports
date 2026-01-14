@@ -10,10 +10,11 @@ use App\Models\Integration;
 use App\Models\Customer;
 use App\Models\License;
 use App\Models\AuditLog;
+use App\Traits\AuditTrail;
 
 class Company extends Model
 {
-    use HasFactory;
+    use HasFactory, AuditTrail;
 
     protected $primaryKey = 'company_id';
 

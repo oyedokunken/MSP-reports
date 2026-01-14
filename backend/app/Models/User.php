@@ -10,10 +10,11 @@ use App\Models\Company;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\Scopes\CompanyScope;
+use App\Traits\AuditTrail;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, AuditTrail;
 
     protected $primaryKey = 'user_id';
 

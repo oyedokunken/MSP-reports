@@ -30,5 +30,15 @@ class AppServiceProvider extends ServiceProvider
         
         // Register middleware
         app('router')->aliasMiddleware('secure.headers', SecureHeaders::class);
+
+        // Register polymorphic morph map
+        \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
+            'User' => \App\Models\User::class,
+            'Integration' => \App\Models\Integration::class,
+            'Customer' => \App\Models\Customer::class,
+            'Company' => \App\Models\Company::class,
+            'License' => \App\Models\License::class,
+            'ApiKey' => \App\Models\ApiKey::class,
+        ]);
     }
 }

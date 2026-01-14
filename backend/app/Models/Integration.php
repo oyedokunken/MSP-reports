@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
+use App\Traits\AuditTrail;
 
 class Integration extends Model
 {
-    use HasFactory;
+    use HasFactory, AuditTrail;
 
     protected $primaryKey = 'integration_id';
 

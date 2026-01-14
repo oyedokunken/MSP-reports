@@ -1,3 +1,5 @@
 export { AuditLogsHeader } from './AuditLogsHeader'
-export { AuditLogsFilters } from './AuditLogsFilters'
+export { AuditLogsControls } from './AuditLogsControls'
 export { AuditLogsTable } from './AuditLogsTable'
+export { Pagination } from './Pagination'
+export { AuditLogDetailDialog } from './AuditLogDetailDialog'

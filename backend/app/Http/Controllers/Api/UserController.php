@@ -174,21 +174,6 @@ class UserController extends Controller
         $user->permissions = $permissions;
         $user->save();
 
-        AuditLog::create([
-            'company_id' => $authUser->company_id,
-            'event_type' => 'user_permissions_updated',
-            'actor_type' => 'User',
-            'actor_id' => $authUser->user_id,
-            'target_type' => 'User',
-            'target_id' => $user->user_id,
-            'event_data' => json_encode([
-                'user_email' => $user->email,
-                'permissions' => $permissions,
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -276,27 +261,6 @@ class UserController extends Controller
 
         $user->save();
 
-        AuditLog::create([
-            'company_id' => $authUser->company_id,
-            'event_type' => 'user_updated',
-            'actor_type' => 'User',
-            'actor_id' => $authUser->user_id,
-            'target_type' => 'User',
-            'target_id' => $user->user_id,
-            'event_data' => json_encode([
-                'old_data' => $oldData,
-                'new_data' => [
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role_id' => $user->role_id,
-                    'scoped_customers' => $user->scoped_customers,
-                ],
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
-        
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -332,20 +296,6 @@ class UserController extends Controller
 
         $user->tokens()->delete();
 
-        AuditLog::create([
-            'company_id' => $authUser->company_id,
-            'event_type' => 'user_deactivated',
-            'actor_type' => 'User',
-            'actor_id' => $authUser->user_id,
-            'target_type' => 'User',
-            'target_id' => $user->user_id,
-            'event_data' => json_encode([
-                'user_email' => $user->email,
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
         $sanitisedUser = $user->makeHidden(['password']);
 
         return response()->json([
@@ -372,20 +322,6 @@ class UserController extends Controller
 
         $user->status = 'active';
         $user->save();
-
-        AuditLog::create([
-            'company_id' => $authUser->company_id,
-            'event_type' => 'user_reactivated',
-            'actor_type' => 'User',
-            'actor_id' => $authUser->user_id,
-            'target_type' => 'User',
-            'target_id' => $user->user_id,
-            'event_data' => json_encode([
-                'user_email' => $user->email,
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
 
         $sanitisedUser = $user->makeHidden(['password']);
 
@@ -419,21 +355,6 @@ class UserController extends Controller
         }
 
         $user->tokens()->delete();
-
-        AuditLog::create([
-            'company_id' => $authUser->company_id,
-            'event_type' => 'user_deleted',
-            'actor_type' => 'User',
-            'actor_id' => $authUser->user_id,
-            'target_type' => 'User',
-            'target_id' => $user->user_id,
-            'event_data' => json_encode([
-                'user_email' => $user->email,
-                'user_name' => $user->name,
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
 
         $user->delete();
 

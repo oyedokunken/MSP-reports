@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 use App\Models\Scopes\CustomerScope;
+use App\Traits\AuditTrail;
 
 class Customer extends Model
 {
-    use HasFactory;
+    use HasFactory, AuditTrail;
 
     protected $primaryKey = 'customer_id';
 

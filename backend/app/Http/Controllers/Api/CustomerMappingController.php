@@ -256,20 +256,6 @@ class CustomerMappingController extends Controller
                 'metadata' => $validated['metadata'] ?? [],
             ]);
 
-            AuditLog::create([
-                'company_id' => $company->company_id,
-                'event_type' => 'static_customer_created',
-                'actor_type' => 'User',
-                'actor_id' => $authUser->user_id,
-                'target_type' => 'Customer',
-                'target_id' => $customer->customer_id,
-                'event_data' => [
-                    'canonical_name' => $customer->canonical_name,
-                    'is_static' => true,
-                ],
-                'ip_address' => $request->ip(),
-            ]);
-
             DB::commit();
 
             return response()->json([
@@ -653,26 +639,6 @@ class CustomerMappingController extends Controller
         }
 
         $customer->save();
-
-        
-        AuditLog::create([
-            'company_id' => $company->company_id,
-            'event_type' => 'customer_updated',
-            'actor_type' => 'User',
-            'actor_id' => $authUser->user_id,
-            'target_type' => 'Customer',
-            'target_id' => $customer->customer_id,
-            'event_data' => json_encode([
-                'old_data' => $oldData,
-                'new_data' => [
-                    'canonical_name' => $customer->canonical_name,
-                    'status' => $customer->status,
-                    'report_destination' => $customer->report_destination,
-                ],
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
 
         return response()->json([
             'status' => 'success',

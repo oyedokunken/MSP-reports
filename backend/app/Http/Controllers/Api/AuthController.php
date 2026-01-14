@@ -142,7 +142,7 @@ class AuthController extends Controller
 
         AuditLog::create([
             'company_id'  => $user->company_id,
-            'event_type'  => 'login',
+            'event_type'  => 'user_login',
             'actor_type'  => 'User',
             'actor_id'    => $user->user_id,
             'event_data'  => json_encode([
@@ -172,7 +172,7 @@ class AuthController extends Controller
 
         AuditLog::create([
             'company_id'  => $user->company_id,
-            'event_type'  => 'logout',
+            'event_type'  => 'user_logout',
             'actor_type'  => 'User',
             'actor_id'    => $user->user_id,
             'event_data'  => json_encode([
@@ -489,7 +489,7 @@ class AuthController extends Controller
             // Log successful login
             AuditLog::create([
                 'company_id' => $user->company_id,
-                'event_type' => 'login',
+                'event_type' => 'user_login',
                 'actor_type' => 'User',
                 'actor_id' => $user->user_id,
                 'event_data' => json_encode([
@@ -635,7 +635,7 @@ class AuthController extends Controller
             // Log successful login
             AuditLog::create([
                 'company_id' => $user->company_id,
-                'event_type' => 'login',
+                'event_type' => 'user_login',
                 'actor_type' => 'User',
                 'actor_id' => $user->user_id,
                 'event_data' => json_encode([

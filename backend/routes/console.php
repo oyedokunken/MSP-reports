@@ -60,4 +60,8 @@ Schedule::command('integrations:import-historical 1 --resources-only')
     ->monthlyOn(1, '04:00')
     ->withoutOverlapping()
     ->runInBackground();
-
+// Schedule audit log cleanup to run nightly at 4:30am
+Schedule::command('audit:cleanup 90')
+    ->dailyAt('04:30')
+    ->withoutOverlapping()
+    ->runInBackground();
