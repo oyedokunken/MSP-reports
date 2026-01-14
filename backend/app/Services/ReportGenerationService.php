@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\GeneratedReport;
 use App\Models\ReportSchedule;
 use App\Services\GotenbergService;
+use App\Services\ReportNamingService;
 use App\Services\ReportRegistry;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -16,11 +17,13 @@ class ReportGenerationService
 {
     protected GotenbergService $gotenberg;
     protected ReportRegistry $registry;
+    protected ReportNamingService $namingService;
 
-    public function __construct(GotenbergService $gotenberg, ReportRegistry $registry)
+    public function __construct(GotenbergService $gotenberg, ReportRegistry $registry, ReportNamingService $namingService)
     {
         $this->gotenberg = $gotenberg;
         $this->registry = $registry;
+        $this->namingService = $namingService;
     }
 
     public function generateReport(ReportSchedule $schedule, ?Carbon $customStartDate = null, ?Carbon $customEndDate = null): GeneratedReport
@@ -222,14 +225,9 @@ class ReportGenerationService
 
     private function generatePDF(array $reportData, ReportSchedule $schedule): string
     {
-        // Organize by: company_id/report_type/customer_id_timestamp.pdf
-        $filename = sprintf(
-            '%s/%s/%s_%s.pdf',
-            $schedule->company_id,
-            $schedule->report_type,
-            $schedule->customer_id,
-            now()->format('Y-m-d_His')
-        );
+        // Generate filename using naming service (respects company naming pattern)
+        // Pass customer explicitly to ensure tokens are populated correctly
+        $filename = $this->namingService->generateFilename($schedule, $schedule->company, $schedule->customer);
 
         // Ensure base reports directory exists with proper permissions
         $reportsBasePath = Storage::disk('reports')->path('');

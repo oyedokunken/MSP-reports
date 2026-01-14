@@ -6,6 +6,7 @@ use App\Models\GeneratedReport;
 use App\Models\Customer;
 use App\Models\Company;
 use App\Services\Delivery\Contracts\DeliveryDriverInterface;
+use App\Services\ReportNamingService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -39,12 +40,15 @@ class SharePointDriver implements DeliveryDriverInterface
         $fileSize = filesize($fullPath);
         $fileContent = file_get_contents($fullPath);
 
-        // Build the destination filename
-        $customerName = str_replace(['/', '\\', ' '], ['_', '_', '_'], $customer->canonical_name);
-        $reportDate = $report->generated_at->format('Y-m-d');
-        $reportType = $report->reportSchedule?->report_type ?? 'Report';
-        $reportType = str_replace(['/', '\\', ' '], ['_', '_', '_'], $reportType);
-        $fileName = "{$customerName}_{$reportType}_{$reportDate}.pdf";
+        // Use ReportNamingService for consistent filename generation
+        $namingService = app(ReportNamingService::class);
+        $fileName = 'Report.pdf';
+        
+        if ($report->reportSchedule) {
+            $fileName = $namingService->getDownloadName($report->reportSchedule, $company, $report->customer, $report->generated_at) . '.pdf';
+        } else {
+            $fileName = basename($report->file_path);
+        }
 
         // Get access token
         $accessToken = $this->getAccessToken($config);

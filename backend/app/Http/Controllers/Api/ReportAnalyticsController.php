@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Models\ReportSchedule;
 use App\Models\GeneratedReport;
 use App\Models\ReportShareToken;
+use App\Services\ReportNamingService;
 use App\Jobs\DeliverReportJob;
 
 class ReportAnalyticsController extends Controller
@@ -148,14 +149,17 @@ class ReportAnalyticsController extends Controller
             ], 404);
         }
 
-        $filename = basename($report->file_path);
+        // Use ReportNamingService for consistent filename generation
+        $namingService = app(ReportNamingService::class);
+        $downloadFilename = 'Report.pdf';
         
-        $customerName = str_replace(' ', '_', $report->customer->canonical_name ?? 'Customer');
-        $customerName = str_replace(['/', '\\'], '-', $customerName); // Remove slashes
-        $generatedDate = $report->generated_at->format('Y-m-d');
-        $reportType = $report->reportSchedule ? str_replace('_', ' ', $report->reportSchedule->report_type) : 'Report';
-        $reportType = str_replace(['/', '\\'], '-', $reportType); // Remove slashes
-        $downloadFilename = "{$customerName}_{$reportType}_{$generatedDate}.pdf";
+        if ($report->reportSchedule) {
+            $downloadFilename = $namingService->getDownloadName($report->reportSchedule, $report->company, $report->customer, $report->generated_at) . '.pdf';
+        } else {
+            // Fallback for reports without schedules (unlikely in current system)
+            $filename = basename($report->file_path);
+            $downloadFilename = $filename;
+        }
 
         return Storage::disk('reports')->download($report->file_path, $downloadFilename, [
             'Content-Type' => 'application/pdf',
@@ -461,10 +465,15 @@ class ReportAnalyticsController extends Controller
             ], 404);
         }
 
-        $customerName = str_replace(' ', '_', $report->customer->canonical_name ?? 'Customer');
-        $generatedDate = $report->generated_at->format('Y-m-d');
-        $reportType = $report->reportSchedule ? str_replace('_', ' ', $report->reportSchedule->report_type) : 'Report';
-        $downloadFilename = "{$customerName}_{$reportType}_{$generatedDate}.pdf";
+        // Use ReportNamingService for consistent filename generation
+        $namingService = app(ReportNamingService::class);
+        $downloadFilename = 'Report.pdf';
+        
+        if ($report->reportSchedule) {
+            $downloadFilename = $namingService->getDownloadName($report->reportSchedule, $report->company, $report->customer, $report->generated_at) . '.pdf';
+        } else {
+            $downloadFilename = basename($report->file_path);
+        }
 
         Log::info('Shared report downloaded', [
             'report_id' => $report->generated_report_id,

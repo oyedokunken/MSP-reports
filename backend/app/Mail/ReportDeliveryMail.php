@@ -10,6 +10,7 @@ use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Queue\SerializesModels;
 use App\Models\GeneratedReport;
 use App\Models\Company;
+use App\Services\ReportNamingService;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
@@ -76,12 +77,17 @@ class ReportDeliveryMail extends Mailable
             $fullPath = Storage::disk('reports')->path($this->report->file_path);
             
             if (file_exists($fullPath) && is_readable($fullPath)) {
+                $namingService = app(ReportNamingService::class);
+                $attachmentName = 'Report.pdf';
+                
+                if ($this->report->reportSchedule) {
+                    $attachmentName = $namingService->getDownloadName($this->report->reportSchedule, $this->company, $this->report->customer, $this->report->generated_at) . '.pdf';
+                } else {
+                    $attachmentName = basename($this->report->file_path);
+                }
+
                 $attachments[] = Attachment::fromPath($fullPath)
-                    ->as(sprintf(
-                        '%s_Report_%s.pdf',
-                        str_replace(' ', '_', $this->report->customer->canonical_name),
-                        $this->report->generated_at->format('Y-m-d')
-                    ))
+                    ->as($attachmentName)
                     ->withMime('application/pdf');
             }
         }

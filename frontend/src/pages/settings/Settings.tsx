@@ -21,6 +21,7 @@ import {
   SettingsHeader,
   CompanyInfoSection,
   EmailDeliverySection,
+  ReportNamingSection,
 } from './components'
 
 export default function Settings() {
@@ -387,6 +388,8 @@ export default function Settings() {
           onSmtpPasswordChange={setSmtpPassword}
           onSave={handleSaveEmail}
         />
+
+        <ReportNamingSection />
       </div>
 
       {/* Logout Warning Modal */}

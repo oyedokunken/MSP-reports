@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\ReportNamingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -427,6 +428,108 @@ class CompanyController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to delete logo: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get report naming settings
+     */
+    public function getReportNaming(Request $request): JsonResponse
+    {
+        try {
+            $authUser = $request->user();
+            $company = $authUser->company;
+            
+            $namingService = app(ReportNamingService::class);
+            $settings = $company->settings ?? [];
+            $pattern = $settings['report_settings']['naming_pattern'] ?? ReportNamingService::DEFAULT_PATTERN;
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'naming_pattern' => $pattern,
+                    'available_tokens' => $namingService->getAvailableTokens(),
+                    'preview' => $namingService->generatePreview($pattern),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get report naming settings', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve report naming settings',
+            ], 500);
+        }
+    }
+
+    /**
+     * Update report naming settings
+     */
+    public function updateReportNaming(Request $request): JsonResponse
+    {
+        try {
+            $authUser = $request->user();
+            $company = $authUser->company;
+
+            $validated = $request->validate([
+                'naming_pattern' => 'required|string|max:500',
+            ]);
+
+            $namingService = app(ReportNamingService::class);
+            $pattern = $validated['naming_pattern'];
+
+            // Validate pattern has at least one token
+            if (!$namingService->validatePattern($pattern)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Pattern must contain at least one valid token like {customer_name} or {date}',
+                ], 422);
+            }
+
+            // Update settings
+            $settings = $company->settings ?? [];
+            if (!isset($settings['report_settings'])) {
+                $settings['report_settings'] = [];
+            }
+            $settings['report_settings']['naming_pattern'] = $pattern;
+            
+            $company->settings = $settings;
+            $company->save();
+
+            Log::info('Report naming settings updated', [
+                'company_id' => $company->company_id,
+                'pattern' => $pattern,
+                'user_id' => $authUser->user_id,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Report naming settings updated successfully',
+                'data' => [
+                    'naming_pattern' => $pattern,
+                    'preview' => $namingService->generatePreview($pattern),
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to update report naming settings', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to update report naming settings',
             ], 500);
         }
     }
