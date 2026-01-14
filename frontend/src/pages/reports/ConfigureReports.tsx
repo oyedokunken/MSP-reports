@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { ArrowLeft, Calendar, Clock, Mail, Save, Bell, Play, Zap, ExternalLink, Plus, Check } from 'lucide-react'
+import { ArrowLeft, Calendar, Mail, Save, Bell, Play, Zap, ExternalLink, Plus, Check } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
@@ -22,6 +22,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 import type { ReportConfig, ReportType, EnabledReport } from './types'
 import { cn } from '@/lib/utils'
@@ -122,6 +129,10 @@ export default function ConfigureReports() {
           frequency: s.frequency,
           time_of_day: s.time_of_day,
           active: s.active,
+          is_customized: !!s.is_customized,
+          template_id: s.template_id,
+          template_name: s.template_name,
+          template_description: s.template_description,
           day_of_month: s.day_of_month,
           day_of_week: s.day_of_week,
           include_sections: s.schedule_config?.included_sections || s.include_sections,
@@ -198,6 +209,20 @@ export default function ConfigureReports() {
 
     updated[index] = { ...updated[index], [field]: value } as EnabledReport
     setEnabledReports(updated)
+  }
+
+  const handleResetSchedule = async (scheduleId: number) => {
+    try {
+      setIsSaving(true)
+      await api.post(`/reports/schedules/${scheduleId}/reset`)
+      toast.success('Schedule reset to template')
+      await fetchReportConfig()
+    } catch (error) {
+      console.error('Failed to reset schedule:', error)
+      toast.error('Failed to reset schedule')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // Validate configuration before saving
@@ -599,7 +624,8 @@ export default function ConfigureReports() {
                             report.schedule_id && selectedSchedules.includes(report.schedule_id)
                               ? "border-primary bg-primary/5 shadow-md"
                               : "border-border hover:border-primary/30",
-                            report.active === false && "opacity-70 grayscale-[0.4]"
+                            report.active === false && "opacity-70 grayscale-[0.4]",
+                            "py-0 gap-0"
                           )}
                         >
                           {/* Left Accent */}
@@ -612,24 +638,45 @@ export default function ConfigureReports() {
                             )}
                           /> */}
 
-                          <CardHeader className="pl-5 pr-4 pt-0 pb-2">
+                          <CardHeader className="p-4 pb-2">
                             <div className="flex items-start justify-between gap-4">
                               <div className="space-y-0.5">
-                                <div className="flex items-center gap-2">
                                   <h3 className="text-sm font-semibold tracking-tight">
-                                    {reportType?.name || "Unknown Report"}
+                                    {report.template_name ? (
+                                      <div className="flex flex-col">
+                                        <span>{report.template_name}</span>
+                                        <span className="text-[10px] font-normal text-muted-foreground">
+                                          {reportType?.name || "Unknown Report"}
+                                        </span>
+                                        {report.template_description && (
+                                          <p className="text-[10px] text-muted-foreground/70 mt-0.5 line-clamp-1" title={report.template_description}>
+                                            {report.template_description}
+                                          </p>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      reportType?.name || "Unknown Report"
+                                    )}
                                   </h3>
 
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-muted-foreground font-mono">ID: {report.schedule_id}</span>
+                                  
                                   <Badge
                                     variant={report.active !== false ? "default" : "secondary"}
                                     className="h-4 px-1.5 text-[10px] font-bold uppercase tracking-wider"
                                   >
                                     {report.active !== false ? "Active" : "Paused"}
                                   </Badge>
-                                </div>
 
-                                <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
-                                  <span>ID: {report.schedule_id}</span>
+                                  {report.template_id && report.is_customized && (
+                                    <Badge
+                                      variant="outline"
+                                      className="h-4 border-amber-200 bg-amber-50 px-1.5 text-[10px] text-amber-700 font-bold uppercase tracking-wider"
+                                    >
+                                      Customized
+                                    </Badge>
+                                  )}
 
                                   {report.has_data === false && (
                                     <Badge
@@ -665,30 +712,49 @@ export default function ConfigureReports() {
                             </div>
                           </CardHeader>
 
-                          <CardContent className="pl-5 pr-4 pb-3 space-y-3">
+                          <CardContent className="p-4 pt-2 space-y-2">
                             {/* Frequency + Schedule */}
-                            <div className="grid grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-2.5">
-                              <div className="space-y-0.5">
-                                <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                            <div className="grid grid-cols-2 gap-4 rounded-lg border bg-muted/30 p-2">
+                              <div className="space-y-1.5 flex flex-col">
+                                <Label htmlFor={`freq-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
                                   Frequency
-                                </span>
-                                <div className="flex items-center gap-1.5 text-sm font-medium">
-                                  <Calendar className="h-3 w-3 text-muted-foreground" />
-                                  {FREQUENCIES.find(f => f.value === report.frequency)?.label ||
-                                    report.frequency}
-                                </div>
+                                </Label>
+                                <Select
+                                  value={report.frequency || 'monthly'}
+                                  onValueChange={(value) => handleUpdateReport(index, 'frequency', value)}
+                                >
+                                  <SelectTrigger id={`freq-${index}`} className="h-8 text-xs bg-background w-full">
+                                    <SelectValue placeholder="Select" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {FREQUENCIES.map((f) => (
+                                      <SelectItem key={f.value} value={f.value} className="text-xs">
+                                        {f.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </div>
 
-                              <div className="space-y-0.5 text-right">
-                                <span className="block text-[10px] font-semibold uppercase text-muted-foreground">
+                              <div className="space-y-1.5 flex flex-col items-end">
+                                <Label htmlFor={`time-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground text-right w-full">
                                   Schedule
-                                </span>
-                                <div className="flex items-center justify-end gap-1.5 text-sm font-medium">
-                                  <Clock className="h-3 w-3 text-muted-foreground" />
-                                  {report.frequency === "on-demand"
-                                    ? "Manual"
-                                    : report.time_of_day}
-                                </div>
+                                </Label>
+                                {report.frequency !== 'on-demand' ? (
+                                  <div className="w-full">
+                                    <Input
+                                      id={`time-${index}`}
+                                      type="time"
+                                      value={report.time_of_day || '09:00'}
+                                      onChange={(e) => handleUpdateReport(index, 'time_of_day', e.target.value)}
+                                      className="h-8 text-xs bg-background w-full"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="h-8 w-full flex items-center justify-center text-xs text-muted-foreground bg-background border rounded-md px-3 mt-auto">
+                                    Manual
+                                  </div>
+                                )}
                               </div>
                             </div>
 
@@ -731,15 +797,34 @@ export default function ConfigureReports() {
                                 </span>
                               </div>
 
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => navigate("/platform/templates")}
-                                className="h-6 px-2 text-[10px] gap-1"
-                              >
-                                Edit Template
-                                <ExternalLink className="h-3 w-3" />
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                {report.template_id && report.is_customized && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (report.schedule_id) handleResetSchedule(report.schedule_id)
+                                    }}
+                                    disabled={isSaving}
+                                    className="h-6 px-2 text-[10px] border-amber-200 text-amber-700 hover:bg-amber-50"
+                                  >
+                                    Reset
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    navigate("/platform/templates")
+                                  }}
+                                  className="h-6 px-2 text-[10px] gap-1"
+                                >
+                                  Edit Template
+                                  <ExternalLink className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>

@@ -49,15 +49,25 @@ export function ScheduleCard({ schedule, onConfigure, onPause, onRunNow, onEdit,
                         </p>
                     </div>
                 </div>
-                <Badge
-                    variant={schedule.active ? "default" : "secondary"}
-                    className={`flex-shrink-0 ${!schedule.active
-                        ? "bg-purple-600 text-white hover:bg-purple-700"
-                        : ""
-                        }`}
-                >
-                    {schedule.active ? "Active" : "Inactive"}
-                </Badge>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    {schedule.template_id && (
+                        <Badge
+                            variant={schedule.is_customized ? "outline" : "secondary"}
+                            className={schedule.is_customized ? "text-amber-600 border-amber-600/50 bg-amber-50" : "bg-emerald-100 text-emerald-700"}
+                        >
+                            {schedule.is_customized ? "Customized" : "Template"}
+                        </Badge>
+                    )}
+                    <Badge
+                        variant={schedule.active ? "default" : "secondary"}
+                        className={`flex-shrink-0 ${!schedule.active
+                            ? "bg-purple-600 text-white hover:bg-purple-700"
+                            : ""
+                            }`}
+                    >
+                        {schedule.active ? "Active" : "Inactive"}
+                    </Badge>
+                </div>
             </div>
 
             {/* Info Section */}

@@ -32,6 +32,10 @@ export interface EnabledReport {
   time_of_day?: string
   active?: boolean
   _old_schedule_id?: number
+  is_customized?: boolean
+  template_id?: number | null
+  template_name?: string
+  template_description?: string
   include_sections?: string[]
   day_of_month?: number
   day_of_week?: number
@@ -56,6 +60,10 @@ export interface ReportSchedule {
   frequency: string
   time_of_day: string
   active: boolean
+  is_customized?: boolean
+  template_id?: number | null
+  template_name?: string
+  template_description?: string
   day_of_month?: number
   day_of_week?: number
   include_sections?: string[]

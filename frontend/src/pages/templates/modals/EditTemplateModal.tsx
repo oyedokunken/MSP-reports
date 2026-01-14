@@ -23,7 +23,7 @@ import { templateApi } from '@/lib/api/templates'
 import type { ReportTemplate, ReportSection } from '../types/template'
 import { useToast } from '@/components/ui/Toast'
 import { Spinner } from '@/components/ui/spinner'
-import { Check } from 'lucide-react'
+import { Check, Zap } from 'lucide-react'
 
 interface EditTemplateModalProps {
   open: boolean
@@ -262,6 +262,24 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
               disabled={loading}
             />
           </div>
+
+          {/* Sync Impact Warning */}
+          {template && template.schedules_count && template.schedules_count > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-amber-100 p-1 mt-0.5">
+                  <Zap className="h-4 w-4 text-amber-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-amber-900">Sync Impact</h4>
+                  <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+                    This template is linked to <strong>{template.schedules_count}</strong> customer {template.schedules_count === 1 ? 'schedule' : 'schedules'}. 
+                    Saving changes will automatically push updates to all customers <strong>except</strong> those who have manually customized their report settings.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Read-only Information */}
           {template && (

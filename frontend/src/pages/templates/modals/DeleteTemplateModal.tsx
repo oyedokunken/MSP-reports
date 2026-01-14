@@ -28,25 +28,27 @@ export function DeleteTemplateModal({
             </div>
             <DialogTitle>Delete Template</DialogTitle>
           </div>
-          <DialogDescription className="pt-3">
-            Are you sure you want to delete <strong>{template?.template_name}</strong>?
-            <br />
-            <br />
-            This action cannot be undone. The template will be permanently removed from the system.
-            {template?.schedules_count !== undefined && template.schedules_count > 0 && (
-              <>
-                <br />
-                <br />
-                <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
-                  <p className="text-destructive font-semibold text-sm">
-                    ⚠️ Warning: This will also delete {template.schedules_count} active schedule{template.schedules_count !== 1 ? 's' : ''} for this customer.
-                  </p>
-                  <p className="text-destructive/80 text-xs mt-1">
-                    The associated report schedule(s) will be permanently removed and will no longer generate reports.
-                  </p>
-                </div>
-              </>
-            )}
+          <DialogDescription className="pt-3" asChild>
+            <div className="text-sm text-muted-foreground">
+              Are you sure you want to delete <strong>{template?.template_name}</strong>?
+              <br />
+              <br />
+              This action cannot be undone. The template will be permanently removed from the system.
+              {template?.schedules_count !== undefined && template.schedules_count > 0 && (
+                <>
+                  <br />
+                  <br />
+                  <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
+                    <p className="text-destructive font-semibold text-sm">
+                      ⚠️ Warning: This will also delete {template.schedules_count} active schedule{template.schedules_count !== 1 ? 's' : ''} for this customer.
+                    </p>
+                    <p className="text-destructive/80 text-xs mt-1">
+                      The associated report schedule(s) will be permanently removed and will no longer generate reports.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
           </DialogDescription>
         </DialogHeader>
 

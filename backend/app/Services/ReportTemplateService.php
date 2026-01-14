@@ -112,4 +112,59 @@ class ReportTemplateService
             throw $e;
         }
     }
+
+    /**
+     * Sync template changes to all linked schedules that haven't been customized.
+     */
+    public function syncLinkedSchedules(ReportTemplate $template): array
+    {
+        $schedules = ReportSchedule::where('template_id', $template->template_id)
+            ->where('is_customized', false)
+            ->get();
+
+        $updatedCount = 0;
+        $skippedCount = ReportSchedule::where('template_id', $template->template_id)
+            ->where('is_customized', true)
+            ->count();
+
+        foreach ($schedules as $schedule) {
+            $scheduleConfig = $template->schedule_config ?? [];
+            if ($template->included_sections) {
+                $scheduleConfig['included_sections'] = $template->included_sections;
+            }
+            if ($template->report_options) {
+                $scheduleConfig['report_options'] = $template->report_options;
+            }
+
+            $schedule->update([
+                'report_type' => $template->report_type,
+                'frequency' => $template->frequency,
+                'schedule_config' => !empty($scheduleConfig) ? $scheduleConfig : null,
+                'time_of_day' => $template->time_of_day,
+                'timezone' => $template->timezone,
+            ]);
+
+            // Also update customer config if needed
+            $customer = $schedule->customer;
+            if ($customer && ($template->included_sections || $template->delivery_settings || $template->report_options)) {
+                $customer->update([
+                    'report_configuration' => array_merge(
+                        $customer->report_configuration ?? [],
+                        [
+                            'included_sections' => $template->included_sections,
+                            'delivery_settings' => $template->delivery_settings,
+                            'report_options' => $template->report_options,
+                        ]
+                    ),
+                ]);
+            }
+
+            $updatedCount++;
+        }
+
+        return [
+            'updated' => $updatedCount,
+            'skipped' => $skippedCount,
+        ];
+    }
 }

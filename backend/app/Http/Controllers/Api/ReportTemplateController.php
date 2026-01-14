@@ -156,28 +156,27 @@ class ReportTemplateController extends Controller
         
         $template->update($validated);
         
+        // Sync schedules if this is a global template or belongs to this customer
+        $syncStats = $this->templateService->syncLinkedSchedules($template);
+        
         return response()->json([
             'success' => true,
             'data' => $template,
             'message' => 'Template updated successfully',
+            'sync_stats' => $syncStats,
         ]);
     }
     
     /**
      * Delete template and cascade delete associated schedules
      */
-    public function destroy(Request $request, $report_template)
+    public function destroy(Request $request, ReportTemplate $template)
     {
         \Log::info('Delete template endpoint called', [
-            'report_template_param' => $report_template,
+            'template_id' => $template->template_id,
             'request_path' => $request->path(),
             'request_method' => $request->method(),
         ]);
-        
-        // Manually find the template with schedules
-        $template = ReportTemplate::where('template_id', $report_template)
-            ->with('schedules')
-            ->firstOrFail();
         
         $schedulesCount = $template->schedules()->count();
         

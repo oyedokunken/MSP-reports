@@ -31,6 +31,7 @@ class ReportSchedule extends Model
         'last_generated_at',
         'next_scheduled_at',
         'timezone',
+        'is_customized',
     ];
 
     protected $casts = [
@@ -38,6 +39,7 @@ class ReportSchedule extends Model
         'last_generated_at' => 'datetime',
         'next_scheduled_at' => 'datetime',
         'active' => 'boolean',
+        'is_customized' => 'boolean',
     ];
 
     // Relationships

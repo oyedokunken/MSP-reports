@@ -175,6 +175,10 @@ class ReportConfigController extends Controller
                     'frequency' => $schedule->frequency,
                     'time_of_day' => $schedule->time_of_day,
                     'active' => $schedule->active,
+                    'is_customized' => $schedule->is_customized,
+                    'template_id' => $schedule->template_id,
+                    'template_name' => $schedule->template->template_name ?? null,
+                    'template_description' => $schedule->template->description ?? null,
                     'next_scheduled_at' => $schedule->next_scheduled_at,
                     'last_generated_at' => $schedule->last_generated_at,
                     'schedule_config' => $schedule->schedule_config,
@@ -479,6 +483,11 @@ class ReportConfigController extends Controller
             $schedule->schedule_config = array_merge($existingConfig, $validated['schedule_config']);
         }
 
+        // Mark as customized if a template is linked
+        if ($schedule->template_id) {
+            $schedule->is_customized = true;
+        }
+
         $schedule->save();
 
         return response()->json([
@@ -492,6 +501,72 @@ class ReportConfigController extends Controller
                 'active' => $schedule->active,
                 'schedule_config' => $schedule->schedule_config,
             ]
+        ]);
+    }
+
+    /**
+     * Reset an individual schedule to its template settings
+     */
+    public function resetSchedule(Request $request, $schedule_id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        // Find the schedule
+        $schedule = ReportSchedule::where('report_schedule_id', $schedule_id)
+            ->where('company_id', $company->company_id)
+            ->with('template')
+            ->firstOrFail();
+
+        if (!$schedule->template_id || !$schedule->template) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'This schedule is not linked to a template.'
+            ], 400);
+        }
+
+        $template = $schedule->template;
+
+        // Revert to template settings
+        $scheduleConfig = $template->schedule_config ?? [];
+        if ($template->included_sections) {
+            $scheduleConfig['included_sections'] = $template->included_sections;
+        }
+        if ($template->report_options) {
+            $scheduleConfig['report_options'] = $template->report_options;
+        }
+
+        $schedule->update([
+            'report_type' => $template->report_type,
+            'frequency' => $template->frequency,
+            'schedule_config' => !empty($scheduleConfig) ? $scheduleConfig : null,
+            'time_of_day' => $template->time_of_day,
+            'timezone' => $template->timezone,
+            'is_customized' => false,
+        ]);
+
+        // Also revert customer report_configuration to template versions if applicable
+        $customer = $schedule->customer;
+        if ($customer && ($template->included_sections || $template->delivery_settings || $template->report_options)) {
+            $reportConfig = $customer->report_configuration ?? [];
+            
+            if ($template->included_sections) {
+                $reportConfig['included_sections'] = $template->included_sections;
+            }
+            if ($template->delivery_settings) {
+                $reportConfig['delivery_settings'] = $template->delivery_settings;
+            }
+            if ($template->report_options) {
+                $reportConfig['report_options'] = $template->report_options;
+            }
+
+            $customer->update(['report_configuration' => $reportConfig]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Schedule reset to template successfully',
+            'data' => $schedule
         ]);
     }
 }

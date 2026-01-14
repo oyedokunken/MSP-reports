@@ -128,6 +128,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::post('/reports/generate/{customer_id}', [ReportConfigController::class, 'generateReport']);
         Route::post('/reports/schedules/{schedule_id}/generate', [ReportConfigController::class, 'generateFromSchedule']);
         Route::patch('/reports/schedules/{schedule_id}', [ReportConfigController::class, 'updateSchedule']);
+        Route::post('/reports/schedules/{schedule_id}/reset', [ReportConfigController::class, 'resetSchedule']);
     });
 
     // Delivery Configuration Routes
@@ -173,7 +174,9 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::get('/report-templates/all-report-types', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAllReportTypes']);
         Route::get('/report-templates/available-for-customer', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAvailableReportTypes']);
         Route::post('/report-templates/{template}/preview', [\App\Http\Controllers\Api\ReportTemplateController::class, 'preview']);
-        Route::apiResource('report-templates', \App\Http\Controllers\Api\ReportTemplateController::class);
+        Route::apiResource('report-templates', \App\Http\Controllers\Api\ReportTemplateController::class)->parameters([
+            'report-templates' => 'template'
+        ]);
         Route::post('/report-templates/{template}/apply-to-customer', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomer']);
         Route::post('/report-templates/{template}/apply-to-customers', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomers']);
         Route::get('/report-templates/{template}/applied-customers', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAppliedCustomers']);
