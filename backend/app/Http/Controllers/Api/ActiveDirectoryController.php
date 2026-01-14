@@ -99,6 +99,16 @@ class ActiveDirectoryController extends Controller
                 $validated['data']['groupMemberships']
             );
             
+            // Process license assignments (SPLA)
+            $licenseAssignmentsProcessed = 0;
+            if (!empty($validated['data']['licenseAssignments'])) {
+                $licenseAssignmentsProcessed = $this->syncService->processLicenseAssignments(
+                    $integration,
+                    $customerId,
+                    $validated['data']['licenseAssignments']
+                );
+            }
+            
             // Clean up orphans for this customer only (on full sync)
             $orphansRemoved = $this->syncService->cleanupOrphans(
                 $integration,
@@ -110,7 +120,7 @@ class ActiveDirectoryController extends Controller
             $syncLog->update([
                 'completed_at' => now(),
                 'status' => 'success',
-                'records_synced' => $usersProcessed + $groupsProcessed + $membershipsProcessed,
+                'records_synced' => $usersProcessed + $groupsProcessed + $membershipsProcessed + $licenseAssignmentsProcessed,
                 'records_failed' => 0,
                 'customers_mapped' => 0, // Not applicable for AD
             ]);
@@ -136,6 +146,7 @@ class ActiveDirectoryController extends Controller
                     'users_processed' => $usersProcessed,
                     'groups_processed' => $groupsProcessed,
                     'memberships_processed' => $membershipsProcessed,
+                    'license_assignments_processed' => $licenseAssignmentsProcessed,
                     'domain' => $validated['domain'],
                     'duration_seconds' => round(microtime(true) - $startTime, 2),
                 ],
@@ -152,6 +163,7 @@ class ActiveDirectoryController extends Controller
                 'users' => $usersProcessed,
                 'groups' => $groupsProcessed,
                 'memberships' => $membershipsProcessed,
+                'license_assignments' => $licenseAssignmentsProcessed,
                 'duration' => round(microtime(true) - $startTime, 2),
             ]);
             
@@ -164,6 +176,7 @@ class ActiveDirectoryController extends Controller
                     'usersProcessed' => $usersProcessed,
                     'groupsProcessed' => $groupsProcessed,
                     'membershipsProcessed' => $membershipsProcessed,
+                    'licenseAssignmentsProcessed' => $licenseAssignmentsProcessed,
                     'orphansRemoved' => $orphansRemoved,
                     'timestamp' => now()->toIso8601String(),
                     'durationSeconds' => round(microtime(true) - $startTime, 2),

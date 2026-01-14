@@ -399,11 +399,94 @@ function Save-SyncState {
     $NewState | ConvertTo-Json | Set-Content $StateFile -Force
 }
 
+<#
+.SYNOPSIS
+    Collect license assignments based on group memberships
+
+.PARAMETER Groups
+    Array of groups collected from AD
+
+.PARAMETER Memberships
+    Array of group memberships
+
+.PARAMETER Config
+    Licensing configuration object
+#>
+function Get-ADLicenseAssignments {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [Array]$Groups,
+        
+        [Parameter(Mandatory=$true)]
+        [Array]$Memberships,
+        
+        [Parameter(Mandatory=$true)]
+        [PSCustomObject]$Config
+    )
+    
+    try {
+        Write-Verbose "Collecting license assignments..."
+        
+        if (-not $Config.enabled) {
+            Write-Verbose "Licensing collection disabled"
+            return @()
+        }
+        
+        $LicenseAssignments = @()
+        $LicenseGroups = @{}
+        
+        # Match groups to license definitions
+        foreach ($LicenseDef in $Config.licenseGroups) {
+            $MatchingGroups = $Groups | Where-Object { 
+                $_.name -like $LicenseDef.groupPattern -or 
+                $_.samAccountName -like $LicenseDef.groupPattern 
+            }
+            
+            foreach ($Group in $MatchingGroups) {
+                $LicenseGroups[$Group.distinguishedName] = @{
+                    licenseName = $LicenseDef.licenseName
+                    licenseType = $LicenseDef.licenseType
+                    costPerUser = $LicenseDef.costPerUser
+                    groupName = $Group.name
+                }
+            }
+        }
+        
+        Write-Verbose "Found $($LicenseGroups.Count) license groups"
+        
+        # Map users to licenses via memberships
+        foreach ($Membership in $Memberships) {
+            if ($LicenseGroups.ContainsKey($Membership.groupDN)) {
+                $LicenseInfo = $LicenseGroups[$Membership.groupDN]
+                
+                $LicenseAssignments += @{
+                    userSamAccountName = $Membership.userSamAccountName
+                    userDN = $Membership.userDN
+                    licenseName = $LicenseInfo.licenseName
+                    licenseType = $LicenseInfo.licenseType
+                    costPerUser = $LicenseInfo.costPerUser
+                    assignedViaGroup = $LicenseInfo.groupName
+                    assignedViaGroupDN = $Membership.groupDN
+                }
+            }
+        }
+        
+        Write-Verbose "Found $($LicenseAssignments.Count) license assignments"
+        return $LicenseAssignments
+        
+    } catch {
+        Write-Error "Failed to collect license assignments: $_"
+        throw
+    }
+}
+
 # Export functions
 Export-ModuleMember -Function @(
     'Get-ADUsersData',
     'Get-ADSecurityGroups',
     'Get-ADGroupMemberships',
+    'Get-ADLicenseAssignments',
     'Get-SyncState',
     'Save-SyncState'
 )

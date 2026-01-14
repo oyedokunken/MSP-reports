@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ActiveDirectoryGroup;
 use App\Models\ActiveDirectoryGroupMembership;
+use App\Models\ActiveDirectoryLicenseAssignment;
 use App\Models\ActiveDirectoryUser;
 use App\Models\Company;
 use App\Models\Integration;
@@ -158,6 +159,47 @@ class ActiveDirectorySyncService
                 Log::error('Failed to process AD group membership', [
                     'group' => $membershipData['groupName'] ?? 'unknown',
                     'user' => $membershipData['userSamAccountName'] ?? 'unknown',
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $processed;
+    }
+
+    /**
+     * Process license assignments from sync payload
+     */
+    public function processLicenseAssignments(Integration $integration, int $customerId, array $licenseAssignments): int
+    {
+        $processed = 0;
+
+        // For full sync, remove all existing license assignments for this customer first
+        ActiveDirectoryLicenseAssignment::where('company_id', $integration->company_id)
+            ->where('integration_id', $integration->integration_id)
+            ->where('customer_id', $customerId)
+            ->delete();
+
+        foreach ($licenseAssignments as $assignmentData) {
+            try {
+                ActiveDirectoryLicenseAssignment::create([
+                    'company_id' => $integration->company_id,
+                    'integration_id' => $integration->integration_id,
+                    'customer_id' => $customerId,
+                    'user_sam_account_name' => $assignmentData['userSamAccountName'],
+                    'user_dn' => $assignmentData['userDN'] ?? null,
+                    'license_name' => $assignmentData['licenseName'],
+                    'license_type' => $assignmentData['licenseType'] ?? 'SPLA',
+                    'cost_per_user' => $assignmentData['costPerUser'] ?? 0,
+                    'assigned_via_group' => $assignmentData['assignedViaGroup'],
+                    'assigned_via_group_dn' => $assignmentData['assignedViaGroupDN'] ?? null,
+                ]);
+
+                $processed++;
+            } catch (\Exception $e) {
+                Log::error('Failed to process AD license assignment', [
+                    'user' => $assignmentData['userSamAccountName'] ?? 'unknown',
+                    'license' => $assignmentData['licenseName'] ?? 'unknown',
                     'error' => $e->getMessage(),
                 ]);
             }

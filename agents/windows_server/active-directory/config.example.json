@@ -20,6 +20,29 @@
     "maxUsersPerSync": 10000,
     "maxGroupsPerSync": 5000
   },
+  "licensing": {
+    "enabled": true,
+    "licenseGroups": [
+      {
+        "groupPattern": "*Office365*",
+        "licenseName": "Microsoft 365",
+        "licenseType": "SPLA",
+        "costPerUser": 0
+      },
+      {
+        "groupPattern": "*RDS*CAL*",
+        "licenseName": "RDS CAL",
+        "licenseType": "SPLA",
+        "costPerUser": 0
+      },
+      {
+        "groupPattern": "*Exchange*",
+        "licenseName": "Exchange",
+        "licenseType": "SPLA",
+        "costPerUser": 0
+      }
+    ]
+  },
   "logging": {
     "level": "Info",
     "logPath": "C:\\Logs\\MSPReports\\AD",

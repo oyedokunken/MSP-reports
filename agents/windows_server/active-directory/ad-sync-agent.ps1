@@ -134,6 +134,14 @@ try {
     $GroupMemberships = Get-ADGroupMemberships -Groups $Groups -Config $Config.activeDirectory
     Write-Log "INFO" "Collected $($GroupMemberships.Count) group membership records"
     
+    # Collect License Assignments (SPLA)
+    $LicenseAssignments = @()
+    if ($Config.licensing -and $Config.licensing.enabled) {
+        Write-Log "INFO" "Collecting license assignments..."
+        $LicenseAssignments = Get-ADLicenseAssignments -Groups $Groups -Memberships $GroupMemberships -Config $Config.licensing
+        Write-Log "INFO" "Collected $($LicenseAssignments.Count) license assignments"
+    }
+    
     # Prepare payload
     Write-Log "INFO" "Preparing sync payload..."
     $Payload = @{
@@ -144,11 +152,13 @@ try {
             users = $Users
             securityGroups = $Groups
             groupMemberships = $GroupMemberships
+            licenseAssignments = $LicenseAssignments
         }
         statistics = @{
             userCount = $Users.Count
             groupCount = $Groups.Count
             membershipCount = $GroupMemberships.Count
+            licenseAssignmentCount = $LicenseAssignments.Count
         }
     }
     

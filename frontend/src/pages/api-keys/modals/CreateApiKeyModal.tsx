@@ -45,7 +45,7 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
   const loadCustomers = async () => {
     setLoadingCustomers(true)
     try {
-      const response = await api.get('/customers')
+      const response = await api.get('/customers') as { data: { data: Customer[] } }
       if (response.data?.data) {
         setCustomers(response.data.data)
       }

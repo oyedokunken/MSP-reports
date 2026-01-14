@@ -12,6 +12,7 @@ export interface ReportSchedule {
   last_generated_at: string | null
   active: boolean
   template_id?: number | null
+  is_customized: boolean
 }
 
 interface SchedulesState {
