@@ -63,7 +63,7 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
     try {
       const response = await api.post('/api-keys', {
         display_name: displayName,
-        customer_id: customerId ? parseInt(customerId) : null,
+        customer_id: (customerId && customerId !== 'none') ? parseInt(customerId) : null,
         permissions,
         ip_whitelist: ipWhitelist ? ipWhitelist.split(',').map(ip => ip.trim()) : null,
       }) as unknown as { status: string; api_key: string }
@@ -146,7 +146,7 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
                     <SelectValue placeholder={loadingCustomers ? "Loading..." : "Select a customer (for agent keys)"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No customer (company-wide)</SelectItem>
+                    <SelectItem value="none">No customer (company-wide)</SelectItem>
                     {customers.map((customer) => (
                       <SelectItem key={customer.customer_id} value={customer.customer_id.toString()}>
                         {customer.canonical_name}
