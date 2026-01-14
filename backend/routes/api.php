@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\ExchangeController;
 use App\Http\Controllers\Admin\ITGlueReportController;
 use App\Http\Controllers\Api\DeliveryConfigController;
 use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\ApiKeyController;
 
 // All routes are automatically prefixed with /api prefix
 
@@ -164,6 +165,14 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::get('/reports/shared/{token}', [ReportAnalyticsController::class, 'downloadSharedReport']);
         Route::get('/reports/librenms/devices/preview', [App\Http\Controllers\Admin\LibreNMSReportController::class, 'previewDeviceReport']);
         Route::get('/reports/librenms/devices', [App\Http\Controllers\Admin\LibreNMSReportController::class, 'downloadDeviceReport']);
+    });
+
+    // API Key Management Routes
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
+        Route::get('/api-keys', [ApiKeyController::class, 'index']);
+        Route::post('/api-keys', [ApiKeyController::class, 'store']);
+        Route::post('/api-keys/{id}/revoke', [ApiKeyController::class, 'revoke']);
+        Route::delete('/api-keys/{id}', [ApiKeyController::class, 'destroy']);
     });
 
     // License Management Routes

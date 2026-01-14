@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Spinner } from '@/components/ui/spinner'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CheckCircle2, Copy, AlertCircle } from 'lucide-react'
 import { api } from '@/lib/api'
 
@@ -14,17 +15,46 @@ interface CreateApiKeyModalProps {
   onSuccess: () => void
 }
 
+interface Customer {
+  customer_id: number
+  canonical_name: string
+}
+
 export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKeyModalProps) {
   const [step, setStep] = useState<'form' | 'success'>('form')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [displayName, setDisplayName] = useState('')
+  const [customerId, setCustomerId] = useState<string>('')
   const [ipWhitelist, setIpWhitelist] = useState('')
   const [generatedKey, setGeneratedKey] = useState('')
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [loadingCustomers, setLoadingCustomers] = useState(false)
   const [permissions, setPermissions] = useState({
     integrations: { view: false, manage: false, sync: false },
     customers: { view: false, edit: false, map: false },
     reports: { view: false, configure: false, generate: false, download: false },
   })
+
+  // Load customers when modal opens
+  useEffect(() => {
+    if (open) {
+      loadCustomers()
+    }
+  }, [open])
+
+  const loadCustomers = async () => {
+    setLoadingCustomers(true)
+    try {
+      const response = await api.get('/customers')
+      if (response.data?.data) {
+        setCustomers(response.data.data)
+      }
+    } catch (error) {
+      console.error('Failed to load customers:', error)
+    } finally {
+      setLoadingCustomers(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,6 +63,7 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
     try {
       const response = await api.post('/api-keys', {
         display_name: displayName,
+        customer_id: customerId ? parseInt(customerId) : null,
         permissions,
         ip_whitelist: ipWhitelist ? ipWhitelist.split(',').map(ip => ip.trim()) : null,
       })
@@ -58,6 +89,7 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
     }
     setStep('form')
     setDisplayName('')
+    setCustomerId('')
     setIpWhitelist('')
     setGeneratedKey('')
     setPermissions({
@@ -103,6 +135,27 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
                 />
                 <p className="text-sm text-muted-foreground">
                   A friendly name to identify this API key
+                </p>
+              </div>
+
+              {/* Customer Scope (for AD/Exchange agents) */}
+              <div className="space-y-2">
+                <Label htmlFor="customerId">Customer Scope (Optional)</Label>
+                <Select value={customerId} onValueChange={setCustomerId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingCustomers ? "Loading..." : "Select a customer (for agent keys)"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No customer (company-wide)</SelectItem>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.customer_id} value={customer.customer_id.toString()}>
+                        {customer.canonical_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  For AD/Exchange sync agents, select the customer this key will sync data for.
                 </p>
               </div>
 
