@@ -66,10 +66,10 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
         customer_id: customerId ? parseInt(customerId) : null,
         permissions,
         ip_whitelist: ipWhitelist ? ipWhitelist.split(',').map(ip => ip.trim()) : null,
-      })
+      }) as unknown as { status: string; api_key: string }
 
-      if (response.data && typeof response.data === 'object' && 'api_key' in response.data) {
-        setGeneratedKey((response.data as { api_key: string }).api_key)
+      if (response?.api_key) {
+        setGeneratedKey(response.api_key)
         setStep('success')
       }
     } catch (error) {
