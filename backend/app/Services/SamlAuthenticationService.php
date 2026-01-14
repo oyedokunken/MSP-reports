@@ -4,6 +4,9 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use RobRichards\XMLSecLibs\XMLSecurityDSig;
+use RobRichards\XMLSecLibs\XMLSecurityKey;
+use DOMDocument;
 use Exception;
 
 class SamlAuthenticationService
@@ -243,7 +246,7 @@ XML;
     }
 
     /**
-     * Validate SAML signature
+     * Validate SAML signature using xmlseclibs
      *
      * @param string $xml
      * @return bool
@@ -251,25 +254,87 @@ XML;
     protected function validateSignature(string $xml): bool
     {
         try {
-            // In production, use proper XML signature validation library
-            // For now, we'll do basic certificate validation
             $idpCert = config('saml.idp.x509_cert');
             
             if (empty($idpCert)) {
+                Log::error('SAML: IdP certificate not configured');
                 return false;
             }
 
-            // TODO: Implement proper XML signature validation using xmlseclibs
-            // This is a placeholder that should be replaced with proper validation
+            // Load the XML document
+            $doc = new DOMDocument();
+            $doc->preserveWhiteSpace = true;
+            $doc->formatOutput = false;
             
+            if (!$doc->loadXML($xml)) {
+                Log::error('SAML: Failed to load XML document');
+                return false;
+            }
+
+            // Create XMLSecurityDSig instance
+            $xmlSecDSig = new XMLSecurityDSig();
+            
+            // Locate the signature element
+            $signature = $xmlSecDSig->locateSignature($doc);
+            if (!$signature) {
+                Log::error('SAML: No signature found in response');
+                return false;
+            }
+
+            // Canonicalize the signed info
+            $xmlSecDSig->canonicalizeSignedInfo();
+            
+            // Validate the reference (checks digest)
+            if (!$xmlSecDSig->validateReference()) {
+                Log::error('SAML: Reference validation failed - digest mismatch');
+                return false;
+            }
+
+            // Get the security key from the signature
+            $secKey = $xmlSecDSig->locateKey();
+            if (!$secKey) {
+                Log::error('SAML: Could not locate key in signature');
+                return false;
+            }
+
+            // Load the IdP certificate for verification
+            $formattedCert = $this->formatCertificateForValidation($idpCert);
+            $secKey->loadKey($formattedCert, false, true);
+
+            // Verify the signature
+            if (!$xmlSecDSig->verify($secKey)) {
+                Log::error('SAML: Signature verification failed');
+                return false;
+            }
+
+            Log::info('SAML: Signature validated successfully');
             return true;
 
         } catch (Exception $e) {
             Log::error('SAML: Signature validation error', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return false;
         }
+    }
+
+    /**
+     * Format certificate for validation (ensure proper PEM format)
+     *
+     * @param string $cert
+     * @return string
+     */
+    protected function formatCertificateForValidation(string $cert): string
+    {
+        // Remove any existing headers/footers and whitespace
+        $cert = str_replace(['-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----'], '', $cert);
+        $cert = str_replace(["\r", "\n", " "], '', $cert);
+        
+        // Re-add proper PEM format
+        $cert = "-----BEGIN CERTIFICATE-----\n" . chunk_split($cert, 64, "\n") . "-----END CERTIFICATE-----";
+        
+        return $cert;
     }
 
     /**
