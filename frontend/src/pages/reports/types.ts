@@ -46,6 +46,9 @@ export interface ReportDelivery {
   method: string
   destination: string
   cc: string[]
+  path?: string // For sharepoint
+  sharepoint_configured?: boolean
+  integration_id?: number
 }
 
 export interface ReportBranding {

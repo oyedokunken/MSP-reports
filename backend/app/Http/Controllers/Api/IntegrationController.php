@@ -245,7 +245,7 @@ class IntegrationController extends Controller
             ->where('integration_type', $validated['integration_type'])
             ->exists();
 
-        if ($exists) {
+        if ($exists && $validated['integration_type'] !== 'SharePoint') {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Integration already exists for this company.'
@@ -848,64 +848,95 @@ class IntegrationController extends Controller
             'import_end_date' => $endDate,
             'current_position' => $startDate,
             'status' => 'queued',
-            'priority_level' => 1,
         ]);
-
+        
+        \App\Jobs\HistoricalImportJob::dispatch($integration, $job);
+        
         $integration->update([
-            'historical_import_status' => 'running',
-            'historical_import_progress' => 0,
-        ]);
-
-        // Dispatch ALL chunks upfront for parallel processing across multiple workers
-        // Each chunk is 7 days (configured in ImportHistoricalDataJob)
-        $chunkSize = 7; // Must match $daysToProcess in ImportHistoricalDataJob
-        $currentChunkDate = $startDate->copy();
-        $jobsDispatched = 0;
-        
-        while ($currentChunkDate->lte($endDate)) {
-            \App\Jobs\ImportHistoricalDataJob::dispatch($job, $currentChunkDate->copy())
-                ->onQueue('low')
-                ->delay(now()->addSeconds($jobsDispatched * 2)); // Stagger by 2 seconds to avoid thundering herd
-            
-            $currentChunkDate->addDays($chunkSize);
-            $jobsDispatched++;
-        }
-        
-        // Update the job with total_jobs count for progress tracking
-        $job->update(['total_jobs' => $jobsDispatched]);
-        
-        Log::info('Historical import jobs dispatched', [
-            'integration_id' => $integration->integration_id,
-            'total_jobs' => $jobsDispatched,
-            'start_date' => $startDate->toDateString(),
-            'end_date' => $endDate->toDateString(),
-        ]);
-
-        AuditLog::create([
-            'company_id' => $company->company_id,
-            'event_type' => 'historical_import_started',
-            'actor_type' => 'User',
-            'actor_id' => $authUser->user_id,
-            'target_type' => 'Integration',
-            'target_id' => $integration->integration_id,
-            'event_data' => json_encode([
-                'start_date' => $validated['start_date'],
-                'end_date' => $validated['end_date'],
-                'job_id' => $job->id,
-                'total_jobs_dispatched' => $jobsDispatched,
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
+            'status' => 'importing_historical',
+            'historical_import_status' => 'pending',
+            'historical_import_progress' => 0
         ]);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Historical import started successfully',
-            'data' => [
-                'job_id' => $job->id,
-                'integration' => $integration,
-            ]
+            'message' => 'Historical import started successfully.',
+            'job_id' => $job->id
         ]);
+    }
+    
+    public function browseSharePoint(Request $request, $id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $integration = $company->integrations()
+            ->where('integration_id', $id)
+            ->where('integration_type', 'SharePoint')
+            ->first();
+
+        if (!$integration) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'SharePoint integration not found.'
+            ], 404);
+        }
+
+        $path = $request->query('path', '');
+
+        try {
+            $sharepoint = new \App\Integrations\SharePoint\SharePointIntegration($integration);
+            $items = $sharepoint->browse($path);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $items,
+                'path' => $path
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    public function createSharePointFolder(Request $request, $id)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $integration = $company->integrations()
+            ->where('integration_id', $id)
+            ->where('integration_type', 'SharePoint')
+            ->first();
+
+        if (!$integration) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'SharePoint integration not found.'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'path' => 'nullable|string',
+            'name' => 'required|string|min:1'
+        ]);
+
+        try {
+            $sharepoint = new \App\Integrations\SharePoint\SharePointIntegration($integration);
+            $folder = $sharepoint->createFolder($validated['path'] ?? '', $validated['name']);
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $folder
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function getHistoricalImportJobs(Request $request, $id)

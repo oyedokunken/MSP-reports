@@ -9,11 +9,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { ArrowLeft, Calendar, Mail, Save, Bell, Play, Zap, ExternalLink, Plus, Check } from 'lucide-react'
+import { ArrowLeft, Calendar, Mail, Save, Bell, Play, Zap, ExternalLink, Plus, Check, Share2, Folder } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ConfigureReportsLoading, ConfigureReportsNotFound } from './components/ConfigureReportsStates'
+import { FileBrowserModal } from '@/components/sharepoint/FileBrowserModal'
 import {
   Dialog,
   DialogContent,
@@ -22,13 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import type { ReportConfig, ReportType, EnabledReport } from './types'
 import { cn } from '@/lib/utils'
@@ -58,6 +53,13 @@ export default function ConfigureReports() {
   const [ccEmails, setCcEmails] = useState('')
   const [originalDestination, setOriginalDestination] = useState('')
   const [originalCcEmails, setOriginalCcEmails] = useState('')
+  const [deliveryMethod, setDeliveryMethod] = useState('email')
+  const [sharepointPath, setSharepointPath] = useState('')
+  const [originalDeliveryMethod, setOriginalDeliveryMethod] = useState('email')
+  const [originalSharepointPath, setOriginalSharepointPath] = useState('')
+  const [isFileBrowserOpen, setIsFileBrowserOpen] = useState(false)
+  const [sharepointIntegrationId, setSharepointIntegrationId] = useState<number | null>(null)
+  const [sharepointIntegrations, setSharepointIntegrations] = useState<any[]>([])
   const [availableReportTypes, setAvailableReportTypes] = useState<ReportType[]>([])
   const [showValidationModal, setShowValidationModal] = useState(false)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
@@ -183,6 +185,41 @@ export default function ConfigureReports() {
       setCcEmails(Array.isArray(ccEmailsList) ? ccEmailsList.join(', ') : '')
       setOriginalDestination(emailDestination)
       setOriginalCcEmails(Array.isArray(ccEmailsList) ? ccEmailsList.join(', ') : '')
+
+      // SharePoint Config
+      const currentMethod = reportData.delivery?.method || 'email'
+      setDeliveryMethod(currentMethod)
+      setOriginalDeliveryMethod(currentMethod)
+      setSharepointPath(reportData.delivery?.path || '')
+      setOriginalSharepointPath(reportData.delivery?.path || '')
+
+      // Check for SharePoint integration (company-wide)
+      try {
+        const intResponse = await api.get<{ configured: any[] }>('/integrations')
+        const integrations = (intResponse as any).configured || []
+        const spIntegrations = Array.isArray(integrations) 
+            ? integrations.filter((i: any) => i.integration_type?.toLowerCase().includes('sharepoint')) 
+            : []
+        
+        setSharepointIntegrations(spIntegrations)
+
+        // If config has an ID, use it. 
+        if (reportData.delivery?.integration_id) {
+            setSharepointIntegrationId(reportData.delivery.integration_id)
+        } 
+        // Else if only one exists, default to it
+        else if (spIntegrations.length === 1) {
+            setSharepointIntegrationId(spIntegrations[0].integration_id || spIntegrations[0].id)
+        }
+        // If config.integration_id is missing but we have SP, try to match by old logic or null
+        else if (!reportData.delivery?.integration_id && spIntegrations.length > 0) {
+           const first = spIntegrations[0]
+           setSharepointIntegrationId(first.integration_id || first.id)
+        }
+      } catch (e) {
+        console.warn('Failed to fetch integrations', e)
+      }
+
     } catch (err: unknown) {
       console.error('Failed to load report configuration:', err)
       const error = err as { response?: { data?: { message?: string } }; message?: string }
@@ -233,27 +270,33 @@ export default function ConfigureReports() {
       errors.push('No reports configured. Please add at least one report schedule.')
     }
 
-    // Check if email destination is provided when reports are configured
-    if (enabledReports.length > 0 && !destination.trim()) {
-      errors.push('Email destination is required for report delivery.')
-    }
+    if (enabledReports.length > 0) {
+        if (deliveryMethod === 'email') {
+            // Check if email destination is provided
+            if (!destination.trim()) {
+                errors.push('Email destination is required for report delivery.')
+            } else {
+                // Validate email format
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                if (!emailRegex.test(destination.trim())) {
+                    errors.push('Please enter a valid email address for the destination.')
+                }
+            }
 
-    // Validate email format if provided
-    if (destination.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(destination.trim())) {
-        errors.push('Please enter a valid email address for the destination.')
-      }
-    }
-
-    // Validate CC emails if provided
-    if (ccEmails.trim()) {
-      const ccArray = ccEmails.split(',').map(e => e.trim()).filter(e => e)
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      const invalidCCs = ccArray.filter(email => !emailRegex.test(email))
-      if (invalidCCs.length > 0) {
-        errors.push(`Invalid CC email(s): ${invalidCCs.join(', ')}`)
-      }
+            // Validate CC emails
+            if (ccEmails.trim()) {
+                const ccArray = ccEmails.split(',').map(e => e.trim()).filter(e => e)
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                const invalidCCs = ccArray.filter(email => !emailRegex.test(email))
+                if (invalidCCs.length > 0) {
+                    errors.push(`Invalid CC email(s): ${invalidCCs.join(', ')}`)
+                }
+            }
+        } else if (deliveryMethod === 'sharepoint') {
+            if (!sharepointPath.trim()) {
+                errors.push('SharePoint folder path is required.')
+            }
+        }
     }
 
     return errors
@@ -301,21 +344,31 @@ export default function ConfigureReports() {
         }
       }
 
-      // Update email destination if changed
-      if (destination !== originalDestination || ccEmails !== originalCcEmails) {
-        const ccArray = ccEmails
-          .split(',')
-          .map(email => email.trim())
-          .filter(email => email.length > 0)
+      // Update delivery configuration if changed
+      const deliveryChanged = 
+        deliveryMethod !== originalDeliveryMethod ||
+        (deliveryMethod === 'email' && (destination !== originalDestination || ccEmails !== originalCcEmails)) ||
+        (deliveryMethod === 'sharepoint' && sharepointPath !== originalSharepointPath);
+
+      if (deliveryChanged) {
+        const payload: any = {
+            method: deliveryMethod
+        };
+
+        if (deliveryMethod === 'email') {
+            payload.destination = destination;
+            payload.cc = ccEmails.split(',').map(e => e.trim()).filter(e => e);
+        } else if (deliveryMethod === 'sharepoint') {
+            payload.path = sharepointPath;
+            // We might want to send 'sharepoint_configured': true explicitly or let backend handle
+        }
 
         updatePromises.push(
-          api.patch(`/customers/${id}/report-destination`, {
-            method: 'email',
-            destination,
-            cc: ccArray
-          })
+          api.patch(`/customers/${id}/report-destination`, payload)
         )
       }
+
+      // Update email destination if changed
 
       // Execute all updates in parallel
       await Promise.all(updatePromises)
@@ -852,29 +905,111 @@ export default function ConfigureReports() {
               <CardContent className="space-y-4 pt-4">
                 {/* Delivery Settings */}
                 <div className="space-y-3">
+                  {/* Delivery Method Selector (Only if SharePoint is available or configured) */}
+                  {/* Delivery Method Selector */}
                   <div className="space-y-1.5">
-                    <Label htmlFor="sidebar-destination" className="text-xs font-bold text-muted-foreground uppercase">Recipient</Label>
-                    <Input
-                      id="sidebar-destination"
-                      type="email"
-                      placeholder="reports@customer.com"
-                      value={destination}
-                      onChange={(e) => setDestination(e.target.value)}
-                      className="h-9"
-                    />
+                    <Label className="text-xs font-bold text-muted-foreground uppercase">Delivery Method</Label>
+                    <div className="flex flex-col gap-2">
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button
+                                variant={deliveryMethod === 'email' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setDeliveryMethod('email')}
+                                className="w-full"
+                            >
+                                <Mail className="h-4 w-4 mr-2" />
+                                Email
+                            </Button>
+                            <Button
+                                variant={deliveryMethod === 'sharepoint' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setDeliveryMethod('sharepoint')}
+                                className="w-full"
+                                disabled={!sharepointIntegrationId}
+                                title={!sharepointIntegrationId ? "Configure SharePoint integration in Settings to enable" : ""}
+                            >
+                                <Share2 className="h-4 w-4 mr-2" />
+                                SharePoint
+                            </Button>
+                        </div>
+                        {!sharepointIntegrationId && (
+                            <p className="text-[10px] text-muted-foreground">
+                                * <a href="/platform/integrations" className="underline hover:text-primary">Connect SharePoint</a> in settings to enable folder delivery.
+                            </p>
+                        )}
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="sidebar-cc" className="text-xs font-bold text-muted-foreground uppercase">CC Recipients</Label>
-                    <Input
-                      id="sidebar-cc"
-                      type="text"
-                      placeholder="manager@customer.com"
-                      value={ccEmails}
-                      onChange={(e) => setCcEmails(e.target.value)}
-                      className="h-9"
-                    />
-                    <p className="text-[10px] text-muted-foreground italic">Comma-separated addresses</p>
-                  </div>
+
+                  {deliveryMethod === 'email' ? (
+                      <>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="sidebar-destination" className="text-xs font-bold text-muted-foreground uppercase">Recipient</Label>
+                            <Input
+                            id="sidebar-destination"
+                            type="email"
+                            placeholder="reports@customer.com"
+                            value={destination}
+                            onChange={(e) => setDestination(e.target.value)}
+                            className="h-9"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="sidebar-cc" className="text-xs font-bold text-muted-foreground uppercase">CC Recipients</Label>
+                            <Input
+                            id="sidebar-cc"
+                            type="text"
+                            placeholder="manager@customer.com"
+                            value={ccEmails}
+                            onChange={(e) => setCcEmails(e.target.value)}
+                            className="h-9"
+                            />
+                            <p className="text-[10px] text-muted-foreground italic">Comma-separated addresses</p>
+                        </div>
+                      </>
+                  ) : (
+                      <div className="space-y-4">
+                        {sharepointIntegrations.length > 1 && (
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-bold text-muted-foreground uppercase">SharePoint Site</Label>
+                                <Select 
+                                    value={sharepointIntegrationId?.toString() || ''} 
+                                    onValueChange={(val) => setSharepointIntegrationId(parseInt(val))}
+                                >
+                                    <SelectTrigger className="w-full text-xs h-9">
+                                        <SelectValue placeholder="Select Integration" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {sharepointIntegrations.map((int: any) => (
+                                            <SelectItem key={int.integration_id || int.id} value={(int.integration_id || int.id).toString()}>
+                                                {int.display_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-bold text-muted-foreground uppercase">Target Folder</Label>
+                          <div className="flex gap-2">
+                              <Input
+                                value={sharepointPath || '/'}
+                                readOnly
+                                className="h-9 bg-muted text-muted-foreground text-xs font-mono"
+                              />
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="px-3"
+                                onClick={() => setIsFileBrowserOpen(true)}
+                              >
+                                <Folder className="h-4 w-4" />
+                              </Button>
+                          </div>
+                      </div>
+                      </div>
+                  )}
+
                 </div>
 
                 {/* Save Button */}
@@ -1047,6 +1182,13 @@ export default function ConfigureReports() {
         </DialogContent>
       </Dialog>
 
+      <FileBrowserModal
+        open={isFileBrowserOpen}
+        onOpenChange={setIsFileBrowserOpen}
+        integrationId={sharepointIntegrationId}
+        onSelect={(path) => setSharepointPath(path)}
+        initialPath={sharepointPath}
+      />
 
     </FloatingLayout>
   )

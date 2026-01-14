@@ -87,6 +87,10 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::get('/integrations/{id}/historical-import-jobs', [IntegrationController::class, 'getHistoricalImportJobs']);
         Route::patch('/company/source-integration', [IntegrationController::class, 'setSourceIntegration']);
         
+        // SharePoint Routes
+        Route::get('/integrations/{id}/sharepoint/browse', [IntegrationController::class, 'browseSharePoint']);
+        Route::post('/integrations/{id}/sharepoint/folders', [IntegrationController::class, 'createSharePointFolder']);
+        
         // Integration Preview Routes
         Route::get('/integrations/{integration}/preview/template', [IntegrationPreviewController::class, 'getTemplate']);
         Route::get('/integrations/{integration}/preview/data', [IntegrationPreviewController::class, 'getPreviewData']);
