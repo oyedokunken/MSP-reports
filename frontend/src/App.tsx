@@ -37,6 +37,7 @@ import TemplateList from '@/pages/templates/TemplateList'
 // } from '@/pages/exchange'
 import Licenses from '@/pages/licenses/Licenses'
 import Monitoring from '@/pages/monitoring/Monitoring'
+import { AuditLogs } from '@/pages/audit-logs'
 import NotificationsPage from '@/pages/notifications/NotificationsPage'
 import { PrivacyPolicy, TermsOfService } from '@/pages/legal'
 import { DocsIndex, DocPage } from '@/pages/docs'
@@ -361,6 +362,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Monitoring />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/audit-logs"
+        element={
+          <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
+            <AuditLogs />
           </ProtectedRoute>
         }
       />

@@ -15,6 +15,7 @@ import {
   Building2,
   MapPin,
   HelpCircle,
+  Shield,
 } from 'lucide-react'
 import { hasPermission } from '@/utils/permissions'
 import { useAuth } from '@/contexts/AuthContext'
@@ -98,6 +99,7 @@ export default function AppSidebar() {
     { path: '/admin/api-keys', icon: Key, label: 'API Keys', show: hasPermission(user, 'company_settings', 'view') },
     { path: '/admin/licenses', icon: Key, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view') },
     { path: '/admin/monitoring', icon: Activity, label: 'Monitoring', show: hasPermission(user, 'company_settings', 'view') },
+    { path: '/admin/audit-logs', icon: Shield, label: 'Audit Logs', show: hasPermission(user, 'company_settings', 'view') },
   ].filter(item => item.show !== false)
 
   const isActive = (path: string) => {
