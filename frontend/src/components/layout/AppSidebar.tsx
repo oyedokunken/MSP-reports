@@ -180,7 +180,7 @@ export default function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent className="px-3 py-2 group-data-[collapsible=icon]:px-0">
+      <SidebarContent className="px-1 py-2 group-data-[collapsible=icon]:px-0 thin-scrollbar">
         <SidebarGroup>
           <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Platform</SidebarGroupLabel>
           <SidebarGroupContent>
