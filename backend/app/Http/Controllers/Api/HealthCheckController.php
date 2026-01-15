@@ -51,6 +51,7 @@ class HealthCheckController extends Controller
                 'integrations' => $this->getIntegrationStatus($authUser->company_id),
                 'reports' => $this->getReportStatus($authUser->company_id),
                 'queue' => $this->getQueueStatus(),
+                'redis' => $this->getRedisMemoryUsage(),
             ]
         ]);
     }
@@ -207,12 +208,20 @@ class HealthCheckController extends Controller
     {
         try {
             $failedJobs = DB::table('failed_jobs')->count();
-            $pendingJobs = DB::table('jobs')->count();
+            
+            $redis = Redis::connection();
+            $queues = [
+                'critical' => $redis->llen('queues:critical'),
+                'sync' => $redis->llen('queues:sync'),
+                'historical' => $redis->llen('queues:historical'),
+                'default' => $redis->llen('queues:default'),
+            ];
 
             return response()->json([
                 'status' => 'success',
                 'data' => [
-                    'pending_jobs' => $pendingJobs,
+                    'queues' => $queues,
+                    'total_pending' => array_sum($queues),
                     'failed_jobs' => $failedJobs,
                     'workers_status' => 'running',
                 ]
@@ -437,18 +446,48 @@ class HealthCheckController extends Controller
     private function getQueueStatus(): array
     {
         try {
-            $pendingJobs = DB::table('jobs')->count();
             $failedJobs = DB::table('failed_jobs')->count();
+            
+            $redis = Redis::connection();
+            $queues = [
+                'critical' => (int) $redis->llen('queues:critical'),
+                'sync' => (int) $redis->llen('queues:sync'),
+                'historical' => (int) $redis->llen('queues:historical'),
+                'default' => (int) $redis->llen('queues:default'),
+            ];
+
+            $totalPending = array_sum($queues);
 
             return [
-                'pending_jobs' => $pendingJobs,
+                'queues' => $queues,
+                'total_pending' => $totalPending,
                 'failed_jobs' => $failedJobs,
-                'health' => $failedJobs > 10 ? 'warning' : 'healthy',
+                'health' => ($failedJobs > 10 || $totalPending > 500) ? 'warning' : 'healthy',
             ];
         } catch (\Exception $e) {
             return [
                 'health' => 'unknown',
                 'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    private function getRedisMemoryUsage(): array
+    {
+        try {
+            $info = Redis::info('memory');
+            
+            return [
+                'status' => 'healthy',
+                'used_memory_human' => $info['used_memory_human'] ?? 'unknown',
+                'used_memory_peak_human' => $info['used_memory_peak_human'] ?? 'unknown',
+                'maxmemory_human' => $info['maxmemory_human'] ?? 'unknown',
+                'eviction_policy' => Redis::config('GET', 'maxmemory-policy')['maxmemory-policy'] ?? 'unknown',
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Could not fetch Redis memory info: ' . $e->getMessage(),
             ];
         }
     }

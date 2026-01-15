@@ -27,8 +27,8 @@ class ImportHistoricalDataJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 5;
-    public $timeout = 1800; // 30 minutes to handle rate limit waits
-    public $backoff = [120, 300, 600, 1200]; // Exponential backoff: 2min, 5min, 10min, 20min
+    public $timeout = 1800; 
+    public $backoff = [120, 300, 600, 1200];
 
     protected HistoricalImportJobModel $importJob;
     protected Carbon $chunkDate;
@@ -37,6 +37,7 @@ class ImportHistoricalDataJob implements ShouldQueue
     {
         $this->importJob = $importJob;
         $this->chunkDate = $chunkDate;
+        $this->onQueue('historical');
     }
 
     public function handle(RateLimiter $rateLimiter): void

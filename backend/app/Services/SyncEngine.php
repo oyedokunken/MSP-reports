@@ -23,7 +23,14 @@ class SyncEngine
             'last_sync_status' => 'syncing'
         ]);
 
-        SyncIntegrationJob::dispatch($integration, $syncLog)->onQueue($priority);
+        // Map internal priority to specialized queue names
+        $queueName = match($priority) {
+            'high' => 'critical',
+            'default' => 'sync',
+             default => $priority, // Allow explicit queue names if provided
+        };
+
+        SyncIntegrationJob::dispatch($integration, $syncLog)->onQueue($queueName);
 
         return $syncLog;
     }

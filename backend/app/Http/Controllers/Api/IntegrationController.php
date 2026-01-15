@@ -850,7 +850,7 @@ class IntegrationController extends Controller
             'status' => 'queued',
         ]);
         
-        \App\Jobs\HistoricalImportJob::dispatch($integration, $job);
+        \App\Jobs\ImportHistoricalDataJob::dispatch($job, $startDate);
         
         $integration->update([
             'status' => 'importing_historical',

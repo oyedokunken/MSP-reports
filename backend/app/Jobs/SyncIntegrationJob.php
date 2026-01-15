@@ -26,10 +26,11 @@ class SyncIntegrationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 5; // Reduced tries to avoid endless loops, since we have long timeout
-    public $timeout = 3600; // Increased to 60 minutes to handle Datto and LibreNMS
-    public $backoff = [60, 300, 900, 1800]; // Exponential backoff: 1 min, 5 min, 15 min, 30 min
+    public $tries = 5; 
+    public $timeout = 3600; 
+    public $backoff = [60, 300, 900, 1800]; 
     public $deleteWhenMissingModels = true;
+    // public $queue = 'sync'; // Removed to avoid conflict with Queueable trait
 
     protected Integration $integration;
     protected SyncLog $syncLog;
@@ -38,6 +39,7 @@ class SyncIntegrationJob implements ShouldQueue
     {
         $this->integration = $integration;
         $this->syncLog = $syncLog;
+        $this->onQueue('sync');
     }
 
     public function middleware(): array
@@ -128,24 +130,44 @@ class SyncIntegrationJob implements ShouldQueue
             if (($result['batches_dispatched'] ?? 0) > 0) {
                  $batchCount = $result['batches_dispatched'];
                  
-                 // Initialize Redis counters
-                 \Illuminate\Support\Facades\Redis::connection()->set("sync_log:{$this->syncLog->sync_id}:pending", $batchCount);
-                 // 1 day expiry
-                 \Illuminate\Support\Facades\Redis::connection()->expire("sync_log:{$this->syncLog->sync_id}:pending", 86400);
+                 // Initialize Redis counters (with fallback if Redis unavailable)
+                 try {
+                     \Illuminate\Support\Facades\Redis::connection()->set("sync_log:{$this->syncLog->sync_id}:pending", $batchCount);
+                     // 1 day expiry
+                     \Illuminate\Support\Facades\Redis::connection()->expire("sync_log:{$this->syncLog->sync_id}:pending", 86400);
 
-                 // Update status to intermediate state
-                 $this->syncLog->update([
-                     'status' => 'running', 
-                     'records_synced' => $recordsSynced // Update initial count (customers)
-                 ]);
-                 
-                 Log::info('Integration sync deferred - processing background batches', [
-                     'integration_id' => $this->integration->integration_id,
-                     'batches' => $batchCount,
-                     'sync_id' => $this->syncLog->sync_id
-                 ]);
-                 
-                 // DO NOT call completeSyncLog here - let the final batch job do it
+                     // Update status to intermediate state
+                     $this->syncLog->update([
+                         'status' => 'running', 
+                         'records_synced' => $recordsSynced // Update initial count (customers)
+                     ]);
+                     
+                     Log::info('Integration sync deferred - processing background batches', [
+                         'integration_id' => $this->integration->integration_id,
+                         'batches' => $batchCount,
+                         'sync_id' => $this->syncLog->sync_id
+                     ]);
+                     
+                     // DO NOT call completeSyncLog here - let the final batch job do it
+                 } catch (\Exception $redisException) {
+                     // Redis is not available - complete sync immediately without batch tracking
+                     Log::warning('Redis unavailable for batch tracking - completing sync immediately', [
+                         'integration_id' => $this->integration->integration_id,
+                         'sync_id' => $this->syncLog->sync_id,
+                         'batches_dispatched' => $batchCount,
+                         'error' => $redisException->getMessage()
+                     ]);
+                     
+                     // Complete the sync now since we can't track batches
+                     $syncEngine->completeSyncLog(
+                         $this->syncLog,
+                         'success',
+                         $recordsSynced,
+                         $recordsFailed,
+                         array_merge($result['errors'] ?? [], ["Note: {$batchCount} background batches dispatched but not tracked (Redis unavailable)"]),
+                         $customersMapped
+                     );
+                 }
             } else {
                 $syncEngine->completeSyncLog(
                     $this->syncLog,

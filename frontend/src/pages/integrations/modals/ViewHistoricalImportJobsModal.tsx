@@ -226,15 +226,15 @@ export function ViewHistoricalImportJobsModal({
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-3 gap-3 pt-3 border-t">
-                      <div>
+                      <div key="imported">
                         <p className="text-xs text-muted-foreground">Records Imported</p>
                         <p className="text-sm font-medium text-green-600">{(job.records_imported || 0).toLocaleString()}</p>
                       </div>
-                      <div>
+                      <div key="failed">
                         <p className="text-xs text-muted-foreground">Records Failed</p>
                         <p className="text-sm font-medium text-red-600">{(job.records_failed || 0).toLocaleString()}</p>
                       </div>
-                      <div>
+                      <div key="errors">
                         <p className="text-xs text-muted-foreground">Error Count</p>
                         <p className="text-sm font-medium text-orange-600">{job.error_count || 0}</p>
                       </div>
@@ -242,18 +242,18 @@ export function ViewHistoricalImportJobsModal({
 
                     {/* Timestamps */}
                     <div className="grid grid-cols-2 gap-3 text-xs pt-3 border-t">
-                      <div>
+                      <div key="created">
                         <p className="text-muted-foreground">Created</p>
                         <p className="font-medium">{formatDate(job.created_at)}</p>
                       </div>
                       {job.started_at && (
-                        <div>
+                        <div key="started">
                           <p className="text-muted-foreground">Started</p>
                           <p className="font-medium">{formatDate(job.started_at)}</p>
                         </div>
                       )}
                       {job.completed_at && (
-                        <div>
+                        <div key="completed">
                           <p className="text-muted-foreground">Completed</p>
                           <p className="font-medium">{formatDate(job.completed_at)}</p>
                         </div>

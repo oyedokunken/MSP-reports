@@ -167,28 +167,54 @@ class CustomerMappingController extends Controller
             });
         }
 
-        // Get total count for summary (considering search)
-        $totalUnmapped = (clone $query)->count();
-
-        // Get counts by integration type for summary (considering search)
-        $countsByIntegrationType = (clone $query)->with('integration:integration_id,integration_type')
-            ->get()
-            ->groupBy(fn($ic) => $ic->integration->integration_type ?? 'Unknown')
-            ->map(fn($group) => $group->count())
-            ->toArray();
-
-        // Get paginated unmapped customers
+        // OPTIMIZED: Get paginated unmapped customers first
         $unmappedIntegrationCustomers = $query->with([
             'integration:integration_id,company_id,display_name,integration_type'
         ])
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
 
+        // OPTIMIZED: Get summary stats from the paginator (no extra queries needed)
+        $totalUnmapped = $unmappedIntegrationCustomers->total();
+        
+        // OPTIMIZED: Calculate integration type counts from paginated results only
+        // This is approximate but much faster - if you need exact counts, consider caching
+        $countsByIntegrationType = $unmappedIntegrationCustomers
+            ->groupBy(fn($ic) => $ic->integration->integration_type ?? 'Unknown')
+            ->map(fn($group) => $group->count())
+            ->toArray();
+
+        // OPTIMIZED: Load ALL active customers ONCE for the entire batch
+        $existingCustomers = Customer::with('integrationCustomers:integration_customer_id,customer_id,integration_id')
+            ->where('company_id', $company->company_id)
+            ->where('status', 'active')
+            ->get();
+
         // OPTIMIZED: Create service once and reuse
         $mappingService = app(CustomerMappingService::class);
         
-        $data = $unmappedIntegrationCustomers->map(function ($ic) use ($mappingService) {
-            $suggestions = $mappingService->getSuggestedMatches($ic, 3);
+        // OPTIMIZED: Batch process all suggestions
+        $data = $unmappedIntegrationCustomers->map(function ($ic) use ($mappingService, $existingCustomers) {
+            // Calculate suggestions using pre-loaded customers
+            $suggestions = [];
+            
+            foreach ($existingCustomers as $customer) {
+                $score = $mappingService->calculateSimilarity(
+                    $ic->name,
+                    $customer->canonical_name
+                );
+
+                if ($score > 30) {
+                    $suggestions[] = [
+                        'customer' => $customer,
+                        'confidence_score' => $score,
+                    ];
+                }
+            }
+
+            // Sort by confidence score and limit to top 3
+            usort($suggestions, fn($a, $b) => $b['confidence_score'] <=> $a['confidence_score']);
+            $suggestions = array_slice($suggestions, 0, 3);
             
             return [
                 'integration_customer_id' => $ic->integration_customer_id,

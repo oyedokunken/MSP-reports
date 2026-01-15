@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
         ]);
 
+        $middleware->use([
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
+
         $middleware->alias([
             'session.timeout' => \App\Http\Middleware\SessionTimeout::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
