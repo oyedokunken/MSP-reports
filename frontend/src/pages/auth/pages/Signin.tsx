@@ -34,7 +34,7 @@ const Signin = () => {
   const [showLdapModal, setShowLdapModal] = useState(false);
   const [ldapConfigured] = useState(false); // Set to true once LDAP is configured
   const [oauthConfigured] = useState(false); // Set to true once OAuth is configured
-  const [samlConfigured] = useState(false); // Set to true once SAML is configured
+  const [samlConfigured] = useState(true); // SAML is now configured
   const { login } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -43,7 +43,7 @@ const Signin = () => {
     try {
       // Construct email from username (add domain if needed)
       const email = username.includes('@') ? username : `${username}@domain.local`;
-      
+
       await login({
         email,
         password,
@@ -62,12 +62,12 @@ const Signin = () => {
 
   const handleOAuthLogin = () => {
     // Redirect to OAuth endpoint
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/auth/microsoft/redirect`;
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8081'}/api/auth/microsoft/redirect`;
   };
 
   const handleSamlLogin = () => {
     // Redirect to SAML endpoint
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/auth/saml/login`;
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8081'}/api/auth/saml/login`;
   };
 
   return (
@@ -118,8 +118,8 @@ const Signin = () => {
               onToggle={() => setShowAuthOptions(!showAuthOptions)}
             />
 
-            <EnterpriseAuthOptions 
-              isOpen={showAuthOptions} 
+            <EnterpriseAuthOptions
+              isOpen={showAuthOptions}
               onLdapClick={() => setShowLdapModal(true)}
               onOAuthClick={handleOAuthLogin}
               onSamlClick={handleSamlLogin}

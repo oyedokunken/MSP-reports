@@ -4,6 +4,7 @@ import { BrandingProvider } from '@/contexts/BrandingContext'
 import { ThemeProvider } from '@/components/ui/ThemeProvider'
 import { ToastProvider } from '@/components/ui/Toast'
 import Login from '@/pages/auth/pages/Signin'
+import AuthCallback from '@/pages/auth/pages/AuthCallback'
 import Dashboard from '@/pages/dashboard/Dashboard'
 import IntegrationList from '@/pages/integrations/IntegrationList'
 import { IntegrationPreview } from '@/pages/integrations/IntegrationPreview'
@@ -112,6 +113,7 @@ function AppRoutes() {
         <Route path="contact-admin" element={<ContactAdmin />} />
         <Route path="privacy-policy" element={<PrivacyPolicy />} />
         <Route path="terms-of-service" element={<TermsOfService />} />
+        <Route path="auth/callback" element={<AuthCallback />} />
       </Route>
 
       {/* Protected routes */}

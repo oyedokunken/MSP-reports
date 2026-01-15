@@ -29,3 +29,5 @@ rebuild.sh
 
 # Docker
 docker-compose.yml
+# SAML Certificates (secrets)
+storage/saml/
