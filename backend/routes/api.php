@@ -34,15 +34,22 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::post('/auth/password/reset', [AuthController::class, 'resetPassword']);
     });
     
-    // OAuth Routes
-    Route::get('/auth/microsoft/redirect', [AuthController::class, 'redirectToMicrosoft']);
-    Route::get('/auth/microsoft/callback', [AuthController::class, 'handleMicrosoftCallback']);
-    
-    // SAML Routes
-    Route::get('/auth/saml/login', [AuthController::class, 'initiateSamlLogin']);
-    Route::post('/auth/saml/acs', [AuthController::class, 'handleSamlAcs']);
-    Route::get('/auth/saml/sls', [AuthController::class, 'handleSamlSls']);
-    Route::post('/auth/saml/sls', [AuthController::class, 'handleSamlSls']);
+    // OAuth & SAML Routes (Session Enabled for State/PKCE)
+    Route::middleware([\Illuminate\Session\Middleware\StartSession::class])->group(function () {
+        // Microsoft
+        Route::get('/auth/microsoft/redirect', [AuthController::class, 'redirectToMicrosoft']);
+        Route::get('/auth/microsoft/callback', [AuthController::class, 'handleMicrosoftCallback']);
+        
+        // Keycloak OIDC
+        Route::get('/auth/keycloak/redirect', [AuthController::class, 'redirectToKeycloak']);
+        Route::get('/auth/keycloak/callback', [AuthController::class, 'handleKeycloakCallback']);
+        
+        // SAML
+        Route::get('/auth/saml/login', [AuthController::class, 'initiateSamlLogin']);
+        Route::post('/auth/saml/acs', [AuthController::class, 'handleSamlAcs']);
+        Route::get('/auth/saml/sls', [AuthController::class, 'handleSamlSls']);
+        Route::post('/auth/saml/sls', [AuthController::class, 'handleSamlSls']);
+    });
     
     Route::post('/auth/logout', [AuthController::class, 'authLogout'])->middleware('auth:sanctum');
     Route::get('/auth/me', [AuthController::class, 'me'])->middleware('auth:sanctum');

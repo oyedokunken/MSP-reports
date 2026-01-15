@@ -514,6 +514,113 @@ class AuthController extends Controller
     }
 
     /**
+     * Redirect to Keycloak OAuth provider
+     */
+    public function redirectToKeycloak()
+    {
+        try {
+            if (!$this->oauthService->isKeycloakEnabled()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Keycloak OAuth authentication is not enabled.',
+                ], 503);
+            }
+
+            $validation = $this->oauthService->validateKeycloakConfiguration();
+            if (!$validation['valid']) {
+                Log::error('Keycloak OAuth: Configuration invalid', $validation['errors']);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Keycloak OAuth is not properly configured.',
+                    'errors' => $validation['errors']
+                ], 500);
+            }
+
+            return $this->oauthService->redirectToKeycloak();
+
+        } catch (\Exception $e) {
+            Log::error('Keycloak OAuth: Redirect failed', [
+                'error' => $e->getMessage()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate Keycloak OAuth authentication.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle Keycloak OAuth callback
+     */
+    public function handleKeycloakCallback(Request $request)
+    {
+        try {
+            Log::info('Keycloak Callback Request:', $request->all());
+            
+            // Handle OAuth callback
+            $oauthUser = $this->oauthService->handleKeycloakCallback();
+
+            if (!$oauthUser) {
+                return redirect(env('FRONTEND_URL') . '/sign-in?error=keycloak_oauth_failed');
+            }
+
+            // Check if user exists - try both 'keycloak' and 'oidc' auth methods
+            $user = User::where('email', $oauthUser['email'])
+                ->whereIn('auth_method', ['keycloak', 'oidc'])
+                ->with('company', 'role')
+                ->first();
+
+            if (!$user) {
+                Log::warning('Keycloak OAuth: User not found', [
+                    'email' => $oauthUser['email']
+                ]);
+                return redirect(env('FRONTEND_URL') . '/sign-in?error=user_not_found');
+            }
+
+            // Check company and user status
+            if (in_array($user->company->status, ['suspended'])) {
+                return redirect(env('FRONTEND_URL') . '/sign-in?error=company_suspended');
+            }
+
+            if (in_array($user->status, ['inactive', 'locked'])) {
+                return redirect(env('FRONTEND_URL') . '/sign-in?error=account_' . $user->status);
+            }
+
+            // Update last login
+            $user->last_login_at = now();
+            $user->save();
+
+            // Create token
+            $token = $user->createToken('api-token')->plainTextToken;
+
+            // Log successful login
+            AuditLog::create([
+                'company_id' => $user->company_id,
+                'event_type' => 'user_login',
+                'actor_type' => 'User',
+                'actor_id' => $user->user_id,
+                'event_data' => json_encode([
+                    'email' => $user->email,
+                    'auth_method' => 'keycloak',
+                    'timestamp' => now()->toDateTimeString(),
+                ]),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            // Redirect to frontend with token
+            return redirect(env('FRONTEND_URL') . '/auth/callback?token=' . $token);
+
+        } catch (\Exception $e) {
+            Log::error('Keycloak OAuth: Callback handling failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect(env('FRONTEND_URL') . '/sign-in?error=keycloak_callback_failed');
+        }
+    }
+
+    /**
      * Get SAML metadata
      */
     public function getSamlMetadata()

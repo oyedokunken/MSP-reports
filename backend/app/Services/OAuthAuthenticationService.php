@@ -111,4 +111,98 @@ class OAuthAuthenticationService
             'errors' => $errors
         ];
     }
+
+    // ============================
+    // Keycloak OAuth Methods
+    // ============================
+
+    /**
+     * Check if Keycloak OAuth is enabled
+     */
+    public function isKeycloakEnabled(): bool
+    {
+        return env('KEYCLOAK_ENABLED', false) === true || env('KEYCLOAK_ENABLED', false) === 'true';
+    }
+
+    /**
+     * Validate Keycloak configuration
+     */
+    public function validateKeycloakConfiguration(): array
+    {
+        $errors = [];
+
+        if (empty(env('KEYCLOAK_CLIENT_ID'))) {
+            $errors[] = 'KEYCLOAK_CLIENT_ID is not configured';
+        }
+
+        if (empty(env('KEYCLOAK_CLIENT_SECRET'))) {
+            $errors[] = 'KEYCLOAK_CLIENT_SECRET is not configured';
+        }
+
+        if (empty(env('KEYCLOAK_BASE_URL'))) {
+            $errors[] = 'KEYCLOAK_BASE_URL is not configured';
+        }
+
+        if (empty(env('KEYCLOAK_REALM'))) {
+            $errors[] = 'KEYCLOAK_REALM is not configured';
+        }
+
+        if (empty(env('KEYCLOAK_REDIRECT_URI'))) {
+            $errors[] = 'KEYCLOAK_REDIRECT_URI is not configured';
+        }
+
+        return [
+            'valid' => empty($errors),
+            'errors' => $errors
+        ];
+    }
+
+    /**
+     * Redirect to Keycloak OAuth provider
+     */
+    public function redirectToKeycloak()
+    {
+        try {
+            return Socialite::driver('keycloak')
+                ->enablePKCE()
+                ->scopes(['openid', 'profile', 'email'])
+                ->redirect();
+        } catch (Exception $e) {
+            Log::error('OAuth: Failed to redirect to Keycloak', [
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Handle Keycloak OAuth callback
+     */
+    public function handleKeycloakCallback(): ?array
+    {
+        try {
+            $driver = Socialite::driver('keycloak')->enablePKCE();
+            $code = request()->input('code');
+            Log::info('OAuth: Keycloak callback received with code: ' . ($code ? 'present' : 'missing'));
+            
+            $keycloakUser = $driver->user();
+
+            return [
+                'email' => strtolower($keycloakUser->getEmail()),
+                'name' => $keycloakUser->getName(),
+                'external_id' => $keycloakUser->getId(),
+                'avatar' => $keycloakUser->getAvatar(),
+                'token' => $keycloakUser->token,
+                'refresh_token' => $keycloakUser->refreshToken,
+                'expires_in' => $keycloakUser->expiresIn,
+            ];
+
+        } catch (Exception $e) {
+            Log::error('OAuth: Keycloak callback failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return null;
+        }
+    }
 }

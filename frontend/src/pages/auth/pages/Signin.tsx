@@ -33,7 +33,7 @@ const Signin = () => {
 
   const [showLdapModal, setShowLdapModal] = useState(false);
   const [ldapConfigured] = useState(false); // Set to true once LDAP is configured
-  const [oauthConfigured] = useState(false); // Set to true once OAuth is configured
+  const [oauthConfigured] = useState(true); // Keycloak OIDC is configured
   const [samlConfigured] = useState(true); // SAML is now configured
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -61,8 +61,8 @@ const Signin = () => {
   };
 
   const handleOAuthLogin = () => {
-    // Redirect to OAuth endpoint
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8081'}/api/auth/microsoft/redirect`;
+    // Redirect to Keycloak OAuth endpoint
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8081'}/api/auth/keycloak/redirect`;
   };
 
   const handleSamlLogin = () => {
