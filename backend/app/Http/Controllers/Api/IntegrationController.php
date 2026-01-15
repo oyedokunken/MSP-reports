@@ -10,53 +10,16 @@ use App\Models\Integration;
 use App\Models\AuditLog;
 use App\Services\SyncEngine;
 use App\Services\LicenseChecker;
+use App\Services\IntegrationService;
 use Illuminate\Validation\Rule;
 
 class IntegrationController extends Controller
 {
-    /**
-     * Scan available integrations from filesystem
-     */
-    protected function scanAvailableIntegrations(): array
+    protected IntegrationService $integrationService;
+
+    public function __construct(IntegrationService $integrationService)
     {
-        $integrationsPath = app_path('Integrations');
-        $integrations = [];
-
-        if (!is_dir($integrationsPath)) {
-            return [];
-        }
-
-        $directories = array_filter(glob($integrationsPath . '/*'), 'is_dir');
-
-        foreach ($directories as $dir) {
-            $integrationName = basename($dir);
-            
-            // Skip Contracts directory
-            if ($integrationName === 'Contracts') {
-                continue;
-            }
-
-            $configFile = $dir . '/config.php';
-            
-            if (file_exists($configFile)) {
-                $integrations[] = $integrationName;
-            }
-        }
-
-        return $integrations;
-    }
-
-    /**
-     * Get configuration for a specific integration type
-     */
-    protected function getIntegrationConfig(string $integrationType): ?array
-    {
-        $configFile = app_path("Integrations/{$integrationType}/config.php");
-        
-        if (!file_exists($configFile)) {
-        }
-
-        return require $configFile;
+        $this->integrationService = $integrationService;
     }
 
     /**
@@ -67,7 +30,7 @@ class IntegrationController extends Controller
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $availableTypes = $this->scanAvailableIntegrations();
+        $availableTypes = $this->integrationService->scanAvailableIntegrations();
         
         $configuredIntegrations = $company->integrations()
             ->withCount([
@@ -93,7 +56,7 @@ class IntegrationController extends Controller
                     'last_sync_status' => $integration->last_sync_status,
                     'unmapped_customers_count' => $integration->unmapped_customers_count ?? 0,
                     'total_customers_count' => $integration->total_customers_count ?? 0,
-                    'next_sync_at' => $this->calculateNextSync($integration),
+                    'next_sync_at' => $this->integrationService->calculateNextSyncAt($integration),
                     'records_synced' => $latestSync ? $latestSync->records_synced : 0,
                     'last_error' => $latestSync && $latestSync->status === 'failed' ? ($latestSync->error_messages[0] ?? null) : null,
                 ];
@@ -105,66 +68,6 @@ class IntegrationController extends Controller
         ]);
     }
 
-    private function calculateNextSync(Integration $integration): ?string
-    {
-        if (!$integration->last_sync_at || $integration->status !== 'active') {
-            return null;
-        }
-
-        // If currently syncing, return a past date to trigger "Syncing soon..." in frontend
-        if ($integration->last_sync_status === 'syncing') {
-            return now()->subSeconds(5)->toISOString();
-        }
-
-        $syncSchedule = $integration->sync_schedule ?? $this->getDefaultSchedule($integration->integration_type);
-        $intervalMinutes = $this->parseCronInterval($syncSchedule);
-        
-        if ($intervalMinutes === null) {
-            return null;
-        }
-
-        return $integration->last_sync_at
-            ->copy()
-            ->addMinutes($intervalMinutes)
-            ->toISOString();
-    }
-
-    private function parseCronInterval(string $cronSchedule): ?int
-    {
-        // Parse minute intervals (e.g., */5 * * * * = every 5 minutes)
-        if (preg_match('/^\*\/(\d+)\s+\*/', $cronSchedule, $matches)) {
-            return (int)$matches[1];
-        }
-
-        // Parse hour intervals (e.g., 0 */2 * * * = every 2 hours)
-        if (preg_match('/^0\s+\*\/(\d+)/', $cronSchedule, $matches)) {
-            return (int)$matches[1] * 60;
-        }
-
-        // Common patterns
-        $patterns = [
-            '0 */1 * * *' => 60,     // Hourly
-            '0 */2 * * *' => 120,    // Every 2 hours
-            '0 */4 * * *' => 240,    // Every 4 hours
-            '0 */6 * * *' => 360,    // Every 6 hours
-            '0 */12 * * *' => 720,   // Every 12 hours
-            '0 0 * * *' => 1440,     // Daily
-        ];
-
-        return $patterns[$cronSchedule] ?? null;
-    }
-
-    private function getDefaultSchedule(string $integrationType): string
-    {
-        return match($integrationType) {
-            'Datto' => '*/5 * * * *',       // Every 5 minutes
-            'LibreNMS' => '*/10 * * * *',   // Every 10 minutes
-            'Autotask' => '*/10 * * * *',   // Every 10 minutes
-            'ITGlue' => '0 */6 * * *',      // Every 6 hours
-            'SaaS', 'BitDefender', 'Sendmarc', 'Barracuda' => '0 */6 * * *', // Every 6 hours
-            default => '0 */6 * * *',       // Default to 6 hours for others
-        };
-    }
 
     /**
      * Get configuration and credential fields for a specific integration type
@@ -172,48 +75,17 @@ class IntegrationController extends Controller
     public function getIntegrationTypeConfig(string $integrationType): JsonResponse
     {
         try {
-            // Get credential fields from the integration class (new method)
-            $className = "App\\Integrations\\{$integrationType}\\{$integrationType}Integration";
-            if (!class_exists($className)) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Integration type not found',
-                ], 404);
-            }
-
-            // Create a temporary instance to get credential fields
-            $tempIntegration = new \App\Models\Integration([
-                'integration_type' => $integrationType,
-                'credentials' => [],
-            ]);
-            $instance = new $className($tempIntegration);
-            
-            // Get metadata and credential fields
-            $metadata = $instance->getMetadata();
-            $credentialFields = $instance->getCredentialFields();
+            $config = $this->integrationService->getIntegrationTypeConfig($integrationType);
 
             return response()->json([
                 'success' => true,
-                'config' => [
-                    'name' => $metadata['name'] ?? $integrationType,
-                    'description' => $metadata['description'] ?? '',
-                    'credential_fields' => $credentialFields,
-                    'data_types' => $metadata['data_types'] ?? [],
-                    'supports_historical' => $metadata['supports_historical'] ?? false,
-                    'historical_range_days' => $metadata['historical_range_days'] ?? 0,
-                ],
+                'config' => $config,
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to get integration config', [
-                'integration_type' => $integrationType,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to get integration configuration: ' . $e->getMessage(),
-            ], 500);
+                'error' => $e->getMessage(),
+            ], 404);
         }
     }
 
@@ -222,16 +94,8 @@ class IntegrationController extends Controller
      */
     public function createIntegration(Request $request): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
-
-        $availableTypes = $this->scanAvailableIntegrations();
+        $availableTypes = $this->integrationService->scanAvailableIntegrations();
         
-        $request->merge([
-            'integration_type' => trim(strip_tags($request->integration_type)),
-            'display_name' => trim(strip_tags($request->display_name)),
-        ]);
-
         $validated = $request->validate([
             'integration_type' => ['required', 'string', Rule::in($availableTypes)],
             'display_name' => 'required|string|min:2|max:255|regex:/^[A-Za-z0-9\s\-\_\.]+$/',
@@ -241,251 +105,52 @@ class IntegrationController extends Controller
             'is_source_of_truth' => 'nullable|boolean',
         ]);
 
-        $exists = $company->integrations()
-            ->where('integration_type', $validated['integration_type'])
-            ->exists();
+        try {
+            $integration = $this->integrationService->createIntegration($request->user()->company, $validated);
 
-        if ($exists && $validated['integration_type'] !== 'SharePoint') {
+            return response()->json([
+                'status' => 'success',
+                'data' => $integration
+            ], 201);
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Integration already exists for this company.'
-            ], 409);
+                'message' => $e->getMessage()
+            ], 422);
         }
-
-        $sku = 'integration_' . strtolower($validated['integration_type']);
-
-        $hasLicense = $company->licenses()
-            ->where('status', 'active')
-            ->where(function ($q) {
-                $q->whereNull('expiry_date')
-                ->orWhere('expiry_date', '>', now());
-            })
-            ->where(function ($q) use ($sku) {
-                $q->where('product_sku', $sku)
-                  ->orWhere('product_sku', 'unlimited')
-                  ->orWhere('license_type', 'unlimited');
-            })
-            ->exists();
-
-        if (! $hasLicense) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Company does not have an active license for this integration type.'
-            ], 403);
-        }
-
-        $credentials = $validated['credentials'] ?? [];
-        
-        // Log integration creation attempt (credentials masked for security)
-        Log::info('Integration credentials received', [
-            'integration_type' => $validated['integration_type'],
-            'credential_keys' => array_keys($credentials),
-        ]);
-        
-        $credentials = array_filter($credentials, function($value) {
-            return $value !== null && $value !== '';
-        });
-        
-        Log::debug('Credentials filtered', [
-            'credential_keys' => array_keys($credentials),
-            'count' => count($credentials),
-        ]);
-        
-        // Datto: map rmm_region to rmm_url, or use default if not provided
-        if ($validated['integration_type'] === 'Datto') {
-            if (isset($credentials['rmm_region'])) {
-                $credentials['rmm_url'] = $credentials['rmm_region'];
-                unset($credentials['rmm_region']);
-            } elseif (!isset($credentials['rmm_url']) && (isset($credentials['rmm_api_key']) || isset($credentials['rmm_api_secret']))) {
-                // If RMM credentials provided but no URL, use default Syrah region
-                $credentials['rmm_url'] = 'https://syrah-api.centrastage.net';
-            }
-        }
-        
-        // LibreNMS: add default base_url if not provided, or use provided value
-        if ($validated['integration_type'] === 'LibreNMS') {
-            if (!isset($credentials['base_url']) && isset($credentials['api_token'])) {
-                $credentials['base_url'] = 'http://192.168.228.7/api/v0';
-                Log::debug('LibreNMS: Added default base_url');
-            }
-            // Ensure base_url doesn't have trailing slash
-            if (isset($credentials['base_url'])) {
-                $credentials['base_url'] = rtrim($credentials['base_url'], '/');
-            }
-        }
-        
-        if ($validated['integration_type'] === 'Autotask' && isset($credentials['zone'])) {
-            $credentials['endpoint'] = $credentials['zone'];
-            unset($credentials['zone']);
-        }
-        
-        if ($validated['integration_type'] === 'Sendmarc' && !isset($credentials['base_url'])) {
-            $credentials['base_url'] = 'https://portal.sendmarc.com/api/v1';
-        }
-        
-        if ($validated['integration_type'] === 'Barracuda' && !isset($credentials['base_url'])) {
-            $credentials['base_url'] = 'https://api.barracuda.com';
-        }
-        
-        if ($validated['integration_type'] === 'BitDefender' && !isset($credentials['api_url'])) {
-            $credentials['api_url'] = 'https://cloud.gravityzone.bitdefender.com/api/v1.0/jsonrpc';
-        }
-
-        // Test credentials before creating integration
-        $tempIntegration = new Integration([
-            'company_id' => $company->company_id,
-            'integration_type' => $validated['integration_type'],
-            'display_name' => $validated['display_name'],
-            'status' => 'disconnected',
-            'credentials' => $credentials,
-            'configuration' => $validated['configuration'] ?? [],
-        ]);
-
-        if (!empty($credentials) && $validated['status'] !== 'disconnected') {
-            try {
-                $className = "App\\Integrations\\{$validated['integration_type']}\\{$validated['integration_type']}Integration";
-                
-                if (!class_exists($className)) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Integration class not found.'
-                    ], 500);
-                }
-
-                $instance = new $className($tempIntegration);
-                $authResult = $instance->authenticate();
-
-                if (!$authResult) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Authentication failed. Please verify your credentials and try again.'
-                    ], 422);
-                }
-
-                $validated['status'] = 'active';
-            } catch (\App\Integrations\Exceptions\AuthenticationException $e) {
-                Log::error('Integration authentication failed', [
-                    'integration_type' => $validated['integration_type'],
-                    'status_code' => $e->getStatusCode(),
-                    'error' => $e->getMessage(),
-                    'response_body' => $e->getResponseBody(),
-                ]);
-
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $e->getUserMessage()
-                ], 422);
-            } catch (\Exception $e) {
-                Log::error('Integration authentication failed', [
-                    'integration_type' => $validated['integration_type'],
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString(),
-                ]);
-
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Authentication failed: ' . $e->getMessage()
-                ], 422);
-            }
-        }
-
-        $isFirstIntegration = $company->integrations()->count() === 0;
-        $isSourceOfTruth = $isFirstIntegration ? true : ($validated['is_source_of_truth'] ?? false);
-        $syncSchedule = match($validated['integration_type']) {
-            'Autotask' => '*/10 * * * *',    // Every 10 minutes (companies + tickets + time)
-            'Datto' => '*/5 * * * *',       // Every 5 minutes
-            'ITGlue' => '0 */6 * * *',      // Every 6 hours
-            'LibreNMS' => '*/10 * * * *',   // Every 10 minutes
-            'SaaS', 'BitDefender', 'Sendmarc', 'Barracuda' => '0 */6 * * *',  // Every 6 hours
-            default => '0 */6 * * *',       // Default to 6 hours for any others (safer than 4)
-        };
-
-        $integration = $company->integrations()->create([
-            'integration_type' => $validated['integration_type'],
-            'display_name' => $validated['display_name'],
-            'status' => $validated['status'],
-            'credentials' => $credentials,
-            'configuration' => $validated['configuration'] ?? null,
-            'is_source_of_truth' => $isSourceOfTruth,
-            'sync_schedule' => $syncSchedule,
-        ]);
-
-        if ($isSourceOfTruth) {
-            $settings = $company->settings ?? [];
-            if (!isset($settings['integrations'])) {
-                $settings['integrations'] = [];
-            }
-            $settings['integrations']['source_of_truth_integration_id'] = $integration->integration_id;
-            $company->settings = $settings;
-            $company->save();
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $integration
-        ], 201);
     }
 
     public function triggerSync(Request $request, $id)
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
+        $company = $request->user()->company;
+        $integration = $company->integrations()->find($id);
 
-        $request->merge(['integration_id' => intval($id)]);
-
-        $validated = $request->validate([
-            'integration_id' => 'required|integer|exists:integrations,integration_id',
-        ]);
-
-        $integration = $company->integrations()
-            ->where('integration_id', $validated['integration_id'])
-            ->first();
-
-        if (! $integration) {
+        if (!$integration) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Integration not found for this company.'
             ], 404);
         }
 
-        // Remove the entire restriction block to continue syncing other integrations (isolation)
+        try {
+            $syncLog = $this->integrationService->triggerSync($integration);
 
-        // if (!$integration->is_source_of_truth) {
-        //     return response()->json([
-        //         'status' => 'error',
-        //         'message' => 'Manual sync is only allowed for the source of truth integration. Please sync the source of truth integration first, then other integrations will sync automatically.',
-        //         'data' => [
-        //             'integration_id' => $integration->integration_id,
-        //             'integration_type' => $integration->integration_type,
-        //             'display_name' => $integration->display_name,
-        //             'is_source_of_truth' => false,
-        //         ]
-        //     ], 403);
-        // }
-
-        // Check for existing running/queued syncs to prevent overlap
-        if ($integration->syncLogs()->whereIn('status', ['queued', 'running'])->exists()) {
-             return response()->json([
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Sync queued successfully.',
+                'data' => [
+                    'sync_log_id' => $syncLog->sync_id,
+                    'status' => $syncLog->status,
+                    'integration_id' => $integration->integration_id,
+                    'integration_type' => $integration->integration_type,
+                ]
+            ], 202);
+        } catch (\Exception $e) {
+            return response()->json([
                 'status' => 'error',
-                'message' => 'A sync is already in progress for this integration.'
+                'message' => $e->getMessage()
             ], 409);
         }
-
-        // Use SyncEngine to queue the sync (consistent with scheduled syncs)
-        $syncEngine = app(\App\Services\SyncEngine::class);
-        // Use 'high' priority for user-initiated syncs
-        $syncLog = $syncEngine->triggerSync($integration, 'current_state', 'high');
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Sync queued successfully.',
-            'data' => [
-                'sync_log_id' => $syncLog->sync_id,
-                'status' => $syncLog->status,
-                'integration_id' => $integration->integration_id,
-                'integration_type' => $integration->integration_type,
-            ]
-        ], 202); // 202 Accepted (async processing)
     }
 
     public function getIntegrationCustomers(Request $request, $id)

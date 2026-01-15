@@ -813,6 +813,43 @@ class AutotaskIntegration implements IntegrationInterface
             default => null,
         };
     }
+    private function bulkStoreHistoricalData(string $dataType, array $batch): void
+    {
+        if (empty($batch)) return;
+
+        $externalIds = array_filter(array_map(fn($item) => $item['external_id'] ?? null, $batch));
+        $now = now();
+
+        DB::transaction(function () use ($dataType, $batch, $externalIds, $now) {
+            // Delete existing
+            if (!empty($externalIds)) {
+                DB::table('integration_data')
+                    ->where('integration_id', $this->integration->integration_id)
+                    ->where('data_type', $dataType)
+                    ->whereIn('external_id', $externalIds)
+                    ->delete();
+            }
+
+            $insertData = array_map(function ($item) use ($dataType, $now) {
+                return [
+                    'company_id' => $this->integration->company_id,
+                    'integration_id' => $this->integration->integration_id,
+                    'integration_customer_id' => $item['integration_customer_id'],
+                    'external_id' => $item['external_id'],
+                    'data_type' => $dataType,
+                    'data_timestamp' => $item['timestamp'],
+                    'data_payload' => json_encode($item['payload']),
+                    'imported_at' => $now,
+                    'data_version' => 1,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }, $batch);
+
+            DB::table('integration_data')->insert($insertData);
+        });
+    }
+
     private function saveSyncState(string $phase, int $offset, int $total): void
     {
         // Direct DB update to avoid model events/overhead
@@ -843,11 +880,11 @@ class AutotaskIntegration implements IntegrationInterface
                 break;
                 
             case 'tickets':
-                // We need customer map for tickets
-                 $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
                     ->pluck('integration_customer_id', 'external_id')
                     ->toArray();
                     
+                $batch = [];
                 foreach ($items as $ticket) {
                     try {
                         $companyId = $ticket['companyID'] ?? null;
@@ -855,39 +892,38 @@ class AutotaskIntegration implements IntegrationInterface
                         
                         $standardized = AutotaskMapper::mapTicket($ticket);
                         $standardized['integration_customer_id'] = $integrationCustomerId;
+                        $standardized['external_id'] = (string)$ticket['id'];
                         
-                        $this->storeHistoricalData($standardized);
+                        $batch[] = $standardized;
                     } catch (\Exception $e) {
-                        Log::error('Autotask batch: Failed to process ticket', ['error' => $e->getMessage()]);
+                        Log::error('Autotask batch: Failed to map ticket', ['id' => $ticket['id'] ?? 'unknown', 'error' => $e->getMessage()]);
                     }
                 }
+                $this->bulkStoreHistoricalData('ticket', $batch);
                 break;
-                
-             case 'time_entries':
-                // We assume we can't easily map back to company without ticket lookup, 
-                // but for batch processing we might skip the complex ticket->company lookup for performance
-                // OR we'd need to fetch ticket info. For now, let's map what we can.
-                 $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+
+            case 'time_entries':
+                $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
                     ->pluck('integration_customer_id', 'external_id')
                     ->toArray();
                     
-                foreach ($items as $entry) {
+                $batch = [];
+                foreach ($items as $timeEntry) {
                     try {
-                        // Optimistic: if we have ticketID, maybe we can query DB? 
-                        // For now, accept we might miss company mapping on time entries in batch mode 
-                        // unless we query; this is a trade-off for speed.
-                        $integrationCustomerId = null;
+                        $companyId = $timeEntry['companyID'] ?? null;
+                        $integrationCustomerId = $companyId ? ($customerMap[(string)$companyId] ?? null) : null;
                         
-                        $standardized = AutotaskMapper::mapTimeEntry($entry);
+                        $standardized = AutotaskMapper::mapTimeEntry($timeEntry);
                         $standardized['integration_customer_id'] = $integrationCustomerId;
+                        $standardized['external_id'] = (string)$timeEntry['id'];
                         
-                        $this->storeHistoricalData($standardized);
+                        $batch[] = $standardized;
                     } catch (\Exception $e) {
-                        Log::error('Autotask batch: Failed to process time entry', ['error' => $e->getMessage()]);
+                        Log::error('Autotask batch: Failed to map time entry', ['id' => $timeEntry['id'] ?? 'unknown', 'error' => $e->getMessage()]);
                     }
                 }
+                $this->bulkStoreHistoricalData('time_entry', $batch);
                 break;
         }
     }
 }
-

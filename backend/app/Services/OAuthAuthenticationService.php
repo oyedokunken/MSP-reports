@@ -17,7 +17,7 @@ class OAuthAuthenticationService
     {
         try {
             return Socialite::driver('microsoft')
-                ->scopes(explode(' ', env('AZURE_SCOPES', 'openid profile email User.Read')))
+                ->scopes(config('auth_methods.oauth.microsoft.scopes'))
                 ->redirect();
         } catch (Exception $e) {
             Log::error('OAuth: Failed to redirect to Microsoft', [
@@ -68,7 +68,7 @@ class OAuthAuthenticationService
      */
     public function isEnabled(): bool
     {
-        return env('OAUTH_ENABLED', false) === true || env('OAUTH_ENABLED', false) === 'true';
+        return config('auth_methods.oauth.enabled', false);
     }
 
     /**
@@ -78,7 +78,7 @@ class OAuthAuthenticationService
      */
     public function isAutoProvisionEnabled(): bool
     {
-        return env('OAUTH_AUTO_PROVISION', true) === true || env('OAUTH_AUTO_PROVISION', true) === 'true';
+        return config('auth_methods.oauth.auto_provision', true);
     }
 
     /**
@@ -90,19 +90,19 @@ class OAuthAuthenticationService
     {
         $errors = [];
 
-        if (empty(env('AZURE_CLIENT_ID'))) {
+        if (empty(config('services.microsoft.client_id'))) {
             $errors[] = 'AZURE_CLIENT_ID is not configured';
         }
 
-        if (empty(env('AZURE_CLIENT_SECRET'))) {
+        if (empty(config('services.microsoft.client_secret'))) {
             $errors[] = 'AZURE_CLIENT_SECRET is not configured';
         }
 
-        if (empty(env('AZURE_TENANT_ID'))) {
+        if (empty(config('services.microsoft.tenant'))) {
             $errors[] = 'AZURE_TENANT_ID is not configured';
         }
 
-        if (empty(env('AZURE_REDIRECT_URI'))) {
+        if (empty(config('services.microsoft.redirect'))) {
             $errors[] = 'AZURE_REDIRECT_URI is not configured';
         }
 
@@ -121,7 +121,7 @@ class OAuthAuthenticationService
      */
     public function isKeycloakEnabled(): bool
     {
-        return env('KEYCLOAK_ENABLED', false) === true || env('KEYCLOAK_ENABLED', false) === 'true';
+        return config('auth_methods.oauth.keycloak.enabled', false);
     }
 
     /**
@@ -131,23 +131,23 @@ class OAuthAuthenticationService
     {
         $errors = [];
 
-        if (empty(env('KEYCLOAK_CLIENT_ID'))) {
+        if (empty(config('services.keycloak.client_id'))) {
             $errors[] = 'KEYCLOAK_CLIENT_ID is not configured';
         }
 
-        if (empty(env('KEYCLOAK_CLIENT_SECRET'))) {
+        if (empty(config('services.keycloak.client_secret'))) {
             $errors[] = 'KEYCLOAK_CLIENT_SECRET is not configured';
         }
 
-        if (empty(env('KEYCLOAK_BASE_URL'))) {
+        if (empty(config('services.keycloak.base_url'))) {
             $errors[] = 'KEYCLOAK_BASE_URL is not configured';
         }
 
-        if (empty(env('KEYCLOAK_REALM'))) {
+        if (empty(config('services.keycloak.realms'))) {
             $errors[] = 'KEYCLOAK_REALM is not configured';
         }
 
-        if (empty(env('KEYCLOAK_REDIRECT_URI'))) {
+        if (empty(config('services.keycloak.redirect'))) {
             $errors[] = 'KEYCLOAK_REDIRECT_URI is not configured';
         }
 

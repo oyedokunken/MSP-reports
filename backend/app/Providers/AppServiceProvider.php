@@ -16,6 +16,12 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(function (\SocialiteProviders\Manager\SocialiteWasCalled $event) {
             $event->extendSocialite('keycloak', \SocialiteProviders\Keycloak\Provider::class);
         });
+
+        // Register Audit Logger
+        Event::listen(
+            \App\Events\AuditEvent::class,
+            \App\Listeners\RecordAuditLog::class
+        );
     }
 
     public function boot(): void

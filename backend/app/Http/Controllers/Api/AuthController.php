@@ -16,173 +16,46 @@ use Illuminate\Validation\ValidationException;
 use App\Http\Requests\LoginRequest;
 use App\Mail\PasswordResetMail;
 use App\Rules\StrongPassword;
-use App\Services\LdapAuthenticationService;
-use App\Services\UserProvisioningService;
 use App\Services\OAuthAuthenticationService;
 use App\Services\SamlAuthenticationService;
+use App\Services\AuthService;
 
 class AuthController extends Controller
 {
     protected OAuthAuthenticationService $oauthService;
     protected SamlAuthenticationService $samlService;
+    protected AuthService $authService;
 
-    public function __construct(OAuthAuthenticationService $oauthService, SamlAuthenticationService $samlService)
-    {
+    public function __construct(
+        OAuthAuthenticationService $oauthService, 
+        SamlAuthenticationService $samlService,
+        AuthService $authService
+    ) {
         $this->oauthService = $oauthService;
         $this->samlService = $samlService;
+        $this->authService = $authService;
     }
     public function authLogin(LoginRequest $request)
     {
-        $validated = $request->validated();
-        
-        $validated['email'] = trim(strtolower($validated['email']));
-        $validated['auth_method'] = trim($validated['auth_method']);
-
-        // Check for too many failed login attempts
-        $lockoutKey = 'login_attempts:' . $request->ip();
-        $attempts = (int) Cache::get($lockoutKey, 0);
-        
-        if ($attempts >= 5) {
-            Log::warning('Login attempt blocked due to too many failed attempts', [
-                'ip' => $request->ip(),
-                'email' => $validated['email']
-            ]);
-            throw ValidationException::withMessages([
-                'email' => ['Too many failed login attempts. Please try again in 15 minutes.'],
-            ]);
-        }
-
-        $user = User::where('email', $validated['email'])
-                    ->where('auth_method', $validated['auth_method'])
-                    ->with('company', 'role')
-                    ->first();
-
-        if (!$user) {
-            $this->recordFailedAttempt($request, $validated['email']);
-            throw ValidationException::withMessages([
-                'email' => ['Invalid credentials.'],
-            ]);
-        }
-
-        if (in_array($user->company->status, ['suspended'])) {
-            throw ValidationException::withMessages([
-                'email' => ['Your company account is currently suspended. Please contact support.'],
-            ]);
-        }
-
-        if (in_array($user->status, ['inactive', 'locked'])) {
-            throw ValidationException::withMessages([
-                'email' => ['Your account is currently ' . $user->status . '. Please contact your administrator.'],
-            ]);
-        }
-
-        // Handle authentication based on auth_method
-        if ($validated['auth_method'] === 'local') {
-            if (
-                empty($validated['password']) ||
-                !Hash::check($validated['password'], $user->password)
-            ) {
-                $this->recordFailedAttempt($request, $validated['email'], $user->company_id);
-                throw ValidationException::withMessages([
-                    'password' => ['Invalid credentials.'],
-                ]);
-            }
-        } elseif ($validated['auth_method'] === 'ldap') {
-            // LDAP authentication
-            if (empty($validated['password'])) {
-                $this->recordFailedAttempt($request, $validated['email'], $user->company_id ?? null);
-                throw ValidationException::withMessages([
-                    'password' => ['Password is required for LDAP authentication.'],
-                ]);
-            }
-
-            $ldapService = new LdapAuthenticationService();
-            
-            // Extract username from email (before @)
-            $username = explode('@', $validated['email'])[0];
-            
-            $ldapUser = $ldapService->authenticate($username, $validated['password']);
-            
-            if (!$ldapUser) {
-                $this->recordFailedAttempt($request, $validated['email'], $user->company_id ?? null);
-                throw ValidationException::withMessages([
-                    'password' => ['Invalid LDAP credentials.'],
-                ]);
-            }
-
-            // If user doesn't exist locally, provision via JIT
-            if (!$user) {
-                $provisioningService = new UserProvisioningService();
-                $user = $provisioningService->provisionUser(
-                    $user->company_id,
-                    $ldapUser['email'],
-                    $ldapUser['name'],
-                    'ldap',
-                    [
-                        'username' => $ldapUser['username'],
-                        'first_name' => $ldapUser['first_name'],
-                        'last_name' => $ldapUser['last_name'],
-                    ]
-                );
-                
-                // Reload user with relationships
-                $user = User::where('user_id', $user->user_id)
-                    ->with('company', 'role')
-                    ->first();
-            }
-        }
-
-        // Clear failed login attempts on successful login
-        Cache::forget('login_attempts:' . $request->ip());
-        
-        $user->last_login_at = now();
-        $user->save();
-
-        $token = $user->createToken('api-token')->plainTextToken;
-
-        AuditLog::create([
-            'company_id'  => $user->company_id,
-            'event_type'  => 'user_login',
-            'actor_type'  => 'User',
-            'actor_id'    => $user->user_id,
-            'event_data'  => json_encode([
-                'email' => $user->email,
-                'auth_method' => $user->auth_method,
-                'timestamp' => now()->toDateTimeString(),
-            ]),
-            'ip_address'  => $request->ip(),
-            'user_agent'  => $request->userAgent(),
-        ]);
-        
-        $sanitisedUser = $user->makeHidden(['password', 'remember_token']);
+        $result = $this->authService->login(
+            $request->validated(),
+            $request->ip(),
+            $request->userAgent()
+        );
 
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'user' => $sanitisedUser,
-                'company' => $user->company,
-                'token' => $token,
-            ],
+            'data' => $result,
         ]);
     }
 
     public function authLogout(Request $request)
     {
-        $user = $request->user();
-
-        AuditLog::create([
-            'company_id'  => $user->company_id,
-            'event_type'  => 'user_logout',
-            'actor_type'  => 'User',
-            'actor_id'    => $user->user_id,
-            'event_data'  => json_encode([
-                'timestamp' => now()->toDateTimeString(),
-            ]),
-            'ip_address'  => $request->ip(),
-            'user_agent'  => $request->userAgent(),
-        ]);
-
-        $user->currentAccessToken()->delete();
+        $this->authService->logout(
+            $request->user(),
+            $request->ip(),
+            $request->userAgent()
+        );
 
         return response()->json([
             'status' => 'success',
@@ -364,38 +237,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Record failed login attempt and implement rate limiting
-     */
-    private function recordFailedAttempt(Request $request, string $email, ?int $companyId = null): void
-    {
-        $lockoutKey = 'login_attempts:' . $request->ip();
-        $attempts = (int) Cache::get($lockoutKey, 0) + 1;
-        Cache::put($lockoutKey, $attempts, now()->addMinutes(15));
-
-        Log::warning('Failed login attempt', [
-            'ip' => $request->ip(),
-            'email' => $email,
-            'attempts' => $attempts,
-            'user_agent' => $request->userAgent()
-        ]);
-
-        if ($companyId) {
-            AuditLog::create([
-                'company_id' => $companyId,
-                'event_type' => 'failed_login_attempt',
-                'actor_type' => 'System',
-                'actor_id' => null,
-                'event_data' => json_encode([
-                    'email' => $email,
-                    'attempts' => $attempts,
-                    'timestamp' => now()->toDateTimeString(),
-                ]),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-        }
-    }
 
     /**
      * Redirect to Microsoft OAuth provider
@@ -443,7 +284,7 @@ class AuthController extends Controller
             $oauthUser = $this->oauthService->handleMicrosoftCallback();
 
             if (!$oauthUser) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=oauth_failed');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=oauth_failed');
             }
 
             // Check if user exists
@@ -463,20 +304,20 @@ class AuthController extends Controller
                     'email' => $oauthUser['email']
                 ]);
 
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=user_not_found');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=user_not_found');
             }
 
             if (!$user) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=user_not_found');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=user_not_found');
             }
 
             // Check company and user status
             if (in_array($user->company->status, ['suspended'])) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=company_suspended');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=company_suspended');
             }
 
             if (in_array($user->status, ['inactive', 'locked'])) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=account_' . $user->status);
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=account_' . $user->status);
             }
 
             // Update last login
@@ -502,14 +343,14 @@ class AuthController extends Controller
             ]);
 
             // Redirect to frontend with token
-            return redirect(env('FRONTEND_URL') . '/auth/callback?token=' . $token);
+            return redirect(config('auth_methods.frontend_url') . '/auth/callback?token=' . $token);
 
         } catch (\Exception $e) {
             Log::error('OAuth: Callback handling failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return redirect(env('FRONTEND_URL') . '/sign-in?error=oauth_callback_failed');
+            return redirect(config('auth_methods.frontend_url') . '/sign-in?error=oauth_callback_failed');
         }
     }
 
@@ -561,7 +402,7 @@ class AuthController extends Controller
             $oauthUser = $this->oauthService->handleKeycloakCallback();
 
             if (!$oauthUser) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=keycloak_oauth_failed');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=keycloak_oauth_failed');
             }
 
             // Check if user exists - try both 'keycloak' and 'oidc' auth methods
@@ -574,16 +415,16 @@ class AuthController extends Controller
                 Log::warning('Keycloak OAuth: User not found', [
                     'email' => $oauthUser['email']
                 ]);
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=user_not_found');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=user_not_found');
             }
 
             // Check company and user status
             if (in_array($user->company->status, ['suspended'])) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=company_suspended');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=company_suspended');
             }
 
             if (in_array($user->status, ['inactive', 'locked'])) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=account_' . $user->status);
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=account_' . $user->status);
             }
 
             // Update last login
@@ -609,14 +450,14 @@ class AuthController extends Controller
             ]);
 
             // Redirect to frontend with token
-            return redirect(env('FRONTEND_URL') . '/auth/callback?token=' . $token);
+            return redirect(config('auth_methods.frontend_url') . '/auth/callback?token=' . $token);
 
         } catch (\Exception $e) {
             Log::error('Keycloak OAuth: Callback handling failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return redirect(env('FRONTEND_URL') . '/sign-in?error=keycloak_callback_failed');
+            return redirect(config('auth_methods.frontend_url') . '/sign-in?error=keycloak_callback_failed');
         }
     }
 
@@ -666,13 +507,13 @@ class AuthController extends Controller
     {
         try {
             if (!$this->samlService->isEnabled()) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=saml_not_enabled');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=saml_not_enabled');
             }
 
             $validation = $this->samlService->validateConfiguration();
             if (!$validation['valid']) {
                 Log::error('SAML: Configuration invalid', $validation['errors']);
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=saml_not_configured');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=saml_not_configured');
             }
 
             $authnRequest = $this->samlService->generateAuthnRequest();
@@ -687,7 +528,7 @@ class AuthController extends Controller
             Log::error('SAML: Login initiation failed', [
                 'error' => $e->getMessage()
             ]);
-            return redirect(env('FRONTEND_URL') . '/sign-in?error=saml_init_failed');
+            return redirect(config('auth_methods.frontend_url') . '/sign-in?error=saml_init_failed');
         }
     }
 
@@ -700,14 +541,14 @@ class AuthController extends Controller
             $samlResponse = $request->input('SAMLResponse');
 
             if (!$samlResponse) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=saml_no_response');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=saml_no_response');
             }
 
             // Parse and validate SAML response
             $samlUser = $this->samlService->parseResponse($samlResponse);
 
             if (!$samlUser) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=saml_invalid_response');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=saml_invalid_response');
             }
 
             // Check if user exists
@@ -720,16 +561,16 @@ class AuthController extends Controller
                 Log::warning('SAML: User not found', [
                     'email' => $samlUser['email']
                 ]);
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=user_not_found');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=user_not_found');
             }
 
             // Check company and user status
             if (in_array($user->company->status, ['suspended'])) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=company_suspended');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=company_suspended');
             }
 
             if (in_array($user->status, ['inactive', 'locked'])) {
-                return redirect(env('FRONTEND_URL') . '/sign-in?error=account_' . $user->status);
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=account_' . $user->status);
             }
 
             // Update last login
@@ -755,14 +596,14 @@ class AuthController extends Controller
             ]);
 
             // Redirect to frontend with token
-            return redirect(env('FRONTEND_URL') . '/auth/callback?token=' . $token);
+            return redirect(config('auth_methods.frontend_url') . '/auth/callback?token=' . $token);
 
         } catch (\Exception $e) {
             Log::error('SAML: ACS handling failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return redirect(env('FRONTEND_URL') . '/sign-in?error=saml_acs_failed');
+            return redirect(config('auth_methods.frontend_url') . '/sign-in?error=saml_acs_failed');
         }
     }
 
@@ -780,13 +621,13 @@ class AuthController extends Controller
                 $request->user()->currentAccessToken()->delete();
             }
 
-            return redirect(env('FRONTEND_URL') . '/sign-in?message=logged_out');
+            return redirect(config('auth_methods.frontend_url') . '/sign-in?message=logged_out');
 
         } catch (\Exception $e) {
             Log::error('SAML: SLS handling failed', [
                 'error' => $e->getMessage()
             ]);
-            return redirect(env('FRONTEND_URL') . '/sign-in?error=saml_sls_failed');
+            return redirect(config('auth_methods.frontend_url') . '/sign-in?error=saml_sls_failed');
         }
     }
 }

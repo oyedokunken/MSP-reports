@@ -16,7 +16,7 @@ class LoginRequest extends FormRequest
         return [
             'email' => 'required|email',
             'password' => 'nullable|string',
-            'auth_method' => 'required|in:local,saml,m365,ldap',
+            'auth_method' => 'required|in:local,saml,m365,ldap,keycloak,oidc',
         ];
     }
 }

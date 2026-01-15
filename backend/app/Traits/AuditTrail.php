@@ -2,7 +2,7 @@
 
 namespace App\Traits;
 
-use App\Models\AuditLog;
+use App\Events\AuditEvent;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
 
@@ -72,17 +72,17 @@ trait AuditTrail
                 );
             }
 
-            AuditLog::create([
-                'company_id'  => $companyId,
-                'event_type'  => $eventType,
-                'actor_type'  => $user ? 'User' : 'System',
-                'actor_id'    => $user ? $user->user_id : null,
-                'target_type' => class_basename($this),
-                'target_id'   => $this->getKey(),
-                'event_data'  => $eventData,
-                'ip_address'  => Request::ip(),
-                'user_agent'  => Request::userAgent(),
-            ]);
+            AuditEvent::dispatch(
+                $companyId,
+                $eventType,
+                $eventData,
+                $user ? 'User' : 'System',
+                $user ? $user->user_id : null,
+                class_basename($this),
+                $this->getKey(),
+                Request::ip(),
+                Request::userAgent()
+            );
         } catch (\Exception $e) {
             // Silently fail logging to prevent breaking the main operation
             \Log::error("Failed to record audit log: " . $e->getMessage());
