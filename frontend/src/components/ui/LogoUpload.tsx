@@ -203,7 +203,7 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
               <Upload className="h-4 w-4 mr-2" />
               {uploading ? 'Uploading...' : currentLogoUrl ? 'Change Logo' : 'Upload Logo'}
             </Button>
-
+            
             {currentLogoUrl && (
               <Button
                 type="button"

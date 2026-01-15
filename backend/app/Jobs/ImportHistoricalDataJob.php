@@ -237,10 +237,13 @@ class ImportHistoricalDataJob implements ShouldQueue
             'error' => $exception->getMessage(),
         ]);
 
-        // TODO: Send notification email to company admins
-        // Will be implemented in future update
-        // $company = $integration->company;
-        // $notificationEmails = $company->settings['integrations']['sync_failure_notifications'] ?? [];
+        // Send failure notification
+        try {
+            $notificationService = app(\App\Services\NotificationService::class);
+            $notificationService->sendSyncFailureNotification($integration, $exception->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Failed to send import failure notification', ['error' => $e->getMessage()]);
+        }
     }
 
     private function loadIntegrationClass(Integration $integration)

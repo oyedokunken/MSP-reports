@@ -12,11 +12,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Drop the existing check constraint
-        DB::statement("ALTER TABLE integrations DROP CONSTRAINT IF EXISTS integrations_last_sync_status_check");
+        // Only run constraint changes on PostgreSQL
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            // Drop the existing check constraint
+            DB::statement("ALTER TABLE integrations DROP CONSTRAINT IF EXISTS integrations_last_sync_status_check");
 
-        // Add the new check constraint with 'syncing' included
-        DB::statement("ALTER TABLE integrations ADD CONSTRAINT integrations_last_sync_status_check CHECK (last_sync_status IN ('success', 'failed', 'partial', 'syncing'))");
+            // Add the new check constraint with 'syncing' included
+            DB::statement("ALTER TABLE integrations ADD CONSTRAINT integrations_last_sync_status_check CHECK (last_sync_status IN ('success', 'failed', 'partial', 'syncing'))");
+        }
+        // SQLite doesn't support ALTER TABLE for constraints, but also doesn't enforce them strictly
     }
 
     /**
@@ -24,8 +28,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revert to original allowed values
-        DB::statement("ALTER TABLE integrations DROP CONSTRAINT IF EXISTS integrations_last_sync_status_check");
-        DB::statement("ALTER TABLE integrations ADD CONSTRAINT integrations_last_sync_status_check CHECK (last_sync_status IN ('success', 'failed', 'partial'))");
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            // Revert to original allowed values
+            DB::statement("ALTER TABLE integrations DROP CONSTRAINT IF EXISTS integrations_last_sync_status_check");
+            DB::statement("ALTER TABLE integrations ADD CONSTRAINT integrations_last_sync_status_check CHECK (last_sync_status IN ('success', 'failed', 'partial'))");
+        }
     }
 };

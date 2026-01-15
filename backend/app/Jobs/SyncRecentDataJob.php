@@ -100,8 +100,13 @@ class SyncRecentDataJob implements ShouldQueue
             'error' => $exception->getMessage(),
         ]);
 
-        // Optionally send notification
-        // TODO: Implement notification system
+        // Send failure notification
+        try {
+            $notificationService = app(\App\Services\NotificationService::class);
+            $notificationService->sendSyncFailureNotification($this->integration, $exception->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Failed to send sync failure notification', ['error' => $e->getMessage()]);
+        }
     }
 
     private function loadIntegrationClass(Integration $integration)

@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'session.timeout' => \App\Http\Middleware\SessionTimeout::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'scope.customers' => \App\Http\Middleware\ScopeCustomerAccess::class,
+            'api.rate' => \App\Http\Middleware\ApiRateLimiter::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
