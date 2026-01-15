@@ -186,14 +186,19 @@ class AuthService
 
     protected function logAudit(?User $user, string $eventType, array $data, string $ip, ?string $userAgent = null, ?int $companyId = null): void
     {
+        // Ensure companyId is never null - use 0 for system-level events
+        $resolvedCompanyId = $user ? $user->company_id : ($companyId ?? 0);
+        
         AuditEvent::dispatch(
-            companyId: $user ? $user->company_id : $companyId,
-            eventType: $eventType,
-            eventData: array_merge($data, ['timestamp' => now()->toDateTimeString()]),
-            actorType: $user ? 'User' : 'System',
-            actorId: $user ? $user->user_id : null,
-            ipAddress: $ip,
-            userAgent: $userAgent
+            $resolvedCompanyId,
+            $eventType,
+            array_merge($data, ['timestamp' => now()->toDateTimeString()]),
+            $user ? 'User' : 'System',
+            $user ? $user->user_id : null,
+            null, // targetType
+            null, // targetId
+            $ip,
+            $userAgent
         );
     }
 }
