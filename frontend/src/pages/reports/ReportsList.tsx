@@ -3,7 +3,6 @@ import FloatingLayout from '@/components/layout/FloatingLayout'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ReportsHeader, ReportsFilters, ReportsGrid } from './components'
 import { Pagination } from '@/pages/customers/components/Pagination'
-import { useReportsStore } from '@/stores/useReportsStore'
 import { useReportsList } from './hooks'
 
 export default function ReportsList() {
@@ -23,17 +22,14 @@ export default function ReportsList() {
     setStatusFilters,
     setReportTypeFilters,
     handleDownload,
-    handleDelete
+    handleDelete,
+    pagination,
+    setPage
   } = useReportsList()
 
   const [reportToDelete, setReportToDelete] = useState<number | null>(null)
 
-  // Pagination from store
-  const currentPage = useReportsStore(state => state.currentPage)
-  const totalPages = useReportsStore(state => state.totalPages)
-  const total = useReportsStore(state => state.total)
-  const perPage = useReportsStore(state => state.perPage)
-  const fetchReports = useReportsStore(state => state.fetchReports)
+  const { current_page: currentPage, last_page: totalPages, total, per_page: perPage } = pagination
 
   return (
     <FloatingLayout>
@@ -69,7 +65,7 @@ export default function ReportsList() {
             currentPage={currentPage}
             totalPages={totalPages}
             total={total}
-            onPageChange={(page) => fetchReports(customerId, page)}
+            onPageChange={setPage}
             itemLabel="reports"
             perPage={perPage}
           />

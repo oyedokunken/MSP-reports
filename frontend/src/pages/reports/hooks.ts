@@ -1,73 +1,124 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '@/components/ui/Toast'
 import { useReportsStore } from '@/stores/useReportsStore'
 import { api } from '@/lib/api'
+import apiClient from '@/lib/api'
 import type { ReportConfig, ReportType, EnabledReport } from './types'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { ReportHistoryResponse } from '@/types/api/report'
 
 export const useReportsList = () => {
   const toast = useToast()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const queryClient = useQueryClient()
   const customerId = searchParams.get('customer')
+  const page = parseInt(searchParams.get('page') || '1')
 
-  const isLoading = useReportsStore(state => state.isLoading)
-  const customerName = useReportsStore(state => state.customerName)
-  const downloading = useReportsStore(state => state.downloading)
-  const deleting = useReportsStore(state => state.deleting)
   const searchQuery = useReportsStore(state => state.searchQuery)
   const statusFilters = useReportsStore(state => state.statusFilters)
   const reportTypeFilters = useReportsStore(state => state.reportTypeFilters)
-  const fetchReports = useReportsStore(state => state.fetchReports)
-  const downloadReport = useReportsStore(state => state.downloadReport)
-  const deleteReport = useReportsStore(state => state.deleteReport)
   const setSearchQuery = useReportsStore(state => state.setSearchQuery)
   const setStatusFilters = useReportsStore(state => state.setStatusFilters)
   const setReportTypeFilters = useReportsStore(state => state.setReportTypeFilters)
-  const getFilteredReports = useReportsStore(state => state.getFilteredReports)
-  const getUniqueReportTypes = useReportsStore(state => state.getUniqueReportTypes)
-  const currentPage = useReportsStore(state => state.currentPage)
 
-  useEffect(() => {
-    fetchReports(customerId).catch((err: unknown) => {
-      const error = err as { response?: { data?: { message?: string } }; message?: string }
-      toast.error('Failed to load report history', error.response?.data?.message || error.message)
+  // React Query for fetching reports
+  const { data: reportData, isLoading } = useQuery({
+    queryKey: ['reports', customerId, page],
+    queryFn: async () => {
+      const params = new URLSearchParams({ page: page.toString(), per_page: '9' })
+      if (customerId) params.append('customer_id', customerId)
+
+      const response = await api.get(`/reports/history?${params.toString()}`) as unknown as ReportHistoryResponse
+      return response.data
+    }
+  })
+
+  const reports = reportData?.reports || []
+  const pagination = reportData?.pagination || { current_page: 1, last_page: 1, total: 0, per_page: 9 }
+  const customerName = customerId && reports.length > 0 ? reports[0].customer_name : ''
+
+  const setPage = (newPage: number) => {
+    const params = new URLSearchParams(searchParams)
+    params.set('page', newPage.toString())
+    setSearchParams(params)
+  }
+
+  // Derived state (filtering)
+  const filteredReports = useMemo(() => {
+    return reports.filter(report => {
+      if (searchQuery && !report.customer_name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false
+      }
+      if (statusFilters.length > 0 && !statusFilters.includes(report.status)) {
+        return false
+      }
+      if (reportTypeFilters.length > 0 && !reportTypeFilters.includes(report.report_type)) {
+        return false
+      }
+      return true
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerId, fetchReports])
+  }, [reports, searchQuery, statusFilters, reportTypeFilters])
 
-  const filteredReports = getFilteredReports()
-  const uniqueReportTypes = getUniqueReportTypes()
+  const uniqueReportTypes = useMemo(() => {
+    return Array.from(new Set(reports.map(r => r.report_type)))
+  }, [reports])
 
-  const handleDownload = async (reportId: number) => {
-    const result = await downloadReport(reportId)
-    if (result.success) {
+  // Mutations
+  const downloadMutation = useMutation({
+    mutationFn: async (reportId: number) => {
+      const response = await apiClient.get(`/reports/${reportId}/download`, {
+        responseType: 'blob',
+      })
+      const blob = response.data
+      const contentDisposition = response.headers['content-disposition']
+      let filename = `report_${reportId}.pdf`
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '')
+        }
+      }
+
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    },
+    onSuccess: () => {
       toast.success('Download Started', 'PDF report is downloading...')
-    } else {
-      toast.error('Download Failed', result.error)
+    },
+    onError: (error: Error) => {
+      toast.error('Download Failed', error.message)
     }
-  }
+  })
 
-  const handleDelete = async (reportId: number) => {
-
-
-    const result = await deleteReport(reportId)
-    if (result.success) {
+  const deleteMutation = useMutation({
+    mutationFn: async (reportId: number) => {
+      await api.delete(`/reports/${reportId}`)
+    },
+    onSuccess: () => {
       toast.success('Report Deleted', 'Report has been deleted successfully')
-      // Refetch to fill the gap in the current page
-      fetchReports(customerId, currentPage, { background: true })
-    } else {
-      toast.error('Delete Failed', result.error)
+      queryClient.invalidateQueries({ queryKey: ['reports'] })
+    },
+    onError: (error: Error) => {
+      toast.error('Delete Failed', error.message)
     }
-  }
+  })
 
   return {
     navigate,
     customerId,
     customerName,
     isLoading,
-    downloading,
-    deleting,
+    downloading: downloadMutation.isPending ? downloadMutation.variables : null,
+    deleting: deleteMutation.isPending ? deleteMutation.variables : null,
     searchQuery,
     statusFilters,
     reportTypeFilters,
@@ -76,8 +127,10 @@ export const useReportsList = () => {
     setSearchQuery,
     setStatusFilters,
     setReportTypeFilters,
-    handleDownload,
-    handleDelete
+    pagination,
+    setPage,
+    handleDownload: (id: number) => downloadMutation.mutate(id),
+    handleDelete: (id: number) => deleteMutation.mutate(id)
   }
 }
 

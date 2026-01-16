@@ -4,6 +4,7 @@ import { BrandingProvider } from '@/contexts/BrandingContext'
 import { ThemeProvider } from '@/components/ui/ThemeProvider'
 import { ToastProvider } from '@/components/ui/Toast'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
+import { QueryProvider } from '@/providers/QueryProvider'
 import Login from '@/pages/auth/pages/Signin'
 import AuthCallback from '@/pages/auth/pages/AuthCallback'
 import Dashboard from '@/pages/dashboard/Dashboard'
@@ -415,19 +416,21 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider defaultTheme="light" storageKey="reporting-theme">
-        <ToastProvider>
-          <BrandingProvider>
-            <AuthProvider>
-              <ErrorBoundary>
-                <AppRoutes />
-              </ErrorBoundary>
-              <WelcomeModal />
-              <TourOverlay />
-            </AuthProvider>
-          </BrandingProvider>
-        </ToastProvider>
-      </ThemeProvider>
+      <QueryProvider>
+        <ThemeProvider defaultTheme="light" storageKey="reporting-theme">
+          <ToastProvider>
+            <BrandingProvider>
+              <AuthProvider>
+                <ErrorBoundary>
+                  <AppRoutes />
+                </ErrorBoundary>
+                <WelcomeModal />
+                <TourOverlay />
+              </AuthProvider>
+            </BrandingProvider>
+          </ToastProvider>
+        </ThemeProvider>
+      </QueryProvider>
     </BrowserRouter>
   )
 }
