@@ -25,6 +25,7 @@ class IntegrationData extends Model
         'company_id',
         'integration_id',
         'integration_customer_id',
+        'external_id',
         'data_type',
         'data_timestamp',
         'data_payload',

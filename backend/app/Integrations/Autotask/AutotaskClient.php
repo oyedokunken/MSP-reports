@@ -68,7 +68,7 @@ class AutotaskClient
         $allCompanies = [];
         $lastId = 0;
         $hasMore = true;
-        $pageSize = 100;
+        $pageSize = 500;
 
         try {
             while ($hasMore) {
@@ -128,7 +128,7 @@ class AutotaskClient
         $allTickets = [];
         $lastId = 0;
         $hasMore = true;
-        $pageSize = 100;
+        $pageSize = 500;
 
         try {
             while ($hasMore) {
@@ -186,7 +186,7 @@ class AutotaskClient
         $allEntries = [];
         $lastId = 0;
         $hasMore = true;
-        $pageSize = 100;
+        $pageSize = 500;
 
         try {
             while ($hasMore) {
@@ -244,7 +244,7 @@ class AutotaskClient
         $allContracts = [];
         $lastId = 0;
         $hasMore = true;
-        $pageSize = 100;
+        $pageSize = 500;
 
         try {
             while ($hasMore) {
@@ -317,7 +317,7 @@ class AutotaskClient
         $allContacts = [];
         $lastId = 0;
         $hasMore = true;
-        $pageSize = 100;
+        $pageSize = 500;
 
         try {
             while ($hasMore) {
@@ -367,7 +367,7 @@ class AutotaskClient
         $allNotes = [];
         $lastId = 0;
         $hasMore = true;
-        $pageSize = 100;
+        $pageSize = 500;
 
         try {
             while ($hasMore) {

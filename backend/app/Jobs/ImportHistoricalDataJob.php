@@ -154,24 +154,56 @@ class ImportHistoricalDataJob implements ShouldQueue
                 return;
             }
             
-            $allJobsComplete = isset($freshJob->total_jobs) 
-                && $freshJob->jobs_completed >= $freshJob->total_jobs;
+            // Determine if import is complete
+            // For parallel imports: jobs_completed >= total_jobs
+            // For single-chunk/sequential: we've reached or passed the end date
+            $allJobsComplete = false;
             
+            if (isset($freshJob->total_jobs) && $freshJob->total_jobs > 0) {
+                // Parallel job tracking
+                $allJobsComplete = $freshJob->jobs_completed >= $freshJob->total_jobs;
+            } else {
+                // Sequential/single-chunk: check if the current chunk's end date >= import end date
+                // $endDate is already set above - it's the END of the chunk we just processed
+                $importEndDate = Carbon::parse($freshJob->import_end_date);
+                $chunkEndDate = Carbon::parse($endDate);
+                $allJobsComplete = $chunkEndDate->gte($importEndDate);
+                
+                Log::debug('Historical import completion check', [
+                    'import_job_id' => $freshJob->historical_import_job_id,
+                    'chunk_end' => $chunkEndDate->toDateString(),
+                    'import_end' => $importEndDate->toDateString(),
+                    'is_complete' => $allJobsComplete,
+                ]);
+            }
+            
+            // Mark job as completed if all chunks are done
             if ($allJobsComplete && $freshJob->status !== 'completed') {
-                // Mark as complete - all parallel jobs have finished
-                // Use the fresh instance to avoid stale data
                 $freshJob->update([
                     'status' => 'completed',
                     'completed_at' => now(),
                     'progress_percent' => 100,
                 ]);
 
-                Log::info('Historical import completed', [
+                Log::info('Historical import job marked completed', [
                     'import_job_id' => $freshJob->historical_import_job_id,
                     'records_imported' => $freshJob->records_imported,
-                    'jobs_completed' => $freshJob->jobs_completed,
-                    'total_jobs' => $freshJob->total_jobs,
                 ]);
+            }
+
+            // ALWAYS update integration status when job is complete 
+            // (handles race conditions where another worker marked it complete)
+            if ($freshJob->status === 'completed' || $allJobsComplete) {
+                // Only update if still in importing state
+                if ($integration->status === 'importing_historical') {
+                    $integration->update([
+                        'status' => 'active',
+                        'historical_import_status' => 'completed',
+                    ]);
+                    Log::info('Integration status updated to active after historical import', [
+                        'integration_id' => $integration->integration_id,
+                    ]);
+                }
             }
 
         } catch (\App\Integrations\Exceptions\RateLimitException $e) {

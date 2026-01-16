@@ -14,9 +14,8 @@ Schedule::command('reports:process-scheduled')
     ->withoutOverlapping()
     ->runInBackground();
 
-// Schedule integration sync evaluation to run every minute
-// This command checks each integration's specific schedule stored in DB (for CUSTOMERS)
-Schedule::command('integrations:evaluate-syncs')
+// Smart Monitor: Handles Auto-Start, Stale Checks, and Schedules
+Schedule::command('integrations:monitor')
     ->everyMinute()
     ->withoutOverlapping()
     ->runInBackground();

@@ -16,7 +16,7 @@ class IntegrationService
     protected SyncEngine $syncEngine;
     protected LicenseChecker $licenseChecker;
 
-    public function __construct(SyncEngine $syncEngine, LicenseChecker $licenseChecker)
+    public function __construct(SyncEngine $syncEngine, Lic enseChecker $licenseChecker)
     {
         $this->syncEngine = $syncEngine;
         $this->licenseChecker = $licenseChecker;

@@ -305,17 +305,12 @@ class AutotaskIntegration implements IntegrationInterface
                         }
                         
                         $standardized = AutotaskMapper::mapTicket($ticket);
-                        $standardized['integration_customer_id'] = $integrationCustomerId;
                         
                         $batchRecords[] = [
-                            'company_id' => $this->integration->company_id,
-                            'integration_id' => $this->integration->integration_id,
                             'integration_customer_id' => $integrationCustomerId,
-                            'data_type' => $standardized['data_type'],
-                            'data_timestamp' => $standardized['timestamp'],
-                            'data_payload' => $standardized['payload'],
-                            'imported_at' => now(),
-                            'data_version' => 1,
+                            'external_id' => (string)$ticket['id'],
+                            'timestamp' => $standardized['timestamp'],
+                            'payload' => $standardized['payload'],
                         ];
                         
                         $ticketsProcessed++;
@@ -325,8 +320,9 @@ class AutotaskIntegration implements IntegrationInterface
                 }
 
                 if (!empty($batchRecords)) {
-                    $this->storeHistoricalDataBatch($batchRecords);
+                    $this->bulkStoreHistoricalData('ticket', $batchRecords);
                 }
+
                 
                 unset($chunk, $batchRecords);
             }
@@ -360,17 +356,12 @@ class AutotaskIntegration implements IntegrationInterface
                         }
                         
                         $standardized = AutotaskMapper::mapTimeEntry($entry);
-                        $standardized['integration_customer_id'] = $integrationCustomerId;
                         
                         $batchRecords[] = [
-                            'company_id' => $this->integration->company_id,
-                            'integration_id' => $this->integration->integration_id,
                             'integration_customer_id' => $integrationCustomerId,
-                            'data_type' => $standardized['data_type'],
-                            'data_timestamp' => $standardized['timestamp'],
-                            'data_payload' => $standardized['payload'],
-                            'imported_at' => now(),
-                            'data_version' => 1,
+                            'external_id' => (string)$entry['id'],
+                            'timestamp' => $standardized['timestamp'],
+                            'payload' => $standardized['payload'],
                         ];
 
                         $timeEntriesProcessed++;
@@ -380,7 +371,7 @@ class AutotaskIntegration implements IntegrationInterface
                 }
 
                 if (!empty($batchRecords)) {
-                    $this->storeHistoricalDataBatch($batchRecords);
+                    $this->bulkStoreHistoricalData('time_entry', $batchRecords);
                 }
                 
                 unset($chunk, $batchRecords);
@@ -408,14 +399,10 @@ class AutotaskIntegration implements IntegrationInterface
                             $standardized = AutotaskMapper::mapResource($resource);
                             
                             $batchRecords[] = [
-                                'company_id' => $this->integration->company_id,
-                                'integration_id' => $this->integration->integration_id,
                                 'integration_customer_id' => null,
-                                'data_type' => $standardized['data_type'],
-                                'data_timestamp' => $standardized['timestamp'],
-                                'data_payload' => $standardized['payload'],
-                                'imported_at' => now(),
-                                'data_version' => 1,
+                                'external_id' => (string)$resource['id'],
+                                'timestamp' => $standardized['timestamp'],
+                                'payload' => $standardized['payload'],
                             ];
 
                             $resourcesProcessed++;
@@ -424,9 +411,9 @@ class AutotaskIntegration implements IntegrationInterface
                         }
                     }
 
-                    if (!empty($batchRecords)) {
-                        $this->storeHistoricalDataBatch($batchRecords);
-                    }
+                if (!empty($batchRecords)) {
+                    $this->bulkStoreHistoricalData('resource', $batchRecords);
+                }
                     
                     unset($chunk, $batchRecords);
                 }
@@ -451,21 +438,19 @@ class AutotaskIntegration implements IntegrationInterface
                             $standardized = AutotaskMapper::mapContract($contract);
                             
                             $batchRecords[] = [
-                                'company_id' => $this->integration->company_id,
-                                'integration_id' => $this->integration->integration_id,
-                                'integration_customer_id' => null, // Contracts are company-wide but we don't have direct mapping here easily
-                                'data_type' => $standardized['data_type'],
-                                'data_timestamp' => $standardized['timestamp'],
-                                'data_payload' => $standardized['payload'],
-                                'imported_at' => now(),
-                                'data_version' => 1,
+                                'integration_customer_id' => null,
+                                'external_id' => (string)$contract['id'],
+                                'timestamp' => $standardized['timestamp'],
+                                'payload' => $standardized['payload'],
                             ];
                             $contractsProcessed++;
                         } catch (\Exception $e) {
                             $errors[] = "Failed to process contract: {$e->getMessage()}";
                         }
                     }
-                    if (!empty($batchRecords)) $this->storeHistoricalDataBatch($batchRecords);
+                    if (!empty($batchRecords)) {
+                        $this->bulkStoreHistoricalData('contract', $batchRecords);
+                    }
                 }
                 $totalProcessed += $contractsProcessed;
                  \Log::info('Autotask historical: Contracts processed', [
@@ -483,30 +468,25 @@ class AutotaskIntegration implements IntegrationInterface
                     $batchRecords = [];
                     foreach ($chunk as $contact) {
                         try {
-                            $standardized = AutotaskMapper::mapContact($contact);
-                             $integrationCustomerId = null;
-                            if ($contact['companyID'] ?? false) {
-                                 $integrationCustomerId = $customerMap[(string)$contact['companyID']] ?? null;
-                            }
+                            $companyId = $contact['companyID'] ?? null;
+                            $integrationCustomerId = $companyId ? ($customerMap[(string)$companyId] ?? null) : null;
                             
-                            $standardized['integration_customer_id'] = $integrationCustomerId;
-
+                            $standardized = AutotaskMapper::mapContact($contact);
+                            
                             $batchRecords[] = [
-                                'company_id' => $this->integration->company_id,
-                                'integration_id' => $this->integration->integration_id,
                                 'integration_customer_id' => $integrationCustomerId,
-                                'data_type' => $standardized['data_type'],
-                                'data_timestamp' => $standardized['timestamp'],
-                                'data_payload' => $standardized['payload'],
-                                'imported_at' => now(),
-                                'data_version' => 1,
+                                'external_id' => (string)$contact['id'],
+                                'timestamp' => $standardized['timestamp'],
+                                'payload' => $standardized['payload'],
                             ];
                             $contactsProcessed++;
                         } catch (\Exception $e) {
                             $errors[] = "Failed to process contact: {$e->getMessage()}";
                         }
                     }
-                    if (!empty($batchRecords)) $this->storeHistoricalDataBatch($batchRecords);
+                    if (!empty($batchRecords)) {
+                        $this->bulkStoreHistoricalData('contact', $batchRecords);
+                    }
                 }
                 $totalProcessed += $contactsProcessed;
                  \Log::info('Autotask historical: Contacts processed', [
@@ -527,28 +507,26 @@ class AutotaskIntegration implements IntegrationInterface
                             $standardized = AutotaskMapper::mapTicketNote($note);
 
                             $batchRecords[] = [
-                                'company_id' => $this->integration->company_id,
-                                'integration_id' => $this->integration->integration_id,
                                 'integration_customer_id' => null,
-                                'data_type' => $standardized['data_type'],
-                                'data_timestamp' => $standardized['timestamp'],
-                                'data_payload' => $standardized['payload'],
-                                'imported_at' => now(),
-                                'data_version' => 1,
+                                'external_id' => (string)$note['id'],
+                                'timestamp' => $standardized['timestamp'],
+                                'payload' => $standardized['payload'],
                             ];
                             $notesProcessed++;
                         } catch (\Exception $e) {
                             $errors[] = "Failed to process note: {$e->getMessage()}";
                         }
                     }
-                    if (!empty($batchRecords)) $this->storeHistoricalDataBatch($batchRecords);
+                    if (!empty($batchRecords)) {
+                        $this->bulkStoreHistoricalData('ticket_note', $batchRecords);
+                    }
                 }
-                 $totalProcessed += $notesProcessed;
-                 \Log::info('Autotask historical (OPTIMIZED): Notes processed', [
+                $totalProcessed += $notesProcessed;
+                \Log::info('Autotask historical (OPTIMIZED): Notes processed', [
                     'count' => $notesProcessed
                 ]);
             } catch (\Exception $e) {
-                 $errors[] = "Failed to fetch ticket notes: {$e->getMessage()}";
+                $errors[] = "Failed to fetch ticket notes: {$e->getMessage()}";
             }
 
             \Log::info('Autotask historical: Completed', [
@@ -577,36 +555,10 @@ class AutotaskIntegration implements IntegrationInterface
             return;
         }
 
-        foreach (array_chunk($records, 500) as $chunk) {
-            foreach ($chunk as $record) {
-                $uniqueKeyField = $this->getUniqueKeyField($record['data_type']);
-                
-                if ($uniqueKeyField) {
-                    $payload = is_string($record['data_payload']) 
-                        ? json_decode($record['data_payload'], true) 
-                        : $record['data_payload'];
-                        
-                    $uniqueKey = $payload[$uniqueKeyField] ?? null;
-                    
-                    if ($uniqueKey) {
-                        $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
-                            ->where('data_type', $record['data_type'])
-                            ->whereRaw("data_payload->>'$uniqueKeyField' = ?", [$uniqueKey])
-                            ->first();
-
-                        if ($existing) {
-                            $existing->update([
-                                'data_payload' => $payload,
-                                'imported_at' => $record['imported_at'],
-                            ]);
-                            continue;
-                        }
-                    }
-                }
-                
-                IntegrationData::create($record);
-            }
-        }
+        // Detect data type from the first record if possible
+        // Note: The loop below is a fallback for data passed in the old format.
+        // New code should use bulkStoreHistoricalData directly.
+        $this->bulkStoreHistoricalData($records[0]['data_type'] ?? 'unknown', $records);
     }
 
     public function getAvailableHistoryRange(): ?Carbon

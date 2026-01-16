@@ -91,9 +91,8 @@ export function IntegrationCard({
     return (
         <AnimatedCard
             hoverLift={!isSyncing}
-            className={`p-6 h-full flex flex-col transition-all duration-300 ${
-                isSyncing ? "ring-2 ring-primary/50 shadow-lg bg-primary/5" : ""
-            } ${isSourceOfTruth ? "border-2 border-primary" : ""}`}
+            className={`p-6 h-full flex flex-col transition-all duration-300 ${isSyncing ? "ring-2 ring-primary/50 shadow-lg bg-primary/5" : ""
+                } ${isSourceOfTruth ? "border-2 border-primary" : ""}`}
         >
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
@@ -146,13 +145,13 @@ export function IntegrationCard({
                         {integration.lastSync}
                     </span>
                 </div>
-                {integration.customers > 0 && (
+                {!!integration.unmappedCustomers && (
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">
                             Unmapped Customers
                         </span>
                         <span className="font-medium text-orange-600">
-                            {integration.customers}
+                            {integration.unmappedCustomers}
                         </span>
                     </div>
                 )}
@@ -175,12 +174,12 @@ export function IntegrationCard({
                                 ? `Synced ${integration.recordsSynced} records`
                                 : "Auto-synced with master list"
                             : integration.syncStatus === "failed"
-                            ? `Failed: ${integration.lastError || "Check logs"}`
-                            : integration.lastSync === "Never"
-                            ? "Not synced yet"
-                            : isSourceOfTruth
-                            ? "Ready to sync"
-                            : "Syncs automatically with master list"}
+                                ? `Failed: ${integration.lastError || "Check logs"}`
+                                : integration.lastSync === "Never"
+                                    ? "Not synced yet"
+                                    : isSourceOfTruth
+                                        ? "Ready to sync"
+                                        : "Syncs automatically with master list"}
                     </span>
                 </div>
 
@@ -212,11 +211,10 @@ export function IntegrationCard({
                                 onSync(integration.id, integration.name)
                             }
                             disabled={isSyncing}
-                            className={`flex-1 flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${
-                                isSyncing
-                                    ? "bg-primary text-primary-foreground border-primary"
-                                    : "border-border bg-background text-foreground hover:bg-muted"
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className={`flex-1 flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${isSyncing
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "border-border bg-background text-foreground hover:bg-muted"
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             {isSyncing ? (
                                 <LoadingSpinner size="sm" />

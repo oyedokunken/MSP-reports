@@ -16,10 +16,14 @@ use Illuminate\Validation\Rule;
 class IntegrationController extends Controller
 {
     protected IntegrationService $integrationService;
+    protected \App\Services\IntegrationLifecycleService $lifecycleService;
 
-    public function __construct(IntegrationService $integrationService)
-    {
+    public function __construct(
+        IntegrationService $integrationService,
+        \App\Services\IntegrationLifecycleService $lifecycleService
+    ) {
         $this->integrationService = $integrationService;
+        $this->lifecycleService = $lifecycleService;
     }
 
     /**
@@ -106,7 +110,8 @@ class IntegrationController extends Controller
         ]);
 
         try {
-            $integration = $this->integrationService->createIntegration($request->user()->company, $validated);
+            // Use the Lifecycle service to Onboard (Kick-starts automation)
+            $integration = $this->lifecycleService->onboardNewIntegration($request->user()->company, $validated);
 
             return response()->json([
                 'status' => 'success',
@@ -515,7 +520,22 @@ class IntegrationController extends Controller
             'status' => 'queued',
         ]);
         
-        \App\Jobs\ImportHistoricalDataJob::dispatch($job, $startDate);
+        // Calculate 7-day chunks for parallel processing
+        $chunks = [];
+        $tempDate = $startDate->copy();
+        while ($tempDate->lt($endDate)) {
+            $chunks[] = $tempDate->copy();
+            $tempDate->addDays(7);
+        }
+        
+        // Save total jobs for progress tracking
+        $totalJobs = count($chunks);
+        $job->update(['total_jobs' => $totalJobs, 'jobs_completed' => 0]);
+        
+        // Dispatch all chunks in parallel
+        foreach ($chunks as $chunkDate) {
+            \App\Jobs\ImportHistoricalDataJob::dispatch($job, $chunkDate);
+        }
         
         $integration->update([
             'status' => 'importing_historical',
@@ -525,7 +545,7 @@ class IntegrationController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Historical import started successfully.',
+            'message' => "Historical import started with {$totalJobs} parallel chunks.",
             'job_id' => $job->id
         ]);
     }
