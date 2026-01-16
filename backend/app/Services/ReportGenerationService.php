@@ -38,6 +38,23 @@ class ReportGenerationService
             $period = $this->calculateReportPeriod($schedule);
         }
 
+        // Load report class with company_id
+        $reportClass = $this->loadReportClass($schedule->report_type, $schedule->company_id);
+
+        if (!$reportClass) {
+            throw new \Exception("Report type {$schedule->report_type} not found.");
+        }
+
+        // Get report period
+        $startDate = $period['start'];
+        $endDate = $period['end'];
+
+        // Validate data availability BEFORE creating the GeneratedReport record
+        if (!$reportClass->validate($schedule->customer, $startDate, $endDate)) {
+            throw new \Exception('Insufficient data to generate report.');
+        }
+
+        // Only create the GeneratedReport record if validation passes
         $generatedReport = GeneratedReport::create([
             'company_id' => $schedule->company_id,
             'customer_id' => $schedule->customer_id,
@@ -48,22 +65,6 @@ class ReportGenerationService
         ]);
 
         try {
-            // Load report class with company_id
-            $reportClass = $this->loadReportClass($schedule->report_type, $schedule->company_id);
-
-            if (!$reportClass) {
-                throw new \Exception("Report type {$schedule->report_type} not found.");
-            }
-
-            // Get report period
-            $startDate = $period['start'];
-            $endDate = $period['end'];
-
-            // Validate data availability
-            if (!$reportClass->validate($schedule->customer, $startDate, $endDate)) {
-                throw new \Exception('Insufficient data to generate report.');
-            }
-
             // Prepare options from schedule_config
             $options = [];
             if ($schedule->schedule_config) {

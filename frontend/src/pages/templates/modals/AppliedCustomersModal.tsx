@@ -91,7 +91,7 @@ export function AppliedCustomersModal({ open, onOpenChange, template }: AppliedC
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => handleNavigateToCustomer(customer.customer_id)}
-                                        className="h-8 text-primary hover:text-primary hover:bg-primary/10"
+                                        className="h-8 text-white hover:text-primary bg-primary hover:bg-primary/10"
                                     >
                                         <ExternalLink className="h-4 w-4 mr-2" />
                                         Configure

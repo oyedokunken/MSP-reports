@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { ArrowLeft, Calendar, Mail, Save, Bell, Play, Zap, ExternalLink, Plus, Check, Share2, Folder } from 'lucide-react'
+import { ArrowLeft, Calendar, Mail, Save, Bell, Play, Zap, ExternalLink, Plus, Check, Share2, Folder, RotateCw } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 import type { ReportConfig, ReportType, EnabledReport } from './types'
 import { cn } from '@/lib/utils'
@@ -244,7 +245,19 @@ export default function ConfigureReports() {
       setModifiedSchedules(prev => new Set(prev).add(report.schedule_id!))
     }
 
-    updated[index] = { ...updated[index], [field]: value } as EnabledReport
+    // If changing frequency, set default day values
+    if (field === 'frequency') {
+      if (value === 'monthly' && !report.day_of_month) {
+        updated[index] = { ...updated[index], frequency: value as string, day_of_month: 1 } as EnabledReport
+      } else if (value === 'weekly' && report.day_of_week === undefined) {
+        updated[index] = { ...updated[index], frequency: value as string, day_of_week: 0 } as EnabledReport
+      } else {
+        updated[index] = { ...updated[index], [field]: value } as EnabledReport
+      }
+    } else {
+      updated[index] = { ...updated[index], [field]: value } as EnabledReport
+    }
+    
     setEnabledReports(updated)
   }
 
@@ -501,12 +514,22 @@ export default function ConfigureReports() {
       if (succeeded.length > 0) {
         toast.success('Reports Generated!', `Successfully generated ${succeeded.length} of ${selectedSchedules.length} report(s)`)
         
-        // Show browser notification for completion
+      // Show browser notification for completion
         showCompletionNotification(succeeded.length, failed.length)
       }
 
       if (failed.length > 0) {
-        toast.error('Some Reports Failed', `${failed.length} report(s) failed to generate. Click "Retry Failed" to try again.`)
+        // Create a detailed error message with actual reasons
+        const errorDetails = failed.map((f, idx) => {
+          const reportName = enabledReports.find(r => r.schedule_id === f.scheduleId)?.report_type || `Schedule ${f.scheduleId}`
+          const errorMsg = (f.reason as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message 
+            || (f.reason as { message?: string })?.message 
+            || 'Unknown error'
+          return `${idx + 1}. ${reportName}: ${errorMsg}`
+        }).join('\n')
+        
+        const title = failed.length === 1 ? 'Report Failed' : 'Some Reports Failed'
+        toast.error(title, errorDetails)
       }
 
       // Clear selection only if all succeeded
@@ -668,19 +691,24 @@ export default function ConfigureReports() {
                       const reportType = availableReportTypes.find(t => t.id === report.report_type)
 
                       return (
-                        <Card
-                          key={index}
-                          onClick={() => report.schedule_id && handleToggleScheduleSelection(report.schedule_id)}
-                          className={cn(
-                            "group relative overflow-hidden rounded-xl border-2 transition-all cursor-pointer",
-                            "hover:shadow-lg",
-                            report.schedule_id && selectedSchedules.includes(report.schedule_id)
-                              ? "border-primary bg-primary/5 shadow-md"
-                              : "border-border hover:border-primary/30",
-                            report.active === false && "opacity-70 grayscale-[0.4]",
-                            "py-0 gap-0"
-                          )}
-                        >
+                        <TooltipProvider key={index}>
+                          <Tooltip delayDuration={200}>
+                            <TooltipTrigger asChild disabled={report.active !== false}>
+                              <div>
+                                <Card
+                                  onClick={() => report.active !== false && report.schedule_id && handleToggleScheduleSelection(report.schedule_id)}
+                                  className={cn(
+                                    "group relative overflow-hidden rounded-xl border-2 transition-all",
+                                    report.active !== false && "cursor-pointer hover:shadow-lg",
+                                    report.active !== false && report.schedule_id && selectedSchedules.includes(report.schedule_id)
+                                      ? "border-primary bg-primary/5 shadow-md"
+                                      : report.active !== false 
+                                        ? "border-border hover:border-primary/30"
+                                        : "border-border",
+                                    report.active === false && "opacity-60 grayscale cursor-not-allowed",
+                                    "py-0 gap-0"
+                                  )}
+                                >
                           {/* Left Accent */}
                           {/* <div
                             className={cn(
@@ -775,6 +803,7 @@ export default function ConfigureReports() {
                                 <Select
                                   value={report.frequency || 'monthly'}
                                   onValueChange={(value) => handleUpdateReport(index, 'frequency', value)}
+                                  disabled={report.active === false}
                                 >
                                   <SelectTrigger id={`freq-${index}`} className="h-8 text-xs bg-background w-full">
                                     <SelectValue placeholder="Select" />
@@ -800,6 +829,7 @@ export default function ConfigureReports() {
                                       type="time"
                                       value={report.time_of_day || '09:00'}
                                       onChange={(e) => handleUpdateReport(index, 'time_of_day', e.target.value)}
+                                      disabled={report.active === false}
                                       className="h-8 text-xs bg-background w-full"
                                     />
                                   </div>
@@ -810,6 +840,55 @@ export default function ConfigureReports() {
                                 )}
                               </div>
                             </div>
+
+                            {/* Day of Month/Week Configuration */}
+                            {report.frequency === 'monthly' && (
+                              <div className="space-y-1.5">
+                                <Label htmlFor={`day-month-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
+                                  Day of Month
+                                </Label>
+                                <Select
+                                  value={report.day_of_month?.toString() || '1'}
+                                  onValueChange={(value) => handleUpdateReport(index, 'day_of_month', parseInt(value))}
+                                  disabled={report.active === false}
+                                >
+                                  <SelectTrigger id={`day-month-${index}`} className="h-8 text-xs bg-background">
+                                    <SelectValue placeholder="Select day" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                                      <SelectItem key={day} value={day.toString()} className="text-xs">
+                                        Day {day}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+
+                            {report.frequency === 'weekly' && (
+                              <div className="space-y-1.5">
+                                <Label htmlFor={`day-week-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
+                                  Day of Week
+                                </Label>
+                                <Select
+                                  value={report.day_of_week?.toString() || '0'}
+                                  onValueChange={(value) => handleUpdateReport(index, 'day_of_week', parseInt(value))}
+                                  disabled={report.active === false}
+                                >
+                                  <SelectTrigger id={`day-week-${index}`} className="h-8 text-xs bg-background">
+                                    <SelectValue placeholder="Select day" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
+                                      <SelectItem key={idx} value={idx.toString()} className="text-xs">
+                                        {day}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
 
                             {(report.frequency === "monthly" ||
                               report.frequency === "weekly") && (
@@ -859,7 +938,7 @@ export default function ConfigureReports() {
                                       e.stopPropagation()
                                       if (report.schedule_id) handleResetSchedule(report.schedule_id)
                                     }}
-                                    disabled={isSaving}
+                                    disabled={isSaving || report.active === false}
                                     className="h-6 px-2 text-[10px] border-amber-200 text-amber-700 hover:bg-amber-50"
                                   >
                                     Reset
@@ -872,6 +951,7 @@ export default function ConfigureReports() {
                                     e.stopPropagation()
                                     navigate("/platform/templates")
                                   }}
+                                  disabled={report.active === false}
                                   className="h-6 px-2 text-[10px] gap-1"
                                 >
                                   Edit Template
@@ -881,6 +961,16 @@ export default function ConfigureReports() {
                             </div>
                           </CardContent>
                         </Card>
+                      </div>
+                    </TooltipTrigger>
+                    {report.active === false && (
+                      <TooltipContent side="bottom" align="start" className="bg-primary text-white border-primary" sideOffset={5}>
+                        <p className="text-xs font-medium">Enable first to select the card</p>
+                        <div className="absolute -top-1 left-8 w-2 h-2 bg-primary rotate-45 border-l border-t border-primary" />
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
                       );
                     })}
                   </div>
@@ -1072,20 +1162,20 @@ export default function ConfigureReports() {
                   </div>
                 )}
 
-                {failedSchedules.length > 0 && !isGenerating && (
-                  <div className="p-3 bg-destructive/10 rounded-md border border-destructive/20 text-destructive">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold uppercase">Failures: {failedSchedules.length}</span>
-                      <Button
-                        onClick={retryFailedReports}
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-[10px] hover:bg-destructive/10"
-                      >
-                        Retry
-                      </Button>
-                    </div>
-                  </div>
+                {failedSchedules.length > 0 && (
+                  <Button
+                    onClick={retryFailedReports}
+                    variant="outline"
+                    disabled={isGenerating}
+                    className="w-full h-9 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    {isGenerating ? (
+                      <Spinner className="h-4 w-4 mr-2" />
+                    ) : (
+                      <RotateCw className="h-4 w-4 mr-2" />
+                    )}
+                    Retry Failed Reports
+                  </Button>
                 )}
               </CardContent>
             </Card>
