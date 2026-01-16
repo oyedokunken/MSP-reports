@@ -34,7 +34,8 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
       })
       : 'Never',
     syncStatus: (int.last_sync_status || 'pending') as Integration['syncStatus'],
-    customers: int.unmapped_customers_count || 0,
+    customers: int.total_customers_count || 0,
+    unmappedCustomers: int.unmapped_customers_count || 0,
     isSourceOfTruth: int.is_source_of_truth || false,
     nextSyncAt: int.next_sync_at,
     recordsSynced: int.records_synced || 0,

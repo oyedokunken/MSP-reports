@@ -103,7 +103,7 @@ export const useMapCustomerModal = (
     }
   }, [open])
 
-  // Fetch suggestions when current customer changes
+  // Fetch suggestions for first customer (used for single mapping)
   useEffect(() => {
     const fetchSuggestedMatches = async () => {
       if (!currentCustomer) return
@@ -135,12 +135,12 @@ export const useMapCustomerModal = (
       }
     }
 
-    if (open && currentCustomer) {
+    if (open && customers.length > 0) {
       setSearchTerm('')
       setSelectedCustomerId(null)
       setError('')
       setCreateNew(false)
-      setNewCustomerName(currentCustomer.name)
+      setNewCustomerName(currentCustomer?.name || '')
       setSuggestedMatches([]) // Clear previous suggestions
 
       // Reset candidates list
@@ -149,9 +149,12 @@ export const useMapCustomerModal = (
       setHasMoreCandidates(true)
       fetchCandidates(1, '')
 
-      fetchSuggestedMatches()
+      // Only fetch suggestions for single customer mapping
+      if (!isBulk) {
+        fetchSuggestedMatches()
+      }
     }
-  }, [currentCustomer, open])
+  }, [customers.length, open])
 
   // Fetch candidates (customers) with pagination and search
   const fetchCandidates = async (page: number, search: string, append: boolean = false) => {
@@ -256,35 +259,23 @@ export const useMapCustomerModal = (
         return
       }
 
-      // Map individual customer (one-by-one for "Map to Existing")
-      const payload: {
-        integration_customer_id: number;
-        mapping_type: string;
-        create_new?: boolean;
-        canonical_name?: string;
-        customer_id?: number | null;
-      } = {
-        integration_customer_id: currentCustomer.integration_customer_id,
-        mapping_type: 'manual'
-      }
+      // BULK MAP TO EXISTING: Map all selected customers to the same target customer
+      const promises = customers.map(customer =>
+        api.post('/customers/map', {
+          integration_customer_id: customer.integration_customer_id,
+          mapping_type: 'manual',
+          customer_id: selectedCustomerId
+        })
+      )
 
-      payload.customer_id = selectedCustomerId
+      await Promise.all(promises)
+      setMappedCount(customers.length)
 
-      await api.post('/customers/map', payload)
-      setMappedCount(prev => prev + 1)
-
-      // If there are more customers, move to next (only for "Map to Existing")
-      if (currentIndex < customers.length - 1) {
-        setCurrentIndex(prev => prev + 1)
-        // Reset for next customer handled by useEffect
-      } else {
-        // All done
-        setSuccess(true)
-        setTimeout(() => {
-          setSuccess(false)
-          onSuccess?.()
-        }, 2000)
-      }
+      setSuccess(true)
+      setTimeout(() => {
+        setSuccess(false)
+        onSuccess?.()
+      }, 2000)
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to map customer'

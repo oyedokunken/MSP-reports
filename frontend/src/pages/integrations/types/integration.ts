@@ -6,6 +6,7 @@ export type Integration = {
   lastSync: string
   syncStatus: 'success' | 'failed' | 'pending'
   customers: number
+  unmappedCustomers?: number
   isSourceOfTruth?: boolean
   nextSyncAt?: string | null
   recordsSynced?: number

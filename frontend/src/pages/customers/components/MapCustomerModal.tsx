@@ -42,7 +42,6 @@ export function MapCustomerModal({
     totalCount,
     isBulk,
     mappedCount,
-    currentIndex,
     isSearching,
     hasMoreCandidates,
     isLoadingMoreCandidates,
@@ -115,32 +114,45 @@ export function MapCustomerModal({
           <div className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary" />
             <DialogTitle>
-              {isBulk ? `Map Customer (${currentIndex + 1} of ${totalCount})` : 'Map Customer'}
+              {isBulk ? `Map ${totalCount} Customers` : 'Map Customer'}
             </DialogTitle>
           </div>
           <DialogDescription>
-            Map <strong>{currentCustomer.name}</strong> from {currentCustomer.integration_type} to an existing customer
+            {isBulk 
+              ? `Map ${totalCount} selected customers to an existing customer or create new ones`
+              : <>Map <strong>{currentCustomer.name}</strong> from {currentCustomer.integration_type} to an existing customer</>
+            }
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col space-y-2">
-          <div className="rounded-lg border border-border bg-accent/50 p-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium mb-1">Integration Customer:</p>
-                <p className="font-semibold">{currentCustomer.name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="outline" className="text-xs">{currentCustomer.integration_type}</Badge>
-                  <span className="text-xs text-muted-foreground">ID: {currentCustomer.external_id}</span>
+          {isBulk ? (
+            <div className="rounded-lg border border-border bg-accent/50 p-3">
+              <p className="text-sm font-medium mb-2">Selected Integration Customers ({totalCount}):</p>
+              <div className="max-h-[120px] overflow-y-auto divide-y divide-border/50">
+                {customers.map((customer, index) => (
+                  <div key={customer.integration_customer_id} className="py-1.5 flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-5">{index + 1}.</span>
+                    <span className="font-medium text-sm">{customer.name}</span>
+                    <Badge variant="outline" className="text-xs ml-auto">{customer.integration_type}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border bg-accent/50 p-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium mb-1">Integration Customer:</p>
+                  <p className="font-semibold">{currentCustomer.name}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-xs">{currentCustomer.integration_type}</Badge>
+                    <span className="text-xs text-muted-foreground">ID: {currentCustomer.external_id}</span>
+                  </div>
                 </div>
               </div>
-              {isBulk && (
-                <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
-                  {currentIndex + 1} / {totalCount}
-                </Badge>
-              )}
             </div>
-          </div>
+          )}
 
           <div className="flex items-center gap-4">
             <button
@@ -179,28 +191,30 @@ export function MapCustomerModal({
             </div>
           ) : (
             <>
-              {/* Toggle Suggested vs Search */}
-              <div className="flex gap-2 mt-2">
-                <Button
-                  type="button"
-                  variant={viewMode === 'suggested' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('suggested')}
-                  className="flex-1"
-                >
-                  Suggested
-                </Button>
-                <Button
-                  type="button"
-                  variant={viewMode === 'search' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('search')}
-                  className="flex-1"
-                >
-                  Search
-                </Button>
-              </div>
+              {/* Toggle Suggested vs Search - only show for single customer */}
+              {!isBulk && (
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    type="button"
+                    variant={viewMode === 'suggested' ? 'default' : 'outline'}
+                    onClick={() => setViewMode('suggested')}
+                    className="flex-1"
+                  >
+                    Suggested
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={viewMode === 'search' ? 'default' : 'outline'}
+                    onClick={() => setViewMode('search')}
+                    className="flex-1"
+                  >
+                    Search
+                  </Button>
+                </div>
+              )}
 
-              {/* Suggested Matches */}
-              {viewMode === 'suggested' && suggestedMatches.length > 0 && (
+              {/* Suggested Matches - only for single customer */}
+              {!isBulk && viewMode === 'suggested' && suggestedMatches.length > 0 && (
                 <div className="space-y-2 mt-3">
                   {suggestedMatches.map((match) => (
                     <button
@@ -222,8 +236,8 @@ export function MapCustomerModal({
                 </div>
               )}
 
-              {/* Search Section */}
-              {viewMode === 'search' && (
+              {/* Search Section - always show for bulk, or when search tab selected for single */}
+              {(isBulk || viewMode === 'search') && (
                 <div className="flex flex-col gap-2 mt-3 h-full">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
