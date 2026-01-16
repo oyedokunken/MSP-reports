@@ -7,13 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
-import { ArrowLeft, Calendar, Mail, Save, Bell, Play, Zap, ExternalLink, Plus, Check, Share2, Folder, RotateCw } from 'lucide-react'
+import { ArrowLeft, Calendar, Mail, Save, Bell, Play, Plus, Share2, Folder, RotateCw } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ConfigureReportsLoading, ConfigureReportsNotFound } from './components/ConfigureReportsStates'
+import { ScheduleCard } from './components/ScheduleCard'
 import { FileBrowserModal } from '@/components/sharepoint/FileBrowserModal'
 import {
   Dialog,
@@ -24,19 +23,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 import type { ReportConfig, ReportType, EnabledReport } from './types'
-import { cn } from '@/lib/utils'
-
-
-const FREQUENCIES = [
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'yearly', label: 'Yearly' },
-  { value: 'on-demand', label: 'On-Demand Only' },
-]
 
 export default function ConfigureReports() {
   const { id } = useParams<{ id: string }>()
@@ -691,287 +679,19 @@ export default function ConfigureReports() {
                       const reportType = availableReportTypes.find(t => t.id === report.report_type)
 
                       return (
-                        <TooltipProvider key={index}>
-                          <Tooltip delayDuration={200}>
-                            <TooltipTrigger asChild disabled={report.active !== false}>
-                              <div>
-                                <Card
-                                  onClick={() => report.active !== false && report.schedule_id && handleToggleScheduleSelection(report.schedule_id)}
-                                  className={cn(
-                                    "group relative overflow-hidden rounded-xl border-2 transition-all",
-                                    report.active !== false && "cursor-pointer hover:shadow-lg",
-                                    report.active !== false && report.schedule_id && selectedSchedules.includes(report.schedule_id)
-                                      ? "border-primary bg-primary/5 shadow-md"
-                                      : report.active !== false
-                                        ? "border-border hover:border-primary/30"
-                                        : "border-border",
-                                    report.active === false && "opacity-60 grayscale cursor-not-allowed",
-                                    "py-0 gap-0"
-                                  )}
-                                >
-                                  {/* Left Accent */}
-                                  {/* <div
-                            className={cn(
-                              "absolute left-0 top-0 h-full w-1",
-                              report.schedule_id && selectedSchedules.includes(report.schedule_id)
-                                ? "bg-primary"
-                                : report.active !== false ? "bg-primary/50" : "bg-muted"
-                            )}
-                          /> */}
-
-                                  <CardHeader className="p-4 pb-2">
-                                    <div className="flex items-start justify-between gap-4">
-                                      <div className="space-y-0.5">
-                                        <h3 className="text-sm font-semibold tracking-tight">
-                                          {report.template_name ? (
-                                            <div className="flex flex-col">
-                                              <span>{report.template_name}</span>
-                                              <span className="text-[10px] font-normal text-muted-foreground">
-                                                {reportType?.name || "Unknown Report"}
-                                              </span>
-                                              {report.template_description && (
-                                                <p className="text-[10px] text-muted-foreground/70 mt-0.5 line-clamp-1" title={report.template_description}>
-                                                  {report.template_description}
-                                                </p>
-                                              )}
-                                            </div>
-                                          ) : (
-                                            reportType?.name || "Unknown Report"
-                                          )}
-                                        </h3>
-
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-[10px] text-muted-foreground font-mono">ID: {report.schedule_id}</span>
-
-                                          <Badge
-                                            variant={report.active !== false ? "default" : "secondary"}
-                                            className="h-4 px-1.5 text-[10px] font-bold uppercase tracking-wider"
-                                          >
-                                            {report.active !== false ? "Active" : "Paused"}
-                                          </Badge>
-
-                                          {report.template_id && report.is_customized && (
-                                            <Badge
-                                              variant="outline"
-                                              className="h-4 border-amber-200 bg-amber-50 px-1.5 text-[10px] text-amber-700 font-bold uppercase tracking-wider"
-                                            >
-                                              Customized
-                                            </Badge>
-                                          )}
-
-                                          {report.has_data === false && (
-                                            <Badge
-                                              variant="outline"
-                                              className="h-4 border-orange-200 bg-orange-50 px-1 text-orange-700"
-                                            >
-                                              No Data
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      {report.schedule_id && (
-                                        <Badge
-                                          variant={selectedSchedules.includes(report.schedule_id) ? "default" : "outline"}
-                                          className={cn(
-                                            "h-6 px-2 text-[10px] font-semibold transition-all",
-                                            selectedSchedules.includes(report.schedule_id)
-                                              ? "bg-primary text-primary-foreground"
-                                              : "text-muted-foreground hover:bg-muted"
-                                          )}
-                                        >
-                                          {selectedSchedules.includes(report.schedule_id) ? (
-                                            <>
-                                              <Check className="h-3 w-3 mr-1" />
-                                              Selected
-                                            </>
-                                          ) : (
-                                            "Select"
-                                          )}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </CardHeader>
-
-                                  <CardContent className="p-4 pt-2 space-y-2">
-                                    {/* Frequency + Schedule */}
-                                    <div className="grid grid-cols-2 gap-4 rounded-lg border bg-muted/30 p-2">
-                                      <div className="space-y-1.5 flex flex-col">
-                                        <Label htmlFor={`freq-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
-                                          Frequency
-                                        </Label>
-                                        <Select
-                                          value={report.frequency || 'monthly'}
-                                          onValueChange={(value) => handleUpdateReport(index, 'frequency', value)}
-                                          disabled={report.active === false}
-                                        >
-                                          <SelectTrigger id={`freq-${index}`} className="h-8 text-xs bg-background w-full">
-                                            <SelectValue placeholder="Select" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {FREQUENCIES.map((f) => (
-                                              <SelectItem key={f.value} value={f.value} className="text-xs">
-                                                {f.label}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-
-                                      <div className="space-y-1.5 flex flex-col items-end">
-                                        <Label htmlFor={`time-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground text-right w-full">
-                                          Schedule
-                                        </Label>
-                                        {report.frequency !== 'on-demand' ? (
-                                          <div className="w-full">
-                                            <Input
-                                              id={`time-${index}`}
-                                              type="time"
-                                              value={report.time_of_day || '09:00'}
-                                              onChange={(e) => handleUpdateReport(index, 'time_of_day', e.target.value)}
-                                              disabled={report.active === false}
-                                              className="h-8 text-xs bg-background w-full"
-                                            />
-                                          </div>
-                                        ) : (
-                                          <div className="h-8 w-full flex items-center justify-center text-xs text-muted-foreground bg-background border rounded-md px-3 mt-auto">
-                                            Manual
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    {/* Day of Month/Week Configuration */}
-                                    {report.frequency === 'monthly' && (
-                                      <div className="space-y-1.5">
-                                        <Label htmlFor={`day-month-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
-                                          Day of Month
-                                        </Label>
-                                        <Select
-                                          value={report.day_of_month?.toString() || '1'}
-                                          onValueChange={(value) => handleUpdateReport(index, 'day_of_month', parseInt(value))}
-                                          disabled={report.active === false}
-                                        >
-                                          <SelectTrigger id={`day-month-${index}`} className="h-8 text-xs bg-background">
-                                            <SelectValue placeholder="Select day" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
-                                              <SelectItem key={day} value={day.toString()} className="text-xs">
-                                                Day {day}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    )}
-
-                                    {report.frequency === 'weekly' && (
-                                      <div className="space-y-1.5">
-                                        <Label htmlFor={`day-week-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
-                                          Day of Week
-                                        </Label>
-                                        <Select
-                                          value={report.day_of_week?.toString() || '0'}
-                                          onValueChange={(value) => handleUpdateReport(index, 'day_of_week', parseInt(value))}
-                                          disabled={report.active === false}
-                                        >
-                                          <SelectTrigger id={`day-week-${index}`} className="h-8 text-xs bg-background">
-                                            <SelectValue placeholder="Select day" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
-                                              <SelectItem key={idx} value={idx.toString()} className="text-xs">
-                                                {day}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    )}
-
-                                    {(report.frequency === "monthly" ||
-                                      report.frequency === "weekly") && (
-                                        <div className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-[11px]">
-                                          <Zap className="h-3 w-3 text-primary" />
-                                          <span>
-                                            Runs on{" "}
-                                            <span className="font-semibold">
-                                              {report.frequency === "monthly"
-                                                ? `Day ${report.day_of_month}`
-                                                : [
-                                                  "Sunday",
-                                                  "Monday",
-                                                  "Tuesday",
-                                                  "Wednesday",
-                                                  "Thursday",
-                                                  "Friday",
-                                                  "Saturday",
-                                                ][report.day_of_week || 0]}
-                                            </span>{" "}
-                                            each {report.frequency}
-                                          </span>
-                                        </div>
-                                      )}
-
-                                    {/* Footer */}
-                                    <div className="flex items-center justify-between border-t pt-2">
-                                      <div className="flex items-center gap-2">
-                                        <Switch
-                                          checked={report.active !== false}
-                                          onCheckedChange={checked =>
-                                            handleUpdateReport(index, "active", checked)
-                                          }
-                                          className="scale-75"
-                                        />
-                                        <span className="text-[10px] text-muted-foreground">
-                                          Status
-                                        </span>
-                                      </div>
-
-                                      <div className="flex items-center gap-1">
-                                        {report.template_id && report.is_customized && (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              if (report.schedule_id) handleResetSchedule(report.schedule_id)
-                                            }}
-                                            disabled={isSaving || report.active === false}
-                                            className="h-6 px-2 text-[10px] border-amber-200 text-amber-700 hover:bg-amber-50"
-                                          >
-                                            Reset
-                                          </Button>
-                                        )}
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            navigate("/platform/templates")
-                                          }}
-                                          disabled={report.active === false}
-                                          className="h-6 px-2 text-[10px] gap-1"
-                                        >
-                                          Edit Template
-                                          <ExternalLink className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              </div>
-                            </TooltipTrigger>
-                            {report.active === false && (
-                              <TooltipContent side="bottom" align="start" className="bg-primary text-white border-primary" sideOffset={5}>
-                                <p className="text-xs font-medium">Enable first to select the card</p>
-                                <div className="absolute -top-1 left-8 w-2 h-2 bg-primary rotate-45 border-l border-t border-primary" />
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                        </TooltipProvider>
-                      );
+                        <ScheduleCard
+                          key={report.schedule_id || index}
+                          report={report}
+                          index={index}
+                          isSelected={!!report.schedule_id && selectedSchedules.includes(report.schedule_id)}
+                          reportType={reportType}
+                          isSaving={isSaving}
+                          onSelect={handleToggleScheduleSelection}
+                          onUpdate={handleUpdateReport}
+                          onReset={handleResetSchedule}
+                          onNavigateToTemplates={() => navigate('/platform/templates')}
+                        />
+                      )
                     })}
                   </div>
                 )}
