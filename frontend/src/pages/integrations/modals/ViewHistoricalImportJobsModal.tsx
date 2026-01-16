@@ -177,11 +177,11 @@ export function ViewHistoricalImportJobsModal({
             </div>
           ) : (
             <div className="space-y-3">
-              {jobs.map((job) => {
+              {jobs.map((job, index) => {
                 const progress = calculateProgress(job)
                 return (
                   <div
-                    key={job.id}
+                    key={`job-${job.id}-${index}`}
                     className="rounded-lg border border-border p-4 space-y-3"
                   >
                     {/* Header */}
@@ -226,15 +226,15 @@ export function ViewHistoricalImportJobsModal({
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-3 gap-3 pt-3 border-t">
-                      <div key="imported">
+                      <div>
                         <p className="text-xs text-muted-foreground">Records Imported</p>
                         <p className="text-sm font-medium text-green-600">{(job.records_imported || 0).toLocaleString()}</p>
                       </div>
-                      <div key="failed">
+                      <div>
                         <p className="text-xs text-muted-foreground">Records Failed</p>
                         <p className="text-sm font-medium text-red-600">{(job.records_failed || 0).toLocaleString()}</p>
                       </div>
-                      <div key="errors">
+                      <div>
                         <p className="text-xs text-muted-foreground">Error Count</p>
                         <p className="text-sm font-medium text-orange-600">{job.error_count || 0}</p>
                       </div>
@@ -242,18 +242,18 @@ export function ViewHistoricalImportJobsModal({
 
                     {/* Timestamps */}
                     <div className="grid grid-cols-2 gap-3 text-xs pt-3 border-t">
-                      <div key="created">
+                      <div key={`${job.id}-created`}>
                         <p className="text-muted-foreground">Created</p>
                         <p className="font-medium">{formatDate(job.created_at)}</p>
                       </div>
                       {job.started_at && (
-                        <div key="started">
+                        <div key={`${job.id}-started`}>
                           <p className="text-muted-foreground">Started</p>
                           <p className="font-medium">{formatDate(job.started_at)}</p>
                         </div>
                       )}
                       {job.completed_at && (
-                        <div key="completed">
+                        <div key={`${job.id}-completed`}>
                           <p className="text-muted-foreground">Completed</p>
                           <p className="font-medium">{formatDate(job.completed_at)}</p>
                         </div>
