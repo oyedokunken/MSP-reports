@@ -8,7 +8,7 @@ PartOf=mspreports.target
 Type=simple
 User=athena
 Group=athena
-WorkingDirectory=/var/www/mspreports/backend
+WorkingDirectory=/opt/mspreports/backend
 
 # Queue worker command with production settings
 # --queue: Priority order (high first, then default, then low)
@@ -16,7 +16,7 @@ WorkingDirectory=/var/www/mspreports/backend
 # --tries: Max attempts before marking job as failed
 # --max-time: Restart worker after this many seconds (prevents memory leaks)
 # --timeout: Max seconds a job can run before being killed
-ExecStart=/usr/bin/php artisan queue:work redis --queue=high,default,low --sleep=3 --tries=5 --max-time=3600 --timeout=900
+ExecStart=/usr/bin/php artisan queue:work redis --queue=critical,sync,high,default,low --sleep=3 --tries=5 --max-time=3600 --timeout=900
 
 # Restart policy
 Restart=always
@@ -25,8 +25,8 @@ StartLimitIntervalSec=60
 StartLimitBurst=5
 
 # Logging
-StandardOutput=append:/var/www/mspreports/backend/storage/logs/worker.log
-StandardError=append:/var/www/mspreports/backend/storage/logs/worker.log
+StandardOutput=append:/opt/mspreports/backend/storage/logs/worker.log
+StandardError=append:/opt/mspreports/backend/storage/logs/worker.log
 
 # Process management
 KillMode=mixed
@@ -38,8 +38,8 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/www/mspreports/backend/storage
-ReadWritePaths=/var/www/mspreports/backend/bootstrap/cache
+ReadWritePaths=/opt/mspreports/backend/storage
+ReadWritePaths=/opt/mspreports/backend/bootstrap/cache
 
 # Resource limits (adjust based on server capacity)
 MemoryMax=512M

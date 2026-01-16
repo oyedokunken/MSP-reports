@@ -9,7 +9,9 @@ use Carbon\Carbon;
 
 class EvaluateIntegrationSyncs extends Command
 {
-    protected $signature = 'integrations:evaluate-syncs';
+    protected $signature = 'integrations:evaluate-syncs
+                            {--force : Force queue syncs regardless of schedule}
+                            {--integration= : Only process specific integration ID}';
     protected $description = 'Evaluate integration sync schedules and queue syncs that are due';
 
     public function handle(SyncEngine $syncEngine)
@@ -20,9 +22,14 @@ class EvaluateIntegrationSyncs extends Command
         $integrationsProcessed = 0;
         $syncsQueued = 0;
 
-        $integrations = Integration::where('status', 'active')
-            ->orWhere('status', 'importing_historical')
-            ->get();
+        $query = Integration::where('status', 'active')
+            ->orWhere('status', 'importing_historical');
+        
+        if ($integrationId = $this->option('integration')) {
+            $query->where('integration_id', $integrationId);
+        }
+        
+        $integrations = $query->get();
 
         foreach ($integrations as $integration) {
             $company = $integration->company;
@@ -97,7 +104,7 @@ class EvaluateIntegrationSyncs extends Command
                 continue;
             }
             
-            if ($this->isSyncDue($integration, $syncSchedule, $now)) {
+            if ($this->option('force') || $this->isSyncDue($integration, $syncSchedule, $now)) {
                 try {
                     // $syncLog = $syncEngine->queueSync($integration);
                     $syncLog = $syncEngine->triggerSync($integration, 'current_state', 'default');
@@ -107,6 +114,9 @@ class EvaluateIntegrationSyncs extends Command
                 } catch (\Exception $e) {
                     $this->error("Failed to queue sync for integration {$integration->integration_id}: {$e->getMessage()}");
                 }
+            }
+            else {
+                $this->info("Sync not due for integration {$integration->integration_id} ({$integration->integration_type})");
             }
 
             $integrationsProcessed++;

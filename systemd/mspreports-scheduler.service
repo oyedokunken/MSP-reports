@@ -8,7 +8,7 @@ PartOf=mspreports.target
 Type=simple
 User=athena
 Group=athena
-WorkingDirectory=/var/www/mspreports/backend
+WorkingDirectory=/opt/mspreports/backend
 
 # Laravel scheduler - runs scheduled tasks every minute
 # This replaces the traditional cron entry: * * * * * php artisan schedule:run
@@ -21,8 +21,8 @@ StartLimitIntervalSec=60
 StartLimitBurst=5
 
 # Logging
-StandardOutput=append:/var/www/mspreports/backend/storage/logs/scheduler.log
-StandardError=append:/var/www/mspreports/backend/storage/logs/scheduler.log
+StandardOutput=append:/opt/mspreports/backend/storage/logs/scheduler.log
+StandardError=append:/opt/mspreports/backend/storage/logs/scheduler.log
 
 # Process management
 KillMode=mixed
@@ -34,8 +34,8 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/www/mspreports/backend/storage
-ReadWritePaths=/var/www/mspreports/backend/bootstrap/cache
+ReadWritePaths=/opt/mspreports/backend/storage
+ReadWritePaths=/opt/mspreports/backend/bootstrap/cache
 
 # Resource limits
 MemoryMax=256M

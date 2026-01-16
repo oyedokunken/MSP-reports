@@ -9,9 +9,9 @@
 set -e
 
 # Configuration - adjust these paths as needed
-APP_PATH="/var/www/mspreports/backend"
-SERVICE_USER="athena"
-SERVICE_GROUP="athena"
+APP_PATH="/opt/mspreports/backend"
+SERVICE_USER="www-data"
+SERVICE_GROUP="www-data"
 WORKER_COUNT=3  # Number of queue worker instances
 
 # Colors for output

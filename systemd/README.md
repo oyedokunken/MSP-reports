@@ -66,10 +66,10 @@ systemctl status mspreports-worker@1
 ### View Logs
 ```bash
 # Worker logs (from log file)
-tail -f /var/www/mspreports/backend/storage/logs/worker.log
+tail -f /opt/mspreports/backend/storage/logs/worker.log
 
 # Scheduler logs
-tail -f /var/www/mspreports/backend/storage/logs/scheduler.log
+tail -f /opt/mspreports/backend/storage/logs/scheduler.log
 
 # Systemd journal logs
 journalctl -u mspreports-scheduler -f
@@ -97,7 +97,7 @@ sudo systemctl stop 'mspreports-worker@*'
 ## Configuration
 
 The service files assume:
-- **Application path:** `/var/www/mspreports/backend`
+- **Application path:** `/opt/mspreports/backend`
 - **User/Group:** `athena`
 - **Log files:** `storage/logs/worker.log` and `storage/logs/scheduler.log`
 
@@ -107,12 +107,12 @@ To modify these, edit the `.service` files before installation.
 
 ### Workers not processing jobs
 1. Check Redis is running: `systemctl status redis`
-2. Check worker logs: `tail -100 /var/www/mspreports/backend/storage/logs/worker.log`
+2. Check worker logs: `tail -100 /opt/mspreports/backend/storage/logs/worker.log`
 3. Check queue has jobs: `php artisan queue:monitor high,default,low`
 
 ### Scheduler not running tasks
 1. Check scheduler status: `systemctl status mspreports-scheduler`
-2. Check scheduler logs: `tail -100 /var/www/mspreports/backend/storage/logs/scheduler.log`
+2. Check scheduler logs: `tail -100 /opt/mspreports/backend/storage/logs/scheduler.log`
 3. Verify cron expressions in `routes/console.php`
 
 ### Service fails to start
