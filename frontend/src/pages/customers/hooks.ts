@@ -215,6 +215,7 @@ export const useMapCustomerModal = (
     }, 300)
 
     return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -584,12 +585,13 @@ export const useMasterCustomerList = () => {
     })
 
     // Fetch SOT integration name
-    api.get('/integrations').then((response: any) => {
-      const sotIntegration = response.configured?.find((int: any) => int.is_source_of_truth === true)
+    api.get('/integrations').then((response: unknown) => {
+      const typedResponse = response as { configured?: Array<{ is_source_of_truth?: boolean; display_name?: string; integration_type?: string }> }
+      const sotIntegration = typedResponse.configured?.find((int) => int.is_source_of_truth === true)
       if (sotIntegration) {
-        setSotIntegrationName(sotIntegration.display_name || sotIntegration.integration_type)
+        setSotIntegrationName(sotIntegration.display_name || sotIntegration.integration_type || null)
       }
-    }).catch((err) => {
+    }).catch((err: unknown) => {
       console.error('Failed to fetch SOT integration:', err)
     })
   }, [fetchCustomers, toast])

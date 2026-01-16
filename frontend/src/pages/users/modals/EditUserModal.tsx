@@ -71,6 +71,7 @@ export function EditUserModal({
       fetchCustomers(1)
       setCurrentPage(1)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   useEffect(() => {
@@ -98,6 +99,7 @@ export function EditUserModal({
       }
     }
     fetchRoles()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,7 +156,7 @@ export function EditUserModal({
   }
 
   const toggleCustomer = (customerId: number) => {
-    setSelectedCustomers(prev => 
+    setSelectedCustomers(prev =>
       prev.includes(customerId)
         ? prev.filter(id => id !== customerId)
         : [...prev, customerId]
@@ -293,21 +295,21 @@ export function EditUserModal({
             <p className="text-xs text-muted-foreground">
               Leave empty for full access. Select specific customers to restrict this user's access.
             </p>
-            
+
             {/* Selected Customers */}
             {selectedCustomers.length > 0 && (
               <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/30">
                 {selectedCustomers.map(customerId => (
-                    <Badge key={customerId} variant="secondary" className="pl-2 pr-1">
-                      {getCustomerName(customerId)}
-                      <button
-                        type="button"
-                        onClick={() => removeCustomer(customerId)}
-                        className="ml-1 hover:bg-destructive/20 rounded-sm p-0.5"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
+                  <Badge key={customerId} variant="secondary" className="pl-2 pr-1">
+                    {getCustomerName(customerId)}
+                    <button
+                      type="button"
+                      onClick={() => removeCustomer(customerId)}
+                      className="ml-1 hover:bg-destructive/20 rounded-sm p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
                 ))}
               </div>
             )}

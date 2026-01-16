@@ -171,8 +171,7 @@ export default function Settings() {
     setSmtpHost,
     setSmtpPort,
     setSmtpEncryption,
-    setSmtpUsername,
-    setSmtpPassword
+    setSmtpUsername
   ])
 
   useEffect(() => {

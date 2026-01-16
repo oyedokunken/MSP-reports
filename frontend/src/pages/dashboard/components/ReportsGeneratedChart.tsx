@@ -42,8 +42,9 @@ export function ReportsGeneratedChart({ isLoading, data }: ReportsGeneratedChart
         textStyle: {
           color: '#fff',
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         formatter: (params: any) => {
-          const param = params[0]
+          const param = Array.isArray(params) ? params[0] : params
           return `
             <div style="padding: 4px 8px;">
               <div style="font-weight: 600; margin-bottom: 4px;">${param.name}</div>

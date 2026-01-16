@@ -8,7 +8,7 @@ export interface AuditLog {
   target_type: string | null
   target_id: number | null
   target_name?: string
-  event_data: Record<string, any>
+  event_data: Record<string, unknown>
   ip_address: string | null
   user_agent: string | null
   created_at: string
@@ -44,14 +44,14 @@ export const EVENT_TYPES = {
   user_password_reset: 'Password Reset',
   user_password_changed: 'Password Changed',
   user_permissions_updated: 'Permissions Updated',
-  
+
   // Integration events
   integration_created: 'Integration Created',
   integration_updated: 'Integration Updated',
   integration_deleted: 'Integration Deleted',
   integration_synced: 'Integration Synced',
   historical_import_started: 'Historical Import Started',
-  
+
   // Customer events
   customer_created: 'Customer Created',
   customer_updated: 'Customer Updated',
@@ -59,16 +59,16 @@ export const EVENT_TYPES = {
   customer_merged: 'Customer Merged',
   customer_split: 'Customer Split',
   mapping_deleted: 'Mapping Deleted',
-  
+
   // Settings events
   settings_updated: 'Settings Updated',
   branding_updated: 'Branding Updated',
-  
+
   // Report events
   report_generated: 'Report Generated',
   report_emailed: 'Report Emailed',
   report_shared: 'Report Shared',
-  
+
   // API Key events
   api_key_created: 'API Key Created',
   api_key_deleted: 'API Key Deleted',

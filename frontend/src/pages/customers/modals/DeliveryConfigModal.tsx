@@ -64,6 +64,7 @@ export function DeliveryConfigModal({
         if (open && customer) {
             loadDeliveryConfig();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, customer]);
 
     const loadDeliveryConfig = async () => {
@@ -421,8 +422,8 @@ export function DeliveryConfigModal({
                         {/* Test Result */}
                         {testResult && (
                             <div className={`rounded-lg border p-3 flex items-start gap-2 ${testResult.success
-                                    ? 'border-green-500/50 bg-green-500/10'
-                                    : 'border-destructive/50 bg-destructive/10'
+                                ? 'border-green-500/50 bg-green-500/10'
+                                : 'border-destructive/50 bg-destructive/10'
                                 }`}>
                                 {testResult.success ? (
                                     <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />

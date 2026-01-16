@@ -60,7 +60,7 @@ export default function ConfigureReports() {
   const [originalSharepointPath, setOriginalSharepointPath] = useState('')
   const [isFileBrowserOpen, setIsFileBrowserOpen] = useState(false)
   const [sharepointIntegrationId, setSharepointIntegrationId] = useState<number | null>(null)
-  const [sharepointIntegrations, setSharepointIntegrations] = useState<any[]>([])
+  const [sharepointIntegrations, setSharepointIntegrations] = useState<Array<{ integration_id: number; integration_type: string; display_name?: string }>>([])
   const [availableReportTypes, setAvailableReportTypes] = useState<ReportType[]>([])
   const [showValidationModal, setShowValidationModal] = useState(false)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
@@ -196,26 +196,26 @@ export default function ConfigureReports() {
 
       // Check for SharePoint integration (company-wide)
       try {
-        const intResponse = await api.get<{ configured: any[] }>('/integrations')
-        const integrations = (intResponse as any).configured || []
-        const spIntegrations = Array.isArray(integrations) 
-            ? integrations.filter((i: any) => i.integration_type?.toLowerCase().includes('sharepoint')) 
-            : []
-        
+        const intResponse = await api.get<{ configured: Array<{ integration_id: number; integration_type: string; display_name?: string }> }>('/integrations')
+        const integrations = (intResponse as unknown as { configured?: Array<{ integration_id: number; integration_type: string; display_name?: string }> }).configured || []
+        const spIntegrations = Array.isArray(integrations)
+          ? integrations.filter((i) => i.integration_type?.toLowerCase().includes('sharepoint'))
+          : []
+
         setSharepointIntegrations(spIntegrations)
 
         // If config has an ID, use it. 
         if (reportData.delivery?.integration_id) {
-            setSharepointIntegrationId(reportData.delivery.integration_id)
-        } 
+          setSharepointIntegrationId(reportData.delivery.integration_id)
+        }
         // Else if only one exists, default to it
         else if (spIntegrations.length === 1) {
-            setSharepointIntegrationId(spIntegrations[0].integration_id || spIntegrations[0].id)
+          setSharepointIntegrationId(spIntegrations[0].integration_id)
         }
         // If config.integration_id is missing but we have SP, try to match by old logic or null
         else if (!reportData.delivery?.integration_id && spIntegrations.length > 0) {
-           const first = spIntegrations[0]
-           setSharepointIntegrationId(first.integration_id || first.id)
+          const first = spIntegrations[0]
+          setSharepointIntegrationId(first.integration_id)
         }
       } catch (e) {
         console.warn('Failed to fetch integrations', e)
@@ -257,7 +257,7 @@ export default function ConfigureReports() {
     } else {
       updated[index] = { ...updated[index], [field]: value } as EnabledReport
     }
-    
+
     setEnabledReports(updated)
   }
 
@@ -284,32 +284,32 @@ export default function ConfigureReports() {
     }
 
     if (enabledReports.length > 0) {
-        if (deliveryMethod === 'email') {
-            // Check if email destination is provided
-            if (!destination.trim()) {
-                errors.push('Email destination is required for report delivery.')
-            } else {
-                // Validate email format
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-                if (!emailRegex.test(destination.trim())) {
-                    errors.push('Please enter a valid email address for the destination.')
-                }
-            }
-
-            // Validate CC emails
-            if (ccEmails.trim()) {
-                const ccArray = ccEmails.split(',').map(e => e.trim()).filter(e => e)
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-                const invalidCCs = ccArray.filter(email => !emailRegex.test(email))
-                if (invalidCCs.length > 0) {
-                    errors.push(`Invalid CC email(s): ${invalidCCs.join(', ')}`)
-                }
-            }
-        } else if (deliveryMethod === 'sharepoint') {
-            if (!sharepointPath.trim()) {
-                errors.push('SharePoint folder path is required.')
-            }
+      if (deliveryMethod === 'email') {
+        // Check if email destination is provided
+        if (!destination.trim()) {
+          errors.push('Email destination is required for report delivery.')
+        } else {
+          // Validate email format
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+          if (!emailRegex.test(destination.trim())) {
+            errors.push('Please enter a valid email address for the destination.')
+          }
         }
+
+        // Validate CC emails
+        if (ccEmails.trim()) {
+          const ccArray = ccEmails.split(',').map(e => e.trim()).filter(e => e)
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+          const invalidCCs = ccArray.filter(email => !emailRegex.test(email))
+          if (invalidCCs.length > 0) {
+            errors.push(`Invalid CC email(s): ${invalidCCs.join(', ')}`)
+          }
+        }
+      } else if (deliveryMethod === 'sharepoint') {
+        if (!sharepointPath.trim()) {
+          errors.push('SharePoint folder path is required.')
+        }
+      }
     }
 
     return errors
@@ -358,22 +358,22 @@ export default function ConfigureReports() {
       }
 
       // Update delivery configuration if changed
-      const deliveryChanged = 
+      const deliveryChanged =
         deliveryMethod !== originalDeliveryMethod ||
         (deliveryMethod === 'email' && (destination !== originalDestination || ccEmails !== originalCcEmails)) ||
         (deliveryMethod === 'sharepoint' && sharepointPath !== originalSharepointPath);
 
       if (deliveryChanged) {
-        const payload: any = {
-            method: deliveryMethod
+        const payload: { method: string; destination?: string; cc?: string[]; path?: string } = {
+          method: deliveryMethod
         };
 
         if (deliveryMethod === 'email') {
-            payload.destination = destination;
-            payload.cc = ccEmails.split(',').map(e => e.trim()).filter(e => e);
+          payload.destination = destination;
+          payload.cc = ccEmails.split(',').map(e => e.trim()).filter(e => e);
         } else if (deliveryMethod === 'sharepoint') {
-            payload.path = sharepointPath;
-            // We might want to send 'sharepoint_configured': true explicitly or let backend handle
+          payload.path = sharepointPath;
+          // We might want to send 'sharepoint_configured': true explicitly or let backend handle
         }
 
         updatePromises.push(
@@ -389,7 +389,7 @@ export default function ConfigureReports() {
       // Count what was actually updated
       const schedulesUpdated = modifiedSchedules.size
       const emailUpdated = (destination !== originalDestination || ccEmails !== originalCcEmails) ? 1 : 0
-      
+
       // Clear modified schedules tracking
       setModifiedSchedules(new Set())
       setOriginalDestination(destination)
@@ -405,7 +405,7 @@ export default function ConfigureReports() {
       } else {
         toast.success('Saved', 'No changes detected')
       }
-      
+
       fetchReportConfig()
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
@@ -478,17 +478,17 @@ export default function ConfigureReports() {
 
       // Generate reports sequentially to show progress
       const results: Array<{ status: 'fulfilled' | 'rejected'; value?: unknown; reason?: unknown; scheduleId: number }> = []
-      
+
       for (let i = 0; i < selectedSchedules.length; i++) {
         const scheduleId = selectedSchedules[i]
-        
+
         try {
           const result = await api.post(`/reports/schedules/${scheduleId}/generate`, payload)
           results.push({ status: 'fulfilled', value: result, scheduleId })
         } catch (error) {
           results.push({ status: 'rejected', reason: error, scheduleId })
         }
-        
+
         // Update progress after each request - use flushSync to force immediate render
         flushSync(() => {
           setGenerationProgress({ current: i + 1, total: selectedSchedules.length })
@@ -503,8 +503,8 @@ export default function ConfigureReports() {
       if (failed.length > 0) {
         const failedItems = failed.map(f => ({
           scheduleId: f.scheduleId,
-          error: (f.reason as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message 
-            || (f.reason as { message?: string })?.message 
+          error: (f.reason as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
+            || (f.reason as { message?: string })?.message
             || 'Unknown error'
         }))
         setFailedSchedules(failedItems)
@@ -513,8 +513,8 @@ export default function ConfigureReports() {
       // Show results
       if (succeeded.length > 0) {
         toast.success('Reports Generated!', `Successfully generated ${succeeded.length} of ${selectedSchedules.length} report(s)`)
-        
-      // Show browser notification for completion
+
+        // Show browser notification for completion
         showCompletionNotification(succeeded.length, failed.length)
       }
 
@@ -522,12 +522,12 @@ export default function ConfigureReports() {
         // Create a detailed error message with actual reasons
         const errorDetails = failed.map((f, idx) => {
           const reportName = enabledReports.find(r => r.schedule_id === f.scheduleId)?.report_type || `Schedule ${f.scheduleId}`
-          const errorMsg = (f.reason as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message 
-            || (f.reason as { message?: string })?.message 
+          const errorMsg = (f.reason as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message
+            || (f.reason as { message?: string })?.message
             || 'Unknown error'
           return `${idx + 1}. ${reportName}: ${errorMsg}`
         }).join('\n')
-        
+
         const title = failed.length === 1 ? 'Report Failed' : 'Some Reports Failed'
         toast.error(title, errorDetails)
       }
@@ -558,14 +558,14 @@ export default function ConfigureReports() {
 
   const showCompletionNotification = (succeeded: number, failed: number) => {
     if ('Notification' in window && Notification.permission === 'granted') {
-      const title = failed > 0 
+      const title = failed > 0
         ? `${succeeded} Reports Generated, ${failed} Failed`
         : `${succeeded} Report${succeeded > 1 ? 's' : ''} Generated Successfully`
-      
+
       const body = failed > 0
         ? `${succeeded} of ${succeeded + failed} reports completed. Click to view failed reports.`
         : 'All reports have been generated and are ready for delivery.'
-      
+
       const notification = new Notification(title, {
         body,
         icon: '/favicon.ico',
@@ -667,7 +667,7 @@ export default function ConfigureReports() {
                   )}
                 </div>
               </CardHeader>
-              
+
               <CardContent>
                 {enabledReports.length === 0 ? (
                   <div className="text-center py-12 bg-background rounded-xl border-2 border-dashed">
@@ -702,15 +702,15 @@ export default function ConfigureReports() {
                                     report.active !== false && "cursor-pointer hover:shadow-lg",
                                     report.active !== false && report.schedule_id && selectedSchedules.includes(report.schedule_id)
                                       ? "border-primary bg-primary/5 shadow-md"
-                                      : report.active !== false 
+                                      : report.active !== false
                                         ? "border-border hover:border-primary/30"
                                         : "border-border",
                                     report.active === false && "opacity-60 grayscale cursor-not-allowed",
                                     "py-0 gap-0"
                                   )}
                                 >
-                          {/* Left Accent */}
-                          {/* <div
+                                  {/* Left Accent */}
+                                  {/* <div
                             className={cn(
                               "absolute left-0 top-0 h-full w-1",
                               report.schedule_id && selectedSchedules.includes(report.schedule_id)
@@ -719,258 +719,258 @@ export default function ConfigureReports() {
                             )}
                           /> */}
 
-                          <CardHeader className="p-4 pb-2">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="space-y-0.5">
-                                  <h3 className="text-sm font-semibold tracking-tight">
-                                    {report.template_name ? (
-                                      <div className="flex flex-col">
-                                        <span>{report.template_name}</span>
-                                        <span className="text-[10px] font-normal text-muted-foreground">
-                                          {reportType?.name || "Unknown Report"}
-                                        </span>
-                                        {report.template_description && (
-                                          <p className="text-[10px] text-muted-foreground/70 mt-0.5 line-clamp-1" title={report.template_description}>
-                                            {report.template_description}
-                                          </p>
+                                  <CardHeader className="p-4 pb-2">
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="space-y-0.5">
+                                        <h3 className="text-sm font-semibold tracking-tight">
+                                          {report.template_name ? (
+                                            <div className="flex flex-col">
+                                              <span>{report.template_name}</span>
+                                              <span className="text-[10px] font-normal text-muted-foreground">
+                                                {reportType?.name || "Unknown Report"}
+                                              </span>
+                                              {report.template_description && (
+                                                <p className="text-[10px] text-muted-foreground/70 mt-0.5 line-clamp-1" title={report.template_description}>
+                                                  {report.template_description}
+                                                </p>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            reportType?.name || "Unknown Report"
+                                          )}
+                                        </h3>
+
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[10px] text-muted-foreground font-mono">ID: {report.schedule_id}</span>
+
+                                          <Badge
+                                            variant={report.active !== false ? "default" : "secondary"}
+                                            className="h-4 px-1.5 text-[10px] font-bold uppercase tracking-wider"
+                                          >
+                                            {report.active !== false ? "Active" : "Paused"}
+                                          </Badge>
+
+                                          {report.template_id && report.is_customized && (
+                                            <Badge
+                                              variant="outline"
+                                              className="h-4 border-amber-200 bg-amber-50 px-1.5 text-[10px] text-amber-700 font-bold uppercase tracking-wider"
+                                            >
+                                              Customized
+                                            </Badge>
+                                          )}
+
+                                          {report.has_data === false && (
+                                            <Badge
+                                              variant="outline"
+                                              className="h-4 border-orange-200 bg-orange-50 px-1 text-orange-700"
+                                            >
+                                              No Data
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {report.schedule_id && (
+                                        <Badge
+                                          variant={selectedSchedules.includes(report.schedule_id) ? "default" : "outline"}
+                                          className={cn(
+                                            "h-6 px-2 text-[10px] font-semibold transition-all",
+                                            selectedSchedules.includes(report.schedule_id)
+                                              ? "bg-primary text-primary-foreground"
+                                              : "text-muted-foreground hover:bg-muted"
+                                          )}
+                                        >
+                                          {selectedSchedules.includes(report.schedule_id) ? (
+                                            <>
+                                              <Check className="h-3 w-3 mr-1" />
+                                              Selected
+                                            </>
+                                          ) : (
+                                            "Select"
+                                          )}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </CardHeader>
+
+                                  <CardContent className="p-4 pt-2 space-y-2">
+                                    {/* Frequency + Schedule */}
+                                    <div className="grid grid-cols-2 gap-4 rounded-lg border bg-muted/30 p-2">
+                                      <div className="space-y-1.5 flex flex-col">
+                                        <Label htmlFor={`freq-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
+                                          Frequency
+                                        </Label>
+                                        <Select
+                                          value={report.frequency || 'monthly'}
+                                          onValueChange={(value) => handleUpdateReport(index, 'frequency', value)}
+                                          disabled={report.active === false}
+                                        >
+                                          <SelectTrigger id={`freq-${index}`} className="h-8 text-xs bg-background w-full">
+                                            <SelectValue placeholder="Select" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {FREQUENCIES.map((f) => (
+                                              <SelectItem key={f.value} value={f.value} className="text-xs">
+                                                {f.label}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+
+                                      <div className="space-y-1.5 flex flex-col items-end">
+                                        <Label htmlFor={`time-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground text-right w-full">
+                                          Schedule
+                                        </Label>
+                                        {report.frequency !== 'on-demand' ? (
+                                          <div className="w-full">
+                                            <Input
+                                              id={`time-${index}`}
+                                              type="time"
+                                              value={report.time_of_day || '09:00'}
+                                              onChange={(e) => handleUpdateReport(index, 'time_of_day', e.target.value)}
+                                              disabled={report.active === false}
+                                              className="h-8 text-xs bg-background w-full"
+                                            />
+                                          </div>
+                                        ) : (
+                                          <div className="h-8 w-full flex items-center justify-center text-xs text-muted-foreground bg-background border rounded-md px-3 mt-auto">
+                                            Manual
+                                          </div>
                                         )}
                                       </div>
-                                    ) : (
-                                      reportType?.name || "Unknown Report"
+                                    </div>
+
+                                    {/* Day of Month/Week Configuration */}
+                                    {report.frequency === 'monthly' && (
+                                      <div className="space-y-1.5">
+                                        <Label htmlFor={`day-month-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
+                                          Day of Month
+                                        </Label>
+                                        <Select
+                                          value={report.day_of_month?.toString() || '1'}
+                                          onValueChange={(value) => handleUpdateReport(index, 'day_of_month', parseInt(value))}
+                                          disabled={report.active === false}
+                                        >
+                                          <SelectTrigger id={`day-month-${index}`} className="h-8 text-xs bg-background">
+                                            <SelectValue placeholder="Select day" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                                              <SelectItem key={day} value={day.toString()} className="text-xs">
+                                                Day {day}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
                                     )}
-                                  </h3>
 
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] text-muted-foreground font-mono">ID: {report.schedule_id}</span>
-                                  
-                                  <Badge
-                                    variant={report.active !== false ? "default" : "secondary"}
-                                    className="h-4 px-1.5 text-[10px] font-bold uppercase tracking-wider"
-                                  >
-                                    {report.active !== false ? "Active" : "Paused"}
-                                  </Badge>
+                                    {report.frequency === 'weekly' && (
+                                      <div className="space-y-1.5">
+                                        <Label htmlFor={`day-week-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
+                                          Day of Week
+                                        </Label>
+                                        <Select
+                                          value={report.day_of_week?.toString() || '0'}
+                                          onValueChange={(value) => handleUpdateReport(index, 'day_of_week', parseInt(value))}
+                                          disabled={report.active === false}
+                                        >
+                                          <SelectTrigger id={`day-week-${index}`} className="h-8 text-xs bg-background">
+                                            <SelectValue placeholder="Select day" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
+                                              <SelectItem key={idx} value={idx.toString()} className="text-xs">
+                                                {day}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    )}
 
-                                  {report.template_id && report.is_customized && (
-                                    <Badge
-                                      variant="outline"
-                                      className="h-4 border-amber-200 bg-amber-50 px-1.5 text-[10px] text-amber-700 font-bold uppercase tracking-wider"
-                                    >
-                                      Customized
-                                    </Badge>
-                                  )}
+                                    {(report.frequency === "monthly" ||
+                                      report.frequency === "weekly") && (
+                                        <div className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-[11px]">
+                                          <Zap className="h-3 w-3 text-primary" />
+                                          <span>
+                                            Runs on{" "}
+                                            <span className="font-semibold">
+                                              {report.frequency === "monthly"
+                                                ? `Day ${report.day_of_month}`
+                                                : [
+                                                  "Sunday",
+                                                  "Monday",
+                                                  "Tuesday",
+                                                  "Wednesday",
+                                                  "Thursday",
+                                                  "Friday",
+                                                  "Saturday",
+                                                ][report.day_of_week || 0]}
+                                            </span>{" "}
+                                            each {report.frequency}
+                                          </span>
+                                        </div>
+                                      )}
 
-                                  {report.has_data === false && (
-                                    <Badge
-                                      variant="outline"
-                                      className="h-4 border-orange-200 bg-orange-50 px-1 text-orange-700"
-                                    >
-                                      No Data
-                                    </Badge>
-                                  )}
-                                </div>
+                                    {/* Footer */}
+                                    <div className="flex items-center justify-between border-t pt-2">
+                                      <div className="flex items-center gap-2">
+                                        <Switch
+                                          checked={report.active !== false}
+                                          onCheckedChange={checked =>
+                                            handleUpdateReport(index, "active", checked)
+                                          }
+                                          className="scale-75"
+                                        />
+                                        <span className="text-[10px] text-muted-foreground">
+                                          Status
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center gap-1">
+                                        {report.template_id && report.is_customized && (
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              if (report.schedule_id) handleResetSchedule(report.schedule_id)
+                                            }}
+                                            disabled={isSaving || report.active === false}
+                                            className="h-6 px-2 text-[10px] border-amber-200 text-amber-700 hover:bg-amber-50"
+                                          >
+                                            Reset
+                                          </Button>
+                                        )}
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            navigate("/platform/templates")
+                                          }}
+                                          disabled={report.active === false}
+                                          className="h-6 px-2 text-[10px] gap-1"
+                                        >
+                                          Edit Template
+                                          <ExternalLink className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
                               </div>
-
-                              {report.schedule_id && (
-                                <Badge
-                                  variant={selectedSchedules.includes(report.schedule_id) ? "default" : "outline"}
-                                  className={cn(
-                                    "h-6 px-2 text-[10px] font-semibold transition-all",
-                                    selectedSchedules.includes(report.schedule_id)
-                                      ? "bg-primary text-primary-foreground"
-                                      : "text-muted-foreground hover:bg-muted"
-                                  )}
-                                >
-                                  {selectedSchedules.includes(report.schedule_id) ? (
-                                    <>
-                                      <Check className="h-3 w-3 mr-1" />
-                                      Selected
-                                    </>
-                                  ) : (
-                                    "Select"
-                                  )}
-                                </Badge>
-                              )}
-                            </div>
-                          </CardHeader>
-
-                          <CardContent className="p-4 pt-2 space-y-2">
-                            {/* Frequency + Schedule */}
-                            <div className="grid grid-cols-2 gap-4 rounded-lg border bg-muted/30 p-2">
-                              <div className="space-y-1.5 flex flex-col">
-                                <Label htmlFor={`freq-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
-                                  Frequency
-                                </Label>
-                                <Select
-                                  value={report.frequency || 'monthly'}
-                                  onValueChange={(value) => handleUpdateReport(index, 'frequency', value)}
-                                  disabled={report.active === false}
-                                >
-                                  <SelectTrigger id={`freq-${index}`} className="h-8 text-xs bg-background w-full">
-                                    <SelectValue placeholder="Select" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {FREQUENCIES.map((f) => (
-                                      <SelectItem key={f.value} value={f.value} className="text-xs">
-                                        {f.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
-                              <div className="space-y-1.5 flex flex-col items-end">
-                                <Label htmlFor={`time-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground text-right w-full">
-                                  Schedule
-                                </Label>
-                                {report.frequency !== 'on-demand' ? (
-                                  <div className="w-full">
-                                    <Input
-                                      id={`time-${index}`}
-                                      type="time"
-                                      value={report.time_of_day || '09:00'}
-                                      onChange={(e) => handleUpdateReport(index, 'time_of_day', e.target.value)}
-                                      disabled={report.active === false}
-                                      className="h-8 text-xs bg-background w-full"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="h-8 w-full flex items-center justify-center text-xs text-muted-foreground bg-background border rounded-md px-3 mt-auto">
-                                    Manual
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Day of Month/Week Configuration */}
-                            {report.frequency === 'monthly' && (
-                              <div className="space-y-1.5">
-                                <Label htmlFor={`day-month-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
-                                  Day of Month
-                                </Label>
-                                <Select
-                                  value={report.day_of_month?.toString() || '1'}
-                                  onValueChange={(value) => handleUpdateReport(index, 'day_of_month', parseInt(value))}
-                                  disabled={report.active === false}
-                                >
-                                  <SelectTrigger id={`day-month-${index}`} className="h-8 text-xs bg-background">
-                                    <SelectValue placeholder="Select day" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
-                                      <SelectItem key={day} value={day.toString()} className="text-xs">
-                                        Day {day}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
+                            </TooltipTrigger>
+                            {report.active === false && (
+                              <TooltipContent side="bottom" align="start" className="bg-primary text-white border-primary" sideOffset={5}>
+                                <p className="text-xs font-medium">Enable first to select the card</p>
+                                <div className="absolute -top-1 left-8 w-2 h-2 bg-primary rotate-45 border-l border-t border-primary" />
+                              </TooltipContent>
                             )}
-
-                            {report.frequency === 'weekly' && (
-                              <div className="space-y-1.5">
-                                <Label htmlFor={`day-week-${index}`} className="text-[10px] font-semibold uppercase text-muted-foreground">
-                                  Day of Week
-                                </Label>
-                                <Select
-                                  value={report.day_of_week?.toString() || '0'}
-                                  onValueChange={(value) => handleUpdateReport(index, 'day_of_week', parseInt(value))}
-                                  disabled={report.active === false}
-                                >
-                                  <SelectTrigger id={`day-week-${index}`} className="h-8 text-xs bg-background">
-                                    <SelectValue placeholder="Select day" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, idx) => (
-                                      <SelectItem key={idx} value={idx.toString()} className="text-xs">
-                                        {day}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            )}
-
-                            {(report.frequency === "monthly" ||
-                              report.frequency === "weekly") && (
-                              <div className="flex items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-[11px]">
-                                <Zap className="h-3 w-3 text-primary" />
-                                <span>
-                                  Runs on{" "}
-                                  <span className="font-semibold">
-                                    {report.frequency === "monthly"
-                                      ? `Day ${report.day_of_month}`
-                                      : [
-                                          "Sunday",
-                                          "Monday",
-                                          "Tuesday",
-                                          "Wednesday",
-                                          "Thursday",
-                                          "Friday",
-                                          "Saturday",
-                                        ][report.day_of_week || 0]}
-                                  </span>{" "}
-                                  each {report.frequency}
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Footer */}
-                            <div className="flex items-center justify-between border-t pt-2">
-                              <div className="flex items-center gap-2">
-                                <Switch
-                                  checked={report.active !== false}
-                                  onCheckedChange={checked =>
-                                    handleUpdateReport(index, "active", checked)
-                                  }
-                                  className="scale-75"
-                                />
-                                <span className="text-[10px] text-muted-foreground">
-                                  Status
-                                </span>
-                              </div>
-
-                              <div className="flex items-center gap-1">
-                                {report.template_id && report.is_customized && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      if (report.schedule_id) handleResetSchedule(report.schedule_id)
-                                    }}
-                                    disabled={isSaving || report.active === false}
-                                    className="h-6 px-2 text-[10px] border-amber-200 text-amber-700 hover:bg-amber-50"
-                                  >
-                                    Reset
-                                  </Button>
-                                )}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    navigate("/platform/templates")
-                                  }}
-                                  disabled={report.active === false}
-                                  className="h-6 px-2 text-[10px] gap-1"
-                                >
-                                  Edit Template
-                                  <ExternalLink className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </TooltipTrigger>
-                    {report.active === false && (
-                      <TooltipContent side="bottom" align="start" className="bg-primary text-white border-primary" sideOffset={5}>
-                        <p className="text-xs font-medium">Enable first to select the card</p>
-                        <div className="absolute -top-1 left-8 w-2 h-2 bg-primary rotate-45 border-l border-t border-primary" />
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
+                          </Tooltip>
+                        </TooltipProvider>
                       );
                     })}
                   </div>
@@ -1000,111 +1000,111 @@ export default function ConfigureReports() {
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-muted-foreground uppercase">Delivery Method</Label>
                     <div className="flex flex-col gap-2">
-                        <div className="grid grid-cols-2 gap-2">
-                            <Button
-                                variant={deliveryMethod === 'email' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setDeliveryMethod('email')}
-                                className="w-full"
-                            >
-                                <Mail className="h-4 w-4 mr-2" />
-                                Email
-                            </Button>
-                            <Button
-                                variant={deliveryMethod === 'sharepoint' ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => setDeliveryMethod('sharepoint')}
-                                className="w-full"
-                                disabled={!sharepointIntegrationId}
-                                title={!sharepointIntegrationId ? "Configure SharePoint integration in Settings to enable" : ""}
-                            >
-                                <Share2 className="h-4 w-4 mr-2" />
-                                SharePoint
-                            </Button>
-                        </div>
-                        {!sharepointIntegrationId && (
-                            <p className="text-[10px] text-muted-foreground">
-                                * <a href="/platform/integrations" className="underline hover:text-primary">Connect SharePoint</a> in settings to enable folder delivery.
-                            </p>
-                        )}
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant={deliveryMethod === 'email' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setDeliveryMethod('email')}
+                          className="w-full"
+                        >
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email
+                        </Button>
+                        <Button
+                          variant={deliveryMethod === 'sharepoint' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setDeliveryMethod('sharepoint')}
+                          className="w-full"
+                          disabled={!sharepointIntegrationId}
+                          title={!sharepointIntegrationId ? "Configure SharePoint integration in Settings to enable" : ""}
+                        >
+                          <Share2 className="h-4 w-4 mr-2" />
+                          SharePoint
+                        </Button>
+                      </div>
+                      {!sharepointIntegrationId && (
+                        <p className="text-[10px] text-muted-foreground">
+                          * <a href="/platform/integrations" className="underline hover:text-primary">Connect SharePoint</a> in settings to enable folder delivery.
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   {deliveryMethod === 'email' ? (
-                      <>
-                        <div className="space-y-1.5">
-                            <Label htmlFor="sidebar-destination" className="text-xs font-bold text-muted-foreground uppercase">Recipient</Label>
-                            <Input
-                            id="sidebar-destination"
-                            type="email"
-                            placeholder="reports@customer.com"
-                            value={destination}
-                            onChange={(e) => setDestination(e.target.value)}
-                            className="h-9"
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label htmlFor="sidebar-cc" className="text-xs font-bold text-muted-foreground uppercase">CC Recipients</Label>
-                            <Input
-                            id="sidebar-cc"
-                            type="text"
-                            placeholder="manager@customer.com"
-                            value={ccEmails}
-                            onChange={(e) => setCcEmails(e.target.value)}
-                            className="h-9"
-                            />
-                            <p className="text-[10px] text-muted-foreground italic">Comma-separated addresses</p>
-                        </div>
-                      </>
+                    <>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="sidebar-destination" className="text-xs font-bold text-muted-foreground uppercase">Recipient</Label>
+                        <Input
+                          id="sidebar-destination"
+                          type="email"
+                          placeholder="reports@customer.com"
+                          value={destination}
+                          onChange={(e) => setDestination(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="sidebar-cc" className="text-xs font-bold text-muted-foreground uppercase">CC Recipients</Label>
+                        <Input
+                          id="sidebar-cc"
+                          type="text"
+                          placeholder="manager@customer.com"
+                          value={ccEmails}
+                          onChange={(e) => setCcEmails(e.target.value)}
+                          className="h-9"
+                        />
+                        <p className="text-[10px] text-muted-foreground italic">Comma-separated addresses</p>
+                      </div>
+                    </>
                   ) : (
-                      <div className="space-y-4">
-                        {sharepointIntegrations.length > 1 && (
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-muted-foreground uppercase">SharePoint Site</Label>
-                                <Select 
-                                    value={sharepointIntegrationId?.toString() || ''} 
-                                    onValueChange={(val) => setSharepointIntegrationId(parseInt(val))}
-                                >
-                                    <SelectTrigger className="w-full text-xs h-9">
-                                        <SelectValue placeholder="Select Integration" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {sharepointIntegrations.map((int: any) => (
-                                            <SelectItem key={int.integration_id || int.id} value={(int.integration_id || int.id).toString()}>
-                                                {int.display_name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
-
+                    <div className="space-y-4">
+                      {sharepointIntegrations.length > 1 && (
                         <div className="space-y-1.5">
-                          <Label className="text-xs font-bold text-muted-foreground uppercase">Target Folder</Label>
-                          <div className="flex gap-2">
-                              <Input
-                                value={sharepointPath || '/'}
-                                readOnly
-                                className="h-9 bg-muted text-muted-foreground text-xs font-mono"
-                              />
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="px-3"
-                                onClick={() => setIsFileBrowserOpen(true)}
-                              >
-                                <Folder className="h-4 w-4" />
-                              </Button>
-                          </div>
+                          <Label className="text-xs font-bold text-muted-foreground uppercase">SharePoint Site</Label>
+                          <Select
+                            value={sharepointIntegrationId?.toString() || ''}
+                            onValueChange={(val) => setSharepointIntegrationId(parseInt(val))}
+                          >
+                            <SelectTrigger className="w-full text-xs h-9">
+                              <SelectValue placeholder="Select Integration" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {sharepointIntegrations.map((int) => (
+                                <SelectItem key={int.integration_id} value={int.integration_id.toString()}>
+                                  {int.display_name || int.integration_type}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-muted-foreground uppercase">Target Folder</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={sharepointPath || '/'}
+                            readOnly
+                            className="h-9 bg-muted text-muted-foreground text-xs font-mono"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="px-3"
+                            onClick={() => setIsFileBrowserOpen(true)}
+                          >
+                            <Folder className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      </div>
+                    </div>
                   )}
 
                 </div>
 
                 {/* Save Button */}
-                <Button 
-                  onClick={handleSaveConfiguration} 
+                <Button
+                  onClick={handleSaveConfiguration}
                   disabled={isSaving || isGenerating}
                   className="w-full h-11"
                 >

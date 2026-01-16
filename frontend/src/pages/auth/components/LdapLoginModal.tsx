@@ -32,8 +32,9 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
     try {
       setIsSubmitting(true)
       await onSubmit(username, password)
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed. Please check your credentials.')
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      setError(error.message || 'Authentication failed. Please check your credentials.')
     } finally {
       setIsSubmitting(false)
     }

@@ -1,13 +1,13 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
-// @ts-ignore
+// @ts-expect-error - Pusher needs to be on window for Laravel Echo
 window.Pusher = Pusher;
 
 export const initEcho = (token: string) => {
   // Only initialize if WebSocket is enabled (useful for development)
   const isEnabled = import.meta.env.VITE_REVERB_ENABLED !== 'false';
-  
+
   if (!isEnabled) {
     console.log('📡 Echo disabled (VITE_REVERB_ENABLED=false)');
     return null;
@@ -30,12 +30,12 @@ export const initEcho = (token: string) => {
   });
 
   console.log('📡 Echo initialized, connecting to Reverb...');
-  
+
   echo.connector.pusher.connection.bind('connected', () => {
     console.log('✅ Connected to Reverb WebSocket');
   });
 
-  echo.connector.pusher.connection.bind('error', (err: any) => {
+  echo.connector.pusher.connection.bind('error', (err: { type?: string; error?: { message?: string } }) => {
     console.error('❌ Reverb Connection Error:', err);
   });
 

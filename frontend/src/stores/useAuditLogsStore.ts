@@ -11,7 +11,7 @@ export interface AuditLogsState {
   totalPages: number
   totalLogs: number
   filters: AuditLogsFilters
-  
+
   // Actions
   fetchAuditLogs: () => Promise<void>
   fetchStats: () => Promise<void>
@@ -39,7 +39,7 @@ export const useAuditLogsStore = create<AuditLogsState>((set, get) => ({
 
   fetchAuditLogs: async () => {
     set({ isLoading: true, error: null })
-    
+
     try {
       const { filters, currentPage } = get()
       const response = await auditLogsService.getAuditLogs({
@@ -47,18 +47,19 @@ export const useAuditLogsStore = create<AuditLogsState>((set, get) => ({
         page: currentPage,
         per_page: 10,
       })
-      
-      const { data, pagination } = response as any
-      
-      set({ 
+
+      const { data, pagination } = response as unknown as { data: AuditLog[]; pagination: { total: number; last_page: number } }
+
+      set({
         auditLogs: data,
         totalLogs: pagination.total,
         totalPages: pagination.last_page,
         isLoading: false,
       })
-    } catch (error: any) {
-      set({ 
-        error: error.message || 'Failed to fetch audit logs',
+    } catch (error: unknown) {
+      const err = error as { message?: string }
+      set({
+        error: err.message || 'Failed to fetch audit logs',
         isLoading: false,
       })
     }
@@ -67,7 +68,8 @@ export const useAuditLogsStore = create<AuditLogsState>((set, get) => ({
   fetchStats: async () => {
     try {
       const response = await auditLogsService.getStats()
-      set({ stats: (response as any).data })
+      const typedResponse = response as unknown as { data: AuditLogStats }
+      set({ stats: typedResponse.data })
     } catch (error) {
       console.error('Failed to fetch audit log stats:', error)
     }

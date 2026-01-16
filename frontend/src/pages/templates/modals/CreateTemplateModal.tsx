@@ -100,6 +100,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       }
       setError('')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, template])
 
   const handlePageChange = (newPage: number) => {
@@ -132,6 +133,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     } else if (selectedCustomerId) {
       fetchAvailableReportTypes(selectedCustomerId)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCustomerId, isGlobalTemplate])
 
   // Auto-select default sections when report type changes (only for new templates)
@@ -201,11 +203,12 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       if (formData.report_type && !data.report_types.some((rt: ReportTypeDefinition) => rt.type === formData.report_type)) {
         setFormData(prev => ({ ...prev, report_type: '', included_sections: [] }))
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> }; status?: number }; message?: string }
       console.error('Failed to fetch report types:', err)
-      console.error('Error response:', err.response?.data)
-      console.error('Error status:', err.response?.status)
-      const errorMsg = err.response?.data?.message || err.response?.data?.errors || 'Failed to load available report types'
+      console.error('Error response:', error.response?.data)
+      console.error('Error status:', error.response?.status)
+      const errorMsg = error.response?.data?.message || error.response?.data?.errors || 'Failed to load available report types'
       toast.error(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg))
     } finally {
       setIsLoadingData(false)
@@ -217,9 +220,10 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       setIsLoadingData(true)
       const data = await templateApi.getAllReportTypes()
       setAvailableReportTypes(data.report_types)
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
       console.error('Failed to fetch all report types:', err)
-      const errorMsg = err.response?.data?.message || 'Failed to load report types'
+      const errorMsg = error.response?.data?.message || 'Failed to load report types'
       toast.error(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg))
     } finally {
       setIsLoadingData(false)
@@ -309,22 +313,23 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       }
       onSuccess?.()
       onOpenChange(false)
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: unknown; message?: string; errors?: Record<string, string[]> }
       console.error('Template save error:', err)
-      console.error('Error response:', err.response)
-      console.error('Error message:', err.message)
-      console.error('Error errors:', err.errors)
+      console.error('Error response:', error.response)
+      console.error('Error message:', error.message)
+      console.error('Error errors:', error.errors)
 
       // Handle validation errors (422)
-      if (err.errors) {
-        const errors = err.errors
+      if (error.errors) {
+        const errors = error.errors
         const errorMessages = Object.entries(errors)
           .map(([field, messages]) => `${field}: ${(messages as string[]).join(', ')}`)
           .join('\n')
         setError(errorMessages)
         toast.error('Validation failed: ' + errorMessages)
       } else {
-        const errorMessage = err.message || 'Failed to save template'
+        const errorMessage = error.message || 'Failed to save template'
         setError(errorMessage)
         toast.error(errorMessage)
       }
@@ -506,7 +511,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                   <Label htmlFor="frequency">Frequency</Label>
                   <Select
                     value={formData.frequency}
-                    onValueChange={(value: any) => setFormData({ ...formData, frequency: value })}
+                    onValueChange={(value: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'on-demand') => setFormData({ ...formData, frequency: value })}
                     disabled={isSubmitting}
                   >
                     <SelectTrigger className="mt-1">

@@ -67,7 +67,7 @@ export const templateApi = {
   },
 
   getAppliedCustomers: async (id: number) => {
-    const response = await api.get<any[]>(`/report-templates/${id}/applied-customers`)
+    const response = await api.get<Array<{ customer_id: number; canonical_name: string; report_schedule_id: number }>>(`/report-templates/${id}/applied-customers`)
     return response.data
   },
 }

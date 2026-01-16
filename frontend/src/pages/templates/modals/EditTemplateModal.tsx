@@ -111,7 +111,7 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
     try {
       setLoading(true)
 
-      const updateData: any = {
+      const updateData: { template_name: string; description: string; frequency: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'on-demand'; timezone: string; active: boolean; time_of_day?: string } = {
         template_name: formData.template_name,
         description: formData.description,
         frequency: formData.frequency,
@@ -273,7 +273,7 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
                 <div>
                   <h4 className="text-sm font-semibold text-amber-900">Sync Impact</h4>
                   <p className="text-xs text-amber-700 mt-1 leading-relaxed">
-                    This template is linked to <strong>{template.schedules_count}</strong> customer {template.schedules_count === 1 ? 'schedule' : 'schedules'}. 
+                    This template is linked to <strong>{template.schedules_count}</strong> customer {template.schedules_count === 1 ? 'schedule' : 'schedules'}.
                     Saving changes will automatically push updates to all customers <strong>except</strong> those who have manually customized their report settings.
                   </p>
                 </div>

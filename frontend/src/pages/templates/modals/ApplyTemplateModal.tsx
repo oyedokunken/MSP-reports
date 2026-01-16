@@ -69,6 +69,7 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
       setSuccess(false)
       loadInitialCustomers()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   // Load initial customers
@@ -222,8 +223,9 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
         onSuccess?.()
         onOpenChange(false)
       }, 2000)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to apply template'
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to apply template'
       setError(errorMessage)
       toast.error(errorMessage)
     } finally {

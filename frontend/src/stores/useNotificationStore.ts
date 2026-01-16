@@ -24,8 +24,8 @@ interface NotificationState {
   total: number
   isLoading: boolean
   error: string | null
-  echo: any | null
-  
+  echo: ReturnType<typeof initEcho> | null
+
   // Filters & Search
   searchQuery: string
   filters: {
@@ -37,7 +37,7 @@ interface NotificationState {
     key: SortKey
     direction: SortDirection
   }
-  
+
   // Actions
   fetchNotifications: (page?: number) => Promise<void>
   markAsRead: (id: string | number) => Promise<void>
@@ -47,7 +47,7 @@ interface NotificationState {
   deleteAllRead: () => Promise<void>
   listenForNotifications: (user_id: string | number, token: string) => void
   disconnectEcho: () => void
-  
+
   // Local UI actions
   setSearchQuery: (query: string) => void
   setFilters: (filters: Partial<NotificationState['filters']>) => void
@@ -55,7 +55,7 @@ interface NotificationState {
   toggleSelect: (id: string | number) => void
   selectAll: () => void
   deselectAll: () => void
-  
+
   // Derived Data Helpers
   getFilteredNotifications: () => Notification[]
   getUnreadCount: () => number
@@ -81,7 +81,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   isLoading: false,
   error: null,
   echo: null,
-  
+
   searchQuery: '',
   filters: {
     type: 'all',
@@ -108,15 +108,16 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         severity: n.severity,
         metadata: n.metadata || undefined
       }))
-      
-      set({ 
-        notifications: mappedNotifications, 
+
+      set({
+        notifications: mappedNotifications,
         unreadCount: response.pagination.unread_count,
         total: response.pagination.total,
-        isLoading: false 
+        isLoading: false
       })
-    } catch (err: any) {
-      set({ error: err.message || 'Failed to fetch notifications', isLoading: false })
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      set({ error: error.message || 'Failed to fetch notifications', isLoading: false })
     }
   },
 
@@ -134,7 +135,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     try {
       await notificationApi.markAsRead(id)
-    } catch (err) {
+    } catch {
       set({ notifications: previousNotifications, unreadCount: get().unreadCount + 1 })
     }
   },
@@ -148,7 +149,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     try {
       await notificationApi.markAllAsRead()
-    } catch (err) {
+    } catch {
       set({ notifications: previousNotifications, unreadCount: previousNotifications.filter(n => !n.read).length })
     }
   },
@@ -156,7 +157,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   deleteNotification: async (id: string | number) => {
     const previousNotifications = get().notifications
     const notification = previousNotifications.find(n => n.id === id)
-    
+
     set((state) => {
       const newSelected = new Set(state.selectedIds)
       newSelected.delete(id)
@@ -170,7 +171,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     try {
       await notificationApi.deleteNotification(id)
-    } catch (err) {
+    } catch {
       set({ notifications: previousNotifications, total: get().total + 1 })
     }
   },
@@ -178,7 +179,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   deleteSelected: async () => {
     const { selectedIds, notifications, unreadCount, total } = get()
     const previousNotifications = [...notifications]
-    
+
     const remainingNotifications = notifications.filter((n) => !selectedIds.has(n.id))
     const removedUnreadCount = notifications.filter(n => selectedIds.has(n.id) && !n.read).length
 
@@ -193,7 +194,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       for (const id of selectedIds) {
         await notificationApi.deleteNotification(id)
       }
-    } catch (err) {
+    } catch {
       set({ notifications: previousNotifications, total: previousNotifications.length })
     }
   },
@@ -201,7 +202,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   deleteAllRead: async () => {
     const previousNotifications = get().notifications
     const readCount = previousNotifications.filter(n => n.read).length
-    
+
     set((state) => ({
       notifications: state.notifications.filter((n) => !n.read),
       selectedIds: new Set(),
@@ -210,19 +211,19 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     try {
       await notificationApi.deleteAllRead()
-    } catch (err) {
+    } catch {
       set({ notifications: previousNotifications, total: previousNotifications.length })
     }
   },
 
   setSearchQuery: (searchQuery) => set({ searchQuery }),
-  
-  setFilters: (newFilters) => set((state) => ({ 
-    filters: { ...state.filters, ...newFilters } 
+
+  setFilters: (newFilters) => set((state) => ({
+    filters: { ...state.filters, ...newFilters }
   })),
-  
-  setSortConfig: (config) => set((state) => ({ 
-    sortConfig: { ...state.sortConfig, ...config } 
+
+  setSortConfig: (config) => set((state) => ({
+    sortConfig: { ...state.sortConfig, ...config }
   })),
 
   toggleSelect: (id: string | number) => set((state) => {
@@ -246,16 +247,16 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     if (echo) return // Already listening
 
     const echoInstance = initEcho(token)
-    
+
     // If Echo is disabled, don't try to listen
     if (!echoInstance) {
       console.log('📡 Real-time notifications disabled')
       return
     }
-    
+
     // Listen for Laravel Notifications on private channel
     echoInstance.private(`App.Models.User.${user_id}`)
-      .notification((notification: any) => {
+      .notification((notification: { id?: string | number; type?: string; title?: string; description?: string; severity?: 'green' | 'yellow' | 'red' | 'blue'; metadata?: Record<string, unknown> }) => {
         const newNotification: Notification = {
           id: notification.id || Date.now(), // Fallback ID
           type: notification.type || 'info',
@@ -292,21 +293,21 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   getFilteredNotifications: () => {
     const { notifications, searchQuery, filters, sortConfig } = get()
-    
+
     let filtered = [...notifications]
 
     // 1. Search Query
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(n => 
-        n.title.toLowerCase().includes(query) || 
+      filtered = filtered.filter(n =>
+        n.title.toLowerCase().includes(query) ||
         n.description?.toLowerCase().includes(query)
       )
     }
 
     // 2. Status Filter
     if (filters.status !== 'all') {
-      filtered = filtered.filter(n => 
+      filtered = filtered.filter(n =>
         filters.status === 'read' ? n.read : !n.read
       )
     }
@@ -324,7 +325,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     // 5. Sorting
     filtered.sort((a, b) => {
       let comparison = 0
-      
+
       switch (sortConfig.key) {
         case 'date':
           comparison = new Date(b.rawDate).getTime() - new Date(a.rawDate).getTime()

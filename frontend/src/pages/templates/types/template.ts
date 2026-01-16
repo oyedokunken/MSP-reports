@@ -15,7 +15,7 @@ export interface ReportTemplate {
   timezone: string
   included_sections: string[] | null
   delivery_settings: DeliverySettings | null
-  report_options: Record<string, any> | null
+  report_options: Record<string, unknown> | null
   active: boolean
   schedules_count?: number
   created_at: string
@@ -47,7 +47,7 @@ export interface CreateTemplateRequest {
   timezone?: string
   included_sections?: string[]
   delivery_settings?: DeliverySettings
-  report_options?: Record<string, any>
+  report_options?: Record<string, unknown>
   active?: boolean
 }
 

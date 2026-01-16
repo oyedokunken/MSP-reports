@@ -54,8 +54,9 @@ const Signin = () => {
       toast.success('Login Successful', 'Welcome back!');
       setShowLdapModal(false);
       navigate('/platform/dashboard');
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'LDAP authentication failed';
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'LDAP authentication failed';
       throw new Error(errorMessage);
     }
   };

@@ -92,7 +92,7 @@ export const useDashboard = () => {
             type: n.type,
             title: n.title,
             time: n.time,
-            severity: n.severity === 'blue' ? 'green' : (n.severity as any)
+            severity: n.severity === 'blue' ? 'green' : (n.severity as 'green' | 'yellow' | 'red')
         }));
 
         if (realActivities.length > 0) {
@@ -100,7 +100,7 @@ export const useDashboard = () => {
         }
 
         return activities.slice(0, 5);
-    }, [notifications, integrations, reportMetrics]);
+    }, [notifications, integrations]);
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -189,7 +189,7 @@ export const useDashboard = () => {
     useEffect(() => {
         const fetchMonthlyReports = async () => {
             if (!isAuthenticated) return
-            
+
             try {
                 const response = await monitoringApi.getMonthlyReportAnalytics(6)
                 setReportsChartData(response.data.monthly_data)

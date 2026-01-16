@@ -36,7 +36,7 @@ export function CreateStaticCustomerModal({
         setError(null)
 
         try {
-            const payload: any = {
+            const payload: { canonical_name: string; status: string; report_destination?: string } = {
                 canonical_name: customerName.trim(),
                 status: 'active',
             }
@@ -55,8 +55,9 @@ export function CreateStaticCustomerModal({
                 setReportDestination('')
                 onSuccess?.()
             }, 1500)
-        } catch (err: any) {
-            const errorMessage = err.response?.data?.message || 'Failed to create static customer'
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string }
+            const errorMessage = error.response?.data?.message || 'Failed to create static customer'
             setError(errorMessage)
         } finally {
             setIsSubmitting(false)

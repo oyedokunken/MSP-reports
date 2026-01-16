@@ -60,6 +60,7 @@ export default function TemplateList() {
 
   useEffect(() => {
     loadTemplates()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadTemplates = async () => {
@@ -322,14 +323,14 @@ export default function TemplateList() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {paginatedTemplates.map((template) => (
-              <Card 
-                key={template.template_id} 
+              <Card
+                key={template.template_id}
                 className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 transition-all duration-200 border-border/50 flex flex-col p-0 cursor-pointer"
                 onClick={() => setPreviewingTemplate(template)}
               >
                 {/* Top Accent Bar */}
                 <div className={`absolute top-0 left-0 right-0 h-1 ${template.active ? 'bg-primary' : 'bg-muted'}`} />
-                
+
                 {/* Header */}
                 <div className="pt-3 px-4 pb-2 space-y-2">
                   <div className="flex items-start justify-between gap-2">
@@ -348,7 +349,7 @@ export default function TemplateList() {
                       )}
                     </div>
                   </div>
-                  
+
                   {template.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {template.description}
@@ -366,7 +367,7 @@ export default function TemplateList() {
                         {template.report_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
                       <span className="text-xs">{getFrequencyLabel(template.frequency)}</span>
@@ -416,7 +417,7 @@ export default function TemplateList() {
                         </>
                       )}
                     </Button>
-                    
+
                     <div className="flex gap-1">
                       {!template.customer_id && (
                         <Button

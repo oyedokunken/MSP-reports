@@ -52,9 +52,10 @@ export default function AuthCallback() {
 
                 window.location.href = '/platform/dashboard';
 
-            } catch (err: any) {
+            } catch (err: unknown) {
+                const error = err as { response?: { data?: { message?: string } }; message?: string }
                 console.error('Auth callback error:', err);
-                setError(err.response?.data?.message || 'Failed to complete authentication');
+                setError(error.response?.data?.message || 'Failed to complete authentication');
                 localStorage.removeItem('auth_token');
                 setTimeout(() => navigate('/sign-in?error=auth_failed'), 2000);
             }

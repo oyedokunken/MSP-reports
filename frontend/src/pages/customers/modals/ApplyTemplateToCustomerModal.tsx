@@ -36,6 +36,7 @@ export function ApplyTemplateToCustomerModal({ open, onOpenChange, customer, onS
       setSuccess(false)
       setError('')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   const loadTemplates = async () => {
@@ -64,13 +65,14 @@ export function ApplyTemplateToCustomerModal({ open, onOpenChange, customer, onS
 
       setSuccess(true)
       toast.success('Template applied successfully')
-      
+
       setTimeout(() => {
         onSuccess?.()
         onOpenChange(false)
       }, 2000)
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to apply template'
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to apply template'
       setError(errorMessage)
       toast.error(errorMessage)
     } finally {
@@ -126,11 +128,10 @@ export function ApplyTemplateToCustomerModal({ open, onOpenChange, customer, onS
                 <button
                   key={template.template_id}
                   onClick={() => setSelectedTemplate(template.template_id)}
-                  className={`w-full text-left p-4 rounded-lg border transition-all ${
-                    selectedTemplate === template.template_id
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                  }`}
+                  className={`w-full text-left p-4 rounded-lg border transition-all ${selectedTemplate === template.template_id
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                    }`}
                 >
                   <div className="font-medium">{template.template_name}</div>
                   {template.description && (

@@ -95,6 +95,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     }
 
     fetchRoles()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Load initial customers
@@ -103,6 +104,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
       fetchCustomers(1)
       setCurrentPage(1)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -171,7 +173,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
   }
 
   const toggleCustomer = (customerId: number) => {
-    setSelectedCustomers(prev => 
+    setSelectedCustomers(prev =>
       prev.includes(customerId)
         ? prev.filter(id => id !== customerId)
         : [...prev, customerId]
@@ -391,7 +393,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                 <p className="text-xs text-muted-foreground">
                   Leave empty for full access. Select specific customers to restrict this user's access.
                 </p>
-                
+
                 {/* Selected Customers */}
                 {selectedCustomers.length > 0 && (
                   <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/30">

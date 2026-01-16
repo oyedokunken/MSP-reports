@@ -15,13 +15,13 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu'
-import { 
-  Bell, 
-  CheckCheck, 
-  X, 
-  Clock, 
-  Trash2, 
-  CheckSquare, 
+import {
+  Bell,
+  CheckCheck,
+  X,
+  Clock,
+  Trash2,
+  CheckSquare,
   Square,
   Search,
   Filter,
@@ -40,7 +40,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export default function NotificationsPage() {
   const toast = useToast()
-  
+
   // Store state and actions
   const fetchNotifications = useNotificationStore((state) => state.fetchNotifications)
   const isLoading = useNotificationStore((state) => state.isLoading)
@@ -64,7 +64,7 @@ export default function NotificationsPage() {
   const setSortConfig = useNotificationStore((state) => state.setSortConfig)
   const error = useNotificationStore((state) => state.error)
   const getFilteredNotifications = useNotificationStore((state) => state.getFilteredNotifications)
-  
+
   // Local UI state
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
   const [showMarkAllConfirm, setShowMarkAllConfirm] = useState(false)
@@ -74,16 +74,16 @@ export default function NotificationsPage() {
   const [selectionMode, setSelectionMode] = useState(false)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
-  // Derived state (re-computed whenever dependencies change)
-  const filteredNotifications = useMemo(() => getFilteredNotifications(), [notifications, searchQuery, filters, sortConfig, getFilteredNotifications])
+  // Derived state (re-computed whenever store values change)
+  const filteredNotifications = useMemo(() => getFilteredNotifications(), [getFilteredNotifications])
   const groupedNotifications = useMemo(() => groupNotificationsByDate(filteredNotifications), [filteredNotifications])
   const unreadCount = getUnreadCount()
   const selectedCount = getSelectedCount()
   const totalCount = notifications.length
 
-  const activeFilterCount = (filters.status !== 'all' ? 1 : 0) + 
-                           (filters.severity !== 'all' ? 1 : 0) + 
-                           (filters.type !== 'all' ? 1 : 0)
+  const activeFilterCount = (filters.status !== 'all' ? 1 : 0) +
+    (filters.severity !== 'all' ? 1 : 0) +
+    (filters.type !== 'all' ? 1 : 0)
 
   // Initialization
   useEffect(() => {
@@ -187,7 +187,7 @@ export default function NotificationsPage() {
               Stay updated with your system activities and events
             </p>
           </div>
-          
+
           <div className="flex flex-wrap gap-2">
             {totalCount > 0 && (
               <Button
@@ -200,7 +200,7 @@ export default function NotificationsPage() {
                 {selectionMode ? 'Done' : 'Select'}
               </Button>
             )}
-            
+
             {selectionMode && selectedCount > 0 && (
               <Button
                 variant="outline"
@@ -224,7 +224,7 @@ export default function NotificationsPage() {
                 Mark all as read
               </Button>
             )}
-            
+
             {!selectionMode && totalCount > 0 && (
               <Button
                 variant="outline"
@@ -290,9 +290,9 @@ export default function NotificationsPage() {
               </DropdownMenuRadioGroup>
 
               <DropdownMenuSeparator />
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => {
                   setSearchQuery('')
@@ -326,21 +326,21 @@ export default function NotificationsPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel>Sort By</DropdownMenuLabel>
-              <DropdownMenuRadioGroup 
-                value={sortConfig.key} 
-                onValueChange={(v: any) => setSortConfig({ key: v as SortKey })}
+              <DropdownMenuRadioGroup
+                value={sortConfig.key}
+                onValueChange={(v: string) => setSortConfig({ key: v as SortKey })}
               >
                 <DropdownMenuRadioItem value="date">Date</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="severity">Severity</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="type">Type</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="title">Title</DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
-              
+
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Order</DropdownMenuLabel>
-              <DropdownMenuRadioGroup 
-                value={sortConfig.direction} 
-                onValueChange={(v: any) => setSortConfig({ direction: v })}
+              <DropdownMenuRadioGroup
+                value={sortConfig.direction}
+                onValueChange={(v: string) => setSortConfig({ direction: v as 'asc' | 'desc' })}
               >
                 <DropdownMenuRadioItem value="desc">Newest First / High Priority</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="asc">Oldest First / Low Priority</DropdownMenuRadioItem>
@@ -404,7 +404,7 @@ export default function NotificationsPage() {
               {groupedNotifications.map((group) => (
                 <div key={group.label} className="flex flex-col">
                   {/* Group Header */}
-                  <div 
+                  <div
                     className="flex items-center gap-2 px-4 py-2 bg-muted/30 sticky top-0 z-10 cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => toggleGroup(group.label)}
                   >
@@ -433,75 +433,73 @@ export default function NotificationsPage() {
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.2 }}
-                            className={`p-4 hover:bg-muted/40 transition-all group relative border-l-4 ${
-                            !notification.read ? 'bg-primary/5' : 'bg-transparent'
-                          } ${selectedIds.has(notification.id) ? 'bg-primary/10' : ''} ${
-                            notification.severity === 'red' ? 'border-l-red-500' :
-                            notification.severity === 'yellow' ? 'border-l-yellow-500' :
-                            notification.severity === 'blue' ? 'border-l-blue-500' :
-                            'border-l-green-500'
-                          }`}
-                        >
-                          <div className="flex items-start gap-4">
-                            {selectionMode && (
-                              <div className="flex-shrink-0 mt-1">
-                                <Checkbox
-                                  checked={selectedIds.has(notification.id)}
-                                  onCheckedChange={() => toggleSelect(notification.id)}
-                                />
-                              </div>
-                            )}
-                            <div className="flex-shrink-0 mt-1">
-                              <PulsingDot color={notification.severity} />
-                            </div>
-                            <div 
-                              className="flex-1 min-w-0 cursor-pointer"
-                              onClick={() => selectionMode ? toggleSelect(notification.id) : handleNotificationClick(notification)}
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <h3 className={`text-sm font-semibold truncate ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                  {notification.title}
-                                </h3>
-                                {!notification.read && (
-                                  <span className="flex h-2 w-2 rounded-full bg-blue-500 flex-shrink-0 mt-1 ring-4 ring-blue-500/20" />
-                                )}
-                              </div>
-                              {notification.description && (
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                                  {notification.description}
-                                </p>
+                            className={`p-4 hover:bg-muted/40 transition-all group relative border-l-4 ${!notification.read ? 'bg-primary/5' : 'bg-transparent'
+                              } ${selectedIds.has(notification.id) ? 'bg-primary/10' : ''} ${notification.severity === 'red' ? 'border-l-red-500' :
+                                notification.severity === 'yellow' ? 'border-l-yellow-500' :
+                                  notification.severity === 'blue' ? 'border-l-blue-500' :
+                                    'border-l-green-500'
+                              }`}
+                          >
+                            <div className="flex items-start gap-4">
+                              {selectionMode && (
+                                <div className="flex-shrink-0 mt-1">
+                                  <Checkbox
+                                    checked={selectedIds.has(notification.id)}
+                                    onCheckedChange={() => toggleSelect(notification.id)}
+                                  />
+                                </div>
                               )}
-                              <div className="flex items-center gap-3 mt-2">
-                                <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-tight">
-                                  <Clock className="h-3 w-3" />
-                                  {notification.time}
-                                </span>
-                                <span className="h-1 w-1 rounded-full bg-border" />
-                                <span className="text-[10px] font-bold text-muted-foreground px-1.5 py-0.5 rounded bg-muted uppercase tracking-tighter">
-                                  {notification.type}
-                                </span>
+                              <div className="flex-shrink-0 mt-1">
+                                <PulsingDot color={notification.severity} />
                               </div>
+                              <div
+                                className="flex-1 min-w-0 cursor-pointer"
+                                onClick={() => selectionMode ? toggleSelect(notification.id) : handleNotificationClick(notification)}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <h3 className={`text-sm font-semibold truncate ${!notification.read ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                    {notification.title}
+                                  </h3>
+                                  {!notification.read && (
+                                    <span className="flex h-2 w-2 rounded-full bg-blue-500 flex-shrink-0 mt-1 ring-4 ring-blue-500/20" />
+                                  )}
+                                </div>
+                                {notification.description && (
+                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                                    {notification.description}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-3 mt-2">
+                                  <span className="text-[10px] font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-tight">
+                                    <Clock className="h-3 w-3" />
+                                    {notification.time}
+                                  </span>
+                                  <span className="h-1 w-1 rounded-full bg-border" />
+                                  <span className="text-[10px] font-bold text-muted-foreground px-1.5 py-0.5 rounded bg-muted uppercase tracking-tighter">
+                                    {notification.type}
+                                  </span>
+                                </div>
+                              </div>
+                              {!selectionMode && (
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setShowDeleteConfirm(notification.id)
+                                    }}
+                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
                             </div>
-                            {!selectionMode && (
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setShowDeleteConfirm(notification.id)
-                                  }}
-                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
                   )}
                 </div>
               ))}

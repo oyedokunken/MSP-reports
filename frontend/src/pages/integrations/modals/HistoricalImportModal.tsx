@@ -30,6 +30,7 @@ export function HistoricalImportModal({
     if (integration) {
       setDays(integration.type === 'itglue' ? '1' : '90')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [integration?.type])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,7 +143,7 @@ export function HistoricalImportModal({
               className="w-full"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              {integration.type === 'itglue' 
+              {integration.type === 'itglue'
                 ? 'Imports current snapshot of all assets (licenses, SSL certs, domains)'
                 : `Import data from the last ${days || '0'} days (max 365)`
               }
@@ -156,7 +157,7 @@ export function HistoricalImportModal({
                 <div className="flex-1 space-y-1">
                   <p className="text-sm font-medium">Imports current state of all assets</p>
                   <p className="text-xs text-muted-foreground">
-                    This will import <strong>all current Microsoft licenses, SSL certificates, domains, and other assets</strong> from IT Glue right now. 
+                    This will import <strong>all current Microsoft licenses, SSL certificates, domains, and other assets</strong> from IT Glue right now.
                     IT Glue doesn't have historical time-series data - it only provides current snapshots.
                   </p>
                 </div>
