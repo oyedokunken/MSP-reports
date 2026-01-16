@@ -375,15 +375,15 @@ export default function MapCustomersPage() {
                         )}
                     </>
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-900/20">
-                        <div className="flex items-center justify-center w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 mb-6">
-                            <MapPin className="h-10 w-10 text-green-600 dark:text-green-400" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">All Customers Mapped!</h3>
-                        <p className="text-muted-foreground max-w-md text-lg">
-                            Great job! All integration customers have been successfully linked to your clients.
-                        </p>
-                    </div>
+                    <Card>
+                        <CardContent className="flex flex-col items-center justify-center py-12">
+                            <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
+                            <p className="text-lg font-medium">No Unmapped Customers</p>
+                            <p className="text-sm text-muted-foreground">
+                                All integration customers have been mapped
+                            </p>
+                        </CardContent>
+                    </Card>
                 )}
 
                 <MapCustomerModal

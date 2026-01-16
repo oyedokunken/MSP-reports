@@ -62,14 +62,14 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
   return (
     <Accordion type="multiple" className="w-full">
       {/* Site Information */}
-      <AccordionItem value="site">
+      <AccordionItem value="site" className="border-b-0 bg-transparent">
         <AccordionTrigger className="hover:no-underline">
           <div className="flex items-center gap-2">
             <Server className="h-4 w-4 text-primary" />
             <span className="font-semibold">Site Information</span>
           </div>
         </AccordionTrigger>
-        <AccordionContent>
+        <AccordionContent className="bg-transparent">
           <Table>
             <TableHeader>
               <TableRow>
@@ -97,7 +97,7 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
 
       {/* Device Statistics */}
       {hasDeviceData && (
-        <AccordionItem value="devices">
+        <AccordionItem value="devices" className="border-b-0 bg-transparent">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
               <Monitor className="h-4 w-4 text-primary" />
@@ -107,7 +107,7 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
               </Badge>
             </div>
           </AccordionTrigger>
-          <AccordionContent>
+          <AccordionContent className="bg-transparent">
             <div className="grid grid-cols-3 gap-4">
               <Card>
                 <CardHeader className="pb-3">
@@ -150,14 +150,14 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
 
       {/* Portal Access */}
       {hasPortalUrl && (
-        <AccordionItem value="portal">
+        <AccordionItem value="portal" className="border-b-0 bg-transparent">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
               <Globe className="h-4 w-4 text-primary" />
               <span className="font-semibold">Portal Access</span>
             </div>
           </AccordionTrigger>
-          <AccordionContent>
+          <AccordionContent className="bg-transparent">
             <div className="p-4 bg-muted/50 rounded-lg">
               <a
                 href={String(metadata.portal_url)}
@@ -175,14 +175,14 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
 
       {/* Autotask Integration */}
       {hasAutotaskLink && (
-        <AccordionItem value="autotask">
+        <AccordionItem value="autotask" className="border-b-0 bg-transparent">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-primary" />
               <span className="font-semibold">Autotask Integration</span>
             </div>
           </AccordionTrigger>
-          <AccordionContent>
+          <AccordionContent className="bg-transparent">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -211,14 +211,14 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
 
       {/* Notes */}
       {hasNotes && (
-        <AccordionItem value="notes">
+        <AccordionItem value="notes" className="border-b-0 bg-transparent">
           <AccordionTrigger className="hover:no-underline">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
               <span className="font-semibold">Notes</span>
             </div>
           </AccordionTrigger>
-          <AccordionContent>
+          <AccordionContent className="bg-transparent">
             <div className="p-4 bg-muted/50 rounded-lg">
               <p className="text-sm whitespace-pre-wrap">{String(metadata.notes)}</p>
             </div>

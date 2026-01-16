@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { ArrowLeft } from 'lucide-react'
 import { useCustomerIntegrationDetails } from './hooks'
 import { LoadingState, ErrorState, EmptyState } from './components/IntegrationStates'
@@ -22,8 +22,7 @@ export default function CustomerIntegrationDetails() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" onClick={() => navigate('/platform/customers')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Customers
+              <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
               <h1 className="text-2xl font-bold">Customer Integration Details</h1>
@@ -42,7 +41,7 @@ export default function CustomerIntegrationDetails() {
             <Card key={integration.integration_customer_id} className="overflow-hidden">
               <IntegrationCardHeader integration={integration} />
 
-              <CardContent className="p-6">
+              <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-6 pb-6 pt-2">
                 {integration.metadata && Object.keys(integration.metadata).length > 0 ? (
                   <div className="space-y-4">
                     <TechniciansList
@@ -62,7 +61,7 @@ export default function CustomerIntegrationDetails() {
                 ) : (
                   <p className="text-center text-muted-foreground py-4">No metadata available</p>
                 )}
-              </CardContent>
+              </div>
             </Card>
           ))}
       </div>

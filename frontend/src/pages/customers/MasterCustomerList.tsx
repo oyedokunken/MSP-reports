@@ -12,8 +12,6 @@ import { SplitCustomerModal } from "./modals/SplitCustomerModal";
 import { CreateStaticCustomerModal } from "./modals/CreateStaticCustomerModal";
 import { useMasterCustomerList } from "./hooks";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
 import { ApplyTemplateToCustomerModal } from "@/pages/customers/modals/ApplyTemplateToCustomerModal";
 
 export default function MasterCustomerList() {
@@ -51,24 +49,18 @@ export default function MasterCustomerList() {
     return (
         <FloatingLayout>
             <div className="space-y-6 max-w-full overflow-hidden">
-                <div className="flex items-start justify-between">
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-3xl font-bold text-foreground">Master Customer List</h1>
-                            {sotIntegrationName && (
-                                <span className="px-3 py-1 text-sm font-medium bg-primary/10 text-primary rounded-full border border-primary/20">
-                                    {sotIntegrationName}
-                                </span>
-                            )}
-                        </div>
-                        <p className="mt-2 text-muted-foreground">
-                            Customers from your Source of Truth integration
-                        </p>
+                <div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-bold text-foreground">Master Customer List</h1>
+                        {sotIntegrationName && (
+                            <span className="px-3 py-1 text-sm font-medium bg-primary/10 text-primary rounded-full border border-primary/20">
+                                {sotIntegrationName}
+                            </span>
+                        )}
                     </div>
-                    <Button onClick={() => setShowCreateStatic(true)} className="flex items-center gap-2">
-                        <UserPlus className="h-4 w-4" />
-                        Create Static Customer
-                    </Button>
+                    <p className="mt-2 text-muted-foreground">
+                        Customers from your Source of Truth integration
+                    </p>
                 </div>
 
                 <CustomersFilters
@@ -82,6 +74,7 @@ export default function MasterCustomerList() {
                     onStatusFiltersChange={setStatusFilters}
                     onReportFiltersChange={setReportFilters}
                     onIntegrationFiltersChange={setIntegrationFilters}
+                    onCreateStatic={() => setShowCreateStatic(true)}
                 />
 
 

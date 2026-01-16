@@ -1,4 +1,4 @@
-import { CardHeader, CardDescription, CardTitle } from '@/components/ui/card'
+import { CardDescription, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Cable, CheckCircle2, XCircle } from 'lucide-react'
 import type { CustomerIntegrationDetail } from '../types'
@@ -9,7 +9,7 @@ type IntegrationCardHeaderProps = {
 
 export function IntegrationCardHeader({ integration }: IntegrationCardHeaderProps) {
     return (
-        <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+        <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-6 pb-4">
             <div className="flex items-start justify-between">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -62,6 +62,6 @@ export function IntegrationCardHeader({ integration }: IntegrationCardHeaderProp
                     <p className="mt-2 text-sm text-muted-foreground">{integration.mapping.notes}</p>
                 )}
             </div>
-        </CardHeader>
+        </div>
     )
 }

@@ -1,14 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, Clock, Settings, CalendarClock, Repeat, Play, Pause, Edit, Trash2, MoreVertical, CheckCircle } from "lucide-react";
+import { Calendar, Clock, Settings, CalendarClock, Repeat, Trash2, CheckCircle } from "lucide-react";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
@@ -22,13 +15,10 @@ import type { ReportSchedule } from "../types/schedule";
 interface ScheduleCardProps {
     schedule: ReportSchedule;
     onConfigure: () => void;
-    onPause?: () => void;
-    onRunNow?: () => void;
-    onEdit?: () => void;
     onDelete?: () => void;
 }
 
-export function ScheduleCard({ schedule, onConfigure, onPause, onRunNow, onEdit, onDelete }: ScheduleCardProps) {
+export function ScheduleCard({ schedule, onConfigure, onDelete }: ScheduleCardProps) {
     const { user } = useAuth();
     const canConfigure = hasPermission(user, 'reports', 'configure');
 
@@ -132,43 +122,16 @@ export function ScheduleCard({ schedule, onConfigure, onPause, onRunNow, onEdit,
                             )}
                         </Tooltip>
                     </TooltipProvider>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="px-2">
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            {onRunNow && (
-                                <DropdownMenuItem onClick={onRunNow}>
-                                    <Play className="mr-2 h-4 w-4" />
-                                    Run Now
-                                </DropdownMenuItem>
-                            )}
-                            {onPause && (
-                                <DropdownMenuItem onClick={onPause}>
-                                    <Pause className="mr-2 h-4 w-4" />
-                                    {schedule.active ? 'Pause Schedule' : 'Resume Schedule'}
-                                </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            {onEdit && (
-                                <DropdownMenuItem onClick={onEdit}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit Schedule
-                                </DropdownMenuItem>
-                            )}
-                            {onDelete && (
-                                <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={onDelete} className="text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Delete Schedule
-                                    </DropdownMenuItem>
-                                </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    {onDelete && (
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={onDelete}
+                            className="px-3 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
             </div>
         </AnimatedCard>

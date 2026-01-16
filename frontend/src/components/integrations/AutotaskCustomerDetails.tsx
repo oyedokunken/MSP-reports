@@ -153,74 +153,74 @@ export default function AutotaskCustomerDetails({ metadata }: AutotaskCustomerDe
 
   return (
     <Accordion type="multiple" className="w-full">
-      <AccordionItem value="contact">
+      <AccordionItem value="contact" className="border-b-0 bg-transparent">
         <AccordionTrigger className="hover:no-underline">
           <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-primary" />
             <span className="font-semibold">Contact Information</span>
           </div>
         </AccordionTrigger>
-        <AccordionContent>
+        <AccordionContent className="bg-transparent">
           <MetadataTable data={metadata} fields={contactFields} />
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="address">
+      <AccordionItem value="address" className="border-b-0 bg-transparent">
         <AccordionTrigger className="hover:no-underline">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" />
             <span className="font-semibold">Primary Address</span>
           </div>
         </AccordionTrigger>
-        <AccordionContent>
+        <AccordionContent className="bg-transparent">
           <MetadataTable data={metadata} fields={addressFields} />
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="billing">
+      <AccordionItem value="billing" className="border-b-0 bg-transparent">
         <AccordionTrigger className="hover:no-underline">
           <div className="flex items-center gap-2">
             <Mail className="h-4 w-4 text-primary" />
             <span className="font-semibold">Billing Address</span>
           </div>
         </AccordionTrigger>
-        <AccordionContent>
+        <AccordionContent className="bg-transparent">
           <MetadataTable data={metadata} fields={billingAddressFields} />
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="company">
+      <AccordionItem value="company" className="border-b-0 bg-transparent">
         <AccordionTrigger className="hover:no-underline">
           <div className="flex items-center gap-2">
             <Building2 className="h-4 w-4 text-primary" />
             <span className="font-semibold">Company Information</span>
           </div>
         </AccordionTrigger>
-        <AccordionContent>
+        <AccordionContent className="bg-transparent">
           <MetadataTable data={metadata} fields={companyFields} />
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="dates">
+      <AccordionItem value="dates" className="border-b-0 bg-transparent">
         <AccordionTrigger className="hover:no-underline">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary" />
             <span className="font-semibold">Important Dates</span>
           </div>
         </AccordionTrigger>
-        <AccordionContent>
+        <AccordionContent className="bg-transparent">
           <MetadataTable data={metadata} fields={datesFields} />
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem value="system">
+      <AccordionItem value="system" className="border-b-0 bg-transparent">
         <AccordionTrigger className="hover:no-underline">
           <div className="flex items-center gap-2">
             <Settings className="h-4 w-4 text-primary" />
             <span className="font-semibold">System Information</span>
           </div>
         </AccordionTrigger>
-        <AccordionContent>
+        <AccordionContent className="bg-transparent">
           <MetadataTable data={metadata} fields={systemFields} />
         </AccordionContent>
       </AccordionItem>

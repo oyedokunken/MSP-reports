@@ -14,7 +14,7 @@ export function TechniciansList({ technicians }: TechniciansListProps) {
 
     return (
         <Accordion type="multiple" className="w-full">
-            <AccordionItem value="technicians">
+            <AccordionItem value="technicians" className="border-b-0 bg-transparent">
                 <AccordionTrigger className="hover:no-underline">
                     <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-primary" />
@@ -24,7 +24,7 @@ export function TechniciansList({ technicians }: TechniciansListProps) {
                         </Badge>
                     </div>
                 </AccordionTrigger>
-                <AccordionContent>
+                <AccordionContent className="bg-transparent">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {technicians.map((tech, idx) => (
                             <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">

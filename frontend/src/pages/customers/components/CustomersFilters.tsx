@@ -9,7 +9,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Filter } from 'lucide-react'
+import { Search, Filter, UserPlus } from 'lucide-react'
 import { api } from '@/lib/api'
 
 interface CustomersFiltersProps {
@@ -23,6 +23,7 @@ interface CustomersFiltersProps {
   onStatusFiltersChange: (statuses: string[]) => void
   onReportFiltersChange: (filters: string[]) => void
   onIntegrationFiltersChange: (filters: string[]) => void
+  onCreateStatic?: () => void
 }
 
 export function CustomersFilters({
@@ -36,6 +37,7 @@ export function CustomersFilters({
   onStatusFiltersChange,
   onReportFiltersChange,
   onIntegrationFiltersChange,
+  onCreateStatic,
 }: CustomersFiltersProps) {
   const [integrationTypes, setIntegrationTypes] = useState<string[]>([])
   const hasActiveFilters = searchQuery || statusFilters.length > 0 || reportFilters.length > 0 || integrationFilters.length > 0
@@ -161,6 +163,14 @@ export function CustomersFilters({
             className="pl-10 h-10"
           />
         </div>
+
+        {/* Create Static Customer Button */}
+        {onCreateStatic && (
+          <Button onClick={onCreateStatic} className="flex items-center gap-2 h-10">
+            <UserPlus className="h-4 w-4" />
+            Create Static Customer
+          </Button>
+        )}
       </div>
       
       {/* Active Filters Display */}
