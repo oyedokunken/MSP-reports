@@ -20,7 +20,9 @@ Integrations are the backbone of the reporting platform, connecting your various
 
 Integrations are connections to external systems like:
 - **PSA Tools** - Autotask, ConnectWise, etc.
-- **RMM Platforms** - Datto, Kaseya, etc.
+- **RMM Platforms** - Datto RMM, Kaseya, etc.
+- **Documentation** - ITGlue, Hudu, etc.
+- **Security** - BitDefender, Sendmarc, etc.
 - **Backup Solutions** - Veeam, Acronis, etc.
 - **Monitoring Systems** - Various alerting and monitoring tools
 
@@ -31,8 +33,11 @@ You provide API credentials for each system, and the platform establishes a secu
 
 ### 2. Syncing
 The platform regularly pulls data from each integration:
-- **Current state syncs** - Regular updates of current data
-- **Historical imports** - One-time import of historical data
+- **Current state syncs** - Regular updates of current data (every 4 hours by default)
+- **Historical imports** - One-time import of historical data with progress tracking
+
+### 3. Data Preview
+Before generating reports, you can preview live data from any integration to verify quality and accuracy.
 
 ### 3. Data Storage
 Synced data is stored securely and used for:
@@ -121,11 +126,25 @@ Depending on the integration, you'll need to provide:
 ### Initial Sync
 The first sync may take longer as it imports all current data.
 
+### Historical Import
+If enabled, historical data import runs in the background:
+- Progress shown as percentage in integration details
+- Can take several hours for large datasets
+- Recent data prioritised first
+
+### Data Preview
+After sync completes:
+1. Click on the integration card
+2. Click **Preview Data**
+3. View live data from the integration
+4. Export preview to PDF if needed
+
 ### Customer Mapping
 After the initial sync:
 1. Go to **Customers > Map Customers**
 2. Review auto-matched customers
-3. Manually map any unmatched customers
+3. Use **Bulk Accept** for high-confidence matches
+4. Manually map any unmatched customers
       `,
       relatedArticles: ['integrations-overview', 'integration-sync', 'autotask-setup']
     },

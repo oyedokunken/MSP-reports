@@ -92,6 +92,16 @@ Reports can be generated automatically via schedules or manually.
 3. Select report type and date range
 4. Click **Generate**
 
+### Preview Before Generating
+Before generating a report, you can preview the data:
+1. Click **Preview** instead of Generate
+2. Review the data that will be included
+3. Verify accuracy and completeness
+4. If satisfied, proceed to generate
+5. Export preview to PDF if needed
+
+This helps prevent generating reports with incorrect or missing data.
+
 ### Generation Process
 1. Report enters the queue
 2. System gathers required data

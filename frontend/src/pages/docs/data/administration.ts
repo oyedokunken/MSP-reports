@@ -256,6 +256,15 @@ Configure security policies to protect your platform and data.
 - **Require Numbers** - At least one digit
 - **Require Special Characters** - At least one symbol
 
+### Single Sign-On (SSO)
+The platform supports multiple SSO providers:
+- **Microsoft 365** - Azure AD integration
+- **Keycloak** - OpenID Connect with PKCE
+- **SAML 2.0** - Enterprise identity providers
+- **LDAP** - Active Directory authentication
+
+Contact your administrator to configure SSO for your organisation.
+
 ### Two-Factor Authentication (2FA)
 - **Available** - Users can enable 2FA
 - **Required** - All users must use 2FA
@@ -283,9 +292,10 @@ Restrict access to specific IP addresses.
 - Report generation
 
 ### Viewing Audit Logs
-1. Go to **Admin > Monitoring**
-2. Select **Audit Logs**
-3. Filter by user, action, date
+1. Go to **Admin > Audit Logs**
+2. Filter by date range, user, or event type
+3. Search for specific actions
+4. Click on entries for full details
 
 ### Log Retention
 Audit logs kept for 7 years (compliance requirement).

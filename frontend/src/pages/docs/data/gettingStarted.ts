@@ -46,7 +46,7 @@ Provide timely, accurate reports that demonstrate the value of your services.
 Your central hub showing system health, recent activity, and key metrics at a glance.
 
 ### 2. Integrations
-Connect to your business systems like Autotask, Datto, and more. Each integration syncs data automatically.
+Connect to your business systems like Autotask, Datto RMM, ITGlue, Sendmarc, BitDefender and more. Each integration syncs data automatically with preview capabilities.
 
 ### 3. Customer Management
 Manage your customer list and map customers across different integrations for unified reporting.
@@ -57,12 +57,16 @@ Generate and manage reports for your customers with customisable templates and s
 ### 5. Schedules
 Set up automated report generation on daily, weekly, monthly, or yearly schedules.
 
+### 6. AI Assistant
+Click the chat bubble in the bottom-right corner to get instant help. The AI Assistant can answer questions about any feature and guide you step-by-step.
+
 ## Getting Help
 
 If you need assistance:
-- Browse this documentation for detailed guides
-- Contact your system administrator
-- Reach out to support via the contact information in your settings
+- **AI Assistant** - Click the chat bubble for instant answers
+- **Documentation** - Browse these guides for detailed information
+- **System Administrator** - Contact for account and permission issues
+- **Support** - Reach out via the contact information in your settings
       `,
       relatedArticles: ['first-login', 'dashboard-guide', 'user-roles']
     },
@@ -89,6 +93,13 @@ Your system administrator will provide you with:
 2. Enter your email address
 3. Enter your temporary password
 4. Click **Sign In**
+
+### Alternative Login Methods
+
+Depending on your organisation's configuration, you may also see:
+- **Sign in with Microsoft** - Use your Microsoft 365 account
+- **Enterprise SSO** - Use your organisation's single sign-on (Keycloak, SAML)
+- **LDAP** - Use your Active Directory credentials
 
 ## Changing Your Password
 
@@ -125,6 +136,14 @@ After logging in, you'll see the main dashboard with:
 - **Recent activity feed**
 - **Quick action buttons**
 - **Integration status overview**
+- **Activity trends chart**
+
+## Meet Your AI Assistant
+
+Look for the chat bubble in the bottom-right corner - this is your AI Assistant! On first login, it will introduce itself and offer to help you get started. You can ask it questions like:
+- "How do I add an integration?"
+- "Where do I map customers?"
+- "How do I configure reports?"
 
 ## Next Steps
 

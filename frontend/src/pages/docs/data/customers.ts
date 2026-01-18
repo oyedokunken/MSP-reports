@@ -200,10 +200,23 @@ If the integration customer is genuinely new:
 
 ## Bulk Mapping
 
+The platform supports bulk operations to speed up customer mapping:
+
 ### Accept All High-Confidence
 1. Click **Bulk Actions**
 2. Select **Accept All Above 90%**
-3. Confirm
+3. Review the count of matches
+4. Confirm to apply all mappings
+
+### Bulk Select and Map
+1. Use checkboxes to select multiple unmapped customers
+2. Click **Bulk Map**
+3. Choose mapping action (accept suggestions, create new, or ignore)
+4. Confirm the bulk operation
+
+### Keyboard Shortcuts
+- **Enter** - Accept current suggestion
+- **Arrow keys** - Navigate between customers
 
 ## Reviewing Mappings
 
