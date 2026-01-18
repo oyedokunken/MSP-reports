@@ -11,6 +11,13 @@ return new class extends Migration {
             return;
         }
 
+        // Check if TimescaleDB extension is available
+        $hasTimescale = DB::select("SELECT 1 FROM pg_extension WHERE extname = 'timescaledb'");
+        if (empty($hasTimescale)) {
+            // TimescaleDB not installed, skip continuous aggregates
+            return;
+        }
+
         // Create daily continuous aggregate for integration_data
         DB::statement("
             CREATE MATERIALIZED VIEW IF NOT EXISTS integration_data_daily

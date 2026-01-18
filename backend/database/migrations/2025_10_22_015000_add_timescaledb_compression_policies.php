@@ -11,6 +11,13 @@ return new class extends Migration {
             return;
         }
 
+        // Check if TimescaleDB extension is available
+        $hasTimescale = DB::select("SELECT 1 FROM pg_extension WHERE extname = 'timescaledb'");
+        if (empty($hasTimescale)) {
+            // TimescaleDB not installed, skip compression policies
+            return;
+        }
+
         // Enable compression on integration_data hypertable
         DB::statement("
             ALTER TABLE integration_data SET (
