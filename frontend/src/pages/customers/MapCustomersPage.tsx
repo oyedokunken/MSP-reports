@@ -1,14 +1,25 @@
 import { useState, useEffect, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import FloatingLayout from "@/components/layout/FloatingLayout";
 import { MapCustomerModal, Pagination } from "./components";
 import { useCustomersStore } from "@/stores/useCustomersStore";
-import { MapPin, Search, ChevronUp, ChevronDown, ArrowUpDown, X } from "lucide-react";
+import { MapPin, Search, ChevronUp, ChevronDown, ArrowUpDown, X, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuCheckboxItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Filter } from "lucide-react";
 import type { IntegrationCustomer } from "./types";
 
 type SortField = 'name' | 'integration_type' | 'external_id' | 'last_seen_at';
@@ -35,6 +46,8 @@ export default function MapCustomersPage() {
     const [sortField, setSortField] = useState<SortField>('name');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [view, setView] = useState<'grid' | 'table'>('grid');
+    const [integrationFilters, setIntegrationFilters] = useState<string[]>([]);
 
     // Initial load
     useEffect(() => {
@@ -58,14 +71,19 @@ export default function MapCustomersPage() {
         return () => clearTimeout(timer);
     }, [searchQuery, unmappedSearchQuery, setUnmappedSearchQuery]);
 
-    // Update local search when store changes (e.g. on clear)
-    useEffect(() => {
-        setSearchQuery(unmappedSearchQuery);
-    }, [unmappedSearchQuery]);
+    const integrationTypes = useMemo(() => {
+        return [...new Set(unmappedCustomers.map(c => c.integration_type))];
+    }, [unmappedCustomers]);
 
-    const sortedCustomers = useMemo(() => {
-        // Backend now handles filtering, so we only need to sort the result
-        return [...unmappedCustomers].sort((a, b) => {
+    const filteredAndSortedCustomers = useMemo(() => {
+        let result = [...unmappedCustomers];
+
+        // Apply local integration filters
+        if (integrationFilters.length > 0) {
+            result = result.filter(c => integrationFilters.includes(c.integration_type));
+        }
+
+        return result.sort((a, b) => {
             const aValue = a[sortField];
             const bValue = b[sortField];
 
@@ -76,7 +94,7 @@ export default function MapCustomersPage() {
             const comparison = aValue < bValue ? -1 : 1;
             return sortDirection === 'asc' ? comparison : -comparison;
         });
-    }, [unmappedCustomers, sortField, sortDirection]);
+    }, [unmappedCustomers, sortField, sortDirection, integrationFilters]);
 
     const handleSort = (field: SortField) => {
         if (sortField === field) {
@@ -115,10 +133,10 @@ export default function MapCustomersPage() {
 
     // Bulk selection handlers
     const handleSelectAll = () => {
-        if (selectedIds.size === sortedCustomers.length) {
+        if (selectedIds.size === filteredAndSortedCustomers.length) {
             setSelectedIds(new Set());
         } else {
-            setSelectedIds(new Set(sortedCustomers.map(c => c.integration_customer_id)));
+            setSelectedIds(new Set(filteredAndSortedCustomers.map(c => c.integration_customer_id)));
         }
     };
 
@@ -132,8 +150,14 @@ export default function MapCustomersPage() {
         setSelectedIds(newSet);
     };
 
-    const isAllSelected = sortedCustomers.length > 0 && selectedIds.size === sortedCustomers.length;
-    const isPartiallySelected = selectedIds.size > 0 && selectedIds.size < sortedCustomers.length;
+    const isAllSelected = filteredAndSortedCustomers.length > 0 && selectedIds.size === filteredAndSortedCustomers.length;
+    const isPartiallySelected = selectedIds.size > 0 && selectedIds.size < filteredAndSortedCustomers.length;
+
+    const toggleIntegrationFilter = (type: string) => {
+        setIntegrationFilters(prev => 
+            prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+        );
+    };
 
     return (
         <FloatingLayout>
@@ -162,24 +186,87 @@ export default function MapCustomersPage() {
                     <>
                         <Card className="border-none shadow-md bg-white dark:bg-slate-900">
                             <CardContent className="p-6">
-                                {/* Search Bar */}
-                                <div className="mb-6">
-                                    <div className="relative">
+                                 {/* Controls: Filters, View Toggle, Search */}
+                                <div className="flex flex-col md:flex-row gap-3 mb-6">
+                                    {/* Filters Dropdown */}
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="outline" className="h-10">
+                                                <Filter className="h-4 w-4 mr-2" />
+                                                Filters
+                                                {integrationFilters.length > 0 && (
+                                                    <Badge variant="secondary" className="ml-2 px-1.5 py-0 h-5 min-w-5 justify-center bg-primary text-primary-foreground">
+                                                        {integrationFilters.length}
+                                                    </Badge>
+                                                )}
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="start" className="w-56">
+                                            <DropdownMenuLabel>Integration Type</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            {integrationTypes.length > 0 ? (
+                                                integrationTypes.map((type) => (
+                                                    <DropdownMenuCheckboxItem
+                                                        key={type}
+                                                        checked={integrationFilters.includes(type)}
+                                                        onCheckedChange={() => toggleIntegrationFilter(type)}
+                                                        className="capitalize"
+                                                    >
+                                                        {type}
+                                                    </DropdownMenuCheckboxItem>
+                                                ))
+                                            ) : (
+                                                <div className="px-2 py-1.5 text-xs text-muted-foreground italic">
+                                                    No integrations found
+                                                </div>
+                                            )}
+                                            {integrationFilters.length > 0 && (
+                                                <>
+                                                    <DropdownMenuSeparator />
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm" 
+                                                        className="w-full justify-center h-8 text-xs"
+                                                        onClick={() => setIntegrationFilters([])}
+                                                    >
+                                                        Clear Filters
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+
+                                    {/* View Toggle */}
+                                    <Tabs value={view} onValueChange={(v) => setView(v as 'grid' | 'table')} className="w-auto">
+                                        <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 h-10">
+                                            <TabsTrigger value="grid" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md">
+                                                <LayoutGrid className="h-4 w-4" />
+                                                <span className="ml-2 hidden sm:inline">Grid</span>
+                                            </TabsTrigger>
+                                            <TabsTrigger value="table" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md">
+                                                <List className="h-4 w-4" />
+                                                <span className="ml-2 hidden sm:inline">Table</span>
+                                            </TabsTrigger>
+                                        </TabsList>
+                                    </Tabs>
+
+                                    {/* Search Bar */}
+                                    <div className="relative flex-1">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                         <Input
                                             type="text"
                                             placeholder="Search by customer name, integration, or ID..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="pl-9 bg-white dark:bg-slate-800"
+                                            className="pl-9 h-10 bg-white dark:bg-slate-800 focus-visible:ring-primary"
                                         />
                                     </div>
-                                    {unmappedSearchQuery && (
-                                        <p className="text-sm text-muted-foreground mt-2">
-                                            Found {unmappedCount} total unmapped customers matching your search
-                                        </p>
-                                    )}
                                 </div>
+                                {unmappedSearchQuery && (
+                                    <p className="text-sm text-muted-foreground mt-[-1rem] mb-4">
+                                        Found {unmappedCount} total unmapped customers matching your search
+                                    </p>
+                                )}
 
                                 {/* Bulk Action Bar */}
                                 {selectedIds.size > 0 && (
@@ -200,7 +287,7 @@ export default function MapCustomersPage() {
                                                 size="sm"
                                                 onClick={() => {
                                                     // Get ALL selected customers and open map modal
-                                                    const selectedCustomers = sortedCustomers.filter(c => selectedIds.has(c.integration_customer_id));
+                                                    const selectedCustomers = filteredAndSortedCustomers.filter(c => selectedIds.has(c.integration_customer_id));
                                                     if (selectedCustomers.length > 0) {
                                                         // Set first one for backward compatibility, but modal now uses array
                                                         setSelectedUnmappedCustomer(selectedCustomers[0]);
@@ -215,149 +302,246 @@ export default function MapCustomersPage() {
                                     </div>
                                 )}
 
-                                {/* Table */}
-                                <div className="border rounded-xl overflow-hidden bg-white dark:bg-slate-800">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full">
-                                            <thead className="bg-slate-50 dark:bg-slate-700/50 border-b">
-                                                <tr>
-                                                    <th className="w-12 p-4">
-                                                        <Checkbox
-                                                            checked={isAllSelected}
-                                                            onCheckedChange={handleSelectAll}
-                                                            aria-label="Select all"
-                                                            className={isPartiallySelected ? "opacity-50" : ""}
-                                                        />
-                                                    </th>
-                                                    <th
-                                                        className="text-left p-4 font-semibold text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                                                        onClick={() => handleSort('name')}
+                                <Tabs value={view} className="w-full">
+                                    <TabsContent value="grid" className="mt-0">
+                                        {isLoading ? (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                                                    <Card key={i} className="border border-slate-200 dark:border-slate-800 shadow-sm">
+                                                        <CardContent className="p-5 space-y-4">
+                                                            <div className="flex justify-between items-center">
+                                                                <Skeleton className="h-4 w-4 rounded" />
+                                                                <Skeleton className="h-5 w-20 rounded-full" />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <Skeleton className="h-6 w-3/4" />
+                                                                <Skeleton className="h-4 w-1/2" />
+                                                            </div>
+                                                            <div className="flex justify-between items-center pt-2">
+                                                                <Skeleton className="h-4 w-24" />
+                                                                <Skeleton className="h-5 w-16 rounded-full" />
+                                                            </div>
+                                                            <Skeleton className="h-9 w-full rounded-md mt-2" />
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        ) : filteredAndSortedCustomers.length === 0 ? (
+                                            <div className="py-20 text-center bg-slate-50 dark:bg-slate-900/30 rounded-xl border-2 border-dashed">
+                                                <Search className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-20" />
+                                                <p className="text-muted-foreground">
+                                                    {searchQuery || integrationFilters.length > 0 ? `No customers found matching your criteria` : 'No unmapped customers found'}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                                {filteredAndSortedCustomers.map((customer) => (
+                                                    <Card 
+                                                        key={customer.integration_customer_id} 
+                                                        className={cn(
+                                                            "group border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 relative overflow-hidden",
+                                                            selectedIds.has(customer.integration_customer_id) ? "ring-2 ring-primary border-primary bg-primary/5" : "bg-white dark:bg-slate-800"
+                                                        )}
                                                     >
-                                                        <div className="flex items-center">
-                                                            Customer Name <SortIcon field="name" />
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className="text-left p-4 font-semibold text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                                                        onClick={() => handleSort('integration_type')}
-                                                    >
-                                                        <div className="flex items-center">
-                                                            Integration <SortIcon field="integration_type" />
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className="text-left p-4 font-semibold text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                                                        onClick={() => handleSort('external_id')}
-                                                    >
-                                                        <div className="flex items-center">
-                                                            External ID <SortIcon field="external_id" />
-                                                        </div>
-                                                    </th>
-                                                    <th
-                                                        className="text-left p-4 font-semibold text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                                                        onClick={() => handleSort('last_seen_at')}
-                                                    >
-                                                        <div className="flex items-center">
-                                                            Last Seen <SortIcon field="last_seen_at" />
-                                                        </div>
-                                                    </th>
-                                                    <th className="text-left p-4 font-semibold text-sm">Status</th>
-                                                    <th className="text-right p-4 font-semibold text-sm">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                                {isLoading ? (
-                                                    <>
-                                                        {[1, 2, 3, 4, 5].map((i) => (
-                                                            <tr key={i}>
-                                                                <td className="w-12 p-4">
-                                                                    <Skeleton className="h-4 w-4" />
-                                                                </td>
-                                                                <td className="p-4">
-                                                                    <Skeleton className="h-5 w-48" />
-                                                                </td>
-                                                                <td className="p-4">
-                                                                    <Skeleton className="h-5 w-20" />
-                                                                </td>
-                                                                <td className="p-4">
-                                                                    <Skeleton className="h-5 w-24" />
-                                                                </td>
-                                                                <td className="p-4">
-                                                                    <Skeleton className="h-4 w-28" />
-                                                                </td>
-                                                                <td className="p-4">
-                                                                    <Skeleton className="h-5 w-16" />
-                                                                </td>
-                                                                <td className="p-4 text-right">
-                                                                    <Skeleton className="h-8 w-28 ml-auto" />
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </>
-                                                ) : sortedCustomers.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={7} className="p-12 text-center text-muted-foreground">
-                                                            {searchQuery ? `No customers found matching "${searchQuery}"` : 'No customers on this page'}
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    sortedCustomers.map((customer) => (
-                                                        <tr key={customer.integration_customer_id} className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-colors ${selectedIds.has(customer.integration_customer_id) ? 'bg-primary/5' : ''}`}>
-                                                            <td className="w-12 p-4">
+                                                        <CardContent className="p-5">
+                                                            <div className="flex justify-between items-start mb-4">
                                                                 <Checkbox
                                                                     checked={selectedIds.has(customer.integration_customer_id)}
                                                                     onCheckedChange={() => handleSelectOne(customer.integration_customer_id)}
                                                                     aria-label={`Select ${customer.name}`}
                                                                 />
-                                                            </td>
-                                                            <td className="p-4">
-                                                                <div className="font-semibold text-slate-900 dark:text-slate-100">{customer.name}</div>
-                                                            </td>
-                                                            <td className="p-4">
-                                                                <Badge variant="outline" className="text-xs bg-slate-50 dark:bg-slate-900/50">
+                                                                <Badge variant="outline" className="bg-slate-50 dark:bg-slate-900/50 font-medium">
                                                                     {customer.integration_type}
                                                                 </Badge>
-                                                            </td>
-                                                            <td className="p-4">
-                                                                <span className="text-xs text-muted-foreground font-mono bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">
+                                                            </div>
+                                                            
+                                                            <div className="mb-4 min-h-[4.5rem]">
+                                                                <h3 className="font-bold text-slate-900 dark:text-slate-100 line-clamp-2 leading-tight mb-1" title={customer.name}>
+                                                                    {customer.name}
+                                                                </h3>
+                                                                <p className="text-[10px] text-muted-foreground font-mono bg-slate-100 dark:bg-slate-900 inline-block px-1.5 py-0.5 rounded">
                                                                     {customer.external_id}
-                                                                </span>
-                                                            </td>
-                                                            <td className="p-4">
-                                                                <span className="text-sm text-slate-600 dark:text-slate-400">
-                                                                    {customer.last_seen_at
-                                                                        ? new Date(customer.last_seen_at).toLocaleDateString()
-                                                                        : '—'}
-                                                                </span>
-                                                            </td>
-                                                            <td className="p-4">
+                                                                </p>
+                                                            </div>
+                                                            
+                                                            <div className="flex items-center justify-between text-xs mb-5">
+                                                                <div className="text-muted-foreground">
+                                                                    <span className="block text-[10px] uppercase tracking-wider opacity-60 mb-0.5">Last Seen</span>
+                                                                    <span className="font-medium text-slate-600 dark:text-slate-400">
+                                                                        {customer.last_seen_at ? new Date(customer.last_seen_at).toLocaleDateString() : '—'}
+                                                                    </span>
+                                                                </div>
                                                                 {customer.active ? (
-                                                                    <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 shadow-none">
+                                                                    <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 shadow-none text-[10px] h-5 px-1.5">
                                                                         Active
                                                                     </Badge>
                                                                 ) : (
-                                                                    <Badge variant="secondary" className="shadow-none">
+                                                                    <Badge variant="secondary" className="shadow-none text-[10px] h-5 px-1.5 italic opacity-70">
                                                                         Inactive
                                                                     </Badge>
                                                                 )}
-                                                            </td>
-                                                            <td className="p-4 text-right">
-                                                                <Button
-                                                                    size="sm"
-                                                                    className="shadow-sm font-medium"
-                                                                    onClick={() => handleMapClick(customer)}
-                                                                >
-                                                                    <MapPin className="h-4 w-4 mr-1.5" />
-                                                                    Map Client
-                                                                </Button>
-                                                            </td>
+                                                            </div>
+                                                            
+                                                            <Button
+                                                                className="w-full gap-2 font-semibold shadow-sm group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                                                                variant={selectedIds.has(customer.integration_customer_id) ? "default" : "secondary"}
+                                                                onClick={() => handleMapClick(customer)}
+                                                            >
+                                                                <MapPin className="h-4 w-4" />
+                                                                Map Client
+                                                            </Button>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </TabsContent>
+
+                                    <TabsContent value="table" className="mt-0">
+                                        <div className="border rounded-xl overflow-hidden bg-white dark:bg-slate-800">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full">
+                                                    <thead className="bg-slate-50 dark:bg-slate-700/50 border-b">
+                                                        <tr>
+                                                            <th className="w-12 p-4">
+                                                                <Checkbox
+                                                                    checked={isAllSelected}
+                                                                    onCheckedChange={handleSelectAll}
+                                                                    aria-label="Select all"
+                                                                    className={isPartiallySelected ? "opacity-50" : ""}
+                                                                />
+                                                            </th>
+                                                            <th
+                                                                className="text-left p-4 font-semibold text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                                                onClick={() => handleSort('name')}
+                                                            >
+                                                                <div className="flex items-center">
+                                                                    Customer Name <SortIcon field="name" />
+                                                                </div>
+                                                            </th>
+                                                            <th
+                                                                className="text-left p-4 font-semibold text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                                                onClick={() => handleSort('integration_type')}
+                                                            >
+                                                                <div className="flex items-center">
+                                                                    Integration <SortIcon field="integration_type" />
+                                                                </div>
+                                                            </th>
+                                                            <th
+                                                                className="text-left p-4 font-semibold text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                                                onClick={() => handleSort('external_id')}
+                                                            >
+                                                                <div className="flex items-center">
+                                                                    External ID <SortIcon field="external_id" />
+                                                                </div>
+                                                            </th>
+                                                            <th
+                                                                className="text-left p-4 font-semibold text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                                                onClick={() => handleSort('last_seen_at')}
+                                                            >
+                                                                <div className="flex items-center">
+                                                                    Last Seen <SortIcon field="last_seen_at" />
+                                                                </div>
+                                                            </th>
+                                                            <th className="text-left p-4 font-semibold text-sm">Status</th>
+                                                            <th className="text-right p-4 font-semibold text-sm">Action</th>
                                                         </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                                        {isLoading ? (
+                                                            <>
+                                                                {[1, 2, 3, 4, 5].map((i) => (
+                                                                    <tr key={i}>
+                                                                        <td className="w-12 p-4">
+                                                                            <Skeleton className="h-4 w-4" />
+                                                                        </td>
+                                                                        <td className="p-4">
+                                                                            <Skeleton className="h-5 w-48" />
+                                                                        </td>
+                                                                        <td className="p-4">
+                                                                            <Skeleton className="h-5 w-20" />
+                                                                        </td>
+                                                                        <td className="p-4">
+                                                                            <Skeleton className="h-5 w-24" />
+                                                                        </td>
+                                                                        <td className="p-4">
+                                                                            <Skeleton className="h-4 w-28" />
+                                                                        </td>
+                                                                        <td className="p-4">
+                                                                            <Skeleton className="h-5 w-16" />
+                                                                        </td>
+                                                                        <td className="p-4 text-right">
+                                                                            <Skeleton className="h-8 w-28 ml-auto" />
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </>
+                                                        ) : filteredAndSortedCustomers.length === 0 ? (
+                                                            <tr>
+                                                                <td colSpan={7} className="p-12 text-center text-muted-foreground">
+                                                                    {searchQuery || integrationFilters.length > 0 ? `No customers found matching your criteria` : 'No customers on this page'}
+                                                                </td>
+                                                            </tr>
+                                                        ) : (
+                                                            filteredAndSortedCustomers.map((customer) => (
+                                                                <tr key={customer.integration_customer_id} className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-colors ${selectedIds.has(customer.integration_customer_id) ? 'bg-primary/5' : ''}`}>
+                                                                    <td className="w-12 p-4">
+                                                                        <Checkbox
+                                                                            checked={selectedIds.has(customer.integration_customer_id)}
+                                                                            onCheckedChange={() => handleSelectOne(customer.integration_customer_id)}
+                                                                            aria-label={`Select ${customer.name}`}
+                                                                        />
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <div className="font-semibold text-slate-900 dark:text-slate-100">{customer.name}</div>
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <Badge variant="outline" className="text-xs bg-slate-50 dark:bg-slate-900/50">
+                                                                            {customer.integration_type}
+                                                                        </Badge>
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <span className="text-xs text-muted-foreground font-mono bg-slate-100 dark:bg-slate-900 px-2 py-1 rounded">
+                                                                            {customer.external_id}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                                                                            {customer.last_seen_at
+                                                                                ? new Date(customer.last_seen_at).toLocaleDateString()
+                                                                                : '—'}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="p-4">
+                                                                        {customer.active ? (
+                                                                            <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 shadow-none">
+                                                                                Active
+                                                                            </Badge>
+                                                                        ) : (
+                                                                            <Badge variant="secondary" className="shadow-none">
+                                                                                Inactive
+                                                                            </Badge>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="p-4 text-right">
+                                                                        <Button
+                                                                            size="sm"
+                                                                            className="shadow-sm font-medium"
+                                                                            onClick={() => handleMapClick(customer)}
+                                                                        >
+                                                                            <MapPin className="h-4 w-4 mr-1.5" />
+                                                                            Map Client
+                                                                        </Button>
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </TabsContent>
+                                </Tabs>
                             </CardContent>
                         </Card>
 
@@ -390,7 +574,7 @@ export default function MapCustomersPage() {
                     open={modals.map}
                     onOpenChange={(open) => open ? openModal("map") : closeModal("map")}
                     integrationCustomers={selectedIds.size > 0
-                        ? sortedCustomers.filter(c => selectedIds.has(c.integration_customer_id))
+                        ? filteredAndSortedCustomers.filter(c => selectedIds.has(c.integration_customer_id))
                         : selectedUnmappedCustomer ? [selectedUnmappedCustomer] : []
                     }
                     existingCustomers={getMappedCustomers()}

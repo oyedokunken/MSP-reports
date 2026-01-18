@@ -138,13 +138,17 @@ export const useCustomerReports = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const toast = useToast()
+  const queryClient = useQueryClient()
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isDelivering, setIsDelivering] = useState(false)
   const [config, setConfig] = useState<ReportConfig | null>(null)
   const [destination, setDestination] = useState('')
   const [ccEmails, setCcEmails] = useState('')
+  const [previewReport, setPreviewReport] = useState<{ id: number; name: string } | null>(null)
+  const [batchPreviewReports, setBatchPreviewReports] = useState<{ id: number; name: string; status: 'preview' | 'delivered' }[]>([])
 
   const fetchReportConfig = useCallback(async () => {
     try {
@@ -203,13 +207,97 @@ export const useCustomerReports = () => {
   const handleGenerateReport = async () => {
     try {
       setIsGenerating(true)
-      await api.post(`/reports/generate/${id}`)
-      toast.success('Report Generated', 'Report has been generated successfully')
+      const response = await api.post<{ data: { reports: any[] } }>(`/reports/generate/${id}`, {
+        preview_only: true
+      })
+      
+      const data = response as any
+      const reports = data.data?.reports || data.reports || []
+      
+      if (reports.length > 0) {
+        const previewResults = reports.map((r: any) => ({
+          id: r.generated_report_id,
+          name: r.report_name || `${r.customer_name} - ${r.report_type?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Report'}`,
+          status: 'preview' as const
+        }))
+
+        if (previewResults.length === 1) {
+          setPreviewReport(previewResults[0])
+        } else {
+          setBatchPreviewReports(previewResults)
+        }
+      } else {
+        toast.success('Report Generated', 'Report has been generated successfully')
+      }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       toast.error('Generation Failed', error.response?.data?.message || error.message)
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleDeliverReport = async () => {
+    if (!previewReport) return
+    try {
+      setIsDelivering(true)
+      await api.post(`/reports/${previewReport.id}/deliver`)
+      toast.success('Report Delivered', 'Report has been queued for delivery')
+      setPreviewReport(null)
+
+      if (batchPreviewReports.length > 0) {
+        setBatchPreviewReports(prev =>
+          prev.map(r => r.id === previewReport.id ? { ...r, status: 'delivered' } : r)
+        )
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['reports'] })
+        navigate('/platform/reports')
+      }
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Delivery Failed', error.response?.data?.message || error.message)
+      throw err
+    } finally {
+      setIsDelivering(false)
+    }
+  }
+
+  const handleDeliverAllReports = async () => {
+    if (batchPreviewReports.length === 0) return
+    try {
+      setIsDelivering(true)
+      const pendingReports = batchPreviewReports.filter(r => r.status === 'preview')
+      await Promise.all(
+        pendingReports.map(report => api.post(`/reports/${report.id}/deliver`))
+      )
+      toast.success('Batch Delivery Initiated', `${pendingReports.length} reports have been queued for delivery`)
+      setBatchPreviewReports([])
+      queryClient.invalidateQueries({ queryKey: ['reports'] })
+      navigate('/platform/reports')
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Batch Delivery Failed', error.response?.data?.message || error.message)
+      throw err
+    } finally {
+      setIsDelivering(false)
+    }
+  }
+
+  const handleDiscardReports = async () => {
+    if (batchPreviewReports.length === 0) return
+    try {
+      const reportIds = batchPreviewReports
+        .filter(r => r.status === 'preview')
+        .map(r => r.id)
+        
+      if (reportIds.length > 0) {
+        await api.post('/reports/batch-discard', { report_ids: reportIds })
+      }
+      
+      setBatchPreviewReports([])
+    } catch (err: unknown) {
+      console.error('Failed to discard reports:', err)
+      setBatchPreviewReports([]) // Still clear UI
     }
   }
 
@@ -221,12 +309,21 @@ export const useCustomerReports = () => {
     config,
     destination,
     ccEmails,
+    previewReport,
+    batchPreviewReports,
+    isDelivering,
     setDestination,
     setCcEmails,
+    setPreviewReport,
+    setBatchPreviewReports,
     handleSaveDestination,
-    handleGenerateReport
+    handleGenerateReport,
+    handleDeliverReport,
+    handleDeliverAllReports,
+    handleDiscardReports
   }
 }
+
 
 export const useConfigureReports = () => {
   const { id } = useParams<{ id: string }>()
@@ -241,6 +338,8 @@ export const useConfigureReports = () => {
   const [destination, setDestination] = useState('')
   const [ccEmails, setCcEmails] = useState('')
   const [availableReportTypes, setAvailableReportTypes] = useState<ReportType[]>([])
+  const [previewReport, setPreviewReport] = useState<{ id: number; name: string } | null>(null)
+  const [isDelivering, setIsDelivering] = useState(false)
 
   const fetchAvailableReports = useCallback(async () => {
     if (!id) return
@@ -476,20 +575,42 @@ export const useConfigureReports = () => {
 
     try {
       setIsGenerating(true)
-      const response = await api.post(`/reports/generate/${id}`)
-      const data = response as { data?: { data?: unknown[] } } | { data?: unknown[] }
-      const responseData = (data as { data?: { data?: unknown[] } }).data || data as { data?: unknown[] }
-
-      toast.success('Report Generated!', `Successfully generated ${responseData.data?.length || 1} report(s)`)
-
-      setTimeout(() => {
-        navigate('/platform/reports')
-      }, 1500)
+      const response = await api.post<{ data: { reports: any[] } }>(`/reports/generate/${id}`, {
+        preview_only: true
+      })
+      
+      const data = response as any
+      const reports = data.data?.reports || data.reports || []
+      
+      if (reports.length > 0) {
+        setPreviewReport({
+          id: reports[0].generated_report_id,
+          name: `${reports[0].customer_name} - ${reports[0].report_type}`
+        })
+      } else {
+        toast.success('Report Generated', 'Report has been generated successfully')
+      }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       toast.error('Generation Failed', error.response?.data?.message || error.message)
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleDeliverReport = async () => {
+    if (!previewReport) return
+    try {
+      setIsDelivering(true)
+      await api.post(`/reports/${previewReport.id}/deliver`)
+      toast.success('Report Delivered', 'Report has been queued for delivery')
+      setPreviewReport(null)
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Delivery Failed', error.response?.data?.message || error.message)
+      throw err
+    } finally {
+      setIsDelivering(false)
     }
   }
 
@@ -503,12 +624,16 @@ export const useConfigureReports = () => {
     destination,
     ccEmails,
     availableReportTypes,
+    previewReport,
+    isDelivering,
     setDestination,
     setCcEmails,
+    setPreviewReport,
     handleAddReport,
     handleRemoveReport,
     handleUpdateReport,
     handleSaveConfiguration,
-    handleGenerateNow
+    handleGenerateNow,
+    handleDeliverReport
   }
 }

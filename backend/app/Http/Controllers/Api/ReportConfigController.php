@@ -348,18 +348,27 @@ class ReportConfigController extends Controller
                     $generatedReport = $this->reportService->generateReport($schedule);
                 }
                 
-                DeliverReportJob::dispatch($generatedReport);
-                
                 $customer = $generatedReport->customer;
                 $emailDestination = $customer->report_destination 
                     ?? $customer->report_configuration['delivery']['destination'] 
                     ?? null;
-                
-                $reportArray = $generatedReport->toArray();
-                $reportArray['email_status'] = 'queued';
-                $reportArray['email_destination'] = $emailDestination;
-                $reportArray['customer_name'] = $customer->canonical_name;
-                
+
+                $reportName = $schedule->template ? $schedule->template->template_name : ucfirst(str_replace('_', ' ', $schedule->report_type));
+
+                $reportArray = [
+                    'generated_report_id' => $generatedReport->generated_report_id,
+                    'report_id' => $generatedReport->generated_report_id, // For compatibility
+                    'report_type' => $schedule->report_type,
+                    'report_name' => $reportName,
+                    'customer_name' => $customer->canonical_name,
+                    'email_destination' => $emailDestination,
+                    'email_status' => $request->boolean('preview_only') ? 'preview' : 'queued'
+                ];
+
+                if (!$request->boolean('preview_only')) {
+                    DeliverReportJob::dispatch($generatedReport);
+                }
+
                 $generatedReports[] = $reportArray;
 
                 
@@ -406,8 +415,13 @@ class ReportConfigController extends Controller
                 $generatedReport = $this->reportService->generateReport($schedule);
             }
             
-            // Queue delivery
-            DeliverReportJob::dispatch($generatedReport);
+            // Queue delivery only if NOT a preview
+            if (!$request->boolean('preview_only')) {
+                DeliverReportJob::dispatch($generatedReport);
+                $emailStatus = 'queued';
+            } else {
+                $emailStatus = 'preview';
+            }
             
             // Get customer email destination
             $customer = $generatedReport->customer;
@@ -423,9 +437,10 @@ class ReportConfigController extends Controller
                 'message' => 'Report generated successfully',
                 'data' => [
                     'report_id' => $generatedReport->generated_report_id,
-                    'report_type' => $generatedReport->report_type,
+                    'report_type' => $schedule->report_type,
+                    'report_name' => $schedule->template ? $schedule->template->template_name : ucfirst(str_replace('_', ' ', $schedule->report_type)),
                     'customer_name' => $customer->canonical_name,
-                    'email_status' => 'queued',
+                    'email_status' => $emailStatus,
                     'email_destination' => $emailDestination,
                 ]
             ]);

@@ -9,7 +9,8 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Filter, UserPlus } from 'lucide-react'
+import { Search, Filter, UserPlus, LayoutGrid, List } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api } from '@/lib/api'
 
 interface CustomersFiltersProps {
@@ -24,6 +25,8 @@ interface CustomersFiltersProps {
   onReportFiltersChange: (filters: string[]) => void
   onIntegrationFiltersChange: (filters: string[]) => void
   onCreateStatic?: () => void
+  view?: 'grid' | 'table'
+  onViewChange?: (view: 'grid' | 'table') => void
 }
 
 export function CustomersFilters({
@@ -38,6 +41,8 @@ export function CustomersFilters({
   onReportFiltersChange,
   onIntegrationFiltersChange,
   onCreateStatic,
+  view = 'grid',
+  onViewChange,
 }: CustomersFiltersProps) {
   const [integrationTypes, setIntegrationTypes] = useState<string[]>([])
   const hasActiveFilters = searchQuery || statusFilters.length > 0 || reportFilters.length > 0 || integrationFilters.length > 0
@@ -152,6 +157,22 @@ export function CustomersFilters({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* View Toggle */}
+        {onViewChange && (
+          <Tabs value={view} onValueChange={(v) => onViewChange(v as 'grid' | 'table')} className="w-auto">
+            <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 h-10">
+              <TabsTrigger value="grid" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md">
+                <LayoutGrid className="h-4 w-4" />
+                <span className="ml-2 hidden sm:inline">Grid</span>
+              </TabsTrigger>
+              <TabsTrigger value="table" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md">
+                <List className="h-4 w-4" />
+                <span className="ml-2 hidden sm:inline">Table</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
 
         {/* Search */}
         <div className="flex-1 relative">

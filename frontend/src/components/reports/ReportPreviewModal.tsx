@@ -8,16 +8,16 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import { ZoomIn, ZoomOut, Maximize2, Mail } from 'lucide-react'
-import { useToast } from '@/components/ui/Toast'
+import { ZoomIn, ZoomOut, Maximize2, CheckCircle2 } from 'lucide-react'
 import apiClient from '@/lib/api'
-import { EmailReportDialog } from './EmailReportDialog'
 
 interface ReportPreviewModalProps {
   open: boolean
   onClose: () => void
   reportId: number
   reportName: string
+  onConfirm?: () => Promise<void>
+  confirmLabel?: string
 }
 
 export function ReportPreviewModal({
@@ -25,13 +25,14 @@ export function ReportPreviewModal({
   onClose,
   reportId,
   reportName,
+  onConfirm,
+  confirmLabel = 'Process Report',
 }: ReportPreviewModalProps) {
-  const toast = useToast()
   const [loading, setLoading] = useState(true)
+  const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [zoom, setZoom] = useState(100)
-  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
   const loadPdfPreview = useCallback(async () => {
     try {
@@ -94,21 +95,16 @@ export function ReportPreviewModal({
     setZoom(100)
   }
 
-  const handleEmailReport = async (emails: string) => {
+  const handleConfirm = async () => {
+    if (!onConfirm) return
     try {
-      await apiClient.post(`/reports/${reportId}/email`, {
-        emails: emails
-      })
-
-      toast.success('Email Sent!', 'Report has been emailed successfully')
-    } catch (err: unknown) {
-      console.error('Failed to email report:', err)
-      const error = err as { response?: { data?: { message?: string } }; message?: string }
-      const errorMessage = error.response?.data?.message
-        || error.message
-        || 'Failed to send email'
-      toast.error('Email Failed', errorMessage)
-      throw err // Re-throw so dialog knows to stay open
+      setIsProcessing(true)
+      await onConfirm()
+      onClose()
+    } catch (error) {
+      console.error('Confirmation failed:', error)
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -157,16 +153,29 @@ export function ReportPreviewModal({
               </Button>
             </div>
 
-            {/* Email Report Button */}
-            <Button
-              onClick={() => setEmailDialogOpen(true)}
-              disabled={loading || !!error}
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Email Report
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              {onConfirm && (
+                <Button
+                  onClick={handleConfirm}
+                  disabled={loading || !!error || isProcessing}
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Spinner className="h-4 w-4 mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      {confirmLabel}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </DialogHeader>
 
@@ -214,13 +223,6 @@ export function ReportPreviewModal({
         </div>
       </DialogContent>
 
-      {/* Email Report Dialog */}
-      <EmailReportDialog
-        open={emailDialogOpen}
-        onClose={() => setEmailDialogOpen(false)}
-        onSend={handleEmailReport}
-        reportName={reportName}
-      />
     </Dialog>
   )
 }

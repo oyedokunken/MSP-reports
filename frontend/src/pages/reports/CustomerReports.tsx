@@ -4,10 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, FileText, Mail, Save, Play } from 'lucide-react'
+import { ArrowLeft, FileText, Mail, Save, Eye } from 'lucide-react'
 import { Spinner } from '@/components/ui/spinner'
 import { useCustomerReports } from './hooks'
 import { CustomerReportsLoading, CustomerReportsNotFound } from './components/CustomerReportsStates'
+import { ReportPreviewModal } from '@/components/reports/ReportPreviewModal'
+import { BatchPreviewModal } from './components/BatchPreviewModal'
 
 export default function CustomerReports() {
   const {
@@ -18,10 +20,17 @@ export default function CustomerReports() {
     config,
     destination,
     ccEmails,
+    previewReport,
+    batchPreviewReports,
     setDestination,
     setCcEmails,
+    setPreviewReport,
+    setBatchPreviewReports,
     handleSaveDestination,
-    handleGenerateReport
+    handleGenerateReport,
+    handleDeliverReport,
+    handleDeliverAllReports,
+    handleDiscardReports
   } = useCustomerReports()
 
   if (isLoading) {
@@ -186,12 +195,12 @@ export default function CustomerReports() {
               {isGenerating ? (
                 <>
                   <Spinner className="h-4 w-4 mr-2" />
-                  Generating...
+                  Preparing...
                 </>
               ) : (
                 <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Generate Report Now
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview Active Reports
                 </>
               )}
             </Button>
@@ -203,6 +212,28 @@ export default function CustomerReports() {
           </CardContent>
         </Card>
       </div>
+      
+      {previewReport && (
+        <ReportPreviewModal
+          open={!!previewReport}
+          onClose={() => setPreviewReport(null)}
+          reportId={previewReport.id}
+          reportName={previewReport.name}
+          onConfirm={batchPreviewReports.length === 0 ? handleDeliverReport : undefined}
+          confirmLabel="Generate & Deliver Report"
+        />
+      )}
+
+      {!previewReport && batchPreviewReports.length > 0 && (
+        <BatchPreviewModal
+          open={batchPreviewReports.length > 0}
+          onClose={() => setBatchPreviewReports([])}
+          reports={batchPreviewReports}
+          onPreview={(report) => setPreviewReport(report)}
+          onDeliverAll={handleDeliverAllReports}
+          onDiscard={handleDiscardReports}
+        />
+      )}
     </FloatingLayout>
   )
 }

@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { flushSync } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ArrowLeft, Calendar, Mail, Save, Bell, Play, Plus, Share2, Folder, RotateCw } from 'lucide-react'
+import { ArrowLeft, Calendar, Mail, Save, Bell, Eye, Plus, Share2, Folder, RotateCw } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Spinner } from '@/components/ui/spinner'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
@@ -23,6 +24,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ReportPreviewModal } from '@/components/reports/ReportPreviewModal'
+import { BatchPreviewModal } from './components/BatchPreviewModal'
 
 import type { ReportConfig, ReportType, EnabledReport } from './types'
 
@@ -30,6 +33,7 @@ export default function ConfigureReports() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const toast = useToast()
+  const queryClient = useQueryClient()
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -57,6 +61,8 @@ export default function ConfigureReports() {
   const [customEndDate, setCustomEndDate] = useState('')
   const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 })
   const [failedSchedules, setFailedSchedules] = useState<Array<{ scheduleId: number; error: string }>>([])
+  const [previewReport, setPreviewReport] = useState<{ id: number; name: string } | null>(null)
+  const [batchPreviewReports, setBatchPreviewReports] = useState<{ id: number; name: string; status: 'preview' | 'delivered' }[]>([])
 
   // Validate and fix invalid report types when availableReportTypes loads
   useEffect(() => {
@@ -462,7 +468,10 @@ export default function ConfigureReports() {
       setGenerationProgress({ current: 0, total: selectedSchedules.length })
       setFailedSchedules([])
 
-      const payload = (startDate && endDate) ? { start_date: startDate, end_date: endDate } : {}
+      const payload: any = (startDate && endDate) ? { start_date: startDate, end_date: endDate } : {}
+      
+      // Always use preview_only for on-demand generation from this page to allow review
+      payload.preview_only = true
 
       // Generate reports sequentially to show progress
       const results: Array<{ status: 'fulfilled' | 'rejected'; value?: unknown; reason?: unknown; scheduleId: number }> = []
@@ -500,10 +509,21 @@ export default function ConfigureReports() {
 
       // Show results
       if (succeeded.length > 0) {
-        toast.success('Reports Generated!', `Successfully generated ${succeeded.length} of ${selectedSchedules.length} report(s)`)
+        const previewResults = succeeded.map(r => {
+          const result = r.value as any
+          const reportData = result.data || result
+          return {
+            id: reportData.report_id || reportData.generated_report_id,
+            name: reportData.report_name || `${reportData.customer_name || config?.customer_name || 'Report'} - ${reportData.report_type?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Report'}`,
+            status: 'preview' as const
+          }
+        })
 
-        // Show browser notification for completion
-        showCompletionNotification(succeeded.length, failed.length)
+        if (previewResults.length === 1) {
+          setPreviewReport(previewResults[0])
+        } else {
+          setBatchPreviewReports(previewResults)
+        }
       }
 
       if (failed.length > 0) {
@@ -523,9 +543,7 @@ export default function ConfigureReports() {
       // Clear selection only if all succeeded
       if (failed.length === 0) {
         setSelectedSchedules([])
-        setTimeout(() => {
-          navigate('/platform/reports')
-        }, 1500)
+        // Navigation moved to delivery confirmation
       }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
@@ -544,32 +562,74 @@ export default function ConfigureReports() {
     await performSelectedSchedulesGeneration(customStartDate, customEndDate)
   }
 
-  const showCompletionNotification = (succeeded: number, failed: number) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      const title = failed > 0
-        ? `${succeeded} Reports Generated, ${failed} Failed`
-        : `${succeeded} Report${succeeded > 1 ? 's' : ''} Generated Successfully`
 
-      const body = failed > 0
-        ? `${succeeded} of ${succeeded + failed} reports completed. Click to view failed reports.`
-        : 'All reports have been generated and are ready for delivery.'
-
-      const notification = new Notification(title, {
-        body,
-        icon: '/favicon.ico',
-        tag: 'report-generation',
-        requireInteraction: failed > 0, // Keep notification visible if there are failures
-      })
-
-      notification.onclick = () => {
-        window.focus()
-        notification.close()
-      }
-    }
-  }
 
   const confirmGenerate = () => {
     performSelectedSchedulesGeneration(customStartDate, customEndDate)
+  }
+
+  const handleDeliverReport = async () => {
+    if (!previewReport) return
+    try {
+      await api.post(`/reports/${previewReport.id}/deliver`)
+      toast.success('Report Delivered', 'Report has been queued for delivery')
+      setPreviewReport(null)
+      
+      // If this was part of a batch, mark it as delivered in the batch list
+      if (batchPreviewReports.length > 0) {
+        setBatchPreviewReports(prev => 
+          prev.map(r => r.id === previewReport.id ? { ...r, status: 'delivered' } : r)
+        )
+      } else {
+        // Only navigate automatically if it was a single report workflow
+        queryClient.invalidateQueries({ queryKey: ['reports'] })
+        navigate('/platform/reports')
+      }
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Delivery Failed', error.response?.data?.message || error.message)
+      throw err
+    }
+  }
+
+  const handleDeliverAllReports = async () => {
+    if (batchPreviewReports.length === 0) return
+    try {
+      const pendingReports = batchPreviewReports.filter(r => r.status === 'preview')
+      
+      // Deliver all pending reports in parallel
+      await Promise.all(
+        pendingReports.map(report => api.post(`/reports/${report.id}/deliver`))
+      )
+      
+      toast.success('Batch Delivery Initiated', `${pendingReports.length} reports have been queued for delivery`)
+      setBatchPreviewReports([])
+      
+      queryClient.invalidateQueries({ queryKey: ['reports'] })
+      navigate('/platform/reports')
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } }; message?: string }
+      toast.error('Batch Delivery Failed', error.response?.data?.message || error.message)
+      throw err
+    }
+  }
+
+  const handleDiscardReports = async () => {
+    if (batchPreviewReports.length === 0) return
+    try {
+      const reportIds = batchPreviewReports
+        .filter(r => r.status === 'preview')
+        .map(r => r.id)
+        
+      if (reportIds.length > 0) {
+        await api.post('/reports/batch-discard', { report_ids: reportIds })
+      }
+      
+      setBatchPreviewReports([])
+    } catch (err: unknown) {
+      console.error('Failed to discard reports:', err)
+      setBatchPreviewReports([]) // Still clear UI
+    }
   }
 
   if (isLoading) {
@@ -862,9 +922,9 @@ export default function ConfigureReports() {
                   {isGenerating ? (
                     <Spinner className="h-4 w-4 mr-2" />
                   ) : (
-                    <Play className="h-4 w-4 mr-2" />
+                    <Eye className="h-4 w-4 mr-2" />
                   )}
-                  Generate ({selectedSchedules.length})
+                  Preview ({selectedSchedules.length})
                 </Button>
 
                 {isGenerating && generationProgress.total > 0 && (
@@ -921,6 +981,28 @@ export default function ConfigureReports() {
         </div>
       </div>
 
+      {previewReport && (
+        <ReportPreviewModal
+          open={!!previewReport}
+          onClose={() => setPreviewReport(null)}
+          reportId={previewReport.id}
+          reportName={previewReport.name}
+          onConfirm={batchPreviewReports.length === 0 ? handleDeliverReport : undefined}
+          confirmLabel="Generate & Deliver Report"
+        />
+      )}
+
+      {!previewReport && batchPreviewReports.length > 0 && (
+        <BatchPreviewModal
+          open={batchPreviewReports.length > 0}
+          onClose={() => setBatchPreviewReports([])}
+          reports={batchPreviewReports}
+          onPreview={(report) => setPreviewReport(report)}
+          onDeliverAll={handleDeliverAllReports}
+          onDiscard={handleDiscardReports}
+        />
+      )}
+
       {/* Validation Error Modal */}
       <ConfirmationModal
         isOpen={showValidationModal}
@@ -940,7 +1022,7 @@ export default function ConfigureReports() {
       <Dialog open={showGenerateModal} onOpenChange={setShowGenerateModal}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Generate Report</DialogTitle>
+            <DialogTitle>Prepare Preview</DialogTitle>
             <DialogDescription>
               Select the date range for your immediate report.
             </DialogDescription>
@@ -979,12 +1061,12 @@ export default function ConfigureReports() {
               {isGenerating ? (
                 <>
                   <Spinner className="h-4 w-4 mr-2" />
-                  Generating...
+                  Preparing...
                 </>
               ) : (
                 <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Generate
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview
                 </>
               )}
             </Button>

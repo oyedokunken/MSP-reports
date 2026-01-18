@@ -267,6 +267,65 @@ class ReportAnalyticsController extends Controller
         }
     }
 
+    /**
+     * Deliver a previously generated report using configured delivery methods
+     */
+    public function deliverReport(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $report = GeneratedReport::where('generated_report_id', $id)
+            ->where('company_id', $authUser->company_id)
+            ->with(['customer', 'reportSchedule', 'company'])
+            ->first();
+
+        if (!$report) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report not found or access denied.'
+            ], 404);
+        }
+
+        if ($report->status !== 'completed') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report is not ready for delivery.'
+            ], 400);
+        }
+
+        try {
+            // Dispatch the report delivery job (uses configured methods like email, sharepoint, etc)
+            DeliverReportJob::dispatch($report);
+
+            Log::info('Report delivery initiated via preview finalize', [
+                'report_id' => $report->generated_report_id,
+                'customer' => $report->customer->canonical_name,
+                'user' => $authUser->email,
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Report has been queued for delivery.',
+                'data' => [
+                    'report_id' => $report->generated_report_id,
+                    'customer_name' => $report->customer->canonical_name,
+                    'status' => 'delivery_queued',
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Failed to initiate report delivery', [
+                'report_id' => $report->generated_report_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to initiate delivery: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     public function deleteSchedule(Request $request, $id)
     {
         $authUser = $request->user();
@@ -353,6 +412,42 @@ class ReportAnalyticsController extends Controller
                 'deleted_report_id' => $reportId
             ]
         ], 200);
+    }
+
+    public function discardReports(Request $request)
+    {
+        $reportIds = $request->input('report_ids', []);
+        $authUser = $request->user();
+
+        if (empty($reportIds)) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'No reports to discard'
+            ]);
+        }
+
+        $reports = GeneratedReport::whereIn('generated_report_id', $reportIds)
+            ->where('company_id', $authUser->company_id)
+            ->get();
+
+        $count = 0;
+        foreach ($reports as $report) {
+            if (!$report->delivered) {
+                if ($report->file_path && Storage::disk('reports')->exists($report->file_path)) {
+                    Storage::disk('reports')->delete($report->file_path);
+                }
+                $report->forceDelete();
+                $count++;
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Discarded {$count} reports successfully",
+            'data' => [
+                'discarded_count' => $count
+            ]
+        ]);
     }
 
     /**
