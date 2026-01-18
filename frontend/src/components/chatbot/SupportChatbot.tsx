@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, HelpCircle } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { X, Send, Bot, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { findAnswer } from './knowledgeBase'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface Message {
   id: string
@@ -12,18 +13,39 @@ interface Message {
 }
 
 export function SupportChatbot() {
+  const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: 'Welcome to **MSP Chatbot**!\n\nI\'m your intelligent assistant for the MSP Reporting Platform. I can help you with:\n\n**Integrations** - Setup & sync\n**Customers** - Mapping & management\n**Reports** - Configuration & schedules\n**Monitoring** - System health & metrics\n**Users** - Permissions & roles\n\nAsk me anything or choose a quick question below!',
-      timestamp: new Date(),
-    },
-  ])
+  const [hasShownWelcome, setHasShownWelcome] = useState(false)
+  const [showPulse, setShowPulse] = useState(true)
+  
+  const firstName = user?.name?.split(' ')[0] || 'there'
+  
+  const getWelcomeMessage = useCallback(() => ({
+    id: '1',
+    role: 'assistant' as const,
+    content: `Hi ${firstName}! 👋 I'm your **AI Assistant** for the MSP Reporting Platform.\n\nI can help you with:\n\n• **Integrations** - Connect Autotask, Datto, ITGlue & more\n• **Customers** - Mapping & management\n• **Reports** - Schedules & delivery\n• **Admin** - Users, API keys, audit logs\n• **System** - Monitoring & settings\n\nJust ask me anything or pick a quick question below!`,
+    timestamp: new Date(),
+  }), [firstName])
+  
+  const [messages, setMessages] = useState<Message[]>([getWelcomeMessage()])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  // Update welcome message when user changes
+  useEffect(() => {
+    if (user && !hasShownWelcome) {
+      setMessages([getWelcomeMessage()])
+      setHasShownWelcome(true)
+    }
+  }, [user, hasShownWelcome, getWelcomeMessage])
+  
+  // Hide pulse after first open
+  useEffect(() => {
+    if (isOpen) {
+      setShowPulse(false)
+    }
+  }, [isOpen])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -71,20 +93,34 @@ export function SupportChatbot() {
     'How do I add an integration?',
     'How to map customers?',
     'How to configure reports?',
-    'What is Source of Truth?',
-    'View system monitoring',
-    'Manage user permissions',
+    'How to create API keys?',
+    'View audit logs',
+    'Where do I find settings?',
   ]
 
   if (!isOpen) {
     return (
-      <Button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-xl hover:shadow-2xl z-50 transition-all hover:scale-110 bg-gradient-to-br from-primary to-primary/80"
-        size="icon"
-      >
-        <MessageCircle className="h-7 w-7" />
-      </Button>
+      <div className="fixed bottom-6 right-6 z-50" data-tour="chatbot-button">
+        {/* Pulse animation ring */}
+        {showPulse && (
+          <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+        )}
+        <Button
+          onClick={() => setIsOpen(true)}
+          className="relative h-16 w-16 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-110 bg-gradient-to-br from-primary to-primary/80"
+          size="icon"
+        >
+          <Bot className="h-7 w-7" />
+          {showPulse && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-5 w-5 bg-green-500 items-center justify-center">
+                <Sparkles className="h-3 w-3 text-white" />
+              </span>
+            </span>
+          )}
+        </Button>
+      </div>
     )
   }
 
@@ -93,11 +129,11 @@ export function SupportChatbot() {
       <div className="flex flex-row items-center justify-between px-5 py-3 border-b border-primary/20 bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md">
-            <HelpCircle className="h-5 w-5 text-white" />
+            <Bot className="h-5 w-5 text-white" />
           </div>
           <div className="leading-tight">
-            <h3 className="text-lg font-bold text-foreground m-0 leading-tight">MSP Chatbot</h3>
-            <p className="text-xs text-muted-foreground m-0 leading-tight">User Guide</p>
+            <h3 className="text-lg font-bold text-foreground m-0 leading-tight">AI Assistant</h3>
+            <p className="text-xs text-muted-foreground m-0 leading-tight">Here to help</p>
           </div>
         </div>
         <Button
