@@ -25,8 +25,8 @@ export const DynamicKeyValue: React.FC<DynamicKeyValueProps> = ({
                     <div
                         key={pair.key || index}
                         className={`p-4 ${isHorizontal
-                                ? "flex items-center justify-between"
-                                : "space-y-1"
+                            ? "flex items-center justify-between"
+                            : "space-y-1"
                             }`}
                     >
                         <dt className="text-sm font-medium text-gray-500">
