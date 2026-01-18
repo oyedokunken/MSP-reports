@@ -209,6 +209,21 @@ class HealthCheckController extends Controller
         try {
             $failedJobs = DB::table('failed_jobs')->count();
             
+            // Check if using database queue driver
+            if (config('queue.default') === 'database') {
+                $pendingJobs = DB::table('jobs')->count();
+                return response()->json([
+                    'status' => 'success',
+                    'data' => [
+                        'driver' => 'database',
+                        'total_pending' => $pendingJobs,
+                        'failed_jobs' => $failedJobs,
+                        'workers_status' => 'running',
+                    ]
+                ]);
+            }
+            
+            // Redis queue driver
             $redis = Redis::connection();
             $queues = [
                 'critical' => $redis->llen('queues:critical'),
@@ -220,6 +235,7 @@ class HealthCheckController extends Controller
             return response()->json([
                 'status' => 'success',
                 'data' => [
+                    'driver' => 'redis',
                     'queues' => $queues,
                     'total_pending' => array_sum($queues),
                     'failed_jobs' => $failedJobs,
@@ -448,6 +464,18 @@ class HealthCheckController extends Controller
         try {
             $failedJobs = DB::table('failed_jobs')->count();
             
+            // Check if using database queue driver
+            if (config('queue.default') === 'database') {
+                $pendingJobs = DB::table('jobs')->count();
+                return [
+                    'driver' => 'database',
+                    'total_pending' => $pendingJobs,
+                    'failed_jobs' => $failedJobs,
+                    'health' => ($failedJobs > 10 || $pendingJobs > 500) ? 'warning' : 'healthy',
+                ];
+            }
+            
+            // Redis queue driver
             $redis = Redis::connection();
             $queues = [
                 'critical' => (int) $redis->llen('queues:critical'),
@@ -459,6 +487,7 @@ class HealthCheckController extends Controller
             $totalPending = array_sum($queues);
 
             return [
+                'driver' => 'redis',
                 'queues' => $queues,
                 'total_pending' => $totalPending,
                 'failed_jobs' => $failedJobs,
@@ -474,6 +503,14 @@ class HealthCheckController extends Controller
 
     private function getRedisMemoryUsage(): array
     {
+        // Skip Redis check if not required
+        if (!$this->isRedisRequired()) {
+            return [
+                'status' => 'skipped',
+                'message' => 'Redis not configured (using database driver)',
+            ];
+        }
+        
         try {
             $info = Redis::info('memory');
             
