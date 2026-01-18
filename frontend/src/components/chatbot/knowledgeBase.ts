@@ -1,14 +1,15 @@
 // Knowledge base for MSP System support chatbot
+// Last updated: January 2026
 
 export const knowledgeBase = {
   integrations: {
-    keywords: ['integration', 'connect', 'add integration', 'setup', 'autotask', 'datto', 'sync', 'disconnect', 'credentials', 'api key', 'test connection'],
+    keywords: ['integration', 'connect', 'add integration', 'setup', 'autotask', 'datto', 'itglue', 'sendmarc', 'bitdefender', 'sync', 'disconnect', 'credentials', 'api key', 'test connection', 'preview'],
     answers: {
       'how to add': `**Adding an Integration:**
 
 1. Navigate to **Integrations** page from the sidebar
 2. Click **"Add Integration"** button
-3. Select your integration type (Autotask, Datto, etc.)
+3. Select your integration type (Autotask, Datto RMM, ITGlue, Sendmarc, BitDefender, etc.)
 4. Enter the required credentials:
    - API URL
    - API Key/Username
@@ -34,9 +35,21 @@ The Source of Truth (SOT) integration is your primary customer list source.
 - Only **one** integration can be SOT
 - SOT customers appear in the **Master List**
 - Other integrations map TO these customers
-- Set during integration setup or in settings
+- Set in **Settings → Company Settings**
 
 This ensures consistent customer naming across all systems.`,
+
+      'preview': `**Integration Data Preview:**
+
+Before generating reports, you can preview integration data:
+
+1. Go to **Integrations**
+2. Click on an integration card
+3. Click **"Preview Data"**
+4. View live data from the integration
+5. Export to PDF if needed
+
+This helps verify data quality before report generation.`,
 
       'disconnect': `**Disconnecting an Integration:**
 
@@ -139,7 +152,7 @@ If you don’t see a report you expect, check the customer’s schedule and whet
   },
 
   monitoring: {
-    keywords: ['monitoring', 'system status', 'health', 'metrics', 'dashboard'],
+    keywords: ['monitoring', 'system status', 'health', 'metrics', 'dashboard', 'queue', 'workers'],
     answers: {
       'system status': `**System Monitoring:**
 
@@ -147,10 +160,9 @@ The **Monitoring** page shows:
 
 **System Status:**
 - Database health
-- Redis status
+- Cache status
 - Queue workers
 - Disk space
-- Uptime
 
 **Metrics:**
 - Integration sync statistics
@@ -168,7 +180,86 @@ You'll be notified when:
 - Queue workers stop
 - Disk space is low
 
-Check the **Notifications** page for all alerts.`,
+Check the **Notifications** bell icon in the header for all alerts.`,
+    },
+  },
+
+  apiKeys: {
+    keywords: ['api key', 'api keys', 'programmatic', 'automation', 'token', 'access token'],
+    answers: {
+      'manage': `**API Key Management:**
+
+API keys allow programmatic access to the platform:
+
+1. Go to **Admin → API Keys**
+2. Click **"Create API Key"**
+3. Set a display name
+4. Configure permissions (same as user permissions)
+5. Optionally set IP whitelist
+6. Click **"Create"**
+
+**Important:** Copy the key immediately - it's only shown once!`,
+
+      'permissions': `**API Key Permissions:**
+
+API keys have the same permission structure as users:
+
+- **Integrations**: view/manage/sync
+- **Customers**: view/edit/map
+- **Reports**: view/configure/generate/download
+- **Company settings**: view/edit
+
+Keys can also be scoped to specific customers for limited access.`,
+    },
+  },
+
+  auditLogs: {
+    keywords: ['audit', 'audit log', 'history', 'activity', 'who did', 'track', 'compliance'],
+    answers: {
+      'view': `**Audit Logs:**
+
+Track all system activity in **Admin → Audit Logs**:
+
+- **User actions**: logins, permission changes
+- **Integration events**: syncs, credential updates
+- **Report activity**: generation, delivery, downloads
+- **System events**: configuration changes
+
+Filter by date, user, event type, or search for specific actions.
+
+Audit logs are retained for 7 years for compliance.`,
+    },
+  },
+
+  templates: {
+    keywords: ['template', 'report template', 'branding', 'customize', 'logo', 'colors'],
+    answers: {
+      'manage': `**Report Templates:**
+
+Customize report appearance in **Templates**:
+
+- View available report types
+- Preview template layouts
+- Configure branding (logo, colors)
+- Set default formatting options
+
+Templates use your company branding from Settings.`,
+    },
+  },
+
+  licenses: {
+    keywords: ['license', 'subscription', 'plan', 'features', 'upgrade'],
+    answers: {
+      'view': `**Licenses:**
+
+View your license status in **Admin → Licenses**:
+
+- Current subscription tier
+- Licensed integrations
+- Data retention limits
+- Expiry dates
+
+Contact your administrator to upgrade or add integrations.`,
     },
   },
 
@@ -206,40 +297,128 @@ Set permissions per user based on their role.`,
   },
 
   general: {
-    keywords: ['help', 'support', 'guide', 'how to', 'what is', 'dashboard', 'where', 'find', 'navigate', 'page'],
+    keywords: ['help', 'support', 'guide', 'how to', 'what is', 'dashboard', 'where', 'find', 'navigate', 'page', 'settings', 'docs', 'documentation'],
     answers: {
       'dashboard': `**Dashboard Overview:**
 
 The dashboard shows:
-- Total customers count
-- Active integrations
+- System health status
+- Active integrations count
 - Recent reports generated
-- Unmapped customers alert
+- Activity trends chart
 - Quick access to key features
 
 Navigate using the sidebar menu to access all features.`,
       
       'getting started': `**Getting Started:**
 
-1. **Add Integration**: Connect your first system (Autotask, Datto, etc.)
-2. **Map Customers**: Review and map unmapped customers
-3. **Configure Reports**: Set up report schedules for customers
-4. **Monitor**: Check the Monitoring page for system health
+1. **Add Integration**: Connect your first system (Autotask, Datto RMM, ITGlue, etc.)
+2. **Wait for Sync**: Integration will pull customer data automatically
+3. **Map Customers**: Review and map unmapped customers in Customers → Map
+4. **Configure Reports**: Set up report schedules for customers
+5. **Monitor**: Check the Monitoring page for system health
 
-Need help? Use this chatbot or contact support.`,
+Need help? Use this chatbot, check the **Docs** page, or contact support.`,
 
       'navigation': `**Where do I find that?**
 
-Here are the most common places:
+**Main Features:**
+- **Dashboard**: System overview and quick stats
+- **Integrations**: Connect systems, run syncs, preview data
+- **Customers**: Master list, Secondary list, Map customers
+- **Reports**: Generated reports, delivery status, downloads
+- **Schedules**: Configure when reports run
 
-- **Integrations**: connect systems, run syncs, view sync status
-- **Customers**: master list, mapping, merge/split
-- **Reports**: generated reports, delivery status, downloads
-- **Schedules**: configure and manage when reports run
-- **Monitoring**: system health and metrics
-- **Admin → Users**: user accounts and permissions
+**Admin Features:**
+- **Users**: User accounts and permissions
+- **API Keys**: Programmatic access tokens
+- **Audit Logs**: Activity history and compliance
+- **Licenses**: Subscription and feature status
+- **Settings**: Company branding and configuration
 
-Tell me what you’re trying to do and I’ll point you to the exact page.`,
+**Help:**
+- **Docs**: Full documentation and guides
+- **Notifications**: System alerts (bell icon)
+
+Tell me what you're trying to do and I'll point you to the exact page.`,
+
+      'settings': `**Settings:**
+
+Access **Settings** from the sidebar to configure:
+
+**Company Settings:**
+- Company name, email, phone, address
+- Source of Truth integration
+- Default timezone
+
+**Branding:**
+- Logo upload
+- Primary and secondary colors
+- Report header text
+- Email templates
+
+**Security:**
+- Password policy
+- Session timeout
+- Two-factor authentication`,
+
+      'documentation': `**Documentation:**
+
+Access full documentation in the **Docs** page:
+
+- **Getting Started**: Platform overview, first login
+- **Integrations**: How to connect and configure
+- **Customers**: Mapping and management
+- **Reports**: Scheduling and delivery
+- **Administration**: Users, permissions, settings
+
+Use the search bar to find specific topics.`,
+    },
+  },
+
+  authentication: {
+    keywords: ['login', 'sign in', 'password', 'forgot password', 'reset', 'sso', 'saml', 'ldap', 'microsoft', 'm365'],
+    answers: {
+      'login': `**Logging In:**
+
+1. Go to the login page
+2. Enter your email and password
+3. Click **Sign In**
+
+**Alternative login methods** (if configured):
+- **Microsoft 365**: Click "Sign in with Microsoft"
+- **SSO/SAML**: Click "Enterprise SSO"
+- **LDAP**: Use your Active Directory credentials
+
+Contact your admin if you can't log in.`,
+
+      'forgot password': `**Forgot Password:**
+
+1. Click **"Forgot Password?"** on the login page
+2. Enter your email address
+3. Click **"Send Reset Link"**
+4. Check your email for the reset link
+5. Click the link and set a new password
+
+If you don't receive the email, check spam or contact your admin.`,
+    },
+  },
+
+  notifications: {
+    keywords: ['notification', 'alert', 'bell', 'notify', 'email notification'],
+    answers: {
+      'view': `**Notifications:**
+
+Click the **bell icon** in the header to view notifications:
+
+- Integration sync failures
+- Report generation status
+- System alerts
+- Important updates
+
+Click a notification to see details or take action.
+
+Configure notification preferences in **Settings → Notifications**.`,
     },
   },
 }
@@ -298,13 +477,17 @@ export function findAnswer(question: string): string {
 
   const synonymGroups: Record<string, string[]> = {
     sync: ['sync', 'synchronise', 'synchronize', 'pull', 'refresh', 'update'],
-    integration: ['integration', 'connector', 'connect', 'connected'],
+    integration: ['integration', 'connector', 'connect', 'connected', 'autotask', 'datto', 'itglue'],
     customer: ['customer', 'client', 'account'],
     mapping: ['mapping', 'map', 'match', 'link', 'merge'],
     report: ['report', 'pdf', 'export', 'download', 'generated'],
     schedule: ['schedule', 'scheduled', 'frequency', 'cron', 'timing', 'run'],
     permissions: ['permission', 'permissions', 'role', 'roles', 'access'],
     monitoring: ['monitoring', 'health', 'status', 'metrics', 'uptime'],
+    apikey: ['api', 'apikey', 'token', 'automation', 'programmatic'],
+    audit: ['audit', 'log', 'history', 'activity', 'compliance'],
+    login: ['login', 'signin', 'password', 'forgot', 'reset', 'sso', 'saml'],
+    settings: ['settings', 'configure', 'branding', 'logo', 'colors'],
   }
 
   const expandedTokenSet = new Set<string>([...tokenSet])
@@ -317,7 +500,7 @@ export function findAnswer(question: string): string {
 
   const isGreeting = /(\bhi\b|\bhello\b|\bhey\b|\bgood\s*(morning|afternoon|evening)\b)/i.test(normalized)
   if (isGreeting) {
-    return `Hi! I can help with **Integrations**, **Customers**, **Reports**, **Schedules**, **Monitoring**, and **User permissions**.\n\nWhat are you trying to do?`
+    return `Hi! I can help with:\n\n- **Integrations** - Connect Autotask, Datto, ITGlue, etc.\n- **Customers** - Mapping and management\n- **Reports & Schedules** - Generation and delivery\n- **Admin** - Users, API keys, audit logs\n- **System** - Monitoring, settings, notifications\n\nWhat are you trying to do?`
   }
 
   const isThanks = /(\bthanks\b|\bthank you\b|\bthx\b)/i.test(normalized)
@@ -400,28 +583,34 @@ export function findAnswer(question: string): string {
   return `I'm not sure about that. Here are some topics I can help with:
 
 **Integrations**
-- How to add an integration
-- Integration syncing
-- Source of Truth
+- Adding integrations (Autotask, Datto, ITGlue, etc.)
+- Syncing and previewing data
+- Source of Truth setup
 
 **Customers**
 - Customer mapping
 - Master vs Secondary lists
 - Merge and split customers
 
-**Reports**
+**Reports & Schedules**
 - Configure report schedules
-- Report delivery
-- Generate reports
+- Report delivery and downloads
+- Generate reports on-demand
 
-**Monitoring**
-- System status
-- Health metrics
-- Alerts
+**Admin Features**
+- User management and permissions
+- API keys for automation
+- Audit logs and compliance
+- Licenses and subscriptions
 
-**Users**
-- User management
-- Permissions
+**System**
+- Monitoring and health status
+- Notifications and alerts
+- Settings and branding
+
+**Help**
+- Login and password reset
+- Documentation and guides
 
 Try asking about any of these topics!`
 }
