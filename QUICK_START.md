@@ -1,162 +1,165 @@
 # Quick Start Guide - 5 Minutes to Running
 
-## Context7
-- Visit https://context7.com/
-- Click Sign In
-- Create an account (its free)
-- Generate an API key
-- Add the MCP to Windsurf similar to below:
+## Prerequisites
 
-```json
-{
-	"mcpServers": {
-		"GitKraken": {
-			"args": [
-				"mcp",
-				"--host=windsurf",
-				"--source=gitlens",
-				"--scheme=windsurf"
-			],
-			"command": "/Users/josh/Library/Application Support/Windsurf/User/globalStorage/eamodio.gitlens/gk",
-			"type":    "stdio"
-		},
-		"context7": {
-			"command": "npx",
-			"args": ["-y", "@upstash/context7-mcp", "--api-key", "ctx7sk-049ecac0-cf31-4844-b92d-440ae4a86fa9"]
-		  }	  
-	}
-}
+| Tool | Version | Download |
+|------|---------|----------|
+| PHP | 8.3+ | [windows.php.net](https://windows.php.net/download/) (Thread Safe) |
+| Composer | 2.x | [getcomposer.org](https://getcomposer.org/download/) |
+| Node.js | 20+ LTS | [nodejs.org](https://nodejs.org/) |
+| PostgreSQL | 16+ | [postgresql.org](https://www.postgresql.org/download/) |
 
-Context7 will add up to date documentation to Claude, this will ensure its not making mistakes based on old training data. Just type to Claude normally and then at the end add: `use context7` to trigger the MCP.
+**Optional (for full features):**
+- TimescaleDB 2.x - Time-series optimization
+- Redis/Memurai - Better caching/queues
+- Docker - For Gotenberg PDF generation
+
+---
+
+## Windows Setup (Native)
+
+### Automated Setup
+
+```powershell
+git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
+cd reporting/scripts
+.\setup-local.ps1
 ```
 
-## Multi-Developer Setup (Shared Server)
+### Manual Setup
 
-**If you're on a shared remote desktop server with other developers:**
-
-```bash
-# 1. Clone the repository
+```powershell
+# 1. Clone repository
 git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
 cd reporting
 
-# 2. Configure your developer environment (avoids port conflicts)
-./setup-dev-environment.sh
-# Enter your developer ID when prompted (1-20)
+# 2. Create database
+$env:PGPASSWORD = "postgres"
+createdb -U postgres -h 127.0.0.1 reporting
 
-# 3. Run automated setup
-make install
+# 3. Backend setup
+cd backend
+Copy-Item .env.example .env
+# Edit .env: DB_CONNECTION=pgsql, DB_HOST=127.0.0.1, DB_DATABASE=reporting
+composer install
+php artisan key:generate
+php artisan migrate
+php artisan db:seed
+php artisan serve --host=0.0.0.0 --port=8000
+
+# 4. Frontend setup (new terminal)
+cd frontend
+Copy-Item .env.example .env
+npm install
+npm run dev
 ```
 
-The script will assign you unique ports to avoid conflicts with other developers.
+---
 
-## Solo Developer Setup (Local Machine)
+## Linux/macOS Setup
 
 ```bash
-# 1. Clone the repository
 git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
 cd reporting
-
-# 2. Run automated setup
-make install
+./scripts/setup-local.sh
+./scripts/start-dev.sh
 ```
 
-That's it! The `make install` command will:
-- Start all Docker services
-- Install Composer dependencies
-- Copy `.env.example` to `.env`
-- Generate application key
-- Run database migrations
-- Install frontend dependencies
+---
 
 ## Access Your Application
 
-### Solo Developer (Default Ports)
+| Service | URL |
+|---------|-----|
+| 🎨 Frontend | http://localhost:5173 |
+| 🔐 Login Page | http://localhost:5173/login |
+| 🚀 Backend API | http://localhost:8000/api |
 
-| Service | URL | Purpose |
-|---------|-----|---------|
-| 🎨 Frontend | http://localhost:5173 | React development server |
-| 🚀 API | http://localhost/api | Laravel backend |
-| 📧 MailHog | http://localhost:8025 | Test emails |
-| 🗄️ pgAdmin | http://localhost:5050 | Database management |
-| 🔴 Redis | http://localhost:8081 | Redis management |
+### Default Login Credentials
 
-### Multi-Developer (Custom Ports)
+After running `php artisan db:seed`:
 
-If you ran `./setup-dev-environment.sh`, your URLs were displayed after setup.
+| User | Email | Password | Role |
+|------|-------|----------|------|
+| Admin | `admin@tts.com.au` | `ChangeMe123!` | Full Administrator |
+| Test User | `kristianbas14@gmail.com` | `password123` | Administrator |
+| Viewer | `viewer@tts.com.au` | `password123` | Scoped Viewer |
 
-**Example for Developer 1:**
-- Frontend: http://localhost:5174
-- API: http://localhost:8001/api
-- MailHog: http://localhost:8026
-- pgAdmin: http://localhost:5051
-- Redis Commander: http://localhost:8082
+> ⚠️ **Change default passwords after first login!**
 
-**pgAdmin Login**: admin@athenanetworks.com.au / admin
+---
 
 ## Daily Development Commands
 
-```bash
-# Start working
-make up              # Start all services
-make logs            # View logs (Ctrl+C to exit)
+### Windows (PowerShell)
 
-# Common tasks
-make shell           # Access app container
-make migrate         # Run new migrations
-make artisan CMD=... # Run any artisan command
-make cache-clear     # Clear all caches
+```powershell
+# Start backend
+cd backend
+php artisan serve --host=0.0.0.0 --port=8000
 
-# When done
-make down            # Stop all services
+# Start frontend (new terminal)
+cd frontend
+npm run dev
+
+# Start queue worker (new terminal)
+cd backend
+php artisan queue:work
 ```
+
+### Linux/macOS
+
+```bash
+./scripts/start-dev.sh
+```
+
+---
+
+## Optional Services
+
+```powershell
+# Gotenberg (PDF generation) - requires Docker
+docker run -d -p 3000:3000 gotenberg/gotenberg:8
+
+# Enable TimescaleDB (after installation)
+psql -U postgres -d reporting -c "CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;"
+```
+
+---
 
 ## Troubleshooting
 
-**Port conflict errors?**
-```bash
-# If on shared server, run the setup script
-./setup-dev-environment.sh
+**Database connection failed?**
+- Ensure PostgreSQL service is running
+- Check `.env` has correct DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD
 
-# Then restart
-make down
-make up
+**Frontend can't reach API?**
+- Check backend is running on port 8000
+- Check `frontend/.env` has `VITE_API_BASE_URL=http://localhost:8000/api`
+
+**Migrations fail?**
+```powershell
+php artisan migrate:fresh --seed  # ⚠️ Wipes database
 ```
 
-**Services won't start?**
-```bash
-make down
-make up
-make logs
-```
-
-**Database issues?**
-```bash
-make migrate
-make db-shell  # Access PostgreSQL directly
-```
-
-**Cache issues?**
-```bash
-make cache-clear
-make restart
-```
-
-**Need fresh start?**
-```bash
-make fresh  # ⚠️ Wipes database and reseeds
-```
-
-## Full Command Reference
-
-Run `make help` to see all available commands.
+---
 
 ## Need More Help?
 
-- **Multi-Developer Setup**: See `docs/MULTI_DEVELOPER_SETUP.md`
-- **Detailed Setup**: See `docs/DOCKER_SETUP.md`
-- **Docker Overview**: See `docs/DOCKER_SUMMARY.md`
-- **Project Info**: See `README.md`
-- **Full Architecture**: See `PROJECT_PLAN.md`
+- **Full README**: See `README.md`
+- **Architecture**: See `PROJECT_PLAN.md`
+- **Deployment**: See `docs/DEPLOYMENT_NATIVE.md`
+- **Contributing**: See `CONTRIBUTING.md`
+
+---
+
+## Context7 (AI Documentation)
+
+For AI-assisted development with up-to-date docs:
+
+1. Visit https://context7.com/ and create account
+2. Generate API key
+3. Add to Windsurf MCP config
 
 ---
 

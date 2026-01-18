@@ -106,43 +106,63 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
 
 ### Prerequisites
 
-- PHP 8.3+
-- Node.js 20+
-- PostgreSQL 16+ with TimescaleDB
-- Redis 7+
-- NGINX
+| Tool | Version | Download |
+|------|---------|----------|
+| PHP | 8.3+ | [windows.php.net](https://windows.php.net/download/) (Thread Safe) |
+| Composer | 2.x | [getcomposer.org](https://getcomposer.org/download/) |
+| Node.js | 20+ LTS | [nodejs.org](https://nodejs.org/) |
+| PostgreSQL | 16+ | [postgresql.org](https://www.postgresql.org/download/) |
+| TimescaleDB | 2.x | [timescale.com](https://docs.timescale.com/self-hosted/latest/install/) (optional for dev) |
+| Redis | 7+ | [Memurai](https://www.memurai.com/) (Windows) or Docker |
+| Docker | Latest | [docker.com](https://www.docker.com/products/docker-desktop) (for Gotenberg PDF) |
 
 ### Installation
 
+#### Windows (PowerShell)
+
 1. **Clone the Repository**
-   ```bash
+   ```powershell
    git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
    cd reporting
    ```
 
-2. **Quick Setup (Development)**
-   ```bash
-   # Run the setup script
-   ./setup-local.sh
-   
-   # Start development servers
-   ./start-dev.sh
+2. **Quick Setup (Automated)**
+   ```powershell
+   cd scripts
+   .\setup-local.ps1
    ```
 
 3. **Manual Installation**
-   ```bash
+   ```powershell
+   # Create PostgreSQL database
+   $env:PGPASSWORD = "postgres"
+   createdb -U postgres -h 127.0.0.1 reporting
+   
    # Backend setup
    cd backend
+   Copy-Item .env.example .env
+   # Edit .env: Set DB_CONNECTION=pgsql, DB_HOST=127.0.0.1, DB_DATABASE=reporting
    composer install
-   cp .env.example .env
    php artisan key:generate
-   php artisan migrate --seed
-   php artisan serve --port=8000
+   php artisan migrate
+   php artisan db:seed
+   php artisan serve --host=0.0.0.0 --port=8000
    
    # Frontend setup (new terminal)
    cd frontend
+   Copy-Item .env.example .env
    npm install
    npm run dev
+   ```
+
+#### Linux/macOS (Bash)
+
+1. **Clone and Setup**
+   ```bash
+   git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
+   cd reporting
+   ./scripts/setup-local.sh
+   ./scripts/start-dev.sh
    ```
 
 4. **Production Deployment**
@@ -150,25 +170,38 @@ A world-class, enterprise-grade reporting platform designed for MSPs and telcos 
    See `docs/DEPLOYMENT_NATIVE.md` for complete production deployment guide.
 
 5. **Access the Application**
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:8000
-   - Default credentials: Check seeder or create first user
 
-### First Login
+   | Service | URL |
+   |---------|-----|
+   | Frontend | http://localhost:5173 |
+   | Backend API | http://localhost:8000 |
+   | Login Page | http://localhost:5173/login |
 
-After installation, create your first user:
-```bash
-php artisan tinker
->>> $company = App\Models\Company::create(['name' => 'My Company']);
->>> $user = App\Models\User::create([
-    'name' => 'Admin User',
-    'email' => 'admin@example.com',
-    'password' => bcrypt('password'),
-    'company_id' => $company->id,
-]);
+### Default Login Credentials
+
+After running `php artisan db:seed`, use these credentials:
+
+| User | Email | Password | Role |
+|------|-------|----------|------|
+| Admin | `admin@tts.com.au` | `ChangeMe123!` | Full Administrator |
+| Test User | `kristianbas14@gmail.com` | `password123` | Administrator |
+| Viewer | `viewer@tts.com.au` | `password123` | Scoped Viewer |
+
+> ⚠️ **Important**: Change default passwords after first login!
+
+### Optional Services
+
+```powershell
+# Start Queue Worker (for background jobs)
+cd backend
+php artisan queue:work
+
+# Start Gotenberg (for PDF generation) - requires Docker
+docker run -d -p 3000:3000 gotenberg/gotenberg:8
+
+# Enable TimescaleDB (after installation)
+psql -U postgres -d reporting -c "CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;"
 ```
-
-Then login at http://localhost:5173/login
 
 ---
 
