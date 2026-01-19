@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
-import { ReportsHeader, ReportsFilters, ReportsGrid } from './components'
+import { ReportsHeader, ReportsFilters, ReportsGrid, BulkGenerateModal } from './components'
 import { Pagination } from '@/pages/customers/components/Pagination'
 import { useReportsList } from './hooks'
 
@@ -33,6 +33,7 @@ export default function ReportsList() {
 
   const [reportToDelete, setReportToDelete] = useState<number | null>(null)
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+  const [showBulkGenerateModal, setShowBulkGenerateModal] = useState(false)
 
   const { current_page: currentPage, last_page: totalPages, total, per_page: perPage } = pagination
 
@@ -43,6 +44,7 @@ export default function ReportsList() {
           customerId={customerId}
           customerName={customerName}
           onViewAll={() => navigate('/reports')}
+          onBulkGenerate={() => setShowBulkGenerateModal(true)}
         />
 
         <ReportsFilters
@@ -112,6 +114,12 @@ export default function ReportsList() {
         confirmText={`Delete ${selectedReportIds.length} Reports`}
         cancelText="Cancel"
         type="danger"
+      />
+
+      {/* Bulk Generate Modal */}
+      <BulkGenerateModal
+        open={showBulkGenerateModal}
+        onOpenChange={setShowBulkGenerateModal}
       />
     </FloatingLayout>
   )

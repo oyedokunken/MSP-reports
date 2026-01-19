@@ -140,6 +140,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::patch('/customers/{id}/reports', [ReportConfigController::class, 'updateCustomerReports']);
         Route::patch('/customers/{id}/report-destination', [ReportConfigController::class, 'updateCustomerReportDestination']);
         Route::post('/reports/generate/{customer_id}', [ReportConfigController::class, 'generateReport']);
+        Route::post('/reports/bulk-generate', [ReportConfigController::class, 'bulkGenerateReports']);
         Route::post('/reports/schedules/{schedule_id}/generate', [ReportConfigController::class, 'generateFromSchedule']);
         Route::patch('/reports/schedules/{schedule_id}', [ReportConfigController::class, 'updateSchedule']);
         Route::post('/reports/schedules/{schedule_id}/reset', [ReportConfigController::class, 'resetSchedule']);

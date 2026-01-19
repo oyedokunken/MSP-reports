@@ -597,4 +597,159 @@ class ReportConfigController extends Controller
             'data' => $schedule
         ]);
     }
+
+    /**
+     * Generate reports for multiple customers at once (bulk generation)
+     */
+    public function bulkGenerateReports(Request $request)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $validated = $request->validate([
+            'customer_ids' => 'required|array|min:1|max:100',
+            'customer_ids.*' => 'required|integer',
+            'report_type' => 'nullable|string',
+            'frequency' => 'nullable|string|in:daily,weekly,monthly,yearly',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'preview_only' => 'nullable|boolean',
+        ]);
+
+        $customerIds = $validated['customer_ids'];
+        $reportType = $validated['report_type'] ?? null;
+        $frequencyOverride = $validated['frequency'] ?? null;
+        $previewOnly = $validated['preview_only'] ?? false;
+
+        // Parse dates if provided
+        $startDate = isset($validated['start_date']) 
+            ? Carbon::parse($validated['start_date'])->startOfDay() 
+            : null;
+        $endDate = isset($validated['end_date']) 
+            ? Carbon::parse($validated['end_date'])->endOfDay() 
+            : null;
+
+        // Verify all customers belong to this company
+        $customers = Customer::where('company_id', $company->company_id)
+            ->whereIn('customer_id', $customerIds)
+            ->get();
+
+        if ($customers->count() !== count($customerIds)) {
+            $foundIds = $customers->pluck('customer_id')->toArray();
+            $missingIds = array_diff($customerIds, $foundIds);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Some customers not found or not accessible.',
+                'data' => ['missing_customer_ids' => array_values($missingIds)]
+            ], 400);
+        }
+
+        $results = [
+            'total_customers' => count($customerIds),
+            'successful' => 0,
+            'failed' => 0,
+            'skipped' => 0,
+            'reports' => [],
+            'errors' => [],
+        ];
+
+        foreach ($customers as $customer) {
+            try {
+                // Get active schedules for this customer
+                $schedulesQuery = ReportSchedule::where('customer_id', $customer->customer_id)
+                    ->where('company_id', $company->company_id)
+                    ->where('active', true);
+
+                // Filter by report type if specified
+                if ($reportType) {
+                    $schedulesQuery->where('report_type', $reportType);
+                }
+
+                $schedules = $schedulesQuery->get();
+
+                if ($schedules->isEmpty()) {
+                    $results['skipped']++;
+                    $results['errors'][] = [
+                        'customer_id' => $customer->customer_id,
+                        'customer_name' => $customer->canonical_name,
+                        'error' => 'No active report schedules found'
+                    ];
+                    continue;
+                }
+
+                $customerReports = [];
+
+                foreach ($schedules as $schedule) {
+                    try {
+                        // Apply frequency override if provided
+                        if ($frequencyOverride) {
+                            $schedule->frequency = $frequencyOverride;
+                        }
+
+                        // Generate report
+                        if ($startDate && $endDate) {
+                            $generatedReport = $this->reportService->generateReport($schedule, $startDate, $endDate);
+                        } else {
+                            $generatedReport = $this->reportService->generateReport($schedule);
+                        }
+
+                        // Queue delivery if not preview only
+                        if (!$previewOnly) {
+                            DeliverReportJob::dispatch($generatedReport);
+                        }
+
+                        $schedule->update(['last_generated_at' => now()]);
+
+                        $reportName = $schedule->template 
+                            ? $schedule->template->template_name 
+                            : ucfirst(str_replace('_', ' ', $schedule->report_type));
+
+                        $customerReports[] = [
+                            'generated_report_id' => $generatedReport->generated_report_id,
+                            'report_type' => $schedule->report_type,
+                            'report_name' => $reportName,
+                            'status' => $previewOnly ? 'preview' : 'queued',
+                        ];
+
+                    } catch (\Exception $e) {
+                        $results['errors'][] = [
+                            'customer_id' => $customer->customer_id,
+                            'customer_name' => $customer->canonical_name,
+                            'report_type' => $schedule->report_type,
+                            'error' => $e->getMessage()
+                        ];
+                    }
+                }
+
+                if (!empty($customerReports)) {
+                    $results['successful']++;
+                    $results['reports'][] = [
+                        'customer_id' => $customer->customer_id,
+                        'customer_name' => $customer->canonical_name,
+                        'reports_generated' => $customerReports,
+                    ];
+                } else {
+                    $results['failed']++;
+                }
+
+            } catch (\Exception $e) {
+                $results['failed']++;
+                $results['errors'][] = [
+                    'customer_id' => $customer->customer_id,
+                    'customer_name' => $customer->canonical_name,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+
+        $statusMessage = $results['successful'] > 0 
+            ? "Bulk report generation completed. {$results['successful']} customers processed successfully."
+            : "Bulk report generation failed. No reports were generated.";
+
+        return response()->json([
+            'status' => $results['successful'] > 0 ? 'success' : 'error',
+            'message' => $statusMessage,
+            'data' => $results
+        ], $results['successful'] > 0 ? 200 : 400);
+    }
 }
