@@ -7,30 +7,33 @@ use App\Integrations\Traits\HasDefaultPreview;
 use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
-use App\Jobs\AutoMatchCustomersJob;
 use App\Jobs\BatchAutoMatchCustomersJob;
-use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use App\Integrations\Concerns\HasHeartbeat;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Collection;
 
 class ITGlueIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
-    
+
     protected Integration $integration;
     protected ITGlueClient $client;
     protected CustomerMappingService $mappingService;
     protected ?int $currentSyncLogId = null;
+    private $lastBatchProcessedCount = 0;
 
     public function __construct(Integration $integration)
     {
         $this->integration = $integration;
-        $rateLimiter = app(RateLimiter::class);
-        $this->client = new ITGlueClient($integration->credentials, $rateLimiter, $integration);
+        $this->client = new ITGlueClient(
+            $integration->credentials,
+            app(\App\Services\RateLimiter::class),
+            $integration
+        );
         $this->mappingService = app(CustomerMappingService::class);
     }
 
@@ -38,25 +41,25 @@ class ITGlueIntegration implements IntegrationInterface
     {
         return [
             [
-                'name' => 'api_key',
-                'label' => 'API Key',
-                'type' => 'password',
-                'required' => true,
+                'name'        => 'api_key',
+                'label'       => 'API Key',
+                'type'        => 'password',
+                'required'    => true,
                 'placeholder' => 'ITG.xxxxxxxx...',
-                'help' => 'Your IT Glue API key from Account > Settings > API Keys',
+                'help'        => 'Your IT Glue API key from Account > Settings > API Keys',
             ],
             [
-                'name' => 'base_url',
-                'label' => 'Region',
-                'type' => 'select',
-                'required' => true,
+                'name'    => 'base_url',
+                'label'   => 'Region',
+                'type'    => 'select',
+                'required'=> true,
                 'options' => [
                     'https://api.au.itglue.com' => 'Australia',
-                    'https://api.itglue.com' => 'United States',
+                    'https://api.itglue.com'    => 'United States',
                     'https://api.eu.itglue.com' => 'Europe',
                 ],
                 'default' => 'https://api.au.itglue.com',
-                'help' => 'Select your IT Glue region',
+                'help'    => 'Select your IT Glue region',
             ],
         ];
     }
@@ -70,268 +73,420 @@ class ITGlueIntegration implements IntegrationInterface
     {
         $this->integration->update([
             'sync_state' => json_encode([
-                'phase' => $phase,
-                'offset' => $offset,
-                'total' => $total,
+                'phase'     => $phase,
+                'offset'    => $offset,
+                'total'     => $total,
                 'timestamp' => now()->timestamp,
-            ])
+            ]),
         ]);
+    }
+
+    protected function dispatchBatches(string $type, array $items, int &$counter): void
+    {
+        collect($items)->chunk(200)->each(function (Collection $chunk) use ($type, &$counter) {
+            \App\Jobs\ProcessIntegrationBatchJob::dispatch(
+                $this->integration,
+                $type,
+                $chunk->toArray(),
+                $this->currentSyncLogId
+            );
+            $counter++;
+        });
+    }
+
+    public function sync(): array
+    {
+        if (!$this->currentSyncLogId) {
+            $syncLog = \App\Models\SyncLog::create([
+                'integration_id' => $this->integration->integration_id,
+                'started_at'     => now(),
+                'status'         => 'running',
+            ]);
+            $this->currentSyncLogId = $syncLog->id;
+            Log::info('Created new sync log entry', ['sync_id' => $this->currentSyncLogId]);
+        }
+
+        $metrics = [
+            'processed' => 0,
+            'batches'   => 0,
+            'errors'    => [],
+        ];
+
+        $state = json_decode($this->integration->sync_state ?? '{}', true);
+        $phase = $state['phase'] ?? 'organizations';
+
+        try {
+            if ($phase === 'organizations') {
+                $metrics['processed'] += $this->syncOrganizations();
+                $this->saveSyncState('ssl_certs', 0, 0);
+                $phase = 'ssl_certs';
+            }
+
+            if ($phase === 'ssl_certs') {
+                $metrics['processed'] += $this->syncCertificates($metrics['batches']);
+                $this->saveSyncState('domains', 0, 0);
+                $phase = 'domains';
+            }
+
+            if ($phase === 'domains') {
+                $metrics['processed'] += $this->syncDomains($metrics['batches']);
+                $this->saveSyncState('flexible_assets', 0, 0);
+                $phase = 'flexible_assets';
+            }
+
+            if ($phase === 'flexible_assets') {
+                $metrics['processed'] += $this->syncFlexibleAssets($metrics['batches']);
+            }
+
+            $this->integration->update(['sync_state' => null]);
+        } catch (\Throwable $e) {
+            $metrics['errors'][] = $e->getMessage();
+            Log::critical('ITGlue sync failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+        } finally {
+            $this->updateStatsCache();
+            $this->processUnmappedCustomers();
+        }
+
+        return [
+            'records_synced'     => $metrics['processed'],
+            'records_new'        => 0,
+            'customers_mapped'   => [],
+            'records_failed'     => count($metrics['errors']),
+            'errors'             => $metrics['errors'],
+            'batches_dispatched' => $metrics['batches'],
+        ];
+    }
+
+    protected function syncOrganizations(): int
+    {
+        $organizations = $this->client->getOrganizations();
+        $count = count($organizations);
+
+        Log::info('ITGlue: Syncing organizations', ['count' => $count]);
+
+        foreach ($organizations as $org) {
+            try {
+                $data = ITGlueMapper::mapCustomer($org);
+                $this->storeCustomer($data);
+                $this->sendHeartbeat();
+            } catch (\Throwable $e) {
+                Log::warning('Failed to store organization', [
+                    'org_id' => $org['id'] ?? 'unknown',
+                    'error'  => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $count;
+    }
+
+   protected function syncCertificates(int &$batches): int
+    {
+        $items = $this->client->getSslCertificates('next90days');
+        $totalItems = count($items);
+
+        if ($totalItems === 0) {
+            return 0;
+        }
+
+        $batchCount = (int) ceil($totalItems / 200);
+
+        if ($this->currentSyncLogId) {
+            $redis = \Illuminate\Support\Facades\Redis::connection();
+            $pendingKey = "sync_log:{$this->currentSyncLogId}:pending";
+            $failedKey  = "sync_log:{$this->currentSyncLogId}:failed";
+
+            $redis->multi();
+            $redis->incrby($pendingKey, $batchCount);
+            $redis->set($failedKey, 0);
+            $redis->expire($pendingKey, 86400);
+            $redis->expire($failedKey, 86400);
+            $redis->exec();
+
+            Log::info('Initialized batch counters for SSL certificates', [
+                'sync_id'     => $this->currentSyncLogId,
+                'batch_count' => $batchCount,
+                'total_items' => $totalItems,
+            ]);
+        }
+
+        $this->dispatchBatches('ssl_certs', $items, $batches);
+
+        return $totalItems;
+    }
+
+    protected function syncDomains(int &$batches): int
+    {
+        $items = $this->client->getDomains('next90days');
+        $totalItems = count($items);
+
+        if ($totalItems === 0) {
+            return 0;
+        }
+
+        $batchCount = (int) ceil($totalItems / 200);
+
+        if ($this->currentSyncLogId) {
+            $redis = \Illuminate\Support\Facades\Redis::connection();
+            $pendingKey = "sync_log:{$this->currentSyncLogId}:pending";
+            $failedKey  = "sync_log:{$this->currentSyncLogId}:failed";
+
+            $redis->multi();
+            $redis->incrby($pendingKey, $batchCount);
+            $redis->set($failedKey, 0);
+            $redis->expire($pendingKey, 86400);
+            $redis->expire($failedKey, 86400);
+            $redis->exec();
+
+            Log::info('Initialized batch counters for domains', [
+                'sync_id'     => $this->currentSyncLogId,
+                'batch_count' => $batchCount,
+                'total_items' => $totalItems,
+            ]);
+        }
+
+        $this->dispatchBatches('domains', $items, $batches);
+
+        return $totalItems;
+    }
+
+    protected function syncFlexibleAssets(int &$batches): int
+    {
+        $typeIds = $this->client->findLicenseAssetTypeIds();
+
+        if (empty($typeIds)) {
+            Log::warning('ITGlue: No license asset types found - skipping flexible assets');
+            return 0;
+        }
+
+        Log::info('ITGlue: Syncing flexible assets (bulk)', ['type_count' => count($typeIds)]);
+
+        $redis = \Illuminate\Support\Facades\Redis::connection();
+        $pendingKey = "sync_log:{$this->currentSyncLogId}:pending";
+        $failedKey  = "sync_log:{$this->currentSyncLogId}:failed";
+
+        $totalBatches = 0;
+        $assetGroups = [];
+
+        foreach ($typeIds as $typeId) {
+            try {
+                $assets = $this->client->getFlexibleAssets($typeId, null);
+                $count  = count($assets);
+
+                if ($count === 0) {
+                    continue;
+                }
+
+                $chunkCount = (int) ceil($count / 200);
+                $totalBatches += $chunkCount;
+                $assetGroups[$typeId] = $assets;
+            } catch (\Throwable $e) {
+                Log::error('Failed to fetch flexible assets for type', [
+                    'type_id' => $typeId,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if ($totalBatches === 0) {
+            return 0;
+        }
+
+        if ($this->currentSyncLogId) {
+            $redis->multi();
+            $redis->incrby($pendingKey, $totalBatches);
+            $redis->set($failedKey, 0);
+            $redis->expire($pendingKey, 86400);
+            $redis->expire($failedKey, 86400);
+            $redis->exec();
+
+            Log::info('Initialized batch counters for flexible assets', [
+                'sync_id'       => $this->currentSyncLogId,
+                'total_batches' => $totalBatches,
+            ]);
+        }
+
+        $totalProcessed = 0;
+
+        foreach ($assetGroups as $typeId => $assets) {
+            $this->dispatchBatches('flexible_assets', $assets, $batches);
+            $totalProcessed += count($assets);
+        }
+
+        return $totalProcessed;
+    }
+
+    protected function updateStatsCache(): void
+    {
+        $key = "integration_{$this->integration->integration_id}_customer_counts";
+
+        Cache::forget($key);
+
+        $mapped = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNotNull('customer_id')
+            ->count();
+
+        $unmapped = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
+
+        Cache::put($key, [
+            'mapped'    => $mapped,
+            'unmapped'  => $unmapped,
+            'last_sync' => now(),
+        ], now()->addMinutes(10));
+    }
+
+    private function processUnmappedCustomers(): void
+    {
+        $count = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
+
+        if ($count > 0) {
+            BatchAutoMatchCustomersJob::dispatchSync($this->integration);
+            Log::info('Dispatched auto-match job', [
+                'integration_id' => $this->integration->integration_id,
+                'unmapped'       => $count,
+            ]);
+        }
+    }
+
+    private function storeCustomer(array $customer): void
+    {
+        IntegrationCustomer::updateOrCreate(
+            [
+                'integration_id' => $this->integration->integration_id,
+                'external_id'    => $customer['external_id'],
+            ],
+            [
+                'name'         => $customer['name'],
+                'metadata'     => $customer['metadata'],
+                'active'       => $customer['active'],
+                'last_seen_at' => now(),
+            ]
+        );
     }
 
     public function processBatch(string $type, array $items): void
     {
-        // Pre-load customer map to avoid N+1 queries
+        $this->lastBatchProcessedCount = 0;
+
         $customerMap = null;
         if (in_array($type, ['ssl_certs', 'domains', 'flexible_assets'])) {
             $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
                 ->pluck('integration_customer_id', 'external_id')
                 ->toArray();
         }
-        
+
         switch ($type) {
             case 'organizations':
                 foreach ($items as $organization) {
                     try {
                         $standardized = ITGlueMapper::mapCustomer($organization);
                         $this->storeCustomer($standardized);
-                        
-                        // Heartbeat
                         if (method_exists($this, 'sendHeartbeat')) {
                             $this->sendHeartbeat();
                         }
                     } catch (\Exception $e) {
-                        $orgId = $organization['id'] ?? 'unknown';
-                        Log::error('ITGlue Batch: Failed to process organization', ['org_id' => $orgId, 'error' => $e->getMessage()]);
+                        Log::error('ITGlue Batch: Failed to process organization', [
+                            'org_id' => $organization['id'] ?? 'unknown',
+                            'error'  => $e->getMessage(),
+                        ]);
                     }
                 }
                 break;
 
             case 'ssl_certs':
-                $batch = [];
-                foreach ($items as $cert) {
-                    try {
-                        $data = ITGlueMapper::mapSslCertificate($cert);
-                        // Use pre-loaded map instead of resolveIntegrationCustomerId()
-                        $data['integration_customer_id'] = $customerMap[$data['integration_customer_id']] ?? null;
-                        if ($data['integration_customer_id']) {
-                            $batch[] = $data;
-                        }
-                    } catch (\Exception $e) {
-                        Log::error('ITGlue Batch: Failed to process SSL cert', ['error' => $e->getMessage()]);
-                    }
-                }
-                $this->bulkStoreHistoricalData('ssl_certificate', $batch);
-                break;
-
             case 'domains':
-                $batch = [];
-                foreach ($items as $domain) {
-                    try {
-                        $data = ITGlueMapper::mapDomain($domain);
-                        // Use pre-loaded map
-                        $data['integration_customer_id'] = $customerMap[$data['integration_customer_id']] ?? null;
-                        if ($data['integration_customer_id']) {
-                            $batch[] = $data;
-                        }
-                    } catch (\Exception $e) {
-                        Log::error('ITGlue Batch: Failed to process domain', ['error' => $e->getMessage()]);
-                    }
-                }
-                $this->bulkStoreHistoricalData('domain', $batch);
-                break;
-
             case 'flexible_assets':
                 $batch = [];
-                foreach ($items as $asset) {
+                foreach ($items as $item) {
                     try {
-                        $data = ITGlueMapper::mapFlexibleAsset($asset);
-                        // Use pre-loaded map
-                        $data['integration_customer_id'] = $customerMap[$data['integration_customer_id']] ?? null;
+                        $data = match ($type) {
+                            'ssl_certs'       => ITGlueMapper::mapSslCertificate($item),
+                            'domains'         => ITGlueMapper::mapDomain($item),
+                            'flexible_assets' => ITGlueMapper::mapFlexibleAsset($item),
+                            default           => null,
+                        };
+
+                        if (!$data) {
+                            continue;
+                        }
+
+                        $data['integration_customer_id'] = $customerMap[$data['integration_customer_id'] ?? ''] ?? null;
+
                         if ($data['integration_customer_id']) {
                             $batch[] = $data;
                         }
                     } catch (\Exception $e) {
-                        Log::error('ITGlue Batch: Failed to process flexible asset', ['error' => $e->getMessage()]);
+                        Log::error("ITGlue Batch: Failed to process {$type} item", ['error' => $e->getMessage()]);
                     }
                 }
-                $this->bulkStoreHistoricalData('flexible_asset', $batch);
+
+                $dataType = $type === 'ssl_certs' ? 'ssl_certificate' : $type;
+                $this->bulkStoreHistoricalData($dataType, $batch);
                 break;
         }
     }
 
-    protected $mappedDuringSync = [];
-
-    public function sync(): array
+    private function bulkStoreHistoricalData(string $dataType, array $batch): void
     {
-        $errors = [];
-        $totalProcessed = 0;
-        $batchesDispatched = 0;
+        if (empty($batch)) {
+            $this->lastBatchProcessedCount = 0;
+            return;
+        }
 
-        try {
-            // Load state
-            $state = json_decode($this->integration->sync_state, true);
-            $phase = $state['phase'] ?? 'organizations';
-            
-            // PHASE 1: ORGANIZATIONS
-            if ($phase === 'organizations') {
-                $organizations = $this->client->getOrganizations();
-                $totalOrgs = count($organizations);
-                
-                Log::info('ITGlue Integration: Syncing Organizations', ['count' => $totalOrgs]);
-                
-                // 1. Synchronous Customer Sync (Standard Pattern)
-                foreach ($organizations as $org) {
-                    try {
-                        $standardized = ITGlueMapper::mapCustomer($org);
-                        $this->storeCustomer($standardized);
-                    } catch (\Exception $e) {
-                         Log::warning('ITGlue Sync: Organization store failed', ['id' => $org['id'] ?? 'unknown', 'error' => $e->getMessage()]);
-                    }
-                }
-                
-                // 2. Immediate Automap
-                $this->processUnmappedCustomers();
-                
-                $totalProcessed += $totalOrgs;
-                
-                // Note: We do NOT dispatch organization batches anymore as they are handled above.
-                // We proceed directly to data phases which depend on these customers existing.
-                
-                $this->saveSyncState('ssl_certs', 0, 0); // Move to next phase
-                $phase = 'ssl_certs';
-            }
+        $externalIds = array_filter(array_map(fn($item) => 
+            $item['payload']['id'] ?? $item['payload']['asset_id'] ?? null, $batch));
 
-            // PHASE 2: SSL CERTS
-            if ($phase === 'ssl_certs') {
-                try {
-                    $sslCerts = $this->client->getSslCertificates('next90days');
-                    Log::info('ITGlue Integration: Syncing SSL Certs', ['count' => count($sslCerts)]);
-                    
-                    collect($sslCerts)->chunk(50)->each(function ($chunk) use (&$batchesDispatched) {
-                        \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'ssl_certs', $chunk->toArray(), $this->currentSyncLogId);
-                        $batchesDispatched++;
-                    });
-                     $totalProcessed += count($sslCerts);
-                } catch (\Exception $e) {
-                    $errors[] = "SSL Cert sync failed: " . $e->getMessage();
-                }
-                
-                $this->saveSyncState('domains', 0, 0);
-                $phase = 'domains';
-            }
+        $now = now();
 
-            // PHASE 3: DOMAINS
-            if ($phase === 'domains') {
-                try {
-                    $domains = $this->client->getDomains('next90days');
-                    Log::info('ITGlue Integration: Syncing Domains', ['count' => count($domains)]);
-                    
-                    collect($domains)->chunk(50)->each(function ($chunk) use (&$batchesDispatched) {
-                        \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'domains', $chunk->toArray(), $this->currentSyncLogId);
-                        $batchesDispatched++;
-                    });
-                    $totalProcessed += count($domains);
-                } catch (\Exception $e) {
-                     $errors[] = "Domain sync failed: " . $e->getMessage();
-                }
-
-                $this->saveSyncState('flexible_assets', 0, 0);
-                $phase = 'flexible_assets';
-            }
-
-            // PHASE 4: FLEXIBLE ASSETS
-            if ($phase === 'flexible_assets') {
-                try {
-                    $flexibleAssetTypes = $this->client->getFlexibleAssetTypes();
-                     Log::info('ITGlue Integration: Syncing Flexible Assets', ['types_count' => count($flexibleAssetTypes)]);
-                    
-                    foreach ($flexibleAssetTypes as $assetType) {
-                        try {
-                            $typeId = $assetType['id'] ?? null;
-                            if (!$typeId) continue;
-
-                            $flexibleAssets = $this->client->getFlexibleAssets((int)$typeId);
-                            
-                            collect($flexibleAssets)->chunk(50)->each(function ($chunk) use (&$batchesDispatched) {
-                                \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'flexible_assets', $chunk->toArray(), $this->currentSyncLogId);
-                                $batchesDispatched++;
-                            });
-                             $totalProcessed += count($flexibleAssets);
-                             
-                        } catch (\Exception $e) {
-                            $errors[] = "Flexible Asset Type {$assetType['id']} failed: " . $e->getMessage();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($dataType, $batch, $externalIds, $now) {
+            if (!empty($externalIds)) {
+                \Illuminate\Support\Facades\DB::table('integration_data')
+                    ->where('integration_id', $this->integration->integration_id)
+                    ->where('data_type', $dataType)
+                    ->where(function ($query) use ($externalIds) {
+                        foreach ($externalIds as $id) {
+                            $query->orWhereRaw("data_payload->>'id' = ?", [(string)$id])
+                                  ->orWhereRaw("data_payload->>'asset_id' = ?", [(string)$id]);
                         }
-                    }
-                } catch (\Exception $e) {
-                    $errors[] = "Flexible Asset sync failed: " . $e->getMessage();
-                }
+                    })
+                    ->delete();
             }
 
-            // COMPLETION
-            $this->integration->update(['sync_state' => null]);
+            $insertData = [];
+            foreach ($batch as $item) {
+                $validator = app(\App\Services\IntegrationDataValidator::class);
+                $payload = $validator->validate($dataType, $item['payload']);
 
-        } catch (\Exception $e) {
-            if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
-                throw $e;
+                $insertData[] = [
+                    'company_id'             => $this->integration->company_id,
+                    'integration_id'         => $this->integration->integration_id,
+                    'integration_customer_id'=> $item['integration_customer_id'],
+                    'data_type'              => $dataType,
+                    'data_timestamp'         => $item['timestamp'],
+                    'data_payload'           => json_encode($payload),
+                    'imported_at'            => $now,
+                    'data_version'           => 1,
+                    'created_at'             => $now,
+                    'updated_at'             => $now,
+                ];
             }
-            $errors[] = "Sync failed: {$e->getMessage()}";
-            Log::error('ITGlue Integration: Sync failed', ['error' => $e->getMessage()]);
-        }
-        
-        // Auto-match Logic (via Cache Helper or inline)
-        $this->updateStatsCache();
 
-        // Dispatch unmapped matcher - using the existing helper method logic inline or keeping the method?
-        // The original sync called processUnmappedCustomers(). We can keep calling it.
-        $this->processUnmappedCustomers();
+            if (!empty($insertData)) {
+                \Illuminate\Support\Facades\DB::table('integration_data')->insert($insertData);
+            }
+        });
 
-        return [
-            'records_synced' => $totalProcessed,
-            'records_new' => 0,
-            'customers_mapped' => [],
-            'records_failed' => count($errors),
-            'errors' => $errors,
-            'batches_dispatched' => $batchesDispatched,
-        ];
-    }
-    
-    protected function updateStatsCache(): void 
-    {
-        $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
-        Cache::forget($cacheKey);
-        
-        $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNotNull('customer_id')
-            ->count();
-        
-        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->count();
-
-        Cache::put($cacheKey, [
-            'mapped' => $mappedCount,
-            'unmapped' => $unmappedCount,
-            'last_sync' => now(),
-        ], now()->addMinutes(10));
+        $this->lastBatchProcessedCount = count($batch);
     }
 
 
-
-    private function processUnmappedCustomers(): array
+    public function getLastBatchProcessedCount(): int
     {
-        // Only dispatch if there are actually unmapped customers
-        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->count();
-        
-        if ($unmappedCount > 0) {
-            BatchAutoMatchCustomersJob::dispatchSync($this->integration);
-            \Log::info('ITGlue: Dispatched auto-match job', [
-                'integration_id' => $this->integration->integration_id,
-                'unmapped_count' => $unmappedCount,
-            ]);
-        }
-        return []; // Batch job handles mapping asynchronously
+        return $this->lastBatchProcessedCount;
     }
 
     public function getCustomers(): array
@@ -342,7 +497,6 @@ class ITGlueIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        // Historical data is now handled via processBatch dispatching during sync()
         return [
             'success' => true,
             'total_processed' => 0,
@@ -352,30 +506,22 @@ class ITGlueIntegration implements IntegrationInterface
 
     public function getAvailableHistoryRange(): ?Carbon
     {
-        // ITGlue provides current state snapshots, not historical time-series data
-        // Return current date to allow historical import (captures current state)
         return Carbon::now();
     }
 
     public function getMetadata(): array
     {
         return [
-            'name' => 'ITGlue',
-            'description' => 'IT Glue Documentation and Asset Management',
-            'data_types' => [
-                'organization_info',
-                'ssl_certificate',
-                'domain',
-                'flexible_asset',
-            ],
+            'name'                => 'ITGlue',
+            'description'         => 'IT Glue Documentation and Asset Management',
+            'data_types'          => ['organization_info', 'ssl_certificate', 'domain', 'flexible_asset'],
             'supports_historical' => true,
-            'historical_range_days' => 1, // Captures current state snapshot
+            'historical_range_days' => 1,
         ];
     }
 
     public function disconnect(): void
     {
-        // ITGlue uses API key authentication, no tokens to clear
         Log::info('ITGlue Integration: Disconnected', [
             'integration_id' => $this->integration->integration_id,
         ]);
@@ -398,15 +544,11 @@ class ITGlueIntegration implements IntegrationInterface
         ];
     }
 
-    /**
-     * Override the default display template to customize column names for ITGlue
-     */
     public function getDisplayTemplate(): array
     {
         $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('itglue', 'ITGlue');
         $builder->description('IT Glue Organizations and Assets');
-        
-        // Customers table with custom "Licenses" column
+
         $builder->addSection('customers', 'Organizations', 'table')
             ->description('Synced organizations from IT Glue')
             ->icon('Users')
@@ -433,8 +575,7 @@ class ITGlueIntegration implements IntegrationInterface
             ->selectable()
             ->exportable()
             ->end();
-        
-        // Overview metrics
+
         $builder->addSection('metrics', 'Overview', 'grid')
             ->icon('BarChart3')
             ->dataPath('metrics')
@@ -443,41 +584,34 @@ class ITGlueIntegration implements IntegrationInterface
             ->addMetric('active_customers', 'Active Organizations', 'active_customers', 'number', 'CheckCircle', 'green')
             ->addMetric('last_sync', 'Last Sync', 'last_sync', 'datetime', 'RefreshCw', 'gray')
             ->end();
-        
+
         return $builder->build();
     }
 
-    /**
-     * Get licenses for a specific customer (called on-demand when modal opens)
-     */
     public function getCustomerLicenses(int $integrationCustomerId): array
     {
-        // Get licenses for this customer from IntegrationData
         $licenses = IntegrationData::where('company_id', $this->integration->company_id)
             ->where('integration_id', $this->integration->integration_id)
             ->where('integration_customer_id', $integrationCustomerId)
             ->where('data_type', 'flexible_asset')
             ->get()
             ->filter(function ($data) {
-                // Filter for license-type flexible assets
                 $typeName = $data->data_payload['type_name'] ?? '';
                 return stripos($typeName, 'License') !== false;
             })
             ->map(function ($data) {
                 $payload = $data->data_payload;
                 $traits = $payload['traits'] ?? [];
-                
-                // Get license name
+
                 $licenseName = $traits['license-name'] ?? $payload['name'] ?? 'Unknown License';
                 if (is_array($licenseName)) {
                     $licenseName = reset($licenseName);
                 }
-                
-                // Get counts
+
                 $active = $this->getLicenseValue($traits, 'active', 'purchased', 'total-seats');
                 $consumed = $this->getLicenseValue($traits, 'consumed', 'assigned', 'used-seats');
                 $unused = $this->getLicenseValue($traits, 'unused', 'available');
-                
+
                 return [
                     'name' => $licenseName,
                     'active' => (int)$active,
@@ -488,188 +622,33 @@ class ITGlueIntegration implements IntegrationInterface
             })
             ->values()
             ->toArray();
-        
+
         return $licenses;
     }
-    
-    /**
-     * Helper to get license value from traits (handles array or single values)
-     */
+
     private function getLicenseValue(array $traits, ...$keys): float
     {
         foreach ($keys as $key) {
             if (!isset($traits[$key])) {
                 continue;
             }
-            
+
             $value = $traits[$key];
             if (is_array($value)) {
                 return array_sum(array_map('floatval', $value));
             }
             return (float)$value;
         }
-        
+
         return 0;
     }
 
-    private function storeCustomer(array $customer): void
-    {
-        $integrationCustomer = IntegrationCustomer::updateOrCreate(
-            [
-                'integration_id' => $this->integration->integration_id,
-                'external_id' => $customer['external_id'],
-            ],
-            [
-                'name' => $customer['name'],
-                'metadata' => $customer['metadata'],
-                'active' => $customer['active'],
-                'last_seen_at' => now(),
-            ]
-        );
-
-        $integrationCustomer->refresh();
-
-        // No individual dispatch needed - BatchAutoMatchCustomersJob processes
-        // all unmapped customers at end of sync (in processUnmappedCustomers)
-    }
-
-    private function storeHistoricalData(array $data): void
-    {
-        // Only store if we have a valid integration customer ID
-        if (empty($data['integration_customer_id'])) {
-            return;
-        }
-
-        // Validate and sanitize payload
-        $validator = app(\App\Services\IntegrationDataValidator::class);
-        $payload = $validator->validate($data['data_type'], $data['payload']);
-        
-        $assetId = $payload['asset_id'] ?? $payload['id'] ?? null;
-        
-        if ($assetId) {
-            // UPSERT: Use asset_id + data_type + date as unique key
-            $dateOnly = Carbon::parse($data['timestamp'])->startOfDay();
-            
-            $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
-                ->where('data_type', $data['data_type'])
-                ->where('integration_customer_id', $data['integration_customer_id'])
-                ->whereRaw("data_payload->>'id' = ?", [(string)$assetId])
-                ->whereDate('data_timestamp', $dateOnly)
-                ->first();
-
-            if ($existing) {
-                $existing->update([
-                    'data_timestamp' => $data['timestamp'],
-                    'data_payload' => $payload,
-                    'imported_at' => now(),
-                ]);
-            } else {
-                IntegrationData::create([
-                    'company_id' => $this->integration->company_id,
-                    'integration_id' => $this->integration->integration_id,
-                    'integration_customer_id' => $data['integration_customer_id'],
-                    'data_type' => $data['data_type'],
-                    'data_timestamp' => $data['timestamp'],
-                    'data_payload' => $payload,
-                    'imported_at' => now(),
-                    'data_version' => 1,
-                ]);
-            }
-        } else {
-            // Fallback for data without unique ID
-            IntegrationData::create([
-                'company_id' => $this->integration->company_id,
-                'integration_id' => $this->integration->integration_id,
-                'integration_customer_id' => $data['integration_customer_id'],
-                'data_type' => $data['data_type'],
-                'data_timestamp' => $data['timestamp'],
-                'data_payload' => $payload,
-                'imported_at' => now(),
-                'data_version' => 1,
-            ]);
-        }
-    }
-
-    /**
-     * Bulk store historical data (optimized for performance)
-     * Uses single transaction with bulk DELETE + INSERT operations
-     */
-    private function bulkStoreHistoricalData(string $dataType, array $batch): void
-    {
-        if (empty($batch)) return;
-
-        // Extract external IDs for deletion
-        $externalIds = array_filter(array_map(function($item) {
-            return $item['payload']['id'] ?? $item['payload']['asset_id'] ?? null;
-        }, $batch));
-        
-        $now = now();
-
-        \Illuminate\Support\Facades\DB::transaction(function () use ($dataType, $batch, $externalIds, $now) {
-            // Delete existing records in one query
-            if (!empty($externalIds)) {
-                \Illuminate\Support\Facades\DB::table('integration_data')
-                    ->where('integration_id', $this->integration->integration_id)
-                    ->where('data_type', $dataType)
-                    ->where(function($query) use ($externalIds) {
-                        foreach ($externalIds as $externalId) {
-                            $query->orWhereRaw("data_payload->>'id' = ?", [(string)$externalId])
-                                  ->orWhereRaw("data_payload->>'asset_id' = ?", [(string)$externalId]);
-                        }
-                    })
-                    ->delete();
-            }
-
-            // Prepare insert data
-            $insertData = [];
-            foreach ($batch as $item) {
-                // Validate payload
-                $validator = app(\App\Services\IntegrationDataValidator::class);
-                $payload = $validator->validate($dataType, $item['payload']);
-                
-                $insertData[] = [
-                    'company_id' => $this->integration->company_id,
-                    'integration_id' => $this->integration->integration_id,
-                    'integration_customer_id' => $item['integration_customer_id'],
-                    'data_type' => $dataType,
-                    'data_timestamp' => $item['timestamp'],
-                    'data_payload' => json_encode($payload),
-                    'imported_at' => $now,
-                    'data_version' => 1,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ];
-            }
-
-            // Insert all records in one query
-            if (!empty($insertData)) {
-                \Illuminate\Support\Facades\DB::table('integration_data')->insert($insertData);
-            }
-        });
-
-        $this->lastBatchProcessedCount = count($batch);
-    }
-
-    private $lastBatchProcessedCount = 0;
-
-    public function getLastBatchProcessedCount(): int
-    {
-        return $this->lastBatchProcessedCount;
-    }
-
-    /**
-     * Resolve IT Glue organization ID to our integration_customer_id
-     * 
-     * @param string|int|null $itGlueOrgId The IT Glue organization ID
-     * @return int|null The integration_customer_id or null if not found
-     */
     private function resolveIntegrationCustomerId($itGlueOrgId): ?int
     {
         if (empty($itGlueOrgId)) {
             return null;
         }
 
-        // Look up the integration_customer_id by external_id (IT Glue organization ID)
         $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->where('external_id', (string)$itGlueOrgId)
             ->first();

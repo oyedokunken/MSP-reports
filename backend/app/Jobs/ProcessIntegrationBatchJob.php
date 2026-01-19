@@ -107,8 +107,10 @@ class ProcessIntegrationBatchJob implements ShouldQueue
             $redis = \Illuminate\Support\Facades\Redis::connection();
             
             if ($success) {
+                $key = "sync_log:{$this->syncLogId}:pending";
+                
                 // Decrement pending counter only on success
-                $remaining = $redis->decr("sync_log:{$this->syncLogId}:pending");
+                $remaining = $redis->decr($key);
                 
                 // Update live record count
                 if (method_exists($instance, 'getLastBatchProcessedCount')) {

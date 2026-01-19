@@ -4,6 +4,7 @@ namespace App\Integrations\ITGlue;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
@@ -14,271 +15,201 @@ class ITGlueClient
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
-    protected bool $useMockData = false;
-    
+
+    protected const DEFAULT_PAGE_SIZE = 50;
+    protected const FLEXIBLE_ASSET_PAGE_SIZE = 1000;
     protected const DELAY_BETWEEN_PAGES_MS = 100;
-    protected const MAX_PAGES = 10;
+    protected const MAX_PAGES = 50;
+    protected const CACHE_TTL_HOURS = 6;
+    protected const CACHE_TTL_ASSET_TYPES_HOURS = 24;
+    protected const RATE_LIMIT_WAIT_TIMEOUT_SEC = 120;
+
+    protected const ENDPOINT_ORGANIZATIONS        = '/organizations';
+    protected const ENDPOINT_FLEXIBLE_ASSET_TYPES = '/flexible_asset_types';
+    protected const ENDPOINT_FLEXIBLE_ASSETS      = '/flexible_assets';
+    protected const ENDPOINT_SSL_CERTIFICATES     = '/ssl_certificates';
+    protected const ENDPOINT_DOMAINS              = '/domains';
 
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
-        
         $this->baseUrl = rtrim($credentials['base_url'] ?? 'https://api.au.itglue.com', '/');
-        $this->useMockData = str_starts_with($credentials['api_key'] ?? '', 'test_');
     }
 
     public function testConnection(): bool
     {
-        // Don't skip authentication check even in mock mode - always validate credentials
         try {
-            $response = $this->makeRequest('/organizations', ['page' => ['size' => 1]]);
-            
-            if (empty($response)) {
-                throw new AuthenticationException(
-                    'ITGlue authentication failed - empty response',
-                    401
-                );
-            }
-            
-            return true;
-        } catch (AuthenticationException $e) {
-            throw $e;
+            $response = $this->makeRequest(self::ENDPOINT_ORGANIZATIONS, ['page' => ['size' => 1]]);
+            return !empty($response['data']);
         } catch (\Exception $e) {
-            Log::error('ITGlue: Connection test failed', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
-            
-            // Convert generic exception to AuthenticationException
-            throw new AuthenticationException(
-                'ITGlue authentication failed: ' . $e->getMessage(),
-                400
-            );
+            throw new AuthenticationException("IT Glue connection failed: {$e->getMessage()}", 401);
         }
     }
 
     public function getOrganizations(): array
     {
-        if ($this->useMockData) {
-            return $this->getMockOrganizations();
-        }
-        
-        return $this->fetchAllPages('/organizations', ['page' => ['size' => 50]]);
-    }
+        $cacheKey = "itglue_orgs_{$this->integration->integration_id}";
 
-    public function getOrganization(string $id): ?array
-    {
-        if ($this->useMockData) {
-            return null;
-        }
-        
-        try {
-            $response = $this->makeRequest("/organizations/{$id}");
-            return $response['data'] ?? null;
-        } catch (\Exception $e) {
-            Log::error('ITGlue: Failed to fetch organization', [
-                'integration_id' => $this->integration->integration_id,
-                'organization_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
-            return null;
-        }
+        return Cache::remember($cacheKey, now()->addHours(self::CACHE_TTL_HOURS), function () {
+            return $this->fetchAllPages(self::ENDPOINT_ORGANIZATIONS, ['page' => ['size' => self::DEFAULT_PAGE_SIZE]]);
+        });
     }
 
     public function getFlexibleAssetTypes(): array
     {
-        if ($this->useMockData) {
-            return [];
-        }
-        
-        return $this->fetchAllPages('/flexible_asset_types', ['page' => ['size' => 50]]);
+        $cacheKey = "itglue_asset_types_{$this->integration->integration_id}";
+
+        return Cache::remember($cacheKey, now()->addHours(self::CACHE_TTL_ASSET_TYPES_HOURS), fn () => 
+            $this->fetchAllPages(self::ENDPOINT_FLEXIBLE_ASSET_TYPES, ['page' => ['size' => self::DEFAULT_PAGE_SIZE]])
+        );
     }
 
-    public function getFlexibleAssets(int $typeId): array
+    public function findLicenseAssetTypeIds(): array
     {
-        if ($this->useMockData) {
-            return [];
+        $types = $this->getFlexibleAssetTypes();
+
+        $keywords = ['license', 'licence', 'microsoft', 'office', 'm365', 'o365', '365', 'azure ad', 'licensing'];
+
+        $ids = collect($types)
+            ->filter(function ($type) use ($keywords) {
+                $name = strtolower($type['attributes']['name'] ?? '');
+                foreach ($keywords as $kw) {
+                    if (str_contains($name, $kw)) {
+                        return true;
+                    }
+                }
+                return false;
+            })
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($ids)) {
+            Log::warning('No license-related flexible asset types found', [
+                'integration_id' => $this->integration->integration_id
+            ]);
         }
-        
-        // IT Glue API requires flexible_asset_type_id filter
+
+        return $ids;
+    }
+
+    public function getFlexibleAssets(int $typeId, ?string $orgId = null, bool $includeOrg = true): array
+    {
         $params = [
-            'page' => ['size' => 1000],
-            'include' => 'organization',
-            'filter' => ['flexible_asset_type_id' => $typeId]
+            'page'   => ['size' => self::FLEXIBLE_ASSET_PAGE_SIZE],
+            'filter' => ['flexible_asset_type_id' => $typeId],
         ];
-        
-        return $this->fetchAllPages('/flexible_assets', $params);
+
+        if ($includeOrg) {
+            $params['include'] = 'organization';
+        }
+
+        if ($orgId) {
+            $params['filter']['organization_id'] = $orgId;
+        }
+
+        return $this->fetchAllPages(self::ENDPOINT_FLEXIBLE_ASSETS, $params);
     }
 
     public function getSslCertificates(string $expirationFilter = 'next90days'): array
     {
-        if ($this->useMockData) {
-            return [];
-        }
-        
         $params = [
             'filter' => ['expiration' => $expirationFilter],
-            'page' => ['size' => 50]
+            'page'   => ['size' => self::DEFAULT_PAGE_SIZE],
         ];
-        
-        return $this->fetchAllPages('/ssl_certificates', $params);
+
+        return $this->fetchAllPages(self::ENDPOINT_SSL_CERTIFICATES, $params);
     }
 
     public function getDomains(string $expirationFilter = 'next90days'): array
     {
-        if ($this->useMockData) {
-            return [];
-        }
-        
         $params = [
             'filter' => ['expiration' => $expirationFilter],
-            'page' => ['size' => 50]
+            'page'   => ['size' => self::DEFAULT_PAGE_SIZE],
         ];
-        
-        return $this->fetchAllPages('/domains', $params);
+
+        return $this->fetchAllPages(self::ENDPOINT_DOMAINS, $params);
     }
 
     protected function fetchAllPages(string $endpoint, array $params = []): array
     {
         $allData = [];
         $page = 1;
-        $hasMore = true;
-        
-        while ($hasMore && $page <= self::MAX_PAGES) {
+
+        do {
             $params['page']['number'] = $page;
-            
             $response = $this->makeRequest($endpoint, $params);
-            
             $data = $response['data'] ?? [];
-            $allData = array_merge($allData, $data);
-            
+            $allData = [...$allData, ...$data];
+
             $meta = $response['meta'] ?? [];
-            $currentPage = $meta['current-page'] ?? $page;
+            $current = $meta['current-page'] ?? $page;
             $totalPages = $meta['total-pages'] ?? 1;
-            
-            $hasMore = $currentPage < $totalPages;
+
             $page++;
-            
-            if ($hasMore) {
+
+            if ($page <= $totalPages) {
                 usleep(self::DELAY_BETWEEN_PAGES_MS * 1000);
             }
-            
-            if ($page > self::MAX_PAGES) {
-                Log::warning('ITGlue: Reached page limit while fetching data', [
-                    'integration_id' => $this->integration->integration_id,
-                    'endpoint' => $endpoint,
-                    'pages_fetched' => $page - 1,
-                ]);
-            }
+        } while ($page <= $totalPages && $page <= self::MAX_PAGES);
+
+        if ($page > self::MAX_PAGES) {
+            Log::warning('Pagination truncated - exceeded max pages', [
+                'integration_id' => $this->integration->integration_id,
+                'endpoint'       => $endpoint,
+                'fetched'        => count($allData),
+            ]);
         }
-        
-        Log::info('ITGlue: Fetched paginated data', [
-            'integration_id' => $this->integration->integration_id,
-            'endpoint' => $endpoint,
-            'total_records' => count($allData),
-            'pages' => $page - 1,
-        ]);
-        
+
         return $allData;
     }
 
-    protected function makeRequest(string $endpoint, array $params = []): array
+    protected function makeRequest(string $endpoint, array $params = [], int $retryCount = 0): array
     {
-        if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
-            throw new \Exception("Rate limit exceeded for ITGlue API");
+        if (!$this->rateLimiter->waitForSlot($this->integration, self::RATE_LIMIT_WAIT_TIMEOUT_SEC)) {
+            throw new \Exception("Rate limit wait timeout exceeded for IT Glue");
         }
 
         $url = $this->baseUrl . $endpoint;
-        
-        try {
-            $response = Http::withHeaders([
-                'x-api-key' => $this->credentials['api_key'],
-                'Content-Type' => 'application/vnd.api+json',
-                'Accept' => 'application/vnd.api+json',
-            ])->get($url, $params);
 
-            if ($response->status() === 429) {
-                Log::warning('ITGlue: Rate limit hit, waiting 60 seconds', [
-                    'integration_id' => $this->integration->integration_id,
-                ]);
-                sleep(60);
-                return $this->makeRequest($endpoint, $params);
-            }
+        $response = Http::withHeaders([
+            'x-api-key'     => $this->credentials['api_key'] ?? '',
+            'Content-Type'  => 'application/vnd.api+json',
+            'Accept'        => 'application/vnd.api+json',
+            'User-Agent'    => 'YourApp-ITGlueIntegration/1.0',
+        ])
+            ->timeout(60)
+            ->retry(2, 1000)
+            ->get($url, $params);
 
-            if ($response->status() === 401) {
-                Log::error('ITGlue: Authentication failed - check API key and region', [
-                    'integration_id' => $this->integration->integration_id,
-                    'base_url' => $this->baseUrl,
-                ]);
-                throw new \RuntimeException("Authentication failed. Check API key and ensure base URL matches your account region.");
-            }
+        $this->rateLimiter->recordRequest($this->integration);
 
-            if (!$response->successful()) {
-                Log::error('ITGlue: API request failed', [
-                    'integration_id' => $this->integration->integration_id,
-                    'endpoint' => $endpoint,
-                    'status' => $response->status(),
-                    'body' => $response->body()
-                ]);
-                throw new \RuntimeException("API request failed: " . $response->body());
-            }
-
-            $this->rateLimiter->recordRequest($this->integration);
-            
-            return $response->json();
-        } catch (\Exception $e) {
-            Log::error('ITGlue: API request error', [
-                'integration_id' => $this->integration->integration_id,
-                'endpoint' => $endpoint,
-                'error' => $e->getMessage()
-            ]);
-            throw $e;
+        if ($response->status() === 429 && $retryCount < 3) {
+            $retryAfter = (int) $response->header('Retry-After', 60);
+            $backoff = $retryAfter * pow(2, $retryCount);
+            sleep($backoff);
+            return $this->makeRequest($endpoint, $params, $retryCount + 1);
         }
-    }
 
-    private function getMockOrganizations(): array
-    {
-        Log::info('ITGlue Client: Using mock data mode');
-        
-        return [
-            [
-                'id' => '1',
-                'type' => 'organizations',
-                'attributes' => [
-                    'name' => 'ACME Corporation',
-                    'short-name' => 'ACME',
-                    'organization-type-name' => 'Customer',
-                    'organization-status-name' => 'Active',
-                    'created-at' => '2024-01-01T00:00:00.000Z',
-                    'updated-at' => '2024-01-01T00:00:00.000Z',
-                ],
-            ],
-            [
-                'id' => '2',
-                'type' => 'organizations',
-                'attributes' => [
-                    'name' => 'Beta Solutions',
-                    'short-name' => 'Beta',
-                    'organization-type-name' => 'Customer',
-                    'organization-status-name' => 'Active',
-                    'created-at' => '2024-01-01T00:00:00.000Z',
-                    'updated-at' => '2024-01-01T00:00:00.000Z',
-                ],
-            ],
-            [
-                'id' => '3',
-                'type' => 'organizations',
-                'attributes' => [
-                    'name' => 'TechStart Inc',
-                    'short-name' => 'TechStart',
-                    'organization-type-name' => 'Customer',
-                    'organization-status-name' => 'Active',
-                    'created-at' => '2024-01-01T00:00:00.000Z',
-                    'updated-at' => '2024-01-01T00:00:00.000Z',
-                ],
-            ],
-        ];
+        if ($response->status() === 401) {
+            throw new AuthenticationException("IT Glue authentication failed - invalid API key or region");
+        }
+
+        if (!$response->successful()) {
+            Log::error('IT Glue API request failed', [
+                'integration_id' => $this->integration->integration_id,
+                'endpoint'       => $endpoint,
+                'status'         => $response->status(),
+                'body_preview'   => substr($response->body(), 0, 500),
+            ]);
+
+            throw new \RuntimeException("IT Glue API error: {$response->status()} - {$response->body()}");
+        }
+
+        return $response->json() ?? [];
     }
 }

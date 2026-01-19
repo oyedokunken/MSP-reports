@@ -27,10 +27,14 @@ class ITGlueDataGatherer
         // Filter for only Microsoft License flexible asset types
         $licenseData = $rawData->filter(function($item) {
             $typeName = strtolower($item->data_payload['type_name'] ?? '');
-            // Only include assets that are explicitly license types
-            return str_contains($typeName, 'microsoft') && str_contains($typeName, 'license') ||
-                   str_contains($typeName, 'office 365') && str_contains($typeName, 'license') ||
-                   str_contains($typeName, 'o365') && str_contains($typeName, 'license');
+            $assetName = strtolower($item->data_payload['name'] ?? '');
+            
+            // If the type name or asset name contains license keyword, it's likely a license
+            $isLicenseType = str_contains($typeName, 'license') || str_contains($assetName, 'license');
+            $isMicrosoftProduct = str_contains($typeName, 'microsoft') || str_contains($typeName, 'office 365') || str_contains($typeName, 'o365') ||
+                                 str_contains($assetName, 'microsoft') || str_contains($assetName, 'office 365') || str_contains($assetName, 'o365');
+
+            return $isLicenseType || ($isMicrosoftProduct && !empty($item->data_payload['traits']));
         });
 
         return $licenseData->unique(function($item) {
@@ -39,11 +43,12 @@ class ITGlueDataGatherer
             $payload = $item->data_payload;
             $traits = $payload['traits'] ?? [];
             
-            // ITGlue uses: active (total), consumed (used), unused (available)
-            $active = $this->extractValue($traits['active'] ?? $traits['purchased'] ?? $traits['total-seats'] ?? null);
-            $consumed = $this->extractValue($traits['consumed'] ?? $traits['assigned'] ?? $traits['used-seats'] ?? null);
+            // ITGlue uses various trait names: active (total), consumed (used), unused (available)
+            // Common variations include: seats, purchased, total-seats, etc.
+            $active = $this->extractValue($traits['active'] ?? $traits['purchased'] ?? $traits['total-seats'] ?? $traits['seats'] ?? $traits['licenses'] ?? null);
+            $consumed = $this->extractValue($traits['consumed'] ?? $traits['assigned'] ?? $traits['used-seats'] ?? $traits['in-use'] ?? null);
             $unused = $this->extractValue($traits['unused'] ?? $traits['available'] ?? null);
-            $licenseName = $this->extractValue($traits['license-name'] ?? $payload['name'] ?? 'Unknown License');
+            $licenseName = $this->extractValue($traits['license-name'] ?? $traits['product'] ?? $payload['name'] ?? 'Unknown License');
             
             // Calculate utilization using the EXTRACTED values, not traits
             $utilization = $this->calculateUtilizationFromValues($active, $consumed);
@@ -195,6 +200,9 @@ class ITGlueDataGatherer
      */
     private function determineStatusFromUtilization(int $utilization): string
     {
+        // If no licenses are involved at all, it's well utilized (nothing to do)
+        if ($utilization === 0) return 'well_utilized';
+
         // Under 70% = too many unused licenses
         if ($utilization < 70) return 'over_provisioned';
         
