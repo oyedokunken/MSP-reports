@@ -287,11 +287,11 @@
         </div>
 
         <div class="report-badge">
-            {{ $options['frequency'] ?? 'Monthly' }} Operations Review
+            {{ ucfirst($options['frequency'] ?? 'Monthly') }} Operations Review
         </div>
         
         <div class="title-group">
-            <h1>{{ $branding['report_title'] ?? 'Service Summary' }}</h1>
+            <h1>{{ ucfirst($options['frequency'] ?? 'Service Summary') }} Service Report</h1>
             <div class="subtitle">A detailed performance audit and infrastructure health analysis for your managed environment.</div>
         </div>
 

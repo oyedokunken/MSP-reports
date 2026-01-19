@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>BitDefender Monthly Summary</title>
+    <title>Bitdefender {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -41,7 +41,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>BitDefender Monthly Summary</h1>
+        <h1>Bitdefender {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary</h1>
         <div class="company-name">{{ is_array($branding) ? ($branding['company_name'] ?? 'Territory Technology Solutions') : 'Territory Technology Solutions' }}</div>
         <div class="meta">
             {{ is_object($customer) ? $customer->canonical_name : (is_array($customer) ? ($customer['canonical_name'] ?? 'Customer') : 'Customer') }} 

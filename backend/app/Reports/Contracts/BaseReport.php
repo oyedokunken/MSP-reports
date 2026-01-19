@@ -62,6 +62,21 @@ abstract class BaseReport implements ReportInterface
      */
     protected function formatDateRange(Carbon $start, Carbon $end): string
     {
+        // If it's a single day (Daily)
+        if ($start->toDateString() === $end->toDateString()) {
+            return $start->format('F j, Y');
+        }
+
+        // If it's a full month (Monthly)
+        if ($start->day === 1 && $end->isSameDay($start->copy()->endOfMonth())) {
+            return $start->format('F Y');
+        }
+
+        // If it's a full year (Yearly)
+        if ($start->day === 1 && $start->month === 1 && $end->isSameDay($start->copy()->endOfYear())) {
+            return $start->format('Y');
+        }
+
         return $this->formatDate($start) . ' - ' . $this->formatDate($end);
     }
 

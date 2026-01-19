@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Sendmarc Monthly Summary</title>
+    <title>Sendmarc {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -37,7 +37,7 @@
 <body>
     <div class="header">
         <div class="company-name">{{ is_array($branding) ? ($branding['company_name'] ?? 'Territory Technology Solutions') : 'Territory Technology Solutions' }}</div>
-        <h1>Sendmarc Monthly Summary</h1>
+        <h1>Sendmarc {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary</h1>
         <div class="meta">
             {{ is_object($customer) ? $customer->canonical_name : (is_array($customer) ? ($customer['canonical_name'] ?? 'Customer') : 'Customer') }} 
             • 
@@ -140,7 +140,7 @@
     </div>
 
     <div class="footer">
-        Sendmarc Monthly Summary • Data sourced from Sendmarc
+        Sendmarc {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary • Data sourced from Sendmarc
     </div>
 </body>
 </html>

@@ -592,9 +592,9 @@
     </div>
     @endif
 
-    <!-- <div class="footer">
-        Autotask Monthly Summary • Data sourced from Autotask
-    </div> -->
+    <div class="footer">
+        Autotask {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary • Data sourced from Autotask
+    </div>
     @endif
 </body>
 </html>

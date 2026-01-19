@@ -338,8 +338,14 @@ class ReportConfigController extends Controller
         $generatedReports = [];
         $errors = [];
 
+        $frequencyOverride = $request->input('frequency');
+
         foreach ($schedules as $schedule) {
             try {
+                if ($frequencyOverride) {
+                    $schedule->frequency = $frequencyOverride;
+                }
+
                 // Generate report with custom dates only if explicitly provided
                 // Otherwise, let the schedule's frequency determine the date range
                 if ($startDate && $endDate) {
@@ -407,7 +413,14 @@ class ReportConfigController extends Controller
         $startDate = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : null;
         $endDate = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : null;
 
+        $frequencyOverride = $request->input('frequency');
+
         try {
+            // Apply frequency override to schedule object for the duration of this request
+            if ($frequencyOverride) {
+                $schedule->frequency = $frequencyOverride;
+            }
+
             // Generate report with custom dates if provided
             if ($startDate && $endDate) {
                 $generatedReport = $this->reportService->generateReport($schedule, $startDate, $endDate);

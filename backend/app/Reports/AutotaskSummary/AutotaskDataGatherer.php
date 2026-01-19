@@ -107,10 +107,13 @@ class AutotaskDataGatherer
             return collect([]);
         }
 
+        $startUtc = $startDate->copy()->setTimezone('UTC');
+        $endUtc = $endDate->copy()->setTimezone('UTC');
+
         $rawData = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'time_entry')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->whereBetween('data_timestamp', [$startDate, $endDate])
+            ->whereBetween('data_timestamp', [$startUtc, $endUtc])
             ->orderBy('data_timestamp', 'desc')
             ->get();
 

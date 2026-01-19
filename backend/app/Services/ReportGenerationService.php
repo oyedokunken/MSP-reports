@@ -208,17 +208,21 @@ class ReportGenerationService
             $customerLogo = $this->imageToBase64($customerBranding['customer_logo_url']);
         }
 
+        $frequency = $reportData['options']['frequency'] ?? 'monthly';
+        $frequencyLabel = ucfirst($frequency);
+        
         $reportData['branding'] = [
             'company_name' => $whiteLabel['company_name'] ?? $company->name,
             'company_logo' => $companyLogo,
             'customer_logo' => $customerLogo,
             'primary_color' => $whiteLabel['primary_color'] ?? '#1a56db',
             'secondary_color' => $whiteLabel['secondary_color'] ?? '#7c3aed',
-            'report_title' => $customerBranding['report_title'] ?? ($whiteLabel['report_header_text'] ?? 'Monthly Service Report'),
+            'report_title' => $customerBranding['report_title'] ?? ($whiteLabel['report_header_text'] ?? ($frequencyLabel . ' Service Report')),
             'footer_text' => $whiteLabel['footer_text'] ?? '',
             'footer_notes' => $customerBranding['footer_notes'] ?? '',
             'support_email' => $whiteLabel['support_email'] ?? null,
             'support_phone' => $whiteLabel['support_phone'] ?? null,
+            'frequency' => $frequency,
         ];
 
         return $reportData;

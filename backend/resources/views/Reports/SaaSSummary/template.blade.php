@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>SaaS Alerts Monthly Security Report - {{ $customer->canonical_name }}</title>
+    <title>SaaS Alerts {{ ucfirst($options['frequency'] ?? 'Monthly') }} Security Report - {{ $customer->canonical_name }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -52,7 +52,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>SaaS Alerts Monthly Security Report</h1>
+        <h1>SaaS Alerts {{ ucfirst($options['frequency'] ?? 'Monthly') }} Security Report</h1>
         <div class="company-name">{{ is_array($branding) ? ($branding['company_name'] ?? 'Territory Technology Solutions') : 'Territory Technology Solutions' }}</div>
         <div class="meta">
             {{ is_object($customer) ? $customer->canonical_name : (is_array($customer) ? ($customer['canonical_name'] ?? 'Customer') : 'Customer') }} 

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Monthly Comprehensive Report - {{ $customer->canonical_name }}</title>
+    <title>{{ ucfirst($options['frequency'] ?? 'Monthly') }} Comprehensive Report - {{ $customer->canonical_name }}</title>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -258,7 +258,7 @@
 
             <div class="report-badge">Comprehensive Report</div>
 
-            <h1 class="cover-title">Monthly Performance<br>& Operations Review</h1>
+            <h1 class="cover-title">{{ ucfirst($options['frequency'] ?? 'Monthly') }} Performance<br>& Operations Review</h1>
             
             <p class="cover-subtitle">Executive Summary of All Systems & Services</p>
 

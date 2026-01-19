@@ -478,9 +478,15 @@ export default function ConfigureReports() {
 
       for (let i = 0; i < selectedSchedules.length; i++) {
         const scheduleId = selectedSchedules[i]
+        const enabledReport = enabledReports.find(r => r.schedule_id === scheduleId)
+        
+        const schedulePayload = { 
+          ...payload,
+          frequency: enabledReport?.frequency
+        }
 
         try {
-          const result = await api.post(`/reports/schedules/${scheduleId}/generate`, payload)
+          const result = await api.post(`/reports/schedules/${scheduleId}/generate`, schedulePayload)
           results.push({ status: 'fulfilled', value: result, scheduleId })
         } catch (error) {
           results.push({ status: 'rejected', reason: error, scheduleId })
