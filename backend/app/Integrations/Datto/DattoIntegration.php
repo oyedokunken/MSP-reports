@@ -407,32 +407,22 @@ class DattoIntegration implements IntegrationInterface
         if (empty($insertData)) return;
 
         DB::transaction(function () use ($deviceUids, $insertData) {
-            // 1. Delete existing (Simulation of Upsert)
-             // We use native raw query for JSON extraction efficiency if needed, but string matching is robust enough here
-            IntegrationData::where('integration_id', $this->integration->integration_id)
-                ->where('data_type', 'device_status')
-                ->where(function($query) use ($deviceUids) {
-                    // Safe approach: Since UIDs are strings, we can rely on proper quoting?
-                    // Or better, just fetch IDs to delete? No, that's a Select.
-                    // Postgres JSONB containment: data_payload @> '{"device_uid": "xyz"}'
-                    // BUT that's hard to batch.
-                    // Let's rely on the textual extraction.
-                    // "whereRaw" with bindings is safest.
-                    // But bindings limit? 65k. 500 items * 1 params = 500. Safe.
-                    
-                    // Actually, simpler: Assuming data_payload is cast to array in model, but here we query DB.
-                    // Let's use string operations on JSON if simple, or just use the fact that we can't easily index it.
-                    // Wait, if no unique index, maybe we don't care to delete?
-                    // NO, we MUST delete, otherwise we get duplicates every sync.
-                    
-                    // Optimized Delete:
-                    // Postgres: DELETE FROM integration_data WHERE integration_id = ? AND data_type = 'device_status' 
-                    // AND data_payload->>'device_uid' = ANY(?)
-                    $query->whereRaw("data_payload->>'device_uid' = ANY(?)", ['{' . implode(',', $deviceUids) . '}']); 
-                })
-                ->delete();
+            // Delete existing devices in chunks to avoid SQL injection and parameter limits
+            // Instead of unsafe: whereRaw("data_payload->>'device_uid' = ANY(?)", ...)
+            // Use safe chunked deletes
+            foreach (array_chunk($deviceUids, 500) as $chunk) {
+                DB::table('integration_data')
+                    ->where('integration_id', $this->integration->integration_id)
+                    ->where('data_type', 'device_status')
+                    ->where(function($query) use ($chunk) {
+                        foreach ($chunk as $uid) {
+                            $query->orWhereRaw("data_payload->>'device_uid' = ?", [$uid]);
+                        }
+                    })
+                    ->delete();
+            }
 
-            // 2. Insert New
+            // Insert new data
             IntegrationData::insert($insertData);
         });
     }
@@ -508,13 +498,20 @@ class DattoIntegration implements IntegrationInterface
         if (empty($insertData)) return;
 
         DB::transaction(function () use ($alertUids, $insertData) {
-            // Delete existing
-            IntegrationData::where('integration_id', $this->integration->integration_id)
-                ->where('data_type', 'alert')
-                ->whereRaw("data_payload->>'alert_uid' = ANY(?)", ['{' . implode(',', $alertUids) . '}'])
-                ->delete();
+            // Delete existing alerts in chunks (safe from SQL injection)
+            foreach (array_chunk($alertUids, 500) as $chunk) {
+                DB::table('integration_data')
+                    ->where('integration_id', $this->integration->integration_id)
+                    ->where('data_type', 'alert')
+                    ->where(function($query) use ($chunk) {
+                        foreach ($chunk as $uid) {
+                            $query->orWhereRaw("data_payload->>'alert_uid' = ?", [$uid]);
+                        }
+                    })
+                    ->delete();
+            }
 
-            // Insert New
+            // Insert new data
             IntegrationData::insert($insertData);
         });
     }
@@ -582,8 +579,9 @@ class DattoIntegration implements IntegrationInterface
     {
         // Validate required fields
         if (empty($customer['external_id']) || empty($customer['name'])) {
+            $validator = app(\App\Services\IntegrationDataValidator::class);
             Log::warning('Datto: Skipping customer with missing required fields', [
-                'customer' => $customer
+                'customer' => $validator->sanitizeForLogging($customer)
             ]);
             return;
         }

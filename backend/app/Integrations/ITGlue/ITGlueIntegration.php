@@ -20,9 +20,11 @@ class ITGlueIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
+    
     protected Integration $integration;
     protected ITGlueClient $client;
     protected CustomerMappingService $mappingService;
+    protected ?int $currentSyncLogId = null;
 
     public function __construct(Integration $integration)
     {
@@ -78,6 +80,14 @@ class ITGlueIntegration implements IntegrationInterface
 
     public function processBatch(string $type, array $items): void
     {
+        // Pre-load customer map to avoid N+1 queries
+        $customerMap = null;
+        if (in_array($type, ['ssl_certs', 'domains', 'flexible_assets'])) {
+            $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                ->pluck('integration_customer_id', 'external_id')
+                ->toArray();
+        }
+        
         switch ($type) {
             case 'organizations':
                 foreach ($items as $organization) {
@@ -97,45 +107,54 @@ class ITGlueIntegration implements IntegrationInterface
                 break;
 
             case 'ssl_certs':
+                $batch = [];
                 foreach ($items as $cert) {
                     try {
                         $data = ITGlueMapper::mapSslCertificate($cert);
-                        $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
+                        // Use pre-loaded map instead of resolveIntegrationCustomerId()
+                        $data['integration_customer_id'] = $customerMap[$data['integration_customer_id']] ?? null;
                         if ($data['integration_customer_id']) {
-                             $this->storeHistoricalData($data);
+                            $batch[] = $data;
                         }
                     } catch (\Exception $e) {
                         Log::error('ITGlue Batch: Failed to process SSL cert', ['error' => $e->getMessage()]);
                     }
                 }
+                $this->bulkStoreHistoricalData('ssl_certificate', $batch);
                 break;
 
             case 'domains':
-                 foreach ($items as $domain) {
+                $batch = [];
+                foreach ($items as $domain) {
                     try {
                         $data = ITGlueMapper::mapDomain($domain);
-                        $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
+                        // Use pre-loaded map
+                        $data['integration_customer_id'] = $customerMap[$data['integration_customer_id']] ?? null;
                         if ($data['integration_customer_id']) {
-                             $this->storeHistoricalData($data);
+                            $batch[] = $data;
                         }
                     } catch (\Exception $e) {
                         Log::error('ITGlue Batch: Failed to process domain', ['error' => $e->getMessage()]);
                     }
                 }
+                $this->bulkStoreHistoricalData('domain', $batch);
                 break;
 
             case 'flexible_assets':
-                 foreach ($items as $asset) {
+                $batch = [];
+                foreach ($items as $asset) {
                     try {
                         $data = ITGlueMapper::mapFlexibleAsset($asset);
-                        $data['integration_customer_id'] = $this->resolveIntegrationCustomerId($data['integration_customer_id']);
+                        // Use pre-loaded map
+                        $data['integration_customer_id'] = $customerMap[$data['integration_customer_id']] ?? null;
                         if ($data['integration_customer_id']) {
-                             $this->storeHistoricalData($data);
+                            $batch[] = $data;
                         }
                     } catch (\Exception $e) {
                         Log::error('ITGlue Batch: Failed to process flexible asset', ['error' => $e->getMessage()]);
                     }
                 }
+                $this->bulkStoreHistoricalData('flexible_asset', $batch);
                 break;
         }
     }
@@ -145,8 +164,8 @@ class ITGlueIntegration implements IntegrationInterface
     public function sync(): array
     {
         $errors = [];
-        $this->mappedDuringSync = [];
         $totalProcessed = 0;
+        $batchesDispatched = 0;
 
         try {
             // Load state
@@ -188,8 +207,9 @@ class ITGlueIntegration implements IntegrationInterface
                     $sslCerts = $this->client->getSslCertificates('next90days');
                     Log::info('ITGlue Integration: Syncing SSL Certs', ['count' => count($sslCerts)]);
                     
-                    collect($sslCerts)->chunk(50)->each(function ($chunk) {
+                    collect($sslCerts)->chunk(50)->each(function ($chunk) use (&$batchesDispatched) {
                         \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'ssl_certs', $chunk->toArray(), $this->currentSyncLogId);
+                        $batchesDispatched++;
                     });
                      $totalProcessed += count($sslCerts);
                 } catch (\Exception $e) {
@@ -206,8 +226,9 @@ class ITGlueIntegration implements IntegrationInterface
                     $domains = $this->client->getDomains('next90days');
                     Log::info('ITGlue Integration: Syncing Domains', ['count' => count($domains)]);
                     
-                    collect($domains)->chunk(50)->each(function ($chunk) {
+                    collect($domains)->chunk(50)->each(function ($chunk) use (&$batchesDispatched) {
                         \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'domains', $chunk->toArray(), $this->currentSyncLogId);
+                        $batchesDispatched++;
                     });
                     $totalProcessed += count($domains);
                 } catch (\Exception $e) {
@@ -231,8 +252,9 @@ class ITGlueIntegration implements IntegrationInterface
 
                             $flexibleAssets = $this->client->getFlexibleAssets((int)$typeId);
                             
-                            collect($flexibleAssets)->chunk(50)->each(function ($chunk) {
+                            collect($flexibleAssets)->chunk(50)->each(function ($chunk) use (&$batchesDispatched) {
                                 \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'flexible_assets', $chunk->toArray(), $this->currentSyncLogId);
+                                $batchesDispatched++;
                             });
                              $totalProcessed += count($flexibleAssets);
                              
@@ -269,6 +291,7 @@ class ITGlueIntegration implements IntegrationInterface
             'customers_mapped' => [],
             'records_failed' => count($errors),
             'errors' => $errors,
+            'batches_dispatched' => $batchesDispatched,
         ];
     }
     
@@ -517,7 +540,10 @@ class ITGlueIntegration implements IntegrationInterface
             return;
         }
 
-        $payload = $data['payload'];
+        // Validate and sanitize payload
+        $validator = app(\App\Services\IntegrationDataValidator::class);
+        $payload = $validator->validate($data['data_type'], $data['payload']);
+        
         $assetId = $payload['asset_id'] ?? $payload['id'] ?? null;
         
         if ($assetId) {
@@ -562,6 +588,73 @@ class ITGlueIntegration implements IntegrationInterface
                 'data_version' => 1,
             ]);
         }
+    }
+
+    /**
+     * Bulk store historical data (optimized for performance)
+     * Uses single transaction with bulk DELETE + INSERT operations
+     */
+    private function bulkStoreHistoricalData(string $dataType, array $batch): void
+    {
+        if (empty($batch)) return;
+
+        // Extract external IDs for deletion
+        $externalIds = array_filter(array_map(function($item) {
+            return $item['payload']['id'] ?? $item['payload']['asset_id'] ?? null;
+        }, $batch));
+        
+        $now = now();
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($dataType, $batch, $externalIds, $now) {
+            // Delete existing records in one query
+            if (!empty($externalIds)) {
+                \Illuminate\Support\Facades\DB::table('integration_data')
+                    ->where('integration_id', $this->integration->integration_id)
+                    ->where('data_type', $dataType)
+                    ->where(function($query) use ($externalIds) {
+                        foreach ($externalIds as $externalId) {
+                            $query->orWhereRaw("data_payload->>'id' = ?", [(string)$externalId])
+                                  ->orWhereRaw("data_payload->>'asset_id' = ?", [(string)$externalId]);
+                        }
+                    })
+                    ->delete();
+            }
+
+            // Prepare insert data
+            $insertData = [];
+            foreach ($batch as $item) {
+                // Validate payload
+                $validator = app(\App\Services\IntegrationDataValidator::class);
+                $payload = $validator->validate($dataType, $item['payload']);
+                
+                $insertData[] = [
+                    'company_id' => $this->integration->company_id,
+                    'integration_id' => $this->integration->integration_id,
+                    'integration_customer_id' => $item['integration_customer_id'],
+                    'data_type' => $dataType,
+                    'data_timestamp' => $item['timestamp'],
+                    'data_payload' => json_encode($payload),
+                    'imported_at' => $now,
+                    'data_version' => 1,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            // Insert all records in one query
+            if (!empty($insertData)) {
+                \Illuminate\Support\Facades\DB::table('integration_data')->insert($insertData);
+            }
+        });
+
+        $this->lastBatchProcessedCount = count($batch);
+    }
+
+    private $lastBatchProcessedCount = 0;
+
+    public function getLastBatchProcessedCount(): int
+    {
+        return $this->lastBatchProcessedCount;
     }
 
     /**

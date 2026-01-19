@@ -50,6 +50,7 @@ class AutotaskIntegration implements IntegrationInterface
         $errors = [];
         $this->mappedDuringSync = [];
         $totalProcessed = 0;
+        $batchesDispatched = 0;
 
         // Load Checkpoint
         $syncState = json_decode($this->integration->sync_state ?? '{}', true);
@@ -183,6 +184,7 @@ class AutotaskIntegration implements IntegrationInterface
             foreach ($ticketChunks as $chunk) {
                  \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'tickets', $chunk, $this->currentSyncLogId);
                  $ticketsProcessed += count($chunk);
+                 $batchesDispatched++;
                  $this->saveSyncState('tickets', $ticketsProcessed, count($recentTickets));
             }
             
@@ -200,6 +202,7 @@ class AutotaskIntegration implements IntegrationInterface
              foreach ($timeChunks as $chunk) {
                  \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'time_entries', $chunk, $this->currentSyncLogId);
                  $timeEntriesProcessed += count($chunk);
+                 $batchesDispatched++;
                  $this->saveSyncState('time_entries', $timeEntriesProcessed, count($recentTimeEntries));
             }
             
@@ -231,6 +234,7 @@ class AutotaskIntegration implements IntegrationInterface
             'customers_mapped' => $mappedCustomers,
             'records_failed' => count($errors),
             'errors' => $errors,
+            'batches_dispatched' => $batchesDispatched,
         ];
     }
 
@@ -671,8 +675,9 @@ class AutotaskIntegration implements IntegrationInterface
     private function storeCustomer(array $customer): void
     {
         if (empty($customer['external_id']) || empty($customer['name'])) {
+            $validator = app(\App\Services\IntegrationDataValidator::class);
             Log::warning('Autotask: Skipping customer with missing required fields', [
-                'customer' => $customer
+                'customer' => $validator->sanitizeForLogging($customer)
             ]);
             return;
         }
