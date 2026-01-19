@@ -7,7 +7,7 @@ export const knowledgeBase = {
     answers: {
       'how to add': `**Adding an Integration:**
 
-1. Navigate to **Integrations** page from the sidebar
+1. Navigate to [Integrations](/platform/integrations) page from the sidebar
 2. Click **"Add Integration"** button
 3. Select your integration type (Autotask, Datto RMM, ITGlue, Sendmarc, BitDefender, etc.)
 4. Enter the required credentials:
@@ -23,7 +23,7 @@ The integration will start syncing automatically.`,
 
 - **Auto-sync**: Runs every 4 hours by default
 - **Manual sync**: Click the sync button on the integration card
-- **Sync status**: View in the Integrations page
+- **Sync status**: View in the [Integrations](/platform/integrations) page
 - **Failed syncs**: Check the error message and verify credentials
 
 You can view sync history and logs in the integration details.`,
@@ -33,9 +33,9 @@ You can view sync history and logs in the integration details.`,
 The Source of Truth (SOT) integration is your primary customer list source.
 
 - Only **one** integration can be SOT
-- SOT customers appear in the **Master List**
+- SOT customers appear in the [Master List](/platform/customers/master)
 - Other integrations map TO these customers
-- Set in **Settings → Company Settings**
+- Set in [Settings](/admin/settings)
 
 This ensures consistent customer naming across all systems.`,
 
@@ -43,7 +43,7 @@ This ensures consistent customer naming across all systems.`,
 
 Before generating reports, you can preview integration data:
 
-1. Go to **Integrations**
+1. Go to [Integrations](/platform/integrations)
 2. Click on an integration card
 3. Click **"Preview Data"**
 4. View live data from the integration
@@ -53,7 +53,7 @@ This helps verify data quality before report generation.`,
 
       'disconnect': `**Disconnecting an Integration:**
 
-1. Go to **Integrations**
+1. Go to [Integrations](/platform/integrations)
 2. Open the integration you want to disconnect
 3. Choose **Disconnect** (or disable)
 4. Confirm the action
@@ -69,10 +69,10 @@ If you reconnect later, you may need to re-test credentials and re-sync.`,
 
 When customers from different integrations have different names, you need to map them:
 
-1. Go to **Customers → Map Customers**
+1. Go to [Customers → Map Customers](/platform/customers/map)
 2. You'll see unmapped customers with suggested matches
 3. Options:
-   - **Map to existing**: Link to a customer in your Master List
+   - **Map to existing**: Link to a customer in your [Master List](/platform/customers/master)
    - **Create new**: Create a new customer record
    - **Ignore**: Skip this customer
 
@@ -80,12 +80,12 @@ When customers from different integrations have different names, you need to map
       
       'master vs secondary': `**Master List vs Secondary List:**
 
-**Master List:**
+**[Master List](/platform/customers/master):**
 - Customers from your Source of Truth integration
 - Your primary customer database
 - All other customers map to these
 
-**Secondary List:**
+**[Secondary List](/platform/customers/secondary):**
 - Customers from non-SOT integrations
 - Already mapped to Master List customers
 - Shows which integrations each customer appears in`,
@@ -109,7 +109,7 @@ When customers from different integrations have different names, you need to map
     answers: {
       'configure': `**Configuring Reports:**
 
-1. Go to **Customers** and select a customer
+1. Go to [Customers](/platform/customers/master) and select a customer
 2. Click **"Configure Reports"**
 3. Add report schedules:
    - Select report type
@@ -122,7 +122,7 @@ Reports generate automatically based on your schedule.`,
       
       'schedules': `**Report Schedules:**
 
-View all schedules in **Schedules** page:
+View all schedules in [Schedules](/platform/schedules) page:
 
 - **Active/Inactive**: Toggle schedule status
 - **Edit**: Modify frequency or time
@@ -139,15 +139,15 @@ Reports are automatically:
 - Emailed to configured recipients
 - Stored in the system for download
 
-Check delivery status in the **Reports** page.`,
-
+Check delivery status in the [Reports](/platform/reports) page.`,
+      
       'download': `**Downloading Reports:**
 
-1. Go to **Reports**
+1. Go to [Reports](/platform/reports)
 2. Open the report you want
 3. Click **Download** (PDF)
 
-If you don’t see a report you expect, check the customer’s schedule and whether generation succeeded.`,
+If you don't see a report you expect, check the customer's schedule and whether generation succeeded.`,
     },
   },
 
@@ -156,7 +156,7 @@ If you don’t see a report you expect, check the customer’s schedule and whet
     answers: {
       'system status': `**System Monitoring:**
 
-The **Monitoring** page shows:
+The [Monitoring](/admin/monitoring) page shows:
 
 **System Status:**
 - Database health
@@ -180,7 +180,7 @@ You'll be notified when:
 - Queue workers stop
 - Disk space is low
 
-Check the **Notifications** bell icon in the header for all alerts.`,
+Check the [Notifications](/platform/notifications) bell icon in the header for all alerts.`,
     },
   },
 
@@ -191,7 +191,7 @@ Check the **Notifications** bell icon in the header for all alerts.`,
 
 API keys allow programmatic access to the platform:
 
-1. Go to **Admin → API Keys**
+1. Go to [Admin → API Keys](/admin/api-keys)
 2. Click **"Create API Key"**
 3. Set a display name
 4. Configure permissions (same as user permissions)
@@ -218,7 +218,7 @@ Keys can also be scoped to specific customers for limited access.`,
     answers: {
       'view': `**Audit Logs:**
 
-Track all system activity in **Admin → Audit Logs**:
+Track all system activity in [Admin → Audit Logs](/admin/audit-logs):
 
 - **User actions**: logins, permission changes
 - **Integration events**: syncs, credential updates
@@ -236,7 +236,7 @@ Audit logs are retained for 7 years for compliance.`,
     answers: {
       'manage': `**Report Templates:**
 
-Customize report appearance in **Templates**:
+Customize report appearance in [Templates](/platform/templates):
 
 - View available report types
 - Preview template layouts
@@ -252,7 +252,7 @@ Templates use your company branding from Settings.`,
     answers: {
       'view': `**Licenses:**
 
-View your license status in **Admin → Licenses**:
+View your license status in [Admin → Licenses](/admin/licenses):
 
 - Current subscription tier
 - Licensed integrations
@@ -268,7 +268,7 @@ Contact your administrator to upgrade or add integrations.`,
     answers: {
       'manage users': `**User Management:**
 
-Admins can manage users in **Admin → Users**:
+Admins can manage users in [Admin → Users](/admin/users):
 
 1. Click **"Add User"**
 2. Enter user details (name, email)
@@ -301,7 +301,7 @@ Set permissions per user based on their role.`,
     answers: {
       'dashboard': `**Dashboard Overview:**
 
-The dashboard shows:
+The [Dashboard](/platform/dashboard) shows:
 - System health status
 - Active integrations count
 - Recent reports generated
@@ -312,39 +312,39 @@ Navigate using the sidebar menu to access all features.`,
       
       'getting started': `**Getting Started:**
 
-1. **Add Integration**: Connect your first system (Autotask, Datto RMM, ITGlue, etc.)
+1. **Add Integration**: Connect your first system in [Integrations](/platform/integrations)
 2. **Wait for Sync**: Integration will pull customer data automatically
-3. **Map Customers**: Review and map unmapped customers in Customers → Map
-4. **Configure Reports**: Set up report schedules for customers
-5. **Monitor**: Check the Monitoring page for system health
+3. **Map Customers**: Review and map in [Customers → Map](/platform/customers/map)
+4. **Configure Reports**: Set up [Schedules](/platform/schedules) for customers
+5. **Monitor**: Check the [Monitoring](/admin/monitoring) page for system health
 
-Need help? Use this chatbot, check the **Docs** page, or contact support.`,
+Need help? Use this chatbot, check the [Docs](/docs) page, or contact support.`,
 
       'navigation': `**Where do I find that?**
 
 **Main Features:**
-- **Dashboard**: System overview and quick stats
-- **Integrations**: Connect systems, run syncs, preview data
-- **Customers**: Master list, Secondary list, Map customers
-- **Reports**: Generated reports, delivery status, downloads
-- **Schedules**: Configure when reports run
+- [Dashboard](/platform/dashboard): System overview and quick stats
+- [Integrations](/platform/integrations): Connect systems, run syncs, preview data
+- [Customers](/platform/customers/master): Master list, Secondary list, Map customers
+- [Reports](/platform/reports): Generated reports, delivery status, downloads
+- [Schedules](/platform/schedules): Configure when reports run
 
 **Admin Features:**
-- **Users**: User accounts and permissions
-- **API Keys**: Programmatic access tokens
-- **Audit Logs**: Activity history and compliance
-- **Licenses**: Subscription and feature status
-- **Settings**: Company branding and configuration
+- [Users](/admin/users): User accounts and permissions
+- [API Keys](/admin/api-keys): Programmatic access tokens
+- [Audit Logs](/admin/audit-logs): Activity history and compliance
+- [Licenses](/admin/licenses): Subscription and feature status
+- [Settings](/admin/settings): Company branding and configuration
 
 **Help:**
-- **Docs**: Full documentation and guides
-- **Notifications**: System alerts (bell icon)
+- [Docs](/docs): Full documentation and guides
+- [Notifications](/platform/notifications): System alerts (bell icon)
 
 Tell me what you're trying to do and I'll point you to the exact page.`,
 
       'settings': `**Settings:**
 
-Access **Settings** from the sidebar to configure:
+Access [Settings](/admin/settings) from the sidebar to configure:
 
 **Company Settings:**
 - Company name, email, phone, address
@@ -364,7 +364,7 @@ Access **Settings** from the sidebar to configure:
 
       'documentation': `**Documentation:**
 
-Access full documentation in the **Docs** page:
+Access full documentation in the [Docs](/docs) page:
 
 - **Getting Started**: Platform overview, first login
 - **Integrations**: How to connect and configure
@@ -409,7 +409,7 @@ If you don't receive the email, check spam or contact your admin.`,
     answers: {
       'view': `**Notifications:**
 
-Click the **bell icon** in the header to view notifications:
+Click the **bell icon** in the header or go to [Notifications](/platform/notifications) to view:
 
 - Integration sync failures
 - Report generation status

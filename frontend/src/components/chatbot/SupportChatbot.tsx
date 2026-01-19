@@ -1,9 +1,20 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { X, Send, Bot, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { findAnswer } from './knowledgeBase'
 import { useAuth } from '@/contexts/AuthContext'
+
+// Convert markdown-style links [text](url) to clickable elements
+function parseMessageContent(content: string, onNavigate: (path: string) => void): string {
+  // Convert markdown links to clickable spans with data attributes
+  // Pattern: [link text](/path/to/page)
+  return content
+    .replace(/\[([^\]]+)\]\((\/[^)]+)\)/g, '<a href="$2" class="chatbot-link text-primary underline hover:text-primary/80 cursor-pointer font-medium" data-internal-link="$2">$1</a>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br/>')
+}
 
 interface Message {
   id: string
@@ -14,6 +25,7 @@ interface Message {
 
 export function SupportChatbot() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
   const [hasShownWelcome, setHasShownWelcome] = useState(false)
   const [showPulse, setShowPulse] = useState(true)
@@ -23,7 +35,7 @@ export function SupportChatbot() {
   const getWelcomeMessage = useCallback(() => ({
     id: '1',
     role: 'assistant' as const,
-    content: `Hi ${firstName}! 👋 I'm your **AI Assistant** for the MSP Reporting Platform.\n\nI can help you with:\n\n• **Integrations** - Connect Autotask, Datto, ITGlue & more\n• **Customers** - Mapping & management\n• **Reports** - Schedules & delivery\n• **Admin** - Users, API keys, audit logs\n• **System** - Monitoring & settings\n\nJust ask me anything or pick a quick question below!`,
+    content: `Hi ${firstName}! 👋 I'm your **AI Assistant** for the MSP Reporting Platform.\n\nI can help you with:\n\n• [Integrations](/platform/integrations) - Connect Autotask, Datto, ITGlue & more\n• [Customers](/platform/customers/master) - Mapping & management\n• [Reports](/platform/reports) - Schedules & delivery\n• [Admin](/admin/users) - Users, API keys, audit logs\n• [Monitoring](/admin/monitoring) - System health & settings\n\nJust ask me anything or pick a quick question below!`,
     timestamp: new Date(),
   }), [firstName])
   
@@ -163,10 +175,16 @@ export function SupportChatbot() {
               >
                 <div 
                   className="text-sm whitespace-pre-wrap prose prose-sm max-w-none dark:prose-invert"
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement
+                    if (target.tagName === 'A' && target.dataset.internalLink) {
+                      e.preventDefault()
+                      navigate(target.dataset.internalLink)
+                      setIsOpen(false)
+                    }
+                  }}
                   dangerouslySetInnerHTML={{ 
-                    __html: message.content
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\n/g, '<br/>')
+                    __html: parseMessageContent(message.content, navigate)
                   }}
                 />
                 <span className="text-xs opacity-70 mt-1 block">
