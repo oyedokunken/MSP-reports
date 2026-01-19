@@ -96,6 +96,47 @@ class GotenbergService
     }
 
     /**
+     * Merge multiple PDF binaries into a single PDF using Gotenberg
+     *
+     * @param array $pdfBinaries Array of binary PDF strings
+     * @return string Merged binary PDF content
+     * @throws Exception
+     */
+    public function mergePdfs(array $pdfBinaries): string
+    {
+        if (!$this->enabled) {
+            throw new Exception('Gotenberg service is disabled');
+        }
+
+        try {
+            $endpoint = "{$this->baseUrl}/forms/pdfengines/merge";
+
+            $request = Http::timeout($this->timeout)->asMultipart();
+
+            foreach ($pdfBinaries as $index => $binary) {
+                $request->attach('files', $binary, "pdf_{$index}.pdf");
+            }
+
+            $response = $request->post($endpoint);
+
+            if (!$response->successful()) {
+                throw new Exception(
+                    "Gotenberg Merge API error: {$response->status()} - {$response->body()}"
+                );
+            }
+
+            return $response->body();
+        } catch (Exception $e) {
+            Log::error('Gotenberg PDF merge failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new Exception("Failed to merge PDFs: {$e->getMessage()}");
+        }
+    }
+
+
+    /**
      * Build form data for Gotenberg request
      *
      * @param array $options

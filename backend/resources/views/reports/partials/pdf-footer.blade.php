@@ -10,49 +10,27 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            font-size: 9px;
-            color: #666;
-            padding: 8px 30px 10px 30px;
+            font-size: 10px;
+            color: #94a3b8;
+            padding: 10px 30px;
         }
         .footer-container {
-            border-top: 1px solid #e5e5e5;
-            padding-top: 8px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 10px;
             width: 100%;
-        }
-        .footer-content {
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        .footer-left {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .footer-left div {
-            font-size: 9px;
-            color: #666;
-            line-height: 1.4;
+            justify-content: flex-end;
         }
         .footer-right {
             text-align: right;
-            font-size: 9px;
-            color: #666;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
     <div class="footer-container">
-        <div class="footer-content">
-            <div class="footer-left">
-                <div>{{ $branding['footer_text'] ?? '© 2025 Territory Technology Solutions' }}</div>
-                <div>{{ $branding['support_phone'] ?? '1300 XXX XXX' }}</div>
-                <div>{{ $branding['support_email'] ?? 'support@tts.com.au' }}</div>
-            </div>
-            
-            <div class="footer-right">
-                Page <span class="pageNumber"></span> of <span class="totalPages"></span>
-            </div>
+        <div class="footer-right">
+            Page <span class="pageNumber"></span> of <span class="totalPages"></span>
         </div>
     </div>
 </body>

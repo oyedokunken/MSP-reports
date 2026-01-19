@@ -272,14 +272,35 @@ class ReportGenerationService
             ]);
         }
 
-        $html = $this->generateHTML($reportData, $schedule);
+        // Generate Cover Page PDF (if it exists in the report)
+        $coverHtml = $this->generateHTML($reportData, $schedule, 'cover');
+        $coverPdf = null;
+        
+        // We assume reports starting with @include('CoverPages.default') have a cover page.
+        // For simplicity, we check if rendering 'cover' part gives us non-empty content 
+        // that isn't just whitespace and style tags.
+        if (trim(strip_tags($coverHtml)) !== '' || strpos($coverHtml, 'cover-page') !== false) {
+            $coverPdf = $this->gotenberg->htmlToPdf($coverHtml, [
+                'paper_width' => '8.27',
+                'paper_height' => '11.69',
+                'margin_top' => '0',
+                'margin_bottom' => '0',
+                'margin_left' => '0',
+                'margin_right' => '0',
+                'print_background' => true,
+                'wait_delay' => '1s',
+            ]);
+        }
 
+        // Generate Main Content HTML
+        $contentHtml = $this->generateHTML($reportData, $schedule, 'content');
+        
         // Generate header and footer HTML for repeating on every page
         $headerHtml = $this->generatePDFHeader($reportData, $schedule);
         $footerHtml = $this->generatePDFFooter($reportData, $schedule);
 
-        // Use Gotenberg to generate PDF with repeating header/footer
-        $pdfContent = $this->gotenberg->htmlToPdf($html, [
+        // Use Gotenberg to generate content PDF with repeating header/footer
+        $contentPdf = $this->gotenberg->htmlToPdf($contentHtml, [
             'paper_width' => '8.27',  // A4 width in inches
             'paper_height' => '11.69',  // A4 height in inches
             'margin_top' => '1.0',  // 1.0 inch (~25mm) top margin for header
@@ -292,6 +313,13 @@ class ReportGenerationService
             'prefer_css_page_size' => false,
             'wait_delay' => '2s',  // Wait 2 seconds for images to load
         ]);
+
+        // Merge PDFs if we have a cover page
+        if ($coverPdf) {
+            $pdfContent = $this->gotenberg->mergePdfs([$coverPdf, $contentPdf]);
+        } else {
+            $pdfContent = $contentPdf;
+        }
 
         // Log PDF content size for debugging
         Log::info('PDF generation completed', [
@@ -339,7 +367,7 @@ class ReportGenerationService
         return $filename;
     }
 
-    private function generateHTML(array $reportData, ReportSchedule $schedule): string
+    private function generateHTML(array $reportData, ReportSchedule $schedule, string $renderPart = 'all'): string
     {
         $reportClass = $this->loadReportClass($schedule->report_type, $schedule->company_id);
 
@@ -409,6 +437,7 @@ class ReportGenerationService
                     'date_range' => $reportData['date_range'] ?? [],
                     // LibreNMS Device Report
                     'groups' => $reportData['groups'] ?? [],
+                    'render_part' => $renderPart,
                 ])->render();
             } catch (\Exception $e) {
                 Log::error('Failed to render Blade template, trying file path', [
@@ -471,6 +500,7 @@ class ReportGenerationService
                         'date_range' => $reportData['date_range'] ?? [],
                         // LibreNMS Device Report
                         'groups' => $reportData['groups'] ?? [],
+                        'render_part' => $renderPart,
                     ])->render();
                 }
             }
@@ -482,6 +512,7 @@ class ReportGenerationService
             'branding' => $reportData['branding'] ?? [],
             'metrics' => $reportData['metrics'] ?? [],
             'period' => $reportData['period'] ?? [],
+            'render_part' => $renderPart,
         ])->render();
     }
 

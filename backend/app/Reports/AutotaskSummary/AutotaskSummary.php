@@ -158,6 +158,9 @@ class AutotaskSummary extends BaseReport
         $technicianSummary = $this->getTechnicianSummary($timeEntries, $tickets, $resources);
         $contractSummary = $this->getContractSummary($contracts);
 
+        // Calculate daily trends for line graph
+        $dailyTrends = $this->calculateDailyTrends($tickets, $startDate, $endDate);
+
         // Generate alerts
         $alerts = $this->generateAlerts($tickets, $contracts, $timeSummary);
 
@@ -177,6 +180,7 @@ class AutotaskSummary extends BaseReport
                 'total' => $contractSummary['total_contracts'] ?? 0,
                 'expiring_soon' => $contractSummary['expiring_soon'] ?? 0,
             ],
+            'daily_trends' => $dailyTrends,
             'total_alerts' => count($alerts),
         ];
 
@@ -405,5 +409,43 @@ class AutotaskSummary extends BaseReport
         }
         
         return $alerts;
+    }
+
+    private function calculateDailyTrends(Collection $tickets, Carbon $startDate, Carbon $endDate): array
+    {
+        $days = [];
+        $currentDate = $startDate->copy();
+        
+        while ($currentDate->lte($endDate)) {
+            $dateStr = $currentDate->format('M d');
+            $startOfDay = $currentDate->copy()->startOfDay();
+            $endOfDay = $currentDate->copy()->endOfDay();
+            
+            $created = $tickets->filter(function($t) use ($startOfDay, $endOfDay) {
+                if ($t['created_date'] === 'Unknown') return false;
+                $date = Carbon::parse($t['created_date']);
+                return $date->between($startOfDay, $endOfDay);
+            })->count();
+            
+            $completed = $tickets->filter(function($t) use ($startOfDay, $endOfDay) {
+                if (!$t['completed_date']) return false;
+                $date = Carbon::parse($t['completed_date']);
+                return $date->between($startOfDay, $endOfDay);
+            })->count();
+            
+            $days[] = [
+                'date' => $dateStr,
+                'created' => $created,
+                'completed' => $completed,
+            ];
+            
+            $currentDate->addDay();
+        }
+        
+        return [
+            'labels' => array_column($days, 'date'),
+            'created' => array_column($days, 'created'),
+            'completed' => array_column($days, 'completed'),
+        ];
     }
 }

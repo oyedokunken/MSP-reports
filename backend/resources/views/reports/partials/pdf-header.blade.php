@@ -8,6 +8,7 @@
             padding: 0;
             width: 100%;
             height: 100%;
+            -webkit-print-color-adjust: exact;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
@@ -18,61 +19,50 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e5e5e5;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f1f5f9;
             width: 100%;
         }
         .header-left {
             display: flex;
             align-items: center;
-            gap: 12px;
         }
         .company-logo {
-            max-height: 40px;
+            max-height: 35px;
             height: auto;
-            max-width: 150px;
+            max-width: 120px;
             width: auto;
             display: block;
         }
-        .company-info {
-            display: flex;
-            flex-direction: column;
-        }
         .company-name {
-            font-size: 13px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 2px;
-        }
-        .report-title {
-            font-size: 9px;
-            color: #666;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-left: 12px;
+            letter-spacing: -0.01em;
         }
         .header-right {
             text-align: right;
+            opacity: 0.3;
         }
-        .customer-name {
-            font-size: 11px;
-            font-weight: 600;
-            color: #1a1a1a;
-            margin-bottom: 2px;
-        }
-        .prepared-for {
-            font-size: 8px;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .msp-logo {
+            max-height: 35px;
+            width: auto;
+            max-width: 120px;
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="header-container">
         <div class="header-left">
-            <img src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('logo.png'))) }}" alt="MSP Logo" class="company-logo">
+            @if(isset($branding['company_logo']) && $branding['company_logo'])
+                <img src="{{ $branding['company_logo'] }}" alt="Logo" class="company-logo">
+            @endif
+            <div class="company-name">{{ $branding['company_name'] ?? 'Reporting' }}</div>
         </div>
         <div class="header-right">
-            <div class="prepared-for">Prepared For</div>
-            <div class="customer-name">{{ $customer->canonical_name }}</div>
+            <img src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('logo.png'))) }}" alt="MSP Reports" class="msp-logo">
         </div>
     </div>
 </body>
