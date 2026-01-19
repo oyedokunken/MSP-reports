@@ -70,7 +70,6 @@ class DattoIntegration implements IntegrationInterface
             ],
         ];
     }
-
     public function authenticate(): bool
     {
         return $this->client->testConnection();
@@ -81,28 +80,24 @@ class DattoIntegration implements IntegrationInterface
     public function sync(): array
     {
         $errors = [];
-        $this->mappedDuringSync = [];
         $totalProcessed = 0;
 
         try {
-            // 1. Checkpoint: Resume from last state
-            $state = json_decode($this->integration->sync_state, true);
+            $state = json_decode($this->integration->sync_state, true) ?? [];
             $phase = $state['phase'] ?? 'customers';
             $resumeOffset = $state['offset'] ?? 0;
 
-            // 2. Fetch all RMM Sites (single API call - fast)
             $dattoCustomers = $this->client->getCustomers();
             $totalCustomers = count($dattoCustomers);
-            
-            \Log::info('Datto Integration: Starting sync', [
+
+            Log::info('Datto Integration: Starting sync', [
                 'integration_id' => $this->integration->integration_id,
                 'customer_count' => $totalCustomers,
-                'resume_offset' => $resumeOffset,
                 'phase' => $phase,
+                'resume_offset' => $resumeOffset,
             ]);
 
-            // PHASE 1: Sync ALL customers first (fast - no additional API calls)
-            // This ensures all customers are available for mapping immediately
+            // PHASE 1: Customers (fast – single paginated call)
             if ($phase === 'customers' || $phase === 'sites') {
                 foreach ($dattoCustomers as $site) {
                     try {
@@ -110,70 +105,58 @@ class DattoIntegration implements IntegrationInterface
                         $this->storeCustomer($standardized);
                         $totalProcessed++;
                     } catch (\Exception $e) {
-                        $errors[] = "Failed to sync customer: {$e->getMessage()}";
+                        $errors[] = "Customer sync failed: {$e->getMessage()}";
                     }
                 }
-                
-                \Log::info('Datto Integration: All customers synced', [
+
+                Log::info('Datto Integration: Customers synced', [
                     'integration_id' => $this->integration->integration_id,
                     'total_customers' => $totalProcessed,
                 ]);
-                
-                // Run auto-match ONLY if there are unmapped customers
+
                 if (!$this->integration->is_source_of_truth) {
                     $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
                         ->whereNull('customer_id')
                         ->count();
-                    
+
                     if ($unmappedCount > 0) {
                         BatchAutoMatchCustomersJob::dispatch($this->integration);
-                        \Log::info('Datto Integration: Dispatched auto-match job', [
+                        Log::info('Datto Integration: Dispatched auto-match job', [
                             'integration_id' => $this->integration->integration_id,
                             'unmapped_count' => $unmappedCount,
                         ]);
-                    } else {
-                        \Log::info('Datto Integration: Skipped auto-match - all customers mapped', [
-                            'integration_id' => $this->integration->integration_id,
-                        ]);
                     }
                 }
-                
+
                 $this->saveSyncState('devices', 0, $totalCustomers);
             }
 
-            // PHASE 2: Dispatch device/alert sync jobs (slow - separate from customers)
-            // Skip if resuming past this phase
+            // PHASE 2: Dispatch batched device + alert jobs
             $batchesDispatched = 0;
             if ($phase !== 'complete') {
                 $offset = ($phase === 'devices') ? $resumeOffset : 0;
                 $sitesToProcess = array_slice($dattoCustomers, $offset);
-                
+
                 collect($sitesToProcess)->chunk(5)->each(function ($chunk, $index) use ($offset, $totalCustomers, &$batchesDispatched) {
                     \App\Jobs\ProcessIntegrationBatchJob::dispatch(
-                        $this->integration, 
-                        'devices_alerts', 
-                        $chunk->toArray(), 
-                        $this->currentSyncLogId
+                        $this->integration,
+                        'devices_alerts',
+                        $chunk->toArray(),
+                        $this->currentSyncLogId ?? null
                     );
                     $batchesDispatched++;
-                    
                     $this->saveSyncState('devices', $offset + (($index + 1) * 5), $totalCustomers);
                 });
             }
 
-            // 4. Clear Checkpoint
             $this->integration->update(['sync_state' => null]);
-            
-            // 5. Update Cache
             $this->updateStatsCache();
-
         } catch (\Exception $e) {
             if ($e instanceof \App\Integrations\Exceptions\RateLimitException) {
                 throw $e;
             }
-
             $errors[] = "Sync failed: {$e->getMessage()}";
-            \Log::error('Datto Integration: Sync failed', [
+            Log::error('Datto Integration: Sync failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
@@ -189,15 +172,15 @@ class DattoIntegration implements IntegrationInterface
         ];
     }
     
-    protected function updateStatsCache(): void 
+    protected function updateStatsCache(): void
     {
         $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
         Cache::forget($cacheKey);
-        
+
         $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNotNull('customer_id')
             ->count();
-        
+
         $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->count();
@@ -208,7 +191,6 @@ class DattoIntegration implements IntegrationInterface
             'last_sync' => now(),
         ], now()->addMinutes(10));
     }
-
     private function processUnmappedCustomers(): array
     {
         $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
@@ -249,7 +231,6 @@ class DattoIntegration implements IntegrationInterface
             ])
         ]);
     }
-
     protected $lastBatchProcessedCount = 0;
 
     public function getLastBatchProcessedCount(): int
@@ -261,89 +242,109 @@ class DattoIntegration implements IntegrationInterface
     {
         $this->lastBatchProcessedCount = 0;
 
-        switch ($type) {
-            case 'sites':
-                // Legacy: sync site + devices + alerts together
-                foreach ($items as $site) {
-                    try {
-                        $standardized = DattoMapper::mapCustomer($site);
-                        $this->storeCustomer($standardized);
-
-                        $siteUid = $site['uid'] ?? $site['organizationId'] ?? null;
-                        if ($siteUid) {
-                            $this->syncSiteDevices($siteUid, $site);
-                            $this->syncSiteAlerts($siteUid, $site);
-                        }
-
-                        if (method_exists($this, 'sendHeartbeat')) {
-                            $this->sendHeartbeat();
-                        }
-
-                    } catch (\Exception $e) {
-                         $siteId = $site['id'] ?? 'unknown';
-                         Log::error('Datto Batch: Failed to process site', [
-                             'site_id' => $siteId, 
-                             'error' => $e->getMessage()
-                         ]);
+        if ($type === 'devices_alerts') {
+            foreach ($items as $site) {
+                try {
+                    $siteUid = $site['uid'] ?? $site['organizationId'] ?? null;
+                    if ($siteUid) {
+                        $this->syncSiteDevices($siteUid, $site);
+                        $this->syncSiteAlerts($siteUid, $site);
                     }
+                    $this->sendHeartbeat();
+                } catch (\Exception $e) {
+                    Log::error('Datto Batch: Failed to sync site', [
+                        'site_id' => $site['id'] ?? 'unknown',
+                        'error' => $e->getMessage(),
+                    ]);
                 }
-                break;
-                
-            case 'devices_alerts':
-                // New: sync ONLY devices and alerts (customers already synced)
-                foreach ($items as $site) {
-                    try {
-                        $siteUid = $site['uid'] ?? $site['organizationId'] ?? null;
-                        if ($siteUid) {
-                            $this->syncSiteDevices($siteUid, $site);
-                            $this->syncSiteAlerts($siteUid, $site);
-                        }
-
-                        if (method_exists($this, 'sendHeartbeat')) {
-                            $this->sendHeartbeat();
-                        }
-
-                    } catch (\Exception $e) {
-                         $siteId = $site['id'] ?? 'unknown';
-                         Log::error('Datto Batch: Failed to sync devices/alerts', [
-                             'site_id' => $siteId, 
-                             'error' => $e->getMessage()
-                         ]);
-                    }
-                }
-                break;
+            }
         }
+        // Legacy 'sites' case can be removed or kept for backward compatibility
     }
-
-    protected function syncSiteDevices(string $siteUid, array $site): void
+protected function syncSiteDevices(string $siteUid, array $site): void
     {
+        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('external_id', $siteUid)
+            ->first();
+
+        if (!$integrationCustomer) {
+            return;
+        }
+
+        $metadata = $integrationCustomer->metadata ?? [];
+        $lastSync = isset($metadata['last_device_sync_at'])
+            ? Carbon::parse($metadata['last_device_sync_at'])
+            : null;
+
+        $intervalMinutes = $this->integration->credentials['device_poll_interval_minutes'] ?? 10;
+
+        if ($lastSync && $lastSync->gt(now()->subMinutes($intervalMinutes + 2))) {
+            Log::info('Datto: Skipping device sync - recent enough', [
+                'site_uid' => $siteUid,
+                'last_sync' => $lastSync,
+            ]);
+            return;
+        }
+
         try {
             $devices = $this->client->getRmmDevices($siteUid);
-            
-            // Chunk to avoid massive SQL queries (e.g. 65k parameters limit)
+
             collect($devices)->chunk(500)->each(function ($chunk) use ($site) {
                 $this->bulkStoreDevices($chunk->toArray(), $site);
                 $this->lastBatchProcessedCount += count($chunk);
             });
-            
+
+            // Update timestamp
+            $metadata['last_device_sync_at'] = now()->toIso8601String();
+            $integrationCustomer->metadata = $metadata;
+            $integrationCustomer->save();
+
+            Log::info('Datto: Devices synced', [
+                'site_uid' => $siteUid,
+                'device_count' => count($devices),
+            ]);
         } catch (\App\Integrations\Exceptions\RateLimitException $e) {
-            throw $e; 
+            throw $e;
         } catch (\Exception $e) {
-            Log::error("Datto Batch: Device fetch failed for site $siteUid", ['error' => $e->getMessage()]);
+            Log::error("Datto: Device sync failed for site $siteUid", ['error' => $e->getMessage()]);
         }
     }
 
-    protected function syncSiteAlerts(string $siteUid, array $site): void
+protected function syncSiteAlerts(string $siteUid, array $site): void
     {
+        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('external_id', $siteUid)
+            ->first();
+
+        if (!$integrationCustomer) {
+            return;
+        }
+
+        $metadata = $integrationCustomer->metadata ?? [];
+        $lastSync = isset($metadata['last_alert_sync_at'])
+            ? Carbon::parse($metadata['last_alert_sync_at'])
+            : null;
+
+        $intervalMinutes = $this->integration->credentials['alert_poll_interval_minutes'] ?? 5;
+
+        if ($lastSync && $lastSync->gt(now()->subMinutes($intervalMinutes + 2))) {
+            Log::info('Datto: Skipping alert sync - recent enough', [
+                'site_uid' => $siteUid,
+                'last_sync' => $lastSync,
+            ]);
+            return;
+        }
+
         try {
             $allAlerts = [];
-            
-            // Open Alerts
+
+            // Open alerts
             $openAlerts = $this->client->getRmmAlerts($siteUid, true);
             $allAlerts = array_merge($allAlerts, $openAlerts);
-            
-            // Resolved Alerts (Recent 7 days)
-            $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, now()->subDays(7));
+
+            // Resolved alerts – only since last sync (fallback 2 hours)
+            $since = $lastSync ?? now()->subHours(2);
+            $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, $since);
             $allAlerts = array_merge($allAlerts, $resolvedAlerts);
 
             collect($allAlerts)->chunk(500)->each(function ($chunk) use ($site) {
@@ -351,10 +352,20 @@ class DattoIntegration implements IntegrationInterface
                 $this->lastBatchProcessedCount += count($chunk);
             });
 
+            // Update timestamp
+            $metadata['last_alert_sync_at'] = now()->toIso8601String();
+            $integrationCustomer->metadata = $metadata;
+            $integrationCustomer->save();
+
+            Log::info('Datto: Alerts synced', [
+                'site_uid' => $siteUid,
+                'open_count' => count($openAlerts),
+                'resolved_new' => count($resolvedAlerts),
+            ]);
         } catch (\App\Integrations\Exceptions\RateLimitException $e) {
             throw $e;
         } catch (\Exception $e) {
-             Log::error("Datto Batch: Alert fetch failed for site $siteUid", ['error' => $e->getMessage()]);
+            Log::error("Datto: Alert sync failed for site $siteUid", ['error' => $e->getMessage()]);
         }
     }
 
@@ -383,13 +394,14 @@ class DattoIntegration implements IntegrationInterface
                 'device_uid' => $deviceUid,
                 'hostname' => $device['hostname'] ?? 'Unknown',
                 'type' => $device['deviceType']['category'] ?? 'server',
-                'os' => $device['operatingSystem']['name'] ?? 'Unknown',
-                'ip_address' => $device['internalIp'] ?? null,
+                'os' => $device['operatingSystem'] ?? 'Unknown',
+                'ip_address' => $device['intIpAddress'] ?? $device['internalIp'] ?? null,
                 'status' => $device['online'] ? 'online' : 'offline',
-                'last_seen' => isset($device['lastAuditDate']) ? Carbon::parse($device['lastAuditDate'])->toIso8601String() : null,
+                'last_seen' => isset($device['lastSeen'])
+                    ? Carbon::createFromTimestampMs($device['lastSeen'])->toIso8601String()
+                    : null,
                 'model' => $device['model'] ?? null,
                 'manufacturer' => $device['manufacturer'] ?? null,
-                // Add backup status if available
             ];
 
             $insertData[] = [
@@ -397,7 +409,9 @@ class DattoIntegration implements IntegrationInterface
                 'integration_id' => $this->integration->integration_id,
                 'integration_customer_id' => $integrationCustomer->integration_customer_id,
                 'data_type' => 'device_status',
-                'data_timestamp' => isset($device['lastAuditDate']) ? Carbon::parse($device['lastAuditDate']) : $now,
+                'data_timestamp' => isset($device['lastSeen'])
+                    ? Carbon::createFromTimestampMs($device['lastSeen'])
+                    : $now,
                 'data_payload' => json_encode($payload),
                 'imported_at' => $now,
                 'data_version' => 1,
@@ -407,14 +421,11 @@ class DattoIntegration implements IntegrationInterface
         if (empty($insertData)) return;
 
         DB::transaction(function () use ($deviceUids, $insertData) {
-            // Delete existing devices in chunks to avoid SQL injection and parameter limits
-            // Instead of unsafe: whereRaw("data_payload->>'device_uid' = ANY(?)", ...)
-            // Use safe chunked deletes
             foreach (array_chunk($deviceUids, 500) as $chunk) {
                 DB::table('integration_data')
                     ->where('integration_id', $this->integration->integration_id)
                     ->where('data_type', 'device_status')
-                    ->where(function($query) use ($chunk) {
+                    ->where(function ($query) use ($chunk) {
                         foreach ($chunk as $uid) {
                             $query->orWhereRaw("data_payload->>'device_uid' = ?", [$uid]);
                         }
@@ -422,12 +433,10 @@ class DattoIntegration implements IntegrationInterface
                     ->delete();
             }
 
-            // Insert new data
             IntegrationData::insert($insertData);
         });
     }
-
-    protected function bulkStoreAlerts(array $alerts, array $site): void
+    protected function bulkStoreAlerts(array $alerts, array $site): void    
     {
         $siteUid = $site['uid'] ?? $site['id'] ?? null;
         if (!$siteUid) return;
@@ -445,10 +454,9 @@ class DattoIntegration implements IntegrationInterface
         foreach ($alerts as $alert) {
             $alertUid = $alert['alertUid'] ?? $alert['uid'] ?? null;
             if (!$alertUid) continue;
-            
+
             $alertUids[] = $alertUid;
 
-            // ... (Logic from storeAlertData) ...
             $priority = $alert['priority'] ?? 'Information';
             $description = $alert['diagnostics'] ?? $alert['alertMessage'] ?? 'No details';
             $deviceName = $alert['alertSourceInfo']['deviceName'] ?? $alert['hostname'] ?? 'Unknown';
@@ -456,14 +464,14 @@ class DattoIntegration implements IntegrationInterface
             $resolved = $alert['resolved'] ?? false;
             $muted = $alert['muted'] ?? false;
             $ticketNumber = $alert['ticketNumber'] ?? null;
-            
+
             $timestamp = $now;
             if (isset($alert['timestamp'])) {
                 $timestamp = Carbon::createFromTimestampMs($alert['timestamp']);
             } elseif (isset($alert['alertDate'])) {
                 $timestamp = Carbon::parse($alert['alertDate']);
             }
-            
+
             $resolvedAt = null;
             if ($resolved && isset($alert['resolvedOn'])) {
                 $resolvedAt = Carbon::createFromTimestampMs($alert['resolvedOn'])->toIso8601String();
@@ -498,12 +506,11 @@ class DattoIntegration implements IntegrationInterface
         if (empty($insertData)) return;
 
         DB::transaction(function () use ($alertUids, $insertData) {
-            // Delete existing alerts in chunks (safe from SQL injection)
             foreach (array_chunk($alertUids, 500) as $chunk) {
                 DB::table('integration_data')
                     ->where('integration_id', $this->integration->integration_id)
                     ->where('data_type', 'alert')
-                    ->where(function($query) use ($chunk) {
+                    ->where(function ($query) use ($chunk) {
                         foreach ($chunk as $uid) {
                             $query->orWhereRaw("data_payload->>'alert_uid' = ?", [$uid]);
                         }
@@ -511,7 +518,6 @@ class DattoIntegration implements IntegrationInterface
                     ->delete();
             }
 
-            // Insert new data
             IntegrationData::insert($insertData);
         });
     }
@@ -575,13 +581,11 @@ class DattoIntegration implements IntegrationInterface
         ];
     }
 
-    private function storeCustomer(array $customer): void
+    protected function storeCustomer(array $customer): void
     {
-        // Validate required fields
         if (empty($customer['external_id']) || empty($customer['name'])) {
-            $validator = app(\App\Services\IntegrationDataValidator::class);
             Log::warning('Datto: Skipping customer with missing required fields', [
-                'customer' => $validator->sanitizeForLogging($customer)
+                'customer' => $customer,
             ]);
             return;
         }
@@ -594,17 +598,13 @@ class DattoIntegration implements IntegrationInterface
                 ],
                 [
                     'name' => $customer['name'],
-                    'metadata' => $customer['metadata'],
-                    'active' => $customer['active'],
+                    'metadata' => $customer['metadata'] ?? [],
+                    'active' => $customer['active'] ?? true,
                     'last_seen_at' => now(),
                 ]
             );
-
             $integrationCustomer->refresh();
 
-            // For source of truth integrations, auto-create unified customer inline
-            // This fixes the race condition where BatchAutoMatchCustomersJob runs
-            // before all batch jobs complete, leaving customers unmapped
             if ($this->integration->is_source_of_truth && !$integrationCustomer->customer_id) {
                 $this->mappingService->createFromSourceOfTruth(
                     $integrationCustomer,
