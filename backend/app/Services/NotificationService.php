@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Company;
 use App\Models\User;
 use App\Models\Integration;
+use App\Models\GeneratedReport;
+use App\Notifications\ReportDelivered;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -162,5 +164,149 @@ The data is now available for reporting.
 --
 MSP Reports Platform
 MSG;
+    }
+
+    /**
+     * Send report delivery confirmation notification to company admins
+     */
+    public function sendReportDeliveryConfirmation(GeneratedReport $report, array $deliveryResults): void
+    {
+        $company = $report->company;
+        $customer = $report->customer;
+        
+        if (!$company || !$customer) {
+            Log::warning('Cannot send delivery confirmation: missing company or customer', [
+                'report_id' => $report->generated_report_id,
+            ]);
+            return;
+        }
+
+        // Get users who should receive delivery confirmations
+        // Check company settings first, then fall back to users with report permissions
+        $notificationEmails = $company->settings['reports']['delivery_notifications'] ?? [];
+        
+        if (empty($notificationEmails)) {
+            // Get users with report view/generate permissions
+            $users = $company->users()
+                ->where(function ($query) {
+                    $query->whereJsonContains('permissions->reports->view', true)
+                          ->orWhereJsonContains('permissions->reports->generate', true);
+                })
+                ->get();
+        } else {
+            $users = User::whereIn('email', $notificationEmails)
+                ->where('company_id', $company->company_id)
+                ->get();
+        }
+
+        if ($users->isEmpty()) {
+            Log::info('No users to notify for report delivery', [
+                'report_id' => $report->generated_report_id,
+            ]);
+            return;
+        }
+
+        // Build delivery summary
+        $successMethods = [];
+        $destinations = [];
+        foreach ($deliveryResults as $method => $result) {
+            if ($result['success'] ?? false) {
+                $successMethods[] = ucfirst($method);
+                if (isset($result['destination'])) {
+                    $destinations[] = $result['destination'];
+                }
+            }
+        }
+
+        $reportName = $report->reportSchedule?->report_type ?? 'Report';
+        $customerName = $customer->name ?? 'Unknown Customer';
+        $deliveryMethodsStr = implode(', ', $successMethods);
+        $destinationsStr = implode(', ', $destinations);
+
+        // Send in-app notification to each user
+        foreach ($users as $user) {
+            try {
+                $user->notify(new ReportDelivered([
+                    'title' => 'Report Delivered Successfully',
+                    'description' => "{$reportName} for {$customerName} was delivered via {$deliveryMethodsStr}",
+                    'metadata' => [
+                        'report_id' => $report->generated_report_id,
+                        'customer_id' => $customer->customer_id,
+                        'customer_name' => $customerName,
+                        'report_type' => $reportName,
+                        'delivery_methods' => $successMethods,
+                        'destinations' => $destinations,
+                        'delivered_at' => now()->toIso8601String(),
+                    ]
+                ]));
+            } catch (\Exception $e) {
+                Log::error('Failed to send delivery notification to user', [
+                    'user_id' => $user->user_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Also send email confirmation if configured
+        $emailNotifications = $company->settings['reports']['email_delivery_confirmations'] ?? false;
+        if ($emailNotifications) {
+            $this->sendDeliveryConfirmationEmail($report, $customer, $company, $successMethods, $destinationsStr);
+        }
+
+        Log::info('Report delivery confirmation sent', [
+            'report_id' => $report->generated_report_id,
+            'notified_users' => $users->pluck('user_id')->toArray(),
+        ]);
+    }
+
+    /**
+     * Send email confirmation for report delivery
+     */
+    protected function sendDeliveryConfirmationEmail(
+        GeneratedReport $report,
+        $customer,
+        Company $company,
+        array $deliveryMethods,
+        string $destinations
+    ): void {
+        $notificationEmails = $company->settings['reports']['delivery_notifications'] ?? [];
+        
+        if (empty($notificationEmails)) {
+            return;
+        }
+
+        $reportName = $report->reportSchedule?->report_type ?? 'Report';
+        $customerName = $customer->name ?? 'Unknown Customer';
+        $deliveryMethodsStr = implode(', ', $deliveryMethods);
+        $deliveredAt = $report->delivered_at?->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s');
+
+        $message = <<<MSG
+Report Delivery Confirmation
+
+Report: {$reportName}
+Customer: {$customerName}
+Delivered via: {$deliveryMethodsStr}
+Destination: {$destinations}
+Delivered at: {$deliveredAt}
+
+This is an automated confirmation that your scheduled report was delivered successfully.
+
+--
+MSP Reports Platform
+MSG;
+
+        try {
+            foreach ($notificationEmails as $email) {
+                Mail::raw($message, function ($mail) use ($email, $company, $customerName) {
+                    $mail->to($email)
+                        ->subject("[{$company->name}] Report Delivered: {$customerName}");
+                });
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to send delivery confirmation email', [
+                'report_id' => $report->generated_report_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

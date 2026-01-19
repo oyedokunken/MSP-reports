@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\ReportDeliveryMail;
 use App\Services\MailService;
 use App\Services\Delivery\DeliveryManager;
+use App\Services\NotificationService;
 
 class DeliverReportJob implements ShouldQueue
 {
@@ -85,6 +86,17 @@ class DeliverReportJob implements ShouldQueue
                 'delivery_methods' => $successMethods,
                 'failed_methods' => array_keys($failedMethods),
             ]);
+
+            // Send delivery confirmation notification
+            try {
+                $notificationService = resolve(NotificationService::class);
+                $notificationService->sendReportDeliveryConfirmation($this->generatedReport, $results);
+            } catch (\Exception $e) {
+                Log::warning('Failed to send delivery confirmation notification', [
+                    'report_id' => $this->generatedReport->generated_report_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
         } catch (\Exception $e) {
             Log::error('Report delivery failed', [
