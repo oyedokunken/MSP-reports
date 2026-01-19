@@ -612,4 +612,76 @@ class ReportAnalyticsController extends Controller
             'Content-Type' => 'application/pdf',
         ]);
     }
+
+    /**
+     * Preview the email that will be sent with a report
+     */
+    public function previewEmail(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $report = GeneratedReport::where('generated_report_id', $id)
+            ->where('company_id', $authUser->company_id)
+            ->with(['customer', 'reportSchedule', 'company'])
+            ->first();
+
+        if (!$report) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Report not found or access denied.'
+            ], 404);
+        }
+
+        $company = $report->company;
+        $customer = $report->customer;
+        $branding = $company->settings['white_label'] ?? [];
+
+        // Build email preview data
+        $period = $report->report_period;
+        $periodString = 'N/A';
+        
+        if (is_array($period) && isset($period['start']) && isset($period['end'])) {
+            $start = \Carbon\Carbon::parse($period['start'])->format('F j, Y');
+            $end = \Carbon\Carbon::parse($period['end'])->format('F j, Y');
+            $periodString = "{$start} - {$end}";
+        }
+
+        // Get delivery destination
+        $destination = $customer->report_destination 
+            ?? $customer->report_configuration['delivery']['destination'] 
+            ?? null;
+        $ccEmails = $customer->report_configuration['delivery']['cc'] ?? [];
+
+        // Render email HTML
+        $emailHtml = view('emails.report-delivery', [
+            'customerName' => $customer->canonical_name,
+            'reportType' => $report->reportSchedule->report_type ?? 'Report',
+            'reportPeriod' => $periodString,
+            'generatedAt' => $report->generated_at->format('F j, Y'),
+            'companyName' => $branding['company_name'] ?? $company->name,
+            'supportEmail' => $branding['support_email'] ?? config('mail.from.address'),
+            'supportPhone' => $branding['support_phone'] ?? '',
+            'footerText' => $branding['footer_text'] ?? '',
+            'primaryColor' => $branding['primary_color'] ?? '#1a56db',
+        ])->render();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'subject' => $branding['report_header_text'] ?? 'Your Monthly Service Report',
+                'from' => [
+                    'name' => $branding['email_from_name'] ?? $company->name,
+                    'email' => config('mail.from.address'),
+                ],
+                'to' => $destination,
+                'cc' => $ccEmails,
+                'customer_name' => $customer->canonical_name,
+                'report_type' => $report->reportSchedule->report_type ?? 'Report',
+                'report_period' => $periodString,
+                'generated_at' => $report->generated_at->format('F j, Y'),
+                'attachment_name' => $report->file_path ? basename($report->file_path) : 'Report.pdf',
+                'html' => $emailHtml,
+            ]
+        ]);
+    }
 }

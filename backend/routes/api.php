@@ -161,6 +161,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::get('/reports/{id}/download', [ReportAnalyticsController::class, 'downloadReport']);
         Route::post('/reports/{id}/email', [ReportAnalyticsController::class, 'emailReport']);
         Route::post('/reports/{id}/deliver', [ReportAnalyticsController::class, 'deliverReport']);
+        Route::get('/reports/{id}/email-preview', [ReportAnalyticsController::class, 'previewEmail']);
         Route::post('/reports/{id}/share', [ReportAnalyticsController::class, 'generateShareLink']);
         Route::post('/reports/batch-discard', [ReportAnalyticsController::class, 'discardReports']);
         Route::delete('/reports', [ReportAnalyticsController::class, 'batchDelete']);
