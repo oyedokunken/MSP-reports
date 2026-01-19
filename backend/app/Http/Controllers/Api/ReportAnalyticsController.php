@@ -398,8 +398,8 @@ class ReportAnalyticsController extends Controller
         }
 
         // Delete the PDF file if it exists
-        if ($report->file_path && Storage::exists($report->file_path)) {
-            Storage::delete($report->file_path);
+        if ($report->file_path && Storage::disk('reports')->exists($report->file_path)) {
+            Storage::disk('reports')->delete($report->file_path);
         }
 
         $reportId = $report->generated_report_id;
@@ -410,6 +410,39 @@ class ReportAnalyticsController extends Controller
             'message' => 'Report deleted successfully',
             'data' => [
                 'deleted_report_id' => $reportId
+            ]
+        ], 200);
+    }
+
+    public function batchDelete(Request $request)
+    {
+        $validated = $request->validate([
+            'report_ids' => 'required|array',
+            'report_ids.*' => 'exists:generated_reports,generated_report_id'
+        ]);
+
+        $reportIds = $validated['report_ids'];
+        $authUser = $request->user();
+
+        $reports = GeneratedReport::whereIn('generated_report_id', $reportIds)
+            ->where('company_id', $authUser->company_id)
+            ->get();
+
+        $deletedCount = 0;
+        foreach ($reports as $report) {
+            // Delete the PDF file if it exists
+            if ($report->file_path && Storage::disk('reports')->exists($report->file_path)) {
+                Storage::disk('reports')->delete($report->file_path);
+            }
+            $report->delete();
+            $deletedCount++;
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Successfully deleted {$deletedCount} reports",
+            'data' => [
+                'deleted_count' => $deletedCount
             ]
         ], 200);
     }

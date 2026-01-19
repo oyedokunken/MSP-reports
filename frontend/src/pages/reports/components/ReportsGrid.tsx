@@ -10,10 +10,21 @@ interface ReportsGridProps {
   downloading: number | null
   onDownload: (reportId: number) => void
   onDelete?: (reportId: number) => void
-  deleting?: number | null
+  deleting?: number | null | string
+  selectedIds?: number[]
+  onToggleSelection?: (reportId: number) => void
 }
 
-export function ReportsGrid({ reports, isLoading, downloading, onDownload, onDelete, deleting }: ReportsGridProps) {
+export function ReportsGrid({ 
+  reports, 
+  isLoading, 
+  downloading, 
+  onDownload, 
+  onDelete, 
+  deleting,
+  selectedIds = [],
+  onToggleSelection
+}: ReportsGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
@@ -68,7 +79,9 @@ export function ReportsGrid({ reports, isLoading, downloading, onDownload, onDel
           downloading={downloading === report.generated_report_id}
           onDownload={() => onDownload(report.generated_report_id)}
           onDelete={onDelete}
-          deleting={deleting === report.generated_report_id}
+          deleting={deleting === report.generated_report_id || (deleting === 'batch' && selectedIds.includes(report.generated_report_id))}
+          isSelected={selectedIds.includes(report.generated_report_id)}
+          onSelect={() => onToggleSelection?.(report.generated_report_id)}
         />
       ))}
     </div>

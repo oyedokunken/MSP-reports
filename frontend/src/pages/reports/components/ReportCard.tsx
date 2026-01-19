@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +15,7 @@ import type { GeneratedReport } from '../types/report'
 import { ReportPreviewModal } from '@/components/reports/ReportPreviewModal'
 import { ShareLinkModal } from '@/components/reports/ShareLinkModal'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
+import { cn } from '@/lib/utils'
 
 interface ReportCardProps {
   report: GeneratedReport
@@ -21,9 +23,19 @@ interface ReportCardProps {
   onDownload: () => void
   onDelete?: (reportId: number) => void
   deleting?: boolean
+  isSelected?: boolean
+  onSelect?: () => void
 }
 
-export function ReportCard({ report, downloading, onDownload, onDelete, deleting = false }: ReportCardProps) {
+export function ReportCard({ 
+  report, 
+  downloading, 
+  onDownload, 
+  onDelete, 
+  deleting = false,
+  isSelected = false,
+  onSelect
+}: ReportCardProps) {
   const [showPreview, setShowPreview] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
 
@@ -53,15 +65,27 @@ export function ReportCard({ report, downloading, onDownload, onDelete, deleting
   }
 
   return (
-    <AnimatedCard className="p-6 h-full flex flex-col">
+    <AnimatedCard 
+      className={cn(
+        "p-6 h-full flex flex-col transition-all duration-200",
+        isSelected && "ring-2 ring-primary border-primary bg-primary/5"
+      )}
+    >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
-            <FileText className="h-6 w-6 text-primary" />
+          <div className="flex items-center gap-3">
+            <Checkbox 
+              checked={isSelected} 
+              onCheckedChange={onSelect}
+              className="h-5 w-5"
+            />
+            <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
+              <FileText className="h-6 w-6 text-primary" />
+            </div>
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-foreground break-words">
+            <h3 className="font-semibold text-foreground break-words truncate">
               {report.customer_name || 'Unknown Customer'}
             </h3>
             <p className="text-xs text-muted-foreground truncate">
@@ -76,7 +100,7 @@ export function ReportCard({ report, downloading, onDownload, onDelete, deleting
       <div className="mt-6 space-y-3 flex-1">
         <div className="flex items-center gap-2 text-sm">
           <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <span className="text-foreground">{report.customer_name || 'Unknown Customer'}</span>
+          <span className="text-foreground truncate">{report.customer_name || 'Unknown Customer'}</span>
         </div>
         
         <div className="flex items-center gap-2 text-sm">
@@ -86,7 +110,10 @@ export function ReportCard({ report, downloading, onDownload, onDelete, deleting
 
         <div className="flex items-center gap-2 text-sm">
           <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <span className={report.delivered ? 'text-green-600' : 'text-orange-600'}>
+          <span className={cn(
+            "truncate",
+            report.delivered ? 'text-green-600' : 'text-orange-600'
+          )}>
             {report.delivered ? 'Delivered via ' + report.delivery_method : 'Not delivered yet'}
           </span>
         </div>
@@ -94,7 +121,7 @@ export function ReportCard({ report, downloading, onDownload, onDelete, deleting
         {report.error_message && (
           <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20">
             <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-destructive font-medium">
+            <p className="text-xs text-destructive font-medium line-clamp-2">
               {report.error_message}
             </p>
           </div>
@@ -120,12 +147,12 @@ export function ReportCard({ report, downloading, onDownload, onDelete, deleting
             {downloading ? (
               <>
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                Downloading...
+                <span className="hidden sm:inline">Downloading...</span>
               </>
             ) : (
               <>
                 <Download className="h-4 w-4" />
-                Download
+                <span className="hidden sm:inline">Download</span>
               </>
             )}
           </button>
@@ -149,7 +176,7 @@ export function ReportCard({ report, downloading, onDownload, onDelete, deleting
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                className="text-destructive"
+                className="text-destructive font-medium focus:text-destructive"
                 onClick={() => onDelete?.(report.generated_report_id)}
                 disabled={deleting}
               >

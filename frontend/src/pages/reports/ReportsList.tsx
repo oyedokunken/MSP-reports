@@ -23,11 +23,16 @@ export default function ReportsList() {
     setReportTypeFilters,
     handleDownload,
     handleDelete,
+    handleBatchDelete,
+    selectedReportIds,
+    toggleReportSelection,
     pagination,
-    setPage
+    setPage,
+    isBulkDeleting
   } = useReportsList()
 
   const [reportToDelete, setReportToDelete] = useState<number | null>(null)
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
 
   const { current_page: currentPage, last_page: totalPages, total, per_page: perPage } = pagination
 
@@ -48,6 +53,9 @@ export default function ReportsList() {
           onSearchChange={setSearchQuery}
           onStatusFiltersChange={setStatusFilters}
           onReportTypeFiltersChange={setReportTypeFilters}
+          onBulkDelete={() => setShowBulkDeleteConfirm(true)}
+          selectedCount={selectedReportIds.length}
+          isDeleting={isBulkDeleting}
         />
 
         <ReportsGrid
@@ -57,6 +65,8 @@ export default function ReportsList() {
           onDownload={handleDownload}
           onDelete={setReportToDelete}
           deleting={deleting}
+          selectedIds={selectedReportIds}
+          onToggleSelection={toggleReportSelection}
         />
 
         {/* Pagination */}
@@ -72,6 +82,7 @@ export default function ReportsList() {
         )}
       </div>
 
+      {/* Individual Delete Confirmation */}
       <ConfirmationModal
         isOpen={!!reportToDelete}
         onClose={() => setReportToDelete(null)}
@@ -84,6 +95,21 @@ export default function ReportsList() {
         title="Delete Report"
         description="Are you sure you want to delete this report? This action cannot be undone."
         confirmText="Delete Report"
+        cancelText="Cancel"
+        type="danger"
+      />
+
+      {/* Bulk Delete Confirmation */}
+      <ConfirmationModal
+        isOpen={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        onConfirm={() => {
+          handleBatchDelete()
+          setShowBulkDeleteConfirm(false)
+        }}
+        title="Bulk Delete Reports"
+        description={`Are you sure you want to delete ${selectedReportIds.length} selected reports? This action cannot be undone.`}
+        confirmText={`Delete ${selectedReportIds.length} Reports`}
         cancelText="Cancel"
         type="danger"
       />

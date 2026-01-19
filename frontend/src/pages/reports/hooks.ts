@@ -23,6 +23,18 @@ export const useReportsList = () => {
   const setStatusFilters = useReportsStore(state => state.setStatusFilters)
   const setReportTypeFilters = useReportsStore(state => state.setReportTypeFilters)
 
+  const [selectedReportIds, setSelectedReportIds] = useState<number[]>([])
+
+  const toggleReportSelection = (reportId: number) => {
+    setSelectedReportIds(prev =>
+      prev.includes(reportId)
+        ? prev.filter(id => id !== reportId)
+        : [...prev, reportId]
+    )
+  }
+
+  const clearSelection = () => setSelectedReportIds([])
+
   // React Query for fetching reports
   const { data: reportData, isLoading } = useQuery({
     queryKey: ['reports', customerId, page],
@@ -112,13 +124,28 @@ export const useReportsList = () => {
     }
   })
 
+  const batchDeleteMutation = useMutation({
+    mutationFn: async (reportIds: number[]) => {
+      await apiClient.delete('/reports', { data: { report_ids: reportIds } })
+    },
+    onSuccess: (_, variables) => {
+      toast.success('Reports Deleted', `Successfully deleted ${variables.length} reports`)
+      setSelectedReportIds([])
+      queryClient.invalidateQueries({ queryKey: ['reports'] })
+    },
+    onError: (error: Error) => {
+      toast.error('Bulk Delete Failed', error.message)
+    }
+  })
+
   return {
     navigate,
     customerId,
     customerName,
     isLoading,
     downloading: downloadMutation.isPending ? downloadMutation.variables : null,
-    deleting: deleteMutation.isPending ? deleteMutation.variables : null,
+    deleting: deleteMutation.isPending ? deleteMutation.variables : (batchDeleteMutation.isPending ? 'batch' : null),
+    isBulkDeleting: batchDeleteMutation.isPending,
     searchQuery,
     statusFilters,
     reportTypeFilters,
@@ -130,7 +157,15 @@ export const useReportsList = () => {
     pagination,
     setPage,
     handleDownload: (id: number) => downloadMutation.mutate(id),
-    handleDelete: (id: number) => deleteMutation.mutate(id)
+    handleDelete: (id: number) => deleteMutation.mutate(id),
+    handleBatchDelete: () => {
+      if (selectedReportIds.length > 0) {
+        batchDeleteMutation.mutate(selectedReportIds)
+      }
+    },
+    selectedReportIds,
+    toggleReportSelection,
+    clearSelection
   }
 }
 

@@ -8,7 +8,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Filter } from 'lucide-react'
+import { Search, Filter, Trash2, Loader2 } from 'lucide-react'
 import { formatReportType } from '../utils/formatters'
 
 interface ReportsFiltersProps {
@@ -19,6 +19,9 @@ interface ReportsFiltersProps {
   onSearchChange: (value: string) => void
   onStatusFiltersChange: (statuses: string[]) => void
   onReportTypeFiltersChange: (types: string[]) => void
+  onBulkDelete?: () => void
+  selectedCount?: number
+  isDeleting?: boolean
 }
 
 export function ReportsFilters({
@@ -29,6 +32,9 @@ export function ReportsFilters({
   onSearchChange,
   onStatusFiltersChange,
   onReportTypeFiltersChange,
+  onBulkDelete,
+  selectedCount = 0,
+  isDeleting = false,
 }: ReportsFiltersProps) {
   const activeFilterCount = statusFilters.length + reportTypeFilters.length
 
@@ -120,6 +126,23 @@ export function ReportsFilters({
           className="pl-10 h-10"
         />
       </div>
+
+      {/* Bulk Delete Button */}
+      {selectedCount > 0 && (
+        <Button 
+          variant="destructive" 
+          className="w-full md:w-auto h-10 animate-in fade-in slide-in-from-right-2"
+          onClick={onBulkDelete}
+          disabled={isDeleting}
+        >
+          {isDeleting ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Trash2 className="h-4 w-4 mr-2" />
+          )}
+          Delete {selectedCount} Selected
+        </Button>
+      )}
     </div>
   )
 }
