@@ -989,6 +989,16 @@ export default function ConfigureReports() {
           reportName={previewReport.name}
           onConfirm={batchPreviewReports.length === 0 ? handleDeliverReport : undefined}
           confirmLabel="Generate & Deliver Report"
+          onDiscard={batchPreviewReports.length === 0 ? async () => {
+            try {
+              await api.post('/reports/batch-discard', { report_ids: [previewReport.id] })
+              setPreviewReport(null)
+            } catch (err) {
+              console.error('Discard failed', err)
+              setPreviewReport(null)
+            }
+          } : undefined}
+          discardLabel={batchPreviewReports.length === 0 ? "Discard Report" : "Back to Batch"}
         />
       )}
 

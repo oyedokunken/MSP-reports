@@ -8,8 +8,9 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import { ZoomIn, ZoomOut, Maximize2, CheckCircle2 } from 'lucide-react'
+import { ZoomIn, ZoomOut, Maximize2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
 import apiClient from '@/lib/api'
+import { cn } from '@/lib/utils'
 
 interface ReportPreviewModalProps {
   open: boolean
@@ -18,6 +19,8 @@ interface ReportPreviewModalProps {
   reportName: string
   onConfirm?: () => Promise<void>
   confirmLabel?: string
+  onDiscard?: () => Promise<void>
+  discardLabel?: string
 }
 
 export function ReportPreviewModal({
@@ -27,12 +30,17 @@ export function ReportPreviewModal({
   reportName,
   onConfirm,
   confirmLabel = 'Process Report',
+  onDiscard,
+  discardLabel = 'Discard & Close',
 }: ReportPreviewModalProps) {
   const [loading, setLoading] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isDiscarding, setIsDiscarding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [zoom, setZoom] = useState(100)
+  const [isShaking, setIsShaking] = useState(false)
+  const [showActionPrompt, setShowActionPrompt] = useState(false)
 
   const loadPdfPreview = useCallback(async () => {
     try {
@@ -66,8 +74,6 @@ export function ReportPreviewModal({
 
   useEffect(() => {
     if (open && reportId) {
-      // Always reload when modal opens or reportId changes
-      // Clean up old URL first if it exists
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl)
         setPdfUrl(null)
@@ -108,9 +114,44 @@ export function ReportPreviewModal({
     }
   }
 
+  const handleDiscard = async () => {
+    if (!onDiscard) {
+      onClose()
+      return
+    }
+    try {
+      setIsDiscarding(true)
+      await onDiscard()
+      onClose()
+    } catch (error) {
+      console.error('Discard failed:', error)
+    } finally {
+      setIsDiscarding(false)
+    }
+  }
+
+  const handleOutsideClick = (e: any) => {
+    if (onConfirm || onDiscard) {
+      e.preventDefault()
+      setIsShaking(true)
+      setShowActionPrompt(true)
+      setTimeout(() => setIsShaking(false), 500)
+    } else {
+      onClose()
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
+    <Dialog open={open} onOpenChange={onDiscard || onConfirm ? handleOutsideClick : onClose}>
+      <DialogContent 
+        className={cn(
+          "max-w-6xl h-[90vh] flex flex-col p-0 transition-all duration-200",
+          isShaking && "animate-shake border-destructive/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+        )}
+        hideClose={!!onConfirm || !!onDiscard}
+        onPointerDownOutside={handleOutsideClick}
+        onEscapeKeyDown={handleOutsideClick}
+      >
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <div className="flex items-center justify-between">
             <div>
@@ -155,10 +196,24 @@ export function ReportPreviewModal({
 
             {/* Action Buttons */}
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDiscard}
+                disabled={isProcessing || isDiscarding}
+              >
+                {isDiscarding ? (
+                  <Spinner className="h-4 w-4 mr-2" />
+                ) : (
+                  <XCircle className="h-4 w-4 mr-2" />
+                )}
+                {discardLabel}
+              </Button>
+              
               {onConfirm && (
                 <Button
                   onClick={handleConfirm}
-                  disabled={loading || !!error || isProcessing}
+                  disabled={loading || !!error || isProcessing || isDiscarding}
                   size="sm"
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
@@ -178,6 +233,15 @@ export function ReportPreviewModal({
             </div>
           </div>
         </DialogHeader>
+
+        {showActionPrompt && (
+          <div className="absolute inset-x-0 -bottom-16 animate-in slide-in-from-top-2 flex justify-center z-50">
+            <div className="bg-destructive text-destructive-foreground text-[11px] font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2 border border-white/20">
+              <AlertTriangle className="h-3 w-3" />
+              SELECT ONE OF THESE ACTIONS TO PROCEED
+            </div>
+          </div>
+        )}
 
         {/* PDF Preview */}
         <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900">
