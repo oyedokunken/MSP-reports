@@ -118,7 +118,7 @@ class BitDefenderIntegration implements IntegrationInterface
         return [
             'records_synced'     => $totalProcessed,
             'records_new'        => 0,
-            'customers_mapped'   => count($this->mappedDuringSync),
+            'customers_mapped'   => $this->mappedDuringSync,
             'records_failed'     => count($errors),
             'errors'             => $errors,
         ];
@@ -145,16 +145,18 @@ class BitDefenderIntegration implements IntegrationInterface
 
     protected function syncEndpointsAndQuarantine(array $companies, int $startOffset, int $totalCompanies): void
     {
-        // 1. Bulk fetch ALL endpoints (paginated, no parentId)
-        $allEndpoints = $this->client->fetchAllEndpointsPaginated($this->pageSize);
-        $endpointsByGroup = collect($allEndpoints)->groupBy('groupId'); // most common grouping key
-
-        // 2. Bulk fetch ALL quarantine items
-        $allQuarantine = $this->client->fetchAllQuarantinePaginated($this->pageSize);
+        // 1. Bulk fetch ALL quarantine items (handle permission 403 gracefully)
+        // Quarantine items conveniently include a 'companyId' field.
+        $allQuarantine = [];
+        try {
+            $allQuarantine = $this->client->getThreatDetections(null, null, $this->pageSize);
+        } catch (\Exception $e) {
+            Log::warning('BitDefender: Quarantine API access denied or failed', ['error' => $e->getMessage()]);
+            $errors[] = "Quarantine API error: {$e->getMessage()}";
+        }
         $quarantineByCompany = collect($allQuarantine)->groupBy('companyId');
 
-        Log::info('Bulk API fetches completed', [
-            'endpoints_count'  => count($allEndpoints),
+        Log::info('Bulk API quarantine fetch completed', [
             'quarantine_count' => count($allQuarantine),
         ]);
 
@@ -170,7 +172,6 @@ class BitDefenderIntegration implements IntegrationInterface
             ->slice($startOffset)
             ->chunk($this->batchSize)
             ->each(function (Collection $chunk, $chunkIndex) use (
-                $endpointsByGroup,
                 $quarantineByCompany,
                 $customerMap,
                 $startOffset,
@@ -182,17 +183,17 @@ class BitDefenderIntegration implements IntegrationInterface
                 $threatBatch = [];
 
                 foreach ($chunk as $company) {
-                    $companyId = $company['id'] ?? null;
-                    if (!$companyId) continue;
-
+                    $companyId = $company['id'];
                     $integrationCustomerId = $customerMap[$companyId] ?? null;
+
                     if (!$integrationCustomerId) {
-                        Log::warning('Missing customer mapping', ['company_id' => $companyId]);
+                        Log::warning('Missing customer record for integration', ['company_id' => $companyId]);
                         continue;
                     }
 
-                    // Endpoints (grouped by groupId – adjust if companyId is present in response)
-                    $companyEndpoints = $endpointsByGroup->get($companyId, collect());
+                    // Fetch endpoints FOR THIS COMPANY specifically (accurate mapping)
+                    $companyEndpoints = $this->client->getEndpointsForCompany($companyId, $this->pageSize);
+                    $companyQuarantine = $quarantineByCompany->get($companyId, collect());
                     foreach ($companyEndpoints as $endpoint) {
                         $mapped = BitDefenderMapper::mapEndpoint($endpoint);
                         $mapped['integration_customer_id'] = $integrationCustomerId;
@@ -212,7 +213,7 @@ class BitDefenderIntegration implements IntegrationInterface
                 $this->bulkStoreHistoricalData('bitdefender_endpoint', $endpointBatch);
                 $this->bulkStoreHistoricalData('bitdefender_threat_detection', $threatBatch);
 
-                $newOffset = $startOffset + (($chunkIndex + 1) * $this->batchSize);
+                $newOffset = min($totalCompanies, $startOffset + (($chunkIndex + 1) * $this->batchSize));
                 $this->saveSyncState('endpoints', $newOffset, $totalCompanies);
 
                 Log::info('Processed batch', [
@@ -259,6 +260,7 @@ class BitDefenderIntegration implements IntegrationInterface
         if (empty($batch)) return;
 
         $externalIds = array_filter(array_map(function ($item) {
+            // Priority: endpoint_id/threat_id, then id
             return $item['payload']['endpoint_id'] ??
                    $item['payload']['threat_id'] ??
                    $item['payload']['id'] ?? null;
@@ -267,28 +269,28 @@ class BitDefenderIntegration implements IntegrationInterface
         $now = now();
 
         DB::transaction(function () use ($dataType, $batch, $externalIds, $now) {
-            // Delete existing
+            // 1. Delete existing records by external_id
             if (!empty($externalIds)) {
-                $query = DB::table('integration_data')
+                DB::table('integration_data')
                     ->where('integration_id', $this->integration->integration_id)
-                    ->where('data_type', $dataType);
-
-                $query->where(function ($q) use ($externalIds) {
-                    foreach ($externalIds as $id) {
-                        $q->orWhereJsonContains('data_payload->endpoint_id', (string)$id)
-                          ->orWhereJsonContains('data_payload->threat_id', (string)$id)
-                          ->orWhereJsonContains('data_payload->id', (string)$id);
-                    }
-                })->delete();
+                    ->where('data_type', $dataType)
+                    ->whereIn('external_id', $externalIds)
+                    ->delete();
             }
 
-            // Prepare inserts
+            // 2. Prepare inserts with external_id
             $inserts = [];
             foreach ($batch as $item) {
+                // Extract external_id for the column
+                $extId = $item['payload']['endpoint_id'] ??
+                        $item['payload']['threat_id'] ??
+                        $item['payload']['id'] ?? null;
+
                 $inserts[] = [
                     'company_id'              => $this->integration->company_id,
                     'integration_id'          => $this->integration->integration_id,
                     'integration_customer_id' => $item['integration_customer_id'],
+                    'external_id'             => $extId,
                     'data_type'               => $dataType,
                     'data_timestamp'          => $item['timestamp'] ?? $now,
                     'data_payload'            => json_encode($item['payload']),
