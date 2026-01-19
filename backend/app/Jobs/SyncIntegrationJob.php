@@ -121,7 +121,7 @@ class SyncIntegrationJob implements ShouldQueue
                 'integration_id' => $this->integration->integration_id,
                 'records_synced' => $recordsSynced,
                 'records_failed' => $recordsFailed,
-                'customers_mapped_count' => count($customersMapped),
+                'customers_mapped_count' => is_array($customersMapped) ? count($customersMapped) : 0,
                 'customers_mapped' => $customersMapped,
                 'batches_dispatched' => $result['batches_dispatched'] ?? 0
             ]);

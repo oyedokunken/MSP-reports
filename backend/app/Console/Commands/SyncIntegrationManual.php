@@ -129,7 +129,7 @@ class SyncIntegrationManual extends Command
             $this->info("Sync phase completed:");
             $this->line("  Records synced: {$recordsSynced}");
             $this->line("  Records failed: {$recordsFailed}");
-            $this->line("  Customers mapped: " . count($customersMapped));
+            $this->line("  Customers mapped: " . (is_array($customersMapped) ? count($customersMapped) : $customersMapped));
             $this->line("  Batches dispatched: {$batchesDispatched}");
 
             if (!empty($errors)) {

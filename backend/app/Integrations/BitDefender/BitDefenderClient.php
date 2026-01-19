@@ -23,8 +23,6 @@ class BitDefenderClient
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
 
-        // BitDefender API base URL (without the category endpoint)
-        // Category endpoints like /network, /packages, /policies are added per request
         $apiUrl = $credentials['api_url'] ?? 'https://cloud.gravityzone.bitdefender.com/api/v1.0/jsonrpc';
         $this->baseUrl = rtrim($apiUrl, '/');
     }
@@ -32,64 +30,39 @@ class BitDefenderClient
     public function testConnection(): bool
     {
         try {
-            // Test connection by fetching companies list
             $response = $this->makeRequest('getCompaniesList', [], 'network');
-
             if (!isset($response['result'])) {
-                throw new AuthenticationException(
-                    'BitDefender authentication failed - invalid response',
-                    401
-                );
+                throw new AuthenticationException('Invalid response from BitDefender', 401);
             }
-
-            Log::info('BitDefenderClient::testConnection successful', [
+            Log::info('BitDefender connection test successful', [
                 'integration_id' => $this->integration->integration_id,
             ]);
-
             return true;
-        } catch (AuthenticationException $e) {
-            throw $e;
         } catch (Exception $e) {
-            Log::error('BitDefenderClient::testConnection failed', [
+            Log::error('BitDefender connection test failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
-            
-            throw new AuthenticationException(
-                'BitDefender authentication failed: ' . $e->getMessage(),
-                400
-            );
+            throw new AuthenticationException('Connection failed: ' . $e->getMessage(), 400);
         }
     }
 
     /**
-     * Get all companies from BitDefender GravityZone.
-     * In BitDefender, companies represent the managed organizations/customers.
+     * Fetch all managed companies (customers/organizations).
+     * Renamed for clarity — previously getEndpoints().
      */
-    public function getEndpoints(): array
+    public function getCompaniesList(): array
     {
         try {
-            // Get companies list using the network endpoint
             $response = $this->makeRequest('getCompaniesList', [], 'network');
-
-            if (!isset($response['result'])) {
-                Log::warning('BitDefenderClient::getEndpoints no result in response', [
-                    'integration_id' => $this->integration->integration_id,
-                    'response' => $response,
-                ]);
-                return [];
-            }
-
-            $companies = $response['result'];
-
-            Log::info('BitDefenderClient::getEndpoints retrieved companies', [
+            $companies = $response['result'] ?? [];
+            Log::info('Retrieved companies', [
                 'integration_id' => $this->integration->integration_id,
                 'count' => count($companies),
             ]);
-
             return $companies;
         } catch (Exception $e) {
-            Log::error('BitDefenderClient::getEndpoints failed', [
+            Log::error('Failed to fetch companies list', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
@@ -97,193 +70,216 @@ class BitDefenderClient
         }
     }
 
-    /**
-     * Get endpoints (devices) for a specific company.
-     * Filters out groups and only returns actual computer endpoints.
-     */
-    public function getEndpointsForCompany(string $companyId, callable $callback = null): array
+    // Alias for backward compatibility if needed
+    public function getEndpoints(): array
     {
-        $page = 1;
-        $perPage = 100;
-        $totalProcessed = 0;
+        return $this->getCompaniesList();
+    }
+
+    /**
+     * Fetch ALL endpoints across ALL companies (paginated, no parentId).
+     * This is much faster than per-company calls when you have many companies.
+     *
+     * @param int $perPage Max 100
+     * @return array All endpoint items
+     */
+    public function fetchAllEndpointsPaginated(int $perPage = 100): array
+    {
         $allEndpoints = [];
+        $page = 1;
 
-        try {
-            do {
-                $response = $this->makeRequest('getEndpointsList', [
-                    'parentId' => $companyId,
-                    'page' => $page,
-                    'perPage' => $perPage,
-                    'filters' => [
-                        'type' => [
-                            'computers' => true,
-                            'virtualMachines' => true,
-                        ],
+        do {
+            $this->rateLimiter->waitForSlot($this->integration, 60); // ensure slot
+
+            $response = $this->makeRequest('getEndpointsList', [
+                'page'    => $page,
+                'perPage' => $perPage,
+                'filters' => [
+                    'type' => [
+                        'computers'       => true,
+                        'virtualMachines' => true,
                     ],
-                ], 'network');
+                ],
+            ], 'network');
 
-                $items = $response['result']['items'] ?? [];
-                
-                // Additional filtering: only include items that are actual endpoints (machineType 1 = computer, machineType 2 = VM)
-                // Exclude groups (machineType 4) and other organizational items
-                $endpoints = array_filter($items, function($item) {
-                    $machineType = $item['machineType'] ?? null;
-                    // machineType 1 = Computer, machineType 2 = Virtual Machine
-                    return in_array($machineType, [1, 2]);
-                });
-                
-                // Process immediately if callback provided (memory efficient)
-                if ($callback) {
-                    foreach ($endpoints as $endpoint) {
-                        $callback($endpoint);
-                        $totalProcessed++;
-                    }
-                } else {
-                    // Accumulate endpoints if no callback
-                    $allEndpoints = array_merge($allEndpoints, array_values($endpoints));
-                }
-                
-                $total = $response['result']['total'] ?? 0;
-                $pagesCount = $response['result']['pagesCount'] ?? 1;
-                
-                Log::info('BitDefenderClient::getEndpointsForCompany page retrieved', [
-                    'integration_id' => $this->integration->integration_id,
-                    'company_id' => $companyId,
-                    'page' => $page,
-                    'items_this_page' => count($items),
-                    'endpoints_this_page' => count($endpoints),
-                    'total_processed' => $callback ? $totalProcessed : count($allEndpoints),
-                ]);
-                
-                $page++;
-            } while ($page <= $pagesCount);
+            $result = $response['result'] ?? [];
+            $items = $result['items'] ?? [];
 
-            Log::info('BitDefenderClient::getEndpointsForCompany completed', [
+            // Filter to actual machines (machineType 1=computer, 2=VM)
+            $filtered = array_filter($items, fn($item) => in_array($item['machineType'] ?? 0, [1, 2]));
+
+            $allEndpoints = array_merge($allEndpoints, array_values($filtered));
+
+            $pagesCount = $result['pagesCount'] ?? 1;
+            Log::info('Fetched endpoints page', [
                 'integration_id' => $this->integration->integration_id,
-                'company_id' => $companyId,
-                'total_endpoints' => $callback ? $totalProcessed : count($allEndpoints),
+                'page'           => $page,
+                'items'          => count($items),
+                'filtered'       => count($filtered),
+                'total_so_far'   => count($allEndpoints),
             ]);
 
-            // Return endpoints array if no callback, otherwise return count
-            return $callback ? ['total_processed' => $totalProcessed] : $allEndpoints;
-        } catch (Exception $e) {
-            Log::error('BitDefenderClient::getEndpointsForCompany failed', [
-                'integration_id' => $this->integration->integration_id,
-                'company_id' => $companyId,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
-        }
+            $page++;
+        } while ($page <= $pagesCount);
+
+        return $allEndpoints;
     }
 
     /**
-     * Get threat detections/quarantine items.
-     * @param Carbon|null $startDate Optional start date for filtering threats
-     * @param Carbon|null $endDate Optional end date for filtering threats
+     * Fetch endpoints for ONE specific company (if you still need it for incremental sync).
+     * Uses pagination + filtering.
      */
-    public function getThreatDetections(?Carbon $startDate = null, ?Carbon $endDate = null): array
+    public function getEndpointsForCompany(string $companyId, int $perPage = 100): array
     {
-        try {
-            $params = [
-                'perPage' => 100,
-                'page' => 1,
-            ];
-            
-            // Add date filters if provided
-            if ($startDate) {
-                $params['startDate'] = $startDate->format('Y-m-d\TH:i:s');
-            }
-            if ($endDate) {
-                $params['endDate'] = $endDate->format('Y-m-d\TH:i:s');
-            }
-            
-            $response = $this->makeRequest('getQuarantineItemsList', $params, 'quarantine');
+        $allEndpoints = [];
+        $page = 1;
 
-            $items = $response['result']['items'] ?? [];
+        do {
+            $response = $this->makeRequest('getEndpointsList', [
+                'parentId' => $companyId,
+                'page'     => $page,
+                'perPage'  => $perPage,
+                'filters'  => [
+                    'type' => [
+                        'computers'       => true,
+                        'virtualMachines' => true,
+                    ],
+                ],
+            ], 'network');
 
-            Log::info('BitDefenderClient::getThreatDetections retrieved threats', [
-                'integration_id' => $this->integration->integration_id,
-                'count' => count($items),
-                'start_date' => $startDate?->toDateTimeString(),
-                'end_date' => $endDate?->toDateTimeString(),
-            ]);
+            $result = $response['result'] ?? [];
+            $items = $result['items'] ?? [];
 
-            return $items;
-        } catch (Exception $e) {
-            Log::error('BitDefenderClient::getThreatDetections failed', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
-            return [];
-        }
-    }
+            $filtered = array_filter($items, fn($item) => in_array($item['machineType'] ?? 0, [1, 2]));
+            $allEndpoints = array_merge($allEndpoints, array_values($filtered));
 
-    /**
-     * Make a JSON-RPC request to BitDefender GravityZone API.
-     * 
-     * @param string $method The JSON-RPC method to call
-     * @param array $params Parameters for the method
-     * @param string $category API category (network, packages, policies, etc.)
-     */
-    protected function makeRequest(string $method, array $params = [], string $category = 'network'): array
-    {
-        // Check rate limit before making request
-        if (!$this->rateLimiter->canMakeRequest($this->integration)) {
-            // Wait for a slot to become available
-            if (!$this->rateLimiter->waitForSlot($this->integration, 60)) {
-                throw new Exception('Rate limit exceeded and timeout waiting for slot');
-            }
-        }
-        
-        // Record this request
-        $this->rateLimiter->recordRequest($this->integration);
+            $pagesCount = $result['pagesCount'] ?? 1;
+            $page++;
+        } while ($page <= $pagesCount);
 
-        $payload = [
-            'jsonrpc' => '2.0',
-            'method' => $method,
-            'params' => $params,
-            'id' => uniqid(),
-        ];
-
-        // Build the full URL with category endpoint
-        $url = $this->baseUrl . '/' . $category;
-
-        Log::debug('BitDefenderClient::makeRequest', [
-            'integration_id' => $this->integration->integration_id,
-            'method' => $method,
-            'category' => $category,
-            'url' => $url,
+        Log::info('Fetched endpoints for company', [
+            'company_id' => $companyId,
+            'total'      => count($allEndpoints),
         ]);
 
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Basic ' . base64_encode($this->credentials['api_key'] . ':'),
-        ])
-        ->timeout(30)
-        ->post($url, $payload);
+        return $allEndpoints;
+    }
 
-        if (!$response->successful()) {
-            Log::error('BitDefender API request failed', [
+    /**
+     * Fetch ALL quarantine items (paginated) with optional date range.
+     * Corrected: uses 'filters' for startDate/endDate (ISO 8601).
+     *
+     * @return array All quarantine/threat items
+     */
+    public function getThreatDetections(?Carbon $startDate = null, ?Carbon $endDate = null, int $perPage = 100): array
+    {
+        $allItems = [];
+        $page = 1;
+
+        $filters = [];
+        if ($startDate) {
+            $filters['startDate'] = $startDate->utc()->toIso8601String();
+        }
+        if ($endDate) {
+            $filters['endDate'] = $endDate->utc()->toIso8601String();
+        }
+
+        do {
+            $params = [
+                'page'    => $page,
+                'perPage' => $perPage,
+            ];
+            if (!empty($filters)) {
+                $params['filters'] = $filters;
+            }
+
+            $response = $this->makeRequest('getQuarantineItemsList', $params, 'quarantine');
+
+            $result = $response['result'] ?? [];
+            $items = $result['items'] ?? [];
+            $allItems = array_merge($allItems, $items);
+
+            $pagesCount = $result['pagesCount'] ?? 1;
+
+            Log::info('Fetched quarantine page', [
                 'integration_id' => $this->integration->integration_id,
-                'url' => $this->baseUrl,
-                'method' => $method,
-                'status' => $response->status(),
-                'response' => $response->body(),
+                'page'           => $page,
+                'items'          => count($items),
+                'total_so_far'   => count($allItems),
             ]);
-            
-            throw new Exception(
-                "BitDefender API request failed: {$response->status()} - Please verify your API URL is correct. The URL should be specific to your BitDefender account (e.g., https://cloudgz.gravityzone.bitdefender.com/api/v1.0/jsonrpc/YOUR-API-KEY or check your GravityZone Control Center for the correct API endpoint)"
-            );
+
+            $page++;
+        } while ($page <= $pagesCount);
+
+        Log::info('All quarantine items fetched', [
+            'integration_id' => $this->integration->integration_id,
+            'total'          => count($allItems),
+            'date_range'     => $startDate ? $startDate->toDateTimeString() . ' → ' . ($endDate ? $endDate->toDateTimeString() : 'now') : 'all',
+        ]);
+
+        return $allItems;
+    }
+
+    /**
+     * Core JSON-RPC request method.
+     * Added basic retry on rate limit / transient errors.
+     */
+    protected function makeRequest(string $method, array $params = [], string $category = 'network', int $retries = 2): array
+    {
+        $attempt = 0;
+
+        while ($attempt <= $retries) {
+            if (!$this->rateLimiter->canMakeRequest($this->integration)) {
+                if (!$this->rateLimiter->waitForSlot($this->integration, 60)) {
+                    throw new Exception('Rate limit timeout');
+                }
+            }
+
+            $this->rateLimiter->recordRequest($this->integration);
+
+            $payload = [
+                'jsonrpc' => '2.0',
+                'method'  => $method,
+                'params'  => $params,
+                'id'      => uniqid(),
+            ];
+
+            $url = $this->baseUrl . '/' . $category;
+
+            try {
+                $response = Http::withHeaders([
+                    'Content-Type'  => 'application/json',
+                    'Authorization' => 'Basic ' . base64_encode($this->credentials['api_key'] . ':'),
+                ])
+                ->timeout(60) // increased for large responses
+                ->post($url, $payload);
+
+                if (!$response->successful()) {
+                    throw new Exception("HTTP {$response->status()} - {$response->body()}");
+                }
+
+                $data = $response->json();
+
+                if (isset($data['error'])) {
+                    throw new Exception("JSON-RPC error: {$data['error']['message']} (code {$data['error']['code']})");
+                }
+
+                return $data;
+            } catch (Exception $e) {
+                $attempt++;
+                if ($attempt > $retries) {
+                    Log::error('BitDefender request failed after retries', [
+                        'integration_id' => $this->integration->integration_id,
+                        'method'         => $method,
+                        'category'       => $category,
+                        'error'          => $e->getMessage(),
+                    ]);
+                    throw $e;
+                }
+                sleep(2 * $attempt); // exponential backoff
+            }
         }
 
-        $data = $response->json();
-
-        if (isset($data['error'])) {
-            throw new Exception(
-                "BitDefender API error: {$data['error']['message']} (Code: {$data['error']['code']})"
-            );
-        }
-
-        return $data;
+        throw new Exception('Max retries reached');
     }
 }
