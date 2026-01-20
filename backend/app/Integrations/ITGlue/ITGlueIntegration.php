@@ -514,7 +514,7 @@ class ITGlueIntegration implements IntegrationInterface
         return [
             'name'                => 'ITGlue',
             'description'         => 'IT Glue Documentation and Asset Management',
-            'data_types'          => ['organization_info', 'ssl_certificate', 'domain', 'flexible_asset'],
+            'data_types'          => ['organization_info', 'ssl_certificate', 'domain', 'flexible_assets'],
             'supports_historical' => true,
             'historical_range_days' => 1,
         ];
@@ -593,7 +593,7 @@ class ITGlueIntegration implements IntegrationInterface
         $licenses = IntegrationData::where('company_id', $this->integration->company_id)
             ->where('integration_id', $this->integration->integration_id)
             ->where('integration_customer_id', $integrationCustomerId)
-            ->where('data_type', 'flexible_asset')
+            ->where('data_type', 'flexible_assets')
             ->get()
             ->filter(function ($data) {
                 $typeName = $data->data_payload['type_name'] ?? '';

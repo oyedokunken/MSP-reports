@@ -47,7 +47,7 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
         // We need to bypass CompanyScope to see all companies
         $rawData = IntegrationData::withoutGlobalScope(CompanyScope::class)
             ->with(['company', 'integrationCustomer'])
-            ->where('data_type', 'flexible_asset')
+            ->where('data_type', 'flexible_assets')
             ->orderBy('data_timestamp', 'desc')
             ->get();
 

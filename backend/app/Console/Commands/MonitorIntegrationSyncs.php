@@ -142,14 +142,23 @@ class MonitorIntegrationSyncs extends Command
 
     protected function calculateNextSync(Carbon $lastSync, string $cronExpression): Carbon
     {
-        // Simplified Cron Parser (Minutes/Hours) for robustness
-        // Handles "*/5 * * * *" or "0 */4 * * *"
+        // Parse cron expression: "minute hour dom month dow"
+        // Examples: "*/5 * * * *" (every 5 min), "0 */6 * * *" (every 6 hrs)
         $minutes = 240; // Default 4 hours
-
-        if (preg_match('/\*\/(\d+)\s+\*/', $cronExpression, $m)) {
-            $minutes = (int)$m[1]; // Minute based
-        } elseif (preg_match('/\*\/(\d+)/', $cronExpression, $m)) {
-            $minutes = (int)$m[1] * 60; // Hour based
+        
+        $parts = preg_split('/\s+/', trim($cronExpression));
+        if (count($parts) >= 2) {
+            $minuteField = $parts[0];
+            $hourField = $parts[1];
+            
+            // Check hour field first (e.g., "0 */6 * * *" = every 6 hours)
+            if (preg_match('/\*\/(\d+)/', $hourField, $m)) {
+                $minutes = (int)$m[1] * 60; // Hour-based interval
+            }
+            // Check minute field (e.g., "*/5 * * * *" = every 5 minutes)
+            elseif (preg_match('/\*\/(\d+)/', $minuteField, $m)) {
+                $minutes = (int)$m[1]; // Minute-based interval
+            }
         }
 
         return $lastSync->copy()->addMinutes($minutes);

@@ -19,7 +19,7 @@ class ITGlueDataGatherer
         }
 
         $rawData = IntegrationData::where('company_id', $customer->company_id)
-            ->where('data_type', 'flexible_asset')
+            ->where('data_type', 'flexible_assets')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->orderBy('data_timestamp', 'desc')
             ->get();
