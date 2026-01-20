@@ -408,6 +408,7 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
                 'company_id' => $this->integration->company_id,
                 'integration_id' => $this->integration->integration_id,
                 'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'external_id' => $deviceUid,
                 'data_type' => 'device_status',
                 'data_timestamp' => isset($device['lastSeen'])
                     ? Carbon::createFromTimestampMs($device['lastSeen'])
@@ -425,11 +426,7 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
                 DB::table('integration_data')
                     ->where('integration_id', $this->integration->integration_id)
                     ->where('data_type', 'device_status')
-                    ->where(function ($query) use ($chunk) {
-                        foreach ($chunk as $uid) {
-                            $query->orWhereRaw("data_payload->>'device_uid' = ?", [$uid]);
-                        }
-                    })
+                    ->whereIn('external_id', $chunk)
                     ->delete();
             }
 
@@ -495,6 +492,7 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
                 'company_id' => $this->integration->company_id,
                 'integration_id' => $this->integration->integration_id,
                 'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'external_id' => $alertUid,
                 'data_type' => 'alert',
                 'data_timestamp' => $timestamp,
                 'data_payload' => json_encode($payload),
@@ -510,11 +508,7 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
                 DB::table('integration_data')
                     ->where('integration_id', $this->integration->integration_id)
                     ->where('data_type', 'alert')
-                    ->where(function ($query) use ($chunk) {
-                        foreach ($chunk as $uid) {
-                            $query->orWhereRaw("data_payload->>'alert_uid' = ?", [$uid]);
-                        }
-                    })
+                    ->whereIn('external_id', $chunk)
                     ->delete();
             }
 
@@ -524,12 +518,68 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        // Historical data is now handled via processBatch dispatching during sync()
-        // This method remains to satisfy the interface but performs no action
+        $totalProcessed = 0;
+        $errors = [];
+
+        try {
+            Log::info('Datto Historical Import: Starting', [
+                'integration_id' => $this->integration->integration_id,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+            ]);
+
+            $integrationCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                ->where('active', true)
+                ->get();
+
+            foreach ($integrationCustomers as $customer) {
+                try {
+                    // Fetch resolved alerts since the start date
+                    $alerts = $this->client->getRmmAlerts($customer->external_id, false, $startDate);
+                    
+                    if (!empty($alerts)) {
+                        // Filter alerts that were resolved WITHIN the requested range
+                        // This handles the case where the job processes the range in chunks
+                        $filteredAlerts = array_filter($alerts, function($alert) use ($endDate) {
+                            $resolvedOn = isset($alert['resolvedOn']) 
+                                ? Carbon::createFromTimestampMs($alert['resolvedOn']) 
+                                : null;
+                            return $resolvedOn && $resolvedOn->lte($endDate);
+                        });
+
+                        if (!empty($filteredAlerts)) {
+                            $this->bulkStoreAlerts($filteredAlerts, ['uid' => $customer->external_id]);
+                            $count = count($filteredAlerts);
+                            $totalProcessed += $count;
+                            
+                            if ($this->progressCallback) {
+                                ($this->progressCallback)($count);
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to fetch historical alerts for customer {$customer->name}: {$e->getMessage()}";
+                }
+            }
+
+            Log::info('Datto Historical Import: Completed', [
+                'integration_id' => $this->integration->integration_id,
+                'total_processed' => $totalProcessed,
+                'errors_count' => count($errors),
+            ]);
+
+        } catch (\Exception $e) {
+            $errors[] = "Historical import failed: {$e->getMessage()}";
+            Log::error('Datto Historical Import: Failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return [
-            'success' => true,
-            'total_processed' => 0,
-            'errors' => [],
+            'success' => count($errors) === 0,
+            'total_processed' => $totalProcessed,
+            'errors' => $errors,
         ];
     }
 

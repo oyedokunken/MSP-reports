@@ -54,6 +54,7 @@ class ImportHistoricalDataJob implements ShouldQueue
                 $this->importJob->update([
                     'status' => 'running',
                     'started_at' => now(),
+                    'progress_percent' => 0,
                 ]);
             }
             

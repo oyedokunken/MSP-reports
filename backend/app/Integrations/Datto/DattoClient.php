@@ -317,14 +317,44 @@ class DattoClient
             ? "/site/{$siteUid}/alerts/open"
             : "/site/{$siteUid}/alerts/resolved";
             
-        $params = [];
-        if (!$openOnly) {
-            $sinceDate = $since ?? Carbon::now()->subHour();
-            $params['resolvedSince'] = $sinceDate->format('Y-m-d\TH:i:s\Z');
+        $allAlerts = [];
+        $page = 0;
+        $hasMore = true;
+
+        while ($hasMore) {
+            $params = [
+                'max' => 250,
+                'page' => $page
+            ];
+            
+            if (!$openOnly) {
+                $sinceDate = $since ?? Carbon::now()->subHour();
+                $params['resolvedSince'] = $sinceDate->format('Y-m-d\TH:i:s\Z');
+            }
+            
+            $response = $this->makeRmmRequest($endpoint, $params);
+            $alerts = $response['alerts'] ?? [];
+            
+            if (empty($alerts)) {
+                break;
+            }
+            
+            $allAlerts = array_merge($allAlerts, $alerts);
+            
+            $pageDetails = $response['pageDetails'] ?? [];
+            $hasMore = !empty($pageDetails['nextPageUrl']);
+            $page++;
+            
+            if ($page > 100) {
+                Log::warning('Datto RMM: Reached page limit while fetching alerts', [
+                    'site_uid' => $siteUid,
+                    'open_only' => $openOnly
+                ]);
+                break;
+            }
         }
         
-        $response = $this->makeRmmRequest($endpoint, $params);
-        return $response['alerts'] ?? [];
+        return $allAlerts;
     }
 
     public function getBackupHistory(Carbon $startDate, Carbon $endDate): array
