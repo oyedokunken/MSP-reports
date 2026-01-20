@@ -2,6 +2,7 @@
 
 namespace App\Reports\ITGlueSummary;
 
+use App\Integrations\Contracts\IntegrationDataType;
 use App\Models\Customer;
 use App\Reports\Contracts\BaseReport;
 use Carbon\Carbon;
@@ -19,7 +20,7 @@ class ITGlueSummary extends BaseReport
     }
     public function getRequiredDataTypes(): array
     {
-        return ['flexible_asset', 'ssl_certificate', 'domain'];
+        return IntegrationDataType::itglue();
     }
 
     public function getRequiredHistoricalRange(): int
@@ -57,8 +58,8 @@ class ITGlueSummary extends BaseReport
             return false;
         }
 
-        $hasData = \App\Models\IntegrationData::where('company_id', $customer->company_id)
-            ->whereIn('data_type', ['flexible_asset', 'ssl_certificate', 'domain'])
+        $hasData = IntegrationData::where('company_id', $customer->company_id)
+            ->whereIn('data_type', IntegrationDataType::itglue())
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->exists();
 

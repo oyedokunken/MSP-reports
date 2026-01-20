@@ -191,24 +191,11 @@ class ITGlueIntegration implements IntegrationInterface
 
         $batchCount = (int) ceil($totalItems / 200);
 
-        if ($this->currentSyncLogId) {
-            $redis = \Illuminate\Support\Facades\Redis::connection();
-            $pendingKey = "sync_log:{$this->currentSyncLogId}:pending";
-            $failedKey  = "sync_log:{$this->currentSyncLogId}:failed";
-
-            $redis->multi();
-            $redis->incrby($pendingKey, $batchCount);
-            $redis->set($failedKey, 0);
-            $redis->expire($pendingKey, 86400);
-            $redis->expire($failedKey, 86400);
-            $redis->exec();
-
-            Log::info('Initialized batch counters for SSL certificates', [
-                'sync_id'     => $this->currentSyncLogId,
-                'batch_count' => $batchCount,
-                'total_items' => $totalItems,
-            ]);
-        }
+        Log::info('ITGlue: Dispatched SSL certificate batches', [
+            'sync_id'     => $this->currentSyncLogId,
+            'batch_count' => $batchCount,
+            'total_items' => $totalItems,
+        ]);
 
         $this->dispatchBatches('ssl_certs', $items, $batches);
 
@@ -226,24 +213,11 @@ class ITGlueIntegration implements IntegrationInterface
 
         $batchCount = (int) ceil($totalItems / 200);
 
-        if ($this->currentSyncLogId) {
-            $redis = \Illuminate\Support\Facades\Redis::connection();
-            $pendingKey = "sync_log:{$this->currentSyncLogId}:pending";
-            $failedKey  = "sync_log:{$this->currentSyncLogId}:failed";
-
-            $redis->multi();
-            $redis->incrby($pendingKey, $batchCount);
-            $redis->set($failedKey, 0);
-            $redis->expire($pendingKey, 86400);
-            $redis->expire($failedKey, 86400);
-            $redis->exec();
-
-            Log::info('Initialized batch counters for domains', [
-                'sync_id'     => $this->currentSyncLogId,
-                'batch_count' => $batchCount,
-                'total_items' => $totalItems,
-            ]);
-        }
+        Log::info('ITGlue: Dispatched domain batches', [
+            'sync_id'     => $this->currentSyncLogId,
+            'batch_count' => $batchCount,
+            'total_items' => $totalItems,
+        ]);
 
         $this->dispatchBatches('domains', $items, $batches);
 
@@ -292,19 +266,10 @@ class ITGlueIntegration implements IntegrationInterface
             return 0;
         }
 
-        if ($this->currentSyncLogId) {
-            $redis->multi();
-            $redis->incrby($pendingKey, $totalBatches);
-            $redis->set($failedKey, 0);
-            $redis->expire($pendingKey, 86400);
-            $redis->expire($failedKey, 86400);
-            $redis->exec();
-
-            Log::info('Initialized batch counters for flexible assets', [
-                'sync_id'       => $this->currentSyncLogId,
-                'total_batches' => $totalBatches,
-            ]);
-        }
+        Log::info('ITGlue: Dispatched flexible asset batches', [
+            'sync_id'       => $this->currentSyncLogId,
+            'total_batches' => $totalBatches,
+        ]);
 
         $totalProcessed = 0;
 

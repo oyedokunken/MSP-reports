@@ -8,6 +8,7 @@ use App\Services\SyncEngine;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redis;
 
 class MonitorIntegrationSyncs extends Command
 {
@@ -86,6 +87,82 @@ class MonitorIntegrationSyncs extends Command
             ]);
             $counters['crashed']++;
             Log::warning("Terminated stale sync", ['sync_id' => $sync->sync_id]);
+        }
+
+        // Check for "Orphaned" Syncs - heartbeat stale but batches likely complete
+        // These happen when batch jobs finish but final completion callback fails
+        $runningSyncs = $integration->syncLogs()
+            ->where('status', 'running')
+            ->where('started_at', '<', $now->copy()->subMinutes(5)) // Running at least 5 min
+            ->get();
+
+        foreach ($runningSyncs as $sync) {
+            // Check heartbeat or update age in PHP (timezone sensitive)
+            $heartbeatAt = $sync->last_heartbeat_at ?? $sync->updated_at ?? $sync->started_at;
+            $ageInMinutes = abs($now->diffInMinutes($heartbeatAt, false));
+
+            if ($ageInMinutes < 10) {
+                continue; // Still active
+            }
+
+            // STAGNANT PROGRESS CHECK
+            // If the heartbeat is old, check if records are still being synced.
+            // We use a small cache key to track the last record count seen by the monitor.
+            $progressKey = "monitor:sync_progress:{$sync->sync_id}";
+            $lastCount = \Illuminate\Support\Facades\Cache::get($progressKey);
+            
+            if ($lastCount !== null && $lastCount == $sync->records_synced) {
+                // Progress has stalled for at least one monitor cycle (usually 5-10 min)
+                $isStalled = true;
+            } else {
+                \Illuminate\Support\Facades\Cache::put($progressKey, $sync->records_synced, now()->addMinutes(30));
+                $isStalled = false;
+            }
+
+            // Check Redis for pending batches
+            $pendingKey = "sync_log:{$sync->sync_id}:pending";
+            $pending = \Illuminate\Support\Facades\Redis::get($pendingKey);
+            $pendingValue = ($pending === null) ? 0 : (int)$pending;
+            
+            // If key doesn't exist, is <= 0, OR we are stalled and at least 10 min old
+            if ($pendingValue <= 0 || ($isStalled && $ageInMinutes >= 10)) {
+                // No pending batches OR stalled - mark as complete
+                $failedKey = "sync_log:{$sync->sync_id}:failed";
+                $failedCount = (int) \Illuminate\Support\Facades\Redis::get($failedKey) ?? 0;
+                
+                $status = $failedCount > 0 ? 'partial' : 'success';
+                $errors = $failedCount > 0 ? ["{$failedCount} batch(es) failed"] : [];
+                
+                if ($isStalled && $pendingValue > 0) {
+                    $errors[] = "Sync stalled with {$pendingValue} batches remaining. Auto-completed by Monitor.";
+                    $status = 'partial';
+                }
+                
+                $sync->update([
+                    'status' => $status,
+                    'completed_at' => $now,
+                    'error_messages' => $errors ?: null,
+                ]);
+                
+                // Update integration status
+                $integration->update([
+                    'last_sync_at' => $now,
+                    'last_sync_status' => $status,
+                ]);
+                
+                // Cleanup Redis & Cache
+                \Illuminate\Support\Facades\Redis::del($pendingKey, $failedKey);
+                \Illuminate\Support\Facades\Cache::forget($progressKey);
+                
+                Log::info("Auto-completed orphaned/stalled sync", [
+                    'sync_id' => $sync->sync_id,
+                    'records_synced' => $sync->records_synced,
+                    'status' => $status,
+                    'was_stalled' => $isStalled
+                ]);
+                
+                $this->line("Auto-completed " . ($isStalled ? "stalled" : "orphaned") . " sync #{$sync->sync_id} with {$sync->records_synced} records");
+            }
         }
     }
 

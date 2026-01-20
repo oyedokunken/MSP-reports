@@ -55,12 +55,19 @@ class SyncIntegrationJob implements ShouldQueue
     {
         try {
 
+            // Start Master Lock - prevents workers from completing the sync before we are done dispatching
+            $redis = \Illuminate\Support\Facades\Redis::connection();
+            $masterKey = "sync_log:{$this->syncLog->sync_id}:master_running";
+            $redis->set($masterKey, 1);
+            $redis->expire($masterKey, 3600); // 1 hour safety
+
+            // Update status to running immediately
             $this->syncLog->update([
                 'status' => 'running',
-                'error_messages' => null // Clear any errors from previous retries
+                'error_messages' => null
             ]);
 
-            // Update Integration status to reflect active sync in UI immediately
+            // Update Integration status to reflect active sync in UI
             $this->integration->update([
                 'last_sync_status' => 'syncing' 
             ]);
@@ -125,48 +132,36 @@ class SyncIntegrationJob implements ShouldQueue
                 'customers_mapped' => $customersMapped,
                 'batches_dispatched' => $result['batches_dispatched'] ?? 0
             ]);
-            
-            // DEFER COMPLETIION IF BATCHES ARE RUNNING
-            if (($result['batches_dispatched'] ?? 0) > 0) {
-                 $batchCount = $result['batches_dispatched'];
-                 
-                 // Initialize Redis counters (with fallback if Redis unavailable)
-                 try {
-                     \Illuminate\Support\Facades\Redis::connection()->set("sync_log:{$this->syncLog->sync_id}:pending", $batchCount);
-                     // 1 day expiry
-                     \Illuminate\Support\Facades\Redis::connection()->expire("sync_log:{$this->syncLog->sync_id}:pending", 86400);
+                        // Release Master Lock
+             $redis = \Illuminate\Support\Facades\Redis::connection();
+             $masterKey = "sync_log:{$this->syncLog->sync_id}:master_running";
+             $redis->set($masterKey, 0);
 
-                     // Update status to intermediate state
+             // DEFER COMPLETION IF BATCHES ARE RUNNING
+            if (($result['batches_dispatched'] ?? 0) > 0) {
+                 $batchCount = (int) $result['batches_dispatched'];
+                 $key = "sync_log:{$this->syncLog->sync_id}:pending";
+                 
+                 // ATOMIC INCREMENT
+                 $redis->incrBy($key, $batchCount);
+                 $redis->expire($key, 86400); 
+
+                 if ($this->syncLog->fresh()->status === 'running') {
                      $this->syncLog->update([
-                         'status' => 'running', 
-                         'records_synced' => $recordsSynced // Update initial count (customers)
+                         'records_synced' => $recordsSynced
                      ]);
-                     
-                     Log::info('Integration sync deferred - processing background batches', [
-                         'integration_id' => $this->integration->integration_id,
-                         'batches' => $batchCount,
-                         'sync_id' => $this->syncLog->sync_id
-                     ]);
-                     
-                     // DO NOT call completeSyncLog here - let the final batch job do it
-                 } catch (\Exception $redisException) {
-                     // Redis is not available - complete sync immediately without batch tracking
-                     Log::warning('Redis unavailable for batch tracking - completing sync immediately', [
-                         'integration_id' => $this->integration->integration_id,
-                         'sync_id' => $this->syncLog->sync_id,
-                         'batches_dispatched' => $batchCount,
-                         'error' => $redisException->getMessage()
-                     ]);
-                     
-                     // Complete the sync now since we can't track batches
-                     $syncEngine->completeSyncLog(
-                         $this->syncLog,
-                         'success',
-                         $recordsSynced,
-                         $recordsFailed,
-                         array_merge($result['errors'] ?? [], ["Note: {$batchCount} background batches dispatched but not tracked (Redis unavailable)"]),
-                         $customersMapped
-                     );
+                 }
+                 
+                 Log::info('Integration sync deferred - background batches initialized', [
+                     'integration_id' => $this->integration->integration_id,
+                     'batches_dispatched' => $batchCount,
+                     'sync_id' => $this->syncLog->sync_id
+                 ]);
+
+                 // Final check: Maybe all workers finished WHILE we were doing incrBy?
+                 $remaining = (int) $redis->get($key);
+                 if ($remaining <= 0) {
+                     $this->finalizeSync();
                  }
             } else {
                 $syncEngine->completeSyncLog(
@@ -200,6 +195,30 @@ class SyncIntegrationJob implements ShouldQueue
             
             throw $e;
         }
+    }
+
+    /**
+     * Finalize sync - only called if Master is done AND workers are done
+     */
+    private function finalizeSync(): void
+    {
+        $redis = \Illuminate\Support\Facades\Redis::connection();
+        $pendingKey = "sync_log:{$this->syncLog->sync_id}:pending";
+        $failedKey  = "sync_log:{$this->syncLog->sync_id}:failed";
+        
+        $failedCount = (int) $redis->get($failedKey) ?: 0;
+        $status = $failedCount > 0 ? 'partial' : 'success';
+        
+        $syncEngine = app(\App\Services\SyncEngine::class);
+        $syncEngine->completeSyncLog(
+            $this->syncLog->fresh(),
+            $status,
+            $this->syncLog->records_synced,
+            $failedCount,
+            $failedCount > 0 ? ["{$failedCount} batch(es) failed"] : []
+        );
+
+        $redis->del($pendingKey, $failedKey);
     }
 
     public function failed(\Throwable $exception): void

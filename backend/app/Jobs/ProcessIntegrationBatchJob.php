@@ -15,7 +15,7 @@ class ProcessIntegrationBatchJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
-    public $timeout = 120; // 2 minutes per batch
+    public $timeout = 600; // 10 minutes per batch
 
     protected Integration $integration;
     protected string $type;
@@ -57,13 +57,9 @@ class ProcessIntegrationBatchJob implements ShouldQueue
             }
             
             if (method_exists($instance, 'processBatch')) {
-                $batchSuccess = false;
-                
                 try {
                     $instance->processBatch($this->type, $this->items);
-                    $batchSuccess = true;
                     
-                    // Only update counters on success
                     if ($this->syncLogId) {
                         $this->updateBatchCounters($instance, true);
                     }
@@ -74,12 +70,10 @@ class ProcessIntegrationBatchJob implements ShouldQueue
                         'attempt' => $this->attempts()
                     ]);
                     
-                    // Track failed batch
                     if ($this->syncLogId) {
                         $this->updateBatchCounters($instance, false);
                     }
                     
-                    // Re-throw to trigger retry
                     throw $e;
                 }
                 
@@ -88,32 +82,39 @@ class ProcessIntegrationBatchJob implements ShouldQueue
             }
 
         } catch (\Exception $e) {
-            Log::error('Batch processing failed', [
+            Log::error('Batch setup/processing failed', [
                 'integration_id' => $this->integration->integration_id,
                 'type' => $this->type,
-                'count' => count($this->items),
+                'sync_id' => $this->syncLogId,
                 'error' => $e->getMessage()
             ]);
+            
+            // If we hit an error here (e.g. class not found) and we haven't updated counters yet, 
+            // we should still decrement to avoid hanging the sync.
+            if ($this->syncLogId && $this->attempts() >= $this->tries) {
+                try {
+                    $redis = \Illuminate\Support\Facades\Redis::connection();
+                    $pendingKey = "sync_log:{$this->syncLogId}:pending";
+                    $redis->decr($pendingKey);
+                } catch (\Exception $ex) {}
+            }
+            
             throw $e; // Retry
         }
     }
 
     /**
-     * Update batch counters in Redis (only on success to avoid race conditions)
+     * Update batch counters in Redis
      */
     private function updateBatchCounters($instance, bool $success): void
     {
         try {
             $redis = \Illuminate\Support\Facades\Redis::connection();
-            $ttl = 7200; // 2 hours - keys expire if sync hangs
+            $ttl = 7200; // 2 hours
+            $pendingKey = "sync_log:{$this->syncLogId}:pending";
+            $failedKey  = "sync_log:{$this->syncLogId}:failed";
             
             if ($success) {
-                $key = "sync_log:{$this->syncLogId}:pending";
-                
-                // Decrement pending counter only on success
-                $remaining = $redis->decr($key);
-                $redis->expire($key, $ttl); // Refresh TTL
-                
                 // Update live record count
                 if (method_exists($instance, 'getLastBatchProcessedCount')) {
                     $addedRecords = $instance->getLastBatchProcessedCount();
@@ -123,26 +124,43 @@ class ProcessIntegrationBatchJob implements ShouldQueue
                     }
                 }
 
+                // Decrement pending counter
+                $remaining = $redis->decr($pendingKey);
+                $redis->expire($pendingKey, $ttl);
+
                 Log::info("Batch completed successfully. Remaining: {$remaining}", [
                     'sync_id' => $this->syncLogId,
                     'type' => $this->type
                 ]);
                 
-                // Check if all batches complete
                 if ($remaining <= 0) {
                     $this->completeSyncIfAllBatchesDone($redis);
                 }
             } else {
-                // Track failed batch with TTL
-                $failedKey = "sync_log:{$this->syncLogId}:failed";
-                $redis->incr($failedKey);
-                $redis->expire($failedKey, $ttl);
-                
-                Log::warning("Batch failed, will retry", [
-                    'sync_id' => $this->syncLogId,
-                    'type' => $this->type,
-                    'attempt' => $this->attempts()
-                ]);
+                // This is a failure of ONE ATTEMPT. 
+                // We only decrement pending if we have run out of tries.
+                if ($this->attempts() >= $this->tries) {
+                    $redis->incr($failedKey);
+                    $redis->expire($failedKey, $ttl);
+                    
+                    $remaining = $redis->decr($pendingKey);
+                    $redis->expire($pendingKey, $ttl);
+
+                    Log::warning("Batch failed permanently after all retries. Remaining: {$remaining}", [
+                        'sync_id' => $this->syncLogId,
+                        'type' => $this->type
+                    ]);
+
+                    if ($remaining <= 0) {
+                        $this->completeSyncIfAllBatchesDone($redis);
+                    }
+                } else {
+                    Log::warning("Batch attempt failed, will retry", [
+                        'sync_id' => $this->syncLogId,
+                        'type' => $this->type,
+                        'attempt' => $this->attempts()
+                    ]);
+                }
             }
         } catch (\Exception $redisEx) {
             Log::error("Failed to update batch counters in Redis", [
@@ -153,24 +171,56 @@ class ProcessIntegrationBatchJob implements ShouldQueue
     }
 
     /**
+     * Handle a job failure.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        // One final safety check to ensure we don't leave the sync stuck
+        // if the job system discards this job.
+        try {
+            $redis = \Illuminate\Support\Facades\Redis::connection();
+            $pendingKey = "sync_log:{$this->syncLogId}:pending";
+            $failedKey  = "sync_log:{$this->syncLogId}:failed";
+
+            $redis->incr($failedKey);
+            $remaining = $redis->decr($pendingKey);
+            
+            Log::error("Batch job failed permanently (failed() hook). Remaining: {$remaining}", [
+                'sync_id' => $this->syncLogId,
+                'error' => $exception->getMessage()
+            ]);
+
+            if ($remaining <= 0) {
+                $this->completeSyncIfAllBatchesDone($redis);
+            }
+        } catch (\Exception $e) {
+            // Suppression here to avoid secondary failures
+        }
+    }
+
+    /**
      * Complete sync if all batches are done
      */
     private function completeSyncIfAllBatchesDone($redis): void
     {
-        $syncEngine = app(\App\Services\SyncEngine::class);
+        // Check Master Lock - don't complete if main job is still dispatching
+        if ((int) $redis->get("sync_log:{$this->syncLogId}:master_running") === 1) {
+            return;
+        }
+
         $syncLog = \App\Models\SyncLog::find($this->syncLogId);
-        
         if (!$syncLog) {
             return;
         }
 
+        $syncEngine = app(\App\Services\SyncEngine::class);
         $failedCount = (int) $redis->get("sync_log:{$this->syncLogId}:failed") ?: 0;
         
         // Refresh to get latest record count
         $syncLog->refresh();
         
         // Determine status based on failures
-        $status = $failedCount > 0 ? 'partial_success' : 'success';
+        $status = $failedCount > 0 ? 'partial' : 'success';
         $errors = [];
         
         if ($failedCount > 0) {

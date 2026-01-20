@@ -2,6 +2,7 @@
 
 namespace App\Reports\ITGlueSummary;
 
+use App\Integrations\Contracts\IntegrationDataType;
 use App\Models\Customer;
 use App\Models\IntegrationData;
 use Carbon\Carbon;
@@ -19,7 +20,7 @@ class ITGlueDataGatherer
         }
 
         $rawData = IntegrationData::where('company_id', $customer->company_id)
-            ->where('data_type', 'flexible_assets')
+            ->where('data_type', IntegrationDataType::FLEXIBLE_ASSETS)
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->orderBy('data_timestamp', 'desc')
             ->get();
@@ -75,7 +76,7 @@ class ITGlueDataGatherer
         }
 
         $rawData = IntegrationData::where('company_id', $customer->company_id)
-            ->where('data_type', 'ssl_certificate')
+            ->where('data_type', IntegrationDataType::SSL_CERTIFICATE)
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->orderBy('data_timestamp', 'desc')
             ->get();
@@ -85,7 +86,7 @@ class ITGlueDataGatherer
         })->map(function($item) {
             $payload = $item->data_payload;
             // SSL certificates stored as 'expires_on' in database (mapped from 'valid-until')
-            $expiryDate = isset($payload['expires_on']) ? Carbon::parse($payload['expires_on']) : null;
+            $expiryDate = $this->safeParseDate($payload['expires_on'] ?? null);
             $daysUntilExpiry = $expiryDate ? now()->diffInDays($expiryDate, false) : null;
             
             $severity = 'healthy';
@@ -123,7 +124,7 @@ class ITGlueDataGatherer
         }
 
         $rawData = IntegrationData::where('company_id', $customer->company_id)
-            ->where('data_type', 'domain')
+            ->where('data_type', IntegrationDataType::DOMAINS)
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->orderBy('data_timestamp', 'desc')
             ->get();
@@ -132,7 +133,7 @@ class ITGlueDataGatherer
             return $item->data_payload['domain_id'] ?? $item->integration_data_id;
         })->map(function($item) {
             $payload = $item->data_payload;
-            $expiryDate = isset($payload['expires_on']) ? Carbon::parse($payload['expires_on']) : null;
+            $expiryDate = $this->safeParseDate($payload['expires_on'] ?? null);
             $daysUntilExpiry = $expiryDate ? now()->diffInDays($expiryDate, false) : null;
             
             $severity = 'healthy';
@@ -155,6 +156,29 @@ class ITGlueDataGatherer
                 'severity' => $severity,
             ];
         })->sortBy('days_until_expiry')->values();
+    }
+
+    /**
+     * Safely parse a date string, returning null if invalid
+     */
+    private function safeParseDate(?string $dateString): ?Carbon
+    {
+        if (empty($dateString)) {
+            return null;
+        }
+        
+        // Skip known invalid values
+        $invalidValues = ['processing', 'pending', 'unknown', 'n/a', 'tba', 'tbd'];
+        if (in_array(strtolower(trim($dateString)), $invalidValues, true)) {
+            return null;
+        }
+        
+        try {
+            return Carbon::parse($dateString);
+        } catch (\Exception $e) {
+            \Log::warning('Failed to parse date', ['date' => $dateString]);
+            return null;
+        }
     }
 
     /**
