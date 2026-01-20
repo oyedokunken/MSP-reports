@@ -32,7 +32,7 @@ class SendmarcSummary extends BaseReport
     {
         $hasSendmarc = $customer->integrationCustomers()
             ->whereHas('integration', function ($q) {
-                $q->where('integration_type', 'Sendmarc')->where('status', 'active');
+                $q->where('integration_type', 'Sendmarc')->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->exists();
         if (!$hasSendmarc) {
@@ -44,7 +44,7 @@ class SendmarcSummary extends BaseReport
 
         $integrationCustomerIds = $customer->integrationCustomers()
             ->whereHas('integration', function ($q) {
-                $q->where('integration_type', 'Sendmarc')->where('status', 'active');
+                $q->where('integration_type', 'Sendmarc')->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();
@@ -65,7 +65,7 @@ class SendmarcSummary extends BaseReport
     {
         $integrationCustomerIds = $customer->integrationCustomers()
             ->whereHas('integration', function ($q) {
-                $q->where('integration_type', 'Sendmarc')->where('status', 'active');
+                $q->where('integration_type', 'Sendmarc')->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();

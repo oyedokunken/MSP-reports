@@ -49,7 +49,7 @@ class AutotaskSummary extends BaseReport
         $integrationCustomerIds = $customer->integrationCustomers()
             ->whereHas('integration', function($query) {
                 $query->where('integration_type', 'Autotask')
-                      ->where('status', 'active');
+                      ->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();
@@ -74,7 +74,7 @@ class AutotaskSummary extends BaseReport
         $hasAutotask = $customer->integrationCustomers()
             ->whereHas('integration', function($query) {
                 $query->where('integration_type', 'Autotask')
-                      ->where('status', 'active');
+                      ->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->exists();
 
@@ -89,7 +89,7 @@ class AutotaskSummary extends BaseReport
         $integrationCustomerIds = $customer->integrationCustomers()
             ->whereHas('integration', function($query) {
                 $query->where('integration_type', 'Autotask')
-                      ->where('status', 'active');
+                      ->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();
@@ -141,7 +141,7 @@ class AutotaskSummary extends BaseReport
         // Get integration customer IDs
         $integrationCustomerIds = $customer->integrationCustomers()
             ->whereHas('integration', function($query) {
-                $query->where('integration_type', 'Autotask')->where('status', 'active');
+                $query->where('integration_type', 'Autotask')->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();
@@ -352,7 +352,7 @@ class AutotaskSummary extends BaseReport
     {
         return [
             'total_contracts' => $contracts->count(),
-            'active_contracts' => $contracts->where('status', 'active')->count(),
+            'active_contracts' => $contracts->whereIn('status', ['active', 'importing_historical', 'syncing'])->count(),
             'expiring_soon' => $contracts->where('status', 'expiring_soon')->count(),
             'expired_contracts' => $contracts->where('status', 'expired')->count(),
             'total_value' => $contracts->sum('contract_value'),

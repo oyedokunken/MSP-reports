@@ -56,6 +56,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const [customerSearch, setCustomerSearch] = useState('')
   const [searchDebounce, setSearchDebounce] = useState<number | null>(null)
   const [isGlobalTemplate, setIsGlobalTemplate] = useState(false)
+  const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null)
 
   const [formData, setFormData] = useState<CreateTemplateRequest>({
     template_name: '',
@@ -89,11 +90,16 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
         })
         setSelectedCustomerId(template.customer_id)
         setIsGlobalTemplate(template.customer_id === null)
+        
+        // We need to infer the integration from the report type if not explicitly stored
+        // This is a best effort until we add integration_type to the template model
         // Skip customer and report type selection when editing - go straight to sections
         setStep(3)
         // Load report types for the customer (needed for section configuration)
         if (template.customer_id) {
           fetchAvailableReportTypes(template.customer_id)
+        } else {
+          fetchAllReportTypes()
         }
       } else {
         resetForm()
@@ -168,6 +174,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     setStep(1)
     setSelectedCustomerId(null)
     setIsGlobalTemplate(false)
+    setSelectedIntegration(null)
     setAvailableReportTypes([])
     setCustomerSearch('')
     if (searchDebounce) {
@@ -230,6 +237,16 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     }
   }
 
+  // Effect to infer selectedIntegration from template's report type or available options
+  useEffect(() => {
+    if (template && availableReportTypes.length > 0) {
+      const selectedRt = availableReportTypes.find(rt => rt.type === template.report_type)
+      if (selectedRt && selectedRt.required_integrations.length > 0) {
+        setSelectedIntegration(selectedRt.required_integrations[0])
+      }
+    }
+  }, [template, availableReportTypes])
+
   const handleNext = () => {
     if (step < 4) setStep(step + 1)
   }
@@ -245,9 +262,9 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       case 1:
         // For global templates, only need template name. For customer-specific, need customer selection too.
         if (isGlobalTemplate) {
-          return formData.template_name.trim() !== ''
+          return formData.template_name.trim() !== '' && selectedIntegration !== null
         }
-        return selectedCustomerId !== null && formData.template_name.trim() !== ''
+        return selectedCustomerId !== null && formData.template_name.trim() !== '' && selectedIntegration !== null
       case 2:
         return formData.report_type !== ''
       case 3:
@@ -470,8 +487,77 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                   <CustomerIntegrationSelector
                     customers={customers}
                     selectedCustomerId={selectedCustomerId}
-                    onSelect={(customer) => setSelectedCustomerId(customer.customer_id)}
+                    onSelect={(customer) => {
+                      setSelectedCustomerId(customer.customer_id)
+                      setSelectedIntegration(null) // Reset on customer change
+                    }}
                   />
+
+                  {/* Integration Selection for Customer-Specific */}
+                  {selectedCustomerId && (
+                    <div className="space-y-2 mt-4 animate-in fade-in slide-in-from-top-2">
+                      <Label className="flex items-center gap-2">
+                        <ArrowRight className="h-3 w-3 text-primary" />
+                        Select Integration Context *
+                      </Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {customers.find(c => c.customer_id === selectedCustomerId)?.integrations?.map(integration => (
+                          <button
+                            key={integration.integration_customer_id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedIntegration(integration.integration_type)
+                              if (formData.report_type) {
+                                setFormData(prev => ({ ...prev, report_type: '', included_sections: [] }))
+                              }
+                            }}
+                            className={`
+                              p-3 rounded-md border text-left transition-all
+                              ${selectedIntegration === integration.integration_type 
+                                ? 'border-primary bg-primary/5 ring-1 ring-primary' 
+                                : 'border-border hover:bg-muted/50'
+                              }
+                            `}
+                          >
+                            <div className="text-sm font-medium">{integration.integration_type}</div>
+                            <div className="text-xs text-muted-foreground">{integration.display_name}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Integration Selection for Global Templates */}
+              {isGlobalTemplate && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                  <Label>Select Integration Context *</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Array.from(new Set(
+                      availableReportTypes.flatMap(rt => rt.required_integrations)
+                    )).sort().map(integration => (
+                      <button
+                        key={integration}
+                        type="button"
+                        onClick={() => {
+                          setSelectedIntegration(integration)
+                          if (formData.report_type) {
+                            setFormData(prev => ({ ...prev, report_type: '', included_sections: [] }))
+                          }
+                        }}
+                        className={`
+                          p-3 rounded-md border text-left transition-all
+                          ${selectedIntegration === integration 
+                            ? 'border-primary bg-primary/5 ring-1 ring-primary' 
+                            : 'border-border hover:bg-muted/50'
+                          }
+                        `}
+                      >
+                        <div className="text-sm font-medium">{integration}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -486,7 +572,10 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                 </div>
               ) : (
                 <ReportTypeSelector
-                  reportTypes={availableReportTypes}
+                  reportTypes={availableReportTypes.filter(rt => 
+                    !selectedIntegration || 
+                    rt.required_integrations.some(i => i.toLowerCase() === selectedIntegration.toLowerCase())
+                  )}
                   selectedType={formData.report_type}
                   onSelect={(type) => setFormData({ ...formData, report_type: type })}
                 />

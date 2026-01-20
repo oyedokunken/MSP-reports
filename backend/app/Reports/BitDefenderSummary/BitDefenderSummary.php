@@ -32,7 +32,7 @@ class BitDefenderSummary extends BaseReport
     {
         $hasBitDefender = $customer->integrationCustomers()
             ->whereHas('integration', function ($q) {
-                $q->where('integration_type', 'BitDefender')->where('status', 'active');
+                $q->where('integration_type', 'BitDefender')->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->exists();
         
@@ -45,7 +45,7 @@ class BitDefenderSummary extends BaseReport
 
         $integrationCustomerIds = $customer->integrationCustomers()
             ->whereHas('integration', function ($q) {
-                $q->where('integration_type', 'BitDefender')->where('status', 'active');
+                $q->where('integration_type', 'BitDefender')->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();
@@ -66,7 +66,7 @@ class BitDefenderSummary extends BaseReport
     {
         $integrationCustomerIds = $customer->integrationCustomers()
             ->whereHas('integration', function ($q) {
-                $q->where('integration_type', 'BitDefender')->where('status', 'active');
+                $q->where('integration_type', 'BitDefender')->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();

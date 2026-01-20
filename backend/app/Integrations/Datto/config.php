@@ -57,7 +57,8 @@ return [
     'data_types' => [
         'backup_status' => 'Backup Status & History',
         'device_status' => 'Device Status & Monitoring',
-        'uptime_metrics' => 'Uptime & Availability Metrics',
+        'alert' => 'Alerts & Incidents',
+        'uptime_metric' => 'Uptime & Availability Metrics',
     ],
     
     'supports_historical' => true,

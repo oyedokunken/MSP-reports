@@ -317,7 +317,7 @@ abstract class BaseReport implements ReportInterface
         $integrationCustomerIds = $customer->integrationCustomers()
             ->whereHas('integration', function($q) use ($requiredIntegrations) {
                 $q->whereIn('integration_type', $requiredIntegrations)
-                  ->where('status', 'active');
+                  ->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();

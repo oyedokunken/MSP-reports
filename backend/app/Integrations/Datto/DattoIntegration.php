@@ -603,7 +603,8 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
             'data_types' => [
                 'backup_status',
                 'device_status',
-                'uptime_metrics',
+                'alert',
+                'uptime_metric',
             ],
             'supports_historical' => true,
             'historical_range_days' => 90,

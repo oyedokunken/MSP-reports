@@ -31,7 +31,7 @@ class LibreNMSDeviceReport extends BaseReport
         // Check if customer has LibreNMS integration
         $hasIntegration = $customer->integrationCustomers()
             ->whereHas('integration', function($query) {
-                $query->where('integration_type', 'LibreNMS')->where('status', 'active');
+                $query->where('integration_type', 'LibreNMS')->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->exists();
 
@@ -39,7 +39,7 @@ class LibreNMSDeviceReport extends BaseReport
         if (!$hasIntegration) {
             $hasIntegration = \App\Models\Integration::where('company_id', $customer->company_id)
                 ->where('integration_type', 'LibreNMS')
-                ->where('status', 'active')
+                ->whereIn('status', ['active', 'importing_historical', 'syncing'])
                 ->exists();
         }
 

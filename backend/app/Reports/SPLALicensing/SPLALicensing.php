@@ -31,7 +31,7 @@ class SPLALicensing extends BaseReport
         $hasAD = $customer->integrationCustomers()
             ->whereHas('integration', function($query) {
                 $query->where('integration_type', 'ActiveDirectory')
-                      ->where('status', 'active');
+                      ->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->exists();
 

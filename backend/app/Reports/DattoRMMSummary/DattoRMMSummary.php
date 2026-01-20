@@ -33,7 +33,8 @@ class DattoRMMSummary extends BaseReport
         // Check if customer has Datto integration
         $hasIntegration = $customer->integrationCustomers()
             ->whereHas('integration', function($query) {
-                $query->where('integration_type', 'Datto')->where('status', 'active');
+                $query->where('integration_type', 'Datto')
+                      ->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->exists();
 
@@ -44,7 +45,8 @@ class DattoRMMSummary extends BaseReport
         // Check if we have device data
         $integrationCustomerIds = $customer->integrationCustomers()
             ->whereHas('integration', function($query) {
-                $query->where('integration_type', 'Datto')->where('status', 'active');
+                $query->where('integration_type', 'Datto')
+                      ->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();
@@ -63,7 +65,8 @@ class DattoRMMSummary extends BaseReport
         // Get integration customer IDs
         $integrationCustomerIds = $customer->integrationCustomers()
             ->whereHas('integration', function($query) {
-                $query->where('integration_type', 'Datto')->where('status', 'active');
+                $query->where('integration_type', 'Datto')
+                      ->whereIn('status', ['active', 'importing_historical', 'syncing']);
             })
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();
@@ -141,7 +144,7 @@ class DattoRMMSummary extends BaseReport
 
     public function getTemplate(): string
     {
-        return resource_path('views/Reports/DattoRMMSummary/template.blade.php');
+        return 'Reports.DattoRMMSummary.template';
     }
 
     public function getMetadata(): array
