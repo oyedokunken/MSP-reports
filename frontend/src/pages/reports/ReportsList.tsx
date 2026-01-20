@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
-import { ReportsHeader, ReportsFilters, ReportsGrid, BulkGenerateModal } from './components'
+import { ReportsHeader, ReportsFilters, ReportsGrid, ReportsTable, BulkGenerateModal, type ViewMode } from './components'
 import { Pagination } from '@/pages/customers/components/Pagination'
 import { useReportsList } from './hooks'
 
@@ -34,6 +34,7 @@ export default function ReportsList() {
   const [reportToDelete, setReportToDelete] = useState<number | null>(null)
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
   const [showBulkGenerateModal, setShowBulkGenerateModal] = useState(false)
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
   const { current_page: currentPage, last_page: totalPages, total, per_page: perPage } = pagination
 
@@ -58,18 +59,33 @@ export default function ReportsList() {
           onBulkDelete={() => setShowBulkDeleteConfirm(true)}
           selectedCount={selectedReportIds.length}
           isDeleting={isBulkDeleting}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
 
-        <ReportsGrid
-          reports={filteredReports}
-          isLoading={isLoading}
-          downloading={downloading}
-          onDownload={handleDownload}
-          onDelete={setReportToDelete}
-          deleting={deleting}
-          selectedIds={selectedReportIds}
-          onToggleSelection={toggleReportSelection}
-        />
+        {viewMode === 'grid' ? (
+          <ReportsGrid
+            reports={filteredReports}
+            isLoading={isLoading}
+            downloading={downloading}
+            onDownload={handleDownload}
+            onDelete={setReportToDelete}
+            deleting={deleting}
+            selectedIds={selectedReportIds}
+            onToggleSelection={toggleReportSelection}
+          />
+        ) : (
+          <ReportsTable
+            reports={filteredReports}
+            isLoading={isLoading}
+            downloading={downloading}
+            onDownload={handleDownload}
+            onDelete={setReportToDelete}
+            deleting={deleting}
+            selectedIds={selectedReportIds}
+            onToggleSelection={toggleReportSelection}
+          />
+        )}
 
         {/* Pagination */}
         {!isLoading && total > perPage && (
@@ -124,3 +140,4 @@ export default function ReportsList() {
     </FloatingLayout>
   )
 }
+

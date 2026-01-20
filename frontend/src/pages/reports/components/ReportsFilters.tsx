@@ -8,8 +8,11 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Filter, Trash2, Loader2 } from 'lucide-react'
+import { Search, Filter, Trash2, Loader2, LayoutGrid, LayoutList } from 'lucide-react'
 import { formatReportType } from '../utils/formatters'
+import { cn } from '@/lib/utils'
+
+export type ViewMode = 'grid' | 'table'
 
 interface ReportsFiltersProps {
   searchQuery: string
@@ -22,6 +25,8 @@ interface ReportsFiltersProps {
   onBulkDelete?: () => void
   selectedCount?: number
   isDeleting?: boolean
+  viewMode?: ViewMode
+  onViewModeChange?: (mode: ViewMode) => void
 }
 
 export function ReportsFilters({
@@ -35,6 +40,8 @@ export function ReportsFilters({
   onBulkDelete,
   selectedCount = 0,
   isDeleting = false,
+  viewMode = 'grid',
+  onViewModeChange,
 }: ReportsFiltersProps) {
   const activeFilterCount = statusFilters.length + reportTypeFilters.length
 
@@ -116,6 +123,36 @@ export function ReportsFilters({
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* View Mode Toggle - Matches Map Customers design */}
+      {onViewModeChange && (
+        <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-md bg-white dark:bg-slate-900 p-1 h-10">
+          <button
+            onClick={() => onViewModeChange('grid')}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors rounded-md",
+              viewMode === 'grid'
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutGrid className="h-4 w-4" />
+            <span className="hidden sm:inline">Grid</span>
+          </button>
+          <button
+            onClick={() => onViewModeChange('table')}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors rounded-md",
+              viewMode === 'table'
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <LayoutList className="h-4 w-4" />
+            <span className="hidden sm:inline">Table</span>
+          </button>
+        </div>
+      )}
+
       {/* Search */}
       <div className="flex-1 relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -129,8 +166,8 @@ export function ReportsFilters({
 
       {/* Bulk Delete Button */}
       {selectedCount > 0 && (
-        <Button 
-          variant="destructive" 
+        <Button
+          variant="destructive"
           className="w-full md:w-auto h-10 animate-in fade-in slide-in-from-right-2"
           onClick={onBulkDelete}
           disabled={isDeleting}
