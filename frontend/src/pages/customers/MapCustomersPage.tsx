@@ -3,11 +3,12 @@ import { cn } from "@/lib/utils";
 import FloatingLayout from "@/components/layout/FloatingLayout";
 import { MapCustomerModal, Pagination } from "./components";
 import { useCustomersStore } from "@/stores/useCustomersStore";
-import { MapPin, Search, ChevronUp, ChevronDown, ArrowUpDown, X, LayoutGrid, List } from "lucide-react";
+import { MapPin, Search, ChevronUp, ChevronDown, ArrowUpDown, X, LayoutGrid, List, Building2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -184,10 +185,8 @@ export default function MapCustomersPage() {
 
                 {unmappedCount > 0 || unmappedSearchQuery ? (
                     <>
-                        <Card className="border-none shadow-md bg-white dark:bg-slate-900">
-                            <CardContent className="p-6">
-                                 {/* Controls: Filters, View Toggle, Search */}
-                                <div className="flex flex-col md:flex-row gap-3 mb-6">
+                        {/* Controls: Filters, View Toggle, Search */}
+                        <div className="flex flex-col md:flex-row gap-3 mb-6">
                                     {/* Filters Dropdown */}
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
@@ -305,25 +304,22 @@ export default function MapCustomersPage() {
                                 <Tabs value={view} className="w-full">
                                     <TabsContent value="grid" className="mt-0">
                                         {isLoading ? (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                                                    <Card key={i} className="border border-slate-200 dark:border-slate-800 shadow-sm">
-                                                        <CardContent className="p-5 space-y-4">
-                                                            <div className="flex justify-between items-center">
-                                                                <Skeleton className="h-4 w-4 rounded" />
-                                                                <Skeleton className="h-5 w-20 rounded-full" />
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+                                                {[1, 2, 3, 4, 5, 6].map((i) => (
+                                                    <AnimatedCard key={i} className="p-6" hoverLift={false}>
+                                                        <div className="flex items-start justify-between gap-3 mb-2">
+                                                            <div className="flex items-center gap-3 flex-1">
+                                                                <Skeleton className="h-10 w-10 rounded-lg" />
+                                                                <div className="flex-1 space-y-2">
+                                                                    <Skeleton className="h-5 w-3/4" />
+                                                                    <Skeleton className="h-4 w-1/2" />
+                                                                </div>
                                                             </div>
-                                                            <div className="space-y-2">
-                                                                <Skeleton className="h-6 w-3/4" />
-                                                                <Skeleton className="h-4 w-1/2" />
-                                                            </div>
-                                                            <div className="flex justify-between items-center pt-2">
-                                                                <Skeleton className="h-4 w-24" />
-                                                                <Skeleton className="h-5 w-16 rounded-full" />
-                                                            </div>
-                                                            <Skeleton className="h-9 w-full rounded-md mt-2" />
-                                                        </CardContent>
-                                                    </Card>
+                                                            <Skeleton className="h-6 w-16 rounded-full" />
+                                                        </div>
+                                                        <Skeleton className="h-3 w-32 mt-1" />
+                                                        <Skeleton className="h-10 w-full rounded-lg mt-4" />
+                                                    </AnimatedCard>
                                                 ))}
                                             </div>
                                         ) : filteredAndSortedCustomers.length === 0 ? (
@@ -334,65 +330,80 @@ export default function MapCustomersPage() {
                                                 </p>
                                             </div>
                                         ) : (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                                {filteredAndSortedCustomers.map((customer) => (
-                                                    <Card 
-                                                        key={customer.integration_customer_id} 
-                                                        className={cn(
-                                                            "group border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 relative overflow-hidden",
-                                                            selectedIds.has(customer.integration_customer_id) ? "ring-2 ring-primary border-primary bg-primary/5" : "bg-white dark:bg-slate-800"
-                                                        )}
-                                                    >
-                                                        <CardContent className="p-5">
-                                                            <div className="flex justify-between items-start mb-4">
-                                                                <Checkbox
-                                                                    checked={selectedIds.has(customer.integration_customer_id)}
-                                                                    onCheckedChange={() => handleSelectOne(customer.integration_customer_id)}
-                                                                    aria-label={`Select ${customer.name}`}
-                                                                />
-                                                                <Badge variant="outline" className="bg-slate-50 dark:bg-slate-900/50 font-medium">
-                                                                    {customer.integration_type}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch max-w-full overflow-hidden">
+                                                {filteredAndSortedCustomers.map((customer) => {
+                                                    const isSelected = selectedIds.has(customer.integration_customer_id);
+                                                    return (
+                                                        <AnimatedCard 
+                                                            key={customer.integration_customer_id} 
+                                                            onClick={() => handleSelectOne(customer.integration_customer_id)}
+                                                            hoverLift={false}
+                                                            className={cn(
+                                                                "group p-6 h-full flex flex-col transition-all duration-300 relative overflow-hidden cursor-pointer",
+                                                                isSelected 
+                                                                    ? "border-primary bg-primary/[0.03] shadow-md shadow-primary/5" 
+                                                                    : "hover:border-slate-300 dark:hover:border-slate-700"
+                                                            )}
+                                                        >
+                                                            {/* Selection Indicator Overlay */}
+                                                            {isSelected && (
+                                                                <div className="absolute top-2 right-2 z-10">
+                                                                    <CheckCircle2 className="h-5 w-5 text-primary fill-white" />
+                                                                </div>
+                                                            )}
+
+                                                            {/* Header */}
+                                                            <div className="flex items-start justify-between gap-3 mb-1">
+                                                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                                    <div className={cn(
+                                                                        "rounded-lg p-2 flex-shrink-0 transition-colors",
+                                                                        isSelected ? "bg-primary/20" : "bg-primary/10"
+                                                                    )}>
+                                                                        <Building2 className="h-6 w-6 text-primary" />
+                                                                    </div>
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <h3 className="font-semibold text-foreground break-words leading-tight" title={customer.name}>
+                                                                            {customer.name}
+                                                                        </h3>
+                                                                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                                                                            {customer.integration_type}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                <Badge
+                                                                    variant={customer.active ? 'default' : 'secondary'}
+                                                                    className={cn(
+                                                                        "flex-shrink-0",
+                                                                        !customer.active && "bg-purple-600 text-white hover:bg-purple-700"
+                                                                    )}
+                                                                >
+                                                                    {customer.active ? 'Active' : 'Inactive'}
                                                                 </Badge>
                                                             </div>
-                                                            
-                                                            <div className="mb-4 min-h-[4.5rem]">
-                                                                <h3 className="font-bold text-slate-900 dark:text-slate-100 line-clamp-2 leading-tight mb-1" title={customer.name}>
-                                                                    {customer.name}
-                                                                </h3>
-                                                                <p className="text-[10px] text-muted-foreground font-mono bg-slate-100 dark:bg-slate-900 inline-block px-1.5 py-0.5 rounded">
-                                                                    {customer.external_id}
+
+                                                            {/* Info Section */}
+                                                            <div>
+                                                                <p className="text-[11px] text-muted-foreground/60 font-mono truncate">
+                                                                    External ID: {customer.external_id}
                                                                 </p>
                                                             </div>
-                                                            
-                                                            <div className="flex items-center justify-between text-xs mb-5">
-                                                                <div className="text-muted-foreground">
-                                                                    <span className="block text-[10px] uppercase tracking-wider opacity-60 mb-0.5">Last Seen</span>
-                                                                    <span className="font-medium text-slate-600 dark:text-slate-400">
-                                                                        {customer.last_seen_at ? new Date(customer.last_seen_at).toLocaleDateString() : '—'}
-                                                                    </span>
-                                                                </div>
-                                                                {customer.active ? (
-                                                                    <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 shadow-none text-[10px] h-5 px-1.5">
-                                                                        Active
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <Badge variant="secondary" className="shadow-none text-[10px] h-5 px-1.5 italic opacity-70">
-                                                                        Inactive
-                                                                    </Badge>
-                                                                )}
+
+                                                            {/* Footer Action */}
+                                                            <div className="mt-auto pt-4">
+                                                                <Button
+                                                                    className="w-full gap-2 font-semibold shadow-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation(); // Prevent toggling selection when clicking Map button
+                                                                        handleMapClick(customer);
+                                                                    }}
+                                                                >
+                                                                    <MapPin className="h-4 w-4" />
+                                                                    Map Client
+                                                                </Button>
                                                             </div>
-                                                            
-                                                            <Button
-                                                                className="w-full gap-2 font-semibold shadow-sm group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                                                                variant={selectedIds.has(customer.integration_customer_id) ? "default" : "secondary"}
-                                                                onClick={() => handleMapClick(customer)}
-                                                            >
-                                                                <MapPin className="h-4 w-4" />
-                                                                Map Client
-                                                            </Button>
-                                                        </CardContent>
-                                                    </Card>
-                                                ))}
+                                                        </AnimatedCard>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                     </TabsContent>
@@ -542,8 +553,6 @@ export default function MapCustomersPage() {
                                         </div>
                                     </TabsContent>
                                 </Tabs>
-                            </CardContent>
-                        </Card>
 
                         {/* Pagination */}
                         {unmappedTotalPages > 1 && (

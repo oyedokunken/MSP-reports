@@ -1,5 +1,6 @@
 import { useState, useEffect, Fragment } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { cn } from "@/lib/utils";
 import {
   Home,
   Cable,
@@ -37,6 +38,7 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
   SidebarRail,
+  SidebarSeparator,
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -122,7 +124,7 @@ export default function AppSidebar() {
 
   return (
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="px-4 py-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
+      <SidebarHeader className="px-3 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-1.5">
         <SidebarMenu>
           <SidebarMenuItem>
             <Link
@@ -130,56 +132,85 @@ export default function AppSidebar() {
               className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 hover:opacity-80 transition-opacity"
               onClick={(e) => handleNavClick(e, '/platform/dashboard')}
             >
-              {/* Expanded state - brand logo */}
-              {branding?.logo_url ? (
-                <img
-                  src={branding.logo_url}
-                  alt={branding.company_name}
-                  className="h-14 w-auto object-contain group-data-[collapsible=icon]:hidden"
-                />
-              ) : (
-                <>
-                  <img
-                    src="/logo.png"
-                    alt="Logo"
-                    className="h-14 w-auto object-contain dark:hidden group-data-[collapsible=icon]:hidden"
-                  />
-                  <img
-                    src="/logo-white.png"
-                    alt="Logo"
-                    className="h-14 w-auto object-contain hidden dark:block group-data-[collapsible=icon]:hidden"
-                  />
-                </>
+              {/* Expanded state */}
+              {state === 'expanded' && (
+                <div className="flex items-center justify-center w-full">
+                  {branding?.logo_url && branding.logo_url !== 'null' ? (
+                    <img
+                      src={branding.logo_url}
+                      alt={branding.company_name}
+                      className="h-12 w-auto object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  
+                  {/* Default Expanded Fallback */}
+                  <div className={cn(
+                    "flex items-center",
+                    branding?.logo_url && branding.logo_url !== 'null' ? "hidden" : ""
+                  )}>
+                    <img
+                      src="/logo.png"
+                      alt="Logo"
+                      className="h-12 w-auto object-contain dark:hidden"
+                    />
+                    <img
+                      src="/logo-white.png"
+                      alt="Logo"
+                      className="h-12 w-auto object-contain hidden dark:block"
+                    />
+                  </div>
+                </div>
               )}
 
-              {/* Collapsed state - icon logo */}
-              {branding?.logo_url ? (
-                <img
-                  src={branding.logo_url}
-                  alt={branding.company_name}
-                  className="h-10 w-10 object-contain hidden group-data-[collapsible=icon]:block"
-                />
-              ) : (
-                <>
-                  {/* Light mode collapsed icon */}
-                  <img
-                    src="/msp-logo-icon.png"
-                    alt="Logo Icon"
-                    className="h-10 w-10 object-contain hidden group-data-[collapsible=icon]:block dark:!hidden"
-                  />
-                  {/* Dark mode collapsed icon */}
-                  <img
-                    src="/icon.png"
-                    alt="Logo Icon"
-                    className="h-10 w-10 object-contain !hidden dark:group-data-[collapsible=icon]:!block"
-                  />
-                </>
+              {/* Collapsed state */}
+              {state === 'collapsed' && (
+                <div className="flex items-center justify-center w-full">
+                  {branding?.logo_url && branding.logo_url !== 'null' ? (
+                    <img
+                      src={branding.logo_url}
+                      alt={branding.company_name}
+                      className="h-9 w-9 object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+
+                  {/* Default Collapsed Fallback */}
+                  <div className={cn(
+                    "flex items-center justify-center w-full",
+                    branding?.logo_url && branding.logo_url !== 'null' ? "hidden" : ""
+                  )}>
+                    <img
+                      src="/msp-logo-icon.png"
+                      alt="Logo Icon"
+                      className="h-9 w-9 object-contain dark:hidden"
+                    />
+                    <img
+                      src="/icon.png"
+                      alt="Logo Icon"
+                      className="h-9 w-9 object-contain hidden dark:block"
+                    />
+                  </div>
+                </div>
               )}
 
             </Link>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
+      
+      <SidebarSeparator className="opacity-50" />
+
       <SidebarContent className="px-1 py-2 group-data-[collapsible=icon]:px-0 thin-scrollbar">
         <SidebarGroup>
           <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Platform</SidebarGroupLabel>
