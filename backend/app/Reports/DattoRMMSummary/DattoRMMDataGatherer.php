@@ -121,7 +121,7 @@ class DattoRMMDataGatherer
                 'muted' => $payload['muted'] ?? false,
                 'ticket_number' => $payload['ticket_number'] ?? null,
                 'timestamp' => $timestamp ? $timestamp->format('M d, Y H:i') : 'Unknown',
-                'timestamp_obj' => $timestamp,
+                'timestamp_obj' => $timestamp ? \Carbon\Carbon::parse($timestamp) : null,
                 'resolution_minutes' => $resolutionMinutes,
                 'device_uid' => $payload['device_uid'] ?? null,
                 'device_name' => $payload['device_name'] ?? 'Unknown',

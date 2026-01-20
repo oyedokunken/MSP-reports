@@ -291,8 +291,8 @@
         </div>
         
         <div class="title-group">
-            <h1>{{ ucfirst($options['frequency'] ?? 'Service Summary') }} Service Report</h1>
-            <div class="subtitle">A detailed performance audit and infrastructure health analysis for your managed environment.</div>
+            <h1>{{ $reportData['cover_title'] ?? $branding['report_title'] ?? (ucfirst($options['frequency'] ?? 'Service Summary') . ' Service Report') }}</h1>
+            <div class="subtitle">{{ $reportData['cover_subtitle'] ?? 'A detailed performance audit and infrastructure health analysis for your managed environment.' }}</div>
         </div>
 
         <div class="accent-bar"></div>

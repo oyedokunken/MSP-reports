@@ -106,6 +106,7 @@ class DattoRMMSummary extends BaseReport
                 'devices_needing_reboot' => $complianceSummary['devices_needing_reboot'] ?? 0,
             ],
             'total_recommendations' => count($recommendations),
+            'daily_trends' => $this->getDailyTrends($alerts, $startDate, $endDate),
         ];
 
         return [
@@ -138,6 +139,9 @@ class DattoRMMSummary extends BaseReport
             'uptime' => [
                 'data' => $uptimeMetrics->toArray(),
             ],
+            'options' => $options,
+            'cover_title' => 'Datto RMM ' . ucfirst($options['frequency'] ?? 'Monthly') . ' Summary',
+            'cover_subtitle' => 'Comprehensive analysis of device health, security compliance, and infrastructure alerts.',
             'recommendations' => $recommendations,
         ];
     }
@@ -176,11 +180,14 @@ class DattoRMMSummary extends BaseReport
         $rebootRequired = $devices->where('reboot_required', true)->count();
 
         // Device type breakdown
-        $deviceTypes = $devices->groupBy('device_category')->map->count()->toArray();
+        $deviceTypes = $devices->groupBy(function($device) {
+            return $device['device_category'] ?: 'Unknown';
+        })->map->count()->toArray();
 
         // OS breakdown
         $osBreakdown = $devices->groupBy(function($device) {
-            $os = $device['operating_system'];
+            $os = $device['operating_system'] ?? '';
+            if (empty($os)) return 'Unknown';
             if (str_contains($os, 'Windows 11')) return 'Windows 11';
             if (str_contains($os, 'Windows 10')) return 'Windows 10';
             if (str_contains($os, 'Windows Server')) return 'Windows Server';
@@ -309,6 +316,40 @@ class DattoRMMSummary extends BaseReport
     /**
      * Generate recommendations based on data
      */
+    private function getDailyTrends($alerts, $startDate, $endDate): array
+    {
+        $period = new \DatePeriod(
+            $startDate->clone()->startOfDay(),
+            new \DateInterval('P1D'),
+            $endDate->clone()->endOfDay()
+        );
+
+        $labels = [];
+        $total = [];
+        $critical = [];
+
+        foreach ($period as $date) {
+            $formattedDate = $date->format('M d');
+            $labels[] = $formattedDate;
+            $dayKey = $date->format('Y-m-d');
+            
+            // Filter alerts for this day using simple string comparison
+            $daysAlerts = $alerts->filter(function ($alert) use ($dayKey) {
+                if (empty($alert['timestamp_obj'])) return false;
+                return $alert['timestamp_obj']->format('Y-m-d') === $dayKey;
+            });
+
+            $total[] = $daysAlerts->count();
+            $critical[] = $daysAlerts->where('priority', 'Critical')->count();
+        }
+
+        return [
+            'labels' => $labels,
+            'total' => $total,
+            'critical' => $critical,
+        ];
+    }
+
     private function generateRecommendations($devices, $alerts, $complianceSummary, $securitySummary): array
     {
         $recommendations = [];
