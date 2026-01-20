@@ -59,8 +59,8 @@
         .stat-box .stat-sub { font-size: 10px; color: #94a3b8; margin-top: 2px; }
 
         .summary-chart-container { 
-            margin-bottom: 40px; 
-            padding: 24px; 
+            margin-bottom: 35px; 
+            padding: 25px; 
             background: #ffffff; 
             border: 1px solid #e2e8f0; 
             border-radius: 12px;
@@ -70,7 +70,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .chart-title {
             font-size: 14px;
@@ -182,6 +182,8 @@
             pointer-events: none;
         }
         
+        .page-break { page-break-before: always; }
+
         h3 { 
             font-family: 'Outfit', sans-serif;
             font-size: 14px; 
@@ -253,8 +255,8 @@
                 </div>
             </div>
         </div>
-        <div style="width: 100%; height: 250px;">
-            <canvas id="systemOverviewChart" width="600" height="250"></canvas>
+        <div style="width: 100%; height: 220px;">
+            <canvas id="systemOverviewChart" width="600" height="220"></canvas>
         </div>
         <p style="margin-top: 10px; font-size: 11px; color: #64748b; line-height: 1.5; padding: 0 5px;">
             This chart visualizes the total count of devices that are currently online versus offline, as well as the proportion of resolved alerts compared to those that remain open. It provides a high-level snapshot of infrastructure availability and the current backlog of unresolved issues.
@@ -276,8 +278,8 @@
                 </div>
             </div>
         </div>
-        <div style="width: 100%; height: 250px;">
-            <canvas id="alertTrendsChart" width="600" height="250"></canvas>
+        <div style="width: 100%; height: 220px;">
+            <canvas id="alertTrendsChart" width="600" height="220"></canvas>
         </div>
         <p style="margin-top: 10px; font-size: 11px; color: #64748b; line-height: 1.5; padding: 0 5px;">
             This timeline tracks the daily volume of system alerts over the reporting period, highlighting spikes in activity. By distinguishing between total alert volume and critical incidents, it helps identify specific days with unusual instability or high operational noise.
@@ -286,6 +288,7 @@
 
     <!-- Recommendations -->
     @if(isset($recommendations) && count($recommendations) > 0)
+    <div class="page-break"></div>
     <div class="section">
         <h2 class="section-title">Analysis & Recommendations</h2>
         @foreach($recommendations as $rec)
@@ -300,6 +303,7 @@
         </div>
         @endforeach
     </div>
+    <div class="page-break"></div>
     @endif
 
     <!-- Device Health -->
@@ -374,6 +378,7 @@
     </div>
 
     <!-- Security & Alerts -->
+    <div class="page-break"></div>
     <div class="section">
         <h2 class="section-title">Security & Security Operations</h2>
         

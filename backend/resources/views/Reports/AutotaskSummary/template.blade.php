@@ -156,6 +156,8 @@
             z-index: -1;
             pointer-events: none;
         }
+        
+        .page-break { page-break-before: always; }
     </style>
 </head>
 <body>
@@ -332,6 +334,7 @@
     @endif
 
     @if(!isset($sections_to_render) || in_array('tickets', $sections_to_render) || in_array('all', $sections_to_render))
+    <div class="page-break"></div>
     <div class="section">
         <h2 class="section-title">Ticket Summary</h2>
         
@@ -425,6 +428,7 @@
     @endif
 
     @if(!isset($sections_to_render) || in_array('time_entries', $sections_to_render) || in_array('all', $sections_to_render))
+    <!-- <div class="page-break"></div> -->
     <div class="section">
         <h2 class="section-title">Time & Billing Summary</h2>
         
