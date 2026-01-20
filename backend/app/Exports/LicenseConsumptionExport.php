@@ -41,77 +41,89 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
     /**
      * @return Collection
      */
-    public function collection()
+    public function collection(): Collection
     {
-        // Fetch all flexible assets from IntegrationData
-        // We need to bypass CompanyScope to see all companies
-        $rawData = IntegrationData::withoutGlobalScope(CompanyScope::class)
+        // Use cursor() for memory-efficient streaming of large datasets
+        // Process records one at a time instead of loading all into memory
+        $seen = [];
+        $results = collect();
+
+        IntegrationData::withoutGlobalScope(CompanyScope::class)
             ->with(['company', 'integrationCustomer'])
             ->where('data_type', 'flexible_assets')
             ->orderBy('data_timestamp', 'desc')
-            ->get();
+            ->cursor()
+            ->each(function ($item) use (&$seen, &$results) {
+                // Unique per company and asset ID
+                $assetId = $item->data_payload['asset_id'] ?? $item->integration_data_id;
+                $uniqueKey = $item->company_id . '-' . $assetId;
 
-        // Filter for unique assets (latest version) and map to standardized format
-        return $rawData->unique(function($item) {
-            // Unique per company and asset ID
-            $assetId = $item->data_payload['asset_id'] ?? $item->integration_data_id;
-            return $item->company_id . '-' . $assetId;
-        })->filter(function($item) {
-            // Filter for License types only
-            $typeName = $item->data_payload['type_name'] ?? '';
-            return stripos($typeName, 'License') !== false;
-        })->map(function($item) {
-            $payload = $item->data_payload;
-            $traits = $payload['traits'] ?? [];
-            
-            // Helper to handle array or string values for traits
-            $getValue = function($key) use ($traits) {
-                $value = $traits[$key] ?? null;
-                if (is_array($value)) {
-                    return array_sum(array_map('floatval', $value));
+                // Skip already seen items
+                if (isset($seen[$uniqueKey])) {
+                    return;
                 }
-                return $value !== null ? (float)$value : null;
-            };
+                $seen[$uniqueKey] = true;
 
-            // ITGlue uses: active (total), consumed (used), unused (available)
-            $active = $getValue('active') ?? $getValue('purchased') ?? $getValue('total-seats') ?? 0;
-            $consumed = $getValue('consumed') ?? $getValue('assigned') ?? $getValue('used-seats') ?? 0;
-            $unused = $getValue('unused') ?? $getValue('available') ?? 0;
-            
-            // Calculate utilization
-            $total = (float)$active;
-            $used = (float)$consumed;
-            $utilization = 0;
-            if ($total > 0) {
-                $utilization = round(($used / $total) * 100, 2);
-            }
+                // Filter for License types only
+                $typeName = $item->data_payload['type_name'] ?? '';
+                if (stripos($typeName, 'License') === false) {
+                    return;
+                }
 
-            // Determine End Customer Name
-            $customerName = $payload['organization_name'] ?? ($item->integrationCustomer ? $item->integrationCustomer->name : 'Unknown Customer');
+                $payload = $item->data_payload;
+                $traits = $payload['traits'] ?? [];
 
-            // Determine License Name
-            $licenseName = $traits['license-name'] ?? $payload['name'] ?? null;
-            if (is_array($licenseName)) {
-                $licenseName = reset($licenseName); // Take the first item if it's an array
-            }
-            if (empty($licenseName)) {
-                $licenseName = '0';
-            }
+                // Helper to handle array or string values for traits
+                $getValue = function (string $key) use ($traits): ?float {
+                    $value = $traits[$key] ?? null;
+                    if (is_array($value)) {
+                        return array_sum(array_map('floatval', $value));
+                    }
+                    return $value !== null ? (float) $value : null;
+                };
 
-            return (object)[
-                'company_name' => $customerName,
-                'license_name' => $licenseName,
-                'active_count' => $active,
-                'consumed_count' => $consumed,
-                'unused_count' => $unused,
-                'consumption_rate' => $utilization,
-                'last_updated_at' => isset($payload['last_updated_at']) ? Carbon::parse($payload['last_updated_at']) : $item->updated_at,
-            ];
-        })->filter(function ($license) {
-            return !empty($license->license_name) || $license->license_name === '0';
-        })->sortBy(function ($license) {
-            return [$license->company_name, $license->license_name];
-        });
+                // ITGlue uses: active (total), consumed (used), unused (available)
+                $active = $getValue('active') ?? $getValue('purchased') ?? $getValue('total-seats') ?? 0;
+                $consumed = $getValue('consumed') ?? $getValue('assigned') ?? $getValue('used-seats') ?? 0;
+                $unused = $getValue('unused') ?? $getValue('available') ?? 0;
+
+                // Calculate utilization
+                $total = (float) $active;
+                $used = (float) $consumed;
+                $utilization = 0;
+                if ($total > 0) {
+                    $utilization = round(($used / $total) * 100, 2);
+                }
+
+                // Determine End Customer Name
+                $customerName = $payload['organization_name']
+                    ?? ($item->integrationCustomer ? $item->integrationCustomer->name : 'Unknown Customer');
+
+                // Determine License Name
+                $licenseName = $traits['license-name'] ?? $payload['name'] ?? null;
+                if (is_array($licenseName)) {
+                    $licenseName = reset($licenseName);
+                }
+                if (empty($licenseName)) {
+                    $licenseName = '0';
+                }
+
+                $results->push((object) [
+                    'company_name' => $customerName,
+                    'license_name' => $licenseName,
+                    'active_count' => $active,
+                    'consumed_count' => $consumed,
+                    'unused_count' => $unused,
+                    'consumption_rate' => $utilization,
+                    'last_updated_at' => isset($payload['last_updated_at'])
+                        ? Carbon::parse($payload['last_updated_at'])
+                        : $item->updated_at,
+                ]);
+            });
+
+        return $results
+            ->filter(fn($license) => !empty($license->license_name) || $license->license_name === '0')
+            ->sortBy(fn($license) => [$license->company_name, $license->license_name]);
     }
 
     /**

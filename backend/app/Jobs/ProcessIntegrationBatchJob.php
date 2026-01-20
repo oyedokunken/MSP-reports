@@ -105,12 +105,14 @@ class ProcessIntegrationBatchJob implements ShouldQueue
     {
         try {
             $redis = \Illuminate\Support\Facades\Redis::connection();
+            $ttl = 7200; // 2 hours - keys expire if sync hangs
             
             if ($success) {
                 $key = "sync_log:{$this->syncLogId}:pending";
                 
                 // Decrement pending counter only on success
                 $remaining = $redis->decr($key);
+                $redis->expire($key, $ttl); // Refresh TTL
                 
                 // Update live record count
                 if (method_exists($instance, 'getLastBatchProcessedCount')) {
@@ -131,8 +133,10 @@ class ProcessIntegrationBatchJob implements ShouldQueue
                     $this->completeSyncIfAllBatchesDone($redis);
                 }
             } else {
-                // Track failed batch
-                $redis->incr("sync_log:{$this->syncLogId}:failed");
+                // Track failed batch with TTL
+                $failedKey = "sync_log:{$this->syncLogId}:failed";
+                $redis->incr($failedKey);
+                $redis->expire($failedKey, $ttl);
                 
                 Log::warning("Batch failed, will retry", [
                     'sync_id' => $this->syncLogId,

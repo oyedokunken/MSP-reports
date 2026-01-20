@@ -7,6 +7,7 @@ use App\Models\Integration;
 use App\Services\SyncEngine;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class MonitorIntegrationSyncs extends Command
 {
@@ -128,7 +129,29 @@ class MonitorIntegrationSyncs extends Command
 
     protected function triggerSync(Integration $integration, array &$counters): void
     {
+        $lockKey = "sync_trigger_lock:{$integration->integration_id}";
+        
+        // Use atomic lock to prevent race conditions between monitor instances
+        $lock = Cache::lock($lockKey, 60); // 60 second lock timeout
+        
+        if (!$lock->get()) {
+            $this->line("Integration #{$integration->integration_id} is locked by another process, skipping");
+            $counters['skipped']++;
+            return;
+        }
+        
         try {
+            // Double-check no sync is running (now protected by lock)
+            $isRunning = $integration->syncLogs()
+                ->whereIn('status', ['queued', 'running'])
+                ->exists();
+            
+            if ($isRunning) {
+                $this->line("Integration #{$integration->integration_id} already syncing, skipping");
+                $counters['skipped']++;
+                return;
+            }
+            
             $this->syncEngine->triggerSync($integration, 'current_state', 'default');
             $counters['triggered']++;
             $this->info("Triggered sync for Integration #{$integration->integration_id}");
@@ -137,6 +160,8 @@ class MonitorIntegrationSyncs extends Command
                 'integration_id' => $integration->integration_id,
                 'error' => $e->getMessage()
             ]);
+        } finally {
+            $lock->release();
         }
     }
 

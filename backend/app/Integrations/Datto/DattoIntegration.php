@@ -430,7 +430,10 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
                     ->delete();
             }
 
-            IntegrationData::insert($insertData);
+            // Chunk inserts to prevent memory exhaustion with large datasets
+            foreach (array_chunk($insertData, 500) as $chunk) {
+                IntegrationData::insert($chunk);
+            }
         });
     }
     protected function bulkStoreAlerts(array $alerts, array $site): void    
@@ -512,7 +515,10 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
                     ->delete();
             }
 
-            IntegrationData::insert($insertData);
+            // Chunk inserts to prevent memory exhaustion with large datasets
+            foreach (array_chunk($insertData, 500) as $chunk) {
+                IntegrationData::insert($chunk);
+            }
         });
     }
 
@@ -664,6 +670,10 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         });
     }
 
+    /**
+     * @deprecated Use bulkStoreDevices() or bulkStoreAlerts() instead for better performance
+     * Kept for backward compatibility only
+     */
     private function storeHistoricalData(array $data): void
     {
         // Determine unique key based on data type
@@ -718,6 +728,10 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         };
     }
 
+    /**
+     * @deprecated Use bulkStoreAlerts() instead for better performance
+     * Kept for syncDevices() backward compatibility
+     */
     protected function storeAlertData(array $alert, array $site): void
     {
         $siteUid = $site['uid'] ?? $site['id'] ?? null;
