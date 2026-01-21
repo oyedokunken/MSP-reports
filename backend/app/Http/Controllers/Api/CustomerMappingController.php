@@ -931,4 +931,216 @@ class CustomerMappingController extends Controller
             'message' => 'Mapping deleted successfully',
         ]);
     }
+
+    /**
+     * Get smart match suggestions using embedding service
+     * This provides more intelligent matching for difficult cases
+     */
+    public function getSmartMatchSuggestions(Request $request)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $validated = $request->validate([
+            'integration_customer_ids' => 'required|array|min:1|max:50',
+            'integration_customer_ids.*' => 'integer',
+            'use_agent' => 'sometimes|boolean',
+        ]);
+
+        $mappingService = app(CustomerMappingService::class);
+
+        // Get the integration customers
+        $integrationCustomers = IntegrationCustomer::whereIn('integration_customer_id', $validated['integration_customer_ids'])
+            ->whereHas('integration', function ($q) use ($company) {
+                $q->where('company_id', $company->company_id);
+            })
+            ->whereNull('customer_id')
+            ->with('integration')
+            ->get();
+
+        if ($integrationCustomers->isEmpty()) {
+            return response()->json([
+                'status' => 'success',
+                'data' => [],
+                'message' => 'No unmapped customers found for the given IDs.',
+            ]);
+        }
+
+        $results = [];
+        $useAgent = $validated['use_agent'] ?? false;
+
+        foreach ($integrationCustomers as $ic) {
+            // Try embedding-based matching (or agent if requested)
+            if ($useAgent) {
+                $match = $mappingService->autoMatchWithAgent($ic);
+            } else {
+                $match = $mappingService->autoMatchWithEmbeddings($ic, true);
+            }
+
+            $result = [
+                'integration_customer_id' => $ic->integration_customer_id,
+                'name' => $ic->name,
+                'integration_type' => $ic->integration->integration_type,
+                'match_found' => $match !== null,
+                'suggestion' => null,
+            ];
+
+            if ($match) {
+                $result['suggestion'] = [
+                    'customer_id' => $match['customer']->customer_id,
+                    'canonical_name' => $match['customer']->canonical_name,
+                    'confidence_score' => $match['confidence_score'],
+                    'mapping_type' => $match['mapping_type'],
+                    'reasoning' => $match['reasoning'] ?? null,
+                ];
+            }
+
+            $results[] = $result;
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $results,
+            'meta' => [
+                'total_requested' => count($validated['integration_customer_ids']),
+                'total_processed' => count($results),
+                'matches_found' => count(array_filter($results, fn($r) => $r['match_found'])),
+                'method' => $useAgent ? 'agent' : 'embedding',
+            ],
+        ]);
+    }
+
+    /**
+     * Check embedding service status
+     */
+    public function getEmbeddingStatus(Request $request)
+    {
+        $embeddingService = app(\App\Services\EmbeddingService::class);
+
+        $embeddingAvailable = $embeddingService->isAvailable();
+        $agentAvailable = $embeddingService->isAgentAvailable();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'embedding_service' => [
+                    'available' => $embeddingAvailable,
+                    'url' => config('services.embedding.url'),
+                ],
+                'agent' => [
+                    'available' => $agentAvailable,
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Batch auto-match unmapped customers using embeddings
+     */
+    public function batchAutoMatch(Request $request)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $validated = $request->validate([
+            'integration_customer_ids' => 'sometimes|array|max:100',
+            'integration_customer_ids.*' => 'integer',
+            'auto_apply' => 'sometimes|boolean',
+            'min_confidence' => 'sometimes|integer|min:50|max:100',
+        ]);
+
+        $mappingService = app(CustomerMappingService::class);
+        $autoApply = $validated['auto_apply'] ?? false;
+        $minConfidence = $validated['min_confidence'] ?? 80;
+
+        // Get unmapped customers
+        $query = IntegrationCustomer::whereHas('integration', function ($q) use ($company) {
+            $q->where('company_id', $company->company_id);
+        })->whereNull('customer_id');
+
+        if (!empty($validated['integration_customer_ids'])) {
+            $query->whereIn('integration_customer_id', $validated['integration_customer_ids']);
+        }
+
+        $integrationCustomers = $query->with('integration')->limit(100)->get();
+
+        if ($integrationCustomers->isEmpty()) {
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'processed' => 0,
+                    'matched' => 0,
+                    'applied' => 0,
+                    'results' => [],
+                ],
+            ]);
+        }
+
+        // Batch process with embeddings
+        $matches = $mappingService->batchAutoMatchWithEmbeddings(
+            $integrationCustomers->all(),
+            $company->company_id
+        );
+
+        $results = [];
+        $appliedCount = 0;
+
+        foreach ($integrationCustomers as $ic) {
+            $match = $matches[$ic->integration_customer_id] ?? null;
+
+            $result = [
+                'integration_customer_id' => $ic->integration_customer_id,
+                'name' => $ic->name,
+                'match_found' => $match !== null,
+                'applied' => false,
+                'suggestion' => null,
+            ];
+
+            if ($match) {
+                $result['suggestion'] = [
+                    'customer_id' => $match['customer']->customer_id,
+                    'canonical_name' => $match['customer']->canonical_name,
+                    'confidence_score' => $match['confidence_score'],
+                    'mapping_type' => $match['mapping_type'],
+                ];
+
+                // Auto-apply if requested and confidence is high enough
+                if ($autoApply && $match['confidence_score'] >= $minConfidence) {
+                    try {
+                        $ic->customer_id = $match['customer']->customer_id;
+                        $ic->save();
+
+                        CustomerMapping::create([
+                            'customer_id' => $match['customer']->customer_id,
+                            'integration_customer_id' => $ic->integration_customer_id,
+                            'mapping_type' => $match['mapping_type'],
+                            'confidence_score' => $match['confidence_score'],
+                            'mapped_at' => now(),
+                            'notes' => 'Auto-matched via batch embedding process',
+                        ]);
+
+                        $result['applied'] = true;
+                        $appliedCount++;
+                    } catch (\Exception $e) {
+                        \Log::warning('Failed to auto-apply match', [
+                            'integration_customer_id' => $ic->integration_customer_id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            $results[] = $result;
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'processed' => count($results),
+                'matched' => count(array_filter($results, fn($r) => $r['match_found'])),
+                'applied' => $appliedCount,
+                'results' => $results,
+            ],
+        ]);
+    }
 }

@@ -130,6 +130,11 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::post('/customers/{id}/merge', [CustomerMappingController::class, 'mergeCustomers']);
         Route::post('/customers/{id}/split', [CustomerMappingController::class, 'splitCustomer']);
         Route::delete('/customers/{customerId}/mappings/{mappingId}', [CustomerMappingController::class, 'deleteMapping']);
+        
+        // Smart matching with embeddings
+        Route::get('/customers/embedding-status', [CustomerMappingController::class, 'getEmbeddingStatus']);
+        Route::post('/customers/smart-match', [CustomerMappingController::class, 'getSmartMatchSuggestions']);
+        Route::post('/customers/batch-auto-match', [CustomerMappingController::class, 'batchAutoMatch']);
     });
 
     // Report Configuration Routes
