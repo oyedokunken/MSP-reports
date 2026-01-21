@@ -25,6 +25,10 @@ final class IntegrationDataType
     public const TICKET = 'ticket';
     public const CONTRACT = 'contract';
     public const CONFIGURATION_ITEM = 'configuration_item';
+    public const TIME_ENTRY = 'time_entry';
+    public const CONTACT = 'contact';
+    public const TICKET_NOTE = 'ticket_note';
+    public const RESOURCE = 'resource';
 
     // BitDefender Types
     public const ENDPOINT = 'endpoint';
@@ -52,6 +56,10 @@ final class IntegrationDataType
             self::TICKET,
             self::CONTRACT,
             self::CONFIGURATION_ITEM,
+            self::TIME_ENTRY,
+            self::CONTACT,
+            self::TICKET_NOTE,
+            self::RESOURCE,
             self::ENDPOINT,
             self::THREAT,
             self::LICENSE,

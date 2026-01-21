@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
+use App\Integrations\Contracts\IntegrationDataType;
 
 class ITGlueIntegration implements IntegrationInterface
 {
@@ -164,18 +165,20 @@ class ITGlueIntegration implements IntegrationInterface
 
         Log::info('ITGlue: Syncing organizations', ['count' => $count]);
 
+        $batch = [];
         foreach ($organizations as $org) {
             try {
-                $data = ITGlueMapper::mapCustomer($org);
-                $this->storeCustomer($data);
-                $this->sendHeartbeat();
+                $batch[] = ITGlueMapper::mapCustomer($org);
             } catch (\Throwable $e) {
-                Log::warning('Failed to store organization', [
+                Log::warning('Failed to map organization', [
                     'org_id' => $org['id'] ?? 'unknown',
                     'error'  => $e->getMessage(),
                 ]);
             }
         }
+
+        $this->bulkStoreCustomers($batch);
+        $this->sendHeartbeat(); // Send heartbeat once after batch processing
 
         return $count;
     }
@@ -333,12 +336,47 @@ class ITGlueIntegration implements IntegrationInterface
         );
     }
 
+    private function bulkStoreCustomers(array $customers): void
+    {
+        if (empty($customers)) return;
+
+        $now = now();
+        $insertData = [];
+
+        foreach ($customers as $customer) {
+            $insertData[] = [
+                'integration_id' => $this->integration->integration_id,
+                'external_id'    => $customer['external_id'],
+                'name'           => $customer['name'],
+                'metadata'       => json_encode($customer['metadata']),
+                'active'         => $customer['active'],
+                'created_at'     => $now,
+                'updated_at'     => $now,
+                'last_seen_at'   => $now,
+            ];
+        }
+
+        // Using upsert to handle duplicates efficiently
+        IntegrationCustomer::upsert(
+            $insertData,
+            ['integration_id', 'external_id'],
+            ['name', 'metadata', 'active', 'last_seen_at', 'updated_at']
+        );
+        
+        $this->lastBatchProcessedCount = count($customers);
+    }
+
+
     public function processBatch(string $type, array $items): void
     {
         $this->lastBatchProcessedCount = 0;
 
         $customerMap = null;
-        if (in_array($type, ['ssl_certs', 'domains', 'flexible_assets'])) {
+        if (in_array($type, [
+            IntegrationDataType::SSL_CERTIFICATE,
+            IntegrationDataType::DOMAINS,
+            IntegrationDataType::FLEXIBLE_ASSETS
+        ])) {
             $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
                 ->pluck('integration_customer_id', 'external_id')
                 ->toArray();
@@ -346,13 +384,11 @@ class ITGlueIntegration implements IntegrationInterface
 
         switch ($type) {
             case 'organizations':
+            case IntegrationDataType::ORGANIZATION_INFO:
+                $batch = [];
                 foreach ($items as $organization) {
                     try {
-                        $standardized = ITGlueMapper::mapCustomer($organization);
-                        $this->storeCustomer($standardized);
-                        if (method_exists($this, 'sendHeartbeat')) {
-                            $this->sendHeartbeat();
-                        }
+                        $batch[] = ITGlueMapper::mapCustomer($organization);
                     } catch (\Exception $e) {
                         Log::error('ITGlue Batch: Failed to process organization', [
                             'org_id' => $organization['id'] ?? 'unknown',
@@ -360,19 +396,26 @@ class ITGlueIntegration implements IntegrationInterface
                         ]);
                     }
                 }
+                $this->bulkStoreCustomers($batch);
+                if (method_exists($this, 'sendHeartbeat')) {
+                    $this->sendHeartbeat();
+                }
                 break;
 
-            case 'ssl_certs':
-            case 'domains':
-            case 'flexible_assets':
+            case IntegrationDataType::SSL_CERTIFICATE:
+            case 'ssl_certs': // Legacy support
+            case IntegrationDataType::DOMAINS:
+            case 'domains': // Legacy support
+            case IntegrationDataType::FLEXIBLE_ASSETS:
+            case 'flexible_assets': // Legacy support
                 $batch = [];
                 foreach ($items as $item) {
                     try {
                         $data = match ($type) {
-                            'ssl_certs'       => ITGlueMapper::mapSslCertificate($item),
-                            'domains'         => ITGlueMapper::mapDomain($item),
-                            'flexible_assets' => ITGlueMapper::mapFlexibleAsset($item),
-                            default           => null,
+                            IntegrationDataType::SSL_CERTIFICATE, 'ssl_certs' => ITGlueMapper::mapSslCertificate($item),
+                            IntegrationDataType::DOMAINS, 'domains'           => ITGlueMapper::mapDomain($item),
+                            IntegrationDataType::FLEXIBLE_ASSETS, 'flexible_assets' => ITGlueMapper::mapFlexibleAsset($item),
+                            default => null,
                         };
 
                         if (!$data) {
@@ -389,7 +432,14 @@ class ITGlueIntegration implements IntegrationInterface
                     }
                 }
 
-                $dataType = $type === 'ssl_certs' ? 'ssl_certificate' : $type;
+                // Determine data type for storage
+                $dataType = match($type) {
+                    'ssl_certs' => IntegrationDataType::SSL_CERTIFICATE,
+                    'domains' => IntegrationDataType::DOMAINS,
+                    'flexible_assets' => IntegrationDataType::FLEXIBLE_ASSETS,
+                    default => $type
+                };
+                
                 $this->bulkStoreHistoricalData($dataType, $batch);
                 break;
         }
@@ -479,7 +529,12 @@ class ITGlueIntegration implements IntegrationInterface
         return [
             'name'                => 'ITGlue',
             'description'         => 'IT Glue Documentation and Asset Management',
-            'data_types'          => ['organization_info', 'ssl_certificate', 'domain', 'flexible_assets'],
+            'data_types'          => [
+                IntegrationDataType::ORGANIZATION_INFO,
+                IntegrationDataType::SSL_CERTIFICATE,
+                IntegrationDataType::DOMAINS,
+                IntegrationDataType::FLEXIBLE_ASSETS,
+            ],
             'supports_historical' => true,
             'historical_range_days' => 1,
         ];

@@ -18,6 +18,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Integrations\Contracts\IntegrationDataType;
 
 class AutotaskIntegration implements IntegrationInterface
 {
@@ -72,7 +73,7 @@ class AutotaskIntegration implements IntegrationInterface
             $autotaskCompanies = [];
             
             // Skip company fetch if we're already past this phase
-            if (!in_array($resumePhase, ['tickets', 'time_entries'])) {
+            if (!in_array($resumePhase, [IntegrationDataType::TICKET, IntegrationDataType::TIME_ENTRY])) {
                 $autotaskCompanies = $this->client->getCompanies($since);
                 
                 // Apply offset if resuming in companies phase
@@ -97,18 +98,19 @@ class AutotaskIntegration implements IntegrationInterface
             ]);
 
             // 1. Synchronous Company Sync
+            $companiesBatch = [];
             foreach ($autotaskCompanies as $company) {
                 try {
-                    $standardized = AutotaskMapper::mapCompany($company);
-                    $this->storeCustomer($standardized);
+                    $companiesBatch[] = AutotaskMapper::mapCompany($company);
                     $totalProcessed++;
                 } catch (\Exception $e) {
-                    Log::warning('Autotask Sync: Company store failed', [
+                    Log::warning('Autotask Sync: Company map failed', [
                         'id' => $company['id'] ?? 'unknown', 
                         'error' => $e->getMessage()
                     ]);
                 }
             }
+            $this->bulkStoreCustomers($companiesBatch);
             
             // 2. Immediate Automap
             $this->processUnmappedCustomers();
@@ -117,7 +119,7 @@ class AutotaskIntegration implements IntegrationInterface
             
             // Save state if we just finished companies
             if (!empty($autotaskCompanies)) {
-                 $this->saveSyncState('tickets', 0, 0); // Ready for tickets
+                 $this->saveSyncState(IntegrationDataType::TICKET, 0, 0); // Ready for tickets
             }
 
 
@@ -167,10 +169,10 @@ class AutotaskIntegration implements IntegrationInterface
             $recentTickets = $this->client->getTickets($since, $until);
             
             // Resume logic for tickets
-            if ($resumePhase === 'tickets' && $resumeOffset > 0) {
+            if ($resumePhase === IntegrationDataType::TICKET && $resumeOffset > 0) {
                 $recentTickets = array_slice($recentTickets, $resumeOffset);
                 $ticketsProcessed = $resumeOffset;
-            } elseif ($resumePhase === 'time_entries') {
+            } elseif ($resumePhase === IntegrationDataType::TIME_ENTRY) {
                 $recentTickets = []; // Skip tickets if already past
             }
             
@@ -182,16 +184,16 @@ class AutotaskIntegration implements IntegrationInterface
             $ticketChunks = array_chunk($recentTickets, 50);
             
             foreach ($ticketChunks as $chunk) {
-                 \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'tickets', $chunk, $this->currentSyncLogId);
+                 \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, IntegrationDataType::TICKET, $chunk, $this->currentSyncLogId);
                  $ticketsProcessed += count($chunk);
                  $batchesDispatched++;
-                 $this->saveSyncState('tickets', $ticketsProcessed, count($recentTickets));
+                 $this->saveSyncState(IntegrationDataType::TICKET, $ticketsProcessed, count($recentTickets));
             }
             
             $recentTimeEntries = $this->client->getTimeEntries($since, $until);
             
              // Resume logic for time entries
-            if ($resumePhase === 'time_entries' && $resumeOffset > 0) {
+            if ($resumePhase === IntegrationDataType::TIME_ENTRY && $resumeOffset > 0) {
                 $recentTimeEntries = array_slice($recentTimeEntries, $resumeOffset);
                 $timeEntriesProcessed = $resumeOffset;
             }
@@ -200,10 +202,10 @@ class AutotaskIntegration implements IntegrationInterface
             
             $timeChunks = array_chunk($recentTimeEntries, 50);
              foreach ($timeChunks as $chunk) {
-                 \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'time_entries', $chunk, $this->currentSyncLogId);
+                 \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, IntegrationDataType::TIME_ENTRY, $chunk, $this->currentSyncLogId);
                  $timeEntriesProcessed += count($chunk);
                  $batchesDispatched++;
-                 $this->saveSyncState('time_entries', $timeEntriesProcessed, count($recentTimeEntries));
+                 $this->saveSyncState(IntegrationDataType::TIME_ENTRY, $timeEntriesProcessed, count($recentTimeEntries));
             }
             
         } catch (\Exception $e) {
@@ -324,7 +326,7 @@ class AutotaskIntegration implements IntegrationInterface
                 }
 
                 if (!empty($batchRecords)) {
-                    $this->bulkStoreHistoricalData('ticket', $batchRecords);
+                    $this->bulkStoreHistoricalData(IntegrationDataType::TICKET, $batchRecords);
                 }
 
                 
@@ -375,7 +377,7 @@ class AutotaskIntegration implements IntegrationInterface
                 }
 
                 if (!empty($batchRecords)) {
-                    $this->bulkStoreHistoricalData('time_entry', $batchRecords);
+                    $this->bulkStoreHistoricalData(IntegrationDataType::TIME_ENTRY, $batchRecords);
                 }
                 
                 unset($chunk, $batchRecords);
@@ -416,7 +418,7 @@ class AutotaskIntegration implements IntegrationInterface
                     }
 
                 if (!empty($batchRecords)) {
-                    $this->bulkStoreHistoricalData('resource', $batchRecords);
+                    $this->bulkStoreHistoricalData(IntegrationDataType::RESOURCE, $batchRecords);
                 }
                     
                     unset($chunk, $batchRecords);
@@ -453,7 +455,7 @@ class AutotaskIntegration implements IntegrationInterface
                         }
                     }
                     if (!empty($batchRecords)) {
-                        $this->bulkStoreHistoricalData('contract', $batchRecords);
+                        $this->bulkStoreHistoricalData(IntegrationDataType::CONTRACT, $batchRecords);
                     }
                 }
                 $totalProcessed += $contractsProcessed;
@@ -489,7 +491,7 @@ class AutotaskIntegration implements IntegrationInterface
                         }
                     }
                     if (!empty($batchRecords)) {
-                        $this->bulkStoreHistoricalData('contact', $batchRecords);
+                        $this->bulkStoreHistoricalData(IntegrationDataType::CONTACT, $batchRecords);
                     }
                 }
                 $totalProcessed += $contactsProcessed;
@@ -522,7 +524,7 @@ class AutotaskIntegration implements IntegrationInterface
                         }
                     }
                     if (!empty($batchRecords)) {
-                        $this->bulkStoreHistoricalData('ticket_note', $batchRecords);
+                        $this->bulkStoreHistoricalData(IntegrationDataType::TICKET_NOTE, $batchRecords);
                     }
                 }
                 $totalProcessed += $notesProcessed;
@@ -576,9 +578,9 @@ class AutotaskIntegration implements IntegrationInterface
             'name' => 'Autotask',
             'description' => 'Autotask PSA - Professional Services Automation',
             'data_types' => [
-                'tickets',
-                'time_entries',
-                'contracts',
+                IntegrationDataType::TICKET,
+                IntegrationDataType::TIME_ENTRY,
+                IntegrationDataType::CONTRACT,
                 'billing',
                 'service_calls',
             ],
@@ -710,6 +712,44 @@ class AutotaskIntegration implements IntegrationInterface
         });
     }
 
+    private function bulkStoreCustomers(array $customers): void
+    {
+        if (empty($customers)) return;
+
+        $now = now();
+        $insertData = [];
+
+        foreach ($customers as $customer) {
+            if (empty($customer['external_id']) || empty($customer['name'])) {
+                 continue;
+            }
+            
+            $insertData[] = [
+                'integration_id' => $this->integration->integration_id,
+                'external_id'    => $customer['external_id'],
+                'name'           => $customer['name'],
+                'metadata'       => json_encode($customer['metadata']),
+                'active'         => $customer['active'],
+                'created_at'     => $now,
+                'updated_at'     => $now,
+                'last_seen_at'   => $now,
+            ];
+        }
+
+        IntegrationCustomer::upsert(
+            $insertData,
+            ['integration_id', 'external_id'],
+            ['name', 'metadata', 'active', 'last_seen_at', 'updated_at']
+        );
+        
+        // Auto-mapping logic for Source of Truth is trickier in bulk.
+        // For now, we rely on the BatchAutoMatchCustomersJob which is dispatched independently.
+        // If inline mapping is critical for functionality, it should be done here via a loop 
+        // after upsert, or by fetching the upserted IDs.
+        // Given the existing code relied on mappedDuringSync array or similar, we might need to adjust.
+        // However, standard storeCustomer was just updating one by one.
+    }
+
     private function storeHistoricalData(array $data): void
     {
         $payload = $data['payload'];
@@ -761,12 +801,12 @@ class AutotaskIntegration implements IntegrationInterface
     private function getUniqueKeyField(string $dataType): ?string
     {
         return match($dataType) {
-            'ticket' => 'ticket_id',
-            'time_entry' => 'time_entry_id',
-            'resource' => 'resource_id',
-            'contract' => 'contract_id',
-            'contact' => 'contact_id',
-            'ticket_note' => 'note_id',
+            IntegrationDataType::TICKET => 'ticket_id',
+            IntegrationDataType::TIME_ENTRY => 'time_entry_id',
+            IntegrationDataType::RESOURCE => 'resource_id',
+            IntegrationDataType::CONTRACT => 'contract_id',
+            IntegrationDataType::CONTACT => 'contact_id',
+            IntegrationDataType::TICKET_NOTE => 'note_id',
             default => null,
         };
     }

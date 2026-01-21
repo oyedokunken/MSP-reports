@@ -7,6 +7,7 @@ use App\Integrations\DisplayTemplate\TemplateBuilder;
 use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
+use App\Integrations\Contracts\IntegrationDataType;
 use App\Models\Customer;
 use App\Models\CustomerMapping;
 use App\Jobs\AutoMatchCustomersJob;
@@ -409,7 +410,7 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
                 'integration_id' => $this->integration->integration_id,
                 'integration_customer_id' => $integrationCustomer->integration_customer_id,
                 'external_id' => $deviceUid,
-                'data_type' => 'device_status',
+                'data_type' => IntegrationDataType::DEVICE_STATUS,
                 'data_timestamp' => isset($device['lastSeen'])
                     ? Carbon::createFromTimestampMs($device['lastSeen'])
                     : $now,
@@ -425,7 +426,7 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
             foreach (array_chunk($deviceUids, 500) as $chunk) {
                 DB::table('integration_data')
                     ->where('integration_id', $this->integration->integration_id)
-                    ->where('data_type', 'device_status')
+                    ->where('data_type', IntegrationDataType::DEVICE_STATUS)
                     ->whereIn('external_id', $chunk)
                     ->delete();
             }
@@ -496,7 +497,7 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
                 'integration_id' => $this->integration->integration_id,
                 'integration_customer_id' => $integrationCustomer->integration_customer_id,
                 'external_id' => $alertUid,
-                'data_type' => 'alert',
+                'data_type' => IntegrationDataType::ALERT,
                 'data_timestamp' => $timestamp,
                 'data_payload' => json_encode($payload),
                 'imported_at' => $now,
@@ -510,7 +511,7 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
             foreach (array_chunk($alertUids, 500) as $chunk) {
                 DB::table('integration_data')
                     ->where('integration_id', $this->integration->integration_id)
-                    ->where('data_type', 'alert')
+                    ->where('data_type', IntegrationDataType::ALERT)
                     ->whereIn('external_id', $chunk)
                     ->delete();
             }
@@ -601,10 +602,10 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
             'name' => 'Datto',
             'description' => 'Datto RMM and Backup Platform',
             'data_types' => [
-                'backup_status',
-                'device_status',
-                'alert',
-                'uptime_metric',
+                IntegrationDataType::BACKUP_STATUS,
+                IntegrationDataType::DEVICE_STATUS,
+                IntegrationDataType::ALERT,
+                IntegrationDataType::UPTIME_METRIC,
             ],
             'supports_historical' => true,
             'historical_range_days' => 90,
@@ -722,9 +723,9 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
     private function getUniqueKeyFromPayload(string $dataType, array $payload): ?string
     {
         return match($dataType) {
-            'alert' => $payload['alert_uid'] ?? null,
-            'device_status' => $payload['device_uid'] ?? null,
-            'uptime_metric' => $payload['device_uid'] ?? null,
+            IntegrationDataType::ALERT => $payload['alert_uid'] ?? null,
+            IntegrationDataType::DEVICE_STATUS => $payload['device_uid'] ?? null,
+            IntegrationDataType::UPTIME_METRIC => $payload['device_uid'] ?? null,
             default => null,
         };
     }
@@ -1175,18 +1176,18 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
                 try {
                     $siteUid = $site['uid'];
                     
-                    // Sync devices
+                    // Sync devices - Optimized to use bulk storage
                     $devices = $this->client->getRmmDevices($siteUid);
-                    foreach ($devices as $device) {
-                        $this->storeDeviceData($device, $site);
-                        $totalDevices++;
+                    if (!empty($devices)) {
+                        $this->bulkStoreDevices($devices, $site);
+                        $totalDevices += count($devices);
                     }
                     
-                    // Sync alerts
+                    // Sync alerts - Optimized to use bulk storage
                     $alerts = $this->client->getRmmAlerts($siteUid);
-                    foreach ($alerts as $alert) {
-                        $this->storeAlertData($alert, $site);
-                        $totalAlerts++;
+                    if (!empty($alerts)) {
+                        $this->bulkStoreAlerts($alerts, $site);
+                        $totalAlerts += count($alerts);
                     }
                     
                     // Rate limiting handled by RateLimiter service in DattoClient::makeRmmRequest()
@@ -1316,8 +1317,9 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         ];
 
         // UPSERT uptime_metric: One record per device per day
+        // UPSERT uptime_metric: One record per device per day
         $existingUptime = IntegrationData::where('integration_id', $this->integration->integration_id)
-            ->where('data_type', 'uptime_metric')
+            ->where('data_type', IntegrationDataType::UPTIME_METRIC)
             ->where('integration_customer_id', $integrationCustomer->integration_customer_id)
             ->whereRaw("data_payload->>'device_uid' = ?", [$deviceUid])
             ->whereDate('data_timestamp', $dateOnly)
@@ -1334,7 +1336,12 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
                 'company_id' => $this->integration->company_id,
                 'integration_id' => $this->integration->integration_id,
                 'integration_customer_id' => $integrationCustomer->integration_customer_id,
-                'data_type' => 'uptime_metric',
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'data_type' => IntegrationDataType::UPTIME_METRIC,
+                'data_timestamp' => $metricTimestamp,
+                'data_payload' => $uptimePayload,
                 'data_timestamp' => $metricTimestamp,
                 'data_payload' => $uptimePayload,
                 'imported_at' => now(),
