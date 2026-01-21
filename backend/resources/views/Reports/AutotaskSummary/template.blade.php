@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <title>Autotask {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary - {{ $customer->canonical_name }}</title>
+    @if(isset($branding['chart_js_inline']) && $branding['chart_js_inline'])
+    <script>
+        {!! $branding['chart_js_inline'] !!}
+        // Signal that Chart.js is loaded for Gotenberg wait expression
+        window.chartJsLoaded = typeof Chart !== 'undefined';
+    </script>
+    @else
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Signal that Chart.js is loaded for Gotenberg wait expression
+        window.chartJsLoaded = typeof Chart !== 'undefined';
+    </script>
+    @endif
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -317,6 +329,9 @@
                     }
                 }
             });
+
+            // Signal that charts are rendered for Gotenberg
+            window.chartsRendered = true;
         })();
     </script>
     @endif

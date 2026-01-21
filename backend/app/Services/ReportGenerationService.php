@@ -211,6 +211,10 @@ class ReportGenerationService
         $frequency = $reportData['options']['frequency'] ?? 'monthly';
         $frequencyLabel = ucfirst($frequency);
         
+        // Load Chart.js library for inline embedding in PDF
+        $chartJsPath = public_path('js/chart.min.js');
+        $chartJsScript = file_exists($chartJsPath) ? file_get_contents($chartJsPath) : null;
+        
         $reportData['branding'] = [
             'company_name' => $whiteLabel['company_name'] ?? $company->name,
             'company_logo' => $companyLogo,
@@ -223,6 +227,7 @@ class ReportGenerationService
             'support_email' => $whiteLabel['support_email'] ?? null,
             'support_phone' => $whiteLabel['support_phone'] ?? null,
             'frequency' => $frequency,
+            'chart_js_inline' => $chartJsScript,  // Inline Chart.js for PDF
         ];
 
         return $reportData;
@@ -315,7 +320,8 @@ class ReportGenerationService
             'footer_html' => $footerHtml,
             'print_background' => true,
             'prefer_css_page_size' => false,
-            'wait_delay' => '2s',  // Wait 2 seconds for images to load
+            'wait_delay' => '1s',  // Chart.js is now inline, reduced wait time
+            'wait_for_expression' => 'window.chartsRendered === true',  // Wait for charts to render
         ]);
 
         // Merge PDFs if we have a cover page

@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <title>Datto RMM {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary - {{ $customer->canonical_name }}</title>
+    @if(isset($branding['chart_js_inline']) && $branding['chart_js_inline'])
+    <script>
+        {!! $branding['chart_js_inline'] !!}
+        // Signal that Chart.js is loaded for Gotenberg wait expression
+        window.chartJsLoaded = typeof Chart !== 'undefined';
+    </script>
+    @else
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Signal that Chart.js is loaded for Gotenberg wait expression
+        window.chartJsLoaded = typeof Chart !== 'undefined';
+    </script>
+    @endif
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -574,9 +586,14 @@
                         }
                     }
                 });
+
+                // Signal that charts are rendered for Gotenberg
+                window.chartsRendered = true;
             } catch (e) {
                 console.error(e);
                 document.body.insertAdjacentHTML('afterbegin', '<div style="background:#fee2e2; border:1px solid #ef4444; color:#991b1b; padding:10px; margin:10px;"><strong>Chart Error:</strong> ' + e.message + '</div>');
+                // Still signal completion even on error
+                window.chartsRendered = true;
             }
         })();
     </script>
