@@ -27,11 +27,11 @@ class SendmarcMapper
         ];
     }
 
-    public static function mapSenderStatistics(array $sender, string $domainUuid): array
+    public static function mapSenderStatistics(array $sender, string $domainUuid, $timestamp = null): array
     {
         return [
             'data_type' => 'sender_statistics',
-            'timestamp' => now(),
+            'timestamp' => $timestamp ?? now(),
             'payload' => [
                 'sender_uuid' => $sender['uuid'] ?? null,
                 'domain_uuid' => $domainUuid,
@@ -57,11 +57,11 @@ class SendmarcMapper
         ];
     }
 
-    public static function mapVolumeTotals(array $volumeData, string $domainUuid): array
+    public static function mapVolumeTotals(array $volumeData, string $domainUuid, $timestamp = null): array
     {
         return [
             'data_type' => 'volume_totals',
-            'timestamp' => now(),
+            'timestamp' => $timestamp ?? now(),
             'payload' => [
                 'domain_uuid' => $domainUuid,
                 'total_incidents' => $volumeData['total_incidents'] ?? 0,
@@ -77,11 +77,11 @@ class SendmarcMapper
         ];
     }
 
-    public static function mapVolumeTimeline(array $timelineData, string $domainUuid, int $index): array
+    public static function mapVolumeTimeline(array $timelineData, string $domainUuid, int $index, $timestamp = null): array
     {
         return [
             'data_type' => 'volume_timeline',
-            'timestamp' => now(),
+            'timestamp' => $timestamp ?? now(),
             'payload' => [
                 'domain_uuid' => $domainUuid,
                 'timeline_index' => $index,
@@ -98,11 +98,11 @@ class SendmarcMapper
         ];
     }
 
-    public static function mapIpAddressStatistics(array $ipData, string $domainUuid): array
+    public static function mapIpAddressStatistics(array $ipData, string $domainUuid, $timestamp = null): array
     {
         return [
             'data_type' => 'ip_address_statistics',
-            'timestamp' => now(),
+            'timestamp' => $timestamp ?? now(),
             'payload' => [
                 'source_uuid' => $ipData['uuid'] ?? null,
                 'domain_uuid' => $domainUuid,
