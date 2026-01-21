@@ -7,7 +7,7 @@ import { findAnswer } from './knowledgeBase'
 import { useAuth } from '@/contexts/AuthContext'
 
 // Convert markdown-style links [text](url) to clickable elements
-function parseMessageContent(content: string, onNavigate: (path: string) => void): string {
+function parseMessageContent(content: string, _onNavigate: (path: string) => void): string {
   // Convert markdown links to clickable spans with data attributes
   // Pattern: [link text](/path/to/page)
   return content

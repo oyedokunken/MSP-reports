@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Folder, File, ChevronRight, Home, Plus, CornerUpLeft } from 'lucide-react';
 import { api } from '@/lib/api';
-import { cn } from '@/lib/utils'; // Assuming cn utility exists, otherwise standard class string concat
+import { cn } from '@/lib/utils'; // Assuming cn utility exists, otherwise use standard class string concat
 
 interface FileItem {
   id: string;

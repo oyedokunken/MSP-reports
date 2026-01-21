@@ -51,8 +51,6 @@ import { Loader2 } from 'lucide-react'
 
 import { hasPermission } from '@/utils/permissions'
 
-// ...
-
 // Protected route wrapper 
 function ProtectedRoute({ children, permission }: { children: React.ReactNode, permission?: { section: string, action: string } }) {
   const { user, isAuthenticated, isLoading } = useAuth()

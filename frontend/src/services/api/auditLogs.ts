@@ -11,7 +11,6 @@ export interface AuditLogListResponse {
     last_page: number
   }
 }
-
 export interface AuditLogStatsResponse {
   status: string
   data: AuditLogStats
