@@ -57,4 +57,11 @@ return [
         'realms' => env('KEYCLOAK_REALM'),
     ],
 
+    'embedding' => [
+        'url' => env('EMBEDDING_SERVICE_URL', 'http://127.0.0.1:5050'),
+        'timeout' => env('EMBEDDING_SERVICE_TIMEOUT', 30),
+        'enabled' => env('EMBEDDING_SERVICE_ENABLED', true),
+        'threshold' => env('EMBEDDING_SIMILARITY_THRESHOLD', 0.6),
+    ],
+
 ];

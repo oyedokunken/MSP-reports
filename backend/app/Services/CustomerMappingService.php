@@ -7,9 +7,316 @@ use App\Models\Customer;
 use App\Models\CustomerMapping;
 use App\Models\IntegrationCustomer;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class CustomerMappingService
 {
+    protected ?EmbeddingService $embeddingService = null;
+
+    public function __construct(?EmbeddingService $embeddingService = null)
+    {
+        $this->embeddingService = $embeddingService;
+    }
+
+    protected function getEmbeddingService(): ?EmbeddingService
+    {
+        if ($this->embeddingService === null && config('services.embedding.enabled', true)) {
+            $this->embeddingService = app(EmbeddingService::class);
+        }
+        return $this->embeddingService;
+    }
+
+    /**
+     * Auto-match with embedding fallback.
+     * 
+     * Strategy:
+     * 1. Try fast Levenshtein-based matching first
+     * 2. If no match found and embedding service is available, try semantic matching
+     * 
+     * @param IntegrationCustomer $integrationCustomer
+     * @param bool $useEmbeddings Whether to use embedding fallback (default: true)
+     * @return array|null Match result with 'customer', 'confidence_score', 'mapping_type'
+     */
+    public function autoMatchWithEmbeddings(IntegrationCustomer $integrationCustomer, bool $useEmbeddings = true): ?array
+    {
+        // Step 1: Try fast Levenshtein matching first
+        $levenshteinMatch = $this->autoMatch($integrationCustomer);
+        
+        if ($levenshteinMatch !== null) {
+            Log::debug('Customer matched via Levenshtein', [
+                'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'customer_name' => $integrationCustomer->name,
+                'matched_to' => $levenshteinMatch['customer']->canonical_name,
+                'score' => $levenshteinMatch['confidence_score'],
+            ]);
+            return $levenshteinMatch;
+        }
+
+        // Step 2: If no Levenshtein match and embeddings enabled, try semantic matching
+        if (!$useEmbeddings || !config('services.embedding.enabled', true)) {
+            return null;
+        }
+
+        $embeddingService = $this->getEmbeddingService();
+        if ($embeddingService === null || !$embeddingService->isAvailable()) {
+            Log::debug('Embedding service not available for fallback matching');
+            return null;
+        }
+
+        $company = $integrationCustomer->integration->company;
+        $embeddingThreshold = config('services.embedding.threshold', 0.6);
+
+        // Get existing customers
+        $existingCustomers = Cache::remember("customer_mapping_list_{$company->company_id}", 60, function () use ($company) {
+            return Customer::where('company_id', $company->company_id)
+                ->where('status', 'active')
+                ->get();
+        });
+
+        if ($existingCustomers->isEmpty()) {
+            return null;
+        }
+
+        // Prepare data for embedding service
+        $unmapped = [
+            ['id' => $integrationCustomer->integration_customer_id, 'name' => $integrationCustomer->name]
+        ];
+        $existing = $existingCustomers->map(fn($c) => [
+            'id' => $c->customer_id,
+            'name' => $c->canonical_name
+        ])->toArray();
+
+        // Call embedding service
+        $matches = $embeddingService->findMatches($unmapped, $existing, $embeddingThreshold, 1);
+
+        if (empty($matches) || empty($matches[0]['suggestions'])) {
+            Log::debug('No embedding match found', [
+                'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'customer_name' => $integrationCustomer->name,
+            ]);
+            return null;
+        }
+
+        $bestMatch = $matches[0]['suggestions'][0];
+        $matchedCustomer = $existingCustomers->firstWhere('customer_id', $bestMatch['id']);
+
+        if ($matchedCustomer === null) {
+            return null;
+        }
+
+        Log::info('Customer matched via embeddings', [
+            'integration_customer_id' => $integrationCustomer->integration_customer_id,
+            'customer_name' => $integrationCustomer->name,
+            'matched_to' => $matchedCustomer->canonical_name,
+            'score' => $bestMatch['score'],
+        ]);
+
+        return [
+            'customer' => $matchedCustomer,
+            'confidence_score' => (int) round($bestMatch['score']),
+            'mapping_type' => 'auto_embedding',
+        ];
+    }
+
+    /**
+     * Auto-match using LLM agent with tools.
+     * This is the most intelligent but slowest method - use as last resort.
+     * 
+     * The agent can reason about:
+     * - Initials (TTS → Territory Technology Solutions)
+     * - Abbreviations (Corp → Corporation)
+     * - Typos and variations
+     * 
+     * @param IntegrationCustomer $integrationCustomer
+     * @return array|null Match result
+     */
+    public function autoMatchWithAgent(IntegrationCustomer $integrationCustomer): ?array
+    {
+        $embeddingService = $this->getEmbeddingService();
+        if ($embeddingService === null || !$embeddingService->isAgentAvailable()) {
+            Log::debug('Agent not available for matching');
+            return null;
+        }
+
+        $company = $integrationCustomer->integration->company;
+
+        $existingCustomers = Cache::remember("customer_mapping_list_{$company->company_id}", 60, function () use ($company) {
+            return Customer::where('company_id', $company->company_id)
+                ->where('status', 'active')
+                ->get();
+        });
+
+        if ($existingCustomers->isEmpty()) {
+            return null;
+        }
+
+        $unmapped = [
+            ['id' => $integrationCustomer->integration_customer_id, 'name' => $integrationCustomer->name]
+        ];
+        $existing = $existingCustomers->map(fn($c) => [
+            'id' => $c->customer_id,
+            'name' => $c->canonical_name
+        ])->toArray();
+
+        $matches = $embeddingService->findMatchesWithAgent($unmapped, $existing);
+
+        if (empty($matches) || empty($matches[0]['suggestions'])) {
+            Log::debug('No agent match found', [
+                'integration_customer_id' => $integrationCustomer->integration_customer_id,
+                'customer_name' => $integrationCustomer->name,
+            ]);
+            return null;
+        }
+
+        $bestMatch = $matches[0]['suggestions'][0];
+        $matchedCustomer = $existingCustomers->firstWhere('customer_id', $bestMatch['id']);
+
+        if ($matchedCustomer === null) {
+            return null;
+        }
+
+        Log::info('Customer matched via agent', [
+            'integration_customer_id' => $integrationCustomer->integration_customer_id,
+            'customer_name' => $integrationCustomer->name,
+            'matched_to' => $matchedCustomer->canonical_name,
+            'score' => $bestMatch['score'],
+            'reasoning' => $bestMatch['reasoning'] ?? '',
+        ]);
+
+        return [
+            'customer' => $matchedCustomer,
+            'confidence_score' => (int) round($bestMatch['score']),
+            'mapping_type' => 'auto_agent',
+            'reasoning' => $bestMatch['reasoning'] ?? '',
+        ];
+    }
+
+    /**
+     * Full auto-match pipeline: Levenshtein → Embeddings → Agent
+     * 
+     * @param IntegrationCustomer $integrationCustomer
+     * @param bool $useEmbeddings Whether to use embedding fallback
+     * @param bool $useAgent Whether to use agent fallback (slowest)
+     * @return array|null Match result
+     */
+    public function autoMatchFull(IntegrationCustomer $integrationCustomer, bool $useEmbeddings = true, bool $useAgent = false): ?array
+    {
+        // Tier 1: Fast Levenshtein matching
+        $match = $this->autoMatch($integrationCustomer);
+        if ($match !== null) {
+            return $match;
+        }
+
+        // Tier 2: Embedding-based semantic matching
+        if ($useEmbeddings) {
+            $match = $this->autoMatchWithEmbeddings($integrationCustomer, false); // Don't recurse
+            if ($match !== null) {
+                return $match;
+            }
+        }
+
+        // Tier 3: LLM Agent with tools (slowest, most intelligent)
+        if ($useAgent) {
+            $match = $this->autoMatchWithAgent($integrationCustomer);
+            if ($match !== null) {
+                return $match;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Batch auto-match multiple integration customers using embeddings.
+     * More efficient than calling autoMatchWithEmbeddings one by one.
+     * 
+     * @param array $integrationCustomers Array of IntegrationCustomer models
+     * @param int $companyId Company ID for fetching existing customers
+     * @return array Map of integration_customer_id => match result
+     */
+    public function batchAutoMatchWithEmbeddings(array $integrationCustomers, int $companyId): array
+    {
+        if (empty($integrationCustomers)) {
+            return [];
+        }
+
+        $results = [];
+        $needsEmbedding = [];
+
+        // Step 1: Try Levenshtein first for all
+        foreach ($integrationCustomers as $ic) {
+            $match = $this->autoMatch($ic);
+            if ($match !== null) {
+                $results[$ic->integration_customer_id] = $match;
+            } else {
+                $needsEmbedding[] = $ic;
+            }
+        }
+
+        // Step 2: Batch process remaining with embeddings
+        if (empty($needsEmbedding) || !config('services.embedding.enabled', true)) {
+            return $results;
+        }
+
+        $embeddingService = $this->getEmbeddingService();
+        if ($embeddingService === null || !$embeddingService->isAvailable()) {
+            return $results;
+        }
+
+        $existingCustomers = Cache::remember("customer_mapping_list_{$companyId}", 60, function () use ($companyId) {
+            return Customer::where('company_id', $companyId)
+                ->where('status', 'active')
+                ->get();
+        });
+
+        if ($existingCustomers->isEmpty()) {
+            return $results;
+        }
+
+        $embeddingThreshold = config('services.embedding.threshold', 0.6);
+
+        // Prepare batch data
+        $unmapped = array_map(fn($ic) => [
+            'id' => $ic->integration_customer_id,
+            'name' => $ic->name
+        ], $needsEmbedding);
+
+        $existing = $existingCustomers->map(fn($c) => [
+            'id' => $c->customer_id,
+            'name' => $c->canonical_name
+        ])->toArray();
+
+        // Call embedding service for batch
+        $matches = $embeddingService->findMatches($unmapped, $existing, $embeddingThreshold, 1);
+
+        // Process results
+        foreach ($matches as $match) {
+            if (empty($match['suggestions'])) {
+                continue;
+            }
+
+            $bestSuggestion = $match['suggestions'][0];
+            $matchedCustomer = $existingCustomers->firstWhere('customer_id', $bestSuggestion['id']);
+
+            if ($matchedCustomer !== null) {
+                $results[$match['unmapped_id']] = [
+                    'customer' => $matchedCustomer,
+                    'confidence_score' => (int) round($bestSuggestion['score']),
+                    'mapping_type' => 'auto_embedding',
+                ];
+
+                Log::info('Customer batch-matched via embeddings', [
+                    'integration_customer_id' => $match['unmapped_id'],
+                    'customer_name' => $match['unmapped_name'],
+                    'matched_to' => $matchedCustomer->canonical_name,
+                    'score' => $bestSuggestion['score'],
+                ]);
+            }
+        }
+
+        return $results;
+    }
+
     public function autoMatch(IntegrationCustomer $integrationCustomer): ?array
     {
         $company = $integrationCustomer->integration->company;

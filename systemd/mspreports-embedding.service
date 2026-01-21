@@ -1,0 +1,24 @@
+[Unit]
+Description=MSP Reports Embedding Service
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=athena
+Group=athena
+WorkingDirectory=/opt/mspreports/services/embedding
+
+Environment=EMBEDDING_SERVICE_PORT=5050
+Environment=REDIS_HOST=localhost
+Environment=REDIS_PORT=6379
+Environment=REDIS_EMBEDDING_DB=2
+
+ExecStart=/opt/mspreports/services/embedding/venv/bin/gunicorn -w 2 -b 127.0.0.1:5050 embedding_service:app
+Restart=always
+RestartSec=5
+
+StandardOutput=append:/var/log/mspreports/embedding.log
+StandardError=append:/var/log/mspreports/embedding-error.log
+
+[Install]
+WantedBy=multi-user.target

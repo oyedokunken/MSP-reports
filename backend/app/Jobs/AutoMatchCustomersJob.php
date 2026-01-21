@@ -62,25 +62,30 @@ class AutoMatchCustomersJob implements ShouldQueue
                 return;
             }
 
-            $match = $mappingService->autoMatch($this->integrationCustomer);
+            // Use embedding-enhanced matching (Levenshtein first, then embeddings as fallback)
+            $match = $mappingService->autoMatchWithEmbeddings($this->integrationCustomer);
 
             if ($match) {
                 $requiresManualReview = $company->settings['customer_mapping']['manual_match_required'] ?? false;
+                $mappingType = $match['mapping_type'] ?? 'auto';
 
                 // Update IntegrationCustomer.customer_id (CRITICAL!)
                 $this->integrationCustomer->customer_id = $match['customer']->customer_id;
                 $this->integrationCustomer->save();
 
-                // Create mapping record for audit trail
+                // Determine final mapping type based on review requirement
+                $finalMappingType = $requiresManualReview ? 'auto_pending' : $mappingType;
+                $matchMethod = $mappingType === 'auto_embedding' ? 'embeddings' : 'Levenshtein';
+
                 // Create or update mapping record for audit trail
                 CustomerMapping::updateOrCreate(
                     ['integration_customer_id' => $this->integrationCustomer->integration_customer_id],
                     [
                         'customer_id' => $match['customer']->customer_id,
-                        'mapping_type' => $requiresManualReview ? 'auto_pending' : 'auto',
+                        'mapping_type' => $finalMappingType,
                         'confidence_score' => $match['confidence_score'],
                         'mapped_at' => now(),
-                        'notes' => "Auto-matched with {$match['confidence_score']}% confidence",
+                        'notes' => "Auto-matched via {$matchMethod} with {$match['confidence_score']}% confidence",
                     ]
                 );
 
@@ -88,7 +93,8 @@ class AutoMatchCustomersJob implements ShouldQueue
                     'integration_customer_id' => $this->integrationCustomer->integration_customer_id,
                     'customer_id' => $match['customer']->customer_id,
                     'confidence_score' => $match['confidence_score'],
-                    'mapping_type' => $requiresManualReview ? 'auto_pending' : 'auto',
+                    'mapping_type' => $finalMappingType,
+                    'match_method' => $matchMethod,
                 ]);
             } else {
                 Log::info('No auto-match found, requires manual mapping', [
