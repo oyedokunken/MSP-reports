@@ -15,11 +15,11 @@ return [
     'icon' => 'mail',
     'enabled' => true,
     'available_sections' => [
-        ['id' => 'executive_summary', 'label' => 'Executive Summary', 'default' => true],
-        ['id' => 'compliance', 'label' => 'DMARC Compliance', 'default' => true],
-        ['id' => 'senders', 'label' => 'Sender Analysis', 'default' => true],
-        ['id' => 'volume_timeline', 'label' => 'Email Volume Timeline', 'default' => true],
-        ['id' => 'ip_sources', 'label' => 'Source IP Analysis', 'default' => true],
-        ['id' => 'recommendations', 'label' => 'Recommendations', 'default' => true],
+        ['id' => 'executive_summary', 'label' => 'Executive Summary', 'description' => 'A high-level overview of DMARC health and email volume trends.', 'requires' => 'domains, volume_totals', 'default' => true],
+        ['id' => 'compliance', 'label' => 'DMARC Compliance', 'description' => 'Detailed breakdown of SPF, DKIM, and DMARC alignment status.', 'requires' => 'domains, sender_statistics', 'default' => true],
+        ['id' => 'senders', 'label' => 'Sender Analysis', 'description' => 'Insightful analysis of top email senders and their authentication status.', 'requires' => 'sender_statistics', 'default' => true],
+        ['id' => 'volume_timeline', 'label' => 'Email Volume Timeline', 'description' => 'Visual representation of email traffic over the reporting period.', 'requires' => 'volume_timeline', 'default' => true],
+        ['id' => 'ip_sources', 'label' => 'Source IP Analysis', 'description' => 'Reputation and volume metrics for sending IP addresses.', 'requires' => 'ip_address_statistics', 'default' => true],
+        ['id' => 'recommendations', 'label' => 'Recommendations', 'description' => 'Actionable insights to improve DMARC policy and security posture.', 'requires' => 'domains, sender_statistics', 'default' => true],
     ],
 ];

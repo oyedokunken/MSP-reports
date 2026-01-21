@@ -2,7 +2,8 @@
 
 return [
     'name' => 'Sendmarc',
-    'description' => 'Sendmarc DMARC Email Security and Monitoring',
+    'display_name' => 'Sendmarc DMARC',
+    'description' => 'Integrate with Sendmarc to monitor email authentication, analyze sender statistics, and ensure DMARC compliance across domains.',
     'version' => '1.0.0',
     
     'credentials' => [
@@ -49,11 +50,11 @@ return [
     ],
     
     'data_types' => [
-        'domains' => 'Email Domains',
-        'sender_statistics' => 'DMARC Sender Statistics',
-        'volume_totals' => 'Email Volume Totals',
-        'volume_timeline' => 'Email Volume Timeline',
-        'ip_address_statistics' => 'IP Address Statistics',
+        'domains' => 'Email Domains & DMARC Status',
+        'sender_statistics' => 'Detailed DMARC Sender Analysis',
+        'volume_totals' => 'Aggregated Email Volume Data',
+        'volume_timeline' => 'Historical Email Volume Tracking',
+        'ip_address_statistics' => 'Source IP Reputation & Insights',
     ],
     
     'rate_limits' => [

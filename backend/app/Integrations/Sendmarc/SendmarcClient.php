@@ -133,11 +133,15 @@ class SendmarcClient
         }
     }
 
-    public function getDomainSenders(string $accountUuid, string $domainUuid): array
+    public function getDomainSenders(string $accountUuid, string $domainUuid, ?\Carbon\Carbon $startDate = null, ?\Carbon\Carbon $endDate = null): array
     {
         try {
+            $params = [];
+            if ($startDate) $params['from'] = $startDate->toDateString();
+            if ($endDate) $params['to'] = $endDate->toDateString();
+
             $endpoint = "/accounts/{$accountUuid}/domains/{$domainUuid}/statistics/dmarc/senders";
-            $response = $this->makeRequest('GET', $endpoint);
+            $response = $this->makeRequest('GET', $endpoint, $params);
 
             if (!$response->successful()) {
                 \Log::warning('Sendmarc API getDomainSenders failed', [
@@ -153,7 +157,9 @@ class SendmarcClient
             \Log::info('Sendmarc API senders retrieved', [
                 'account_uuid' => $accountUuid,
                 'domain_uuid' => $domainUuid,
-                'count' => count($senders)
+                'count' => count($senders),
+                'from' => $params['from'] ?? 'default',
+                'to' => $params['to'] ?? 'default'
             ]);
 
             return $senders;
@@ -166,11 +172,15 @@ class SendmarcClient
         }
     }
 
-    public function getDomainVolumeTotals(string $accountUuid, string $domainUuid): array
+    public function getDomainVolumeTotals(string $accountUuid, string $domainUuid, ?\Carbon\Carbon $startDate = null, ?\Carbon\Carbon $endDate = null): array
     {
         try {
+            $params = [];
+            if ($startDate) $params['from'] = $startDate->toDateString();
+            if ($endDate) $params['to'] = $endDate->toDateString();
+
             $endpoint = "/accounts/{$accountUuid}/domains/{$domainUuid}/statistics/dmarc/volume/totals";
-            $response = $this->makeRequest('GET', $endpoint);
+            $response = $this->makeRequest('GET', $endpoint, $params);
 
             if (!$response->successful()) {
                 return [];
@@ -186,11 +196,15 @@ class SendmarcClient
         }
     }
 
-    public function getDomainVolumeTimeline(string $accountUuid, string $domainUuid): array
+    public function getDomainVolumeTimeline(string $accountUuid, string $domainUuid, ?\Carbon\Carbon $startDate = null, ?\Carbon\Carbon $endDate = null): array
     {
         try {
+            $params = [];
+            if ($startDate) $params['from'] = $startDate->toDateString();
+            if ($endDate) $params['to'] = $endDate->toDateString();
+
             $endpoint = "/accounts/{$accountUuid}/domains/{$domainUuid}/statistics/dmarc/volume/timeline";
-            $response = $this->makeRequest('GET', $endpoint);
+            $response = $this->makeRequest('GET', $endpoint, $params);
 
             if (!$response->successful()) {
                 return [];
@@ -206,11 +220,15 @@ class SendmarcClient
         }
     }
 
-    public function getDomainIpAddresses(string $accountUuid, string $domainUuid): array
+    public function getDomainIpAddresses(string $accountUuid, string $domainUuid, ?\Carbon\Carbon $startDate = null, ?\Carbon\Carbon $endDate = null): array
     {
         try {
+            $params = [];
+            if ($startDate) $params['from'] = $startDate->toDateString();
+            if ($endDate) $params['to'] = $endDate->toDateString();
+
             $endpoint = "/accounts/{$accountUuid}/domains/{$domainUuid}/statistics/dmarc/ip-addresses";
-            $response = $this->makeRequest('GET', $endpoint);
+            $response = $this->makeRequest('GET', $endpoint, $params);
 
             if (!$response->successful()) {
                 return [];

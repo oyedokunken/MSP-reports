@@ -254,52 +254,67 @@ class SendmarcIntegration implements IntegrationInterface
 
                 $domains = $this->client->getAccountDomains($accountUuid);
 
-                collect($domains)->chunk(50)->each(function ($chunk) use ($accountUuid, &$errors, &$totalProcessed) {
+                collect($domains)->chunk(50)->each(function ($chunk) use ($accountUuid, &$errors, &$totalProcessed, $startDate, $endDate) {
                     foreach ($chunk as $index => $domain) {
                         if ($index % 10 === 0) $this->sendHeartbeat();
                         $domainUuid = $domain['uuid'] ?? null;
                         if (!$domainUuid) continue;
 
                         try {
-                            // 1. Fetch senders (Note: Sendmarc senders usually have a timeline with dates)
-                            $senders = $this->client->getDomainSenders($accountUuid, $domainUuid);
-                            // 2. Process IMMEDIATELY (no accumulation)
+                            // 1. Fetch senders for the specific date range
+                            $senders = $this->client->getDomainSenders($accountUuid, $domainUuid, $startDate, $endDate);
+                            
                             foreach ($senders as $sender) {
-                                // Attempt to get date from timeline if available
-                                $timestamp = now();
-                                if (!empty($sender['timeline'])) {
-                                    $firstEntry = is_array($sender['timeline']) ? reset($sender['timeline']) : null;
-                                    if ($firstEntry && isset($firstEntry['date'])) {
-                                        $timestamp = Carbon::parse($firstEntry['date']);
-                                    }
-                                }
-                                $standardized = SendmarcMapper::mapSenderStatistics($sender, $domainUuid, $timestamp);
-                                $this->storeHistoricalData($standardized);
-                                $totalProcessed++;
-                            }
-                            // 3. $senders is freed when loop ends
+                                // Important: Sendmarc senders provide a timeline. We should store each timeline entry.
+                                if (!empty($sender['timeline']) && is_array($sender['timeline'])) {
+                                    foreach ($sender['timeline'] as $timelineEntry) {
+                                        $timestamp = isset($timelineEntry['date']) ? Carbon::parse($timelineEntry['date']) : $startDate;
+                                        
+                                        // Only process if it falls within our current chunk (though API should have filtered it)
+                                        if (!$timestamp->between($startDate->copy()->startOfDay(), $endDate->copy()->endOfDay())) {
+                                            continue;
+                                        }
 
-                            // Volume totals (usually covers a period, but we'll use now or start of range)
-                            $volumeTotals = $this->client->getDomainVolumeTotals($accountUuid, $domainUuid);
+                                        // Merge timeline stats onto sender object for mapping
+                                        $senderSnapshot = array_merge($sender, $timelineEntry);
+                                        $standardized = SendmarcMapper::mapSenderStatistics($senderSnapshot, $domainUuid, $timestamp);
+                                        $this->storeHistoricalData($standardized);
+                                        $totalProcessed++;
+                                    }
+                                } else {
+                                    // Fallback for senders without timeline (use startDate as fallback timestamp)
+                                    $standardized = SendmarcMapper::mapSenderStatistics($sender, $domainUuid, $startDate);
+                                    $this->storeHistoricalData($standardized);
+                                    $totalProcessed++;
+                                }
+                            }
+
+                            // 2. Volume totals (using specific range)
+                            $volumeTotals = $this->client->getDomainVolumeTotals($accountUuid, $domainUuid, $startDate, $endDate);
                             if (!empty($volumeTotals)) {
                                 $standardized = SendmarcMapper::mapVolumeTotals($volumeTotals, $domainUuid, $startDate);
                                 $this->storeHistoricalData($standardized);
                                 $totalProcessed++;
                             }
 
-                            // Volume timeline (has specific dates)
-                            $volumeTimeline = $this->client->getDomainVolumeTimeline($accountUuid, $domainUuid);
-                            foreach ($volumeTimeline as $index => $timelineEntry) {
-                                $timestamp = isset($timelineEntry['date']) ? Carbon::parse($timelineEntry['date']) : now();
-                                $standardized = SendmarcMapper::mapVolumeTimeline($timelineEntry, $domainUuid, $index, $timestamp);
+                            // 3. Volume timeline
+                            $volumeTimeline = $this->client->getDomainVolumeTimeline($accountUuid, $domainUuid, $startDate, $endDate);
+                            foreach ($volumeTimeline as $idx => $timelineEntry) {
+                                $timestamp = isset($timelineEntry['date']) ? Carbon::parse($timelineEntry['date']) : $startDate;
+                                
+                                if (!$timestamp->between($startDate->copy()->startOfDay(), $endDate->copy()->endOfDay())) {
+                                    continue;
+                                }
+
+                                $standardized = SendmarcMapper::mapVolumeTimeline($timelineEntry, $domainUuid, $idx, $timestamp);
                                 $this->storeHistoricalData($standardized);
                                 $totalProcessed++;
                             }
 
-                            // IP addresses (may have dates in metadata if available, else use now)
-                            $ipAddresses = $this->client->getDomainIpAddresses($accountUuid, $domainUuid);
+                            // 4. IP addresses
+                            $ipAddresses = $this->client->getDomainIpAddresses($accountUuid, $domainUuid, $startDate, $endDate);
                             foreach ($ipAddresses as $ipData) {
-                                $standardized = SendmarcMapper::mapIpAddressStatistics($ipData, $domainUuid, now());
+                                $standardized = SendmarcMapper::mapIpAddressStatistics($ipData, $domainUuid, $startDate);
                                 $this->storeHistoricalData($standardized);
                                 $totalProcessed++;
                             }

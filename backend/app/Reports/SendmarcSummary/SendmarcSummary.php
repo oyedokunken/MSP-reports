@@ -70,31 +70,48 @@ class SendmarcSummary extends BaseReport
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();
 
+        // Check for included sections
+        $includedSections = $options['included_sections'] ?? $options['data_types'] ?? ['all'];
+        $sectionsToRender = count($includedSections) > 0 && !in_array('all', $includedSections) ? $includedSections : ['all'];
+
         // Gather (Sendmarc data currently stored as snapshot timestamps)
         // Apply date filtering, but if it yields no results and we have data,
         // fall back to using the available snapshot so the report still renders useful information.
-        $rawSenders = $this->dataGatherer->gatherSenderStatistics($customer, $integrationCustomerIds);
-        $senders = $rawSenders->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
-        if ($senders->isEmpty() && $rawSenders->isNotEmpty()) {
-            $senders = $rawSenders;
+        
+        $senders = collect();
+        if (in_array('all', $sectionsToRender) || in_array('compliance', $sectionsToRender) || in_array('senders', $sectionsToRender) || in_array('recommendations', $sectionsToRender)) {
+            $rawSenders = $this->dataGatherer->gatherSenderStatistics($customer, $integrationCustomerIds);
+            $senders = $rawSenders->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
+            if ($senders->isEmpty() && $rawSenders->isNotEmpty()) {
+                $senders = $rawSenders;
+            }
         }
 
-        $rawVolumeTotals = $this->dataGatherer->gatherVolumeTotals($customer, $integrationCustomerIds);
-        $volumeTotals = $rawVolumeTotals->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
-        if ($volumeTotals->isEmpty() && $rawVolumeTotals->isNotEmpty()) {
-            $volumeTotals = $rawVolumeTotals;
+        $volumeTotals = collect();
+        if (in_array('all', $sectionsToRender) || in_array('executive_summary', $sectionsToRender) || in_array('recommendations', $sectionsToRender)) {
+            $rawVolumeTotals = $this->dataGatherer->gatherVolumeTotals($customer, $integrationCustomerIds);
+            $volumeTotals = $rawVolumeTotals->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
+            if ($volumeTotals->isEmpty() && $rawVolumeTotals->isNotEmpty()) {
+                $volumeTotals = $rawVolumeTotals;
+            }
         }
 
-        $rawTimeline = $this->dataGatherer->gatherVolumeTimeline($customer, $integrationCustomerIds);
-        $timeline = $rawTimeline->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
-        if ($timeline->isEmpty() && $rawTimeline->isNotEmpty()) {
-            $timeline = $rawTimeline;
+        $timeline = collect();
+        if (in_array('all', $sectionsToRender) || in_array('volume_timeline', $sectionsToRender)) {
+            $rawTimeline = $this->dataGatherer->gatherVolumeTimeline($customer, $integrationCustomerIds);
+            $timeline = $rawTimeline->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
+            if ($timeline->isEmpty() && $rawTimeline->isNotEmpty()) {
+                $timeline = $rawTimeline;
+            }
         }
 
-        $rawIpStats = $this->dataGatherer->gatherIpAddressStatistics($customer, $integrationCustomerIds);
-        $ipStats = $rawIpStats->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
-        if ($ipStats->isEmpty() && $rawIpStats->isNotEmpty()) {
-            $ipStats = $rawIpStats;
+        $ipStats = collect();
+        if (in_array('all', $sectionsToRender) || in_array('ip_sources', $sectionsToRender)) {
+            $rawIpStats = $this->dataGatherer->gatherIpAddressStatistics($customer, $integrationCustomerIds);
+            $ipStats = $rawIpStats->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
+            if ($ipStats->isEmpty() && $rawIpStats->isNotEmpty()) {
+                $ipStats = $rawIpStats;
+            }
         }
 
         // Summaries
@@ -134,6 +151,14 @@ class SendmarcSummary extends BaseReport
             'top_senders' => $senderSummary['top_senders'] ?? [],
             'ip_sources' => $ipSummary['top_ips'] ?? [],
             'alerts' => $recommendations,
+            'volume_timeline' => $timeline->map(fn($row) => [
+                'date' => Carbon::parse($row['timestamp'])->format('Y-m-d'),
+                'total' => $row['payload']['total_incidents'] ?? 0,
+                'passes' => $row['payload']['total_complete_passes'] ?? 0,
+                'failures' => $row['payload']['total_complete_failures'] ?? 0,
+            ])->sortBy('date')->values()->toArray(),
+            'sections_to_render' => $sectionsToRender,
+            'options' => $options,
         ];
     }
 
