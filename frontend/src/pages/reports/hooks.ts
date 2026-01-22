@@ -47,7 +47,7 @@ export const useReportsList = () => {
     }
   })
 
-  const reports = reportData?.reports || []
+  const reports = useMemo(() => reportData?.reports || [], [reportData])
   const pagination = reportData?.pagination || { current_page: 1, last_page: 1, total: 0, per_page: 9 }
   const customerName = customerId && reports.length > 0 ? reports[0].customer_name : ''
 
@@ -242,19 +242,28 @@ export const useCustomerReports = () => {
   const handleGenerateReport = async () => {
     try {
       setIsGenerating(true)
-      const response = await api.post<{ data: { reports: any[] } }>(`/reports/generate/${id}`, {
+      const response = await api.post<{ data?: { reports: Array<Record<string, unknown>> } | Array<Record<string, unknown>> }>(`/reports/generate/${id}`, {
         preview_only: true
       })
-      
-      const data = response as any
-      const reports = data.data?.reports || data.reports || []
-      
+
+      const responseData = response.data;
+      let reports: Array<Record<string, unknown>> = [];
+
+      if (Array.isArray(responseData)) {
+        reports = responseData;
+      } else if (responseData && typeof responseData === 'object' && 'reports' in responseData && Array.isArray((responseData as { reports: Array<Record<string, unknown>> }).reports)) {
+        reports = (responseData as { reports: Array<Record<string, unknown>> }).reports;
+      }
+
       if (reports.length > 0) {
-        const previewResults = reports.map((r: any) => ({
-          id: r.generated_report_id,
-          name: r.report_name || `${r.customer_name} - ${r.report_type?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Report'}`,
-          status: 'preview' as const
-        }))
+        const previewResults = reports.map((r) => {
+          const report = r as { generated_report_id: number; report_name?: string; customer_name?: string; report_type?: string };
+          return {
+            id: report.generated_report_id,
+            name: report.report_name || `${report.customer_name} - ${report.report_type?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) || 'Report'}`,
+            status: 'preview' as const
+          };
+        })
 
         if (previewResults.length === 1) {
           setPreviewReport(previewResults[0])
@@ -324,11 +333,11 @@ export const useCustomerReports = () => {
       const reportIds = batchPreviewReports
         .filter(r => r.status === 'preview')
         .map(r => r.id)
-        
+
       if (reportIds.length > 0) {
         await api.post('/reports/batch-discard', { report_ids: reportIds })
       }
-      
+
       setBatchPreviewReports([])
     } catch (err: unknown) {
       console.error('Failed to discard reports:', err)
@@ -610,17 +619,19 @@ export const useConfigureReports = () => {
 
     try {
       setIsGenerating(true)
-      const response = await api.post<{ data: { reports: any[] } }>(`/reports/generate/${id}`, {
+      const response = await api.post<{ data: { reports: Record<string, unknown>[] } }>(`/reports/generate/${id}`, {
         preview_only: true
       })
-      
-      const data = response as any
-      const reports = data.data?.reports || data.reports || []
-      
+
+
+      const responseData = response as unknown as { data?: { reports: Record<string, unknown>[] }, reports?: Record<string, unknown>[] };
+      const reports = responseData.data?.reports || responseData.reports || [];
+
       if (reports.length > 0) {
+        const report = reports[0] as { generated_report_id: number; customer_name: string; report_type: string };
         setPreviewReport({
-          id: reports[0].generated_report_id,
-          name: `${reports[0].customer_name} - ${reports[0].report_type}`
+          id: report.generated_report_id,
+          name: `${report.customer_name} - ${report.report_type}`
         })
       } else {
         toast.success('Report Generated', 'Report has been generated successfully')

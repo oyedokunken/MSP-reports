@@ -468,8 +468,10 @@ export default function ConfigureReports() {
       setGenerationProgress({ current: 0, total: selectedSchedules.length })
       setFailedSchedules([])
 
-      const payload: any = (startDate && endDate) ? { start_date: startDate, end_date: endDate } : {}
-      
+      setFailedSchedules([])
+
+      const payload: Record<string, unknown> = (startDate && endDate) ? { start_date: startDate, end_date: endDate } : {}
+
       // Always use preview_only for on-demand generation from this page to allow review
       payload.preview_only = true
 
@@ -479,8 +481,8 @@ export default function ConfigureReports() {
       for (let i = 0; i < selectedSchedules.length; i++) {
         const scheduleId = selectedSchedules[i]
         const enabledReport = enabledReports.find(r => r.schedule_id === scheduleId)
-        
-        const schedulePayload = { 
+
+        const schedulePayload = {
           ...payload,
           frequency: enabledReport?.frequency
         }
@@ -516,6 +518,7 @@ export default function ConfigureReports() {
       // Show results
       if (succeeded.length > 0) {
         const previewResults = succeeded.map(r => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const result = r.value as any
           const reportData = result.data || result
           return {
@@ -580,10 +583,10 @@ export default function ConfigureReports() {
       await api.post(`/reports/${previewReport.id}/deliver`)
       toast.success('Report Delivered', 'Report has been queued for delivery')
       setPreviewReport(null)
-      
+
       // If this was part of a batch, mark it as delivered in the batch list
       if (batchPreviewReports.length > 0) {
-        setBatchPreviewReports(prev => 
+        setBatchPreviewReports(prev =>
           prev.map(r => r.id === previewReport.id ? { ...r, status: 'delivered' } : r)
         )
       } else {
@@ -602,15 +605,15 @@ export default function ConfigureReports() {
     if (batchPreviewReports.length === 0) return
     try {
       const pendingReports = batchPreviewReports.filter(r => r.status === 'preview')
-      
+
       // Deliver all pending reports in parallel
       await Promise.all(
         pendingReports.map(report => api.post(`/reports/${report.id}/deliver`))
       )
-      
+
       toast.success('Batch Delivery Initiated', `${pendingReports.length} reports have been queued for delivery`)
       setBatchPreviewReports([])
-      
+
       queryClient.invalidateQueries({ queryKey: ['reports'] })
       navigate('/platform/reports')
     } catch (err: unknown) {
@@ -626,11 +629,11 @@ export default function ConfigureReports() {
       const reportIds = batchPreviewReports
         .filter(r => r.status === 'preview')
         .map(r => r.id)
-        
+
       if (reportIds.length > 0) {
         await api.post('/reports/batch-discard', { report_ids: reportIds })
       }
-      
+
       setBatchPreviewReports([])
     } catch (err: unknown) {
       console.error('Failed to discard reports:', err)

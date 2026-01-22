@@ -7,7 +7,8 @@ import { findAnswer } from './knowledgeBase'
 import { useAuth } from '@/contexts/AuthContext'
 
 // Convert markdown-style links [text](url) to clickable elements
-function parseMessageContent(content: string, _onNavigate: (path: string) => void): string {
+// Convert markdown-style links [text](url) to clickable elements
+function parseMessageContent(content: string): string {
   // Convert markdown links to clickable spans with data attributes
   // Pattern: [link text](/path/to/page)
   return content
@@ -15,6 +16,11 @@ function parseMessageContent(content: string, _onNavigate: (path: string) => voi
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n/g, '<br/>')
 }
+
+// ... inside component ...
+// dangerouslySetInnerHTML={{ 
+//   __html: parseMessageContent(message.content)
+// }}
 
 interface Message {
   id: string
@@ -29,21 +35,21 @@ export function SupportChatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const [hasShownWelcome, setHasShownWelcome] = useState(false)
   const [showPulse, setShowPulse] = useState(true)
-  
+
   const firstName = user?.name?.split(' ')[0] || 'there'
-  
+
   const getWelcomeMessage = useCallback(() => ({
     id: '1',
     role: 'assistant' as const,
     content: `Hi ${firstName}! 👋 I'm your **AI Assistant** for the MSP Reporting Platform.\n\nI can help you with:\n\n• [Integrations](/platform/integrations) - Connect Autotask, Datto, ITGlue & more\n• [Customers](/platform/customers/master) - Mapping & management\n• [Reports](/platform/reports) - Schedules & delivery\n• [Admin](/admin/users) - Users, API keys, audit logs\n• [Monitoring](/admin/monitoring) - System health & settings\n\nJust ask me anything or pick a quick question below!`,
     timestamp: new Date(),
   }), [firstName])
-  
+
   const [messages, setMessages] = useState<Message[]>([getWelcomeMessage()])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  
+
   // Update welcome message when user changes
   useEffect(() => {
     if (user && !hasShownWelcome) {
@@ -51,7 +57,7 @@ export function SupportChatbot() {
       setHasShownWelcome(true)
     }
   }, [user, hasShownWelcome, getWelcomeMessage])
-  
+
   // Hide pulse after first open
   useEffect(() => {
     if (isOpen) {
@@ -167,13 +173,12 @@ export function SupportChatbot() {
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-md transition-all hover:shadow-lg ${
-                  message.role === 'user'
-                    ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground'
-                    : 'bg-card text-foreground border border-border/50 backdrop-blur-sm'
-                }`}
+                className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-md transition-all hover:shadow-lg ${message.role === 'user'
+                  ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground'
+                  : 'bg-card text-foreground border border-border/50 backdrop-blur-sm'
+                  }`}
               >
-                <div 
+                <div
                   className="text-sm whitespace-pre-wrap prose prose-sm max-w-none dark:prose-invert"
                   onClick={(e) => {
                     const target = e.target as HTMLElement
@@ -183,8 +188,8 @@ export function SupportChatbot() {
                       setIsOpen(false)
                     }
                   }}
-                  dangerouslySetInnerHTML={{ 
-                    __html: parseMessageContent(message.content, navigate)
+                  dangerouslySetInnerHTML={{
+                    __html: parseMessageContent(message.content)
                   }}
                 />
                 <span className="text-xs opacity-70 mt-1 block">
@@ -202,8 +207,8 @@ export function SupportChatbot() {
               <div className="bg-card border border-border/50 rounded-2xl px-5 py-3 shadow-md">
                 <div className="flex gap-1.5">
                   <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" />
-                  <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" style={{animationDelay: '0.1s'}} />
-                  <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" style={{animationDelay: '0.2s'}} />
+                  <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                 </div>
               </div>
             </div>
@@ -243,9 +248,9 @@ export function SupportChatbot() {
               placeholder="Type your question here..."
               className="flex-1 px-4 py-3 text-sm border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-background transition-all"
             />
-            <Button 
-              onClick={handleSend} 
-              size="icon" 
+            <Button
+              onClick={handleSend}
+              size="icon"
               disabled={!input.trim()}
               className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary/80 hover:from-primary hover:to-primary disabled:opacity-50 transition-all hover:scale-105"
             >

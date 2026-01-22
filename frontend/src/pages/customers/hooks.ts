@@ -154,7 +154,7 @@ export const useMapCustomerModal = (
         fetchSuggestedMatches()
       }
     }
-  }, [customers.length, open])
+  }, [customers.length, open, isBulk, currentCustomer])
 
   // Fetch candidates (customers) with pagination and search
   const fetchCandidates = async (page: number, search: string, append: boolean = false) => {

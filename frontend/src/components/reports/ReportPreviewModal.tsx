@@ -161,7 +161,7 @@ export function ReportPreviewModal({
     }
   }
 
-  const handleOutsideClick = (e: any) => {
+  const handleOutsideClick = (e: Event) => {
     if (onConfirm || onDiscard) {
       e.preventDefault()
       setIsShaking(true)
@@ -173,8 +173,8 @@ export function ReportPreviewModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onDiscard || onConfirm ? handleOutsideClick : onClose}>
-      <DialogContent 
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent
         className={cn(
           "max-w-6xl h-[90vh] flex flex-col p-0 transition-all duration-200",
           isShaking && "animate-shake border-destructive/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
@@ -274,7 +274,7 @@ export function ReportPreviewModal({
                 )}
                 {discardLabel}
               </Button>
-              
+
               {onConfirm && (
                 <Button
                   onClick={handleConfirm}
