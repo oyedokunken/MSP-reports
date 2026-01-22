@@ -26,7 +26,9 @@ export default function IntegrationList() {
     const { user } = useAuth();
 
     // React Query
-    const { data: allIntegrations = [], isLoading } = useIntegrationsQuery();
+    const { data, isLoading } = useIntegrationsQuery();
+    const allIntegrations = data?.integrations || [];
+    const availableTypesFromApi = data?.availableTypes || [];
     const syncMutation = useSyncIntegrationMutation();
     const setSourceOfTruthMutation = useSetSourceOfTruthMutation();
 
@@ -223,7 +225,7 @@ export default function IntegrationList() {
                     onOpenChange={(open) =>
                         open ? openModal("add") : closeModal("add")
                     }
-                    availableTypes={[]} // React Query doesn't explicitly return this, might need to adjust API or just derive
+                    availableTypes={availableTypesFromApi}
                     onSuccess={() => {
                         closeModal("add");
                         toast.success("Integration added successfully");

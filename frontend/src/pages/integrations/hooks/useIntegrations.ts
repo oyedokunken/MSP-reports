@@ -10,10 +10,19 @@ export const integrationKeys = {
   lists: () => [...integrationKeys.all, 'list'] as const,
 };
 
+// Types
+interface IntegrationsData {
+  integrations: Integration[];
+  availableTypes: string[];
+}
+
 // Fetcher
-const fetchIntegrations = async (): Promise<Integration[]> => {
+const fetchIntegrations = async (): Promise<IntegrationsData> => {
   const response = await api.get('/integrations') as unknown as IntegrationListResponse;
-  return transformIntegrations(response) || [];
+  return {
+    integrations: transformIntegrations(response) || [],
+    availableTypes: response.available_types || [],
+  };
 };
 
 export const useIntegrationsQuery = () => {
