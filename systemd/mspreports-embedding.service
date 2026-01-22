@@ -13,7 +13,7 @@ Environment=REDIS_HOST=localhost
 Environment=REDIS_PORT=6379
 Environment=REDIS_EMBEDDING_DB=2
 
-ExecStart=/opt/mspreports/services/embedding/venv/bin/gunicorn -w 2 -b 127.0.0.1:5050 embedding_service:app
+ExecStart=/opt/mspreports/services/embedding/venv/bin/gunicorn -w 2 -b 127.0.0.1:5050 --timeout 120 embedding_service:app
 Restart=always
 RestartSec=5
 

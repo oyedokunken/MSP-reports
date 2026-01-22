@@ -14,10 +14,10 @@ FRONTEND_DIR="$ROOT_DIR/frontend"
 EMBEDDING_DIR="$ROOT_DIR/services/embedding"
 SYSTEMD_DIR="$ROOT_DIR/systemd"
 
-INSTALL_SYSTEM_DEPS=false
-INSTALL_EMBEDDING=false
-INSTALL_OLLAMA=false
-DB_DRIVER="sqlite"   # sqlite | pgsql
+INSTALL_SYSTEM_DEPS=true
+INSTALL_EMBEDDING=true
+INSTALL_OLLAMA=true
+DB_DRIVER="pgsql"   # sqlite | pgsql
 RUN_MIGRATIONS=true
 RUN_SEED=false
 BUILD_FRONTEND=false
