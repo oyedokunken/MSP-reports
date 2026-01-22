@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\AuditLog;
 use App\Services\LicenseChecker;
 use App\Services\RolePermissionService;
 use App\Rules\StrongPassword;
+use App\Mail\WelcomeUserMail;
 
 class UserController extends Controller
 {
@@ -119,6 +121,8 @@ class UserController extends Controller
             $validated['permissions'] ?? null
         );
 
+        $plainPassword = $validated['password'];
+        
         $user = User::create([
             'company_id' => $authUser->company_id,
             'role_id' => $validated['role_id'],
@@ -130,6 +134,17 @@ class UserController extends Controller
             'permissions' => $permissions,
             'scoped_customers' => $validated['scoped_customers'] ?? null,
         ]);
+
+        // Send welcome email with credentials (only for local auth users)
+        if ($validated['auth_method'] === 'local') {
+            try {
+                Mail::to($user->email)->queue(new WelcomeUserMail($user, $plainPassword));
+            } catch (\Exception $e) {
+                \Log::warning('Failed to send welcome email to user: ' . $user->email, [
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
 
         $sanitisedUser = $user->makeHidden(['password']);
 

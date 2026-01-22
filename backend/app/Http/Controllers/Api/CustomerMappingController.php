@@ -140,6 +140,24 @@ class CustomerMappingController extends Controller
         ]);
     }
 
+    /**
+     * Get all customer IDs for bulk selection (e.g., user scoping)
+     */
+    public function getAllCustomerIds(Request $request)
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+
+        $customerIds = Customer::where('company_id', $company->company_id)
+            ->pluck('customer_id')
+            ->toArray();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $customerIds,
+        ]);
+    }
+
     public function getUnmappedCustomers(Request $request)
     {
         $authUser = $request->user();

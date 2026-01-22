@@ -56,7 +56,9 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalCustomers, setTotalCustomers] = useState(0)
   const [searchDebounce, setSearchDebounce] = useState<number | null>(null)
+  const [isSelectingAll, setIsSelectingAll] = useState(false)
 
   // Fetch customers with pagination
   const fetchCustomers = async (page: number = 1, search: string = '') => {
@@ -69,6 +71,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
       setCustomers(response.data || [])
       setCurrentPage(response.pagination?.current_page || 1)
       setTotalPages(response.pagination?.last_page || 1)
+      setTotalCustomers(response.pagination?.total || 0)
     } catch (err) {
       console.error('Failed to fetch customers:', err)
       toast.error('Error', 'Failed to load customers')
@@ -182,6 +185,62 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
 
   const removeCustomer = (customerId: number) => {
     setSelectedCustomers(prev => prev.filter(id => id !== customerId))
+  }
+
+  // Select all customers on current page
+  const selectCurrentPage = () => {
+    const currentPageIds = customers.map(c => c.customer_id)
+    setSelectedCustomers(prev => {
+      const newSelection = [...prev]
+      currentPageIds.forEach(id => {
+        if (!newSelection.includes(id)) {
+          newSelection.push(id)
+        }
+      })
+      return newSelection
+    })
+  }
+
+  // Deselect all customers on current page
+  const deselectCurrentPage = () => {
+    const currentPageIds = customers.map(c => c.customer_id)
+    setSelectedCustomers(prev => prev.filter(id => !currentPageIds.includes(id)))
+  }
+
+  // Check if all customers on current page are selected
+  const isCurrentPageAllSelected = () => {
+    if (customers.length === 0) return false
+    return customers.every(c => selectedCustomers.includes(c.customer_id))
+  }
+
+  // Check if some customers on current page are selected
+  const isCurrentPagePartiallySelected = () => {
+    if (customers.length === 0) return false
+    const selectedOnPage = customers.filter(c => selectedCustomers.includes(c.customer_id))
+    return selectedOnPage.length > 0 && selectedOnPage.length < customers.length
+  }
+
+  // Select all customers across all pages
+  const selectAllCustomers = async () => {
+    try {
+      setIsSelectingAll(true)
+      // Fetch all customer IDs from the API
+      const response = await customerApi.getAllCustomerIds()
+      if (response.data) {
+        setSelectedCustomers(response.data)
+        toast.success('Selected All', `${response.data.length} customers selected`)
+      }
+    } catch (err) {
+      console.error('Failed to select all customers:', err)
+      toast.error('Error', 'Failed to select all customers')
+    } finally {
+      setIsSelectingAll(false)
+    }
+  }
+
+  // Deselect all customers
+  const deselectAllCustomers = () => {
+    setSelectedCustomers([])
   }
 
   const getCustomerName = (customerId: number) => {
@@ -421,6 +480,54 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                   onChange={(e) => handleSearchChange(e.target.value)}
                   disabled={isSubmitting || isLoadingCustomers}
                 />
+
+                {/* Bulk Selection Controls */}
+                <div className="flex flex-wrap items-center gap-3 p-2 bg-muted/30 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={selectedCustomers.length === totalCustomers && totalCustomers > 0 ? deselectAllCustomers : selectAllCustomers}
+                      disabled={isSubmitting || isLoadingCustomers || isSelectingAll || totalCustomers === 0}
+                      className="text-xs"
+                    >
+                      {isSelectingAll ? (
+                        <>
+                          <Spinner className="h-3 w-3 mr-1" />
+                          Loading...
+                        </>
+                      ) : selectedCustomers.length === totalCustomers && totalCustomers > 0 ? (
+                        'Deselect All'
+                      ) : (
+                        `Select All (${totalCustomers})`
+                      )}
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="select-current-page"
+                      checked={isCurrentPageAllSelected()}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          selectCurrentPage()
+                        } else {
+                          deselectCurrentPage()
+                        }
+                      }}
+                      disabled={isSubmitting || isLoadingCustomers || customers.length === 0}
+                      className={isCurrentPagePartiallySelected() ? 'data-[state=unchecked]:bg-primary/30' : ''}
+                    />
+                    <label htmlFor="select-current-page" className="text-xs text-muted-foreground cursor-pointer">
+                      Select page {currentPage}/{totalPages}
+                    </label>
+                  </div>
+                  {selectedCustomers.length > 0 && (
+                    <span className="text-xs text-primary font-medium ml-auto">
+                      {selectedCustomers.length} selected
+                    </span>
+                  )}
+                </div>
 
                 {/* Customer List */}
                 <div className="border rounded-md max-h-48 overflow-y-auto">

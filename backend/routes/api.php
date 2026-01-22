@@ -121,6 +121,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     // Customer Mapping Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/customers', [CustomerMappingController::class, 'getCustomers']);
+        Route::get('/customers/all-ids', [CustomerMappingController::class, 'getAllCustomerIds']);
         Route::get('/customers/unmapped', [CustomerMappingController::class, 'getUnmappedCustomers']);
         Route::post('/customers/static', [CustomerMappingController::class, 'createStaticCustomer']);
         Route::post('/customers/map', [CustomerMappingController::class, 'mapCustomer']);

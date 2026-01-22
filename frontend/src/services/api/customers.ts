@@ -131,4 +131,12 @@ export const customerApi = {
             }>
         >
     },
+
+    /**
+     * Get all customer IDs for bulk selection
+     * GET /api/customers/all-ids
+     */
+    async getAllCustomerIds(): Promise<ApiSuccessResponse<number[]>> {
+        return api.get('/customers/all-ids') as unknown as Promise<ApiSuccessResponse<number[]>>
+    },
 }
