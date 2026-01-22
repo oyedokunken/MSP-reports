@@ -254,7 +254,23 @@ export function UsersTable({
                   <TableCell className="py-3">
                     <div className="flex items-center gap-3">
                       <div className="relative flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                        {user.profile_picture ? (
+                          <img 
+                            src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${user.profile_picture}`}
+                            alt={user.name}
+                            className="h-10 w-10 rounded-full object-cover"
+                            onError={(e) => {
+                              // Fallback to initials if image fails to load
+                              const target = e.target as HTMLImageElement
+                              target.style.display = 'none'
+                              target.nextElementSibling?.classList.remove('hidden')
+                            }}
+                          />
+                        ) : null}
+                        <div className={cn(
+                          "h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm",
+                          user.profile_picture && "hidden"
+                        )}>
                           {getInitials(user.name)}
                         </div>
                         <div className={cn("absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-card flex items-center justify-center", statusConfig.bg)}>

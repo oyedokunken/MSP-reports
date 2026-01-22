@@ -13,6 +13,8 @@ export interface UserWithPermissions {
   created_at: string
   permissions: UserPermissions
   scoped_customers: number[] | null
+  force_password_change?: boolean
+  profile_picture?: string | null
 }
 
 export interface UserPermissions {

@@ -68,6 +68,7 @@ class AuthService
             'user' => $user->makeHidden(['password', 'remember_token']),
             'company' => $user->company,
             'token' => $token,
+            'force_password_change' => (bool) $user->force_password_change,
         ];
     }
 

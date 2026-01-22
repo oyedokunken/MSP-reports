@@ -72,6 +72,7 @@ class UserController extends Controller
             'auth_method' => 'sometimes|in:local,saml,m365,ldap',
             'permissions' => 'nullable|array',
             'scoped_customers' => 'nullable|array',
+            'force_password_change' => 'sometimes|boolean',
         ]);
         
         // Validate scoped_customers separately to provide better error messages
@@ -131,6 +132,7 @@ class UserController extends Controller
             'password' => Hash::make($validated['password']),
             'status' => $validated['status'],
             'auth_method' => $validated['auth_method'],
+            'force_password_change' => $validated['force_password_change'] ?? false,
             'permissions' => $permissions,
             'scoped_customers' => $validated['scoped_customers'] ?? null,
         ]);
@@ -440,6 +442,137 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'data' => $roles
+        ]);
+    }
+
+    /**
+     * Upload profile picture for a user
+     */
+    public function uploadProfilePicture(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $user = User::where('user_id', $id)
+                    ->where('company_id', $authUser->company_id)
+                    ->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found in your company.'
+            ], 404);
+        }
+
+        $request->validate([
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ]);
+
+        // Delete old profile picture if exists
+        if ($user->profile_picture) {
+            $oldPath = storage_path('app/public/' . $user->profile_picture);
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+        }
+
+        // Store new profile picture
+        $file = $request->file('profile_picture');
+        $filename = 'profile_' . $user->user_id . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('profile-pictures', $filename, 'public');
+
+        $user->profile_picture = $path;
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profile picture uploaded successfully.',
+            'data' => [
+                'profile_picture' => $path,
+                'profile_picture_url' => asset('storage/' . $path),
+            ]
+        ]);
+    }
+
+    /**
+     * Delete profile picture for a user
+     */
+    public function deleteProfilePicture(Request $request, $id)
+    {
+        $authUser = $request->user();
+
+        $user = User::where('user_id', $id)
+                    ->where('company_id', $authUser->company_id)
+                    ->first();
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found in your company.'
+            ], 404);
+        }
+
+        if ($user->profile_picture) {
+            $oldPath = storage_path('app/public/' . $user->profile_picture);
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+            $user->profile_picture = null;
+            $user->save();
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profile picture deleted successfully.'
+        ]);
+    }
+
+    /**
+     * Clear force password change flag after user changes password
+     */
+    public function clearForcePasswordChange(Request $request)
+    {
+        $user = $request->user();
+        
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => ['required', 'string', 'confirmed', new StrongPassword()],
+        ]);
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Current password is incorrect.'
+            ], 400);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->force_password_change = false;
+        $user->save();
+
+        // Revoke all tokens and create a new one
+        $user->tokens()->delete();
+        $token = $user->createToken('api-token')->plainTextToken;
+
+        AuditLog::create([
+            'company_id' => $user->company_id,
+            'event_type' => 'user_password_changed_first_login',
+            'actor_type' => 'User',
+            'actor_id' => $user->user_id,
+            'target_type' => 'User',
+            'target_id' => $user->user_id,
+            'event_data' => json_encode([
+                'user_email' => $user->email,
+            ]),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password changed successfully.',
+            'data' => [
+                'token' => $token,
+            ]
         ]);
     }
 }

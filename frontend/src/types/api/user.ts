@@ -86,6 +86,8 @@ export interface User {
     auth_method: 'local' | 'saml' | 'm365' | 'ldap'
     permissions: UserPermissions
     scoped_customers?: number[] | null
+    force_password_change?: boolean
+    profile_picture?: string | null
     role?: Role
     last_login?: string | null
     created_at?: string

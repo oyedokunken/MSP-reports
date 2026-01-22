@@ -31,6 +31,8 @@ class User extends Authenticatable
         'password',
         'status',
         'auth_method',
+        'force_password_change',
+        'profile_picture',
         'permissions',
         'settings',
         'last_login_at',
@@ -47,6 +49,7 @@ class User extends Authenticatable
         'permissions' => 'array',
         'scoped_customers' => 'array',
         'settings' => 'array',
+        'force_password_change' => 'boolean',
     ];
 
     protected $appends = ['last_login', 'created_at'];

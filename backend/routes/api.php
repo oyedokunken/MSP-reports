@@ -77,6 +77,9 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::patch('/users/{id}/reactivate', [UserController::class, 'reactivateUser']);
         Route::delete('/users/{id}', [UserController::class, 'deleteUser']);
         Route::post('/users/{id}/reset-password', [UserController::class, 'resetUserPassword']);
+        Route::post('/users/{id}/profile-picture', [UserController::class, 'uploadProfilePicture']);
+        Route::delete('/users/{id}/profile-picture', [UserController::class, 'deleteProfilePicture']);
+        Route::post('/users/force-password-change', [UserController::class, 'clearForcePasswordChange']);
     });
 
     // Integrations Routes

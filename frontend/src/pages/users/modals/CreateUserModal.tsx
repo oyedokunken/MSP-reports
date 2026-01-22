@@ -29,6 +29,25 @@ interface CreateUserForm {
   status: 'active' | 'inactive' | 'locked'
   auth_method: 'local' | 'saml' | 'm365' | 'ldap'
   scoped_customers?: number[]
+  force_password_change?: boolean
+}
+
+// Password strength calculation
+function calculatePasswordStrength(password: string): { score: number; label: string; color: string } {
+  let score = 0
+  
+  if (password.length >= 6) score += 1
+  if (password.length >= 8) score += 1
+  if (password.length >= 12) score += 1
+  if (/[a-z]/.test(password)) score += 1
+  if (/[A-Z]/.test(password)) score += 1
+  if (/[0-9]/.test(password)) score += 1
+  if (/[^a-zA-Z0-9]/.test(password)) score += 1
+  
+  if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500' }
+  if (score <= 4) return { score, label: 'Fair', color: 'bg-orange-500' }
+  if (score <= 5) return { score, label: 'Good', color: 'bg-yellow-500' }
+  return { score, label: 'Strong', color: 'bg-green-500' }
 }
 
 export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserModalProps) {
@@ -46,7 +65,11 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     status: 'active',
     auth_method: 'local',
     scoped_customers: [],
+    force_password_change: true,
   })
+
+  // Calculate password strength
+  const passwordStrength = calculatePasswordStrength(formData.password)
 
   const [selectedCustomers, setSelectedCustomers] = useState<number[]>([])
   const [customerSearch, setCustomerSearch] = useState('')
@@ -136,6 +159,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
             status: 'active',
             auth_method: 'local',
             scoped_customers: [],
+            force_password_change: true,
           })
           setSelectedCustomers([])
           setCustomerSearch('')
@@ -156,7 +180,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     }
   }
 
-  const handleInputChange = (field: keyof CreateUserForm, value: string | number) => {
+  const handleInputChange = (field: keyof CreateUserForm, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -372,6 +396,45 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                     )}
                   </button>
                 </div>
+                {/* Password Strength Indicator */}
+                {formData.password && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Password Strength</span>
+                      <span className={`font-medium ${
+                        passwordStrength.label === 'Weak' ? 'text-red-500' :
+                        passwordStrength.label === 'Fair' ? 'text-orange-500' :
+                        passwordStrength.label === 'Good' ? 'text-yellow-600' :
+                        'text-green-500'
+                      }`}>{passwordStrength.label}</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-300 ${passwordStrength.color}`}
+                        style={{ width: `${(passwordStrength.score / 7) * 100}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      Use 8+ characters with uppercase, lowercase, numbers, and symbols
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Force Password Change */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="force-password-change"
+                  checked={formData.force_password_change}
+                  onCheckedChange={(checked) => handleInputChange('force_password_change', checked === true)}
+                  disabled={isSubmitting}
+                />
+                <label
+                  htmlFor="force-password-change"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Require password change on first login
+                </label>
               </div>
 
               {/* Role */}
