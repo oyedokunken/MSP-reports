@@ -18,7 +18,10 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
     }>
   }
 
-  return (data.configured || []).map((int) => ({
+  // Ensure configured is always an array (handles null, undefined, and non-array values)
+  const configured = Array.isArray(data.configured) ? data.configured : []
+
+  return configured.map((int) => ({
     id: int.integration_id,
     name: int.display_name,
     type: int.integration_type?.toLowerCase() || '',

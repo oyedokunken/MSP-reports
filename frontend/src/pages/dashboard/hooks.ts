@@ -52,7 +52,8 @@ export const useDashboard = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Replace useIntegrationStore with React Query
-    const { data: integrations = [], refetch: refetchIntegrations } = useIntegrationsQuery();
+    const { data, refetch: refetchIntegrations } = useIntegrationsQuery();
+    const integrations = data?.integrations || [];
 
     // Other stores still valid
     const totalCustomers = useCustomersStore((state) => state.totalCustomersCount);
