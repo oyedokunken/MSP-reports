@@ -20,6 +20,7 @@ class SaaSDataGatherer
         }
 
         return IntegrationData::where('company_id', $customer->company_id)
+            ->where('integration_id', 6) // SaaS Alerts Integration ID
             ->where('data_type', 'saas_security_event')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->whereBetween('data_timestamp', [$startDate, $endDate])
@@ -68,9 +69,6 @@ class SaaSDataGatherer
                     'app_name' => $payload['app_name'] ?? null,
                     'product_name' => $payload['product']['name'] ?? null,
                     'product_type' => $payload['product']['type'] ?? null,
-                    
-                    // Full payload for detailed analysis
-                    'payload' => $payload,
                 ];
             });
     }
@@ -205,5 +203,33 @@ class SaaSDataGatherer
             'mapped_percentage' => $totalEvents > 0 ? round(($mappedDevices->count() / $totalEvents) * 100, 2) : 0,
             'os_breakdown' => $osBreakdown->toArray(),
         ];
+    }
+
+    /**
+     * Gather daily trends for security events
+     */
+    public function gatherDailyTrends(Collection $events, Carbon $startDate, Carbon $endDate): array
+    {
+        $trends = [];
+        $current = $startDate->copy()->startOfDay();
+        $target = $endDate->copy()->endOfDay();
+
+        while ($current <= $target) {
+            $dateStr = $current->format('Y-m-d');
+            $dayEvents = $events->filter(function ($event) use ($dateStr) {
+                return Carbon::parse($event['timestamp'])->format('Y-m-d') === $dateStr;
+            });
+
+            $trends['labels'][] = $current->format('M d');
+            $trends['total'][] = $dayEvents->count();
+            $trends['threats'][] = $dayEvents->where('is_threat', true)->count();
+            $trends['failures'][] = $dayEvents->filter(function ($event) {
+                return str_contains($event['joint_type'] ?? '', 'failure');
+            })->count();
+
+            $current->addDay();
+        }
+
+        return $trends;
     }
 }

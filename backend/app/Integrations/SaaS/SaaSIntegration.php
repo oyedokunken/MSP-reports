@@ -157,6 +157,9 @@ class SaaSIntegration implements IntegrationInterface
      */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
+        // Increase memory for large historical payloads
+        ini_set('memory_limit', '512M');
+
         $errors = [];
         $totalEvents = 0;
 

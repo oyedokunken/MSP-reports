@@ -37,6 +37,7 @@ class SaaSSummary extends BaseReport
 
         // Check if there's any SaaS security event data
         $hasData = \App\Models\IntegrationData::where('company_id', $customer->company_id)
+            ->where('integration_id', 6)
             ->where('data_type', 'saas_security_event')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->exists();
@@ -78,14 +79,16 @@ class SaaSSummary extends BaseReport
         $applicationUsage = $this->dataGatherer->gatherApplicationUsage($events);
         $threatStats = $this->dataGatherer->gatherThreatStatistics($events);
         $deviceStats = $this->dataGatherer->gatherDeviceStatistics($events);
+        $dailyTrends = $this->dataGatherer->gatherDailyTrends($events, $actualStartDate, $actualEndDate);
 
         // Build executive summary
         $executiveSummary = $this->buildExecutiveSummary($events, $threatStats, $deviceStats, $userActivity);
+        $executiveSummary['daily_trends'] = $dailyTrends;
 
         // Build recommendations
         $recommendations = $this->buildRecommendations($threatStats, $userActivity, $geographicData);
 
-        return [
+        $reportData = [
             'executive_summary' => $executiveSummary,
             'recommendations' => $recommendations,
             'user_activity' => $userActivity,
@@ -98,7 +101,17 @@ class SaaSSummary extends BaseReport
                 'start' => $actualStartDate->format('F j, Y'),
                 'end' => $actualEndDate->format('F j, Y'),
             ],
+            'period' => [
+                'start' => $actualStartDate->format('Y-m-d'),
+                'end' => $actualEndDate->format('Y-m-d'),
+                'formatted' => $actualStartDate->format('F j, Y') . ' - ' . $actualEndDate->format('F j, Y'),
+            ],
+            'cover_title' => 'SaaS Alerts Security Report',
+            'cover_subtitle' => 'Comprehensive analysis of SaaS platform activity, threat detection, and user access patterns.',
+            'options' => $options,
         ];
+
+        return $this->filterSections($reportData, $options);
     }
 
     private function buildExecutiveSummary($events, $threatStats, $deviceStats, $userActivity): array
