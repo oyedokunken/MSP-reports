@@ -8,30 +8,31 @@ use App\Integrations\Concerns\HasHeartbeat;
 use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
-use App\Jobs\AutoMatchCustomersJob;
 use App\Jobs\BatchAutoMatchCustomersJob;
-use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class SaaSIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
-    
+
     protected Integration $integration;
     protected SaaSClient $client;
     protected CustomerMappingService $mappingService;
-    protected array $mappedDuringSync = [];
 
     public function __construct(Integration $integration)
     {
         $this->integration = $integration;
-        $rateLimiter = app(RateLimiter::class);
-        $this->client = new SaaSClient($integration->credentials ?? [], $rateLimiter, $integration);
+        $this->client = new SaaSClient(
+            $integration->credentials ?? [],
+            app(\App\Services\RateLimiter::class),
+            $integration
+        );
         $this->mappingService = app(CustomerMappingService::class);
     }
 
@@ -39,33 +40,33 @@ class SaaSIntegration implements IntegrationInterface
     {
         return [
             [
-                'name' => 'api_key',
-                'label' => 'API Key',
-                'type' => 'password',
-                'required' => true,
+                'name'        => 'api_key',
+                'label'       => 'API Key',
+                'type'        => 'password',
+                'required'    => true,
                 'placeholder' => 'Enter your SaaS Alerts API key',
-                'help' => 'Found in SaaS Alerts Partner Portal. Used in api_key header for authentication.',
+                'help'        => 'Found in SaaS Alerts Partner Portal. Used in the api_key header.',
             ],
             [
-                'name' => 'partner_id',
-                'label' => 'Partner ID',
-                'type' => 'text',
-                'required' => true,
+                'name'        => 'partner_id',
+                'label'       => 'Partner ID',
+                'type'        => 'text',
+                'required'    => true,
                 'placeholder' => 'eu1-Y675j1foFxorQyATsx9U',
-                'help' => 'Your SaaS Alerts Partner ID. Found in Partner Portal.',
+                'help'        => 'Your SaaS Alerts Partner ID from the portal.',
             ],
             [
-                'name' => 'base_url',
-                'label' => 'Environment',
-                'type' => 'select',
+                'name'     => 'base_url',
+                'label'    => 'Environment',
+                'type'     => 'select',
                 'required' => true,
-                'options' => [
+                'options'  => [
                     'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1' => 'Production',
-                    'https://us-central1-saas-alerts-qa.cloudfunctions.net/reportApi/api/v1' => 'QA',
-                    'https://us-central1-saas-alerts-dev.cloudfunctions.net/reportApi/api/v1' => 'Development',
+                    'https://us-central1-saas-alerts-qa.cloudfunctions.net/reportApi/api/v1'    => 'QA',
+                    'https://us-central1-saas-alerts-dev.cloudfunctions.net/reportApi/api/v1'   => 'Development',
                 ],
                 'default' => 'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1',
-                'help' => 'Select the SaaS Alerts API environment',
+                'help'    => 'Select the target SaaS Alerts environment',
             ],
         ];
     }
@@ -75,308 +76,243 @@ class SaaSIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
-    protected function saveSyncState(string $phase, int $processed, int $total): void
-    {
-        DB::table('integrations')
-            ->where('integration_id', $this->integration->integration_id)
-            ->update([
-                'sync_state' => json_encode([
-                    'phase' => $phase,
-                    'offset' => $processed,
-                    'total' => $total,
-                    'timestamp' => now()->timestamp,
-                ])
-            ]);
-    }
-
-    public function processBatch(string $type, array $items): void
-    {
-         if ($type === 'customers') {
-            foreach ($items as $customer) {
-                // Heartbeat per item
-                $this->sendHeartbeat();
-                
-                try {
-                    // 1. Map to Standard Format
-                    $mappedCustomer = SaaSMapper::mapCustomer($customer);
-
-                    // Validate required fields
-                    if (empty($mappedCustomer['external_id']) || empty($mappedCustomer['name'])) {
-                        continue;
-                    }
-
-                    $integrationCustomer = DB::transaction(function () use ($mappedCustomer) {
-                        return IntegrationCustomer::updateOrCreate(
-                            [
-                                'integration_id' => $this->integration->integration_id,
-                                'external_id' => $mappedCustomer['external_id'],
-                            ],
-                            [
-                                'name' => $mappedCustomer['name'],
-                                'metadata' => $mappedCustomer['metadata'],
-                                'active' => $mappedCustomer['active'],
-                                'last_seen_at' => now(),
-                            ]
-                        );
-                    });
-                     
-                     // 2. Fetch Events (Sync Logic)
-                     // Fetch recent security events for this customer (last 24 hours)
-                     $events = $this->client->getEvents([
-                        'customerId' => $mappedCustomer['external_id'],
-                        'start' => now()->subHours(24)->format('Y-m-d'),
-                        'end' => now()->format('Y-m-d'),
-                        'size' => 100, // Reasonable batch for regular sync
-                    ]);
-                    
-                    foreach ($events as $event) {
-                         try {
-                                $mapped = SaaSMapper::mapEvent($event, $integrationCustomer->integration_customer_id);
-                                $this->storeHistoricalData($mapped);
-                            } catch (\Exception $e) {
-                                \Log::warning('SaaS Alerts batch: Failed to process event', [
-                                    'customer_id' => $customer['id'],
-                                    'event_id' => $event['eventId'] ?? $event['_id'] ?? 'unknown',
-                                    'error' => $e->getMessage(),
-                                ]);
-                            }
-                    }
-
-                } catch (\Exception $e) {
-                    \Log::error('SaaS Alerts batch: Failed to process customer', [
-                        'customer_id' => $customer['id'] ?? 'unknown',
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
-         }
-    }
-
+    /**
+     * Full sync: customers only (events handled by historical import)
+     */
     public function sync(): array
     {
         $errors = [];
-        $this->mappedDuringSync = [];
-        $totalProcessed = 0;
-        $totalEvents = 0; // Not strictly tracked in sync() return anymore as it happens in batches
+        $processedCustomers = 0;
 
         try {
-             // 1. Checkpoint: Resume
-            $state = json_decode($this->integration->sync_state, true);
-            $phase = $state['phase'] ?? 'customers';
-            $resumeOffset = $state['offset'] ?? 0;
-            
-             // Fetch customers
+            // Sync all customers
             $saasCustomers = $this->client->getCustomers();
-            
-            if ($phase === 'customers') {
-                $totalCustomers = count($saasCustomers);
-                
-                if ($resumeOffset > 0) {
-                     $saasCustomers = array_slice($saasCustomers, $resumeOffset);
-                     $totalProcessed = $resumeOffset;
-                }
-                
-                // 1. Synchronous Customer Sync (Match Datto Pattern)
-                foreach ($saasCustomers as $customer) {
-                    try {
-                        $standardized = SaaSMapper::mapCustomer($customer);
-                        $this->storeCustomer($standardized);
-                        $totalProcessed++;
-                    } catch (\Exception $e) {
-                         // Gracefully handle individual failures
-                         Log::warning('SaaS Sync: Customer store failed', ['error' => $e->getMessage()]);
-                    }
-                }
-                
-                // 2. Auto-Map Logic (Fetch unmapped -> Auto Map)
-                $this->processUnmappedCustomers();
 
-                Log::info('SaaS Alerts sync: Customers synced, dispatching event batches', [
-                    'count' => count($saasCustomers),
-                    'total_processed' => $totalProcessed,
-                ]);
-                
-                // 3. Dispatch Event Fetching Batches
-                 collect($saasCustomers)->chunk(10)->each(function ($chunk) use ($totalCustomers) {
-                     // Note: processBatch will still verify customer existence/update metadata
-                     \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'customers', $chunk->toArray(), $this->currentSyncLogId);
-                     $this->saveSyncState('customers', 0, $totalCustomers); // Tracking handled partly by batches
-                });
+            foreach ($saasCustomers as $customer) {
+                try {
+                    $mapped = SaaSMapper::mapCustomer($customer);
+                    if (empty($mapped['external_id']) || empty($mapped['name'])) {
+                        continue;
+                    }
+
+                    $this->storeCustomer($mapped);
+                    $processedCustomers++;
+                } catch (Throwable $e) {
+                    $errors[] = "Customer sync failed: {$e->getMessage()}";
+                    Log::warning('SaaS Alerts sync - customer failed', [
+                        'error' => $e->getMessage(),
+                        'customer' => $customer['id'] ?? 'unknown',
+                    ]);
+                }
             }
 
-             $this->integration->update(['sync_state' => null]);
-             
-             // Initial cache update
-             $this->updateStatsCache();
+            // Auto-match unmapped customers
+            $this->processUnmappedCustomers();
 
-        } catch (\Exception $e) {
-            $errors[] = "Sync failed: {$e->getMessage()}";
-            Log::error('SaaS Alerts sync: Failed', ['error' => $e->getMessage()]);
+            Log::info('SaaS Alerts full sync completed', [
+                'customers_processed' => $processedCustomers,
+                'errors'              => count($errors),
+            ]);
+
+            $this->updateStatsCache();
+        } catch (Throwable $e) {
+            $errors[] = "Sync orchestration failed: {$e->getMessage()}";
+            Log::error('SaaS Alerts sync failed fatally', ['error' => $e->getMessage()]);
         }
 
         return [
-            'records_synced' => $totalProcessed,
-            'records_new' => 0,
-            'customers_mapped' => [],
+            'records_synced' => $processedCustomers,
+            'records_new'    => 0,
             'records_failed' => count($errors),
-            'errors' => $errors,
+            'errors'         => $errors,
         ];
     }
-    
-    private function updateStatsCache(): void
-    {
-        $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
-        Cache::forget($cacheKey);
-        
-        $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNotNull('customer_id')
-            ->count();
-        
-        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->count();
 
-        Cache::put($cacheKey, [
-            'mapped' => $mappedCount,
-            'unmapped' => $unmappedCount,
-            'last_sync' => now(),
-        ], now()->addMinutes(10));
+    /**
+     * Process batch of items (required by framework)
+     */
+    public function processBatch(string $type, array $items): void
+    {
+        if ($type === 'customers') {
+            foreach ($items as $customer) {
+                $this->sendHeartbeat();
+                
+                try {
+                    $mapped = SaaSMapper::mapCustomer($customer);
+                    if (!empty($mapped['external_id']) && !empty($mapped['name'])) {
+                        $this->storeCustomer($mapped);
+                    }
+                } catch (Throwable $e) {
+                    Log::warning('SaaS batch: Failed to process customer', [
+                        'customer_id' => $customer['id'] ?? 'unknown',
+                        'error'       => $e->getMessage()
+                    ]);
+                }
+            }
+        }
     }
 
-    private function processUnmappedCustomers(): array
+    /**
+     * Fetch and store historical events for all mapped customers
+     */
+    public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        // Only dispatch if there are actually unmapped customers
+        $errors = [];
+        $totalEvents = 0;
+
+        $customers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNotNull('customer_id')
+            ->get();
+
+        Log::info('SaaS Alerts historical sync started', [
+            'integration_id' => $this->integration->integration_id,
+            'customers'      => $customers->count(),
+            'range'          => $startDate->toDateString() . ' → ' . $endDate->toDateString(),
+        ]);
+
+        foreach ($customers as $index => $intCustomer) {
+            if ($index % 5 === 0) {
+                $this->sendHeartbeat();
+            }
+
+            try {
+                // Use getAllEvents for complete data with scroll pagination
+                $events = $this->client->getAllEvents([
+                    'customerId' => $intCustomer->external_id,
+                    'start'      => $startDate->format('Y-m-d'),
+                    'end'        => $endDate->format('Y-m-d'),
+                    'size'       => 500,
+                ]);
+
+                collect($events)->chunk(200)->each(function ($chunk) use (
+                    $intCustomer,
+                    &$totalEvents,
+                    &$errors
+                ) {
+                    $batch = [];
+
+                    foreach ($chunk as $event) {
+                        try {
+                            $mapped = SaaSMapper::mapEvent($event, $intCustomer->integration_customer_id);
+
+                            $batch[] = [
+                                'company_id'              => $this->integration->company_id,
+                                'integration_id'          => $this->integration->integration_id,
+                                'integration_customer_id' => $mapped['integration_customer_id'],
+                                'external_id'             => $mapped['external_id'],
+                                'data_type'               => $mapped['data_type'],
+                                'data_timestamp'          => $mapped['timestamp']->format('Y-m-d H:i:s'),
+                                'data_payload'            => json_encode($mapped['payload']),
+                                'imported_at'             => now()->toDateTimeString(),
+                                'data_version'            => 1,
+                            ];
+
+                            $totalEvents++;
+                        } catch (Throwable $e) {
+                            $errors[] = "Event mapping failed for customer {$intCustomer->name}: {$e->getMessage()}";
+                        }
+                    }
+
+                    if (!empty($batch)) {
+                        try {
+                            IntegrationData::upsert(
+                                $batch,
+                                ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
+                                ['data_payload', 'imported_at', 'integration_customer_id']
+                            );
+                        } catch (Throwable $e) {
+                            $errors[] = "Batch upsert failed for customer {$intCustomer->name}: {$e->getMessage()}";
+                            Log::error('Historical upsert failed', ['error' => $e->getMessage()]);
+                        }
+                    }
+                });
+
+                Log::info('Historical events processed for customer', [
+                    'customer'     => $intCustomer->name,
+                    'external_id'  => $intCustomer->external_id,
+                    'events_count' => count($events),
+                ]);
+            } catch (Throwable $e) {
+                $errors[] = "Failed to process customer {$intCustomer->name}: {$e->getMessage()}";
+                Log::error('Historical customer failed', [
+                    'external_id' => $intCustomer->external_id,
+                    'error'       => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $this->updateStatsCache();
+
+        return [
+            'success'      => empty($errors),
+            'total_events' => $totalEvents,
+            'customers'    => $customers->count(),
+            'errors_count' => count($errors),
+            'errors'       => $errors,
+        ];
+    }
+
+    // ──────────────────────────────────────────────
+    //  Private Helpers
+    // ──────────────────────────────────────────────
+
+    private function storeCustomer(array $customer): void
+    {
+        if (empty($customer['external_id']) || empty($customer['name'])) {
+            return;
+        }
+
+        DB::transaction(function () use ($customer) {
+            IntegrationCustomer::updateOrCreate(
+                [
+                    'integration_id' => $this->integration->integration_id,
+                    'external_id'    => $customer['external_id'],
+                ],
+                [
+                    'name'         => $customer['name'],
+                    'metadata'     => $customer['metadata'] ?? [],
+                    'active'       => $customer['active'] ?? true,
+                    'last_seen_at' => now(),
+                ]
+            );
+        });
+    }
+
+    private function processUnmappedCustomers(): void
+    {
         $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->count();
-        
+
         if ($unmappedCount > 0) {
             BatchAutoMatchCustomersJob::dispatchSync($this->integration);
-            \Log::info('SaaS: Dispatched auto-match job', [
-                'integration_id' => $this->integration->integration_id,
-                'unmapped_count' => $unmappedCount,
-            ]);
+            Log::info('Dispatched batch auto-match for unmapped customers', ['count' => $unmappedCount]);
         }
-        return []; // Batch job handles mapping asynchronously
+    }
+
+    private function updateStatsCache(): void
+    {
+        $key = "integration_{$this->integration->integration_id}_customer_counts";
+        Cache::forget($key);
+
+        $mapped = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNotNull('customer_id')->count();
+        $unmapped = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')->count();
+
+        Cache::put($key, [
+            'mapped'    => $mapped,
+            'unmapped'  => $unmapped,
+            'last_sync' => now(),
+        ], now()->addMinutes(15));
     }
 
     public function getCustomers(): array
     {
-        $saasCustomers = $this->client->getCustomers();
-        return array_map(fn($customer) => SaaSMapper::mapCustomer($customer), $saasCustomers);
-    }
-
-    public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
-    {
-        // NO MORE $data = [] bucket! Just track stats
-        $errors = [];
-        $totalProcessed = 0;
-
-        try {
-            // Get all mapped customers for this integration
-            $integrationCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-                ->whereNotNull('customer_id')
-                ->get();
-
-            Log::info('SaaS Alerts historical: Starting event import', [
-                'integration_id' => $this->integration->integration_id,
-                'start_date' => $startDate->toDateString(),
-                'end_date' => $endDate->toDateString(),
-                'customer_count' => $integrationCustomers->count(),
-            ]);
-
-            foreach ($integrationCustomers as $index => $integrationCustomer) {
-                if ($index % 5 === 0) $this->sendHeartbeat();
-                try {
-                    // Fetch events for this customer
-                    $events = $this->client->getEvents([
-                        'customerId' => $integrationCustomer->external_id,
-                        'start' => $startDate->format('Y-m-d'),
-                        'end' => $endDate->format('Y-m-d'),
-                        'size' => 1000, // Larger batch for historical import
-                    ]);
-
-                    // Process events in chunks using batch UPSERT
-                    collect($events)->chunk(100)->each(function ($chunk) use (&$errors, &$totalProcessed, $integrationCustomer) {
-                        $batch = [];
-                        foreach ($chunk as $event) {
-                            try {
-                                $standardized = SaaSMapper::mapEvent($event, $integrationCustomer->integration_customer_id);
-                                
-                                $batch[] = [
-                                    'company_id' => $this->integration->company_id,
-                                    'integration_id' => $this->integration->integration_id,
-                                    'integration_customer_id' => $standardized['integration_customer_id'],
-                                    'external_id' => $standardized['external_id'],
-                                    'data_type' => $standardized['data_type'],
-                                    'data_timestamp' => $standardized['timestamp']->format('Y-m-d H:i:s'),
-                                    'data_payload' => json_encode($standardized['payload']),
-                                    'imported_at' => now()->toDateTimeString(),
-                                    'data_version' => 1,
-                                ];
-                                
-                                $totalProcessed++;
-                            } catch (\Exception $e) {
-                                $errors[] = "Failed to map event: {$e->getMessage()}";
-                            }
-                        }
-
-                        if (!empty($batch)) {
-                            try {
-                                IntegrationData::upsert(
-                                    $batch,
-                                    ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
-                                    ['data_payload', 'imported_at', 'integration_customer_id']
-                                );
-                            } catch (\Exception $e) {
-                                Log::error('SaaS Alerts Batch UPSERT failed', [
-                                    'error' => $e->getMessage(),
-                                    'customer' => $integrationCustomer->name
-                                ]);
-                                $errors[] = "Batch UPSERT failed: {$e->getMessage()}";
-                            }
-                        }
-                    });
-
-                    Log::info('SaaS Alerts historical: Processed customer events', [
-                        'integration_id' => $this->integration->integration_id,
-                        'customer_id' => $integrationCustomer->external_id,
-                        'customer_name' => $integrationCustomer->name,
-                        'events_count' => count($events),
-                    ]);
-
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to fetch events for customer {$integrationCustomer->name}: {$e->getMessage()}";
-                    Log::error('SaaS Alerts historical: Failed to fetch customer events', [
-                        'integration_id' => $this->integration->integration_id,
-                        'customer_id' => $integrationCustomer->external_id,
-                        'customer_name' => $integrationCustomer->name,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            Log::info('SaaS Alerts historical: Completed', [
-                'integration_id' => $this->integration->integration_id,
-                'start_date' => $startDate->toDateString(),
-                'end_date' => $endDate->toDateString(),
-                'total_processed' => $totalProcessed,
-                'errors' => count($errors),
-            ]);
-
-        } catch (\Exception $e) {
-            $errors[] = "Historical data fetch failed: {$e->getMessage()}";
-            Log::error('SaaS Alerts historical: Failed', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        return [
-            'success' => true,
-            'total_processed' => $totalProcessed,
-            'errors' => $errors,
-        ];
+        return array_map(
+            fn($c) => SaaSMapper::mapCustomer($c),
+            $this->client->getCustomers()
+        );
     }
 
     public function getAvailableHistoryRange(): ?Carbon
@@ -387,32 +323,24 @@ class SaaSIntegration implements IntegrationInterface
     public function getMetadata(): array
     {
         return [
-            'name' => 'SaaS Alerts',
-            'description' => 'SaaS Alerts - Security monitoring and alerting for SaaS applications',
-            'data_types' => [
-                'customers',
-                'users',
-                'security_events',
-                'billing',
-                'devices',
-            ],
-            'supports_historical' => true,
-            'historical_range_days' => 365,
+            'name'                   => 'SaaS Alerts',
+            'description'            => 'Security monitoring and alerting for SaaS applications',
+            'data_types'             => ['customers', 'security_events'],
+            'supports_historical'    => true,
+            'historical_range_days'  => 365,
         ];
     }
 
     public function disconnect(): void
     {
-        // Clean up any cached data
-        $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
-        Cache::forget($cacheKey);
+        Cache::forget("integration_{$this->integration->integration_id}_customer_counts");
     }
 
     public function healthCheck(): bool
     {
         try {
             return $this->client->testConnection();
-        } catch (\Exception $e) {
+        } catch (Throwable) {
             return false;
         }
     }
@@ -421,59 +349,7 @@ class SaaSIntegration implements IntegrationInterface
     {
         return [
             'requests_per_minute' => 100,
-            'requests_per_hour' => 2000,
+            'requests_per_hour'   => 2000,
         ];
-    }
-
-    private function storeCustomer(array $customer): void
-    {
-        // Validate required fields
-        if (empty($customer['external_id']) || empty($customer['name'])) {
-            Log::warning('SaaS Alerts: Skipping customer with missing required fields', [
-                'customer' => $customer
-            ]);
-            return;
-        }
-
-        DB::transaction(function () use ($customer) {
-            $integrationCustomer = IntegrationCustomer::updateOrCreate(
-                [
-                    'integration_id' => $this->integration->integration_id,
-                    'external_id' => $customer['external_id'],
-                ],
-                [
-                    'name' => $customer['name'],
-                    'metadata' => $customer['metadata'],
-                    'active' => $customer['active'],
-                    'last_seen_at' => now(),
-                ]
-            );
-
-            $integrationCustomer->refresh();
-
-        // Batch job processes all unmapped customers at end of sync
-        });
-    }
-
-    private function storeHistoricalData(array $data): void
-    {
-        // One-off UPSERT for single record (used in regular sync)
-        IntegrationData::upsert(
-            [
-                [
-                    'company_id' => $this->integration->company_id,
-                    'integration_id' => $this->integration->integration_id,
-                    'integration_customer_id' => $data['integration_customer_id'],
-                    'external_id' => $data['external_id'],
-                    'data_type' => $data['data_type'],
-                    'data_timestamp' => $data['timestamp']->format('Y-m-d H:i:s'),
-                    'data_payload' => json_encode($data['payload']),
-                    'imported_at' => now()->toDateTimeString(),
-                    'data_version' => 1,
-                ]
-            ],
-            ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
-            ['data_payload', 'imported_at', 'integration_customer_id']
-        );
     }
 }

@@ -23,10 +23,10 @@ class SaaSClient
         RateLimiter $rateLimiter,
         Integration $integration
     ) {
-        $this->credentials  = $credentials;
-        $this->rateLimiter  = $rateLimiter;
-        $this->integration  = $integration;
-        $this->baseUrl      = rtrim($credentials['base_url'] ?? 'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1', '/');
+        $this->credentials = $credentials;
+        $this->rateLimiter = $rateLimiter;
+        $this->integration = $integration;
+        $this->baseUrl = rtrim($credentials['base_url'] ?? 'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1', '/');
     }
 
     /**
@@ -75,7 +75,7 @@ class SaaSClient
      * Get all customers (companies) associated with the partner.
      *
      * @return array<int, array<string, mixed>>
-     * @throws \Exception
+     * @throws ApiResponseException
      */
     public function getCustomers(): array
     {
@@ -138,11 +138,9 @@ class SaaSClient
     }
 
     /**
-     * Get security events/alerts.
-     * Supports all documented query parameters.
+     * Get one page of security events/alerts (original method - kept for compatibility).
      *
-     * @param array<string, mixed> $params Available: customerId, userEmail, alertStatus, eventType,
-     *                                     start, end, from, size, timeSort, scroll
+     * @param array<string, mixed> $params
      * @return array<int, array<string, mixed>>
      */
     public function getEvents(array $params = []): array
@@ -150,8 +148,6 @@ class SaaSClient
         $allowedParams = ['customerId', 'userEmail', 'alertStatus', 'eventType', 'start', 'end', 'from', 'size', 'timeSort', 'scroll'];
 
         $query = array_filter($params, fn($key) => in_array($key, $allowedParams, true), ARRAY_FILTER_USE_KEY);
-
-        // Sensible defaults
         $query['size'] = $query['size'] ?? 100;
 
         $response = $this->makeRequest('GET', '/reports/events', $query);
@@ -167,7 +163,7 @@ class SaaSClient
 
         $events = $response->json() ?? [];
 
-        Log::info('SaaS Alerts events retrieved', [
+        Log::info('SaaS Alerts events page retrieved', [
             'integration_id' => $this->integration->integration_id,
             'count'          => count($events),
             'params'         => $query,
@@ -177,7 +173,108 @@ class SaaSClient
     }
 
     /**
-     * Get total count of events matching the criteria (without fetching full list).
+     * Fetch ALL events matching the criteria using scroll-based pagination.
+     * This is the recommended method for complete results.
+     *
+     * @param array<string, mixed> $params Base filters (customerId, start, end, alertStatus, etc.)
+     * @param int $maxPages Safety limit to prevent runaway loops
+     * @return array<int, array<string, mixed>>
+     * @throws ApiResponseException
+     */
+    public function getAllEvents(array $params = [], int $maxPages = 50): array
+    {
+        $allEvents = [];
+        $scroll    = $params['scroll'] ?? '5m';
+        $size      = $params['size']   ?? 500;
+
+        $currentParams = $params;
+        unset($currentParams['from']); // scroll mode doesn't use from
+        $currentParams['size']   = $size;
+        $currentParams['scroll'] = $scroll;
+
+        $pageCount = 0;
+
+        do {
+            $response = $this->makeRequest('GET', '/reports/events', $currentParams);
+
+            if (!$response->successful()) {
+                throw new ApiResponseException(
+                    'Failed to fetch events page',
+                    $response->status(),
+                    $response->body()
+                );
+            }
+
+            $page = $response->json() ?? [];
+            
+            // Check if page is empty (no more results)
+            if (empty($page)) {
+                Log::debug('SaaS Alerts: Empty page received, ending pagination', [
+                    'integration_id' => $this->integration->integration_id,
+                    'page_number'    => $pageCount + 1,
+                ]);
+                break;
+            }
+            
+            $allEvents = array_merge($allEvents, $page);
+            $pageCount++;
+
+            Log::debug('SaaS Alerts: Events page fetched', [
+                'integration_id' => $this->integration->integration_id,
+                'page_number'    => $pageCount,
+                'page_size'      => count($page),
+                'total_so_far'   => count($allEvents),
+            ]);
+
+            // Try different possible locations for scroll_id
+            $responseData = $response->json();
+            $scrollId = $responseData['_scroll_id']
+                ?? $responseData['scroll_id']
+                ?? $responseData['next_scroll_id']
+                ?? $response->header('Scroll-Id')
+                ?? $response->header('X-Scroll-Id')
+                ?? null;
+
+            $reachedEnd = count($page) < $size;
+
+            if (!$scrollId || $reachedEnd) {
+                Log::debug('SaaS Alerts: Pagination complete', [
+                    'integration_id' => $this->integration->integration_id,
+                    'reason'         => !$scrollId ? 'no_scroll_id' : 'partial_page',
+                    'last_page_size' => count($page),
+                ]);
+                break;
+            }
+
+            if ($pageCount >= $maxPages) {
+                Log::warning('SaaS Alerts: Max pages limit reached', [
+                    'integration_id' => $this->integration->integration_id,
+                    'max_pages'      => $maxPages,
+                    'total_fetched'  => count($allEvents),
+                ]);
+                break;
+            }
+
+            // Next page uses scroll continuation
+            $currentParams = [
+                'scroll'    => $scroll,
+                'scroll_id' => $scrollId,
+            ];
+
+        } while (true);
+
+        Log::info('SaaS Alerts all events fetched', [
+            'integration_id' => $this->integration->integration_id,
+            'total_events'   => count($allEvents),
+            'pages_fetched'  => $pageCount,
+            'base_params'    => $params,
+        ]);
+
+        return $allEvents;
+    }
+
+    /**
+     * Get total count of events matching the criteria.
      */
     public function getEventCount(array $params = []): int
     {
@@ -224,7 +321,7 @@ class SaaSClient
 
         $request = Http::withHeaders($headers)
             ->timeout(120)
-            ->retry(2, 800); // retry twice on 5xx / connection errors with 800ms delay
+            ->retry(2, 800);
 
         $response = match (strtoupper($method)) {
             'GET'  => $request->get($url, $query),
@@ -235,7 +332,7 @@ class SaaSClient
         Log::debug('SaaS Alerts API response', [
             'integration_id' => $this->integration->integration_id,
             'status'         => $response->status(),
-            'body_preview'   => substr($response->body(), 0, 800),
+            'body_preview'   => substr($response->body(), 0, 600), // reduced to limit log size
         ]);
 
         $this->rateLimiter->recordRequest($this->integration);
@@ -243,7 +340,10 @@ class SaaSClient
         return $response;
     }
 
-    // Optional: future complex event queries
+    /**
+     * Optional: Complex event queries via POST /reports/events/query
+     * Uncomment and use when you need advanced filtering (bool queries, aggregations, etc.)
+     */
     /*
     public function queryEvents(array $esQueryBody, string $scroll = '5s'): array
     {
