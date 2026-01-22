@@ -88,7 +88,7 @@ return new class extends Migration
         // Index for integration_customers lookups
         Schema::table('integration_customers', function (Blueprint $table) {
             // Index for external_id lookups (very common)
-            if (!$this->indexExists('idx_integration_customers_external')) {
+            if (!$this->indexExists('idx_integration_customers_external') && !$this->indexExists('idx_integration_customers_external_unique')) {
                 $table->index(
                     ['integration_id', 'external_id'],
                     'idx_integration_customers_external'

@@ -23,6 +23,8 @@ return new class extends Migration {
             $table->boolean('active')->default(true);
             $table->timestamp('last_seen_at')->nullable();
 
+            $table->unique(['integration_id', 'external_id'], 'idx_integration_customers_external_unique');
+
             $table->timestamps();
         });
     }
