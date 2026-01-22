@@ -88,25 +88,33 @@ class BatchAutoMatchCustomersJob implements ShouldQueue
                             continue;
                         }
 
-                        // Attempt auto-match
-                        $match = $mappingService->autoMatch($integrationCustomer);
+                        // Attempt auto-match with embeddings fallback
+                        // Tier 1: Levenshtein (fast, ≥85% threshold)
+                        // Tier 2: Embeddings (semantic similarity, ≥60% threshold)
+                        // Agent (Tier 3) is disabled - too slow for batch processing
+                        $match = $mappingService->autoMatchWithEmbeddings($integrationCustomer);
 
                         if ($match) {
                             $requiresManualReview = $company->settings['customer_mapping']['manual_match_required'] ?? false;
+                            $mappingType = $match['mapping_type'] ?? 'auto';
 
                             // Update IntegrationCustomer.customer_id
                             $integrationCustomer->customer_id = $match['customer']->customer_id;
                             $integrationCustomer->save();
+
+                            // Determine final mapping type and method for logging
+                            $finalMappingType = $requiresManualReview ? 'auto_pending' : $mappingType;
+                            $matchMethod = $mappingType === 'auto_embedding' ? 'embeddings' : 'Levenshtein';
 
                             // Create mapping record for audit trail
                             \App\Models\CustomerMapping::updateOrCreate(
                                 ['integration_customer_id' => $integrationCustomer->integration_customer_id],
                                 [
                                     'customer_id' => $match['customer']->customer_id,
-                                    'mapping_type' => $requiresManualReview ? 'auto_pending' : 'auto',
+                                    'mapping_type' => $finalMappingType,
                                     'confidence_score' => $match['confidence_score'],
                                     'mapped_at' => now(),
-                                    'notes' => "Auto-matched with {$match['confidence_score']}% confidence (batch)",
+                                    'notes' => "Auto-matched via {$matchMethod} with {$match['confidence_score']}% confidence (batch)",
                                 ]
                             );
 
