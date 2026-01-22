@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { api } from '@/lib/api'
 import apiClient from '@/lib/api'
+import { logger } from '@/lib/logger'
 import type { ReportHistoryResponse } from '@/types/api/report'
 
 
@@ -101,7 +102,7 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
         isLoading: false,
       })
     } catch (error) {
-      console.error('Failed to fetch reports:', error)
+      logger.apiError('/reports/history', error, { customerId, page })
       set({ isLoading: false, reports: [], currentPage: 1, totalPages: 1, total: 0 })
       throw error
     }

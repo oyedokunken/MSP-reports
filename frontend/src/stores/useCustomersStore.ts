@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { customerApi } from '@/services/api/customers'
 import type { Customer, UnmappedCustomer, IntegrationCustomer } from '@/types/api/customer'
+import { logger } from '@/lib/logger'
 
 // Re-export for backward compatibility
 export type { IntegrationCustomer, UnmappedCustomer }
@@ -138,7 +139,7 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
       // Also fetch unmapped customers count
       await get().fetchUnmappedCustomers()
     } catch (err) {
-      console.error('Failed to fetch customers:', err)
+      logger.error('Failed to fetch customers', err)
       set({ isLoading: false })
     }
   },
@@ -157,7 +158,7 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
         unmappedPerPage: response.pagination?.per_page || response.data.length,
       })
     } catch (err) {
-      console.error('Failed to fetch unmapped customers:', err)
+      logger.error('Failed to fetch unmapped customers', err)
       set({ unmappedCustomers: [], unmappedCount: 0, unmappedCurrentPage: 1, unmappedTotalPages: 1 })
     }
   },
@@ -229,7 +230,7 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
       })
       set({ totalCustomersCount: response.pagination.total })
     } catch (err) {
-      console.error('Failed to fetch total customers count:', err)
+      logger.error('Failed to fetch total customers count', err)
     }
   }
 }))

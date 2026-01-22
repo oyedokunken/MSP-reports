@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api } from '@/lib/api'
+import { logger } from '@/lib/logger'
 
 export interface ReportSchedule {
   report_schedule_id: number
@@ -69,7 +70,7 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
         isLoading: false,
       })
     } catch (error) {
-      console.error('Failed to fetch schedules:', error)
+      logger.error('Failed to fetch schedules', error)
       set({ isLoading: false })
       throw error
     }
@@ -81,7 +82,7 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
       await api.delete(`/reports/schedules/${scheduleId}`)
       await get().fetchSchedules()
     } catch (error) {
-      console.error('Failed to delete schedule:', error)
+      logger.error('Failed to delete schedule', error, { scheduleId })
       throw error
     }
   },

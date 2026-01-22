@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { logger } from '@/lib/logger'
 import type { AuditLog, AuditLogsFilters, AuditLogStats } from '@/pages/audit-logs/types'
 import { auditLogsService } from '@/services/api/auditLogs'
 
@@ -71,7 +72,7 @@ export const useAuditLogsStore = create<AuditLogsState>((set, get) => ({
       const typedResponse = response as unknown as { data: AuditLogStats }
       set({ stats: typedResponse.data })
     } catch (error) {
-      console.error('Failed to fetch audit log stats:', error)
+      logger.apiError('/audit-logs/stats', error)
     }
   },
 
@@ -89,11 +90,11 @@ export const useAuditLogsStore = create<AuditLogsState>((set, get) => ({
   },
 
   exportLogs: async () => {
+    const { filters } = get()
     try {
-      const { filters } = get()
       await auditLogsService.exportLogs(filters)
     } catch (error) {
-      console.error('Export failed:', error)
+      logger.apiError('/audit-logs/export', error, { filters })
     }
   },
 }))

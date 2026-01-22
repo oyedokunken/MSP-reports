@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api } from '@/lib/api'
+import { logger } from '@/lib/logger'
 import type {
   LicenseListResponse,
   LicenseUsageResponse,
@@ -43,7 +44,7 @@ export const useLicensesStore = create<LicensesState>((set) => ({
         isLoading: false,
       })
     } catch (error) {
-      console.error('Failed to fetch licenses:', error)
+      logger.apiError('/licenses', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to load licenses'
       set({
         error: errorMessage,
@@ -61,7 +62,7 @@ export const useLicensesStore = create<LicensesState>((set) => ({
         usage: response.data,
       })
     } catch (error) {
-      console.error('Failed to fetch license usage:', error)
+      logger.apiError('/licenses/usage', error)
     }
   },
 }))

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { monitoringApi } from '@/services/api/monitoring'
+import { logger } from '@/lib/logger'
 import type {
   SystemStatus,
   IntegrationMetrics,
@@ -49,7 +50,7 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
         lastUpdated: new Date(),
       })
     } catch (error) {
-      console.error('Failed to fetch system status:', error)
+      logger.error('Failed to fetch system status', error)
     }
   },
 
@@ -62,7 +63,7 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
         integrationMetrics: response.data,
       })
     } catch (error) {
-      console.error('Failed to fetch integration metrics:', error)
+      logger.error('Failed to fetch integration metrics', error)
     }
   },
 
@@ -75,7 +76,7 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
         reportMetrics: response.data,
       })
     } catch (error) {
-      console.error('Failed to fetch report metrics:', error)
+      logger.error('Failed to fetch report metrics', error)
     }
   },
 
@@ -88,7 +89,7 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
         queueMetrics: response.data,
       })
     } catch (error) {
-      console.error('Failed to fetch queue metrics:', error)
+      logger.error('Failed to fetch queue metrics', error)
     }
   },
 
@@ -101,7 +102,7 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
         activityTrends: response.data,
       })
     } catch (error) {
-      console.error('Failed to fetch activity trends:', error)
+      logger.error('Failed to fetch activity trends', error)
     }
   },
 
@@ -121,7 +122,7 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
         isLoading: false,
       })
     } catch (error) {
-      console.error('Failed to fetch monitoring data:', error)
+      logger.error('Failed to fetch monitoring data', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to load monitoring data'
       set({
         error: errorMessage,

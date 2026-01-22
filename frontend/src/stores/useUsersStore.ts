@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { userApi } from '@/services/api/users'
+import { userApi } from '@/services/api/usersimport { logger } from '@/lib/logger'
 import type { UserWithPermissions } from '@/pages/users/types'
 
 interface UsersState {
@@ -84,7 +84,7 @@ export const useUsersStore = create<UsersState>((set, get) => ({
         isLoading: false,
       })
     } catch (error) {
-      console.error('Failed to fetch users:', error)
+      logger.error('Failed to fetch users', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to load users'
       set({
         error: errorMessage,
@@ -99,7 +99,7 @@ export const useUsersStore = create<UsersState>((set, get) => ({
       await userApi.deactivateUser(userId)
       await get().fetchUsers(get().currentPage)
     } catch (error) {
-      console.error('Failed to deactivate user:', error)
+      logger.error('Failed to deactivate user', error, { userId })
       throw error
     }
   },
@@ -110,7 +110,7 @@ export const useUsersStore = create<UsersState>((set, get) => ({
       await userApi.reactivateUser(userId)
       await get().fetchUsers(get().currentPage)
     } catch (error) {
-      console.error('Failed to reactivate user:', error)
+      logger.error('Failed to reactivate user', error, { userId })
       throw error
     }
   },

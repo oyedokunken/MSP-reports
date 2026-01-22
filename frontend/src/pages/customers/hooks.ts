@@ -128,8 +128,10 @@ export const useMapCustomerModal = (
         } else {
           setSuggestedMatches([])
         }
-      } catch {
-        setError("Failed to load suggested matches");
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load suggested matches';
+        setError(errorMessage);
+        console.error('Suggested matches fetch error:', err);
       } finally {
         setIsLoadingSuggestions(false)
       }

@@ -8,6 +8,7 @@ import { useSchedulesStore } from "@/stores/useSchedulesStore";
 import { monitoringApi } from "@/services/api/monitoring";
 import { useNotificationStore } from "@/stores/useNotificationStore";
 import { useIntegrationsQuery } from "../integrations/hooks/useIntegrations";
+import { logger } from "@/lib/logger";
 import type { Integration, UpcomingReport, RecentActivity, Stat } from "./types";
 
 export const useQuickSync = (
@@ -53,7 +54,7 @@ export const useDashboard = () => {
 
     // Replace useIntegrationStore with React Query
     const { data, refetch: refetchIntegrations } = useIntegrationsQuery();
-    const integrations = data?.integrations || [];
+    const integrations = useMemo(() => data?.integrations || [], [data?.integrations]);
 
     // Other stores still valid
     const totalCustomers = useCustomersStore((state) => state.totalCustomersCount);
@@ -126,8 +127,9 @@ export const useDashboard = () => {
                 fetchReportMetrics(),
                 fetchSchedules(),
             ]);
-        } catch {
+        } catch (err) {
             if (isAuthenticated) {
+                console.error('Dashboard data load error:', err);
                 toast.error("Failed to load dashboard data");
             }
         } finally {
@@ -140,7 +142,8 @@ export const useDashboard = () => {
         try {
             await loadDashboardData();
             toast.success("Dashboard refreshed");
-        } catch {
+        } catch (err) {
+            console.error('Dashboard refresh error:', err);
             toast.error("Failed to refresh dashboard");
         } finally {
             setIsRefreshing(false);
@@ -197,7 +200,7 @@ export const useDashboard = () => {
                 const response = await monitoringApi.getMonthlyReportAnalytics(6)
                 setReportsChartData(response.data.monthly_data)
             } catch (error) {
-                console.error('Failed to fetch monthly report analytics:', error)
+                logger.apiError('/monitoring/monthly-analytics', error, { months: 6 });
                 // Fallback to empty array on error
                 setReportsChartData([])
             }
