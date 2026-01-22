@@ -2,12 +2,12 @@ import { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/Toast";
 import { FileText, Cable, Users, Activity } from "lucide-react";
-import { useIntegrationStore } from "@/stores/useIntegrationStore";
 import { useCustomersStore } from "@/stores/useCustomersStore";
 import { useMonitoringStore } from "@/stores/useMonitoringStore";
 import { useSchedulesStore } from "@/stores/useSchedulesStore";
 import { monitoringApi } from "@/services/api/monitoring";
 import { useNotificationStore } from "@/stores/useNotificationStore";
+import { useIntegrationsQuery } from "../integrations/hooks/useIntegrations";
 import type { Integration, UpcomingReport, RecentActivity, Stat } from "./types";
 
 export const useQuickSync = (
@@ -51,13 +51,15 @@ export const useDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const integrations = useIntegrationStore((state) => state.integrations);
+    // Replace useIntegrationStore with React Query
+    const { data: integrations = [], refetch: refetchIntegrations } = useIntegrationsQuery();
+
+    // Other stores still valid
     const totalCustomers = useCustomersStore((state) => state.totalCustomersCount);
     const systemStatus = useMonitoringStore((state) => state.systemStatus);
     const reportMetrics = useMonitoringStore((state) => state.reportMetrics);
     const schedules = useSchedulesStore((state) => state.schedules);
 
-    const fetchIntegrations = useIntegrationStore((state) => state.fetchIntegrations);
     const fetchCustomers = useCustomersStore((state) => state.fetchTotalCustomersCount);
     const fetchSystemStatus = useMonitoringStore((state) => state.fetchSystemStatus);
     const fetchReportMetrics = useMonitoringStore((state) => state.fetchReportMetrics);
@@ -117,7 +119,7 @@ export const useDashboard = () => {
         setIsLoading(true);
         try {
             await Promise.all([
-                fetchIntegrations(),
+                refetchIntegrations(),
                 fetchCustomers(),
                 fetchSystemStatus(),
                 fetchReportMetrics(),

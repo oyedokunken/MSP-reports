@@ -1,44 +1,51 @@
-import { useCallback, useRef, useState } from 'react'
-import { api } from '@/lib/api'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { transformIntegrations } from '@/pages/integrations/utils/transformIntegrations';
+import type { IntegrationListResponse } from '@/types/api/integration';
+import type { Integration } from '@/pages/integrations/types/integration';
 
-export const useIntegrationSync = (
-  onSuccess: (title: string, description?: string) => void,
-  onError: (title: string, description?: string) => void
-) => {
-  const [syncingId, setSyncingId] = useState<number | null>(null)
-  const [progress, setProgress] = useState<number>(0)
-  const intervalRef = useRef<number | null>(null)
+// Keys
+export const integrationKeys = {
+  all: ['integrations'] as const,
+  lists: () => [...integrationKeys.all, 'list'] as const,
+};
 
-  const handleSync = useCallback(async (integrationId: number, name: string) => {
-    setSyncingId(integrationId)
-    setProgress(0)
-    try {
-      // Start progress animation
-      intervalRef.current = window.setInterval(() => {
-        setProgress(prev => Math.min(prev + Math.random() * 15, 90))
-      }, 300)
+// Fetcher
+const fetchIntegrations = async (): Promise<Integration[]> => {
+  const response = await api.get('/integrations') as unknown as IntegrationListResponse;
+  return transformIntegrations(response) || [];
+};
 
-      // Call real API
-      await api.get(`/integrations/${integrationId}/sync`)
+export const useIntegrationsQuery = () => {
+  return useQuery({
+    queryKey: integrationKeys.lists(),
+    queryFn: fetchIntegrations,
+    refetchInterval: 30000, // Poll every 30s
+    staleTime: 10000, // Consider data fresh for 10s
+  });
+};
 
-      if (intervalRef.current) window.clearInterval(intervalRef.current)
-      setProgress(100)
-      await new Promise(resolve => setTimeout(resolve, 300))
+export const useSetSourceOfTruthMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.patch('/company/source-integration', { integration_id: id });
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: integrationKeys.lists() });
+    },
+  });
+};
 
-      // Sync completed successfully
-      onSuccess('Sync Complete', `${name} synced successfully`)
-    } catch (e: unknown) {
-      if (intervalRef.current) window.clearInterval(intervalRef.current)
-      const error = e as { response?: { data?: { message?: string } }; message?: string }
-      const errorMsg = error.response?.data?.message || error.message || 'Sync failed'
-      onError('Sync Failed', `${name}: ${errorMsg}`)
-    } finally {
-      setSyncingId(null)
-      setProgress(0)
-    }
-  }, [onSuccess, onError])
-
-  return { syncingId, progress, handleSync }
-}
-
-
+export const useSyncIntegrationMutation = () => {
+  // Note: The actual sync happens in background.
+  // The previous store had a fake progress bar. logic.
+  // We will handle the API call here.
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.get(`/integrations/${id}/sync`);
+      return id;
+    },
+  });
+};
