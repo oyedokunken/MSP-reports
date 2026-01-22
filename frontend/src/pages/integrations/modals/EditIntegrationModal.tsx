@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Spinner } from '@/components/ui/spinner'
 import { CheckCircle2, Settings, AlertCircle } from 'lucide-react'
 import { api } from '@/lib/api'
-import { useIntegrationStore } from '@/stores/useIntegrationStore'
 import type { Integration } from '../types/integration'
 
 interface EditIntegrationModalProps {
@@ -27,8 +26,7 @@ export function EditIntegrationModal({
   const [success, setSuccess] = useState(false)
   const [displayName, setDisplayName] = useState('')
 
-  // Get fetchIntegrations from store
-  const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
+
 
   useEffect(() => {
     if (open && integration) {
@@ -55,9 +53,6 @@ export function EditIntegrationModal({
       await api.patch(`/integrations/${integration.id}`, {
         display_name: displayName.trim(),
       })
-
-      // Refresh integrations silently (without showing loading skeleton)
-      await fetchIntegrations(true, true)
 
       setSuccess(true)
       setTimeout(() => {

@@ -11,7 +11,6 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { Trash2, AlertTriangle } from 'lucide-react'
 import { api } from '@/lib/api'
-import { useIntegrationStore } from '@/stores/useIntegrationStore'
 import { SuccessDialog } from '@/components/modals/SuccessDialog'
 import type { Integration } from '../types/integration'
 
@@ -32,8 +31,7 @@ export function DeleteIntegrationModal({
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  // Get fetchIntegrations from store
-  const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
+
 
   const handleDelete = async () => {
     if (!integration) return
@@ -43,9 +41,6 @@ export function DeleteIntegrationModal({
 
     try {
       await api.delete(`/integrations/${integration.id}`)
-
-      // Refresh integrations silently
-      await fetchIntegrations(true, true)
 
       setSuccess(true)
 

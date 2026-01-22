@@ -39,13 +39,15 @@ export const useSetSourceOfTruthMutation = () => {
 };
 
 export const useSyncIntegrationMutation = () => {
-  // Note: The actual sync happens in background.
-  // The previous store had a fake progress bar. logic.
-  // We will handle the API call here.
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: number) => {
       await api.get(`/integrations/${id}/sync`);
       return id;
+    },
+    onSuccess: () => {
+      // Invalidate to immediately refresh the integration list UI
+      queryClient.invalidateQueries({ queryKey: integrationKeys.lists() });
     },
   });
 };

@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Spinner } from '@/components/ui/spinner'
 import { Cable } from 'lucide-react'
 import { api } from '@/lib/api'
-import { useIntegrationStore } from '@/stores/useIntegrationStore'
 import { SuccessDialog } from '@/components/modals/SuccessDialog'
 import { DynamicCredentialForm } from '@/components/integrations/DynamicCredentialForm'
 import { useIntegrationConfig } from '@/hooks/useIntegrationConfig'
@@ -25,8 +24,7 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  // Get fetchIntegrations from store
-  const fetchIntegrations = useIntegrationStore(state => state.fetchIntegrations)
+
 
   const [formData, setFormData] = useState<{
     integration_type: string
@@ -73,8 +71,6 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
       const response = await api.post('/integrations', formData)
 
       if (response.data) {
-        // Refresh integrations silently
-        await fetchIntegrations(true, true)
 
         setSuccess(true)
         setTimeout(() => {

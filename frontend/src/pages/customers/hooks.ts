@@ -410,10 +410,15 @@ export const useCustomerIntegrationDetails = (customerId: string | undefined) =>
   }
 }
 
-export const useCustomerList = () => {
+// Type for customer action types
+type CustomerAction = 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate' | 'delivery'
+
+// Base hook for customer list functionality - consolidates shared logic
+const useBaseCustomerList = (sotFilter: boolean | null) => {
   const navigate = useNavigate()
   const toast = useToast()
 
+  // Store subscriptions
   const customers = useCustomersStore((state) => state.customers)
   const unmappedCount = useCustomersStore((state) => state.unmappedCount)
   const isLoading = useCustomersStore((state) => state.isLoading)
@@ -428,11 +433,7 @@ export const useCustomerList = () => {
   const totalPages = useCustomersStore((state) => state.totalPages)
   const total = useCustomersStore((state) => state.total)
 
-  const setSearchQuery = useCustomersStore((state) => state.setSearchQuery)
-  const setStatusFilters = useCustomersStore((state) => state.setStatusFilters)
-  const setReportFilters = useCustomersStore((state) => state.setReportFilters)
-  const setIntegrationFilters = useCustomersStore((state) => state.setIntegrationFilters)
-
+  // Store actions
   const fetchCustomers = useCustomersStore((state) => state.fetchCustomers)
   const openModal = useCustomersStore((state) => state.openModal)
   const closeModal = useCustomersStore((state) => state.closeModal)
@@ -441,20 +442,27 @@ export const useCustomerList = () => {
   const getMappedCustomers = useCustomersStore((state) => state.getMappedCustomers)
   const getUnmappedCustomers = useCustomersStore((state) => state.getUnmappedCustomers)
 
+  // Initial fetch with SOT filter
   useEffect(() => {
-    fetchCustomers().catch((err) => {
+    const fetchArgs: [number, boolean, boolean | null] = sotFilter === null
+      ? [1, false, null]
+      : [1, false, sotFilter]
+
+    fetchCustomers(...fetchArgs).catch((err) => {
       toast.error(
         "Failed to load customers",
         err.response?.data?.message || err.message
       )
     })
-  }, [fetchCustomers, toast])
+  }, [fetchCustomers, toast, sotFilter])
 
+  // Derived data
   const mappedCustomers = getMappedCustomers()
   const unmappedCustomers = getUnmappedCustomers()
   const totalMapped = customers.filter((c) => c.customer_id !== null).length
 
-  const handleStartMapping = () => {
+  // Handlers
+  const handleStartMapping = useCallback(() => {
     if (unmappedCustomers.length > 0) {
       const firstUnmapped = unmappedCustomers[0]
       setSelectedUnmappedCustomer({
@@ -468,10 +476,10 @@ export const useCustomerList = () => {
       })
       openModal("map")
     }
-  }
+  }, [unmappedCustomers, setSelectedUnmappedCustomer, openModal])
 
-  const handleMapSuccess = async () => {
-    await fetchCustomers()
+  const handleMapSuccess = useCallback(async () => {
+    await fetchCustomers(currentPage, true, sotFilter)
     const updatedUnmapped = getUnmappedCustomers()
 
     if (updatedUnmapped.length > 0) {
@@ -489,9 +497,9 @@ export const useCustomerList = () => {
       closeModal("map")
       toast.success("All Done!", "All customers have been mapped")
     }
-  }
+  }, [fetchCustomers, currentPage, sotFilter, getUnmappedCustomers, setSelectedUnmappedCustomer, closeModal, toast])
 
-  const handleCustomerAction = (customer: ExistingCustomer, action: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate' | 'delivery') => {
+  const handleCustomerAction = useCallback((customer: ExistingCustomer, action: CustomerAction) => {
     setSelectedCustomer({
       customer_id: customer.customer_id!,
       name: customer.canonical_name!,
@@ -499,39 +507,76 @@ export const useCustomerList = () => {
       integration_count: customer.integrations.length,
     })
     openModal(action)
-  }
+  }, [setSelectedCustomer, openModal])
 
-  const handleModalSuccess = (modalType: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate' | 'delivery', message: string, description: string) => {
-    fetchCustomers(currentPage, true)
+  const handleModalSuccess = useCallback((modalType: CustomerAction, message: string, description: string) => {
+    fetchCustomers(currentPage, true, sotFilter)
     closeModal(modalType)
     toast.success(message, description)
-  }
+  }, [fetchCustomers, currentPage, sotFilter, closeModal, toast])
+
+  const handlePageChange = useCallback((page: number) => {
+    fetchCustomers(page, false, sotFilter)
+  }, [fetchCustomers, sotFilter])
+
+  // Filter setters with SOT parameter
+  const handleSetSearchQuery = useCallback((query: string) => {
+    useCustomersStore.setState({ searchQuery: query, currentPage: 1 })
+    fetchCustomers(1, false, sotFilter)
+  }, [fetchCustomers, sotFilter])
+
+  const handleSetStatusFilters = useCallback((statuses: string[]) => {
+    useCustomersStore.setState({ statusFilters: statuses, currentPage: 1 })
+    fetchCustomers(1, false, sotFilter)
+  }, [fetchCustomers, sotFilter])
+
+  const handleSetReportFilters = useCallback((filters: string[]) => {
+    useCustomersStore.setState({ reportFilters: filters, currentPage: 1 })
+    fetchCustomers(1, false, sotFilter)
+  }, [fetchCustomers, sotFilter])
+
+  const handleSetIntegrationFilters = useCallback((filters: string[]) => {
+    useCustomersStore.setState({ integrationFilters: filters, currentPage: 1 })
+    fetchCustomers(1, false, sotFilter)
+  }, [fetchCustomers, sotFilter])
+
+  const handleClearAllFilters = useCallback(() => {
+    useCustomersStore.setState({ statusFilters: [], reportFilters: [], integrationFilters: [], searchQuery: '', currentPage: 1 })
+    fetchCustomers(1, false, sotFilter)
+  }, [fetchCustomers, sotFilter])
 
   return {
+    // Navigation & Toast
     navigate,
     toast,
+    // Data
+    customers,
+    mappedCustomers,
+    unmappedCustomers,
+    unmappedCount,
+    totalMapped,
+    total,
+    // State
+    isLoading,
     searchQuery,
     statusFilters,
     reportFilters,
     integrationFilters,
-    totalMapped,
-    mappedCustomers,
-    unmappedCustomers,
-    unmappedCount,
-    isLoading,
     modals,
     selectedUnmappedCustomer,
     selectedCustomer,
     currentPage,
     totalPages,
-    total,
-    setSearchQuery,
-    setStatusFilters,
-    setReportFilters,
-    setIntegrationFilters,
-    fetchCustomers,
+    // Actions
     openModal,
     closeModal,
+    fetchCustomers: handlePageChange,
+    setSearchQuery: handleSetSearchQuery,
+    setStatusFilters: handleSetStatusFilters,
+    setReportFilters: handleSetReportFilters,
+    setIntegrationFilters: handleSetIntegrationFilters,
+    clearAllFilters: handleClearAllFilters,
+    // Handlers
     handleStartMapping,
     handleMapSuccess,
     handleCustomerAction,
@@ -539,43 +584,34 @@ export const useCustomerList = () => {
   }
 }
 
+// Hook for general customer list (no SOT filter)
+export const useCustomerList = () => {
+  const base = useBaseCustomerList(null)
+
+  // For backwards compatibility, use store's default setters when no SOT filter
+  const setSearchQuery = useCustomersStore((state) => state.setSearchQuery)
+  const setStatusFilters = useCustomersStore((state) => state.setStatusFilters)
+  const setReportFilters = useCustomersStore((state) => state.setReportFilters)
+  const setIntegrationFilters = useCustomersStore((state) => state.setIntegrationFilters)
+  const storeFetchCustomers = useCustomersStore((state) => state.fetchCustomers)
+
+  return {
+    ...base,
+    setSearchQuery,
+    setStatusFilters,
+    setReportFilters,
+    setIntegrationFilters,
+    fetchCustomers: storeFetchCustomers,
+  }
+}
+
 // Hook for Master Customer List (Source of Truth = true)
 export const useMasterCustomerList = () => {
-  const navigate = useNavigate()
-  const toast = useToast()
+  const base = useBaseCustomerList(true)
   const [sotIntegrationName, setSotIntegrationName] = useState<string | null>(null)
 
-  const customers = useCustomersStore((state) => state.customers)
-  const unmappedCount = useCustomersStore((state) => state.unmappedCount)
-  const isLoading = useCustomersStore((state) => state.isLoading)
-  const searchQuery = useCustomersStore((state) => state.searchQuery)
-  const statusFilters = useCustomersStore((state) => state.statusFilters)
-  const reportFilters = useCustomersStore((state) => state.reportFilters)
-  const integrationFilters = useCustomersStore((state) => state.integrationFilters)
-  const modals = useCustomersStore((state) => state.modals)
-  const selectedUnmappedCustomer = useCustomersStore((state) => state.selectedUnmappedCustomer)
-  const selectedCustomer = useCustomersStore((state) => state.selectedCustomer)
-  const currentPage = useCustomersStore((state) => state.currentPage)
-  const totalPages = useCustomersStore((state) => state.totalPages)
-  const total = useCustomersStore((state) => state.total)
-
-  const fetchCustomers = useCustomersStore((state) => state.fetchCustomers)
-  const openModal = useCustomersStore((state) => state.openModal)
-  const closeModal = useCustomersStore((state) => state.closeModal)
-  const setSelectedUnmappedCustomer = useCustomersStore((state) => state.setSelectedUnmappedCustomer)
-  const setSelectedCustomer = useCustomersStore((state) => state.setSelectedCustomer)
-  const getMappedCustomers = useCustomersStore((state) => state.getMappedCustomers)
-  const getUnmappedCustomers = useCustomersStore((state) => state.getUnmappedCustomers)
-
+  // Fetch SOT integration name on mount
   useEffect(() => {
-    fetchCustomers(1, false, true).catch((err) => {
-      toast.error(
-        "Failed to load customers",
-        err.response?.data?.message || err.message
-      )
-    })
-
-    // Fetch SOT integration name
     api.get('/integrations').then((response: unknown) => {
       const typedResponse = response as { configured?: Array<{ is_source_of_truth?: boolean; display_name?: string; integration_type?: string }> }
       const sotIntegration = typedResponse.configured?.find((int) => int.is_source_of_truth === true)
@@ -585,234 +621,15 @@ export const useMasterCustomerList = () => {
     }).catch((err: unknown) => {
       console.error('Failed to fetch SOT integration:', err)
     })
-  }, [fetchCustomers, toast])
-
-  const mappedCustomers = getMappedCustomers()
-  const unmappedCustomers = getUnmappedCustomers()
-  const totalMapped = customers.filter((c) => c.customer_id !== null).length
-
-  const handleStartMapping = () => {
-    if (unmappedCustomers.length > 0) {
-      const firstUnmapped = unmappedCustomers[0]
-      setSelectedUnmappedCustomer({
-        integration_customer_id: firstUnmapped.integration_customer_id,
-        integration_type: firstUnmapped.integration_type,
-        display_name: firstUnmapped.display_name,
-        external_id: firstUnmapped.external_id,
-        name: firstUnmapped.name,
-        active: firstUnmapped.active,
-        last_seen_at: firstUnmapped.last_seen_at,
-      })
-      openModal("map")
-    }
-  }
-
-  const handleMapSuccess = async () => {
-    await fetchCustomers(currentPage, true, true)
-    const updatedUnmapped = getUnmappedCustomers()
-
-    if (updatedUnmapped.length > 0) {
-      const nextUnmapped = updatedUnmapped[0]
-      setSelectedUnmappedCustomer({
-        integration_customer_id: nextUnmapped.integration_customer_id,
-        integration_type: nextUnmapped.integration_type,
-        display_name: nextUnmapped.display_name,
-        external_id: nextUnmapped.external_id,
-        name: nextUnmapped.name,
-        active: nextUnmapped.active,
-        last_seen_at: nextUnmapped.last_seen_at,
-      })
-    } else {
-      closeModal("map")
-      toast.success("All Done!", "All customers have been mapped")
-    }
-  }
-
-  const handleCustomerAction = (customer: ExistingCustomer, action: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate' | 'delivery') => {
-    setSelectedCustomer({
-      customer_id: customer.customer_id!,
-      name: customer.canonical_name!,
-      status: customer.status!,
-      integration_count: customer.integrations.length,
-    })
-    openModal(action)
-  }
-
-  const handleModalSuccess = (modalType: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate' | 'delivery', message: string, description: string) => {
-    fetchCustomers(currentPage, true, true)
-    closeModal(modalType)
-    toast.success(message, description)
-  }
-
-  const handlePageChange = (page: number) => {
-    fetchCustomers(page, false, true)
-  }
-
-  // Override filter setters to include SOT parameter
-  const handleSetSearchQuery = (query: string) => {
-    useCustomersStore.setState({ searchQuery: query, currentPage: 1 })
-    fetchCustomers(1, false, true)
-  }
-
-  const handleSetStatusFilters = (statuses: string[]) => {
-    useCustomersStore.setState({ statusFilters: statuses, currentPage: 1 })
-    fetchCustomers(1, false, true)
-  }
-
-  const handleSetReportFilters = (filters: string[]) => {
-    useCustomersStore.setState({ reportFilters: filters, currentPage: 1 })
-    fetchCustomers(1, false, true)
-  }
-
-  const handleSetIntegrationFilters = (filters: string[]) => {
-    useCustomersStore.setState({ integrationFilters: filters, currentPage: 1 })
-    fetchCustomers(1, false, true)
-  }
-
-  const handleClearAllFilters = () => {
-    useCustomersStore.setState({ statusFilters: [], reportFilters: [], integrationFilters: [], searchQuery: '', currentPage: 1 })
-    fetchCustomers(1, false, true)
-  }
+  }, [])
 
   return {
-    navigate,
-    toast,
-    searchQuery,
-    statusFilters,
-    reportFilters,
-    integrationFilters,
-    totalMapped,
-    mappedCustomers,
-    unmappedCustomers,
-    unmappedCount,
-    isLoading,
-    modals,
-    selectedUnmappedCustomer,
-    selectedCustomer,
-    currentPage,
-    totalPages,
-    total,
+    ...base,
     sotIntegrationName,
-    setSearchQuery: handleSetSearchQuery,
-    setStatusFilters: handleSetStatusFilters,
-    setReportFilters: handleSetReportFilters,
-    setIntegrationFilters: handleSetIntegrationFilters,
-    clearAllFilters: handleClearAllFilters,
-    fetchCustomers: handlePageChange,
-    openModal,
-    closeModal,
-    handleStartMapping,
-    handleMapSuccess,
-    handleCustomerAction,
-    handleModalSuccess,
   }
 }
 
 // Hook for Secondary Customer List (Source of Truth = false)
 export const useSecondaryCustomerList = () => {
-  const navigate = useNavigate()
-  const toast = useToast()
-
-  const customers = useCustomersStore((state) => state.customers)
-  const isLoading = useCustomersStore((state) => state.isLoading)
-  const searchQuery = useCustomersStore((state) => state.searchQuery)
-  const statusFilters = useCustomersStore((state) => state.statusFilters)
-  const reportFilters = useCustomersStore((state) => state.reportFilters)
-  const integrationFilters = useCustomersStore((state) => state.integrationFilters)
-  const modals = useCustomersStore((state) => state.modals)
-  const selectedCustomer = useCustomersStore((state) => state.selectedCustomer)
-  const currentPage = useCustomersStore((state) => state.currentPage)
-  const totalPages = useCustomersStore((state) => state.totalPages)
-  const total = useCustomersStore((state) => state.total)
-
-  const fetchCustomers = useCustomersStore((state) => state.fetchCustomers)
-  const openModal = useCustomersStore((state) => state.openModal)
-  const closeModal = useCustomersStore((state) => state.closeModal)
-  const setSelectedCustomer = useCustomersStore((state) => state.setSelectedCustomer)
-  const getMappedCustomers = useCustomersStore((state) => state.getMappedCustomers)
-
-  useEffect(() => {
-    fetchCustomers(1, false, false).catch((err) => {
-      toast.error(
-        "Failed to load customers",
-        err.response?.data?.message || err.message
-      )
-    })
-  }, [fetchCustomers, toast])
-
-  const mappedCustomers = getMappedCustomers()
-  const totalMapped = customers.filter((c) => c.customer_id !== null).length
-
-  const handleCustomerAction = (customer: ExistingCustomer, action: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate' | 'delivery') => {
-    setSelectedCustomer({
-      customer_id: customer.customer_id!,
-      name: customer.canonical_name!,
-      status: customer.status!,
-      integration_count: customer.integrations.length,
-    })
-    openModal(action)
-  }
-
-  const handleModalSuccess = (modalType: 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate' | 'delivery', message: string, description: string) => {
-    fetchCustomers(currentPage, true, false)
-    closeModal(modalType)
-    toast.success(message, description)
-  }
-
-  const handlePageChange = (page: number) => {
-    fetchCustomers(page, false, false)
-  }
-
-  // Override filter setters to include SOT parameter
-  const handleSetSearchQuery = (query: string) => {
-    useCustomersStore.setState({ searchQuery: query, currentPage: 1 })
-    fetchCustomers(1, false, false)
-  }
-
-  const handleSetStatusFilters = (statuses: string[]) => {
-    useCustomersStore.setState({ statusFilters: statuses, currentPage: 1 })
-    fetchCustomers(1, false, false)
-  }
-
-  const handleSetReportFilters = (filters: string[]) => {
-    useCustomersStore.setState({ reportFilters: filters, currentPage: 1 })
-    fetchCustomers(1, false, false)
-  }
-
-  const handleSetIntegrationFilters = (filters: string[]) => {
-    useCustomersStore.setState({ integrationFilters: filters, currentPage: 1 })
-    fetchCustomers(1, false, false)
-  }
-
-  const handleClearAllFilters = () => {
-    useCustomersStore.setState({ statusFilters: [], reportFilters: [], integrationFilters: [], searchQuery: '', currentPage: 1 })
-    fetchCustomers(1, false, false)
-  }
-
-  return {
-    navigate,
-    toast,
-    searchQuery,
-    statusFilters,
-    reportFilters,
-    integrationFilters,
-    totalMapped,
-    mappedCustomers,
-    isLoading,
-    modals,
-    selectedCustomer,
-    currentPage,
-    totalPages,
-    total,
-    setSearchQuery: handleSetSearchQuery,
-    setStatusFilters: handleSetStatusFilters,
-    setReportFilters: handleSetReportFilters,
-    setIntegrationFilters: handleSetIntegrationFilters,
-    clearAllFilters: handleClearAllFilters,
-    fetchCustomers: handlePageChange,
-    openModal,
-    closeModal,
-    handleCustomerAction,
-    handleModalSuccess,
-  }
+  return useBaseCustomerList(false)
 }
