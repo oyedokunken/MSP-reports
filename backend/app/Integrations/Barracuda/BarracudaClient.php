@@ -2,11 +2,14 @@
 
 namespace App\Integrations\Barracuda;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
+use App\Integrations\Exceptions\ApiResponseException;
+use App\Integrations\Exceptions\RateLimitExceededException;
 
 class BarracudaClient
 {
@@ -307,7 +310,7 @@ class BarracudaClient
     {
         // Check rate limit BEFORE each API call
         if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
-            throw new \Exception("Rate limit exceeded for Barracuda API");
+            throw new RateLimitExceededException('Rate limit exceeded for Barracuda API');
         }
 
         $url = $this->baseUrl . $endpoint;
@@ -316,10 +319,17 @@ class BarracudaClient
             // Get access token
             $token = $this->getAccessToken();
             
+            Log::debug('Barracuda API request', [
+                'integration_id' => $this->integration->integration_id,
+                'method'         => $method,
+                'endpoint'       => $endpoint,
+                'params'         => $params,
+            ]);
+            
             // Build request
             $request = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
-                'Accept' => 'application/json',
+                'Accept'        => 'application/json',
             ]);
 
             // Make request based on method
@@ -343,16 +353,26 @@ class BarracudaClient
             if (!$response->successful()) {
                 Log::error('Barracuda: API request failed', [
                     'integration_id' => $this->integration->integration_id,
-                    'method' => $method,
-                    'endpoint' => $endpoint,
-                    'status' => $response->status(),
-                    'body' => $response->body()
+                    'method'         => $method,
+                    'endpoint'       => $endpoint,
+                    'status'         => $response->status(),
+                    'body'           => $response->body()
                 ]);
-                throw new \RuntimeException("API request failed: " . $response->body());
+                throw new ApiResponseException(
+                    'Barracuda API request failed',
+                    $response->status(),
+                    $response->body()
+                );
             }
 
             // Record this API call
             $this->rateLimiter->recordRequest($this->integration);
+            
+            Log::debug('Barracuda API response', [
+                'integration_id' => $this->integration->integration_id,
+                'status'         => $response->status(),
+                'body_preview'   => substr($response->body(), 0, 500),
+            ]);
             
             return $response->json();
         } catch (\Exception $e) {

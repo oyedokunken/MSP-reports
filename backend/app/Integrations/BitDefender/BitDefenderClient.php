@@ -2,13 +2,15 @@
 
 namespace App\Integrations\BitDefender;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
+use App\Integrations\Exceptions\ApiResponseException;
+use App\Integrations\Exceptions\RateLimitExceededException;
 use Carbon\Carbon;
-use Exception;
 
 class BitDefenderClient
 {
@@ -231,7 +233,7 @@ class BitDefenderClient
         while ($attempt <= $retries) {
             if (!$this->rateLimiter->canMakeRequest($this->integration)) {
                 if (!$this->rateLimiter->waitForSlot($this->integration, 60)) {
-                    throw new Exception('Rate limit timeout');
+                    throw new RateLimitExceededException('Rate limit timeout');
                 }
             }
 
@@ -245,6 +247,13 @@ class BitDefenderClient
             ];
 
             $url = $this->baseUrl . '/' . $category;
+
+            Log::debug('BitDefender API request', [
+                'integration_id' => $this->integration->integration_id,
+                'method'         => $method,
+                'category'       => $category,
+                'params'         => $params,
+            ]);
 
             try {
                 $response = Http::withHeaders([
@@ -261,11 +270,23 @@ class BitDefenderClient
                 $data = $response->json();
 
                 if (isset($data['error'])) {
-                    throw new Exception("JSON-RPC error: {$data['error']['message']} (code {$data['error']['code']})");
+                    throw new ApiResponseException(
+                        "JSON-RPC error: {$data['error']['message']}",
+                        $data['error']['code'] ?? 500,
+                        json_encode($data['error'])
+                    );
                 }
 
+                Log::debug('BitDefender API response', [
+                    'integration_id' => $this->integration->integration_id,
+                    'method'         => $method,
+                    'has_result'     => isset($data['result']),
+                ]);
+
                 return $data;
-            } catch (Exception $e) {
+            } catch (ApiResponseException $e) {
+                throw $e;
+            } catch (\Exception $e) {
                 $attempt++;
                 if ($attempt > $retries) {
                     Log::error('BitDefender request failed after retries', [
@@ -280,6 +301,6 @@ class BitDefenderClient
             }
         }
 
-        throw new Exception('Max retries reached');
+        throw new ApiResponseException('Max retries reached', 500);
     }
 }

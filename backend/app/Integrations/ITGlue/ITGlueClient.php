@@ -2,12 +2,15 @@
 
 namespace App\Integrations\ITGlue;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
+use App\Integrations\Exceptions\ApiResponseException;
+use App\Integrations\Exceptions\RateLimitExceededException;
 
 class ITGlueClient
 {
@@ -171,10 +174,16 @@ class ITGlueClient
     protected function makeRequest(string $endpoint, array $params = [], int $retryCount = 0): array
     {
         if (!$this->rateLimiter->waitForSlot($this->integration, self::RATE_LIMIT_WAIT_TIMEOUT_SEC)) {
-            throw new \Exception("Rate limit wait timeout exceeded for IT Glue");
+            throw new RateLimitExceededException("Rate limit wait timeout exceeded for IT Glue");
         }
 
         $url = $this->baseUrl . $endpoint;
+
+        Log::debug('IT Glue API request', [
+            'integration_id' => $this->integration->integration_id,
+            'endpoint'       => $endpoint,
+            'params'         => $params,
+        ]);
 
         $response = Http::withHeaders([
             'x-api-key'     => $this->credentials['api_key'] ?? '',
@@ -207,8 +216,18 @@ class ITGlueClient
                 'body_preview'   => substr($response->body(), 0, 500),
             ]);
 
-            throw new \RuntimeException("IT Glue API error: {$response->status()} - {$response->body()}");
+            throw new ApiResponseException(
+                "IT Glue API error",
+                $response->status(),
+                $response->body()
+            );
         }
+
+        Log::debug('IT Glue API response', [
+            'integration_id' => $this->integration->integration_id,
+            'status'         => $response->status(),
+            'body_preview'   => substr($response->body(), 0, 500),
+        ]);
 
         return $response->json() ?? [];
     }

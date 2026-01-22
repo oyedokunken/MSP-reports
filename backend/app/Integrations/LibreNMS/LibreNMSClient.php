@@ -2,10 +2,13 @@
 
 namespace App\Integrations\LibreNMS;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
+use App\Integrations\Exceptions\ApiResponseException;
+use App\Integrations\Exceptions\RateLimitExceededException;
 
 class LibreNMSClient
 {
@@ -158,7 +161,7 @@ class LibreNMSClient
                 Log::warning('LibreNMS: Rate limit hit', [
                     'integration_id' => $this->integration->integration_id,
                 ]);
-                throw new \RuntimeException("Rate limit exceeded. Please try again later.");
+                throw new RateLimitExceededException('Rate limit exceeded. Please try again later.');
             }
 
             if ($response->status() === 401) {
@@ -186,10 +189,17 @@ class LibreNMSClient
                 
                 // Provide helpful error messages
                 if ($statusCode === 403) {
-                    throw new \RuntimeException("Access forbidden. This API may be geolocation-restricted to Australia. Ensure you're connecting from an Australian IP address.");
+                    throw new ApiResponseException(
+                        "Access forbidden. This API may be geolocation-restricted to Australia.",
+                        403
+                    );
                 }
                 
-                throw new \RuntimeException("API request failed (HTTP {$statusCode}): " . $errorMessage);
+                throw new ApiResponseException(
+                    "API request failed",
+                    $statusCode,
+                    $errorMessage
+                );
             }
 
             $this->rateLimiter->recordRequest($this->integration);

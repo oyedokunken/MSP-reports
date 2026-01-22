@@ -3,10 +3,12 @@
 namespace App\Integrations\Autotask;
 
 use Carbon\Carbon;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
+use App\Integrations\Exceptions\RateLimitExceededException;
 
 class AutotaskClient
 {
@@ -405,28 +407,33 @@ class AutotaskClient
         }
     }
 
-    protected function makeRequest(string $method, string $endpoint, array $params = [])
+    protected function makeRequest(string $method, string $endpoint, array $params = []): Response
     {
         if (!$this->useMockData) {
             if (!$this->rateLimiter->waitForSlot($this->integration, 180)) {
-                throw new \Exception("Rate limit exceeded for Autotask API, could not acquire slot within timeout.");
+                throw new RateLimitExceededException('Rate limit exceeded for Autotask API');
             }
         }
 
         $headers = [
-            'Username' => $this->credentials['username'] ?? '',
-            'Secret' => $this->credentials['secret'] ?? '',
+            'Username'           => $this->credentials['username'] ?? '',
+            'Secret'             => $this->credentials['secret'] ?? '',
             'APIIntegrationcode' => $this->apiIntegrationCode,
-            'Content-Type' => 'application/json',
+            'Accept'             => 'application/json',
+            'Content-Type'       => 'application/json',
         ];
 
         $url = $this->baseUrl . $endpoint;
 
-        \Log::info('Autotask API Request', [
-            'method' => $method,
-            'url' => $url,
-            'headers' => array_merge($headers, ['Secret' => '***REDACTED***']),
-            'body' => $params
+        $loggableHeaders = $headers;
+        $loggableHeaders['Secret'] = '***';
+
+        \Log::debug('Autotask API request', [
+            'integration_id' => $this->integration->integration_id,
+            'method'         => $method,
+            'url'            => $url,
+            'headers'        => $loggableHeaders,
+            'body'           => $params
         ]);
 
         // Retry logic with exponential backoff for network errors
@@ -436,17 +443,21 @@ class AutotaskClient
 
         for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
             try {
-                if ($method === 'GET') {
-                    $response = Http::withHeaders($headers)->timeout(120)->get($url);
-                } else {
-                    $response = Http::withHeaders($headers)->timeout(120)->post($url, $params);
-                }
+                $request = Http::withHeaders($headers)
+                    ->timeout(120)
+                    ->retry(2, 1000);
 
-                \Log::info('Autotask API Response', [
-                    'status' => $response->status(),
-                    'successful' => $response->successful(),
-                    'body_preview' => substr($response->body(), 0, 500),
-                    'attempt' => $attempt
+                $response = match (strtoupper($method)) {
+                    'GET'  => $request->get($url),
+                    'POST' => $request->post($url, $params),
+                    default => throw new \InvalidArgumentException("Unsupported method: {$method}"),
+                };
+
+                \Log::debug('Autotask API response', [
+                    'integration_id' => $this->integration->integration_id,
+                    'status'         => $response->status(),
+                    'body_preview'   => substr($response->body(), 0, 500),
+                    'attempt'        => $attempt
                 ]);
 
                 if (!$this->useMockData) {

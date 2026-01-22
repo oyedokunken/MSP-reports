@@ -3,12 +3,14 @@
 namespace App\Integrations\Datto;
 
 use Carbon\Carbon;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
+use App\Integrations\Exceptions\RateLimitExceededException;
 
 class DattoClient
 {
@@ -366,7 +368,7 @@ class DattoClient
         return [];
     }
 
-    protected function makeRmmRequest(string $endpoint, array $params = []): array
+    protected function makeRmmRequest(string $endpoint, array $params = []): ?array
     {
         if (empty($this->accessToken)) {
             $this->accessToken = $this->getAccessToken();
@@ -379,11 +381,17 @@ class DattoClient
         
         while ($attempt <= $maxRetries) {
             try {
+                Log::debug('Datto RMM API request', [
+                    'integration_id' => $this->integration->integration_id,
+                    'endpoint'       => $endpoint,
+                    'params'         => $params,
+                ]);
+
                 $response = Http::timeout(120)
                     ->connectTimeout(30)
                     ->withHeaders([
                         'Authorization' => 'Bearer ' . $this->accessToken,
-                        'Accept' => 'application/json',
+                        'Accept'        => 'application/json',
                     ])->get($url, $params);
 
                 // Handle response status codes
@@ -402,9 +410,8 @@ class DattoClient
                     Log::error('Datto RMM: Rate limit exceeded after retry', [
                         'integration_id' => $this->integration->integration_id,
                     ]);
-                    throw new \App\Integrations\Exceptions\RateLimitException(
-                        'Datto RMM API rate limit exceeded',
-                        429
+                    throw new RateLimitExceededException(
+                        'Datto RMM API rate limit exceeded'
                     );
                 }
 
@@ -429,6 +436,13 @@ class DattoClient
                 }
 
                 $this->rateLimiter->recordRequest($this->integration);
+                
+                Log::debug('Datto RMM API response', [
+                    'integration_id' => $this->integration->integration_id,
+                    'status'         => $response->status(),
+                    'body_preview'   => substr($response->body(), 0, 500),
+                ]);
+                
                 return $response->json();
                 
             } catch (\Illuminate\Http\Client\ConnectionException $e) {

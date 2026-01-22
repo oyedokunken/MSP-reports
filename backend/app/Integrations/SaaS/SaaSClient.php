@@ -2,11 +2,14 @@
 
 namespace App\Integrations\SaaS;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
+use App\Integrations\Exceptions\ApiResponseException;
+use App\Integrations\Exceptions\RateLimitExceededException;
 
 class SaaSClient
 {
@@ -15,191 +18,247 @@ class SaaSClient
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
 
-    public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
-    {
-        $this->credentials = $credentials;
-        $this->rateLimiter = $rateLimiter;
-        $this->integration = $integration;
-
-        $this->baseUrl = rtrim($credentials['base_url'] ?? 'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1', '/');
+    public function __construct(
+        array $credentials,
+        RateLimiter $rateLimiter,
+        Integration $integration
+    ) {
+        $this->credentials  = $credentials;
+        $this->rateLimiter  = $rateLimiter;
+        $this->integration  = $integration;
+        $this->baseUrl      = rtrim($credentials['base_url'] ?? 'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1', '/');
     }
 
+    /**
+     * Test if the API credentials are valid.
+     *
+     * @throws AuthenticationException
+     */
     public function testConnection(): bool
     {
         try {
             $response = $this->makeRequest('GET', '/reports/partners/profile');
-            
+
             if (!$response->successful()) {
-                $statusCode = $response->status();
-                $body = $response->body();
-                
-                Log::error('SaaS Alerts connection test failed', [
-                    'integration_id' => $this->integration->integration_id,
-                    'status' => $statusCode,
-                    'body' => $body
-                ]);
-                
-                throw new AuthenticationException(
-                    'SaaS Alerts authentication failed',
-                    $statusCode,
-                    $body
+                throw new ApiResponseException(
+                    'SaaS Alerts authentication check failed',
+                    $response->status(),
+                    $response->body()
                 );
             }
-            
+
             return true;
-        } catch (AuthenticationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
+        } catch (ApiResponseException $e) {
             Log::error('SaaS Alerts connection test failed', [
                 'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage()
+                'status'         => $e->status,
+                'body_preview'   => substr($e->body, 0, 500),
             ]);
-            
+
             throw new AuthenticationException(
                 'SaaS Alerts authentication failed: ' . $e->getMessage(),
-                400
+                $e->status,
+                $e->body
             );
+        } catch (\Throwable $e) {
+            Log::error('Unexpected error during SaaS Alerts connection test', [
+                'integration_id' => $this->integration->integration_id,
+                'error'          => $e->getMessage(),
+                'trace'          => $e->getTraceAsString(),
+            ]);
+
+            throw new AuthenticationException('SaaS Alerts connection test failed unexpectedly');
         }
     }
 
     /**
-     * Get all customers for the authenticated partner.
+     * Get all customers (companies) associated with the partner.
+     *
+     * @return array<int, array<string, mixed>>
+     * @throws \Exception
      */
     public function getCustomers(): array
     {
-        try {
-            $response = $this->makeRequest('GET', '/customers');
+        $response = $this->makeRequest('GET', '/customers');
 
-            if (!$response->successful()) {
-                Log::warning('SaaS Alerts API getCustomers failed', [
-                    'integration_id' => $this->integration->integration_id,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-                return [];
-            }
-
-            $customers = $response->json();
-
-            Log::info('SaaS Alerts API customers retrieval complete', [
-                'integration_id' => $this->integration->integration_id,
-                'total_count' => count($customers)
+        if (!$response->successful()) {
+            Log::warning('Failed to fetch SaaS Alerts customers', [
+                'status' => $response->status(),
+                'body'   => substr($response->body(), 0, 500),
             ]);
-
-            return $customers;
-
-        } catch (\Exception $e) {
-            Log::error('SaaS Alerts API getCustomers exception', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-            ]);
-            throw new \Exception("Failed to fetch customers: {$e->getMessage()}");
+            throw new ApiResponseException('Failed to retrieve customers', $response->status(), $response->body());
         }
+
+        $customers = $response->json() ?? [];
+
+        Log::info('SaaS Alerts customers retrieved', [
+            'integration_id' => $this->integration->integration_id,
+            'count'          => count($customers),
+        ]);
+
+        return $customers;
     }
 
     /**
-     * Get events for a specific customer.
+     * Get details for a specific customer.
+     */
+    public function getCustomer(string $customerId): ?array
+    {
+        $response = $this->makeRequest('GET', "/customers/{$customerId}");
+
+        if (!$response->successful()) {
+            Log::warning('Failed to fetch SaaS Alerts customer', [
+                'customer_id' => $customerId,
+                'status'      => $response->status(),
+            ]);
+            return null;
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Get users/accounts for a specific customer.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getUsersForCustomer(string $customerId): array
+    {
+        $response = $this->makeRequest('GET', '/reports/users', ['customerId' => $customerId]);
+
+        if (!$response->successful()) {
+            Log::warning('Failed to fetch users for customer', [
+                'customer_id' => $customerId,
+                'status'      => $response->status(),
+            ]);
+            return [];
+        }
+
+        return $response->json() ?? [];
+    }
+
+    /**
+     * Get security events/alerts.
+     * Supports all documented query parameters.
+     *
+     * @param array<string, mixed> $params Available: customerId, userEmail, alertStatus, eventType,
+     *                                     start, end, from, size, timeSort, scroll
+     * @return array<int, array<string, mixed>>
      */
     public function getEvents(array $params = []): array
     {
-        try {
-            $partnerId = $this->credentials['partner_id'] ?? null;
-            
-            if (!$partnerId) {
-                throw new \Exception('Partner ID is required to fetch events');
-            }
+        $allowedParams = ['customerId', 'userEmail', 'alertStatus', 'eventType', 'start', 'end', 'from', 'size', 'timeSort', 'scroll'];
 
-            // Build query parameters
-            $queryParams = [
-                'partnerId' => $partnerId,
-            ];
+        $query = array_filter($params, fn($key) => in_array($key, $allowedParams, true), ARRAY_FILTER_USE_KEY);
 
-            if (isset($params['customerId'])) {
-                $queryParams['customerId'] = $params['customerId'];
-            }
-            if (isset($params['start'])) {
-                $queryParams['start'] = $params['start'];
-            }
-            if (isset($params['end'])) {
-                $queryParams['end'] = $params['end'];
-            }
-            if (isset($params['size'])) {
-                $queryParams['size'] = $params['size'];
-            }
+        // Sensible defaults
+        $query['size'] = $query['size'] ?? 100;
 
-            $response = $this->makeRequest('GET', '/reports/events', $queryParams);
+        $response = $this->makeRequest('GET', '/reports/events', $query);
 
-            if (!$response->successful()) {
-                Log::warning('SaaS Alerts API getEvents failed', [
-                    'integration_id' => $this->integration->integration_id,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                    'params' => $queryParams,
-                ]);
-                return [];
-            }
-
-            $events = $response->json();
-
-            Log::info('SaaS Alerts API events retrieval complete', [
-                'integration_id' => $this->integration->integration_id,
-                'total_count' => count($events),
-                'params' => $queryParams,
+        if (!$response->successful()) {
+            Log::warning('SaaS Alerts events fetch failed', [
+                'status' => $response->status(),
+                'params' => $query,
+                'body'   => substr($response->body(), 0, 500),
             ]);
-
-            return $events;
-
-        } catch (\Exception $e) {
-            Log::error('SaaS Alerts API getEvents exception', [
-                'integration_id' => $this->integration->integration_id,
-                'error' => $e->getMessage(),
-                'params' => $params,
-            ]);
-            throw new \Exception("Failed to fetch events: {$e->getMessage()}");
+            return [];
         }
+
+        $events = $response->json() ?? [];
+
+        Log::info('SaaS Alerts events retrieved', [
+            'integration_id' => $this->integration->integration_id,
+            'count'          => count($events),
+            'params'         => $query,
+        ]);
+
+        return $events;
     }
 
     /**
-     * Make an authenticated request to the SaaS Alerts API.
+     * Get total count of events matching the criteria (without fetching full list).
      */
-    protected function makeRequest(string $method, string $endpoint, array $params = [])
+    public function getEventCount(array $params = []): int
     {
-        // Wait for rate limiter slot
-        if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
-            throw new \Exception("Rate limit exceeded for SaaS Alerts API, could not acquire slot within timeout.");
+        $allowed = ['customerId', 'userEmail', 'alertStatus', 'eventType', 'start', 'end'];
+
+        $query = array_intersect_key($params, array_flip($allowed));
+
+        $response = $this->makeRequest('GET', '/reports/events/count', $query);
+
+        if (!$response->successful()) {
+            return 0;
         }
 
+        return (int) ($response->json()['total'] ?? 0);
+    }
+
+    /**
+     * Core method to make authenticated requests.
+     */
+    protected function makeRequest(string $method, string $endpoint, array $query = [], array $body = []): Response
+    {
+        if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
+            throw new RateLimitExceededException('Rate limit exceeded for SaaS Alerts API');
+        }
+
+        $url = $this->baseUrl . '/' . ltrim($endpoint, '/');
+
         $headers = [
-            'api_key' => $this->credentials['api_key'] ?? '',
+            'api_key'      => $this->credentials['api_key'] ?? '',
+            'Accept'       => 'application/json',
             'Content-Type' => 'application/json',
         ];
 
-        $url = $this->baseUrl . $endpoint;
+        $loggableHeaders = $headers;
+        $loggableHeaders['api_key'] = '***';
 
-        Log::info('SaaS Alerts API Request', [
+        Log::debug('SaaS Alerts API request', [
             'integration_id' => $this->integration->integration_id,
-            'method' => $method,
-            'url' => $url,
-            'headers' => array_merge($headers, ['api_key' => '***REDACTED***']),
-            'params' => $params
+            'method'         => $method,
+            'url'            => $url,
+            'query'          => $query,
+            'headers'        => $loggableHeaders,
         ]);
 
-        if ($method === 'GET') {
-            $response = Http::withHeaders($headers)->timeout(120)->get($url, $params);
-        } else {
-            $response = Http::withHeaders($headers)->timeout(120)->post($url, $params);
-        }
+        $request = Http::withHeaders($headers)
+            ->timeout(120)
+            ->retry(2, 800); // retry twice on 5xx / connection errors with 800ms delay
 
-        Log::info('SaaS Alerts API Response', [
+        $response = match (strtoupper($method)) {
+            'GET'  => $request->get($url, $query),
+            'POST' => $request->post($url, $body),
+            default => throw new \InvalidArgumentException("Unsupported method: {$method}"),
+        };
+
+        Log::debug('SaaS Alerts API response', [
             'integration_id' => $this->integration->integration_id,
-            'status' => $response->status(),
-            'successful' => $response->successful(),
-            'body_preview' => substr($response->body(), 0, 500)
+            'status'         => $response->status(),
+            'body_preview'   => substr($response->body(), 0, 800),
         ]);
 
-        // Record request for rate limiting
         $this->rateLimiter->recordRequest($this->integration);
 
         return $response;
     }
+
+    // Optional: future complex event queries
+    /*
+    public function queryEvents(array $esQueryBody, string $scroll = '5s'): array
+    {
+        $payload = [
+            'body'   => $esQueryBody,
+            'scroll' => $scroll,
+        ];
+
+        $response = $this->makeRequest('POST', '/reports/events/query', [], $payload);
+
+        if (!$response->successful()) {
+            throw new ApiResponseException('Event query failed', $response->status(), $response->body());
+        }
+
+        return $response->json() ?? [];
+    }
+    */
 }

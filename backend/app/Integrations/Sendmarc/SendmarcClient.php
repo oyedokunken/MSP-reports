@@ -2,11 +2,13 @@
 
 namespace App\Integrations\Sendmarc;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
+use App\Integrations\Exceptions\RateLimitExceededException;
 
 class SendmarcClient
 {
@@ -244,11 +246,11 @@ class SendmarcClient
         }
     }
 
-    protected function makeRequest(string $method, string $endpoint, array $params = [])
+    protected function makeRequest(string $method, string $endpoint, array $params = []): Response
     {
         if (!$this->useMockData) {
             if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
-                throw new \Exception("Rate limit exceeded for Sendmarc API, could not acquire slot within timeout.");
+                throw new RateLimitExceededException('Rate limit exceeded for Sendmarc API');
             }
         }
 
@@ -259,27 +261,33 @@ class SendmarcClient
 
         $url = $this->baseUrl . $endpoint;
 
-        \Log::info('Sendmarc API Request', [
-            'method' => $method,
-            'url' => $url,
-            'headers' => array_merge($headers, ['Authorization' => 'Bearer ***REDACTED***']),
+        $loggableHeaders = $headers;
+        $loggableHeaders['Authorization'] = 'Bearer ***';
+
+        \Log::debug('Sendmarc API request', [
+            'integration_id' => $this->integration->integration_id,
+            'method'         => $method,
+            'url'            => $url,
+            'headers'        => $loggableHeaders,
         ]);
 
-        if ($method === 'GET') {
-            $response = Http::withHeaders($headers)
-                ->timeout(30)
-                ->get($url, $params);
-        } else {
-            $response = Http::withHeaders($headers)
-                ->timeout(30)
-                ->send($method, $url, ['json' => $params]);
-        }
+        $request = Http::withHeaders($headers)
+            ->timeout(30)
+            ->retry(2, 1000);
 
-        \Log::info('Sendmarc API Response', [
-            'status' => $response->status(),
-            'successful' => $response->successful(),
-            'body_preview' => substr($response->body(), 0, 500)
+        $response = match (strtoupper($method)) {
+            'GET'  => $request->get($url, $params),
+            'POST' => $request->post($url, $params),
+            default => $request->send($method, $url, ['json' => $params]),
+        };
+
+        \Log::debug('Sendmarc API response', [
+            'integration_id' => $this->integration->integration_id,
+            'status'         => $response->status(),
+            'body_preview'   => substr($response->body(), 0, 500)
         ]);
+
+        $this->rateLimiter->recordRequest($this->integration);
 
         return $response;
     }
