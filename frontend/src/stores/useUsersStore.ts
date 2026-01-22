@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { userApi } from '@/services/api/usersimport { logger } from '@/lib/logger'
+import { userApi } from '@/services/api/users'
+import { logger } from '@/lib/logger'
 import type { UserWithPermissions } from '@/pages/users/types'
 
 interface UsersState {
