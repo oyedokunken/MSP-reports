@@ -296,21 +296,44 @@ class SaaSIntegration implements IntegrationInterface
                         'size' => 1000, // Larger batch for historical import
                     ]);
 
-                    // Process events in chunks
-                    collect($events)->chunk(50)->each(function ($chunk) use (&$errors, &$totalProcessed, $integrationCustomer) {
+                    // Process events in chunks using batch UPSERT
+                    collect($events)->chunk(100)->each(function ($chunk) use (&$errors, &$totalProcessed, $integrationCustomer) {
+                        $batch = [];
                         foreach ($chunk as $event) {
                             try {
                                 $standardized = SaaSMapper::mapEvent($event, $integrationCustomer->integration_customer_id);
-                                $this->storeHistoricalData($standardized);
+                                
+                                $batch[] = [
+                                    'company_id' => $this->integration->company_id,
+                                    'integration_id' => $this->integration->integration_id,
+                                    'integration_customer_id' => $standardized['integration_customer_id'],
+                                    'external_id' => $standardized['external_id'],
+                                    'data_type' => $standardized['data_type'],
+                                    'data_timestamp' => $standardized['timestamp']->format('Y-m-d H:i:s'),
+                                    'data_payload' => json_encode($standardized['payload']),
+                                    'imported_at' => now()->toDateTimeString(),
+                                    'data_version' => 1,
+                                ];
+                                
                                 $totalProcessed++;
                             } catch (\Exception $e) {
-                                $errors[] = "Failed to process event: {$e->getMessage()}";
-                                Log::error('SaaS Alerts historical: Failed to process event', [
-                                    'integration_id' => $this->integration->integration_id,
-                                    'customer_id' => $integrationCustomer->external_id,
-                                    'event_id' => $event['eventId'] ?? $event['_id'] ?? 'unknown',
+                                $errors[] = "Failed to map event: {$e->getMessage()}";
+                            }
+                        }
+
+                        if (!empty($batch)) {
+                            try {
+                                IntegrationData::upsert(
+                                    $batch,
+                                    ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
+                                    ['data_payload', 'imported_at', 'integration_customer_id']
+                                );
+                            } catch (\Exception $e) {
+                                Log::error('SaaS Alerts Batch UPSERT failed', [
                                     'error' => $e->getMessage(),
+                                    'customer' => $integrationCustomer->name
                                 ]);
+                                $errors[] = "Batch UPSERT failed: {$e->getMessage()}";
                             }
                         }
                     });
@@ -434,46 +457,23 @@ class SaaSIntegration implements IntegrationInterface
 
     private function storeHistoricalData(array $data): void
     {
-        $payload = $data['payload'];
-        $eventId = $payload['event_id'] ?? null;
-        
-        if ($eventId) {
-            // UPSERT: Use event_id as unique identifier to prevent duplicates
-            $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
-                ->where('data_type', $data['data_type'])
-                ->whereRaw("data_payload->>'event_id' = ?", [$eventId])
-                ->first();
-
-            if ($existing) {
-                $existing->update([
-                    'data_timestamp' => $data['timestamp'],
-                    'data_payload' => $payload,
-                    'imported_at' => now(),
-                ]);
-            } else {
-                IntegrationData::create([
+        // One-off UPSERT for single record (used in regular sync)
+        IntegrationData::upsert(
+            [
+                [
                     'company_id' => $this->integration->company_id,
                     'integration_id' => $this->integration->integration_id,
                     'integration_customer_id' => $data['integration_customer_id'],
+                    'external_id' => $data['external_id'],
                     'data_type' => $data['data_type'],
-                    'data_timestamp' => $data['timestamp'],
-                    'data_payload' => $payload,
-                    'imported_at' => now(),
+                    'data_timestamp' => $data['timestamp']->format('Y-m-d H:i:s'),
+                    'data_payload' => json_encode($data['payload']),
+                    'imported_at' => now()->toDateTimeString(),
                     'data_version' => 1,
-                ]);
-            }
-        } else {
-            // Fallback to insert for events without unique ID
-            IntegrationData::create([
-                'company_id' => $this->integration->company_id,
-                'integration_id' => $this->integration->integration_id,
-                'integration_customer_id' => $data['integration_customer_id'],
-                'data_type' => $data['data_type'],
-                'data_timestamp' => $data['timestamp'],
-                'data_payload' => $payload,
-                'imported_at' => now(),
-                'data_version' => 1,
-            ]);
-        }
+                ]
+            ],
+            ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
+            ['data_payload', 'imported_at', 'integration_customer_id']
+        );
     }
 }

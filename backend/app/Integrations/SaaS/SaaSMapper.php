@@ -70,12 +70,15 @@ class SaaSMapper
      */
     public static function mapEvent(array $saasEvent, ?string $integrationCustomerId = null): array
     {
+        $eventId = $saasEvent['eventId'] ?? $saasEvent['_id'] ?? null;
+        
         return [
             'integration_customer_id' => $integrationCustomerId,
+            'external_id' => $eventId,
             'data_type' => 'saas_security_event',
             'timestamp' => isset($saasEvent['time']) ? new \DateTime($saasEvent['time']) : now(),
             'payload' => [
-                'event_id' => $saasEvent['eventId'] ?? $saasEvent['_id'] ?? null,
+                'event_id' => $eventId,
                 'correlation_id' => $saasEvent['correlationId'] ?? null,
                 'type' => $saasEvent['type'] ?? null,
                 'joint_type' => $saasEvent['jointType'] ?? null,
