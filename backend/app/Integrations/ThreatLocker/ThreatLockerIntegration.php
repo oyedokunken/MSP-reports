@@ -5,7 +5,11 @@ namespace App\Integrations\ThreatLocker;
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\Traits\HasDefaultPreview;
 use App\Models\Integration;
+use App\Models\IntegrationCustomer;
+use App\Models\IntegrationData;
+use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
+use App\Services\CustomerMappingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -14,12 +18,15 @@ class ThreatLockerIntegration implements IntegrationInterface
     use HasDefaultPreview;
     protected Integration $integration;
     protected ThreatLockerClient $client;
+    protected CustomerMappingService $mappingService;
+    protected array $mappedDuringSync = [];
 
     public function __construct(Integration $integration)
     {
         $this->integration = $integration;
         $rateLimiter = app(RateLimiter::class);
         $this->client = new ThreatLockerClient($integration->credentials ?? [], $rateLimiter, $integration);
+        $this->mappingService = app(CustomerMappingService::class);
     }
 
     public function authenticate(): bool
@@ -29,64 +36,171 @@ class ThreatLockerIntegration implements IntegrationInterface
 
     public function sync(): array
     {
-        Log::info('ThreatLockerIntegration::sync called - not yet implemented', [
+        $errors = [];
+        $this->mappedDuringSync = [];
+        $totalProcessed = 0;
+
+        try {
+            // Get all organizations from ThreatLocker
+            $organizations = $this->client->getOrganizations();
+            
+            Log::info('ThreatLocker Integration: Starting sync', [
+                'integration_id' => $this->integration->integration_id,
+                'organization_count' => count($organizations),
+            ]);
+
+            foreach ($organizations as $org) {
+                try {
+                    $standardized = ThreatLockerMapper::mapOrganization($org);
+                    $this->storeCustomer($standardized);
+                    $totalProcessed++;
+                } catch (\Exception $e) {
+                    $orgId = $org['id'] ?? $org['organizationId'] ?? 'unknown';
+                    $errors[] = "Failed to process organization {$orgId}: {$e->getMessage()}";
+                    Log::error('ThreatLocker Integration: Failed to process organization', [
+                        'integration_id' => $this->integration->integration_id,
+                        'organization_id' => $orgId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+        } catch (\Exception $e) {
+            $errors[] = "Sync failed: {$e->getMessage()}";
+            Log::error('ThreatLocker Integration: Sync failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Process unmapped customers
+        $this->processUnmappedCustomers();
+
+        $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNotNull('customer_id')
+            ->count();
+        
+        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
+
+        Log::info('ThreatLocker Integration: Sync completed', [
             'integration_id' => $this->integration->integration_id,
+            'total_processed' => $totalProcessed,
+            'mapped_count' => $mappedCount,
+            'unmapped_count' => $unmappedCount,
+            'errors' => count($errors),
         ]);
 
         return [
-            'records_synced' => 0,
-            'records_new' => 0,
-            'customers_mapped' => [],
-            'records_failed' => 0,
-            'errors' => ['ThreatLocker integration not implemented yet'],
+            'records_synced' => $mappedCount,
+            'records_new' => $unmappedCount,
+            'customers_mapped' => $this->mappedDuringSync,
+            'records_failed' => count($errors),
+            'errors' => $errors,
         ];
+    }
+
+    private function processUnmappedCustomers(): array
+    {
+        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->whereNull('customer_id')
+            ->count();
+        
+        if ($unmappedCount > 0) {
+            BatchAutoMatchCustomersJob::dispatchSync($this->integration);
+            Log::info('ThreatLocker: Dispatched auto-match job', [
+                'integration_id' => $this->integration->integration_id,
+                'unmapped_count' => $unmappedCount,
+            ]);
+        }
+        return [];
     }
 
     public function getCustomers(): array
     {
-        // No customer concept defined for ThreatLocker yet
-        return [];
+        $organizations = $this->client->getOrganizations();
+        return array_map(fn($org) => ThreatLockerMapper::mapOrganization($org), $organizations);
     }
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
+        $data = [];
+        $errors = [];
+
+        try {
+            // Get security events
+            $events = $this->client->getSecurityEvents(null, $startDate);
+            
+            foreach ($events as $event) {
+                try {
+                    $standardized = ThreatLockerMapper::mapSecurityEvent($event);
+                    $data[] = $standardized;
+                    $this->storeHistoricalData($standardized);
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to process security event: {$e->getMessage()}";
+                }
+            }
+
+            // Get application blocks
+            $blocks = $this->client->getApplicationBlocks(null, $startDate);
+            
+            foreach ($blocks as $block) {
+                try {
+                    $standardized = ThreatLockerMapper::mapApplicationBlock($block);
+                    $data[] = $standardized;
+                    $this->storeHistoricalData($standardized);
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to process application block: {$e->getMessage()}";
+                }
+            }
+
+        } catch (\Exception $e) {
+            $errors[] = "Historical data fetch failed: {$e->getMessage()}";
+        }
+
         return [
-            'data' => [],
-            'errors' => ['ThreatLocker historical data not implemented yet'],
+            'data' => $data,
+            'errors' => $errors,
         ];
     }
 
     public function getAvailableHistoryRange(): ?Carbon
     {
-        return null;
+        return now()->subDays(90);
     }
 
     public function getMetadata(): array
     {
         return [
             'name' => 'ThreatLocker',
-            'description' => 'ThreatLocker application allowlisting and ringfencing integration (placeholder)',
+            'description' => 'ThreatLocker application allowlisting and ringfencing',
             'data_types' => [
+                'threatlocker_organization',
+                'threatlocker_computer',
                 'threatlocker_policy',
                 'threatlocker_security_event',
-                'allowlist_policy',
-                'ringfencing_policy',
+                'threatlocker_application_block',
             ],
-            'supports_historical' => false,
-            'historical_range_days' => 0,
+            'supports_historical' => true,
+            'historical_range_days' => 90,
         ];
     }
 
     public function disconnect(): void
     {
-        Log::info('ThreatLockerIntegration::disconnect called - nothing to do for placeholder integration', [
+        Log::info('ThreatLocker Integration: Disconnected', [
             'integration_id' => $this->integration->integration_id,
         ]);
     }
 
     public function healthCheck(): bool
     {
-        return $this->authenticate();
+        try {
+            return $this->client->testConnection();
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     public function getRateLimits(): array
@@ -95,6 +209,71 @@ class ThreatLockerIntegration implements IntegrationInterface
             'requests_per_minute' => 60,
             'requests_per_hour' => 1000,
         ];
+    }
+
+    private function storeCustomer(array $customer): void
+    {
+        $integrationCustomer = IntegrationCustomer::updateOrCreate(
+            [
+                'integration_id' => $this->integration->integration_id,
+                'external_id' => $customer['external_id'],
+            ],
+            [
+                'name' => $customer['name'],
+                'metadata' => $customer['metadata'],
+                'active' => $customer['active'],
+                'last_seen_at' => now(),
+            ]
+        );
+
+        $integrationCustomer->refresh();
+
+        if (!$integrationCustomer->customer_id && $this->integration->is_source_of_truth) {
+            $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'ThreatLocker');
+        }
+    }
+
+    private function storeHistoricalData(array $data): void
+    {
+        $payload = $data['payload'];
+        $recordId = $payload['id'] ?? $payload['eventId'] ?? null;
+        
+        if ($recordId) {
+            $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', $data['data_type'])
+                ->whereRaw("data_payload->>'id' = ?", [(string)$recordId])
+                ->first();
+
+            if ($existing) {
+                $existing->update([
+                    'data_timestamp' => $data['timestamp'],
+                    'data_payload' => $payload,
+                    'imported_at' => now(),
+                ]);
+            } else {
+                IntegrationData::create([
+                    'company_id' => $this->integration->company_id,
+                    'integration_id' => $this->integration->integration_id,
+                    'integration_customer_id' => $data['integration_customer_id'] ?? null,
+                    'data_type' => $data['data_type'],
+                    'data_timestamp' => $data['timestamp'],
+                    'data_payload' => $payload,
+                    'imported_at' => now(),
+                    'data_version' => 1,
+                ]);
+            }
+        } else {
+            IntegrationData::create([
+                'company_id' => $this->integration->company_id,
+                'integration_id' => $this->integration->integration_id,
+                'integration_customer_id' => $data['integration_customer_id'] ?? null,
+                'data_type' => $data['data_type'],
+                'data_timestamp' => $data['timestamp'],
+                'data_payload' => $payload,
+                'imported_at' => now(),
+                'data_version' => 1,
+            ]);
+        }
     }
 
     public function getCredentialFields(): array
