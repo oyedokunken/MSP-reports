@@ -1,5 +1,6 @@
-export { IntegrationHeader } from './IntegrationHeader'
+export { IntegrationHeader, type ViewMode } from './IntegrationHeader'
 export { IntegrationGrid } from './IntegrationGrid'
+export { IntegrationTable } from './IntegrationTable'
 export { PreviewHeader } from './PreviewHeader'
 export { PreviewLoadingState } from './PreviewLoadingState'
 export { PreviewErrorState } from './PreviewErrorState'

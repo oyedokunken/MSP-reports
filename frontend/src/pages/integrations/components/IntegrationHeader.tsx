@@ -1,4 +1,4 @@
-import { Plus, Search, Filter } from 'lucide-react'
+import { Plus, Search, Filter, LayoutGrid, LayoutList } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,6 +9,15 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
+
+export type ViewMode = 'grid' | 'table'
 
 type IntegrationHeaderProps = {
   onAdd: () => void
@@ -19,6 +28,8 @@ type IntegrationHeaderProps = {
   onSearchChange: (query: string) => void
   onStatusFiltersChange: (statuses: string[]) => void
   onIntegrationTypeFiltersChange: (types: string[]) => void
+  viewMode?: ViewMode
+  onViewModeChange?: (mode: ViewMode) => void
 }
 
 function formatType(type: string): string {
@@ -33,7 +44,9 @@ export function IntegrationHeader ({
   uniqueTypes,
   onSearchChange,
   onStatusFiltersChange,
-  onIntegrationTypeFiltersChange
+  onIntegrationTypeFiltersChange,
+  viewMode = 'grid',
+  onViewModeChange
 }: IntegrationHeaderProps) {
   const activeFilterCount = statusFilters.length + integrationTypeFilters.length
 
@@ -121,6 +134,52 @@ export function IntegrationHeader ({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* View Mode Toggle */}
+        {onViewModeChange && (
+          <TooltipProvider>
+            <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-md bg-white dark:bg-slate-900 p-1 h-10">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => onViewModeChange('grid')}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors rounded-md",
+                      viewMode === 'grid'
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    <span className="hidden sm:inline">Grid</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Grid View
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => onViewModeChange('table')}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors rounded-md",
+                      viewMode === 'table'
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <LayoutList className="h-4 w-4" />
+                    <span className="hidden sm:inline">Table</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Table View
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        )}
 
         {/* Search */}
         <div className="flex-1 relative">

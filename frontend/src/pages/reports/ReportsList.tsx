@@ -45,7 +45,6 @@ export default function ReportsList() {
           customerId={customerId}
           customerName={customerName}
           onViewAll={() => navigate('/reports')}
-          onBulkGenerate={() => setShowBulkGenerateModal(true)}
         />
 
         <ReportsFilters
@@ -57,6 +56,8 @@ export default function ReportsList() {
           onStatusFiltersChange={setStatusFilters}
           onReportTypeFiltersChange={setReportTypeFilters}
           onBulkDelete={() => setShowBulkDeleteConfirm(true)}
+          onBulkGenerate={() => setShowBulkGenerateModal(true)}
+          customerId={customerId}
           selectedCount={selectedReportIds.length}
           isDeleting={isBulkDeleting}
           viewMode={viewMode}

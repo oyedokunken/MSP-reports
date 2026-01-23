@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { useSchedulesStore } from '@/stores/useSchedulesStore'
-import { SchedulesHeader, SchedulesGrid } from './components'
+import { SchedulesHeader, SchedulesGrid, SchedulesTable, type ViewMode } from './components'
 import { SelectCustomerModal } from './modals/SelectCustomerModal'
 import { DeleteScheduleModal } from './modals/DeleteScheduleModal'
 import { Pagination } from '@/pages/customers/components/Pagination'
@@ -15,6 +15,7 @@ export default function ScheduleList() {
   const [selectCustomerOpen, setSelectCustomerOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [scheduleToDelete, setScheduleToDelete] = useState<ReportSchedule | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
   const schedules = useSchedulesStore(state => state.schedules)
   const isLoading = useSchedulesStore(state => state.isLoading)
@@ -72,15 +73,27 @@ export default function ScheduleList() {
           onSearchChange={setSearchQuery}
           onStatusChange={setStatusFilter}
           onFrequencyChange={setFrequencyFilter}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
 
-        <SchedulesGrid
-          schedules={schedules}
-          isLoading={isLoading}
-          onConfigure={handleConfigure}
-          onDelete={handleDeleteClick}
-          onCreateSchedule={handleCreateSchedule}
-        />
+        {viewMode === 'grid' ? (
+          <SchedulesGrid
+            schedules={schedules}
+            isLoading={isLoading}
+            onConfigure={handleConfigure}
+            onDelete={handleDeleteClick}
+            onCreateSchedule={handleCreateSchedule}
+          />
+        ) : (
+          <SchedulesTable
+            schedules={schedules}
+            isLoading={isLoading}
+            onConfigure={handleConfigure}
+            onDelete={handleDeleteClick}
+            onCreateSchedule={handleCreateSchedule}
+          />
+        )}
 
         {/* Pagination */}
         {!isLoading && getFilteredSchedules().length > perPage && (

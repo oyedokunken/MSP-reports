@@ -1,14 +1,13 @@
 import { Button } from '@/components/ui/button'
-import { List, Users } from 'lucide-react'
+import { List } from 'lucide-react'
 
 interface ReportsHeaderProps {
   customerId: string | null
   customerName: string
   onViewAll: () => void
-  onBulkGenerate?: () => void
 }
 
-export function ReportsHeader({ customerId, customerName, onViewAll, onBulkGenerate }: ReportsHeaderProps) {
+export function ReportsHeader({ customerId, customerName, onViewAll }: ReportsHeaderProps) {
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -20,12 +19,6 @@ export function ReportsHeader({ customerId, customerName, onViewAll, onBulkGener
         </p>
       </div>
       <div className="flex items-center gap-2">
-        {!customerId && onBulkGenerate && (
-          <Button onClick={onBulkGenerate}>
-            <Users className="h-4 w-4 mr-2" />
-            Bulk Generate
-          </Button>
-        )}
         {customerId && (
           <Button variant="outline" onClick={onViewAll}>
             <List className="h-4 w-4 mr-2" />

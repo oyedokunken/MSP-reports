@@ -8,7 +8,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Filter, Trash2, Loader2, LayoutGrid, LayoutList } from 'lucide-react'
+import { Search, Filter, Trash2, Loader2, LayoutGrid, LayoutList, Users } from 'lucide-react'
 import { formatReportType } from '../utils/formatters'
 import { cn } from '@/lib/utils'
 
@@ -23,6 +23,8 @@ interface ReportsFiltersProps {
   onStatusFiltersChange: (statuses: string[]) => void
   onReportTypeFiltersChange: (types: string[]) => void
   onBulkDelete?: () => void
+  onBulkGenerate?: () => void
+  customerId?: string | null
   selectedCount?: number
   isDeleting?: boolean
   viewMode?: ViewMode
@@ -38,6 +40,8 @@ export function ReportsFilters({
   onStatusFiltersChange,
   onReportTypeFiltersChange,
   onBulkDelete,
+  onBulkGenerate,
+  customerId,
   selectedCount = 0,
   isDeleting = false,
   viewMode = 'grid',
@@ -163,6 +167,17 @@ export function ReportsFilters({
           className="pl-10 h-10"
         />
       </div>
+
+      {/* Bulk Generate Button */}
+      {!customerId && onBulkGenerate && (
+        <Button 
+          onClick={onBulkGenerate}
+          className="w-full md:w-auto h-10"
+        >
+          <Users className="h-4 w-4 mr-2" />
+          Bulk Generate
+        </Button>
+      )}
 
       {/* Bulk Delete Button */}
       {selectedCount > 0 && (

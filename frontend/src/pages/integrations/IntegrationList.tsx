@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import FloatingLayout from "@/components/layout/FloatingLayout";
 import { useToast } from "@/components/ui/Toast";
 import { useIntegrationStore } from "@/stores/useIntegrationStore";
-import { IntegrationHeader } from "./components/IntegrationHeader";
-import { IntegrationGrid } from "./components/IntegrationGrid";
+import { IntegrationHeader, IntegrationGrid, IntegrationTable, type ViewMode } from "./components";
 import { Pagination } from "@/pages/customers/components/Pagination";
 import {
     AddIntegrationModal,
@@ -51,6 +50,7 @@ export default function IntegrationList() {
     // Local state for fake sync progress (visual only)
     const [syncingId, setSyncingId] = useState<number | null>(null);
     const [syncProgress, setSyncProgress] = useState(0);
+    const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
     // Derived State: Filtering
     const filteredIntegrations = allIntegrations.filter((int) => {
@@ -159,53 +159,99 @@ export default function IntegrationList() {
                     onSearchChange={setSearchQuery}
                     onStatusFiltersChange={setStatusFilters}
                     onIntegrationTypeFiltersChange={setIntegrationTypeFilters}
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
                 />
 
-                <IntegrationGrid
-                    isLoading={isLoading}
-                    items={paginatedIntegrations}
-                    syncingId={syncingId}
-                    progress={syncProgress}
-                    settingSourceOfTruthId={setSourceOfTruthMutation.isPending ? setSourceOfTruthMutation.variables : null}
-                    onSync={handleSync}
-                    onEmptyAction={() => {
-                        if (!hasPermission(user, 'integrations', 'manage')) {
-                            toast.error('Permission Denied', 'You don\'t have permission to add integrations');
-                            return;
+                {viewMode === 'grid' ? (
+                    <IntegrationGrid
+                        isLoading={isLoading}
+                        items={paginatedIntegrations}
+                        syncingId={syncingId}
+                        progress={syncProgress}
+                        settingSourceOfTruthId={setSourceOfTruthMutation.isPending ? setSourceOfTruthMutation.variables : null}
+                        onSync={handleSync}
+                        onEmptyAction={() => {
+                            if (!hasPermission(user, 'integrations', 'manage')) {
+                                toast.error('Permission Denied', 'You don\'t have permission to add integrations');
+                                return;
+                            }
+                            openModal("add");
+                        }}
+                        onViewCustomers={(id) => {
+                            const int = allIntegrations.find((i) => i.id === id);
+                            if (int) navigate(`/platform/integrations/${int.id}/preview`);
+                        }}
+                        onSetSourceOfTruth={handleSetSourceOfTruth}
+                        onEdit={(int) => {
+                            if (!hasPermission(user, 'integrations', 'manage')) {
+                                toast.error('Permission Denied', 'You don\'t have permission to edit integrations');
+                                return;
+                            }
+                            openModal("edit", int);
+                        }}
+                        onViewLogs={(int) => openModal("syncLogs", int)}
+                        onHealthCheck={(int) => openModal("health", int)}
+                        onRateLimit={(int) => openModal("rateLimit", int)}
+                        onHistoricalImport={(int) =>
+                            openModal("historicalImport", int)
                         }
-                        openModal("add");
-                    }}
-                    onViewCustomers={(id) => {
-                        const int = allIntegrations.find((i) => i.id === id);
-                        if (int) navigate(`/platform/integrations/${int.id}/preview`);
-                    }}
-                    onSetSourceOfTruth={handleSetSourceOfTruth}
-                    onEdit={(int) => {
-                        if (!hasPermission(user, 'integrations', 'manage')) {
-                            toast.error('Permission Denied', 'You don\'t have permission to edit integrations');
-                            return;
+                        onViewHistoricalJobs={(int) =>
+                            openModal("viewHistoricalJobs", int)
                         }
-                        openModal("edit", int);
-                    }}
-                    onViewLogs={(int) => openModal("syncLogs", int)}
-                    onHealthCheck={(int) => openModal("health", int)}
-                    onRateLimit={(int) => openModal("rateLimit", int)}
-                    onHistoricalImport={(int) =>
-                        openModal("historicalImport", int)
-                    }
-                    onViewHistoricalJobs={(int) =>
-                        openModal("viewHistoricalJobs", int)
-                    }
-                    onDelete={(int) => {
-                        if (!hasPermission(user, 'integrations', 'manage')) {
-                            toast.error('Permission Denied', 'You don\'t have permission to delete integrations');
-                            return;
+                        onDelete={(int) => {
+                            if (!hasPermission(user, 'integrations', 'manage')) {
+                                toast.error('Permission Denied', 'You don\'t have permission to delete integrations');
+                                return;
+                            }
+                            openModal("delete", int);
+                        }}
+                        onPreviewData={(int) => navigate(`/platform/integrations/${int.id}/preview`)}
+                        sourceOfTruthId={sourceOfTruthId}
+                    />
+                ) : (
+                    <IntegrationTable
+                        isLoading={isLoading}
+                        items={paginatedIntegrations}
+                        syncingId={syncingId}
+                        progress={syncProgress}
+                        settingSourceOfTruthId={setSourceOfTruthMutation.isPending ? setSourceOfTruthMutation.variables : null}
+                        onSync={handleSync}
+                        onEmptyAction={() => {
+                            if (!hasPermission(user, 'integrations', 'manage')) {
+                                toast.error('Permission Denied', 'You don\'t have permission to add integrations');
+                                return;
+                            }
+                            openModal("add");
+                        }}
+                        onSetSourceOfTruth={handleSetSourceOfTruth}
+                        onEdit={(int) => {
+                            if (!hasPermission(user, 'integrations', 'manage')) {
+                                toast.error('Permission Denied', 'You don\'t have permission to edit integrations');
+                                return;
+                            }
+                            openModal("edit", int);
+                        }}
+                        onViewLogs={(int) => openModal("syncLogs", int)}
+                        onHealthCheck={(int) => openModal("health", int)}
+                        onRateLimit={(int) => openModal("rateLimit", int)}
+                        onHistoricalImport={(int) =>
+                            openModal("historicalImport", int)
                         }
-                        openModal("delete", int);
-                    }}
-                    onPreviewData={(int) => navigate(`/platform/integrations/${int.id}/preview`)}
-                    sourceOfTruthId={sourceOfTruthId}
-                />
+                        onViewHistoricalJobs={(int) =>
+                            openModal("viewHistoricalJobs", int)
+                        }
+                        onDelete={(int) => {
+                            if (!hasPermission(user, 'integrations', 'manage')) {
+                                toast.error('Permission Denied', 'You don\'t have permission to delete integrations');
+                                return;
+                            }
+                            openModal("delete", int);
+                        }}
+                        onPreviewData={(int) => navigate(`/platform/integrations/${int.id}/preview`)}
+                        sourceOfTruthId={sourceOfTruthId}
+                    />
+                )}
 
                 {/* Pagination */}
                 {!isLoading && filteredIntegrations.length > perPage && (
