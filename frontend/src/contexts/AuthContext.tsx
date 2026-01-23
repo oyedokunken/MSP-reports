@@ -59,8 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (token && userStr) {
                 try {
-                    const user: User = JSON.parse(userStr);
-
                     // Load company data and branding
                     if (companyStr) {
                         const companyData: Company = JSON.parse(companyStr);
@@ -72,22 +70,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         }
                     }
 
-                    setState({
-                        user,
-                        token,
-                        isAuthenticated: true,
-                        isLoading: false,
-                    });
+                    // Verify token is still valid with backend BEFORE setting authenticated
+                    // This prevents the flash of dashboard content before redirect
+                    try {
+                        const response = await api.get<User>("/auth/me");
+                        if (response.success && response.data) {
+                            // Token is valid, set authenticated state
+                            setState({
+                                user: response.data,
+                                token,
+                                isAuthenticated: true,
+                                isLoading: false,
+                            });
 
-                    // Start listening for real-time notifications
-                    listenForNotifications(user.user_id, token);
+                            // Update stored user data with fresh data
+                            const storageType = localStorage.getItem("auth_storage_type");
+                            const activeStorage = storageType === "session" ? sessionStorage : localStorage;
+                            activeStorage.setItem("user", JSON.stringify(response.data));
 
-                    // Optionally verify token with backend (non-blocking)
-                    // DISABLED: This can cause race conditions and redirect loops
-                    // refreshUser().catch(() => {
-                    //     // Silently fail - user can still use the app with cached data
-                    //     console.warn("Failed to refresh user data");
-                    // });
+                            // Start listening for real-time notifications
+                            listenForNotifications(response.data.user_id, token);
+                        } else {
+                            throw new Error("Invalid response");
+                        }
+                    } catch {
+                        // Token is invalid/expired - clear everything and go to login
+                        console.warn("Token validation failed - session expired");
+                        localStorage.removeItem("auth_token");
+                        localStorage.removeItem("user");
+                        localStorage.removeItem("company");
+                        localStorage.removeItem("auth_storage_type");
+                        sessionStorage.removeItem("auth_token");
+                        sessionStorage.removeItem("user");
+                        sessionStorage.removeItem("company");
+                        setBranding(null);
+                        setState({
+                            user: null,
+                            token: null,
+                            isAuthenticated: false,
+                            isLoading: false,
+                        });
+                        setCompany(null);
+                    }
                 } catch (error) {
                     console.error("Failed to parse stored user:", error);
                     setState((prev) => ({ ...prev, isLoading: false }));
