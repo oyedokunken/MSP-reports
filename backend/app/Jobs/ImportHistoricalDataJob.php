@@ -42,20 +42,28 @@ class ImportHistoricalDataJob implements ShouldQueue
 
     public function handle(RateLimiter $rateLimiter): void
     {
+        // Refresh to get latest status/total_jobs from DB
+        $this->importJob->refresh();
+
         Log::debug('ImportHistoricalDataJob started', [
             'import_job_id' => $this->importJob->historical_import_job_id,
             'chunk_date' => $this->chunkDate->toDateString(),
+            'current_status' => $this->importJob->status,
         ]);
         
         try {
             $integration = $this->importJob->integration;
 
+            // Only update to running if it's currently queued
             if ($this->importJob->status === 'queued') {
-                $this->importJob->update([
-                    'status' => 'running',
-                    'started_at' => now(),
-                    'progress_percent' => 0,
-                ]);
+                DB::table('historical_import_jobs')
+                    ->where('historical_import_job_id', $this->importJob->historical_import_job_id)
+                    ->update([
+                        'status' => 'running',
+                        'started_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                $this->importJob->refresh();
             }
             
             $integrationClass = $this->loadIntegrationClass($integration);
@@ -79,8 +87,24 @@ class ImportHistoricalDataJob implements ShouldQueue
             // Process the chunk (up to 7 days)
             // Set progress callback if supported
             if (method_exists($integrationClass, 'setProgressCallback')) {
-                $integrationClass->setProgressCallback(function(int $count) {
+                $integrationClass->setProgressCallback(function(int $count, ?float $subProgress = null) use ($integration) {
                     $this->importJob->increment('records_imported', $count);
+                    
+                    if ($subProgress !== null && $this->importJob->total_jobs > 0) {
+                        // Calculate total progress: (completed_chunks + this_chunk_fraction) / total_chunks
+                        // We use fresh() to get the latest jobs_completed from other parallel workers
+                        $job = $this->importJob->fresh();
+                        if ($job) {
+                            $baseProgress = $job->jobs_completed / $job->total_jobs;
+                            $currentChunkContribution = ($subProgress / 100) * (1 / $job->total_jobs);
+                            $newProgress = min(99, round(($baseProgress + $currentChunkContribution) * 100));
+                            
+                            if ($newProgress > $job->progress_percent) {
+                                $job->update(['progress_percent' => $newProgress]);
+                                $integration->update(['historical_import_progress' => $newProgress]);
+                            }
+                        }
+                    }
                 });
             }
 
@@ -140,8 +164,13 @@ class ImportHistoricalDataJob implements ShouldQueue
                 $completedDays = $this->importJob->import_start_date->diffInDays($endDate);
                 $this->importJob->progress_percent = min(100, round(($completedDays / $totalDays) * 100));
             }
-
+            
             $this->importJob->save();
+
+            // Sync progress to the integration model for real-time frontend updates
+            $integration->update([
+                'historical_import_progress' => $this->importJob->progress_percent
+            ]);
 
             // Check if ALL parallel jobs are complete
             // Use fresh() instead of refresh() to avoid ModelNotFoundException if record was deleted

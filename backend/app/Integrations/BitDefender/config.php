@@ -71,14 +71,14 @@ return [
     ],
 
     'historical_data' => [
-        'supports_historical' => false,
-        'max_range_days' => 0,
-        'recommended_range_days' => 0,
+        'supports_historical' => true,
+        'max_range_days' => 365,
+        'recommended_range_days' => 90,
     ],
 
     'features' => [
         'customer_mapping' => false,
-        'historical_import' => false,
+        'historical_import' => true,
         'real_time_sync' => false,
         'webhooks' => false,
     ],

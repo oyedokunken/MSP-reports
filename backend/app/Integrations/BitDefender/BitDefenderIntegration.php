@@ -31,6 +31,12 @@ class BitDefenderIntegration implements IntegrationInterface
     // Tunable parameters
     protected int $batchSize = 50;      // companies per dispatched batch/job
     protected int $pageSize   = 100;    // max perPage allowed by Bitdefender API
+    protected $progressCallback = null;
+
+    public function setProgressCallback(callable $callback): void
+    {
+        $this->progressCallback = $callback;
+    }
 
     public function __construct(Integration $integration)
     {
@@ -352,21 +358,166 @@ class BitDefenderIntegration implements IntegrationInterface
         }, $companies);
     }
 
-    // You can keep or remove getHistoricalData – API is current-state only
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        // Bitdefender provides current state only – historical not supported natively
+        $totalProcessed = 0;
+        $errors = [];
+
+        try {
+            Log::info('BitDefender historical import starting', [
+                'integration_id' => $this->integration->integration_id,
+                'start_date'     => $startDate->toDateTimeString(),
+                'end_date'       => $endDate->toDateTimeString(),
+            ]);
+
+            // 1. Pre-load customers
+            $companies = $this->client->getCompaniesList();
+            $this->syncCustomers($companies);
+
+            $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                ->pluck('integration_customer_id', 'external_id')
+                ->toArray();
+
+            Log::debug('BitDefender historical: Mapping data', [
+                'customers_count' => count($customerMap),
+                'per_page'        => $this->pageSize,
+            ]);
+
+            // 2. Fetch threats for the range (optional - may not be available for all API keys)
+            try {
+                Log::debug('BitDefender historical: Attempting to fetch quarantine data');
+                $threats = $this->client->getThreatDetections($startDate, $endDate, $this->pageSize);
+                
+                $threatBatch = [];
+                foreach ($threats as $item) {
+                    $companyId = $item['companyId'] ?? null;
+                    $integrationCustomerId = $customerMap[$companyId] ?? null;
+
+                    if (!$integrationCustomerId) {
+                        // Try case-insensitive fallback if exact match fails
+                        $integrationCustomerId = collect($customerMap)->first(fn($v, $k) => strtolower($k) === strtolower($companyId));
+                    }
+
+                    if (!$integrationCustomerId) {
+                        Log::warning('BitDefender historical: Mapping failed for threat (missing customer)', [
+                            'company_id' => $companyId,
+                            'threat_id'  => $item['id'] ?? 'unknown'
+                        ]);
+                        continue;
+                    }
+
+                    $mapped = BitDefenderMapper::mapThreatDetection($item, $integrationCustomerId);
+                    // Ensure the point-in-time timestamp is accurate to the detection time
+                    if (!empty($item['detectionTime'])) {
+                        $mapped['timestamp'] = Carbon::parse($item['detectionTime']);
+                    }
+                    
+                    $threatBatch[] = $mapped;
+                }
+
+                if (!empty($threatBatch)) {
+                    $this->bulkStoreHistoricalData('bitdefender_threat_detection', $threatBatch);
+                    $totalProcessed += count($threatBatch);
+                    Log::info('BitDefender historical: Threat data imported', ['count' => count($threatBatch)]);
+                    
+                    // Report progress incrementally
+                    if ($this->progressCallback) {
+                        ($this->progressCallback)(count($threatBatch));
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('BitDefender historical: Quarantine API unavailable or timed out', [
+                    'error' => $e->getMessage(),
+                    'note' => 'Continuing with endpoint data only'
+                ]);
+                // Continue processing - quarantine data is optional
+            }
+
+            // 3. Backfill endpoint snapshots (since they are current-state only)
+            // We store the current endpoint state as if it was that way at the END of the chunk period.
+            // This allows historical reports to have endpoint counts even if 30 days ago.
+            $totalCompanies = count($companies);
+            $processedCompanies = 0;
+            
+            foreach ($companies as $company) {
+                $compExtId = $company['id'];
+                $integrationCustomerId = $customerMap[$compExtId] ?? null;
+                $processedCompanies++;
+                
+                // Calculate percentage through this chunk (0-100)
+                $chunkSubProgress = ($totalCompanies > 0) ? ($processedCompanies / $totalCompanies) * 100 : 100;
+
+                if (!$integrationCustomerId) {
+                    if ($this->progressCallback) {
+                        ($this->progressCallback)(0, $chunkSubProgress);
+                    }
+                    continue;
+                }
+
+                $countInBatch = 0;
+                try {
+                    $endpoints = $this->client->getEndpointsForCompany($compExtId, $this->pageSize);
+                    $endpointBatch = [];
+                    foreach ($endpoints as $endpoint) {
+                        $mapped = BitDefenderMapper::mapEndpoint($endpoint);
+                        $mapped['timestamp'] = $endDate; // Map to the end of this historical chunk
+                        $mapped['integration_customer_id'] = $integrationCustomerId;
+                        $endpointBatch[] = $mapped;
+                    }
+
+                    if (!empty($endpointBatch)) {
+                        $this->bulkStoreHistoricalData('bitdefender_endpoint', $endpointBatch);
+                        $countInBatch = count($endpointBatch);
+                        $totalProcessed += $countInBatch;
+                        
+                        // Report progress incrementally with sub-progress %
+                        if ($this->progressCallback) {
+                            ($this->progressCallback)($countInBatch, $chunkSubProgress);
+                        }
+                    } else if ($this->progressCallback) {
+                        // Still update progress even if no endpoints found
+                        ($this->progressCallback)(0, $chunkSubProgress);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('BitDefender historical: Failed to fetch endpoints for company', [
+                        'company' => $company['name'],
+                        'error'   => $e->getMessage()
+                    ]);
+                    // Still update progress on failure
+                    if ($this->progressCallback) {
+                        ($this->progressCallback)(0, $chunkSubProgress);
+                    }
+                }
+                $this->sendHeartbeat();
+            }
+
+            $this->sendHeartbeat();
+
+            Log::info('BitDefender historical import chunk completed', [
+                'integration_id'  => $this->integration->integration_id,
+                'records_count'    => $totalProcessed,
+                'start_date'      => $startDate->toDateString(),
+                'end_date'        => $endDate->toDateString(),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('BitDefender historical import failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error'          => $e->getMessage()
+            ]);
+            $errors[] = $e->getMessage();
+        }
+
         return [
-            'success'        => false,
-            'message'        => 'Historical time-series not supported by GravityZone API',
-            'total_processed' => 0,
-            'errors'         => ['API limitation: current state only'],
+            'success'         => empty($errors),
+            'total_processed' => $totalProcessed,
+            'errors'          => $errors,
         ];
     }
 
     public function getAvailableHistoryRange(): ?Carbon
     {
-        return null; // or now()->subDays(30) as fallback
+        return now()->subDays(90);
     }
 
     public function getMetadata(): array
@@ -378,8 +529,8 @@ class BitDefenderIntegration implements IntegrationInterface
                 'bitdefender_endpoint',
                 'bitdefender_threat_detection',
             ],
-            'supports_historical' => false,
-            'historical_range_days' => 0,
+            'supports_historical' => true,
+            'historical_range_days' => 90,
         ];
     }
 

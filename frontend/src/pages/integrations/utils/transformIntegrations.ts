@@ -15,6 +15,8 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
       next_sync_at?: string | null
       records_synced?: number
       last_error?: string | null
+      historical_import_status?: string | null
+      historical_import_progress?: number
     }>
   }
 
@@ -43,5 +45,7 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
     nextSyncAt: int.next_sync_at,
     recordsSynced: int.records_synced || 0,
     lastError: int.last_error,
+    historicalImportStatus: int.historical_import_status,
+    historicalImportProgress: int.historical_import_progress || 0,
   }))
 }

@@ -2,7 +2,7 @@ export type Integration = {
   id: number
   name: string
   type: string
-  status: 'active' | 'error' | 'warning'
+  status: 'active' | 'error' | 'warning' | 'importing_historical' | 'disconnected'
   lastSync: string
   syncStatus: 'success' | 'failed' | 'pending'
   customers: number
@@ -11,5 +11,7 @@ export type Integration = {
   nextSyncAt?: string | null
   recordsSynced?: number
   lastError?: string | null
+  historicalImportStatus?: string | null
+  historicalImportProgress?: number
 }
 

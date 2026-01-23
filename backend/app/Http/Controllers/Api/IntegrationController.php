@@ -63,6 +63,8 @@ class IntegrationController extends Controller
                     'next_sync_at' => $this->integrationService->calculateNextSyncAt($integration),
                     'records_synced' => $latestSync ? $latestSync->records_synced : 0,
                     'last_error' => $latestSync && $latestSync->status === 'failed' ? ($latestSync->error_messages[0] ?? null) : null,
+                    'historical_import_status' => $integration->historical_import_status,
+                    'historical_import_progress' => $integration->historical_import_progress,
                 ];
             });
 

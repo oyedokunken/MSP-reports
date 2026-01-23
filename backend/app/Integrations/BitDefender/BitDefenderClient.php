@@ -11,6 +11,7 @@ use App\Integrations\Exceptions\AuthenticationException;
 use App\Integrations\Exceptions\ApiResponseException;
 use App\Integrations\Exceptions\RateLimitExceededException;
 use Carbon\Carbon;
+use Exception;
 
 class BitDefenderClient
 {
@@ -180,11 +181,17 @@ class BitDefenderClient
 
         $filters = [];
         if ($startDate) {
-            $filters['startDate'] = $startDate->utc()->toIso8601String();
+            $filters['startDate'] = $startDate->utc()->format('Y-m-d\TH:i:s\Z');
         }
         if ($endDate) {
-            $filters['endDate'] = $endDate->utc()->toIso8601String();
+            $filters['endDate'] = $endDate->utc()->format('Y-m-d\TH:i:s\Z');
         }
+
+        Log::debug('BitDefender: Quarantine params', [
+            'method'  => 'getQuarantineItemsList',
+            'filters' => $filters,
+            'perPage' => $perPage
+        ]);
 
         do {
             $params = [
@@ -195,7 +202,8 @@ class BitDefenderClient
                 $params['filters'] = $filters;
             }
 
-            $response = $this->makeRequest('getQuarantineItemsList', $params, 'quarantine');
+            // Use shorter timeout for quarantine as it may not be available
+            $response = $this->makeRequest('getQuarantineItemsList', $params, 'quarantine/computers', 1, 15);
 
             $result = $response['result'] ?? [];
             $items = $result['items'] ?? [];
@@ -203,20 +211,18 @@ class BitDefenderClient
 
             $pagesCount = $result['pagesCount'] ?? 1;
 
-            Log::info('Fetched quarantine page', [
-                'integration_id' => $this->integration->integration_id,
+            Log::debug('BitDefender: Fetched quarantine page', [
                 'page'           => $page,
-                'items'          => count($items),
-                'total_so_far'   => count($allItems),
+                'items_count'    => count($items),
+                'total_in_result' => $result['total'] ?? 'unknown',
             ]);
 
             $page++;
         } while ($page <= $pagesCount);
 
-        Log::info('All quarantine items fetched', [
+        Log::info('BitDefender: All quarantine items fetched', [
             'integration_id' => $this->integration->integration_id,
             'total'          => count($allItems),
-            'date_range'     => $startDate ? $startDate->toDateTimeString() . ' → ' . ($endDate ? $endDate->toDateTimeString() : 'now') : 'all',
         ]);
 
         return $allItems;
@@ -226,7 +232,7 @@ class BitDefenderClient
      * Core JSON-RPC request method.
      * Added basic retry on rate limit / transient errors.
      */
-    protected function makeRequest(string $method, array $params = [], string $category = 'network', int $retries = 2): array
+    protected function makeRequest(string $method, array $params = [], string $category = 'network', int $retries = 2, int $timeout = 120): array
     {
         $attempt = 0;
 
@@ -252,7 +258,9 @@ class BitDefenderClient
                 'integration_id' => $this->integration->integration_id,
                 'method'         => $method,
                 'category'       => $category,
+                'url'            => $url,
                 'params'         => $params,
+                'timeout'        => $timeout,
             ]);
 
             try {
@@ -260,7 +268,9 @@ class BitDefenderClient
                     'Content-Type'  => 'application/json',
                     'Authorization' => 'Basic ' . base64_encode($this->credentials['api_key'] . ':'),
                 ])
-                ->timeout(60) // increased for large responses
+                ->connectTimeout(min(30, $timeout))
+                ->timeout($timeout)
+                ->withoutVerifying()
                 ->post($url, $payload);
 
                 if (!$response->successful()) {

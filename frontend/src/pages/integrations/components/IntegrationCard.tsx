@@ -190,20 +190,21 @@ export function IntegrationCard({
                         </span>
                     </div>
 
-                    {isSyncing && (
+                    {/* Progress Bar for either Manual Sync or Historical Import */}
+                    {(isSyncing || integration.status === 'importing_historical') && (
                         <div className="mt-3 space-y-2">
                             <div className="flex items-center justify-between text-xs">
                                 <span className="text-muted-foreground">
-                                    Syncing...
+                                    {integration.status === 'importing_historical' ? 'Importing Historical Data...' : 'Syncing...'}
                                 </span>
                                 <span className="font-medium text-primary">
-                                    {Math.round(progress)}%
+                                    {Math.round(integration.status === 'importing_historical' ? (integration.historicalImportProgress || 0) : progress)}%
                                 </span>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                 <div
                                     className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
-                                    style={{ width: `${progress}%` }}
+                                    style={{ width: `${integration.status === 'importing_historical' ? (integration.historicalImportProgress || 0) : progress}%` }}
                                 />
                             </div>
                         </div>
