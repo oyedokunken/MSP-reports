@@ -277,11 +277,22 @@ class BitDefenderIntegration implements IntegrationInterface
         DB::transaction(function () use ($dataType, $batch, $externalIds, $now) {
             // 1. Delete existing records by external_id
             if (!empty($externalIds)) {
-                DB::table('integration_data')
+                $query = DB::table('integration_data')
                     ->where('integration_id', $this->integration->integration_id)
                     ->where('data_type', $dataType)
-                    ->whereIn('external_id', $externalIds)
-                    ->delete();
+                    ->whereIn('external_id', $externalIds);
+
+                // CRITICAL FIX: For endpoint snapshots, we must only delete records for THIS specific timestamp.
+                // otherwise, importing Day 2 overwrites Day 1 (same external_id).
+                // Endpoint batches are always uniform in timestamp (see getHistoricalData).
+                if ($dataType === 'bitdefender_endpoint' && !empty($batch)) {
+                    $ts = $batch[0]['timestamp'] ?? null;
+                    if ($ts) {
+                        $query->where('data_timestamp', $ts);
+                    }
+                }
+
+                $query->delete();
             }
 
             // 2. Prepare inserts with external_id
