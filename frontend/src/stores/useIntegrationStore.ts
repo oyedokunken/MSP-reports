@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Integration } from '@/pages/integrations/types/integration'
+import { PAGINATION } from '@/lib/constants'
 
 interface IntegrationState {
   // Search, Filter & Pagination (client-side)
@@ -40,7 +41,7 @@ export const useIntegrationStore = create<IntegrationState>((set) => ({
   statusFilters: [],
   integrationTypeFilters: [],
   currentPage: 1,
-  perPage: 9,
+  perPage: PAGINATION.INTEGRATIONS_PER_PAGE,
 
   modals: {
     add: false,

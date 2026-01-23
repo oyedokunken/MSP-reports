@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
 import { CheckCircle2, UserPlus } from 'lucide-react'
-import { apiClient } from '@/lib/apiClient'
+import { api } from '@/lib/api'
+import { getErrorMessage } from '@/types/errors'
 
 interface CreateStaticCustomerModalProps {
     open: boolean
@@ -45,7 +46,7 @@ export function CreateStaticCustomerModal({
                 payload.report_destination = reportDestination.trim()
             }
 
-            await apiClient.post('/customers/static', payload)
+            await api.post('/customers/static', payload)
 
             setSuccess(true)
 
@@ -55,10 +56,8 @@ export function CreateStaticCustomerModal({
                 setReportDestination('')
                 onSuccess?.()
             }, 1500)
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } }; message?: string }
-            const errorMessage = error.response?.data?.message || 'Failed to create static customer'
-            setError(errorMessage)
+        } catch (err) {
+            setError(getErrorMessage(err, 'Failed to create static customer'))
         } finally {
             setIsSubmitting(false)
         }

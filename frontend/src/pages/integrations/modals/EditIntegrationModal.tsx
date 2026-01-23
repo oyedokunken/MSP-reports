@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Spinner } from '@/components/ui/spinner'
 import { CheckCircle2, Settings, AlertCircle } from 'lucide-react'
 import { api } from '@/lib/api'
+import { logger } from '@/lib/logger'
+import { getErrorMessage } from '@/types/errors'
 import type { Integration } from '../types/integration'
 
 interface EditIntegrationModalProps {
@@ -60,10 +62,9 @@ export function EditIntegrationModal({
         onOpenChange(false)
         onSuccess?.()
       }, 2000)
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } }; message?: string }
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to update integration'
-      setError(errorMessage)
+    } catch (err) {
+      logger.apiError(`/integrations/${integration.id}`, err)
+      setError(getErrorMessage(err, 'Failed to update integration'))
     } finally {
       setIsSubmitting(false)
     }

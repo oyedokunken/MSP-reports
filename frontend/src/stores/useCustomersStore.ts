@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { customerApi } from '@/services/api/customers'
 import type { Customer, UnmappedCustomer, IntegrationCustomer } from '@/types/api/customer'
 import { logger } from '@/lib/logger'
+import { PAGINATION } from '@/lib/constants'
 
 // Re-export for backward compatibility
 export type { IntegrationCustomer, UnmappedCustomer }
@@ -103,13 +104,13 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   // Pagination state
   currentPage: 1,
   totalPages: 1,
-  perPage: 21,
+  perPage: PAGINATION.CUSTOMERS_PER_PAGE,
   total: 0,
 
   // Unmapped pagination state
   unmappedCurrentPage: 1,
   unmappedTotalPages: 1,
-  unmappedPerPage: 21,
+  unmappedPerPage: PAGINATION.CUSTOMERS_PER_PAGE,
   unmappedSearchQuery: '',
 
   // Fetch customers
