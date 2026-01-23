@@ -20,6 +20,7 @@ use App\Integrations\ITGlue\ITGlueIntegration;
 use App\Integrations\LibreNMS\LibreNMSIntegration;
 use App\Integrations\BitDefender\BitDefenderIntegration;
 use App\Integrations\SaaS\SaaSIntegration;
+use App\Integrations\VeeamOne\VeeamOneIntegration;
 use App\Mail\IntegrationSyncFailedMail;
 
 class SyncIntegrationJob implements ShouldQueue
@@ -320,6 +321,7 @@ class SyncIntegrationJob implements ShouldQueue
             'LibreNMS' => LibreNMSIntegration::class,
             'BitDefender' => BitDefenderIntegration::class,
             'SaaS' => SaaSIntegration::class,
+            'VeeamOne' => VeeamOneIntegration::class,
         ];
 
         $className = $integrationClasses[$this->integration->integration_type] ?? null;

@@ -17,6 +17,7 @@ use App\Integrations\Sendmarc\SendmarcIntegration;
 use App\Integrations\ITGlue\ITGlueIntegration;
 use App\Integrations\LibreNMS\LibreNMSIntegration;
 use App\Integrations\SaaS\SaaSIntegration;
+use App\Integrations\VeeamOne\VeeamOneIntegration;
 
 class SyncRecentDataJob implements ShouldQueue
 {
@@ -118,6 +119,7 @@ class SyncRecentDataJob implements ShouldQueue
             'ITGlue' => ITGlueIntegration::class,
             'LibreNMS' => LibreNMSIntegration::class,
             'SaaS' => SaaSIntegration::class,
+            'VeeamOne' => VeeamOneIntegration::class,
         ];
 
         $className = $integrationClasses[$integration->integration_type] ?? null;

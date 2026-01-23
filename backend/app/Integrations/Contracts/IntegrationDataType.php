@@ -34,6 +34,13 @@ final class IntegrationDataType
     public const ENDPOINT = 'endpoint';
     public const THREAT = 'threat';
 
+    // Veeam ONE Types
+    public const VEEAM_BACKUP_JOB = 'veeam_backup_job';
+    public const VEEAM_BACKUP_SESSION = 'veeam_backup_session';
+    public const VEEAM_ALARM = 'veeam_alarm';
+    public const VEEAM_REPOSITORY = 'veeam_repository';
+    public const VEEAM_PROTECTED_WORKLOAD = 'veeam_protected_workload';
+
     // Generic Types
     public const LICENSE = 'license';
     public const USER = 'user';
@@ -62,6 +69,11 @@ final class IntegrationDataType
             self::RESOURCE,
             self::ENDPOINT,
             self::THREAT,
+            self::VEEAM_BACKUP_JOB,
+            self::VEEAM_BACKUP_SESSION,
+            self::VEEAM_ALARM,
+            self::VEEAM_REPOSITORY,
+            self::VEEAM_PROTECTED_WORKLOAD,
             self::LICENSE,
             self::USER,
             self::SECURITY_EVENT,
@@ -90,6 +102,20 @@ final class IntegrationDataType
             self::ALERT,
             self::UPTIME_METRIC,
             self::BACKUP_STATUS,
+        ];
+    }
+
+    /**
+     * Get Veeam ONE specific types
+     */
+    public static function veeamOne(): array
+    {
+        return [
+            self::VEEAM_BACKUP_JOB,
+            self::VEEAM_BACKUP_SESSION,
+            self::VEEAM_ALARM,
+            self::VEEAM_REPOSITORY,
+            self::VEEAM_PROTECTED_WORKLOAD,
         ];
     }
 

@@ -20,6 +20,7 @@ use App\Integrations\ITGlue\ITGlueIntegration;
 use App\Integrations\LibreNMS\LibreNMSIntegration;
 use App\Integrations\SaaS\SaaSIntegration;
 use App\Integrations\BitDefender\BitDefenderIntegration;
+use App\Integrations\VeeamOne\VeeamOneIntegration;
 
 
 class ImportHistoricalDataJob implements ShouldQueue
@@ -318,6 +319,7 @@ class ImportHistoricalDataJob implements ShouldQueue
             'LibreNMS' => LibreNMSIntegration::class,
             'SaaS' => SaaSIntegration::class,
             'BitDefender' => BitDefenderIntegration::class,
+            'VeeamOne' => VeeamOneIntegration::class,
         ];
 
         $className = $integrationClasses[$integration->integration_type] ?? null;
