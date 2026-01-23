@@ -95,4 +95,42 @@ class VonahiIntegration implements IntegrationInterface
             'requests_per_hour' => 1000,
         ];
     }
+
+    public function getCredentialFields(): array
+    {
+        return [
+            [
+                'name' => 'api_key',
+                'label' => 'API Key',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your Vonahi API key',
+                'help' => 'Your Vonahi Security API key from the dashboard',
+            ],
+            [
+                'name' => 'tenant_id',
+                'label' => 'Tenant ID',
+                'type' => 'text',
+                'required' => true,
+                'placeholder' => 'Enter your Tenant ID',
+                'help' => 'Your Vonahi tenant identifier',
+            ],
+        ];
+    }
+
+    public function getDisplayTemplate(): array
+    {
+        $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('vonahi', 'Vonahi Security');
+        $builder->description('Penetration testing and vulnerability assessment');
+        
+        $builder->addSection('status', 'Integration Status', 'grid')
+            ->icon('Search')
+            ->dataPath('status')
+            ->gridColumns(2)
+            ->addMetric('status', 'Status', 'status', 'text', 'CheckCircle', 'blue')
+            ->addMetric('message', 'Message', 'message', 'text', 'Info', 'gray')
+            ->end();
+        
+        return $builder->build();
+    }
 }

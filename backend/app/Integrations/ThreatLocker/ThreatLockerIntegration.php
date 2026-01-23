@@ -96,4 +96,42 @@ class ThreatLockerIntegration implements IntegrationInterface
             'requests_per_hour' => 1000,
         ];
     }
+
+    public function getCredentialFields(): array
+    {
+        return [
+            [
+                'name' => 'api_key',
+                'label' => 'API Key',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your ThreatLocker API key',
+                'help' => 'Your ThreatLocker API key from the admin portal',
+            ],
+            [
+                'name' => 'organization_id',
+                'label' => 'Organization ID',
+                'type' => 'text',
+                'required' => true,
+                'placeholder' => 'Enter your Organization ID',
+                'help' => 'Your ThreatLocker organization identifier',
+            ],
+        ];
+    }
+
+    public function getDisplayTemplate(): array
+    {
+        $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('threatlocker', 'ThreatLocker');
+        $builder->description('Application allowlisting and ringfencing');
+        
+        $builder->addSection('status', 'Integration Status', 'grid')
+            ->icon('Lock')
+            ->dataPath('status')
+            ->gridColumns(2)
+            ->addMetric('status', 'Status', 'status', 'text', 'CheckCircle', 'blue')
+            ->addMetric('message', 'Message', 'message', 'text', 'Info', 'gray')
+            ->end();
+        
+        return $builder->build();
+    }
 }

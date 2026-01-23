@@ -96,4 +96,50 @@ class WatchguardAuthPointIntegration implements IntegrationInterface
             'requests_per_hour' => 1000,
         ];
     }
+
+    public function getCredentialFields(): array
+    {
+        return [
+            [
+                'name' => 'api_key',
+                'label' => 'API Key',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your WatchGuard API key',
+                'help' => 'Your WatchGuard Cloud API key',
+            ],
+            [
+                'name' => 'account_id',
+                'label' => 'Account ID',
+                'type' => 'text',
+                'required' => true,
+                'placeholder' => 'Enter your Account ID',
+                'help' => 'Your WatchGuard account identifier',
+            ],
+            [
+                'name' => 'resource_id',
+                'label' => 'Resource ID',
+                'type' => 'text',
+                'required' => false,
+                'placeholder' => 'Enter Resource ID (optional)',
+                'help' => 'Specific AuthPoint resource to monitor',
+            ],
+        ];
+    }
+
+    public function getDisplayTemplate(): array
+    {
+        $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('watchguardauthpoint', 'WatchGuard AuthPoint');
+        $builder->description('Multi-factor authentication monitoring');
+        
+        $builder->addSection('status', 'Integration Status', 'grid')
+            ->icon('Key')
+            ->dataPath('status')
+            ->gridColumns(2)
+            ->addMetric('status', 'Status', 'status', 'text', 'CheckCircle', 'blue')
+            ->addMetric('message', 'Message', 'message', 'text', 'Info', 'gray')
+            ->end();
+        
+        return $builder->build();
+    }
 }

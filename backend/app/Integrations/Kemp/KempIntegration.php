@@ -93,4 +93,42 @@ class KempIntegration implements IntegrationInterface
             'requests_per_hour' => 1000,
         ];
     }
+
+    public function getCredentialFields(): array
+    {
+        return [
+            [
+                'name' => 'api_url',
+                'label' => 'LoadMaster URL',
+                'type' => 'text',
+                'required' => true,
+                'placeholder' => 'https://loadmaster.example.com',
+                'help' => 'URL of your Kemp LoadMaster appliance',
+            ],
+            [
+                'name' => 'api_key',
+                'label' => 'API Key',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your Kemp API key',
+                'help' => 'API key from LoadMaster System Configuration > API',
+            ],
+        ];
+    }
+
+    public function getDisplayTemplate(): array
+    {
+        $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('kemp', 'Kemp LoadMaster');
+        $builder->description('Load balancer monitoring and status');
+        
+        $builder->addSection('status', 'Integration Status', 'grid')
+            ->icon('Server')
+            ->dataPath('status')
+            ->gridColumns(2)
+            ->addMetric('status', 'Status', 'status', 'text', 'CheckCircle', 'blue')
+            ->addMetric('message', 'Message', 'message', 'text', 'Info', 'gray')
+            ->end();
+        
+        return $builder->build();
+    }
 }

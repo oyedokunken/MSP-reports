@@ -295,4 +295,88 @@ class BarracudaIntegration implements IntegrationInterface
             ]);
         }
     }
+
+    public function getDisplayTemplate(): array
+    {
+        $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('barracuda', 'Barracuda');
+        $builder->description('Email security and spam filtering');
+        
+        $builder->addSection('customers', 'Customers', 'table')
+            ->description('Synced customers from Barracuda')
+            ->icon('Users')
+            ->dataPath('customers')
+            ->tableColumns([
+                ['key' => 'name', 'label' => 'Customer Name', 'sortable' => true, 'filterable' => true, 'width' => '300px'],
+                ['key' => 'external_id', 'label' => 'External ID', 'sortable' => true],
+                [
+                    'key' => 'active',
+                    'label' => 'Status',
+                    'sortable' => true,
+                    'format' => 'status',
+                    'colorMap' => [
+                        'Active' => 'success',
+                        'Inactive' => 'error',
+                    ],
+                ],
+            ])
+            ->sortable()
+            ->filterable()
+            ->paginated(25)
+            ->end();
+        
+        $builder->addSection('metrics', 'Overview', 'grid')
+            ->icon('BarChart3')
+            ->dataPath('metrics')
+            ->gridColumns(3)
+            ->addMetric('total_customers', 'Total Customers', 'total_customers', 'number', 'Users', 'blue')
+            ->addMetric('active_customers', 'Active', 'active_customers', 'number', 'CheckCircle', 'green')
+            ->addMetric('inactive_customers', 'Inactive', 'inactive_customers', 'number', 'XCircle', 'red')
+            ->end();
+        
+        return $builder->build();
+    }
+
+    public function getPreviewData(?int $integrationCustomerId = null): array
+    {
+        try {
+            $query = IntegrationCustomer::where('integration_id', $this->integration->integration_id);
+            
+            if ($integrationCustomerId) {
+                $query->where('integration_customer_id', $integrationCustomerId);
+            }
+            
+            $customers = $query->get();
+            
+            $mappedCustomers = $customers->map(function($customer) {
+                return [
+                    'id' => $customer->integration_customer_id,
+                    'name' => $customer->name,
+                    'external_id' => $customer->external_id,
+                    'active' => $customer->active ? 'Active' : 'Inactive',
+                ];
+            })->toArray();
+
+            $totalCustomers = $customers->count();
+            $activeCustomers = $customers->where('active', true)->count();
+            $inactiveCustomers = $totalCustomers - $activeCustomers;
+
+            return [
+                'success' => true,
+                'data' => [
+                    'customers' => $mappedCustomers,
+                    'metrics' => [
+                        'total_customers' => $totalCustomers,
+                        'active_customers' => $activeCustomers,
+                        'inactive_customers' => $inactiveCustomers,
+                    ]
+                ],
+                'timestamp' => now()->toIso8601String(),
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => 'Failed to fetch preview data: ' . $e->getMessage(),
+            ];
+        }
+    }
 }

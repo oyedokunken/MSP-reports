@@ -96,4 +96,43 @@ class AdminDroidIntegration implements IntegrationInterface
             'requests_per_hour' => 1000,
         ];
     }
+
+    public function getCredentialFields(): array
+    {
+        return [
+            [
+                'name' => 'api_url',
+                'label' => 'API URL',
+                'type' => 'text',
+                'required' => false,
+                'default' => 'https://api.admindroid.com',
+                'placeholder' => 'https://api.admindroid.com',
+                'help' => 'AdminDroid API base URL',
+            ],
+            [
+                'name' => 'api_key',
+                'label' => 'API Key',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your AdminDroid API key',
+                'help' => 'Your AdminDroid API key from account settings',
+            ],
+        ];
+    }
+
+    public function getDisplayTemplate(): array
+    {
+        $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('admindroid', 'AdminDroid');
+        $builder->description('Microsoft 365 reporting and analytics');
+        
+        $builder->addSection('status', 'Integration Status', 'grid')
+            ->icon('Shield')
+            ->dataPath('status')
+            ->gridColumns(2)
+            ->addMetric('status', 'Status', 'status', 'text', 'CheckCircle', 'blue')
+            ->addMetric('message', 'Message', 'message', 'text', 'Info', 'gray')
+            ->end();
+        
+        return $builder->build();
+    }
 }
