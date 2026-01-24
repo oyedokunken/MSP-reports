@@ -47,12 +47,8 @@ return [
     ],
 
     'data_types' => [
-        // These are speculative; adjust once real use-cases are known
-        'endpoint_protection' => 'BitDefender Endpoint Protection Status (placeholder)',
-        'threat_detections' => 'BitDefender Threat Detections (placeholder)',
-        'malware_incidents' => 'BitDefender Malware Incidents (placeholder)',
-        'security_events' => 'BitDefender Security Events (placeholder)',
-        'device_status' => 'BitDefender Device Status (placeholder)',
+        'bitdefender_endpoint' => 'BitDefender Endpoint Protection Status',
+        'bitdefender_threat_detection' => 'BitDefender Threat Detections',
     ],
 
     'rate_limits' => [

@@ -84,7 +84,11 @@ class BitDefenderSummary extends BaseReport
             $threats = $rawThreats;
         }
 
-        // Analyze endpoints
+        // Gather historical data for trends (line graph)
+        $history = $this->dataGatherer->gatherAllEndpointsInRange($customer, $integrationCustomerIds, $startDate, $endDate);
+        $infrastructureTrends = $this->analyzeInfrastructureTrends($history, $startDate, $endDate);
+
+        // Analyze current snapshot
         $endpointSummary = $this->analyzeEndpoints($endpoints);
         $policySummary = $this->analyzePolicies($endpoints);
         $osSummary = $this->analyzeOperatingSystems($endpoints);
@@ -101,7 +105,7 @@ class BitDefenderSummary extends BaseReport
 
         $recommendations = $this->buildRecommendations($endpointSummary, $policySummary, $threatSummary);
 
-        return [
+        $reportData = [
             'generated_at' => now()->toDateTimeString(),
             'customer' => $customer,
             'customer_data' => [
@@ -118,11 +122,21 @@ class BitDefenderSummary extends BaseReport
             'policy_summary' => $policySummary,
             'os_summary' => $osSummary,
             'threat_summary' => $threatSummary,
+            'infrastructure_trends' => $infrastructureTrends,
             'endpoints_list' => $endpointSummary['endpoints_list'] ?? [],
             'policy_details' => $policySummary['policy_details'] ?? [],
             'os_distribution' => $osSummary['os_distribution'] ?? [],
+            'threats_list' => $threatSummary['threats_list'] ?? [],
             'alerts' => $recommendations,
         ];
+
+        \Log::info('Generating BitDefender report', [
+            'customer_id' => $customer->customer_id,
+            'has_trends' => isset($reportData['infrastructure_trends']),
+            'trend_labels_count' => count($reportData['infrastructure_trends']['labels'] ?? []),
+        ]);
+
+        return $this->filterSections($reportData, $options);
     }
 
     public function getTemplate(): string
@@ -250,10 +264,58 @@ class BitDefenderSummary extends BaseReport
 
     private function analyzeThreats(Collection $threats): array
     {
-        // Placeholder for threat analysis when threat detection data is available
+        $threatsList = $threats->map(function ($item) {
+            $p = $item['payload'];
+            return [
+                'name' => $p['threat_name'] ?? 'Unknown Threat',
+                'endpoint' => $p['endpoint_name'] ?? 'Unknown Device',
+                'action' => $p['action_taken'] ?? 'Unknown',
+                'status' => $p['status'] ?? 'Unknown',
+                'timestamp' => $item['timestamp'],
+                'path' => $p['file_path'] ?? null,
+            ];
+        })->sortByDesc('timestamp')->values()->toArray();
+
         return [
             'total_threats' => $threats->count(),
-            'threats_list' => [],
+            'threats_list' => $threatsList,
+        ];
+    }
+
+    private function analyzeInfrastructureTrends(Collection $history, Carbon $startDate, Carbon $endDate): array
+    {
+        $days = [];
+        $current = $startDate->copy()->startOfDay();
+        while ($current->lte($endDate)) {
+            $days[$current->format('M d')] = [
+                'total' => 0,
+                'managed' => 0,
+            ];
+            $current->addDay();
+        }
+
+        // Snapshots from BitDefender can be multiple per day if synced often, 
+        // but we want the unique count of devices that were present on each day.
+        $byDay = $history->groupBy(function($item) {
+            return Carbon::parse($item['timestamp'])->format('M d');
+        });
+
+        foreach ($byDay as $day => $snapshots) {
+            if (!isset($days[$day])) continue;
+
+            // Get unique endpoints for this day (dedup by external_id or name/ip)
+            $uniqueOnDay = $snapshots->unique(function($s) {
+                return $s['external_id'] ?? ($s['payload']['name'] . '|' . ($s['payload']['ip'] ?? ''));
+            });
+
+            $days[$day]['total'] = $uniqueOnDay->count();
+            $days[$day]['managed'] = $uniqueOnDay->filter(fn($s) => ($s['payload']['is_managed'] ?? false) === true)->count();
+        }
+
+        return [
+            'labels' => array_keys($days),
+            'total' => array_column($days, 'total'),
+            'managed' => array_column($days, 'managed'),
         ];
     }
 
