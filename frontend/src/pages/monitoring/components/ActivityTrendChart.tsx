@@ -12,30 +12,10 @@ interface ActivityTrendChartProps {
   }>
 }
 
-// Generate sample data for the last 7 days
-const generateSampleData = () => {
-  const data = []
-  const today = new Date()
-  
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today)
-    date.setDate(date.getDate() - i)
-    
-    data.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      syncs: Math.floor(Math.random() * 30) + 20,
-      reports: Math.floor(Math.random() * 50) + 30,
-      jobs: Math.floor(Math.random() * 100) + 50,
-    })
-  }
-  
-  return data
-}
-
 export function ActivityTrendChart({ data }: ActivityTrendChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstanceRef = useRef<echarts.ECharts | null>(null)
-  const chartData = data || generateSampleData()
+  const chartData = data || []
 
   useEffect(() => {
     if (!chartRef.current || chartData.length === 0) return
@@ -222,7 +202,17 @@ export function ActivityTrendChart({ data }: ActivityTrendChartProps) {
         <CardDescription className="text-xs sm:text-sm">System activity over the last 7 days</CardDescription>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
-        <div ref={chartRef} className="w-full h-[300px]" />
+        {chartData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-[300px] text-center">
+            <TrendingUp className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground/50 mb-4" />
+            <p className="text-sm font-medium text-foreground">No activity data yet</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Activity trends will appear here once syncs and reports are generated
+            </p>
+          </div>
+        ) : (
+          <div ref={chartRef} className="w-full h-[300px]" />
+        )}
       </CardContent>
     </Card>
   )
