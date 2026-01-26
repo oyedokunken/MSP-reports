@@ -162,15 +162,21 @@ class RocketCyberClient
         $apiKey = $this->credentials['api_key'] ?? null;
         
         if (empty($apiKey)) {
+            Log::error('RocketCyber: API key is missing', [
+                'integration_id' => $this->integration->integration_id,
+                'credentials_keys' => array_keys($this->credentials),
+            ]);
             throw new AuthenticationException('RocketCyber API key is required', 401);
         }
 
         $url = $this->baseUrl . $endpoint;
 
         try {
-            Log::debug('RocketCyber API request', [
+            Log::info('RocketCyber API request', [
                 'integration_id' => $this->integration->integration_id,
                 'endpoint' => $endpoint,
+                'url' => $url,
+                'params' => $params,
             ]);
 
             $response = Http::timeout(60)
@@ -207,8 +213,15 @@ class RocketCyberClient
             }
 
             $this->rateLimiter->recordRequest($this->integration);
+            
+            $data = $response->json();
+            Log::info('RocketCyber API response received', [
+                'integration_id' => $this->integration->integration_id,
+                'endpoint' => $endpoint,
+                'record_count' => is_array($data) ? (isset($data['data']) ? count($data['data']) : count($data)) : 0,
+            ]);
 
-            return $response->json();
+            return $data;
 
         } catch (AuthenticationException $e) {
             throw $e;

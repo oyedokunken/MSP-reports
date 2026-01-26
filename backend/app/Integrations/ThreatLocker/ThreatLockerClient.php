@@ -213,15 +213,20 @@ class ThreatLockerClient
         $apiKey = $this->credentials['api_key'] ?? null;
         
         if (empty($apiKey)) {
+            Log::error('ThreatLocker: API key is missing', [
+                'integration_id' => $this->integration->integration_id,
+                'credentials_keys' => array_keys($this->credentials),
+            ]);
             throw new AuthenticationException('ThreatLocker API key is required', 401);
         }
 
         $url = $this->baseUrl . $endpoint;
 
         try {
-            Log::debug('ThreatLocker API request', [
+            Log::info('ThreatLocker API request', [
                 'integration_id' => $this->integration->integration_id,
                 'endpoint' => $endpoint,
+                'url' => $url,
                 'params' => $params,
             ]);
 
@@ -259,8 +264,15 @@ class ThreatLockerClient
             }
 
             $this->rateLimiter->recordRequest($this->integration);
+            
+            $data = $response->json();
+            Log::info('ThreatLocker API response received', [
+                'integration_id' => $this->integration->integration_id,
+                'endpoint' => $endpoint,
+                'record_count' => is_array($data) ? (isset($data['data']) ? count($data['data']) : count($data)) : 0,
+            ]);
 
-            return $response->json();
+            return $data;
 
         } catch (AuthenticationException $e) {
             throw $e;

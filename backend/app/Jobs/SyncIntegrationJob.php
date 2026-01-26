@@ -13,14 +13,6 @@ use App\Models\SyncLog;
 use App\Services\SyncEngine;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use App\Integrations\Autotask\AutotaskIntegration;
-use App\Integrations\Datto\DattoIntegration;
-use App\Integrations\Sendmarc\SendmarcIntegration;
-use App\Integrations\ITGlue\ITGlueIntegration;
-use App\Integrations\LibreNMS\LibreNMSIntegration;
-use App\Integrations\BitDefender\BitDefenderIntegration;
-use App\Integrations\SaaS\SaaSIntegration;
-use App\Integrations\VeeamOne\VeeamOneIntegration;
 use App\Mail\IntegrationSyncFailedMail;
 
 class SyncIntegrationJob implements ShouldQueue
@@ -54,6 +46,14 @@ class SyncIntegrationJob implements ShouldQueue
 
     public function handle(SyncEngine $syncEngine): void
     {
+        Log::info('=== SYNC JOB STARTED ===', [
+            'integration_id' => $this->integration->integration_id,
+            'integration_type' => $this->integration->integration_type,
+            'display_name' => $this->integration->display_name,
+            'sync_log_id' => $this->syncLog->sync_id,
+            'company_id' => $this->integration->company_id,
+        ]);
+
         try {
 
             // Start Master Lock - prevents workers from completing the sync before we are done dispatching
@@ -73,6 +73,11 @@ class SyncIntegrationJob implements ShouldQueue
                 'last_sync_status' => 'syncing' 
             ]);
 
+            Log::info('Sync status updated to running', [
+                'integration_id' => $this->integration->integration_id,
+                'sync_log_id' => $this->syncLog->sync_id,
+            ]);
+
             // Prevent overlapping syncs (Double-check)
             // The WithoutOverlapping middleware handles job locking, but since we dispatch batches and return,
             // the lock releases early. We must check DB state to ensure no other logical sync is active.
@@ -86,13 +91,27 @@ class SyncIntegrationJob implements ShouldQueue
                 throw new \Exception("Sync aborted: Another sync is currently in progress.");
             }
             
+            Log::info('Loading integration class...', [
+                'integration_type' => $this->integration->integration_type,
+            ]);
+            
             $integrationClass = $this->loadIntegrationClass();
 
             if (!$integrationClass) {
                 throw new \Exception("Integration type {$this->integration->integration_type} not found.");
             }
             
+            Log::info('Executing sync() method...', [
+                'integration_id' => $this->integration->integration_id,
+                'integration_type' => $this->integration->integration_type,
+            ]);
+            
             $result = $integrationClass->sync();
+            
+            Log::info('Sync() method completed', [
+                'integration_id' => $this->integration->integration_id,
+                'result' => $result,
+            ]);
             
             $recordsSynced = $result['records_synced'] ?? 0;
             
@@ -313,38 +332,47 @@ class SyncIntegrationJob implements ShouldQueue
 
     private function loadIntegrationClass()
     {
-        $integrationClasses = [
-            'Autotask' => AutotaskIntegration::class,
-            'Datto' => DattoIntegration::class,
-            'Sendmarc' => SendmarcIntegration::class,
-            'ITGlue' => ITGlueIntegration::class,
-            'LibreNMS' => LibreNMSIntegration::class,
-            'BitDefender' => BitDefenderIntegration::class,
-            'SaaS' => SaaSIntegration::class,
-            'VeeamOne' => VeeamOneIntegration::class,
-        ];
+        $integrationType = $this->integration->integration_type;
+        
+        // Dynamically load integration class based on naming convention
+        $className = "App\\Integrations\\{$integrationType}\\{$integrationType}Integration";
+        
+        Log::info('Loading integration class', [
+            'integration_id' => $this->integration->integration_id,
+            'integration_type' => $integrationType,
+            'class_name' => $className,
+            'class_exists' => class_exists($className),
+        ]);
 
-        $className = $integrationClasses[$this->integration->integration_type] ?? null;
-
-        if ($className && class_exists($className)) {
-            $instance = new $className($this->integration);
-            
-            // Inject heartbeat callback if supported
-            if (method_exists($instance, 'setHeartbeatCallback')) {
-                $instance->setHeartbeatCallback(function() {
-                    $this->sendHeartbeat();
-                });
-            }
-
-            // Inject SyncLogID if supported (via HasHeartbeat trait)
-            if (method_exists($instance, 'setSyncLogId') && $this->syncLog) {
-                $instance->setSyncLogId($this->syncLog->sync_id);
-            }
-            
-            return $instance;
+        if (!class_exists($className)) {
+            Log::error('Integration class not found', [
+                'integration_id' => $this->integration->integration_id,
+                'integration_type' => $integrationType,
+                'expected_class' => $className,
+            ]);
+            return null;
         }
 
-        return null;
+        $instance = new $className($this->integration);
+        
+        // Inject heartbeat callback if supported
+        if (method_exists($instance, 'setHeartbeatCallback')) {
+            $instance->setHeartbeatCallback(function() {
+                $this->sendHeartbeat();
+            });
+        }
+
+        // Inject SyncLogID if supported (via HasHeartbeat trait)
+        if (method_exists($instance, 'setSyncLogId') && $this->syncLog) {
+            $instance->setSyncLogId($this->syncLog->sync_id);
+        }
+        
+        Log::info('Integration class loaded successfully', [
+            'integration_id' => $this->integration->integration_id,
+            'integration_type' => $integrationType,
+        ]);
+        
+        return $instance;
     }
 
     public function sendHeartbeat(): void
