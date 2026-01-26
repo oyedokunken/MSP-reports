@@ -45,7 +45,10 @@ export interface SystemStatus {
         health: string
     }
     queue: {
-        pending_jobs: number
+        driver?: string
+        queues?: Record<string, number>
+        total_pending: number
+        pending_jobs?: number
         failed_jobs: number
         health: string
     }
@@ -95,7 +98,10 @@ export interface ReportMetrics {
 }
 
 export interface QueueMetrics {
-    pending_jobs: number
+    driver?: string
+    queues?: Record<string, number>
+    total_pending: number
+    pending_jobs?: number // Alias for total_pending
     failed_jobs: number
     workers_status: string
 }

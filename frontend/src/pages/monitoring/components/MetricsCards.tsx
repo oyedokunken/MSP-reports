@@ -147,7 +147,7 @@ export function MetricsCards({ systemStatus, integrationMetrics, reportMetrics, 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Pending Jobs</span>
-                <span className="text-lg font-bold">{queueMetrics.pending_jobs}</span>
+                <span className="text-lg font-bold">{queueMetrics.total_pending ?? queueMetrics.pending_jobs ?? 0}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Failed Jobs</span>
