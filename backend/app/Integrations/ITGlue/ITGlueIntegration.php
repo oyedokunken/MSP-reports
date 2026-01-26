@@ -26,6 +26,19 @@ class ITGlueIntegration implements IntegrationInterface
     protected CustomerMappingService $mappingService;
     protected ?int $currentSyncLogId = null;
     private $lastBatchProcessedCount = 0;
+    protected $progressCallback = null;
+
+    public function setProgressCallback(callable $callback): void
+    {
+        $this->progressCallback = $callback;
+    }
+
+    protected function notifyProgress(int $count, ?float $subProgress = null): void
+    {
+        if ($this->progressCallback) {
+            ($this->progressCallback)($count, $subProgress);
+        }
+    }
 
     public function __construct(Integration $integration)
     {
@@ -168,7 +181,8 @@ class ITGlueIntegration implements IntegrationInterface
         $batch = [];
         foreach ($organizations as $org) {
             try {
-                $batch[] = ITGlueMapper::mapCustomer($org);
+                $mapped = ITGlueMapper::mapCustomer($org);
+                $batch[] = $mapped;
             } catch (\Throwable $e) {
                 Log::warning('Failed to map organization', [
                     'org_id' => $org['id'] ?? 'unknown',
@@ -177,7 +191,9 @@ class ITGlueIntegration implements IntegrationInterface
             }
         }
 
+        Log::info('ITGlue: Storing organizations', ['batch_size' => count($batch)]);
         $this->bulkStoreCustomers($batch);
+        $this->notifyProgress($count); // Notify progress for organizations
         $this->sendHeartbeat(); // Send heartbeat once after batch processing
 
         return $count;
@@ -185,7 +201,7 @@ class ITGlueIntegration implements IntegrationInterface
 
    protected function syncCertificates(int &$batches): int
     {
-        $items = $this->client->getSslCertificates('next90days');
+        $items = $this->client->getSslCertificates(['expiration' => 'next90days']);
         $totalItems = count($items);
 
         if ($totalItems === 0) {
@@ -207,7 +223,7 @@ class ITGlueIntegration implements IntegrationInterface
 
     protected function syncDomains(int &$batches): int
     {
-        $items = $this->client->getDomains('next90days');
+        $items = $this->client->getDomains(['expiration' => 'next90days']);
         $totalItems = count($items);
 
         if ($totalItems === 0) {
@@ -322,7 +338,7 @@ class ITGlueIntegration implements IntegrationInterface
 
     private function storeCustomer(array $customer): void
     {
-        IntegrationCustomer::updateOrCreate(
+        IntegrationCustomer::withoutGlobalScopes()->updateOrCreate(
             [
                 'integration_id' => $this->integration->integration_id,
                 'external_id'    => $customer['external_id'],
@@ -338,32 +354,39 @@ class ITGlueIntegration implements IntegrationInterface
 
     private function bulkStoreCustomers(array $customers): void
     {
-        if (empty($customers)) return;
-
-        $now = now();
-        $insertData = [];
-
-        foreach ($customers as $customer) {
-            $insertData[] = [
-                'integration_id' => $this->integration->integration_id,
-                'external_id'    => $customer['external_id'],
-                'name'           => $customer['name'],
-                'metadata'       => json_encode($customer['metadata']),
-                'active'         => $customer['active'],
-                'created_at'     => $now,
-                'updated_at'     => $now,
-                'last_seen_at'   => $now,
-            ];
+        if (empty($customers)) {
+            Log::info('ITGlue: No customers to store');
+            return;
         }
 
-        // Using upsert to handle duplicates efficiently
-        IntegrationCustomer::upsert(
-            $insertData,
-            ['integration_id', 'external_id'],
-            ['name', 'metadata', 'active', 'last_seen_at', 'updated_at']
-        );
+        $now = now();
+        $storedCount = 0;
+
+        foreach ($customers as $customer) {
+            try {
+                IntegrationCustomer::withoutGlobalScopes()->updateOrCreate(
+                    [
+                        'integration_id' => $this->integration->integration_id,
+                        'external_id'    => (string)$customer['external_id'],
+                    ],
+                    [
+                        'name'         => $customer['name'],
+                        'metadata'     => $customer['metadata'],
+                        'active'       => $customer['active'],
+                        'last_seen_at' => $now,
+                    ]
+                );
+                $storedCount++;
+            } catch (\Exception $e) {
+                Log::error('ITGlue: Failed to store customer', [
+                    'external_id' => $customer['external_id'] ?? 'unknown',
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
         
-        $this->lastBatchProcessedCount = count($customers);
+        Log::info('ITGlue: Customers storage completed', ['stored' => $storedCount, 'total' => count($customers)]);
+        $this->lastBatchProcessedCount = $storedCount;
     }
 
 
@@ -377,7 +400,7 @@ class ITGlueIntegration implements IntegrationInterface
             IntegrationDataType::DOMAINS,
             IntegrationDataType::FLEXIBLE_ASSETS
         ])) {
-            $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            $customerMap = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
                 ->pluck('integration_customer_id', 'external_id')
                 ->toArray();
         }
@@ -452,27 +475,32 @@ class ITGlueIntegration implements IntegrationInterface
             return;
         }
 
-        $externalIds = array_filter(array_map(fn($item) => 
-            $item['payload']['id'] ?? $item['payload']['asset_id'] ?? null, $batch));
+        $itemsWithExtId = array_map(function($item) {
+            $extId = $item['payload']['id'] ?? 
+                     $item['payload']['asset_id'] ?? 
+                     $item['payload']['certificate_id'] ?? 
+                     $item['payload']['domain_id'] ?? 
+                     $item['payload']['organization_id'] ?? 
+                     $item['payload']['domain_uuid'] ?? null;
+            $item['external_id'] = $extId ? (string)$extId : null;
+            return $item;
+        }, $batch);
+
+        $externalIds = array_filter(array_column($itemsWithExtId, 'external_id'));
 
         $now = now();
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($dataType, $batch, $externalIds, $now) {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($dataType, $itemsWithExtId, $externalIds, $now) {
             if (!empty($externalIds)) {
                 \Illuminate\Support\Facades\DB::table('integration_data')
                     ->where('integration_id', $this->integration->integration_id)
                     ->where('data_type', $dataType)
-                    ->where(function ($query) use ($externalIds) {
-                        foreach ($externalIds as $id) {
-                            $query->orWhereRaw("data_payload->>'id' = ?", [(string)$id])
-                                  ->orWhereRaw("data_payload->>'asset_id' = ?", [(string)$id]);
-                        }
-                    })
+                    ->whereIn('external_id', $externalIds)
                     ->delete();
             }
 
             $insertData = [];
-            foreach ($batch as $item) {
+            foreach ($itemsWithExtId as $item) {
                 $validator = app(\App\Services\IntegrationDataValidator::class);
                 $payload = $validator->validate($dataType, $item['payload']);
 
@@ -480,6 +508,7 @@ class ITGlueIntegration implements IntegrationInterface
                     'company_id'             => $this->integration->company_id,
                     'integration_id'         => $this->integration->integration_id,
                     'integration_customer_id'=> $item['integration_customer_id'],
+                    'external_id'            => $item['external_id'],
                     'data_type'              => $dataType,
                     'data_timestamp'         => $item['timestamp'],
                     'data_payload'           => json_encode($payload),
@@ -512,10 +541,162 @@ class ITGlueIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
+        $totalProcessed = 0;
+        $errors = [];
+
+        try {
+            Log::info('ITGlue: Starting historical import', [
+                'integration_id' => $this->integration->integration_id,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+            ]);
+
+            // 1. Organizations (Always sync these first as they are needed for mapping)
+            $organizations = $this->client->getOrganizations(true);
+            Log::info('ITGlue Historical: Fetched organizations', ['count' => count($organizations)]);
+            
+            $orgBatch = [];
+            foreach ($organizations as $org) {
+                try {
+                    $orgBatch[] = ITGlueMapper::mapCustomer($org);
+                } catch (\Exception $e) {
+                    Log::error('ITGlue Historical: Failed to map organization', ['id' => $org['id'] ?? 'unknown', 'error' => $e->getMessage()]);
+                }
+            }
+            
+            if (!empty($orgBatch)) {
+                $this->bulkStoreCustomers($orgBatch);
+                // We don't add organizations to totalProcessed but we do notify progress
+                // Organizations = 25% of this chunk
+                $this->notifyProgress(count($orgBatch), 25.0);
+            }
+            $this->sendHeartbeat();
+            sleep(2); // Added delay for visual progress bar demo
+
+            // Prepare customer map for subsequent data types
+            $customerMap = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
+                ->pluck('integration_customer_id', 'external_id')
+                ->toArray();
+                
+            Log::info('ITGlue Historical: Customer map size', ['size' => count($customerMap)]);
+
+            // Range filter for updated_at
+            $dateFilter = $startDate->toDateString() . '..' . $endDate->toDateString();
+            
+            // 2. SSL Certificates
+            Log::info('ITGlue Historical: Fetching SSL certs', ['filter' => $dateFilter]);
+            $certificates = $this->client->getSslCertificates(['updated_at' => $dateFilter]);
+            Log::info('ITGlue Historical: Fetched SSL certs', ['count' => count($certificates)]);
+            
+            $certBatch = [];
+            foreach ($certificates as $cert) {
+                try {
+                    $item = ITGlueMapper::mapSslCertificate($cert);
+                    $extOrgId = (string)($item['integration_customer_id'] ?? '');
+                    $item['integration_customer_id'] = $customerMap[$extOrgId] ?? null;
+                    
+                    if ($item['integration_customer_id']) {
+                        $item['timestamp'] = $startDate;
+                        $certBatch[] = $item;
+                    }
+                } catch (\Exception $e) {
+                    Log::error('ITGlue Historical: Failed to map cert', ['error' => $e->getMessage()]);
+                }
+            }
+            if (!empty($certBatch)) {
+                $this->bulkStoreHistoricalData(IntegrationDataType::SSL_CERTIFICATE, $certBatch);
+                $totalProcessed += count($certBatch);
+                // SSL = 50% of this chunk
+                $this->notifyProgress(count($certBatch), 50.0);
+            } else {
+                $this->notifyProgress(0, 50.0);
+            }
+            $this->sendHeartbeat();
+            sleep(2); // Added delay for visual progress bar demo
+
+            // 3. Domains
+            Log::info('ITGlue Historical: Fetching domains', ['filter' => $dateFilter]);
+            $domains = $this->client->getDomains(['updated_at' => $dateFilter]);
+            Log::info('ITGlue Historical: Fetched domains', ['count' => count($domains)]);
+            
+            $domainBatch = [];
+            foreach ($domains as $domain) {
+                try {
+                    $item = ITGlueMapper::mapDomain($domain);
+                    $extOrgId = (string)($item['integration_customer_id'] ?? '');
+                    $item['integration_customer_id'] = $customerMap[$extOrgId] ?? null;
+                    
+                    if ($item['integration_customer_id']) {
+                        $item['timestamp'] = $startDate;
+                        $domainBatch[] = $item;
+                    }
+                } catch (\Exception $e) {
+                    Log::error('ITGlue Historical: Failed to map domain', ['error' => $e->getMessage()]);
+                }
+            }
+            if (!empty($domainBatch)) {
+                $this->bulkStoreHistoricalData(IntegrationDataType::DOMAINS, $domainBatch);
+                $totalProcessed += count($domainBatch);
+                // Domains = 75% of this chunk
+                $this->notifyProgress(count($domainBatch), 75.0);
+            } else {
+                $this->notifyProgress(0, 75.0);
+            }
+            $this->sendHeartbeat();
+            sleep(2); // Added delay for visual progress bar demo
+
+            // 4. Flexible Assets (Licenses)
+            $typeIds = $this->client->findLicenseAssetTypeIds();
+            Log::info('ITGlue Historical: Flexible asset types', ['types' => $typeIds]);
+            
+            foreach ($typeIds as $index => $typeId) {
+                $assets = $this->client->getFlexibleAssets($typeId, null, true);
+                $assetBatch = [];
+                foreach ($assets as $asset) {
+                    try {
+                        $updatedAtString = $asset['attributes']['updated-at'] ?? null;
+                        if (!$updatedAtString) continue;
+                        
+                        $updatedAt = Carbon::parse($updatedAtString);
+                        
+                        if ($updatedAt->between($startDate, $endDate)) {
+                            $item = ITGlueMapper::mapFlexibleAsset($asset);
+                            $extOrgId = (string)($item['integration_customer_id'] ?? '');
+                            $item['integration_customer_id'] = $customerMap[$extOrgId] ?? null;
+                            
+                            if ($item['integration_customer_id']) {
+                                $item['timestamp'] = $startDate;
+                                $assetBatch[] = $item;
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('ITGlue Historical: Failed to map asset', ['error' => $e->getMessage()]);
+                    }
+                }
+                if (!empty($assetBatch)) {
+                    $this->bulkStoreHistoricalData(IntegrationDataType::FLEXIBLE_ASSETS, $assetBatch);
+                    $totalProcessed += count($assetBatch);
+                }
+                
+                // Calculate incremental progress for asset types (from 75% to 100%)
+                $assetProgress = 75.0 + (($index + 1) / count($typeIds)) * 25.0;
+                $this->notifyProgress(count($assetBatch), $assetProgress);
+                $this->sendHeartbeat();
+                sleep(1); 
+            }
+
+        } catch (\Exception $e) {
+            Log::error('ITGlue Historical Import Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e; 
+        }
+
         return [
-            'success' => true,
-            'total_processed' => 0,
-            'errors' => [],
+            'success' => empty($errors),
+            'total_processed' => 0, // Zero because we use notifyProgress for everything
+            'errors' => $errors,
         ];
     }
 
@@ -536,7 +717,7 @@ class ITGlueIntegration implements IntegrationInterface
                 IntegrationDataType::FLEXIBLE_ASSETS,
             ],
             'supports_historical' => true,
-            'historical_range_days' => 1,
+            'historical_range_days' => 90,
         ];
     }
 
@@ -669,7 +850,7 @@ class ITGlueIntegration implements IntegrationInterface
             return null;
         }
 
-        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+        $integrationCustomer = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
             ->where('external_id', (string)$itGlueOrgId)
             ->first();
 

@@ -113,8 +113,10 @@ class IntegrationDataValidator
     {
         return array_filter($data, function($key) {
             return in_array($key, [
-                'id', 'name', 'domain', 'issuer', 'expiry_date',
-                'status', 'organization_id'
+                'id', 'certificate_id', 'name', 'domain', 'host', 'issuer', 'issued_by', 
+                'issuer_organization', 'issuer_country', 'signature_algorithm',
+                'expiry_date', 'expires_on', 'status', 'organization_id', 'organization_name',
+                'notes', 'resource_url', 'created_at', 'updated_at', 'days_until_expiry'
             ]);
         }, ARRAY_FILTER_USE_KEY);
     }
@@ -126,8 +128,9 @@ class IntegrationDataValidator
     {
         return array_filter($data, function($key) {
             return in_array($key, [
-                'id', 'name', 'registrar', 'expiry_date',
-                'status', 'organization_id', 'nameservers'
+                'id', 'domain_id', 'name', 'registrar', 'expiry_date', 'expires_on',
+                'status', 'organization_id', 'organization_name', 'nameservers',
+                'notes', 'resource_url', 'created_at', 'updated_at', 'days_until_expiry'
             ]);
         }, ARRAY_FILTER_USE_KEY);
     }

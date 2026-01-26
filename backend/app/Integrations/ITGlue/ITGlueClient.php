@@ -51,9 +51,13 @@ class ITGlueClient
         }
     }
 
-    public function getOrganizations(): array
+    public function getOrganizations(bool $bypassCache = false): array
     {
         $cacheKey = "itglue_orgs_{$this->integration->integration_id}";
+
+        if ($bypassCache) {
+            Cache::forget($cacheKey);
+        }
 
         return Cache::remember($cacheKey, now()->addHours(self::CACHE_TTL_HOURS), function () {
             return $this->fetchAllPages(self::ENDPOINT_ORGANIZATIONS, ['page' => ['size' => self::DEFAULT_PAGE_SIZE]]);
@@ -118,22 +122,28 @@ class ITGlueClient
         return $this->fetchAllPages(self::ENDPOINT_FLEXIBLE_ASSETS, $params);
     }
 
-    public function getSslCertificates(string $expirationFilter = 'next90days'): array
+    public function getSslCertificates(?array $filters = null): array
     {
         $params = [
-            'filter' => ['expiration' => $expirationFilter],
             'page'   => ['size' => self::DEFAULT_PAGE_SIZE],
         ];
+
+        if ($filters !== null) {
+            $params['filter'] = $filters;
+        }
 
         return $this->fetchAllPages(self::ENDPOINT_SSL_CERTIFICATES, $params);
     }
 
-    public function getDomains(string $expirationFilter = 'next90days'): array
+    public function getDomains(?array $filters = null): array
     {
         $params = [
-            'filter' => ['expiration' => $expirationFilter],
             'page'   => ['size' => self::DEFAULT_PAGE_SIZE],
         ];
+
+        if ($filters !== null) {
+            $params['filter'] = $filters;
+        }
 
         return $this->fetchAllPages(self::ENDPOINT_DOMAINS, $params);
     }
