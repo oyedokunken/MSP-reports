@@ -1,22 +1,22 @@
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
-    TableRow 
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
 } from "@/components/ui/table";
-import { 
-    Cable, 
-    RefreshCw, 
-    Users, 
-    Crown, 
-    Settings, 
-    FileText, 
-    Activity, 
-    Gauge, 
-    Database, 
-    Trash2, 
+import {
+    Cable,
+    RefreshCw,
+    Users,
+    Crown,
+    Settings,
+    FileText,
+    Activity,
+    Gauge,
+    Database,
+    Trash2,
     MoreVertical,
     Share2,
     Clock
@@ -38,8 +38,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/LoadingStates";
-import { LoadingSpinner } from "@/components/ui/LoadingStates";
+import { EmptyState, LoadingSpinner } from "@/components/ui/LoadingStates";
 import type { Integration } from "../types/integration";
 import { getStatusText } from "../utils/statusBadge";
 import { cn } from "@/lib/utils";
@@ -162,7 +161,7 @@ export function IntegrationTable({
                             const isSettingSourceOfTruth = settingSourceOfTruthId === integration.id;
 
                             return (
-                                <TableRow 
+                                <TableRow
                                     key={integration.id}
                                     className={cn(
                                         "transition-colors",

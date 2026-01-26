@@ -1,5 +1,7 @@
 import axios, { type AxiosInstance, type AxiosError } from "axios";
-import type { ApiResponse, ApiError } from "@/types/api";
+import type { ApiError } from "@/types/api";
+import { STORAGE_KEYS } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 
 const getBaseURL = () => {
     if (import.meta.env.VITE_API_BASE_URL) {
@@ -23,9 +25,9 @@ apiClient.interceptors.request.use(
     (config) => {
         // Check both localStorage and sessionStorage for auth token
         // User might have logged in with or without "Remember Me"
-        let token = localStorage.getItem("auth_token");
+        let token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
         if (!token) {
-            token = sessionStorage.getItem("auth_token");
+            token = sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
         }
 
         if (token) {
@@ -49,12 +51,12 @@ apiClient.interceptors.response.use(
 
             if (!isLogoutRequest && !isShareRequest) {
                 // Clear auth data from both storages
-                localStorage.removeItem("auth_token");
-                localStorage.removeItem("user");
-                localStorage.removeItem("company");
-                sessionStorage.removeItem("auth_token");
-                sessionStorage.removeItem("user");
-                sessionStorage.removeItem("company");
+                localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+                localStorage.removeItem(STORAGE_KEYS.USER);
+                localStorage.removeItem(STORAGE_KEYS.COMPANY);
+                sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+                sessionStorage.removeItem(STORAGE_KEYS.USER);
+                sessionStorage.removeItem(STORAGE_KEYS.COMPANY);
 
                 if (window.location.pathname !== "/login") {
                     window.location.replace("/login");
@@ -63,25 +65,29 @@ apiClient.interceptors.response.use(
         }
 
         if (error.response?.status === 403) {
-            console.error("Permission denied:", error.response.data);
+            logger.warn("Permission denied", { data: error.response.data });
         }
 
         if (!error.response) {
-            console.error("Network error:", error.message);
+            logger.warn("Network error", { message: error.message });
         }
 
         return Promise.reject(error);
     }
 );
 
+/**
+ * Generic API request function with proper typing
+ * Returns the response data directly (unwrapped from axios response)
+ */
 export async function apiRequest<T>(
     method: "get" | "post" | "put" | "patch" | "delete",
     url: string,
     data?: unknown,
     params?: Record<string, unknown>
-): Promise<ApiResponse<T>> {
+): Promise<T> {
     try {
-        const response = await apiClient.request<ApiResponse<T>>({
+        const response = await apiClient.request<T>({
             method,
             url,
             data,
@@ -99,18 +105,25 @@ export async function apiRequest<T>(
     }
 }
 
+/**
+ * Type-safe API client
+ * All methods return the response type directly - no need for `as unknown as` casts
+ */
 export const api = {
-    get: <T>(url: string, params?: Record<string, unknown>) =>
+    get: <T>(url: string, params?: Record<string, unknown>): Promise<T> =>
         apiRequest<T>("get", url, undefined, params),
 
-    post: <T>(url: string, data?: unknown) => apiRequest<T>("post", url, data),
+    post: <T>(url: string, data?: unknown): Promise<T> =>
+        apiRequest<T>("post", url, data),
 
-    put: <T>(url: string, data?: unknown) => apiRequest<T>("put", url, data),
+    put: <T>(url: string, data?: unknown): Promise<T> =>
+        apiRequest<T>("put", url, data),
 
-    patch: <T>(url: string, data?: unknown) =>
+    patch: <T>(url: string, data?: unknown): Promise<T> =>
         apiRequest<T>("patch", url, data),
 
-    delete: <T>(url: string) => apiRequest<T>("delete", url),
+    delete: <T>(url: string): Promise<T> =>
+        apiRequest<T>("delete", url),
 };
 
 export default apiClient;

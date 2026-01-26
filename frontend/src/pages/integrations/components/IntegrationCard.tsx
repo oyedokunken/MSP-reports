@@ -13,6 +13,7 @@ import {
     Trash2,
     Clock,
     Share2,
+    MoreVertical,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingStates";
 import type { Integration } from "../types/integration";
@@ -26,7 +27,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreVertical } from "lucide-react";
 import { useCountdown } from "@/hooks/useCountdown";
 import {
     Tooltip,

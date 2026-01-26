@@ -15,6 +15,7 @@ class Logger {
      */
     info(message: string, context?: LogContext): void {
         if (this.isDevelopment) {
+            // eslint-disable-next-line no-console
             console.log(`[INFO] ${message}`, context || '');
         }
     }
@@ -49,6 +50,7 @@ class Logger {
      */
     debug(message: string, data?: unknown): void {
         if (this.isDevelopment) {
+            // eslint-disable-next-line no-console
             console.debug(`[DEBUG] ${message}`, data || '');
         }
     }

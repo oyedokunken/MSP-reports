@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import FloatingLayout from "@/components/layout/FloatingLayout";
 import { MapCustomerModal, Pagination } from "./components";
-import { MapPin, Search, ChevronUp, ChevronDown, ArrowUpDown, X, LayoutGrid, List, Building2, CheckCircle2 } from "lucide-react";
+import { MapPin, Search, ChevronUp, ChevronDown, ArrowUpDown, X, LayoutGrid, List, Building2, CheckCircle2, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,6 @@ import {
     DropdownMenuCheckboxItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Filter } from "lucide-react";
 import { useMapCustomersPage, type SortField } from "./useMapCustomersPage";
 
 const SortIcon = ({ field, sortField, sortDirection }: { field: SortField; sortField: SortField; sortDirection: 'asc' | 'desc' }) => {

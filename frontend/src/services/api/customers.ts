@@ -15,7 +15,7 @@ import type {
     MergeCustomersRequest,
     SplitCustomerRequest,
 } from '@/types/api/customer'
-import type { ApiSuccessResponse } from '@/types/api/common'
+import type { ApiResponse } from '@/types/api'
 
 export const customerApi = {
     /**
@@ -55,7 +55,7 @@ export const customerApi = {
         }
 
         const url = `/customers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
-        return api.get(url) as unknown as Promise<CustomerListResponse>
+        return api.get<CustomerListResponse>(url)
     },
 
     /**
@@ -68,7 +68,7 @@ export const customerApi = {
         if (search) queryParams.append('search', search)
 
         const url = `/customers/unmapped${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
-        return api.get(url) as unknown as Promise<UnmappedCustomersResponse>
+        return api.get<UnmappedCustomersResponse>(url)
     },
 
     /**
@@ -76,7 +76,7 @@ export const customerApi = {
      * GET /api/customers/{id}/integrations
      */
     async getCustomerIntegrations(customerId: number): Promise<CustomerIntegrationsResponse> {
-        return api.get(`/customers/${customerId}/integrations`) as unknown as Promise<CustomerIntegrationsResponse>
+        return api.get<CustomerIntegrationsResponse>(`/customers/${customerId}/integrations`)
     },
 
     /**
@@ -84,7 +84,7 @@ export const customerApi = {
      * POST /api/customers/map
      */
     async mapCustomer(data: MapCustomerRequest): Promise<MapCustomerResponse> {
-        return api.post('/customers/map', data) as unknown as Promise<MapCustomerResponse>
+        return api.post<MapCustomerResponse>('/customers/map', data)
     },
 
     /**
@@ -94,8 +94,8 @@ export const customerApi = {
     async updateCustomer(
         customerId: number,
         data: UpdateCustomerRequest
-    ): Promise<ApiSuccessResponse<Customer>> {
-        return api.patch(`/customers/${customerId}`, data) as unknown as Promise<ApiSuccessResponse<Customer>>
+    ): Promise<ApiResponse<Customer>> {
+        return api.patch<ApiResponse<Customer>>(`/customers/${customerId}`, data)
     },
 
     /**
@@ -105,10 +105,8 @@ export const customerApi = {
     async mergeCustomers(
         primaryCustomerId: number,
         data: MergeCustomersRequest
-    ): Promise<ApiSuccessResponse<Customer>> {
-        return api.post(`/customers/${primaryCustomerId}/merge`, data) as unknown as Promise<
-            ApiSuccessResponse<Customer>
-        >
+    ): Promise<ApiResponse<Customer>> {
+        return api.post<ApiResponse<Customer>>(`/customers/${primaryCustomerId}/merge`, data)
     },
 
     /**
@@ -118,25 +116,21 @@ export const customerApi = {
     async splitCustomer(
         customerId: number,
         data: SplitCustomerRequest
-    ): Promise<
-        ApiSuccessResponse<{
+    ): Promise<ApiResponse<{
+        original_customer: Customer
+        new_customer: Customer
+    }>> {
+        return api.post<ApiResponse<{
             original_customer: Customer
             new_customer: Customer
-        }>
-    > {
-        return api.post(`/customers/${customerId}/split`, data) as unknown as Promise<
-            ApiSuccessResponse<{
-                original_customer: Customer
-                new_customer: Customer
-            }>
-        >
+        }>>(`/customers/${customerId}/split`, data)
     },
 
     /**
      * Get all customer IDs for bulk selection
      * GET /api/customers/all-ids
      */
-    async getAllCustomerIds(): Promise<ApiSuccessResponse<number[]>> {
-        return api.get('/customers/all-ids') as unknown as Promise<ApiSuccessResponse<number[]>>
+    async getAllCustomerIds(): Promise<ApiResponse<number[]>> {
+        return api.get<ApiResponse<number[]>>('/customers/all-ids')
     },
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { notificationApi } from '@/services/api/notifications'
 import { initEcho } from '@/lib/echo'
+import { logger } from '@/lib/logger'
 
 export interface Notification {
   id: string | number
@@ -250,7 +251,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     // If Echo is disabled, don't try to listen
     if (!echoInstance) {
-      console.log('📡 Real-time notifications disabled')
+      logger.info('Real-time notifications disabled')
       return
     }
 

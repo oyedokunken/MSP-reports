@@ -1,11 +1,11 @@
 import { Search, Filter, Download, X, Calendar } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,8 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { AuditLogsFilters as FiltersType } from '../types'
-import { EVENT_TYPES, ACTOR_TYPES, TARGET_TYPES } from '../types'
+import { type AuditLogsFilters as FiltersType, EVENT_TYPES, ACTOR_TYPES, TARGET_TYPES } from '../types'
 
 interface AuditLogsControlsProps {
   filters: FiltersType
@@ -24,10 +23,10 @@ interface AuditLogsControlsProps {
   onExport: () => void
 }
 
-export function AuditLogsControls({ 
-  filters, 
+export function AuditLogsControls({
+  filters,
   onFiltersChange,
-  onExport 
+  onExport
 }: AuditLogsControlsProps) {
   const activeFiltersCount = [
     filters.event_type,
@@ -141,7 +140,7 @@ export function AuditLogsControls({
           className="pl-9 h-10 border rounded-lg shadow-sm focus-visible:ring-indigo-500 transition-all"
         />
         {filters.search && (
-          <button 
+          <button
             onClick={() => onFiltersChange({ search: '' })}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >
@@ -168,7 +167,7 @@ export function AuditLogsControls({
             className="border-0 h-8 text-[11px] focus-visible:ring-0 w-24 bg-transparent outline-none p-0 cursor-pointer"
           />
           {hasDateFilter && (
-            <button 
+            <button
               onClick={() => onFiltersChange({ date_from: '', date_to: '' })}
               className="px-2 text-gray-300 hover:text-gray-600 transition-colors"
             >
@@ -179,8 +178,8 @@ export function AuditLogsControls({
       </div>
 
       {/* Export Button */}
-      <Button 
-        variant="default" 
+      <Button
+        variant="default"
         onClick={onExport}
         className="h-10 px-4 gap-2 bg-indigo-600 hover:bg-indigo-700 shadow-md transform transition active:scale-95 w-full md:w-auto"
       >

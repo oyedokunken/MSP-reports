@@ -1,7 +1,7 @@
 import { create } from 'zustand'
-import { api } from '@/lib/api'
-import apiClient from '@/lib/api'
+import apiClient, { api } from '@/lib/api'
 import { logger } from '@/lib/logger'
+import { PAGINATION } from '@/lib/constants'
 import type { ReportHistoryResponse } from '@/types/api/report'
 
 
@@ -64,7 +64,7 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
   customerName: '',
   currentPage: 1,
   totalPages: 1,
-  perPage: 9,
+  perPage: PAGINATION.REPORTS_PER_PAGE,
   total: 0,
   searchQuery: '',
   statusFilters: [],
@@ -78,7 +78,7 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
       set({ isLoading: true })
     }
     try {
-      const params = new URLSearchParams({ page: page.toString(), per_page: '9' })
+      const params = new URLSearchParams({ page: page.toString(), per_page: PAGINATION.REPORTS_PER_PAGE.toString() })
       if (customerId) params.append('customer_id', customerId)
 
       const url = `/reports/history?${params.toString()}`
@@ -98,7 +98,7 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
         currentPage: pagination.current_page || page,
         totalPages: pagination.last_page || 1,
         total: pagination.total || reportsList.length,
-        perPage: pagination.per_page || 9,
+        perPage: pagination.per_page || PAGINATION.REPORTS_PER_PAGE,
         isLoading: false,
       })
     } catch (error) {

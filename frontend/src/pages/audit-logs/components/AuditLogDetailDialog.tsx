@@ -7,8 +7,7 @@ import {
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Clock, User, Target, MapPin, Monitor, Database } from 'lucide-react'
-import type { AuditLog } from '../types'
-import { EVENT_TYPES } from '../types'
+import { type AuditLog, EVENT_TYPES } from '../types'
 
 interface AuditLogDetailDialogProps {
   log: AuditLog | null

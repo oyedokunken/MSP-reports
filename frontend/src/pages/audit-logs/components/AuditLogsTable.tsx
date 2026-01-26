@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { 
-  User, 
-  Settings, 
-  Key, 
-  Shield, 
-  FileText, 
+import {
+  User,
+  Settings,
+  Key,
+  Shield,
+  FileText,
   Users,
   Eye,
   Clock,
@@ -12,8 +12,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import type { AuditLog } from '../types'
-import { EVENT_TYPES } from '../types'
+import { type AuditLog, EVENT_TYPES } from '../types'
 import { AuditLogDetailDialog } from './AuditLogDetailDialog'
 
 interface AuditLogsTableProps {
@@ -141,7 +140,7 @@ export function AuditLogsTable({
               {logs.map((log) => {
                 const EventIcon = getEventIcon(log.event_type)
                 const colors = getEventColorScale(log.event_type)
-                
+
                 return (
                   <tr
                     key={log.audit_log_id}
@@ -240,7 +239,7 @@ export function AuditLogsTable({
           const colors = getEventColorScale(log.event_type)
 
           return (
-            <div 
+            <div
               key={log.audit_log_id}
               className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm active:bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
               onClick={() => setSelectedLog(log)}
@@ -255,7 +254,7 @@ export function AuditLogsTable({
                       {EVENT_TYPES[log.event_type as keyof typeof EVENT_TYPES] || log.event_type}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-2">
-                       <Badge variant={colors.badge} className="px-1.5 py-0 text-[10px]">
+                      <Badge variant={colors.badge} className="px-1.5 py-0 text-[10px]">
                         {log.event_type}
                       </Badge>
                     </div>
@@ -272,7 +271,7 @@ export function AuditLogsTable({
                   <div className="mt-0.5 text-xs font-medium text-gray-900 dark:text-white truncate">
                     {log.actor_name || 'System'}
                   </div>
-                   <Badge variant={getActorBadgeColor(log.actor_type)} className="mt-1 h-4 px-1.5 text-[9px]">
+                  <Badge variant={getActorBadgeColor(log.actor_type)} className="mt-1 h-4 px-1.5 text-[9px]">
                     {log.actor_type}
                   </Badge>
                 </div>
