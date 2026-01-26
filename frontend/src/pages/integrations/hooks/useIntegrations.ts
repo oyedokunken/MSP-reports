@@ -25,12 +25,14 @@ const fetchIntegrations = async (): Promise<IntegrationsData> => {
   };
 };
 
-export const useIntegrationsQuery = () => {
+export const useIntegrationsQuery = (options?: { 
+  refetchInterval?: number | false
+}) => {
   return useQuery({
     queryKey: integrationKeys.lists(),
     queryFn: fetchIntegrations,
-    refetchInterval: 30000, // Poll every 30s
-    staleTime: 10000, // Consider data fresh for 10s
+    refetchInterval: options?.refetchInterval ?? 10000, // Default 10s (faster for progress updates)
+    staleTime: 5000, 
   });
 };
 

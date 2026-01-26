@@ -26,6 +26,7 @@ export default function IntegrationList() {
 
     // React Query
     const { data, isLoading } = useIntegrationsQuery();
+
     const allIntegrations = data?.integrations || [];
     const availableTypesFromApi = data?.availableTypes || [];
     const syncMutation = useSyncIntegrationMutation();

@@ -185,11 +185,15 @@ export function IntegrationTable({
                                                         </Badge>
                                                     )}
                                                 </div>
-                                                {isSyncing && (
+                                                {(isSyncing || integration.status === 'importing_historical') && (
                                                     <div className="mt-1 w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-1">
                                                         <div
                                                             className="bg-primary h-1 rounded-full transition-all duration-300"
-                                                            style={{ width: `${progress}%` }}
+                                                            style={{ 
+                                                                width: `${integration.status === 'importing_historical' 
+                                                                    ? (integration.historicalImportProgress || 0) 
+                                                                    : progress}%` 
+                                                                }}
                                                         />
                                                     </div>
                                                 )}
