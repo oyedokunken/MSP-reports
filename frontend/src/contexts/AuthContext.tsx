@@ -13,6 +13,8 @@ import type {
     AuthState,
 } from "@/types/auth";
 import { api } from "@/lib/api";
+import { STORAGE_KEYS } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 import { useBranding } from "./BrandingContext";
 import { useNotificationStore } from "@/stores/useNotificationStore";
 
@@ -45,16 +47,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const storage = storageType === "session" ? sessionStorage : localStorage;
 
             // Also check sessionStorage if localStorage doesn't have token
-            let token = storage.getItem("auth_token");
-            let userStr = storage.getItem("user");
-            let companyStr = storage.getItem("company");
+            let token = storage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+            let userStr = storage.getItem(STORAGE_KEYS.USER);
+            let companyStr = storage.getItem(STORAGE_KEYS.COMPANY);
 
             // Fallback: check the other storage if primary is empty
             if (!token) {
                 const fallbackStorage = storageType === "session" ? localStorage : sessionStorage;
-                token = fallbackStorage.getItem("auth_token");
-                userStr = fallbackStorage.getItem("user");
-                companyStr = fallbackStorage.getItem("company");
+                token = fallbackStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+                userStr = fallbackStorage.getItem(STORAGE_KEYS.USER);
+                companyStr = fallbackStorage.getItem(STORAGE_KEYS.COMPANY);
             }
 
             if (token && userStr) {
@@ -73,36 +75,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     // Verify token is still valid with backend BEFORE setting authenticated
                     // This prevents the flash of dashboard content before redirect
                     try {
-                        const response = await api.get<User>("/auth/me");
-                        if (response.success && response.data) {
-                            // Token is valid, set authenticated state
-                            setState({
-                                user: response.data,
-                                token,
-                                isAuthenticated: true,
-                                isLoading: false,
-                            });
+                        // Backend returns { status: 'success', data: User }
+                        const response = await api.get<{ data: User }>("/auth/me");
+                        const user = response.data;
+                        // Token is valid, set authenticated state
+                        setState({
+                            user,
+                            token,
+                            isAuthenticated: true,
+                            isLoading: false,
+                        });
 
-                            // Update stored user data with fresh data
-                            const storageType = localStorage.getItem("auth_storage_type");
-                            const activeStorage = storageType === "session" ? sessionStorage : localStorage;
-                            activeStorage.setItem("user", JSON.stringify(response.data));
+                        // Update stored user data with fresh data
+                        const storageType = localStorage.getItem("auth_storage_type");
+                        const activeStorage = storageType === "session" ? sessionStorage : localStorage;
+                        activeStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
-                            // Start listening for real-time notifications
-                            listenForNotifications(response.data.user_id, token);
-                        } else {
-                            throw new Error("Invalid response");
-                        }
+                        // Start listening for real-time notifications
+                        listenForNotifications(user.user_id, token);
                     } catch {
                         // Token is invalid/expired - clear everything and go to login
-                        console.warn("Token validation failed - session expired");
-                        localStorage.removeItem("auth_token");
-                        localStorage.removeItem("user");
-                        localStorage.removeItem("company");
+                        logger.warn("Token validation failed - session expired");
+                        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+                        localStorage.removeItem(STORAGE_KEYS.USER);
+                        localStorage.removeItem(STORAGE_KEYS.COMPANY);
                         localStorage.removeItem("auth_storage_type");
-                        sessionStorage.removeItem("auth_token");
-                        sessionStorage.removeItem("user");
-                        sessionStorage.removeItem("company");
+                        sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+                        sessionStorage.removeItem(STORAGE_KEYS.USER);
+                        sessionStorage.removeItem(STORAGE_KEYS.COMPANY);
                         setBranding(null);
                         setState({
                             user: null,
@@ -113,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         setCompany(null);
                     }
                 } catch (error) {
-                    console.error("Failed to parse stored user:", error);
+                    logger.error("Failed to parse stored user", error);
                     setState((prev) => ({ ...prev, isLoading: false }));
                     logout();
                 }
@@ -129,14 +129,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = async (credentials: LoginCredentials) => {
         const { rememberMe, ...apiCredentials } = credentials;
 
-        const response = await api.post<LoginResponse>(
+        // Backend returns { status: 'success', data: { user, token, company } }
+        const response = await api.post<{ data: LoginResponse }>(
             "/auth/login",
             apiCredentials
         );
-
-        if (!response.data) {
-            throw new Error("Login failed");
-        }
 
         const user = response.data.user;
         const token = response.data.token;
@@ -148,17 +145,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const storage = rememberMe ? localStorage : sessionStorage;
 
         // Clear both storages first to avoid conflicts
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user");
-        localStorage.removeItem("company");
-        sessionStorage.removeItem("auth_token");
-        sessionStorage.removeItem("user");
-        sessionStorage.removeItem("company");
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.USER);
+        localStorage.removeItem(STORAGE_KEYS.COMPANY);
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        sessionStorage.removeItem(STORAGE_KEYS.USER);
+        sessionStorage.removeItem(STORAGE_KEYS.COMPANY);
 
         // Store in appropriate storage
-        storage.setItem("auth_token", token);
-        storage.setItem("user", JSON.stringify(user));
-        storage.setItem("company", JSON.stringify(companyData));
+        storage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+        storage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+        storage.setItem(STORAGE_KEYS.COMPANY, JSON.stringify(companyData));
 
         // Also store which storage type was used
         localStorage.setItem("auth_storage_type", rememberMe ? "local" : "session");
@@ -185,18 +182,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Call logout endpoint
             await api.post("/auth/logout");
         } catch (error) {
-            console.error("Logout error:", error);
+            logger.error("Logout error", error);
         } finally {
             // Clear both storages regardless of API call success
-            localStorage.removeItem("auth_token");
-            localStorage.removeItem("user");
-            localStorage.removeItem("company");
+            localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.USER);
+            localStorage.removeItem(STORAGE_KEYS.COMPANY);
             localStorage.removeItem("auth_storage_type");
             localStorage.removeItem("sidebar_state"); // Reset sidebar to expanded on next login
             localStorage.removeItem("vite-ui-theme"); // Reset theme to system default on next login
-            sessionStorage.removeItem("auth_token");
-            sessionStorage.removeItem("user");
-            sessionStorage.removeItem("company");
+            sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+            sessionStorage.removeItem(STORAGE_KEYS.USER);
+            sessionStorage.removeItem(STORAGE_KEYS.COMPANY);
             setBranding(null);
 
             setState({
@@ -214,24 +211,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const refreshUser = async () => {
         try {
-            const response = await api.get<User>("/auth/me");
+            // Backend returns { status: 'success', data: User }
+            const response = await api.get<{ data: User }>("/auth/me");
+            const user = response.data;
 
-            if (response.success && response.data) {
-                const user = response.data;
+            // Save to the correct storage based on how the user logged in
+            const storageType = localStorage.getItem("auth_storage_type");
+            const storage = storageType === "session" ? sessionStorage : localStorage;
+            storage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
 
-                // Save to the correct storage based on how the user logged in
-                const storageType = localStorage.getItem("auth_storage_type");
-                const storage = storageType === "session" ? sessionStorage : localStorage;
-                storage.setItem("user", JSON.stringify(user));
-
-                setState((prev) => ({
-                    ...prev,
-                    user,
-                    isAuthenticated: true,
-                }));
-            }
+            setState((prev) => ({
+                ...prev,
+                user,
+                isAuthenticated: true,
+            }));
         } catch (error) {
-            console.error("Failed to refresh user:", error);
+            logger.error("Failed to refresh user", error);
             logout();
         }
     };
