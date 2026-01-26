@@ -11,41 +11,126 @@
             color: #1a1a1a;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px 10px;
+            padding: {{ (isset($render_part) && $render_part === 'cover') ? '0' : '20px 10px' }};
             font-size: 12px;
         }
-        .header { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; text-align: center; }
-        .header .company-name { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
-        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
-        .header .meta { font-size: 11px; color: #666; }
+        .header { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e5e5e5; text-align: center; }
+        .header .company-name { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; display: none; }
+        .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; color: #0f172a; letter-spacing: -0.02em; }
+        .header .meta { font-size: 12px; color: #64748b; font-weight: 500; }
+        
         .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 40px; }
-        .summary-card { padding: 18px; border: 1px solid #e5e5e5; border-radius: 6px; }
-        .summary-card .number { font-size: 28px; font-weight: 600; margin-bottom: 3px; }
-        .summary-card .label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+        .summary-card { 
+            padding: 20px 15px; 
+            background: #ffffff;
+            border: 1px solid #e2e8f0; 
+            border-radius: 12px; 
+            text-align: center;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 90px;
+        }
+        .summary-card .number { font-size: 28px; font-weight: 700; color: #0f172a; margin-bottom: 3px; }
+        .summary-card .label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; font-weight: 600; }
         .summary-card .sublabel { font-size: 10px; color: #999; margin-top: 6px; }
-        .alert { padding: 12px 15px; margin-bottom: 10px; border-radius: 5px; border-left: 3px solid; font-size: 11px; }
-        .alert.critical { background: #fef2f2; border-color: #dc2626; color: #991b1b; }
-        .alert.warning { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
-        .alert-title { font-weight: 600; margin-bottom: 3px; }
+        
+        .alert { 
+            padding: 16px 20px; 
+            margin-bottom: 15px; 
+            border-left: 4px solid; 
+            background: #ffffff; 
+            border-radius: 8px;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+            border-top: 1px solid #f1f5f9;
+            border-right: 1px solid #f1f5f9;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 11px;
+        }
+        .alert.critical { border-left-color: #ef4444; }
+        .alert.warning { border-left-color: #f59e0b; }
+        .alert-title { font-weight: 700; font-size: 12px; margin-bottom: 4px; color: #0f172a; }
+        
         .section { margin-bottom: 40px; }
         .section-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        th { text-align: left; padding: 10px 12px; background: #f9fafb; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e5e5; white-space: nowrap; }
-        td { padding: 12px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+        
+        table { 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0;
+            font-size: 11px; 
+            margin-bottom: 30px; 
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+        }
+        th { 
+            text-align: left; 
+            padding: 12px 15px; 
+            background: #f8fafc; 
+            font-weight: 700; 
+            color: #475569; 
+            border-bottom: 1px solid #e2e8f0; 
+            white-space: nowrap; 
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.025em;
+        }
+        td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; vertical-align: top; color: #334155; }
         tr:last-child td { border-bottom: none; }
-        .detail { font-size: 10px; color: #666; margin-top: 3px; line-height: 1.4; }
+        
+        .detail { font-size: 10px; color: #64748b; margin-top: 3px; line-height: 1.4; }
         .badge { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
         .badge.critical { background: #fee2e2; color: #991b1b; }
         .badge.warning { background: #fef3c7; color: #92400e; }
         .badge.healthy { background: #d1fae5; color: #065f46; }
         .badge.info { background: #dbeafe; color: #1e40af; }
         .empty { text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 11px; }
+
+        /* Report Content Background Shapes */
+        .report-bg-shape-1 {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            background: #1e293b;
+            opacity: 0.02;
+            clip-path: polygon(100% 0, 0% 0, 100% 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .report-bg-shape-2 {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 30%;
+            height: 40%;
+            background: #1e293b;
+            opacity: 0.015;
+            clip-path: polygon(0 100%, 100% 100%, 0 0);
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .page-break { page-break-before: always; }
     </style>
 </head>
 <body>
+    @if(!isset($render_part) || $render_part === 'all' || $render_part === 'cover')
+        @include('CoverPages.default')
+    @endif
+
+    @if(!isset($render_part) || $render_part === 'all' || $render_part === 'content')
+    <div class="report-bg-shape-1"></div>
+    <div class="report-bg-shape-2"></div>
+
     <div class="header">
         <h1>ITGlue {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary</h1>
-        <div class="company-name">{{ is_array($branding) ? ($branding['company_name'] ?? 'Territory Technology Solutions') : 'Territory Technology Solutions' }}</div>
         <div class="meta">
             {{ is_object($customer) ? $customer->canonical_name : (is_array($customer) ? ($customer['canonical_name'] ?? 'Customer') : 'Customer') }} 
             • 
@@ -128,6 +213,8 @@
         <div class="empty">No license data available</div>
         @endif
     </div>
+    
+    <div class="page-break"></div>
 
     <div class="section">
         <h2 class="section-title">SSL Certificates</h2>
@@ -201,6 +288,8 @@
         @endif
     </div>
 
+    <div class="page-break"></div>
+    
     <div class="section">
         <h2 class="section-title">Domain Registrations</h2>
         @if(!empty($domains['data']) && is_array($domains['data']) && count($domains['data']) > 0)
@@ -267,6 +356,10 @@
         <div class="empty">No domain registration data available</div>
         @endif
     </div>
-
+    @endif
+    <script>
+        // Signal that rendering is complete for Gotenberg
+        window.chartsRendered = true;
+    </script>
 </body>
 </html>
