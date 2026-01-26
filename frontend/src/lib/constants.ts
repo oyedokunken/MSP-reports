@@ -9,6 +9,7 @@ export const PAGINATION = {
     DEFAULT_PER_PAGE: 10,
     NOTIFICATIONS_PER_PAGE: 20,
     USERS_PER_PAGE: 10,
+    REPORTS_PER_PAGE: 9,
 } as const
 
 export const TIMEOUTS = {

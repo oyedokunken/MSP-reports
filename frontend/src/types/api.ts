@@ -1,3 +1,8 @@
+/**
+ * Core API response types
+ * This is the single source of truth for API response structures
+ */
+
 export interface ApiResponse<T> {
   success: boolean
   data: T
@@ -11,7 +16,25 @@ export interface ApiError {
   code?: string
 }
 
+export interface PaginationMeta {
+  current_page: number
+  per_page: number
+  total: number
+  last_page: number
+  from: number | null
+  to: number | null
+}
+
 export interface PaginatedResponse<T> {
+  success: boolean
+  data: T[]
+  pagination: PaginationMeta
+}
+
+/**
+ * Laravel-style paginated response (alternative format)
+ */
+export interface LaravelPaginatedResponse<T> {
   data: T[]
   meta: {
     current_page: number

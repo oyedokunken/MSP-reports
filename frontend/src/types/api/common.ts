@@ -1,31 +1,12 @@
 /**
  * Common API response types
- * Following Laravel API Resource pattern
+ * Re-exports from main api.ts for backward compatibility
+ * @deprecated Import from '@/types/api' instead
  */
 
-export interface ApiSuccessResponse<T> {
-    status: 'success'
-    data: T
-    message?: string
-}
-
-export interface ApiErrorResponse {
-    status: 'error'
-    message: string
-    errors?: Record<string, string[]>
-}
-
-export interface PaginationMeta {
-    current_page: number
-    per_page: number
-    total: number
-    last_page: number
-    from: number | null
-    to: number | null
-}
-
-export interface PaginatedResponse<T> {
-    status: 'success'
-    data: T[]
-    pagination: PaginationMeta
-}
+export type {
+    ApiResponse as ApiSuccessResponse,
+    ApiError as ApiErrorResponse,
+    PaginationMeta,
+    PaginatedResponse,
+} from '../api'

@@ -19,5 +19,27 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Warn on console usage (except warn/error) - helps catch debug logs
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+
+      // Prefer explicit types over any
+      '@typescript-eslint/no-explicit-any': 'warn',
+
+      // Ensure unused vars are caught (ignore underscore-prefixed)
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+      }],
+
+      // Consistent return types
+      '@typescript-eslint/explicit-function-return-type': 'off',
+
+      // Prefer const assertions
+      'prefer-const': 'error',
+
+      // No duplicate imports
+      'no-duplicate-imports': 'error',
+    },
   },
 ])
