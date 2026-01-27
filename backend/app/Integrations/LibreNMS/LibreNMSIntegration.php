@@ -22,6 +22,19 @@ class LibreNMSIntegration implements IntegrationInterface
     protected Integration $integration;
     protected LibreNMSClient $client;
     protected CustomerMappingService $mappingService;
+    protected $progressCallback = null;
+
+    public function setProgressCallback(callable $callback): void
+    {
+        $this->progressCallback = $callback;
+    }
+
+    protected function notifyProgress(int $count, ?float $subProgress = null): void
+    {
+        if ($this->progressCallback) {
+            ($this->progressCallback)($count, $subProgress);
+        }
+    }
 
     public function __construct(Integration $integration)
     {
@@ -221,11 +234,123 @@ class LibreNMSIntegration implements IntegrationInterface
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        // Historical data is now handled via processBatch dispatching during sync()
+        $totalProcessed = 0;
+        $errors = [];
+
+        try {
+            Log::info('LibreNMS: Starting optimized historical import', [
+                'integration_id' => $this->integration->integration_id,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+            ]);
+
+            // 1. Get all devices
+            $devices = $this->client->getAllDevices();
+            $totalDevices = count($devices);
+            
+            if ($totalDevices === 0) {
+                return ['success' => true, 'total_processed' => 0, 'errors' => []];
+            }
+
+            // 2. Pre-load customer mappings (memory optimization)
+            $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                ->pluck('integration_customer_id', 'external_id')
+                ->toArray();
+
+            // 3. Pre-load device-group memberships (optimization from previous step)
+            $deviceGroupsMap = [];
+            $allGroups = $this->client->getDeviceGroups();
+            foreach ($allGroups as $group) {
+                try {
+                    $devicesInGroup = $this->client->getDevicesInGroup($group['id']);
+                    foreach ($devicesInGroup as $dev) {
+                        $deviceGroupsMap[$dev['device_id']][] = $group;
+                    }
+                } catch (\Exception $e) { /* ignore single group failures */ }
+            }
+
+            // 4. Process in chunks for parallel API fetching
+            $deviceChunks = array_chunk($devices, 50);
+            foreach ($deviceChunks as $chunkIndex => $chunk) {
+                $batchRecords = [];
+                $deviceIds = array_column($chunk, 'device_id');
+                
+                // Fetch availability in parallel for this chunk
+                $availabilityBatch = $this->client->getDeviceAvailabilityBatch($deviceIds);
+
+                foreach ($chunk as $device) {
+                    try {
+                        $deviceId = $device['device_id'];
+                        $groups = $deviceGroupsMap[$deviceId] ?? [];
+                        
+                        // Find customer
+                        $integrationCustomerId = null;
+                        foreach ($groups as $group) {
+                            $externalId = 'group_' . $group['id'];
+                            if (isset($customerMap[$externalId])) {
+                                $integrationCustomerId = $customerMap[$externalId];
+                                break;
+                            }
+                        }
+
+                        if (!$integrationCustomerId) continue;
+
+                        // Map device details
+                        $details = LibreNMSMapper::mapDeviceDetails($device, $groups);
+                        $batchRecords[] = [
+                            'data_type' => 'device',
+                            'integration_customer_id' => $integrationCustomerId,
+                            'timestamp' => $startDate,
+                            'payload' => $details['payload'],
+                        ];
+
+                        // Map uptime
+                        $uptime = LibreNMSMapper::mapDeviceUptime($device);
+                        $batchRecords[] = [
+                            'data_type' => 'device_uptime',
+                            'integration_customer_id' => $integrationCustomerId,
+                            'timestamp' => $startDate,
+                            'payload' => $uptime['payload'],
+                        ];
+
+                        // Map availability (from parallel batch)
+                        $availability = $availabilityBatch[$deviceId] ?? [];
+                        if (!empty($availability)) {
+                            $mappedAvail = LibreNMSMapper::mapDeviceAvailability($deviceId, $availability);
+                            $batchRecords[] = [
+                                'data_type' => 'device_availability',
+                                'integration_customer_id' => $integrationCustomerId,
+                                'timestamp' => $startDate,
+                                'payload' => $mappedAvail['payload'],
+                            ];
+                        }
+
+                        $totalProcessed++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Device {$device['device_id']} failed: " . $e->getMessage();
+                    }
+                }
+
+                // 5. Bulk Store the entire chunk
+                if (!empty($batchRecords)) {
+                    $this->bulkStoreHistoricalData($batchRecords);
+                }
+
+                // Progress notification
+                $currentProgress = min(100, (($chunkIndex + 1) * 50 / $totalDevices) * 100);
+                $this->notifyProgress(count($chunk), $currentProgress);
+                $this->sendHeartbeat();
+            }
+
+        } catch (\Exception $e) {
+            Log::error('LibreNMS Historical Import Error', ['error' => $e->getMessage()]);
+            throw $e;
+        }
+
         return [
-            'success' => true,
-            'total_processed' => 0,
-            'errors' => [],
+            'success' => empty($errors),
+            'total_processed' => $totalProcessed,
+            'errors' => $errors,
         ];
     }
 
@@ -299,52 +424,50 @@ class LibreNMSIntegration implements IntegrationInterface
         }
     }
 
+    private function bulkStoreHistoricalData(array $batch): void
+    {
+        if (empty($batch)) return;
+
+        $now = now();
+        $insertData = [];
+
+        foreach ($batch as $data) {
+            $payload = $data['payload'];
+            $deviceId = $payload['device_id'] ?? null;
+            $timestamp = Carbon::parse($data['timestamp']);
+            $dateOnly = $timestamp->copy()->startOfDay();
+            
+            // Generate a unique external_id for indexing/upserting
+            $externalId = $deviceId 
+                ? "device_{$deviceId}_{$data['data_type']}_" . $dateOnly->format('Y-m-d')
+                : null;
+
+            $insertData[] = [
+                'company_id'             => $this->integration->company_id,
+                'integration_id'         => $this->integration->integration_id,
+                'integration_customer_id'=> $data['integration_customer_id'] ?? null,
+                'data_type'              => $data['data_type'],
+                'external_id'            => $externalId,
+                'data_timestamp'         => $data['timestamp'],
+                'data_payload'           => json_encode($payload),
+                'imported_at'            => $now,
+                'data_version'           => 1,
+                'created_at'             => $now,
+                'updated_at'             => $now,
+            ];
+        }
+
+        // Bulk UPSERT using indexed external_id
+        IntegrationData::upsert(
+            $insertData,
+            ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
+            ['integration_customer_id', 'data_payload', 'imported_at', 'updated_at']
+        );
+    }
+
     private function storeHistoricalData(array $data): void
     {
-        $payload = $data['payload'];
-        $deviceId = $payload['device_id'] ?? null;
-        
-        if ($deviceId) {
-            // UPSERT: Use device_id + data_type + date as unique key (one record per device per day)
-            $dateOnly = Carbon::parse($data['timestamp'])->startOfDay();
-            
-            $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
-                ->where('data_type', $data['data_type'])
-                ->whereRaw("data_payload->>'device_id' = ?", [(string)$deviceId])
-                ->whereDate('data_timestamp', $dateOnly)
-                ->first();
-
-            if ($existing) {
-                $existing->update([
-                    'data_timestamp' => $data['timestamp'],
-                    'data_payload' => $payload,
-                    'imported_at' => now(),
-                ]);
-            } else {
-                IntegrationData::create([
-                    'company_id' => $this->integration->company_id,
-                    'integration_id' => $this->integration->integration_id,
-                    'integration_customer_id' => $data['integration_customer_id'],
-                    'data_type' => $data['data_type'],
-                    'data_timestamp' => $data['timestamp'],
-                    'data_payload' => $payload,
-                    'imported_at' => now(),
-                    'data_version' => 1,
-                ]);
-            }
-        } else {
-            // Fallback for data without device_id
-            IntegrationData::create([
-                'company_id' => $this->integration->company_id,
-                'integration_id' => $this->integration->integration_id,
-                'integration_customer_id' => $data['integration_customer_id'],
-                'data_type' => $data['data_type'],
-                'data_timestamp' => $data['timestamp'],
-                'data_payload' => $payload,
-                'imported_at' => now(),
-                'data_version' => 1,
-            ]);
-        }
+        $this->bulkStoreHistoricalData([$data]);
     }
 
     public function getDisplayTemplate(): array

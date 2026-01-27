@@ -23,7 +23,7 @@ class LibreNMSClient
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
         
-        $this->baseUrl = rtrim($credentials['base_url'] ?? 'http://192.168.228.7/api/v0', '/');
+        $this->baseUrl = rtrim($credentials['base_url'] ?? 'https://nms.arafuracloud.com.au/api/v0', '/');
     }
 
     public function testConnection(): bool
@@ -91,6 +91,51 @@ class LibreNMSClient
             // Re-throw other errors
             throw $e;
         }
+    }
+
+    /**
+     * Fetch availability for multiple devices in parallel
+     */
+    public function getDeviceAvailabilityBatch(array $deviceIds): array
+    {
+        if (empty($deviceIds)) return [];
+
+        $results = [];
+        $chunks = array_chunk($deviceIds, 20); // Process in batches of 20
+
+        foreach ($chunks as $chunk) {
+            $responses = Http::pool(function ($pool) use ($chunk) {
+                $requests = [];
+                foreach ($chunk as $id) {
+                    $url = $this->baseUrl . "/devices/{$id}/availability";
+                    $requests[$id] = $pool->withHeaders([
+                        'X-Auth-Token' => $this->credentials['api_token'] ?? '',
+                        'Accept' => 'application/json',
+                    ])->withOptions([
+                        'verify' => false,
+                        'connect_timeout' => 5,
+                        'timeout' => 15,
+                    ])->get($url);
+                }
+                return $requests;
+            });
+
+            foreach ($responses as $id => $response) {
+                if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
+                    $data = $response->json();
+                    $results[$id] = $data['availability'] ?? [];
+                } else {
+                    $results[$id] = [];
+                }
+            }
+            
+            // Record rate limit hits
+            foreach ($chunk as $ignored) {
+                $this->rateLimiter->recordRequest($this->integration);
+            }
+        }
+
+        return $results;
     }
 
     public function getDeviceGroupsForDevice(int $deviceId): array

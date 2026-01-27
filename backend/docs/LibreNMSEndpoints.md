@@ -5,6 +5,7 @@
 **Purpose:** Determine device availability per group for monthly reporting
 
 **Key Workflow:**
+
 1. Fetch device groups (network segments, infrastructure types)
 2. Get devices within each group
 3. Pull availability metrics (24h, 7d, 30d, 365d)
@@ -15,7 +16,7 @@
 
 ## Production Credentials
 
-**Base URL:** `http://192.168.228.7/api/v0`  
+**Base URL:** `https://nms.arafuracloud.com.au/api/v0`  
 **API Token:** `96c9989e1c4a0a9ce532c91d27d05840`  
 **Source ID:** `11`  
 **Source Name:** `NMS`  
@@ -28,15 +29,18 @@
 ## API Endpoints
 
 ### 1. Get All Device Groups
+
 **Endpoint:** `GET /devicegroups`  
-**URL:** `http://192.168.228.7/api/v0/devicegroups`
+**URL:** `https://nms.arafuracloud.com.au/api/v0/devicegroups`
 
 **Headers:**
+
 ```
 X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **Response:**
+
 ```json
 {
     "status": "ok",
@@ -90,11 +94,7 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
                 ],
                 "valid": true,
                 "joins": [
-                    [
-                        "ports",
-                        "devices.device_id",
-                        "ports.device_id"
-                    ],
+                    ["ports", "devices.device_id", "ports.device_id"],
                     [
                         "ipv4_addresses",
                         "ports.port_id",
@@ -109,23 +109,27 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **cURL:**
+
 ```bash
-curl -X GET "http://192.168.228.7/api/v0/devicegroups" \
+curl -X GET "https://nms.arafuracloud.com.au/api/v0/devicegroups" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
 ---
 
 ### 2. Get Devices in Group
+
 **Endpoint:** `GET /devicegroups/{group_id}`  
-**URL:** `http://192.168.228.7/api/v0/devicegroups/{group_id}`
+**URL:** `https://nms.arafuracloud.com.au/api/v0/devicegroups/{group_id}`
 
 **Headers:**
+
 ```
 X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **Response:**
+
 ```json
 {
     "status": "ok",
@@ -150,23 +154,27 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **cURL:**
+
 ```bash
-curl -X GET "http://192.168.228.7/api/v0/devicegroups/1" \
+curl -X GET "https://nms.arafuracloud.com.au/api/v0/devicegroups/1" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
 ---
 
 ### 3. Get All Devices
+
 **Endpoint:** `GET /devices`  
-**URL:** `http://192.168.228.7/api/v0/devices`
+**URL:** `https://nms.arafuracloud.com.au/api/v0/devices`
 
 **Headers:**
+
 ```
 X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **Response:**
+
 ```json
 {
     "status": "ok",
@@ -278,23 +286,27 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **cURL:**
+
 ```bash
-curl -X GET "http://192.168.228.7/api/v0/devices" \
+curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
 ---
 
 ### 4. Get Single Device
+
 **Endpoint:** `GET /devices/{device_id}`  
-**URL:** `http://192.168.228.7/api/v0/devices/{device_id}`
+**URL:** `https://nms.arafuracloud.com.au/api/v0/devices/{device_id}`
 
 **Headers:**
+
 ```
 X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **Response:**
+
 ```json
 {
     "status": "ok",
@@ -354,23 +366,27 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **cURL:**
+
 ```bash
-curl -X GET "http://192.168.228.7/api/v0/devices/101" \
+curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
 ---
 
 ### 5. Get Device Availability
+
 **Endpoint:** `GET /devices/{device_id}/availability`  
-**URL:** `http://192.168.228.7/api/v0/devices/{device_id}/availability`
+**URL:** `https://nms.arafuracloud.com.au/api/v0/devices/{device_id}/availability`
 
 **Headers:**
+
 ```
 X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **Response:**
+
 ```json
 {
     "status": "ok",
@@ -396,29 +412,34 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **Duration Values:**
+
 - `86400` = 24 hours
 - `604800` = 7 days
 - `2592000` = 30 days
 - `31536000` = 365 days
 
 **cURL:**
+
 ```bash
-curl -X GET "http://192.168.228.7/api/v0/devices/101/availability" \
+curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101/availability" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
 ---
 
 ### 6. Get Device Groups for Device
+
 **Endpoint:** `GET /devices/{device_id}/groups`  
-**URL:** `http://192.168.228.7/api/v0/devices/{device_id}/groups`
+**URL:** `https://nms.arafuracloud.com.au/api/v0/devices/{device_id}/groups`
 
 **Headers:**
+
 ```
 X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **Response:**
+
 ```json
 {
     "status": "ok",
@@ -460,8 +481,9 @@ X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840
 ```
 
 **cURL:**
+
 ```bash
-curl -X GET "http://192.168.228.7/api/v0/devices/101/groups" \
+curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101/groups" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
@@ -473,321 +495,321 @@ curl -X GET "http://192.168.228.7/api/v0/devices/101/groups" \
 
 ```json
 {
-  "info": {
-    "name": "LibreNMS API - Arafura Cloud NMS",
-    "description": "API testing for LibreNMS NMS instance",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://192.168.228.7/api/v0",
-      "type": "string"
+    "info": {
+        "name": "LibreNMS API - Arafura Cloud NMS",
+        "description": "API testing for LibreNMS NMS instance",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
-    {
-      "key": "api_token",
-      "value": "96c9989e1c4a0a9ce532c91d27d05840",
-      "type": "string"
-    }
-  ],
-  "item": [
-    {
-      "name": "1. Get All Device Groups",
-      "event": [
+    "variable": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Response status is ok\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.status).to.eql(\"ok\");",
-              "});",
-              "",
-              "pm.test(\"Groups array exists\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.groups).to.be.an('array');",
-              "});",
-              "",
-              "if (pm.response.json().groups && pm.response.json().groups.length > 0) {",
-              "    pm.environment.set(\"group_id\", pm.response.json().groups[0].id);",
-              "    console.log(\"Saved group_id: \" + pm.response.json().groups[0].id);",
-              "}"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "X-Auth-Token",
-            "value": "{{api_token}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/devicegroups",
-          "host": ["{{base_url}}"],
-          "path": ["devicegroups"]
-        }
-      }
-    },
-    {
-      "name": "2. Get Devices in Group",
-      "event": [
+            "key": "base_url",
+            "value": "https://nms.arafuracloud.com.au/api/v0",
+            "type": "string"
+        },
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Response status is ok\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.status).to.eql(\"ok\");",
-              "});",
-              "",
-              "pm.test(\"Devices array exists\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.devices).to.be.an('array');",
-              "});",
-              "",
-              "if (pm.response.json().devices && pm.response.json().devices.length > 0) {",
-              "    var deviceId = pm.response.json().devices[0].device_id;",
-              "    pm.environment.set(\"device_id\", deviceId);",
-              "    console.log(\"Saved device_id: \" + deviceId);",
-              "}"
-            ]
-          }
+            "key": "api_token",
+            "value": "96c9989e1c4a0a9ce532c91d27d05840",
+            "type": "string"
         }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "X-Auth-Token",
-            "value": "{{api_token}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/devicegroups/{{group_id}}",
-          "host": ["{{base_url}}"],
-          "path": ["devicegroups", "{{group_id}}"]
-        }
-      }
-    },
-    {
-      "name": "3. Get All Devices",
-      "event": [
+    ],
+    "item": [
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Response status is ok\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.status).to.eql(\"ok\");",
-              "});",
-              "",
-              "pm.test(\"Devices array exists\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.devices).to.be.an('array');",
-              "});",
-              "",
-              "pm.test(\"Devices have required fields\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    if (jsonData.devices.length > 0) {",
-              "        var device = jsonData.devices[0];",
-              "        pm.expect(device).to.have.property('device_id');",
-              "        pm.expect(device).to.have.property('hostname');",
-              "        pm.expect(device).to.have.property('status');",
-              "    }",
-              "});",
-              "",
-              "if (pm.response.json().devices && pm.response.json().devices.length > 0) {",
-              "    pm.environment.set(\"device_id\", pm.response.json().devices[0].device_id);",
-              "    console.log(\"Saved device_id: \" + pm.response.json().devices[0].device_id);",
-              "}"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "X-Auth-Token",
-            "value": "{{api_token}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/devices",
-          "host": ["{{base_url}}"],
-          "path": ["devices"]
-        }
-      }
-    },
-    {
-      "name": "4. Get Single Device",
-      "event": [
+            "name": "1. Get All Device Groups",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"Response status is ok\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.status).to.eql(\"ok\");",
+                            "});",
+                            "",
+                            "pm.test(\"Groups array exists\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.groups).to.be.an('array');",
+                            "});",
+                            "",
+                            "if (pm.response.json().groups && pm.response.json().groups.length > 0) {",
+                            "    pm.environment.set(\"group_id\", pm.response.json().groups[0].id);",
+                            "    console.log(\"Saved group_id: \" + pm.response.json().groups[0].id);",
+                            "}"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "X-Auth-Token",
+                        "value": "{{api_token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/devicegroups",
+                    "host": ["{{base_url}}"],
+                    "path": ["devicegroups"]
+                }
+            }
+        },
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Response status is ok\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.status).to.eql(\"ok\");",
-              "});",
-              "",
-              "pm.test(\"Devices array has one device\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.devices).to.be.an('array');",
-              "    pm.expect(jsonData.devices.length).to.eql(1);",
-              "});",
-              "",
-              "pm.test(\"Device has required fields\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    var device = jsonData.devices[0];",
-              "    pm.expect(device).to.have.property('device_id');",
-              "    pm.expect(device).to.have.property('hostname');",
-              "    pm.expect(device).to.have.property('status');",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "X-Auth-Token",
-            "value": "{{api_token}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/devices/{{device_id}}",
-          "host": ["{{base_url}}"],
-          "path": ["devices", "{{device_id}}"]
-        }
-      }
-    },
-    {
-      "name": "5. Get Device Availability",
-      "event": [
+            "name": "2. Get Devices in Group",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"Response status is ok\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.status).to.eql(\"ok\");",
+                            "});",
+                            "",
+                            "pm.test(\"Devices array exists\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.devices).to.be.an('array');",
+                            "});",
+                            "",
+                            "if (pm.response.json().devices && pm.response.json().devices.length > 0) {",
+                            "    var deviceId = pm.response.json().devices[0].device_id;",
+                            "    pm.environment.set(\"device_id\", deviceId);",
+                            "    console.log(\"Saved device_id: \" + deviceId);",
+                            "}"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "X-Auth-Token",
+                        "value": "{{api_token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/devicegroups/{{group_id}}",
+                    "host": ["{{base_url}}"],
+                    "path": ["devicegroups", "{{group_id}}"]
+                }
+            }
+        },
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Response status is ok\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.status).to.eql(\"ok\");",
-              "});",
-              "",
-              "pm.test(\"Availability array exists\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.availability).to.be.an('array');",
-              "});",
-              "",
-              "pm.test(\"Availability entries have required fields\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    if (jsonData.availability.length > 0) {",
-              "        jsonData.availability.forEach(function(entry) {",
-              "            pm.expect(entry).to.have.property('duration');",
-              "            pm.expect(entry).to.have.property('availability_perc');",
-              "            pm.expect(entry.availability_perc).to.be.within(0, 100);",
-              "        });",
-              "    }",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "X-Auth-Token",
-            "value": "{{api_token}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/devices/{{device_id}}/availability",
-          "host": ["{{base_url}}"],
-          "path": ["devices", "{{device_id}}", "availability"]
-        }
-      }
-    },
-    {
-      "name": "6. Get Device Groups for Device",
-      "event": [
+            "name": "3. Get All Devices",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"Response status is ok\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.status).to.eql(\"ok\");",
+                            "});",
+                            "",
+                            "pm.test(\"Devices array exists\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.devices).to.be.an('array');",
+                            "});",
+                            "",
+                            "pm.test(\"Devices have required fields\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    if (jsonData.devices.length > 0) {",
+                            "        var device = jsonData.devices[0];",
+                            "        pm.expect(device).to.have.property('device_id');",
+                            "        pm.expect(device).to.have.property('hostname');",
+                            "        pm.expect(device).to.have.property('status');",
+                            "    }",
+                            "});",
+                            "",
+                            "if (pm.response.json().devices && pm.response.json().devices.length > 0) {",
+                            "    pm.environment.set(\"device_id\", pm.response.json().devices[0].device_id);",
+                            "    console.log(\"Saved device_id: \" + pm.response.json().devices[0].device_id);",
+                            "}"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "X-Auth-Token",
+                        "value": "{{api_token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/devices",
+                    "host": ["{{base_url}}"],
+                    "path": ["devices"]
+                }
+            }
+        },
         {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Response status is ok\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.status).to.eql(\"ok\");",
-              "});",
-              "",
-              "pm.test(\"Groups array exists\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.groups).to.be.an('array');",
-              "});",
-              "",
-              "pm.test(\"Groups have required fields\", function () {",
-              "    var jsonData = pm.response.json();",
-              "    if (jsonData.groups.length > 0) {",
-              "        jsonData.groups.forEach(function(group) {",
-              "            pm.expect(group).to.have.property('id');",
-              "            pm.expect(group).to.have.property('name');",
-              "        });",
-              "    }",
-              "});"
-            ]
-          }
+            "name": "4. Get Single Device",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"Response status is ok\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.status).to.eql(\"ok\");",
+                            "});",
+                            "",
+                            "pm.test(\"Devices array has one device\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.devices).to.be.an('array');",
+                            "    pm.expect(jsonData.devices.length).to.eql(1);",
+                            "});",
+                            "",
+                            "pm.test(\"Device has required fields\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    var device = jsonData.devices[0];",
+                            "    pm.expect(device).to.have.property('device_id');",
+                            "    pm.expect(device).to.have.property('hostname');",
+                            "    pm.expect(device).to.have.property('status');",
+                            "});"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "X-Auth-Token",
+                        "value": "{{api_token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/devices/{{device_id}}",
+                    "host": ["{{base_url}}"],
+                    "path": ["devices", "{{device_id}}"]
+                }
+            }
+        },
+        {
+            "name": "5. Get Device Availability",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"Response status is ok\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.status).to.eql(\"ok\");",
+                            "});",
+                            "",
+                            "pm.test(\"Availability array exists\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.availability).to.be.an('array');",
+                            "});",
+                            "",
+                            "pm.test(\"Availability entries have required fields\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    if (jsonData.availability.length > 0) {",
+                            "        jsonData.availability.forEach(function(entry) {",
+                            "            pm.expect(entry).to.have.property('duration');",
+                            "            pm.expect(entry).to.have.property('availability_perc');",
+                            "            pm.expect(entry.availability_perc).to.be.within(0, 100);",
+                            "        });",
+                            "    }",
+                            "});"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "X-Auth-Token",
+                        "value": "{{api_token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/devices/{{device_id}}/availability",
+                    "host": ["{{base_url}}"],
+                    "path": ["devices", "{{device_id}}", "availability"]
+                }
+            }
+        },
+        {
+            "name": "6. Get Device Groups for Device",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"Response status is ok\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.status).to.eql(\"ok\");",
+                            "});",
+                            "",
+                            "pm.test(\"Groups array exists\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.groups).to.be.an('array');",
+                            "});",
+                            "",
+                            "pm.test(\"Groups have required fields\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    if (jsonData.groups.length > 0) {",
+                            "        jsonData.groups.forEach(function(group) {",
+                            "            pm.expect(group).to.have.property('id');",
+                            "            pm.expect(group).to.have.property('name');",
+                            "        });",
+                            "    }",
+                            "});"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "X-Auth-Token",
+                        "value": "{{api_token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/devices/{{device_id}}/groups",
+                    "host": ["{{base_url}}"],
+                    "path": ["devices", "{{device_id}}", "groups"]
+                }
+            }
         }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "X-Auth-Token",
-            "value": "{{api_token}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/devices/{{device_id}}/groups",
-          "host": ["{{base_url}}"],
-          "path": ["devices", "{{device_id}}", "groups"]
-        }
-      }
-    }
-  ]
+    ]
 }
 ```
 
@@ -796,11 +818,13 @@ curl -X GET "http://192.168.228.7/api/v0/devices/101/groups" \
 ## Testing Workflow
 
 ### Step 1: Import to Postman
+
 1. Copy the JSON collection above
 2. Open Postman → **Import** → **Raw Text**
 3. Paste and click **Import**
 
 ### Step 2: Run Tests in Order
+
 1. **Get All Device Groups** - Saves `group_id`
 2. **Get All Devices** - Saves `device_id`
 3. **Get Single Device** - Uses saved `device_id`
@@ -809,7 +833,9 @@ curl -X GET "http://192.168.228.7/api/v0/devices/101/groups" \
 6. **Get Devices in Group** - Uses saved `group_id`
 
 ### Step 3: View Results
+
 Each test automatically validates:
+
 - ✅ Status code is 200
 - ✅ Response has `status: "ok"`
 - ✅ Required fields exist
@@ -820,20 +846,23 @@ Each test automatically validates:
 ## Quick Test Commands
 
 ### Test Connection
+
 ```bash
-curl -X GET "http://192.168.228.7/api/v0/devicegroups" \
+curl -X GET "https://nms.arafuracloud.com.au/api/v0/devicegroups" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
 ### Get All Devices
+
 ```bash
-curl -X GET "http://192.168.228.7/api/v0/devices" \
+curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
 ### Get Specific Device (replace 101 with actual device_id)
+
 ```bash
-curl -X GET "http://192.168.228.7/api/v0/devices/101" \
+curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101" \
   -H "X-Auth-Token: 96c9989e1c4a0a9ce532c91d27d05840"
 ```
 
@@ -841,12 +870,12 @@ curl -X GET "http://192.168.228.7/api/v0/devices/101" \
 
 ## Response Codes
 
-| Code | Status | Meaning |
-|------|--------|---------|
-| 200 | OK | Success |
-| 401 | Unauthorized | Invalid API token |
-| 404 | Not Found | Device/Group doesn't exist |
-| 500 | Server Error | LibreNMS error |
+| Code | Status       | Meaning                    |
+| ---- | ------------ | -------------------------- |
+| 200  | OK           | Success                    |
+| 401  | Unauthorized | Invalid API token          |
+| 404  | Not Found    | Device/Group doesn't exist |
+| 500  | Server Error | LibreNMS error             |
 
 ---
 
