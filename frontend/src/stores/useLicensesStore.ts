@@ -37,7 +37,7 @@ export const useLicensesStore = create<LicensesState>((set) => ({
   fetchLicenses: async () => {
     set({ isLoading: true, error: null })
     try {
-      const response = await api.get('/licenses') as unknown as LicenseListResponse
+      const response = await api.get<LicenseListResponse>('/licenses')
 
       set({
         licenseData: response.data,
@@ -56,7 +56,7 @@ export const useLicensesStore = create<LicensesState>((set) => ({
   // Fetch license usage
   fetchUsage: async () => {
     try {
-      const response = await api.get('/licenses/usage') as unknown as LicenseUsageResponse
+      const response = await api.get<LicenseUsageResponse>('/licenses/usage')
 
       set({
         usage: response.data,

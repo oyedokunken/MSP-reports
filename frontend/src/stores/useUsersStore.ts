@@ -74,7 +74,8 @@ export const useUsersStore = create<UsersState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await userApi.getUsers(currentPage, get().perPage)
-      const usersList = response.data as unknown as UserWithPermissions[]
+      // User type from API matches UserWithPermissions structure
+      const usersList = response.data as UserWithPermissions[]
       const pagination = response.pagination
 
       set({

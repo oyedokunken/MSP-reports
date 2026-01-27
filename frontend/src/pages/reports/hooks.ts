@@ -41,7 +41,7 @@ export const useReportsList = () => {
       const params = new URLSearchParams({ page: page.toString(), per_page: '9' })
       if (customerId) params.append('customer_id', customerId)
 
-      const response = await api.get(`/reports/history?${params.toString()}`) as unknown as ReportHistoryResponse
+      const response = await api.get<ReportHistoryResponse>(`/reports/history?${params.toString()}`)
       return response.data
     }
   })

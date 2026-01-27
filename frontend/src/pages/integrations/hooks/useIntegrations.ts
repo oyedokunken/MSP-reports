@@ -18,21 +18,21 @@ interface IntegrationsData {
 
 // Fetcher
 const fetchIntegrations = async (): Promise<IntegrationsData> => {
-  const response = await api.get('/integrations') as unknown as IntegrationListResponse;
+  const response = await api.get<IntegrationListResponse>('/integrations');
   return {
     integrations: transformIntegrations(response) || [],
     availableTypes: response.available_types || [],
   };
 };
 
-export const useIntegrationsQuery = (options?: { 
+export const useIntegrationsQuery = (options?: {
   refetchInterval?: number | false
 }) => {
   return useQuery({
     queryKey: integrationKeys.lists(),
     queryFn: fetchIntegrations,
     refetchInterval: options?.refetchInterval ?? 10000, // Default 10s (faster for progress updates)
-    staleTime: 5000, 
+    staleTime: 5000,
   });
 };
 

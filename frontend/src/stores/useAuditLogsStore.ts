@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { logger } from '@/lib/logger'
 import type { AuditLog, AuditLogsFilters, AuditLogStats } from '@/pages/audit-logs/types'
-import { auditLogsService } from '@/services/api/auditLogs'
+import { auditLogsService, type AuditLogListResponse, type AuditLogStatsResponse } from '@/services/api/auditLogs'
 
 export interface AuditLogsState {
   auditLogs: AuditLog[]
@@ -43,13 +43,13 @@ export const useAuditLogsStore = create<AuditLogsState>((set, get) => ({
 
     try {
       const { filters, currentPage } = get()
-      const response = await auditLogsService.getAuditLogs({
+      const response: AuditLogListResponse = await auditLogsService.getAuditLogs({
         ...filters,
         page: currentPage,
         per_page: 10,
       })
 
-      const { data, pagination } = response as unknown as { data: AuditLog[]; pagination: { total: number; last_page: number } }
+      const { data, pagination } = response
 
       set({
         auditLogs: data,
@@ -68,9 +68,8 @@ export const useAuditLogsStore = create<AuditLogsState>((set, get) => ({
 
   fetchStats: async () => {
     try {
-      const response = await auditLogsService.getStats()
-      const typedResponse = response as unknown as { data: AuditLogStats }
-      set({ stats: typedResponse.data })
+      const response: AuditLogStatsResponse = await auditLogsService.getStats()
+      set({ stats: response.data })
     } catch (error) {
       logger.apiError('/audit-logs/stats', error)
     }

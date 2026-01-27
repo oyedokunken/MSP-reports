@@ -82,7 +82,7 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
       if (customerId) params.append('customer_id', customerId)
 
       const url = `/reports/history?${params.toString()}`
-      const response = await api.get(url) as unknown as ReportHistoryResponse
+      const response = await api.get<ReportHistoryResponse>(url)
 
       const reportsList = response.data.reports
       const pagination = response.data.pagination
