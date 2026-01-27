@@ -188,8 +188,7 @@ export const useCustomerReports = () => {
     try {
       setIsLoading(true)
       const response = await api.get<{ data: ReportConfig }>(`/customers/${id}/reports`)
-      const data = response as unknown as { data?: ReportConfig } | ReportConfig
-      const reportData = (data as { data?: ReportConfig }).data || data as ReportConfig
+      const reportData = response.data
 
       const configData = {
         ...reportData,

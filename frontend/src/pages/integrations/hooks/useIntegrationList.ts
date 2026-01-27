@@ -28,8 +28,9 @@ export function useIntegrationList(): UseIntegrationListReturn {
   const fetchIntegrations = useCallback(async () => {
     try {
       setIsLoading(true)
-      const response = await api.get('/integrations')
-      const data = (response as unknown as { data: { available_types: string[], configured: ConfiguredIntegration[] } }).data || response as unknown as { available_types: string[], configured: ConfiguredIntegration[] }
+      const response = await api.get<{ data?: { available_types: string[], configured: ConfiguredIntegration[] }; available_types?: string[]; configured?: ConfiguredIntegration[] }>('/integrations')
+      // Handle both wrapped and unwrapped response formats
+      const data = response.data || response
 
       setAvailableTypes(data.available_types || [])
       const transformed = transformIntegrations(data)

@@ -92,9 +92,9 @@ export const useConfigureReportsPage = () => {
 
     const fetchAvailableReports = useCallback(async () => {
         try {
-            const response = await api.get<{ available_reports: ReportType[] }>(`/customers/${id}/available-reports`)
-            const data = response as unknown as { data?: { available_reports: ReportType[] } } | { available_reports: ReportType[] }
-            const reportData = (data as { data?: { available_reports: ReportType[] } }).data || data as { available_reports: ReportType[] }
+            const response = await api.get<{ data?: { available_reports: ReportType[] }; available_reports?: ReportType[] }>(`/customers/${id}/available-reports`)
+            // Handle both wrapped and unwrapped response formats
+            const reportData = response.data || response
 
             const reports = (reportData.available_reports || []).map((r: ReportType) => ({
                 id: r.id,
@@ -116,8 +116,7 @@ export const useConfigureReportsPage = () => {
         try {
             setIsLoading(true)
             const response = await api.get<{ data: ReportConfig }>(`/customers/${id}/reports`)
-            const data = response as unknown as { data?: ReportConfig } | ReportConfig
-            const reportData = (data as { data?: ReportConfig }).data || data as ReportConfig
+            const reportData = response.data
 
             setConfig(reportData)
             const schedules = reportData.report_schedules || []
@@ -142,11 +141,11 @@ export const useConfigureReportsPage = () => {
             const schedulesWithDataCheck = await Promise.all(
                 mappedSchedules.map(async (schedule) => {
                     try {
-                        const checkResponse = await api.get<{ available_reports: ReportType[] }>(
+                        const checkResponse = await api.get<{ data?: { available_reports: ReportType[] }; available_reports?: ReportType[] }>(
                             `/customers/${id}/available-reports?frequency=${schedule.frequency}`
                         )
-                        const checkData = checkResponse as unknown as { data?: { available_reports: ReportType[] } } | { available_reports: ReportType[] }
-                        const reportCheckData = (checkData as { data?: { available_reports: ReportType[] } }).data || checkData as { available_reports: ReportType[] }
+                        // Handle both wrapped and unwrapped response formats
+                        const reportCheckData = checkResponse.data || checkResponse
 
                         const reportType = reportCheckData.available_reports?.find(r => r.id === schedule.report_type)
                         return { ...schedule, has_data: reportType?.has_data ?? true }
@@ -187,8 +186,8 @@ export const useConfigureReportsPage = () => {
 
             // Fetch SharePoint integrations
             try {
-                const intResponse = await api.get<{ configured: SharepointIntegration[] }>('/integrations')
-                const integrations = (intResponse as unknown as { configured?: SharepointIntegration[] }).configured || []
+                const intResponse = await api.get<{ configured?: SharepointIntegration[] }>('/integrations')
+                const integrations = intResponse.configured || []
                 const spIntegrations = Array.isArray(integrations)
                     ? integrations.filter((i) => i.integration_type?.toLowerCase().includes('sharepoint'))
                     : []
