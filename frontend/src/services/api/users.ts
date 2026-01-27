@@ -27,7 +27,7 @@ export const userApi = {
      * GET /api/users?page={page}&per_page={perPage}
      */
     async getUsers(page: number = 1, perPage: number = 10): Promise<UserListResponse> {
-        return api.get(`/users?page=${page}&per_page=${perPage}`) as unknown as Promise<UserListResponse>
+        return api.get<UserListResponse>(`/users?page=${page}&per_page=${perPage}`)
     },
 
     /**
@@ -35,7 +35,7 @@ export const userApi = {
      * POST /api/users
      */
     async createUser(data: CreateUserRequest): Promise<CreateUserResponse> {
-        return api.post('/users', data) as unknown as Promise<CreateUserResponse>
+        return api.post<CreateUserResponse>('/users', data)
     },
 
     /**
@@ -43,7 +43,7 @@ export const userApi = {
      * PATCH /api/users/{id}
      */
     async updateUser(userId: number, data: UpdateUserRequest): Promise<UpdateUserResponse> {
-        return api.patch(`/users/${userId}`, data) as unknown as Promise<UpdateUserResponse>
+        return api.patch<UpdateUserResponse>(`/users/${userId}`, data)
     },
 
     /**
@@ -54,7 +54,7 @@ export const userApi = {
         userId: number,
         data: UpdatePermissionsRequest
     ): Promise<UpdatePermissionsResponse> {
-        return api.patch(`/users/${userId}/permissions`, data) as unknown as Promise<UpdatePermissionsResponse>
+        return api.patch<UpdatePermissionsResponse>(`/users/${userId}/permissions`, data)
     },
 
     /**
@@ -62,7 +62,7 @@ export const userApi = {
      * PATCH /api/users/{id}/deactivate
      */
     async deactivateUser(userId: number): Promise<DeactivateUserResponse> {
-        return api.patch(`/users/${userId}/deactivate`) as unknown as Promise<DeactivateUserResponse>
+        return api.patch<DeactivateUserResponse>(`/users/${userId}/deactivate`)
     },
 
     /**
@@ -70,7 +70,7 @@ export const userApi = {
      * PATCH /api/users/{id}/reactivate
      */
     async reactivateUser(userId: number): Promise<ReactivateUserResponse> {
-        return api.patch(`/users/${userId}/reactivate`) as unknown as Promise<ReactivateUserResponse>
+        return api.patch<ReactivateUserResponse>(`/users/${userId}/reactivate`)
     },
 
     /**
@@ -78,7 +78,7 @@ export const userApi = {
      * DELETE /api/users/{id}
      */
     async deleteUser(userId: number): Promise<DeleteUserResponse> {
-        return api.delete(`/users/${userId}`) as unknown as Promise<DeleteUserResponse>
+        return api.delete<DeleteUserResponse>(`/users/${userId}`)
     },
 
     /**
@@ -86,7 +86,7 @@ export const userApi = {
      * POST /api/users/{id}/reset-password
      */
     async resetPassword(userId: number, data: ResetPasswordRequest): Promise<ResetPasswordResponse> {
-        return api.post(`/users/${userId}/reset-password`, data) as unknown as Promise<ResetPasswordResponse>
+        return api.post<ResetPasswordResponse>(`/users/${userId}/reset-password`, data)
     },
 
     /**
@@ -94,6 +94,6 @@ export const userApi = {
      * GET /api/users/roles
      */
     async getRoles(): Promise<ApiSuccessResponse<Role[]>> {
-        return api.get('/users/roles') as unknown as Promise<ApiSuccessResponse<Role[]>>
+        return api.get<ApiSuccessResponse<Role[]>>('/users/roles')
     },
 }

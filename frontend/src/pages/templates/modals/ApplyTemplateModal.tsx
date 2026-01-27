@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
+import { logger } from '@/lib/logger'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -95,7 +96,7 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
       setCurrentPage(pagination.current_page || 1)
       setHasMore((pagination.current_page || 1) < (pagination.last_page || 1))
     } catch (err) {
-      console.error('Failed to fetch customers:', err)
+      logger.error('Failed to fetch customers:', err)
       toast.error('Failed to load customers')
       setCustomers([])
       setHasMore(false)
@@ -141,7 +142,7 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
       setCurrentPage(pagination.current_page || page)
       setHasMore((pagination.current_page || page) < (pagination.last_page || 1))
     } catch (err) {
-      console.error('Failed to fetch customers:', err)
+      logger.error('Failed to fetch customers:', err)
       if (!append) {
         setCustomers([])
       }

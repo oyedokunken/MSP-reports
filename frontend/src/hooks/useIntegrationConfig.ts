@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { logger } from '@/lib/logger';
 import type { CredentialField } from '@/components/integrations/DynamicCredentialForm';
 
 interface IntegrationConfig {
@@ -56,9 +57,8 @@ export const useIntegrationConfig = (integrationType: string | null): UseIntegra
           setError(data.error || 'Failed to load integration configuration');
         }
       } catch (err: unknown) {
-        console.error('Failed to fetch integration config:', err);
         const error = err as { response?: { data?: { error?: string } }; message?: string };
-        console.error('Error response:', error.response);
+        logger.error('Failed to fetch integration config', err, { response: error.response });
         setError(error.response?.data?.error || error.message || 'Failed to load integration configuration');
       } finally {
         setLoading(false);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { logger } from '@/lib/logger'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
 import { Users, ExternalLink } from 'lucide-react'
@@ -39,7 +40,7 @@ export function AppliedCustomersModal({ open, onOpenChange, template }: AppliedC
             const data = await templateApi.getAppliedCustomers(template.template_id)
             setCustomers(data)
         } catch (err) {
-            console.error('Failed to fetch applied customers:', err)
+            logger.error('Failed to fetch applied customers:', err)
             toast.error('Failed to load applied customers')
             setCustomers([])
         } finally {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -59,7 +60,7 @@ export function CustomersFilters({
           setIntegrationTypes(types)
         }
       } catch (error) {
-        console.error('Failed to fetch integration types:', error)
+        logger.error('Failed to fetch integration types:', error)
       }
     }
     fetchIntegrationTypes()

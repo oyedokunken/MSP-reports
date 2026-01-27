@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -47,7 +48,7 @@ export function LicenseCheckCard() {
         toast.error('License Check Failed', result.reason || 'Cannot activate integration')
       }
     } catch (err: unknown) {
-      console.error('Integration license check error:', err)
+      logger.error('Integration license check error:', err)
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       toast.error('Check Failed', error.response?.data?.message || error.message)
     } finally {
@@ -76,7 +77,7 @@ export function LicenseCheckCard() {
         toast.error('License Check Failed', result.reason || 'Cannot extend retention')
       }
     } catch (err: unknown) {
-      console.error('Retention license check error:', err)
+      logger.error('Retention license check error:', err)
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       toast.error('Check Failed', error.response?.data?.message || error.message)
     } finally {
@@ -103,7 +104,7 @@ export function LicenseCheckCard() {
         toast.error('License Check Failed', result.can_create.reason || 'Cannot create user')
       }
     } catch (err: unknown) {
-      console.error('User license check error:', err)
+      logger.error('User license check error:', err)
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       toast.error('Check Failed', error.response?.data?.message || error.message)
     } finally {

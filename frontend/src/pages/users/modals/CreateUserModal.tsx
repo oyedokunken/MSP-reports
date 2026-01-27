@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { logger } from '@/lib/logger'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -96,7 +97,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
       setTotalPages(response.pagination?.last_page || 1)
       setTotalCustomers(response.pagination?.total || 0)
     } catch (err) {
-      console.error('Failed to fetch customers:', err)
+      logger.error('Failed to fetch customers:', err)
       toast.error('Error', 'Failed to load customers')
     } finally {
       setIsLoadingCustomers(false)
@@ -113,7 +114,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
           setRoles(response.data)
         }
       } catch (error) {
-        console.error('Failed to fetch roles:', error)
+        logger.error('Failed to fetch roles:', error)
         toast.error('Error', 'Failed to load roles')
       } finally {
         setLoadingRoles(false)
@@ -255,7 +256,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
         toast.success('Selected All', `${response.data.length} customers selected`)
       }
     } catch (err) {
-      console.error('Failed to select all customers:', err)
+      logger.error('Failed to select all customers:', err)
       toast.error('Error', 'Failed to select all customers')
     } finally {
       setIsSelectingAll(false)

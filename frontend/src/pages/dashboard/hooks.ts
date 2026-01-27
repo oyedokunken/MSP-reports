@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from '@/lib/logger'
 import { useToast } from "@/components/ui/Toast";
 import { FileText, Cable, Users, Activity } from "lucide-react";
 import { useCustomersStore } from "@/stores/useCustomersStore";
@@ -8,7 +9,6 @@ import { useSchedulesStore } from "@/stores/useSchedulesStore";
 import { monitoringApi } from "@/services/api/monitoring";
 import { useNotificationStore } from "@/stores/useNotificationStore";
 import { useIntegrationsQuery } from "../integrations/hooks/useIntegrations";
-import { logger } from "@/lib/logger";
 import type { Integration, UpcomingReport, RecentActivity, Stat } from "./types";
 
 export const useQuickSync = (
@@ -129,7 +129,7 @@ export const useDashboard = () => {
             ]);
         } catch (err) {
             if (isAuthenticated) {
-                console.error('Dashboard data load error:', err);
+                logger.error('Dashboard data load error:', err);
                 toast.error("Failed to load dashboard data");
             }
         } finally {
@@ -143,7 +143,7 @@ export const useDashboard = () => {
             await loadDashboardData();
             toast.success("Dashboard refreshed");
         } catch (err) {
-            console.error('Dashboard refresh error:', err);
+            logger.error('Dashboard refresh error:', err);
             toast.error("Failed to refresh dashboard");
         } finally {
             setIsRefreshing(false);

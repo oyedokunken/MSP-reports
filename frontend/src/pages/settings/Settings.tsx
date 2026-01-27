@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { logger } from '@/lib/logger'
 import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { useSettingsStore } from '@/stores/useSettingsStore'
@@ -145,7 +146,7 @@ export default function Settings() {
         }
       }
     } catch (error) {
-      console.error('❌ Failed to load company settings:', error)
+      logger.error('❌ Failed to load company settings:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to load company settings'
       toast.error('Error', errorMessage)
     } finally {
@@ -283,7 +284,7 @@ export default function Settings() {
 
       toast.success('Saved', 'Company information updated successfully')
     } catch (error) {
-      console.error('❌ Failed to save settings:', error)
+      logger.error('❌ Failed to save settings:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to save settings'
       toast.error('Error', errorMessage)
     } finally {
@@ -313,7 +314,7 @@ export default function Settings() {
 
       toast.success('Saved', 'Email settings updated successfully')
     } catch (error) {
-      console.error('Failed to save email settings:', error)
+      logger.error('Failed to save email settings:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to save email settings'
       toast.error('Error', errorMessage)
     } finally {

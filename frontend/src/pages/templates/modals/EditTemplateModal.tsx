@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { logger } from '@/lib/logger'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -97,7 +98,7 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
           setAvailableSections(reportTypeDef.available_sections || [])
         }
       } catch (error) {
-        console.error('Failed to fetch report type sections:', error)
+        logger.error('Failed to fetch report type sections:', error)
       }
     }
 
@@ -132,7 +133,7 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
       onSuccess?.()
       onOpenChange(false)
     } catch (error) {
-      console.error('Failed to update template:', error)
+      logger.error('Failed to update template:', error)
       toast.error('Failed to update template')
     } finally {
       setLoading(false)

@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Settings, ChevronDown, Bell, LogOut, Calendar, Shield } from "lucide-react";
+import { logger } from '@/lib/logger'
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useState, useRef, useEffect } from "react";
@@ -79,7 +80,7 @@ export default function FloatingNav() {
                 );
             }, 100);
         } catch (error) {
-            console.error("Logout error:", error);
+            logger.error("Logout error:", error);
             toast.error("Logout Failed", "An error occurred during logout");
         }
     };

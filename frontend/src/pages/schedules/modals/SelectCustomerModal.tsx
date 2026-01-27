@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { logger } from '@/lib/logger'
 import {
   Dialog,
   DialogContent,
@@ -68,7 +69,7 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
       setHasMore(currentPageNum < lastPage)
       setCurrentPage(currentPageNum)
     } catch (err) {
-      console.error('Failed to fetch customers:', err)
+      logger.error('Failed to fetch customers:', err)
       setCustomers([])
       setHasMore(false)
     } finally {
@@ -112,7 +113,7 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
       setHasMore(currentPageNum < lastPage)
       setCurrentPage(currentPageNum)
     } catch (err) {
-      console.error('Failed to fetch customers:', err)
+      logger.error('Failed to fetch customers:', err)
       if (!append) {
         setCustomers([])
       }

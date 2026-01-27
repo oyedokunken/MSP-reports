@@ -1,5 +1,6 @@
 import { api } from '@/lib/api'
 import FloatingLayout from '@/components/layout/FloatingLayout'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -437,7 +438,7 @@ export default function ConfigureReports() {
               await api.post('/reports/batch-discard', { report_ids: [previewReport.id] })
               setPreviewReport(null)
             } catch (err) {
-              console.error('Discard failed', err)
+              logger.error('Discard failed', err)
               setPreviewReport(null)
             }
           } : undefined}

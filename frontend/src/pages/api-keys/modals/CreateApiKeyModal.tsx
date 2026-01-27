@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -50,7 +51,7 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
         setCustomers(response.data.data)
       }
     } catch (error) {
-      console.error('Failed to load customers:', error)
+      logger.error('Failed to load customers:', error)
     } finally {
       setLoadingCustomers(false)
     }
@@ -73,7 +74,7 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
         setStep('success')
       }
     } catch (error) {
-      console.error('Failed to create API key:', error)
+      logger.error('Failed to create API key:', error)
     } finally {
       setIsSubmitting(false)
     }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { UserWithPermissions } from '../types'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -58,7 +59,7 @@ export function EditUserModal({
       setCurrentPage(response.pagination?.current_page || 1)
       setTotalPages(response.pagination?.last_page || 1)
     } catch (err) {
-      console.error('Failed to fetch customers:', err)
+      logger.error('Failed to fetch customers:', err)
       toast.error('Error', 'Failed to load customers')
     } finally {
       setIsLoadingCustomers(false)
@@ -92,7 +93,7 @@ export function EditUserModal({
         const response = await userApi.getRoles()
         setRoles(response.data || [])
       } catch (err) {
-        console.error('Failed to fetch roles:', err)
+        logger.error('Failed to fetch roles:', err)
         toast.error('Error', 'Failed to load roles')
       } finally {
         setLoadingRoles(false)

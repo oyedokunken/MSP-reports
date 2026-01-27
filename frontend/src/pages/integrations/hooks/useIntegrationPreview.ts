@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { logger } from '@/lib/logger'
 import type { IntegrationPreview as IntegrationPreviewType } from '@/types/displayTemplate'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
@@ -59,7 +60,7 @@ export function useIntegrationPreview() {
         setPreview(data as IntegrationPreviewType)
       }
     } catch (err: unknown) {
-      console.error('Preview error:', err)
+      logger.error('Preview error:', err)
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       const message = error.response?.data?.message || error.message || 'Failed to load integration preview'
       setError(message)
@@ -135,7 +136,7 @@ export function useIntegrationPreview() {
         toast.success('Report Downloaded', 'Report has been downloaded successfully')
       }
     } catch (err) {
-      console.error('Download error:', err)
+      logger.error('Download error:', err)
       if (deliverViaEmail) {
         toast.error('Email Failed', 'Failed to send report via email')
       } else {

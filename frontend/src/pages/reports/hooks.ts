@@ -339,7 +339,7 @@ export const useCustomerReports = () => {
 
       setBatchPreviewReports([])
     } catch (err: unknown) {
-      console.error('Failed to discard reports:', err)
+      logger.error('Failed to discard reports:', err)
       setBatchPreviewReports([]) // Still clear UI
     }
   }

@@ -4,6 +4,7 @@
  */
 
 import apiClient from '@/lib/api'
+import { logger } from '@/lib/logger'
 
 export const reportApi = {
     /**
@@ -62,7 +63,7 @@ export const reportApi = {
             link.remove()
             window.URL.revokeObjectURL(downloadUrl)
         } catch (error) {
-            console.error('Failed to download license consumption report:', error)
+            logger.error('Failed to download license consumption report', error)
             throw error
         }
     },
@@ -110,7 +111,7 @@ export const reportApi = {
             link.remove()
             window.URL.revokeObjectURL(downloadUrl)
         } catch (error) {
-            console.error('Failed to download LibreNMS device report:', error)
+            logger.error('Failed to download LibreNMS device report', error)
             throw error
         }
     },

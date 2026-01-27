@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { flushSync } from 'react-dom'
+import { logger } from '@/lib/logger'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/Toast'
@@ -106,7 +107,7 @@ export const useConfigureReportsPage = () => {
 
             setAvailableReportTypes(reports)
         } catch (error) {
-            console.error('Failed to fetch available reports:', error)
+            logger.error('Failed to fetch available reports:', error)
             toast.error('Failed to load available reports')
         }
     }, [id, toast])
@@ -202,7 +203,7 @@ export const useConfigureReportsPage = () => {
                     setSharepointIntegrationId(spIntegrations[0].integration_id)
                 }
             } catch (e) {
-                console.warn('Failed to fetch integrations', e)
+                logger.warn('Failed to fetch integrations', e)
             }
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } }; message?: string }
@@ -250,7 +251,7 @@ export const useConfigureReportsPage = () => {
             toast.success('Schedule reset to template')
             await fetchReportConfig()
         } catch (error) {
-            console.error('Failed to reset schedule:', error)
+            logger.error('Failed to reset schedule:', error)
             toast.error('Failed to reset schedule')
         } finally {
             setIsSaving(false)
@@ -560,7 +561,7 @@ export const useConfigureReportsPage = () => {
             }
             setBatchPreviewReports([])
         } catch (err: unknown) {
-            console.error('Failed to discard reports:', err)
+            logger.error('Failed to discard reports:', err)
             setBatchPreviewReports([])
         }
     }, [batchPreviewReports])

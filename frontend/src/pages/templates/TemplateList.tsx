@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -70,7 +71,7 @@ export default function TemplateList() {
       setTemplates(data)
     } catch (error) {
       toast.error('Failed to load templates')
-      console.error(error)
+      logger.error(error)
     } finally {
       setLoading(false)
     }
@@ -99,7 +100,7 @@ export default function TemplateList() {
       loadTemplates()
     } catch (error) {
       toast.error('Failed to delete template')
-      console.error(error)
+      logger.error(error)
     } finally {
       setIsDeleting(false)
     }

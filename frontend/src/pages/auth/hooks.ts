@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { logger } from '@/lib/logger'
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
@@ -94,7 +95,7 @@ export const useSignin = () => {
             toast.success('Login Successful', 'Welcome back!')
         },
         onError: (err) => {
-            console.error('Login failed:', err)
+            logger.error('Login failed:', err)
         },
         getRememberMe: () => rememberMe,
     });

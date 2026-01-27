@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { logger } from '@/lib/logger'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -42,7 +43,7 @@ export default function ReportNamingSection() {
                 setPreview(response.data.preview || '')
             }
         } catch (error) {
-            console.error('Failed to load naming settings:', error)
+            logger.error('Failed to load naming settings:', error)
         } finally {
             setLoading(false)
         }
@@ -100,7 +101,7 @@ export default function ReportNamingSection() {
             await api.patch('/company/report-naming', { naming_pattern: pattern })
             toast.success('Saved', 'Report naming pattern updated')
         } catch (error) {
-            console.error('Failed to save:', error)
+            logger.error('Failed to save:', error)
             const errMsg = error instanceof Error ? error.message : 'Failed to save settings'
             toast.error('Error', errMsg)
         } finally {

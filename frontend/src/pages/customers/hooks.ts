@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { logger } from '@/lib/logger'
 import type { CanonicalCustomer, MappingRow, IntegrationCustomer, ExistingCustomer, SuggestedMatch } from './types'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
@@ -131,7 +132,7 @@ export const useMapCustomerModal = (
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load suggested matches';
         setError(errorMessage);
-        console.error('Suggested matches fetch error:', err);
+        logger.error('Suggested matches fetch error:', err);
       } finally {
         setIsLoadingSuggestions(false)
       }
@@ -196,7 +197,7 @@ export const useMapCustomerModal = (
       setHasMoreCandidates(currentPageNum < lastPage)
       setSearchPage(currentPageNum)
     } catch (err) {
-      console.error("Failed to fetch candidates", err)
+      logger.error("Failed to fetch candidates", err)
       if (!append) setCandidates([])
       setHasMoreCandidates(false)
     } finally {
@@ -621,7 +622,7 @@ export const useMasterCustomerList = () => {
         setSotIntegrationName(sotIntegration.display_name || sotIntegration.integration_type || null)
       }
     }).catch((err: unknown) => {
-      console.error('Failed to fetch SOT integration:', err)
+      logger.error('Failed to fetch SOT integration:', err)
     })
   }, [])
 

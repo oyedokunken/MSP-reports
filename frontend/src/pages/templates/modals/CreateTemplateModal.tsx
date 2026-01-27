@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { logger } from '@/lib/logger'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -194,7 +195,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       setCurrentPage(response.pagination?.current_page || 1)
       setTotalPages(response.pagination?.last_page || 1)
     } catch (err) {
-      console.error('Failed to fetch customers:', err)
+      logger.error('Failed to fetch customers:', err)
       toast.error('Failed to load customers')
     } finally {
       setIsLoadingData(false)
@@ -212,9 +213,9 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> }; status?: number }; message?: string }
-      console.error('Failed to fetch report types:', err)
-      console.error('Error response:', error.response?.data)
-      console.error('Error status:', error.response?.status)
+      logger.error('Failed to fetch report types:', err)
+      logger.error('Error response:', error.response?.data)
+      logger.error('Error status:', error.response?.status)
       const errorMsg = error.response?.data?.message || error.response?.data?.errors || 'Failed to load available report types'
       toast.error(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg))
     } finally {
@@ -229,7 +230,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       setAvailableReportTypes(data.report_types)
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
-      console.error('Failed to fetch all report types:', err)
+      logger.error('Failed to fetch all report types:', err)
       const errorMsg = error.response?.data?.message || 'Failed to load report types'
       toast.error(typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg))
     } finally {
@@ -332,10 +333,10 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       onOpenChange(false)
     } catch (err: unknown) {
       const error = err as { response?: unknown; message?: string; errors?: Record<string, string[]> }
-      console.error('Template save error:', err)
-      console.error('Error response:', error.response)
-      console.error('Error message:', error.message)
-      console.error('Error errors:', error.errors)
+      logger.error('Template save error:', err)
+      logger.error('Error response:', error.response)
+      logger.error('Error message:', error.message)
+      logger.error('Error errors:', error.errors)
 
       // Handle validation errors (422)
       if (error.errors) {

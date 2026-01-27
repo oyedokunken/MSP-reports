@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { logger } from '@/lib/logger'
 import {
   Dialog,
   DialogContent,
@@ -74,7 +75,7 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
       })
       setCustomers(response.data.data || [])
     } catch (err) {
-      console.error('Failed to fetch customers:', err)
+      logger.error('Failed to fetch customers:', err)
       setError('Failed to load customers')
     } finally {
       setIsLoading(false)

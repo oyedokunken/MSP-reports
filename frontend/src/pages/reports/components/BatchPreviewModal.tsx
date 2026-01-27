@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import {
   Dialog,
   DialogContent,
@@ -44,7 +45,7 @@ export function BatchPreviewModal({
       setIsProcessing(true)
       await onDiscard()
     } catch (error) {
-      console.error('Batch discard failed:', error)
+      logger.error('Batch discard failed:', error)
     } finally {
       setIsProcessing(false)
     }
@@ -63,7 +64,7 @@ export function BatchPreviewModal({
       await onDeliverAll()
       onClose()
     } catch (error) {
-      console.error('Batch delivery failed:', error)
+      logger.error('Batch delivery failed:', error)
     } finally {
       setIsProcessing(false)
     }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { AlertTriangle } from 'lucide-react'
@@ -25,7 +26,7 @@ export function RevokeApiKeyModal({ open, onOpenChange, apiKey, onSuccess }: Rev
       onSuccess?.()
       onOpenChange(false)
     } catch (error) {
-      console.error('Failed to revoke API key:', error)
+      logger.error('Failed to revoke API key:', error)
     } finally {
       setIsSubmitting(false)
     }

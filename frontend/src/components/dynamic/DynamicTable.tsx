@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import type { TableConfig, ColumnDefinition } from '@/types/displayTemplate'
+import { logger } from '@/lib/logger'
 import { formatValue, getValueByPath } from '@/utils/formatters'
 import { ChevronUp, ChevronDown, FileText } from 'lucide-react'
 import { api } from '@/lib/api'
@@ -165,7 +166,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
             licenses: response.data?.licenses || []
           })
         } catch (error) {
-          console.error('Failed to fetch licenses:', error)
+          logger.error('Failed to fetch licenses:', error)
           setLicenseModalData({
             customerName,
             customerId,

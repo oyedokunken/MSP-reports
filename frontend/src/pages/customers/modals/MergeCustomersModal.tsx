@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { logger } from '@/lib/logger'
 import {
     Dialog,
     DialogContent,
@@ -84,7 +85,7 @@ export function MergeCustomersModal({
             setHasMore(currentPageNum < lastPage);
             setCurrentPage(currentPageNum);
         } catch (err) {
-            console.error('Failed to load customers:', err);
+            logger.error('Failed to load customers:', err);
             setSearchResults([]);
             setHasMore(false);
         } finally {
@@ -154,7 +155,7 @@ export function MergeCustomersModal({
             setHasMore(currentPageNum < lastPage);
             setCurrentPage(currentPageNum);
         } catch (err) {
-            console.error('Failed to search customers:', err);
+            logger.error('Failed to search customers:', err);
             if (!append) {
                 setSearchResults([]);
             }

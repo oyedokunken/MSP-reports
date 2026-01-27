@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp } from 'lucide-react'
 import * as echarts from 'echarts'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useMemo } from 'react'
 
 interface ActivityTrendChartProps {
   data?: Array<{
@@ -15,7 +15,7 @@ interface ActivityTrendChartProps {
 export function ActivityTrendChart({ data }: ActivityTrendChartProps) {
   const chartRef = useRef<HTMLDivElement>(null)
   const chartInstanceRef = useRef<echarts.ECharts | null>(null)
-  const chartData = data || []
+  const chartData = useMemo(() => data || [], [data])
 
   useEffect(() => {
     if (!chartRef.current || chartData.length === 0) return

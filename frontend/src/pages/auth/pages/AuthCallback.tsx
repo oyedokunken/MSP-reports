@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { logger } from '@/lib/logger'
 import { Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -54,7 +55,7 @@ export default function AuthCallback() {
 
             } catch (err: unknown) {
                 const error = err as { response?: { data?: { message?: string } }; message?: string }
-                console.error('Auth callback error:', err);
+                logger.error('Auth callback error:', err);
                 setError(error.response?.data?.message || 'Failed to complete authentication');
                 localStorage.removeItem('auth_token');
                 setTimeout(() => navigate('/sign-in?error=auth_failed'), 2000);

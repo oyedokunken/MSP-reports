@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { WhiteLabelSettings } from '@/types/auth'
 
@@ -197,7 +198,7 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(storedBranding)
         setBrandingState(parsed)
       } catch (error) {
-        console.error('Failed to parse stored branding:', error)
+        logger.error('Failed to parse stored branding', error)
       }
     }
   }, [])

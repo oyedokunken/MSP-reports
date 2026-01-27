@@ -17,7 +17,7 @@ export const monitoringApi = {
      * GET /api/monitoring/status
      */
     async getSystemStatus(): Promise<SystemStatusResponse> {
-        return api.get('/monitoring/status') as unknown as Promise<SystemStatusResponse>
+        return api.get<SystemStatusResponse>('/monitoring/status')
     },
 
     /**
@@ -25,7 +25,7 @@ export const monitoringApi = {
      * GET /api/monitoring/integrations
      */
     async getIntegrationMetrics(): Promise<IntegrationMetricsResponse> {
-        return api.get('/monitoring/integrations') as unknown as Promise<IntegrationMetricsResponse>
+        return api.get<IntegrationMetricsResponse>('/monitoring/integrations')
     },
 
     /**
@@ -33,7 +33,7 @@ export const monitoringApi = {
      * GET /api/monitoring/reports
      */
     async getReportMetrics(): Promise<ReportMetricsResponse> {
-        return api.get('/monitoring/reports') as unknown as Promise<ReportMetricsResponse>
+        return api.get<ReportMetricsResponse>('/monitoring/reports')
     },
 
     /**
@@ -41,7 +41,7 @@ export const monitoringApi = {
      * GET /api/monitoring/queue
      */
     async getQueueMetrics(): Promise<QueueMetricsResponse> {
-        return api.get('/monitoring/queue') as unknown as Promise<QueueMetricsResponse>
+        return api.get<QueueMetricsResponse>('/monitoring/queue')
     },
 
     /**
@@ -58,16 +58,7 @@ export const monitoringApi = {
             }>
         }
     }> {
-        return api.get(`/monitoring/reports/monthly?months=${months}`) as unknown as Promise<{
-            status: string
-            data: {
-                period_months: number
-                monthly_data: Array<{
-                    date: string
-                    count: number
-                }>
-            }
-        }>
+        return api.get(`/monitoring/reports/monthly?months=${months}`)
     },
 
     /**
@@ -75,6 +66,6 @@ export const monitoringApi = {
      * GET /api/monitoring/activity-trends?days=7
      */
     async getActivityTrends(days: number = 7): Promise<ActivityTrendsResponse> {
-        return api.get(`/monitoring/activity-trends?days=${days}`) as unknown as Promise<ActivityTrendsResponse>
+        return api.get<ActivityTrendsResponse>(`/monitoring/activity-trends?days=${days}`)
     },
 }

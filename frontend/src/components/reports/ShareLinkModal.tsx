@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { logger } from '@/lib/logger'
 import {
   Dialog,
   DialogContent,
@@ -53,7 +54,7 @@ export function ShareLinkModal({
       setExpiresAt(data.expires_at ? String(data.expires_at) : null)
       toast.success('Share Link Generated', 'Link is valid for 1 hour')
     } catch (err: unknown) {
-      console.error('Failed to generate share link:', err)
+      logger.error('Failed to generate share link:', err)
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       const errorMessage = error.response?.data?.message || error.message || 'Failed to generate share link'
       setError(errorMessage)
@@ -98,7 +99,7 @@ export function ShareLinkModal({
       if (isNaN(date.getTime())) return ''
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     } catch (e) {
-      console.error('Error formatting date:', e)
+      logger.error('Error formatting date:', e)
       return ''
     }
   }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { logger } from '@/lib/logger'
 import {
   Dialog,
   DialogContent,
@@ -65,7 +66,7 @@ export function ReportPreviewModal({
       const data = response.data as { data: EmailPreviewData }
       setEmailPreview(data.data)
     } catch (err) {
-      console.error('Failed to load email preview:', err)
+      logger.error('Failed to load email preview:', err)
     } finally {
       setEmailLoading(false)
     }
@@ -89,7 +90,7 @@ export function ReportPreviewModal({
       const url = URL.createObjectURL(blob)
       setPdfUrl(url)
     } catch (err: unknown) {
-      console.error('Failed to load PDF preview:', err)
+      logger.error('Failed to load PDF preview:', err)
       const error = err as { response?: { data?: { message?: string }; statusText?: string }; message?: string }
       const errorMessage = error.response?.data?.message
         || error.response?.statusText
@@ -139,7 +140,7 @@ export function ReportPreviewModal({
       await onConfirm()
       onClose()
     } catch (error) {
-      console.error('Confirmation failed:', error)
+      logger.error('Confirmation failed:', error)
     } finally {
       setIsProcessing(false)
     }
@@ -155,7 +156,7 @@ export function ReportPreviewModal({
       await onDiscard()
       onClose()
     } catch (error) {
-      console.error('Discard failed:', error)
+      logger.error('Discard failed:', error)
     } finally {
       setIsDiscarding(false)
     }

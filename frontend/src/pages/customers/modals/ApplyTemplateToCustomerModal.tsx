@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { logger } from '@/lib/logger'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
 import { FileText, AlertCircle, CheckCircle2 } from 'lucide-react'
@@ -46,7 +47,7 @@ export function ApplyTemplateToCustomerModal({ open, onOpenChange, customer, onS
       setTemplates(data || [])
     } catch (error) {
       toast.error('Failed to load templates')
-      console.error(error)
+      logger.error(error)
     } finally {
       setLoading(false)
     }

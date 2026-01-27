@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { logger } from '@/lib/logger'
 import { Upload, X, Image as ImageIcon } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import apiClient from '@/lib/api'
@@ -118,7 +119,7 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
         toast.error('Upload Failed', data.message || 'Failed to upload logo')
       }
     } catch (error: unknown) {
-      console.error('Upload error:', error)
+      logger.error('Upload error:', error)
       const err = error as { response?: { data?: { message?: string; errors?: { logo?: string[] } } }; message?: string }
       const errorMessage = err.response?.data?.message
         || err.response?.data?.errors?.logo?.[0]
@@ -151,7 +152,7 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
         toast.error('Delete Failed', data.message || 'Failed to delete logo')
       }
     } catch (error: unknown) {
-      console.error('Delete error:', error)
+      logger.error('Delete error:', error)
       const err = error as { response?: { data?: { message?: string } }; message?: string }
       const errorMessage = err.response?.data?.message || err.message || 'Failed to delete logo'
       toast.error('Delete Failed', errorMessage)

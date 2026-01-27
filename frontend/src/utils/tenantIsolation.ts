@@ -1,4 +1,5 @@
 /**
+import { logger } from '@/lib/logger'
  * Tenant Isolation Utilities
  * Ensures data isolation and prevents cross-tenant data leakage
  */
@@ -92,7 +93,7 @@ export function logIsolationViolation(
 
   // Log to console in development
   if (import.meta.env.DEV) {
-    console.error('🚨 TENANT ISOLATION VIOLATION:', violation)
+    logger.error('🚨 TENANT ISOLATION VIOLATION:', violation)
   }
 
   // In production, this would be sent to a monitoring service
