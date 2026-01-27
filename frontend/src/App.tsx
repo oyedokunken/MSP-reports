@@ -25,6 +25,7 @@ import { UsersList, CreateUser } from '@/pages/users'
 import { ReportsList, CustomerReports, ConfigureReports } from '@/pages/reports'
 import { ApiKeysList } from '@/pages/api-keys'
 import TemplateList from '@/pages/templates/TemplateList'
+import Profile from '@/pages/profile/Profile'
 // TODO: Create these pages when needed
 // import { 
 //   ActiveDirectoryDashboard, 
@@ -140,6 +141,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <IntegrationPreview />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/platform/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         }
       />
@@ -353,7 +363,7 @@ function AppRoutes() {
       <Route
         path="/admin/api-keys"
         element={
-          <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
+          <ProtectedRoute permission={{ section: 'api_keys', action: 'view' }}>
             <ApiKeysList />
           </ProtectedRoute>
         }
@@ -362,7 +372,7 @@ function AppRoutes() {
       <Route
         path="/admin/monitoring"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'monitoring', action: 'view' }}>
             <Monitoring />
           </ProtectedRoute>
         }
@@ -371,7 +381,7 @@ function AppRoutes() {
       <Route
         path="/admin/audit-logs"
         element={
-          <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
+          <ProtectedRoute permission={{ section: 'security', action: 'view_logs' }}>
             <AuditLogs />
           </ProtectedRoute>
         }
@@ -380,7 +390,7 @@ function AppRoutes() {
       <Route
         path="/platform/notifications"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'notifications', action: 'view' }}>
             <NotificationsPage />
           </ProtectedRoute>
         }

@@ -98,10 +98,10 @@ export default function AppSidebar() {
 
   const adminNavItems = [
     { path: '/admin/users', icon: UserPlus, label: 'Users', show: hasPermission(user, 'users', 'view') },
-    { path: '/admin/api-keys', icon: Key, label: 'API Keys', show: hasPermission(user, 'company_settings', 'view') },
+    { path: '/admin/api-keys', icon: Key, label: 'API Keys', show: hasPermission(user, 'api_keys', 'view') },
     { path: '/admin/licenses', icon: Key, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view') },
-    { path: '/admin/monitoring', icon: Activity, label: 'Monitoring', show: hasPermission(user, 'company_settings', 'view') },
-    { path: '/admin/audit-logs', icon: Shield, label: 'Audit Logs', show: hasPermission(user, 'company_settings', 'view') },
+    { path: '/admin/monitoring', icon: Activity, label: 'Monitoring', show: hasPermission(user, 'monitoring', 'view') },
+    { path: '/admin/audit-logs', icon: Shield, label: 'Audit Logs', show: hasPermission(user, 'security', 'view_logs') },
   ].filter(item => item.show !== false)
 
   const isActive = (path: string) => {
