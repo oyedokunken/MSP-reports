@@ -654,4 +654,16 @@ class IntegrationController extends Controller
             ]
         ]);
     }
+
+    /**
+     * Helper to read an integration's config file
+     */
+    private function getIntegrationConfig(string $integrationType): array
+    {
+        $configPath = app_path("Integrations/{$integrationType}/config.php");
+        if (file_exists($configPath)) {
+            return include $configPath;
+        }
+        return [];
+    }
 }
