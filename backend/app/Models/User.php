@@ -52,7 +52,7 @@ class User extends Authenticatable
         'force_password_change' => 'boolean',
     ];
 
-    protected $appends = ['last_login', 'created_at'];
+    protected $appends = ['last_login', 'created_at', 'profile_picture_url'];
 
     /**
      * Accessor for last_login (maps from last_login_at for frontend compatibility)
@@ -69,6 +69,18 @@ class User extends Authenticatable
     {
         return $value ? \Carbon\Carbon::parse($value)->toIso8601String() : null;
     }
+
+    /**
+     * Accessor for profile_picture_url
+     */
+    public function getProfilePictureUrlAttribute()
+    {
+        if (!$this->profile_picture) {
+            return null;
+        }
+        return asset('storage/' . $this->profile_picture);
+    }
+
 
     
     public function company()

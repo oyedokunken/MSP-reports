@@ -71,8 +71,9 @@ export function CompanyInfoSection({
       <h2 className="text-base font-semibold text-foreground">Company Information</h2>
       <p className="mt-1 text-sm text-muted-foreground">Update your company details and branding</p>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">
+      <div className="mt-4 grid gap-6 grid-cols-1 md:grid-cols-12">
+        {/* General Info */}
+        <div className="md:col-span-4">
           <label className="block text-sm font-medium text-foreground">Company Name</label>
           <input
             type="text"
@@ -83,7 +84,18 @@ export function CompanyInfoSection({
           />
         </div>
 
-        <div>
+        <div className="md:col-span-4">
+          <label className="block text-sm font-medium text-foreground">Website URL</label>
+          <input
+            type="url"
+            placeholder="https://www.yourcompany.com"
+            value={websiteUrl}
+            onChange={(e) => onWebsiteUrlChange(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div className="md:col-span-4">
           <label className="block text-sm font-medium text-foreground">Contact Email</label>
           <input
             type="email"
@@ -94,7 +106,7 @@ export function CompanyInfoSection({
           />
         </div>
 
-        <div>
+        <div className="md:col-span-3">
           <label className="block text-sm font-medium text-foreground">Contact Phone</label>
           <input
             type="tel"
@@ -105,180 +117,156 @@ export function CompanyInfoSection({
           />
         </div>
 
-        <div className="sm:col-span-2">
+        <div className="md:col-span-9">
           <label className="block text-sm font-medium text-foreground">Address</label>
           <textarea
             placeholder="Company address"
             value={address}
             onChange={(e) => onAddressChange(e.target.value)}
-            rows={3}
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+            rows={1}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring resize-none min-h-[42px]"
           />
         </div>
 
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-foreground">Website URL</label>
-          <input
-            type="url"
-            placeholder="https://www.yourcompany.com"
-            value={websiteUrl}
-            onChange={(e) => onWebsiteUrlChange(e.target.value)}
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <p className="mt-1 text-xs text-muted-foreground">This will be displayed on your reports</p>
-        </div>
+        <div className="col-span-12 h-px bg-border my-2" />
 
         {/* Brand Colors */}
-        <div className="sm:col-span-2">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Brand Colors</h3>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Primary Color</label>
-              <div className="flex items-center gap-3">
-                <input
-                  aria-label="Primary color"
-                  type="color"
-                  value={isValidHex ? primaryHex : '#3b82f6'}
-                  onChange={(e) => onPrimaryHexChange(e.target.value)}
-                  className="h-9 w-12 rounded-md border border-border bg-background"
-                />
-                <input
-                  aria-label="Primary color hex"
-                  type="text"
-                  value={primaryHex}
-                  onChange={(e) => onPrimaryHexChange(e.target.value.startsWith('#') ? e.target.value : '#' + e.target.value)}
-                  className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="#3b82f6"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Secondary Color</label>
-              <div className="flex items-center gap-3">
-                <input
-                  aria-label="Secondary color"
-                  type="color"
-                  value={isValidSecondaryHex ? secondaryHex : '#7c3aed'}
-                  onChange={(e) => onSecondaryHexChange(e.target.value)}
-                  className="h-9 w-12 rounded-md border border-border bg-background"
-                />
-                <input
-                  aria-label="Secondary color hex"
-                  type="text"
-                  value={secondaryHex}
-                  onChange={(e) => onSecondaryHexChange(e.target.value.startsWith('#') ? e.target.value : '#' + e.target.value)}
-                  className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="#7c3aed"
-                />
-              </div>
-            </div>
-          </div>
+        <div className="col-span-12">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Brand Colors</h3>
         </div>
-
-        {/* Logo & Favicon */}
-        <div className="sm:col-span-2">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Branding Assets</h3>
-          <div className="space-y-6">
-            {/* Logo Upload Component */}
-            <LogoUpload
-              type="company"
-              currentLogoUrl={logoUrl}
-              onUploadSuccess={(url) => onLogoUrlChange(url)}
-              onDeleteSuccess={() => onLogoUrlChange(null)}
+        
+        <div className="md:col-span-3">
+            <label className="block text-sm font-medium text-foreground mb-2">Primary Color</label>
+            <div className="flex items-center gap-2">
+            <input
+                aria-label="Primary color"
+                type="color"
+                value={isValidHex ? primaryHex : '#3b82f6'}
+                onChange={(e) => onPrimaryHexChange(e.target.value)}
+                className="h-9 w-12 rounded-md border border-border bg-background p-0"
             />
-
-            {/* Logo URL Input (Alternative) */}
-            <div>
-              <label className="block text-sm font-medium text-foreground">Or enter Logo URL</label>
-              <input
-                type="url"
-                placeholder="https://example.com/logo.png"
-                value={logoUrl || ''}
-                onChange={(e) => onLogoUrlChange(e.target.value || null)}
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">Used in sidebar, reports, and emails</p>
-            </div>
-
-            {/* Favicon Upload Component */}
-            <LogoUpload
-              type="profile"
-              currentLogoUrl={faviconUrl}
-              onUploadSuccess={(url) => onFaviconUrlChange(url)}
-              onDeleteSuccess={() => onFaviconUrlChange(null)}
+            <input
+                aria-label="Primary color hex"
+                type="text"
+                value={primaryHex}
+                onChange={(e) => onPrimaryHexChange(e.target.value.startsWith('#') ? e.target.value : '#' + e.target.value)}
+                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="#3b82f6"
             />
-
-            {/* Favicon URL Input (Alternative) */}
-            <div>
-              <label className="block text-sm font-medium text-foreground">Or enter Favicon URL</label>
-              <input
-                type="url"
-                placeholder="https://example.com/favicon.ico"
-                value={faviconUrl || ''}
-                onChange={(e) => onFaviconUrlChange(e.target.value || null)}
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">Browser tab icon</p>
             </div>
-          </div>
         </div>
 
-        {/* Support Contact */}
-        <div className="sm:col-span-2">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Support Contact</h3>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-foreground">Support Email</label>
-              <input
-                type="email"
-                placeholder="support@company.com"
-                value={supportEmail}
-                onChange={(e) => onSupportEmailChange(e.target.value)}
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground">Support Phone</label>
-              <input
-                type="tel"
-                placeholder="1300 XXX XXX"
-                value={supportPhone}
-                onChange={(e) => onSupportPhoneChange(e.target.value)}
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Report Branding */}
-        <div className="sm:col-span-2">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Report Branding</h3>
-          <div className="grid gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground">Report Header Text</label>
-              <input
+        <div className="md:col-span-3">
+            <label className="block text-sm font-medium text-foreground mb-2">Secondary Color</label>
+            <div className="flex items-center gap-2">
+            <input
+                aria-label="Secondary color"
+                type="color"
+                value={isValidSecondaryHex ? secondaryHex : '#7c3aed'}
+                onChange={(e) => onSecondaryHexChange(e.target.value)}
+                className="h-9 w-12 rounded-md border border-border bg-background p-0"
+            />
+            <input
+                aria-label="Secondary color hex"
                 type="text"
-                placeholder="Monthly Service Report"
-                value={reportHeaderText}
-                onChange={(e) => onReportHeaderTextChange(e.target.value)}
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+                value={secondaryHex}
+                onChange={(e) => onSecondaryHexChange(e.target.value.startsWith('#') ? e.target.value : '#' + e.target.value)}
+                className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="#7c3aed"
+            />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground">Footer Text</label>
-              <input
-                type="text"
-                placeholder="© 2025 Your Company"
-                value={footerText}
-                onChange={(e) => onFooterTextChange(e.target.value)}
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-          </div>
         </div>
+
+        {/* URL Inputs moved next to colors */}
+        <div className="md:col-span-3">
+            <label className="block text-sm font-medium text-foreground mb-2">Logo URL (Optional)</label>
+            <input
+            type="url"
+            placeholder="https://..."
+            value={logoUrl || ''}
+            onChange={(e) => onLogoUrlChange(e.target.value || null)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+        </div>
+
+        <div className="md:col-span-3">
+            <label className="block text-sm font-medium text-foreground mb-2">Favicon URL (Optional)</label>
+            <input
+            type="url"
+            placeholder="https://..."
+            value={faviconUrl || ''}
+            onChange={(e) => onFaviconUrlChange(e.target.value || null)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+        </div>
+
+        {/* Uploads - Keep as is but full width container */}
+        <div className="col-span-12 grid gap-6 md:grid-cols-2 mt-2">
+            <LogoUpload
+               type="company"
+               currentLogoUrl={logoUrl}
+               onUploadSuccess={(url) => onLogoUrlChange(url)}
+               onDeleteSuccess={() => onLogoUrlChange(null)}
+            />
+            <LogoUpload
+               type="profile"
+               currentLogoUrl={faviconUrl}
+               onUploadSuccess={(url) => onFaviconUrlChange(url)}
+               onDeleteSuccess={() => onFaviconUrlChange(null)}
+            />
+        </div>
+
+        <div className="col-span-12 h-px bg-border my-2" />
+
+        {/* Support & Reporting */}
+        <div className="col-span-12">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Support & Reporting</h3>
+        </div>
+
+        <div className="md:col-span-4">
+            <label className="block text-sm font-medium text-foreground">Support Email</label>
+            <input
+            type="email"
+            placeholder="support@company.com"
+            value={supportEmail}
+            onChange={(e) => onSupportEmailChange(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+        </div>
+
+        <div className="md:col-span-3">
+            <label className="block text-sm font-medium text-foreground">Support Phone</label>
+            <input
+            type="tel"
+            placeholder="1300 ..."
+            value={supportPhone}
+            onChange={(e) => onSupportPhoneChange(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+        </div>
+
+        <div className="md:col-span-5">
+            <label className="block text-sm font-medium text-foreground">Report Header Text</label>
+            <input
+            type="text"
+            placeholder="Monthly Service Report"
+            value={reportHeaderText}
+            onChange={(e) => onReportHeaderTextChange(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+        </div>
+
+        <div className="col-span-12">
+            <label className="block text-sm font-medium text-foreground">Footer Text</label>
+            <input
+            type="text"
+            placeholder="© 2025 Your Company"
+            value={footerText}
+            onChange={(e) => onFooterTextChange(e.target.value)}
+            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+        </div>
+
       </div>
 
       <div className="mt-6">

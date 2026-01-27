@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, ChevronDown, Bell, LogOut, Calendar, Shield } from "lucide-react";
+import { Settings, ChevronDown, Bell, LogOut, Calendar, Shield, User } from "lucide-react";
 import { logger } from '@/lib/logger'
 import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissions";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useState, useRef, useEffect } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -252,8 +253,16 @@ export default function FloatingNav() {
                         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                         className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
                     >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                            {user?.name?.charAt(0).toUpperCase() || "U"}
+                        <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground overflow-hidden">
+                            {user?.profile_picture_url ? (
+                                <img 
+                                    src={user.profile_picture_url} 
+                                    alt={user.name || "User"} 
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                <span>{user?.name?.charAt(0).toUpperCase() || "U"}</span>
+                            )}
                         </div>
                         <span className="hidden sm:inline-block text-foreground">
                             {user?.name || "User"}
@@ -265,30 +274,48 @@ export default function FloatingNav() {
                     {isUserMenuOpen && (
                         <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-gray-200 dark:border-gray-800 bg-background dark:bg-[hsl(var(--auth-card))] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 z-50">
                             <div className="p-4 border-b border-border">
-                                <p className="text-sm font-medium text-foreground">
-                                    {user?.name || "User"}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {user?.email || "user@example.com"}
-                                </p>
+                                <Link 
+                                    to="/platform/profile"
+                                    className="block group"
+                                    onClick={() => setIsUserMenuOpen(false)}
+                                >
+                                    <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                        {user?.name || "User"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {user?.email || "user@example.com"}
+                                    </p>
+                                </Link>
                             </div>
                             <div className="p-2">
                                 <Link
-                                    to="/admin/settings"
+                                    to="/platform/profile"
                                     className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
                                     onClick={() => setIsUserMenuOpen(false)}
                                 >
-                                    <Settings className="h-4 w-4" />
-                                    <span>Settings</span>
+                                    <User className="h-4 w-4" />
+                                    <span>My Profile</span>
                                 </Link>
-                                <Link
-                                    to="/admin/security"
-                                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
-                                    onClick={() => setIsUserMenuOpen(false)}
-                                >
-                                    <Shield className="h-4 w-4" />
-                                    <span>Security</span>
-                                </Link>
+                                {hasPermission(user, 'company_settings', 'view') && (
+                                    <Link
+                                        to="/admin/settings"
+                                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
+                                        onClick={() => setIsUserMenuOpen(false)}
+                                    >
+                                        <Settings className="h-4 w-4" />
+                                        <span>Company Settings</span>
+                                    </Link>
+                                )}
+                                {hasPermission(user, 'security', 'configure') && (
+                                    <Link
+                                        to="/admin/security"
+                                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
+                                        onClick={() => setIsUserMenuOpen(false)}
+                                    >
+                                        <Shield className="h-4 w-4" />
+                                        <span>Security</span>
+                                    </Link>
+                                )}
                                 <button
                                     onClick={() => {
                                         setShowLogoutConfirm(true);

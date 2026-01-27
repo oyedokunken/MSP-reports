@@ -1,21 +1,34 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { logger } from '@/lib/logger'
-import { Upload, X, Image as ImageIcon } from 'lucide-react'
+import { Upload, Trash2, Image as ImageIcon } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import apiClient from '@/lib/api'
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 
 interface LogoUploadProps {
   type: 'company' | 'profile'
   currentLogoUrl: string | null
   onUploadSuccess: (logoUrl: string) => void
   onDeleteSuccess: () => void
+  uploadUrl?: string
+  deleteUrl?: string
+  fileKey?: string
 }
 
-export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSuccess }: LogoUploadProps) {
+export function LogoUpload({ 
+  type, 
+  currentLogoUrl, 
+  onUploadSuccess, 
+  onDeleteSuccess,
+  uploadUrl,
+  deleteUrl,
+  fileKey = 'logo'
+}: LogoUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false) // State for dialog
   const fileInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
 
@@ -98,31 +111,33 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
       setUploading(true)
 
       const formData = new FormData()
-      formData.append('logo', file)
+      formData.append(fileKey, file)
       formData.append('type', type)
 
-      const response = await apiClient.post<unknown>('/company/logo/upload', formData, {
+      const endpoint = uploadUrl || '/company/logo/upload';
+      const response = await apiClient.post<unknown>(endpoint, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       })
 
-      const data = response.data as { status?: string; message?: string; data?: { logo_url?: string } }
+      const data = response.data as { status?: string; message?: string; data?: { logo_url?: string; profile_picture_url?: string } }
       if (data.status === 'success') {
         toast.success('Upload Successful', data.message || 'Logo uploaded successfully')
-        if (data.data?.logo_url) {
-          onUploadSuccess(data.data.logo_url)
+        
+        // Handle different response keys
+        const url = data.data?.profile_picture_url || data.data?.logo_url;
+        if (url) {
+          onUploadSuccess(url)
         }
-        // Don't clear preview immediately - let the currentLogoUrl prop update first
-        // The preview will be replaced by currentLogoUrl on next render
       } else {
         toast.error('Upload Failed', data.message || 'Failed to upload logo')
       }
     } catch (error: unknown) {
       logger.error('Upload error:', error)
-      const err = error as { response?: { data?: { message?: string; errors?: { logo?: string[] } } }; message?: string }
+      const err = error as { response?: { data?: { message?: string; errors?: Record<string, string[]> } }; message?: string }
       const errorMessage = err.response?.data?.message
-        || err.response?.data?.errors?.logo?.[0]
+        || err.response?.data?.errors?.[fileKey]?.[0]
         || err.message
         || 'Failed to upload logo'
       toast.error('Upload Failed', errorMessage)
@@ -131,15 +146,16 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
     }
   }
 
-  const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete the ${title.toLowerCase()}?`)) {
-      return
-    }
+  const handleDeleteClick = () => {
+      setShowDeleteModal(true)
+  }
 
+  const handleConfirmDelete = async () => {
     try {
       setDeleting(true)
 
-      const response = await apiClient.delete<unknown>('/company/logo/delete', {
+      const endpoint = deleteUrl || '/company/logo/delete';
+      const response = await apiClient.delete<unknown>(endpoint, {
         data: { type }
       })
 
@@ -158,73 +174,89 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
       toast.error('Delete Failed', errorMessage)
     } finally {
       setDeleting(false)
+      setShowDeleteModal(false)
     }
   }
 
   const displayImageUrl = preview || currentLogoUrl
 
   return (
-    <div className="space-y-3">
-      <label className="block text-sm font-medium text-foreground">{title}</label>
+    <>
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-foreground">{title}</label>
 
-      <div className="flex items-start gap-4">
-        {/* Image Preview */}
-        <div className="flex-shrink-0">
-          <div className="w-32 h-32 border-2 border-dashed border-border rounded-lg flex items-center justify-center bg-muted/20 overflow-hidden">
-            {displayImageUrl ? (
-              <img
-                src={displayImageUrl}
-                alt={title}
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <ImageIcon className="h-12 w-12 text-muted-foreground" />
-            )}
+        <div className="flex items-start gap-4">
+          {/* Image Preview with Hover Overlay */}
+          <div className="flex-shrink-0 relative group">
+            <div className="w-32 h-32 border-2 border-dashed border-border rounded-lg flex items-center justify-center bg-muted/20 overflow-hidden relative">
+              {displayImageUrl ? (
+                <>
+                    <img
+                      src={displayImageUrl}
+                      alt={title}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Delete Overlay */}
+                    <div 
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                      onClick={handleDeleteClick}
+                      title="Remove Image"
+                    >
+                        {deleting ? (
+                            <span className="text-white text-xs">Deleting...</span>
+                        ) : (
+                            <Trash2 className="h-8 w-8 text-white" />
+                        )}
+                    </div>
+                </>
+              ) : (
+                <ImageIcon className="h-12 w-12 text-muted-foreground" />
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Upload Controls */}
-        <div className="flex-1 space-y-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/jpg,image/png,image/svg+xml"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
+          {/* Upload Controls */}
+          <div className="flex-1 space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/svg+xml"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
 
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || deleting}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              {uploading ? 'Uploading...' : currentLogoUrl ? 'Change Logo' : 'Upload Logo'}
-            </Button>
-            
-            {currentLogoUrl && (
+            <div className="flex flex-col gap-2 items-start">
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={handleDelete}
+                onClick={() => fileInputRef.current?.click()}
                 disabled={uploading || deleting}
               >
-                <X className="h-4 w-4 mr-2" />
-                {deleting ? 'Deleting...' : 'Remove'}
+                <Upload className="h-4 w-4 mr-2" />
+                {uploading ? 'Uploading...' : currentLogoUrl ? 'Change Logo' : 'Upload Logo'}
               </Button>
-            )}
-          </div>
+            </div>
 
-          <p className="text-xs text-muted-foreground">
-            Max size: {maxSize} pixels, {maxFileSizeMB}MB<br />
-            Formats: JPEG, PNG, SVG
-          </p>
+            <p className="text-xs text-muted-foreground">
+              Max size: {maxSize} pixels, {maxFileSizeMB}MB<br />
+              Formats: JPEG, PNG, SVG
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+
+      <ConfirmationModal 
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Photo"
+        description={`Are you sure you want to delete this ${title.toLowerCase()}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        isLoading={deleting}
+      />
+    </>
   )
 }

@@ -13,6 +13,7 @@ export interface User {
   company_name: string
   company?: Company
   permissions: UserPermissions
+  profile_picture_url?: string | null
   last_login: string | null
   created_at: string
 }

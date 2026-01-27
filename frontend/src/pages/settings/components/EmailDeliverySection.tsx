@@ -40,8 +40,8 @@ export function EmailDeliverySection({
       <h2 className="text-base font-semibold text-foreground">Email Delivery</h2>
       <p className="mt-1 text-sm text-muted-foreground">Configure email settings for report delivery</p>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div>
+      <div className="mt-4 grid gap-6 grid-cols-1 md:grid-cols-12">
+        <div className="md:col-span-6">
           <label className="block text-sm font-medium text-foreground">From Email Address</label>
           <input
             type="email"
@@ -51,7 +51,7 @@ export function EmailDeliverySection({
             className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
-        <div>
+        <div className="md:col-span-6">
           <label className="block text-sm font-medium text-foreground">From Name</label>
           <input
             type="text"
@@ -62,12 +62,12 @@ export function EmailDeliverySection({
           />
         </div>
 
-        <div className="sm:col-span-2 pt-2 border-t dark:border-gray-800">
+        <div className="col-span-12 pt-2 border-t dark:border-gray-800">
           <h3 className="text-sm font-medium text-foreground">SMTP Configuration (Optional)</h3>
           <p className="text-xs text-muted-foreground">Override system defaults with your own mail server</p>
         </div>
 
-        <div>
+        <div className="md:col-span-6">
           <label className="block text-sm font-medium text-foreground">SMTP Host</label>
           <input
             type="text"
@@ -78,8 +78,7 @@ export function EmailDeliverySection({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
+        <div className="md:col-span-3">
             <label className="block text-sm font-medium text-foreground">Port</label>
             <input
               type="number"
@@ -88,8 +87,8 @@ export function EmailDeliverySection({
               onChange={(e) => onSmtpPortChange(parseInt(e.target.value) || 0)}
               className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring"
             />
-          </div>
-          <div>
+        </div>
+        <div className="md:col-span-3">
             <label className="block text-sm font-medium text-foreground">Encryption</label>
             <select
               value={smtpEncryption}
@@ -100,10 +99,9 @@ export function EmailDeliverySection({
               <option value="ssl">SSL</option>
               <option value="none">None</option>
             </select>
-          </div>
         </div>
 
-        <div>
+        <div className="md:col-span-6">
           <label className="block text-sm font-medium text-foreground">SMTP Username</label>
           <input
             type="text"
@@ -114,7 +112,7 @@ export function EmailDeliverySection({
           />
         </div>
 
-        <div>
+        <div className="md:col-span-6">
           <label className="block text-sm font-medium text-foreground">SMTP Password</label>
           <input
             type="password"
