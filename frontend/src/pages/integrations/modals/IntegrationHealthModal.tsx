@@ -43,9 +43,10 @@ export function IntegrationHealthModal({
     setError('')
 
     try {
-      const response = await api.get(`/integrations/${integration.id}/health`)
-      const data = (response as unknown as { data: HealthCheckResult }).data || response as unknown as HealthCheckResult
-      setHealthData(data)
+      const response = await api.get<{ data?: HealthCheckResult } & HealthCheckResult>(`/integrations/${integration.id}/health`)
+      // Handle both wrapped and unwrapped response formats
+      const data = response.data || response
+      setHealthData(data as HealthCheckResult)
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       const errorMessage = error.response?.data?.message || error.message || 'Failed to check health'

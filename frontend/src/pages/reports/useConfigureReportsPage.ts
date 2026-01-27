@@ -202,7 +202,7 @@ export const useConfigureReportsPage = () => {
                     setSharepointIntegrationId(spIntegrations[0].integration_id)
                 }
             } catch (e) {
-                logger.warn('Failed to fetch integrations', e)
+                logger.warn('Failed to fetch integrations', { error: e })
             }
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } }; message?: string }

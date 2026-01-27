@@ -52,14 +52,11 @@ export function FileBrowserModal({
       });
       // api.get returns the body directly, which is { data: items, status: ... }
       // So response has property .data which is the array
-      // However, we need to cast or access it correctly if TS is confused
       if (Array.isArray(response.data)) {
         setItems(response.data);
       } else {
-        // Fallback for different response structure
-        const rawResponse = response as unknown as { data?: FileItem[] }
-        const itemsData = rawResponse.data || [];
-        setItems(itemsData);
+        // Fallback for empty or unexpected response - data should be FileItem[] but may be undefined
+        setItems(response.data || []);
       }
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }

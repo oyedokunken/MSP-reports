@@ -42,9 +42,10 @@ export function RateLimitStatusModal({
     setError('')
 
     try {
-      const response = await api.get(`/integrations/${integration.id}/rate-limit`)
-      const data = (response as unknown as { data: RateLimitStatus }).data || response as unknown as RateLimitStatus
-      setRateLimitData(data)
+      const response = await api.get<{ data?: RateLimitStatus } & RateLimitStatus>(`/integrations/${integration.id}/rate-limit`)
+      // Handle both wrapped and unwrapped response formats
+      const data = response.data || response
+      setRateLimitData(data as RateLimitStatus)
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       const errorMessage = error.response?.data?.message || error.message || 'Failed to load rate limit status'

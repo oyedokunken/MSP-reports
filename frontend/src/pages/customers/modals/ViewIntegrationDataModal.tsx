@@ -55,14 +55,16 @@ export function ViewIntegrationDataModal({
                 ? `/integrations/${integrationId}/preview?customer_id=${integrationCustomerId}`
                 : `/integrations/${integrationId}/preview`;
 
-            const response = await api.get(url);
-            const responseData = response as { data?: PreviewData } | PreviewData;
-            const data = (responseData as { data?: PreviewData }).data || responseData as PreviewData;
+            const response = await api.get<{ data?: PreviewData; preview?: PreviewData } & PreviewData>(url);
+            // Handle multiple response structure variations
+            const data = response.data || response;
 
-            if (data.success && data.sections) { // Check for sections directly on data if success is true
+            if (data.success && data.sections) {
+                // New format: { success: true, sections: [...] }
                 setPreviewData(data);
-            } else if ((data as unknown as { preview: PreviewData }).preview) { // Handle legacy structure if needed
-                setPreviewData((data as unknown as { preview: PreviewData }).preview);
+            } else if (response.preview) {
+                // Legacy format: { preview: {...} }
+                setPreviewData(response.preview);
             } else {
                 setPreviewData(data);
             }

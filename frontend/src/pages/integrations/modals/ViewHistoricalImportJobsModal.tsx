@@ -55,8 +55,9 @@ export function ViewHistoricalImportJobsModal({
     setError('')
 
     try {
-      const response = await api.get(`/integrations/${integration.id}/historical-import-jobs`)
-      const data = (response as unknown as { data: { jobs: HistoricalImportJob[] } }).data || response as unknown as { jobs: HistoricalImportJob[] }
+      const response = await api.get<{ data?: { jobs: HistoricalImportJob[] }; jobs?: HistoricalImportJob[] }>(`/integrations/${integration.id}/historical-import-jobs`)
+      // Handle both wrapped and unwrapped response formats
+      const data = response.data || response
       setJobs(Array.isArray(data.jobs) ? data.jobs : [])
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }

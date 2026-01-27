@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams, useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '@/components/ui/Toast'
+import { logger } from '@/lib/logger'
 import { useReportsStore } from '@/stores/useReportsStore'
 import apiClient, { api } from '@/lib/api'
 import type { ReportConfig } from './types'

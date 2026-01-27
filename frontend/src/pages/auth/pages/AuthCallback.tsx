@@ -33,11 +33,10 @@ export default function AuthCallback() {
                 // Store the token with correct key
                 localStorage.setItem('auth_token', token);
 
-                const response = await api.get('/auth/me', {
+                const response = await api.get<{ data: Record<string, unknown> }>('/auth/me', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                const apiData = response as unknown as { data: Record<string, unknown> };
-                const userData = apiData.data;
+                const userData = response.data;
 
                 if (!userData) {
                     throw new Error('No user data received');
