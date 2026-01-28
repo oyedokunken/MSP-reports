@@ -69,9 +69,10 @@ class LibreNMSDeviceReport extends BaseReport
             })
             ->toArray();
 
-        // Fetch latest device details (contains group info)
+        // Fetch latest device details (limit to last 7 days for efficiency)
         $deviceDetails = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'device_details')
+            ->where('data_timestamp', '>=', now()->subDays(7))
             ->orderBy('data_timestamp', 'desc')
             ->get()
             ->unique('data_payload.device_id');
@@ -79,6 +80,7 @@ class LibreNMSDeviceReport extends BaseReport
         // Fetch latest uptime data
         $uptimeRecords = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'device_uptime')
+            ->where('data_timestamp', '>=', now()->subDays(7))
             ->orderBy('data_timestamp', 'desc')
             ->get()
             ->unique('data_payload.device_id')
@@ -87,6 +89,7 @@ class LibreNMSDeviceReport extends BaseReport
         // Fetch latest availability data
         $availabilityRecords = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'device_availability')
+            ->where('data_timestamp', '>=', now()->subDays(7))
             ->orderBy('data_timestamp', 'desc')
             ->get()
             ->unique('data_payload.device_id')

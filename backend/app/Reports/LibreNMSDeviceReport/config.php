@@ -9,4 +9,5 @@ return [
     'frequencies' => ['daily', 'weekly', 'monthly', 'yearly', 'on-demand'],
     'formats' => ['pdf', 'html'],
     'required_integrations' => ['LibreNMS'],
+    'data_types' => ['device_uptime', 'device_availability', 'device_details'],
 ];
