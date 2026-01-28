@@ -30,7 +30,6 @@ export const useConfigureReportsPage = () => {
     const toast = useToast()
     const queryClient = useQueryClient()
 
-    // Core state
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
     const [isGenerating, setIsGenerating] = useState(false)
@@ -38,13 +37,11 @@ export const useConfigureReportsPage = () => {
     const [enabledReports, setEnabledReports] = useState<EnabledReport[]>([])
     const [availableReportTypes, setAvailableReportTypes] = useState<ReportType[]>([])
 
-    // Email delivery state
     const [destination, setDestination] = useState('')
     const [ccEmails, setCcEmails] = useState('')
     const [originalDestination, setOriginalDestination] = useState('')
     const [originalCcEmails, setOriginalCcEmails] = useState('')
 
-    // SharePoint state
     const [deliveryMethod, setDeliveryMethod] = useState('email')
     const [sharepointPath, setSharepointPath] = useState('')
     const [originalDeliveryMethod, setOriginalDeliveryMethod] = useState('email')
@@ -53,27 +50,24 @@ export const useConfigureReportsPage = () => {
     const [sharepointIntegrationId, setSharepointIntegrationId] = useState<number | null>(null)
     const [sharepointIntegrations, setSharepointIntegrations] = useState<SharepointIntegration[]>([])
 
-    // Schedule selection state
     const [selectedSchedules, setSelectedSchedules] = useState<number[]>([])
     const [modifiedSchedules, setModifiedSchedules] = useState<Set<number>>(new Set())
 
-    // Validation state
     const [showValidationModal, setShowValidationModal] = useState(false)
     const [validationErrors, setValidationErrors] = useState<string[]>([])
 
-    // Generation state
     const [showGenerateModal, setShowGenerateModal] = useState(false)
     const [customStartDate, setCustomStartDate] = useState('')
     const [customEndDate, setCustomEndDate] = useState('')
     const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 })
     const [failedSchedules, setFailedSchedules] = useState<FailedSchedule[]>([])
 
-    // Preview state
     const [previewReport, setPreviewReport] = useState<PreviewReport | null>(null)
     const [batchPreviewReports, setBatchPreviewReports] = useState<PreviewReport[]>([])
 
-    // Validate and fix invalid report types when availableReportTypes loads
     useEffect(() => {
+        // Automatically sync enabled reports with the latest available report types for the customer.
+        // If an enabled report's type is no longer available, default it to the first available type.
         if (availableReportTypes.length > 0 && enabledReports.length > 0) {
             const validReportIds = availableReportTypes.map(r => r.id)
             const needsUpdate = enabledReports.some(report => !validReportIds.includes(report.report_type))
@@ -93,7 +87,6 @@ export const useConfigureReportsPage = () => {
     const fetchAvailableReports = useCallback(async () => {
         try {
             const response = await api.get<{ data?: { available_reports: ReportType[] }; available_reports?: ReportType[] }>(`/customers/${id}/available-reports`)
-            // Handle both wrapped and unwrapped response formats
             const reportData = response.data || response
 
             const reports = (reportData.available_reports || []).map((r: ReportType) => ({
@@ -137,14 +130,12 @@ export const useConfigureReportsPage = () => {
                 _old_schedule_id: undefined
             }))
 
-            // Check data availability for each schedule
             const schedulesWithDataCheck = await Promise.all(
                 mappedSchedules.map(async (schedule) => {
                     try {
                         const checkResponse = await api.get<{ data?: { available_reports: ReportType[] }; available_reports?: ReportType[] }>(
                             `/customers/${id}/available-reports?frequency=${schedule.frequency}`
                         )
-                        // Handle both wrapped and unwrapped response formats
                         const reportCheckData = checkResponse.data || checkResponse
 
                         const reportType = reportCheckData.available_reports?.find(r => r.id === schedule.report_type)
@@ -157,7 +148,6 @@ export const useConfigureReportsPage = () => {
 
             setEnabledReports(schedulesWithDataCheck as EnabledReport[])
 
-            // Extract email configuration
             let emailDestination = ''
             let ccEmailsList: string[] = []
 
@@ -177,14 +167,12 @@ export const useConfigureReportsPage = () => {
             setOriginalDestination(emailDestination)
             setOriginalCcEmails(Array.isArray(ccEmailsList) ? ccEmailsList.join(', ') : '')
 
-            // SharePoint Config
             const currentMethod = reportData.delivery?.method || 'email'
             setDeliveryMethod(currentMethod)
             setOriginalDeliveryMethod(currentMethod)
             setSharepointPath(reportData.delivery?.path || '')
             setOriginalSharepointPath(reportData.delivery?.path || '')
 
-            // Fetch SharePoint integrations
             try {
                 const intResponse = await api.get<{ configured?: SharepointIntegration[] }>('/integrations')
                 const integrations = intResponse.configured || []
@@ -217,7 +205,6 @@ export const useConfigureReportsPage = () => {
         fetchReportConfig()
     }, [fetchAvailableReports, fetchReportConfig])
 
-    // Handlers
     const handleUpdateReport = useCallback((index: number, field: keyof EnabledReport, value: string | number | boolean | string[]) => {
         setEnabledReports(prev => {
             const updated = [...prev]
@@ -400,6 +387,7 @@ export const useConfigureReportsPage = () => {
             const payload: Record<string, unknown> = (startDate && endDate) ? { start_date: startDate, end_date: endDate } : {}
             payload.preview_only = true
 
+            // Generate reports sequentially to prevent server-side resource exhaustion
             const results: Array<{ status: 'fulfilled' | 'rejected'; value?: unknown; reason?: unknown; scheduleId: number }> = []
 
             for (let i = 0; i < selectedSchedules.length; i++) {
@@ -566,25 +554,20 @@ export const useConfigureReportsPage = () => {
     }, [batchPreviewReports])
 
     return {
-        // Route params
         id,
         navigate,
-        // Core state
         isLoading,
         isSaving,
         isGenerating,
         config,
         enabledReports,
         availableReportTypes,
-        // Email delivery
         destination,
         setDestination,
         ccEmails,
         setCcEmails,
-        // Delivery method
         deliveryMethod,
         setDeliveryMethod,
-        // SharePoint
         sharepointPath,
         setSharepointPath,
         isFileBrowserOpen,
@@ -592,14 +575,11 @@ export const useConfigureReportsPage = () => {
         sharepointIntegrationId,
         setSharepointIntegrationId,
         sharepointIntegrations,
-        // Schedule selection
         selectedSchedules,
         modifiedSchedules,
-        // Validation
         showValidationModal,
         setShowValidationModal,
         validationErrors,
-        // Generation
         showGenerateModal,
         setShowGenerateModal,
         customStartDate,
@@ -608,12 +588,10 @@ export const useConfigureReportsPage = () => {
         setCustomEndDate,
         generationProgress,
         failedSchedules,
-        // Preview
         previewReport,
         setPreviewReport,
         batchPreviewReports,
         setBatchPreviewReports,
-        // Handlers
         handleUpdateReport,
         handleResetSchedule,
         handleSaveConfiguration,

@@ -23,8 +23,7 @@ const apiClient: AxiosInstance = axios.create({
 
 apiClient.interceptors.request.use(
     (config) => {
-        // Check both localStorage and sessionStorage for auth token
-        // User might have logged in with or without "Remember Me"
+        // Retrieve authentication token with priority: localStorage (persistent) > sessionStorage (session-only)
         let token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
         if (!token) {
             token = sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
@@ -46,11 +45,12 @@ apiClient.interceptors.response.use(
     },
     (error: AxiosError<ApiError>) => {
         if (error.response?.status === 401) {
+            // Handle unauthorized access: clear session/local storage and redirect to login,
+            // unless it's a logout request or public share link access.
             const isLogoutRequest = error.config?.url?.includes("/auth/logout");
             const isShareRequest = error.config?.url?.includes("/share");
 
             if (!isLogoutRequest && !isShareRequest) {
-                // Clear auth data from both storages
                 localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
                 localStorage.removeItem(STORAGE_KEYS.USER);
                 localStorage.removeItem(STORAGE_KEYS.COMPANY);

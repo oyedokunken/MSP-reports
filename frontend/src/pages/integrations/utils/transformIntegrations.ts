@@ -20,7 +20,7 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
     }>
   }
 
-  // Ensure configured is always an array (handles null, undefined, and non-array values)
+
   const configured = Array.isArray(data.configured) ? data.configured : []
 
   return configured.map((int) => ({
@@ -35,6 +35,7 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        // Use Australia/Darwin timezone for consistency with backend reporting schedules
         timeZone: 'Australia/Darwin',
       })
       : 'Never',

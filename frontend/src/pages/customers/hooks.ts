@@ -61,7 +61,7 @@ export const useCustomerMapping = (initialRows: MappingRow[], canonical: Canonic
   }
 }
 
-// Hook for MapCustomerModal - supports single or bulk mapping
+
 export const useMapCustomerModal = (
   open: boolean,
   integrationCustomers: IntegrationCustomer[],
@@ -79,7 +79,6 @@ export const useMapCustomerModal = (
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
   const [mappedCount, setMappedCount] = useState(0)
 
-  // Infinite scroll search states
   const [candidates, setCandidates] = useState<ExistingCustomer[]>([])
   const [searchPage, setSearchPage] = useState(1)
   const [hasMoreCandidates, setHasMoreCandidates] = useState(true)
@@ -88,13 +87,12 @@ export const useMapCustomerModal = (
 
   const [currentIndex, setCurrentIndex] = useState(0)
 
-  // Defensive: ensure we have an array
   const customers = integrationCustomers || []
   const currentCustomer = customers[currentIndex] || null
   const totalCount = customers.length
+  // Flag indicating if we're processing multiple integration customers sequentially
   const isBulk = totalCount > 1
 
-  // Reset state when modal opens
   useEffect(() => {
     if (open) {
       setMappedCount(0)
@@ -104,7 +102,6 @@ export const useMapCustomerModal = (
     }
   }, [open])
 
-  // Fetch suggestions for first customer (used for single mapping)
   useEffect(() => {
     const fetchSuggestedMatches = async () => {
       if (!currentCustomer) return
@@ -112,7 +109,7 @@ export const useMapCustomerModal = (
       try {
         setIsLoadingSuggestions(true)
         const response = await api.get(`/customers/unmapped`)
-        const rawData = response.data || response
+        const rawData = (response as { data?: unknown }).data || response
         const data: unknown[] = Array.isArray(rawData) ? rawData : []
 
         const foundCustomer = data.find(
@@ -144,22 +141,19 @@ export const useMapCustomerModal = (
       setError('')
       setCreateNew(false)
       setNewCustomerName(currentCustomer?.name || '')
-      setSuggestedMatches([]) // Clear previous suggestions
+      setSuggestedMatches([])
 
-      // Reset candidates list
       setCandidates([])
       setSearchPage(1)
       setHasMoreCandidates(true)
       fetchCandidates(1, '')
 
-      // Only fetch suggestions for single customer mapping
       if (!isBulk) {
         fetchSuggestedMatches()
       }
     }
   }, [customers.length, open, isBulk, currentCustomer])
 
-  // Fetch candidates (customers) with pagination and search
   const fetchCandidates = async (page: number, search: string, append: boolean = false) => {
     if (append) {
       setIsLoadingMoreCandidates(true)
@@ -179,10 +173,8 @@ export const useMapCustomerModal = (
 
       const response = await api.get(`/customers?${params.toString()}`)
       const rawData = response as { data?: ExistingCustomer[]; pagination?: { current_page?: number; last_page?: number } }
-      // Handle both direct array response (if any) or paginated response
       const data = (rawData.data || rawData) as ExistingCustomer[]
 
-      // Safely handle pagination if it exists, otherwise assume no more pages
       const pagination = rawData.pagination || { current_page: 1, last_page: 1 }
 
       if (append) {
@@ -192,7 +184,7 @@ export const useMapCustomerModal = (
       }
 
       const currentPageNum = pagination.current_page || page
-      const lastPage = pagination.last_page || 1 // default to 1 if missing
+      const lastPage = pagination.last_page || 1
 
       setHasMoreCandidates(currentPageNum < lastPage)
       setSearchPage(currentPageNum)
@@ -206,17 +198,10 @@ export const useMapCustomerModal = (
     }
   }
 
-  // Debounced search effect
   useEffect(() => {
     if (!open) return
 
-    // Skip the initial effect call if we just opened (handled by the other useEffect)
-    // But actually simpler to just debounce everything.
-    // To avoid double fetch on open, we could use a ref or just accept it.
-    // For now, let's just debounce.
-
     const timer = setTimeout(() => {
-      // Only fetch if open
       fetchCandidates(1, searchTerm, false)
     }, 300)
 
@@ -227,9 +212,8 @@ export const useMapCustomerModal = (
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (createNew) {
-      // No validation needed - we use each customer's name
-    } else {
+    if (!createNew) {
+      // Validate that a target customer is selected when mapping to an existing record
       if (!selectedCustomerId || !currentCustomer) {
         setError('Please select a customer to map to')
         return
@@ -241,7 +225,6 @@ export const useMapCustomerModal = (
 
     try {
       if (createNew) {
-        // BULK CREATE: Create all customers at once
         const promises = customers.map(customer =>
           api.post('/customers/map', {
             integration_customer_id: customer.integration_customer_id,
@@ -262,7 +245,6 @@ export const useMapCustomerModal = (
         return
       }
 
-      // BULK MAP TO EXISTING: Map all selected customers to the same target customer
       const promises = customers.map(customer =>
         api.post('/customers/map', {
           integration_customer_id: customer.integration_customer_id,
@@ -288,9 +270,6 @@ export const useMapCustomerModal = (
     }
   }
 
-  // Determine which list to show: Search results if searching, otherwise existing/passed customers
-  // No longer use local filtering
-  // const filteredCustomers = searchTerm.trim() ? searchResults : existingCustomers
   const filteredCustomers = candidates
 
   return {
@@ -343,7 +322,6 @@ export const useCustomerIntegrationDetails = (customerId: string | undefined) =>
 
         let integrationData: import('./types').CustomerIntegrationDetail[] = []
 
-        // Type guard for response structure
         interface ApiResponse {
           status?: string;
           success?: boolean;
@@ -374,7 +352,6 @@ export const useCustomerIntegrationDetails = (customerId: string | undefined) =>
         if (integrationData.length > 0) {
           setCustomerName(integrationData[0].name)
 
-          // Fetch stats for each integration
           integrationData.forEach(async (integration) => {
             const integrationCustomerId = integration.integration_customer_id
             setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: true }))
@@ -386,7 +363,7 @@ export const useCustomerIntegrationDetails = (customerId: string | undefined) =>
               const data = (statsResponse as { data?: unknown }).data || statsResponse
               setStats(prev => ({ ...prev, [integrationCustomerId]: data as import('./types').IntegrationStats }))
             } catch {
-              // Stats are optional, fail silently
+              void 0;
             } finally {
               setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: false }))
             }
@@ -413,15 +390,13 @@ export const useCustomerIntegrationDetails = (customerId: string | undefined) =>
   }
 }
 
-// Type for customer action types
+
 type CustomerAction = 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate' | 'delivery'
 
-// Base hook for customer list functionality - consolidates shared logic
 const useBaseCustomerList = (sotFilter: boolean | null) => {
   const navigate = useNavigate()
   const toast = useToast()
 
-  // Store subscriptions
   const customers = useCustomersStore((state) => state.customers)
   const unmappedCount = useCustomersStore((state) => state.unmappedCount)
   const isLoading = useCustomersStore((state) => state.isLoading)
@@ -436,7 +411,6 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
   const totalPages = useCustomersStore((state) => state.totalPages)
   const total = useCustomersStore((state) => state.total)
 
-  // Store actions
   const fetchCustomers = useCustomersStore((state) => state.fetchCustomers)
   const openModal = useCustomersStore((state) => state.openModal)
   const closeModal = useCustomersStore((state) => state.closeModal)
@@ -445,7 +419,6 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
   const getMappedCustomers = useCustomersStore((state) => state.getMappedCustomers)
   const getUnmappedCustomers = useCustomersStore((state) => state.getUnmappedCustomers)
 
-  // Initial fetch with SOT filter
   useEffect(() => {
     const fetchArgs: [number, boolean, boolean | null] = sotFilter === null
       ? [1, false, null]
@@ -459,12 +432,10 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
     })
   }, [fetchCustomers, toast, sotFilter])
 
-  // Derived data
   const mappedCustomers = getMappedCustomers()
   const unmappedCustomers = getUnmappedCustomers()
   const totalMapped = customers.filter((c) => c.customer_id !== null).length
 
-  // Handlers
   const handleStartMapping = useCallback(() => {
     if (unmappedCustomers.length > 0) {
       const firstUnmapped = unmappedCustomers[0]
@@ -522,7 +493,6 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
     fetchCustomers(page, false, sotFilter)
   }, [fetchCustomers, sotFilter])
 
-  // Filter setters with SOT parameter
   const handleSetSearchQuery = useCallback((query: string) => {
     useCustomersStore.setState({ searchQuery: query, currentPage: 1 })
     fetchCustomers(1, false, sotFilter)
@@ -549,17 +519,14 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
   }, [fetchCustomers, sotFilter])
 
   return {
-    // Navigation & Toast
     navigate,
     toast,
-    // Data
     customers,
     mappedCustomers,
     unmappedCustomers,
     unmappedCount,
     totalMapped,
     total,
-    // State
     isLoading,
     searchQuery,
     statusFilters,
@@ -570,7 +537,6 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
     selectedCustomer,
     currentPage,
     totalPages,
-    // Actions
     openModal,
     closeModal,
     fetchCustomers: handlePageChange,
@@ -579,7 +545,6 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
     setReportFilters: handleSetReportFilters,
     setIntegrationFilters: handleSetIntegrationFilters,
     clearAllFilters: handleClearAllFilters,
-    // Handlers
     handleStartMapping,
     handleMapSuccess,
     handleCustomerAction,
@@ -587,11 +552,9 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
   }
 }
 
-// Hook for general customer list (no SOT filter)
 export const useCustomerList = () => {
   const base = useBaseCustomerList(null)
 
-  // For backwards compatibility, use store's default setters when no SOT filter
   const setSearchQuery = useCustomersStore((state) => state.setSearchQuery)
   const setStatusFilters = useCustomersStore((state) => state.setStatusFilters)
   const setReportFilters = useCustomersStore((state) => state.setReportFilters)
@@ -608,12 +571,10 @@ export const useCustomerList = () => {
   }
 }
 
-// Hook for Master Customer List (Source of Truth = true)
 export const useMasterCustomerList = () => {
   const base = useBaseCustomerList(true)
   const [sotIntegrationName, setSotIntegrationName] = useState<string | null>(null)
 
-  // Fetch SOT integration name on mount
   useEffect(() => {
     api.get('/integrations').then((response: unknown) => {
       const typedResponse = response as { configured?: Array<{ is_source_of_truth?: boolean; display_name?: string; integration_type?: string }> }
@@ -632,7 +593,6 @@ export const useMasterCustomerList = () => {
   }
 }
 
-// Hook for Secondary Customer List (Source of Truth = false)
 export const useSecondaryCustomerList = () => {
   return useBaseCustomerList(false)
 }
