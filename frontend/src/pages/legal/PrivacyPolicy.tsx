@@ -7,7 +7,6 @@ export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto px-4 py-12">
-        {/* Back to Login */}
         <Link 
           to="/login" 
           className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-500 mb-8"

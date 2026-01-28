@@ -35,7 +35,6 @@ export default function FloatingNav() {
     const userMenuRef = useRef<HTMLDivElement>(null);
     const notificationMenuRef = useRef<HTMLDivElement>(null);
 
-    // Update time every second
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(new Date());
@@ -56,7 +55,6 @@ export default function FloatingNav() {
         });
     };
 
-    // Get notifications from store
     const notifications = useNotificationStore((state) => state.notifications);
     const getUnreadCount = useNotificationStore(
         (state) => state.getUnreadCount
@@ -69,11 +67,8 @@ export default function FloatingNav() {
     const handleLogout = async () => {
         try {
             setShowLogoutConfirm(false);
-            // Perform logout first
             await logout();
-            // Then navigate
             navigate("/login", { replace: true });
-            // Show toast after navigation
             setTimeout(() => {
                 toast.success(
                     "Logged Out",
@@ -92,7 +87,6 @@ export default function FloatingNav() {
         setIsNotificationMenuOpen(false);
     };
 
-    // Handle scroll for header shadow effect
     useEffect(() => {
         const mainElement = document.querySelector("main");
         if (!mainElement) return;
@@ -105,7 +99,6 @@ export default function FloatingNav() {
         return () => mainElement.removeEventListener("scroll", handleScroll);
     }, []);
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (
@@ -139,7 +132,6 @@ export default function FloatingNav() {
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
 
-                {/* Current Date/Time */}
                 <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>{formatDateTime(currentTime)}</span>
@@ -147,7 +139,6 @@ export default function FloatingNav() {
             </div>
 
             <div className="flex items-center gap-3">
-                {/* Notifications */}
                 <div className="relative" ref={notificationMenuRef}>
                     <Button
                         variant="ghost"
@@ -163,7 +154,6 @@ export default function FloatingNav() {
                         )}
                     </Button>
 
-                    {/* Notifications Dropdown */}
                     {isNotificationMenuOpen && (
                         <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-gray-200 dark:border-gray-800 bg-background dark:bg-[hsl(var(--auth-card))] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 max-h-96 overflow-hidden z-50">
                             <div className="p-4 border-b border-border">
@@ -244,10 +234,8 @@ export default function FloatingNav() {
                     )}
                 </div>
 
-                {/* Theme Toggle */}
                 <ThemeToggle />
 
-                {/* User Menu */}
                 <div className="relative" ref={userMenuRef}>
                     <button
                         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -270,7 +258,6 @@ export default function FloatingNav() {
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     </button>
 
-                    {/* Dropdown Menu */}
                     {isUserMenuOpen && (
                         <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-gray-200 dark:border-gray-800 bg-background dark:bg-[hsl(var(--auth-card))] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 z-50">
                             <div className="p-4 border-b border-border">
@@ -332,7 +319,6 @@ export default function FloatingNav() {
                 </div>
             </div>
 
-            {/* Logout Confirmation Modal */}
             <ConfirmationModal
                 isOpen={showLogoutConfirm}
                 onClose={() => setShowLogoutConfirm(false)}
@@ -344,7 +330,6 @@ export default function FloatingNav() {
                 type="warning"
             />
 
-            {/* Notification Detail Modal - Import from NotificationsPage */}
             {selectedNotification && (
                 <NotificationDetailModal
                     notification={selectedNotification}
@@ -355,7 +340,6 @@ export default function FloatingNav() {
     );
 }
 
-// Notification Detail Modal Component
 interface NotificationDetailModalProps {
     notification: Notification;
     onClose: () => void;
@@ -376,7 +360,6 @@ function NotificationDetailModal({
                 className="bg-background dark:bg-[hsl(var(--auth-card))] rounded-xl border border-border shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
                 <div className="p-6 border-b border-border flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
                         <div className="flex-shrink-0 mt-1">
@@ -406,7 +389,6 @@ function NotificationDetailModal({
                     </Button>
                 </div>
 
-                {/* Content */}
                 <div className="p-6 space-y-4">
                     <div>
                         <h3 className="text-sm font-semibold text-foreground mb-2">
@@ -433,7 +415,6 @@ function NotificationDetailModal({
                     </div>
                 </div>
 
-                {/* Footer */}
                 <div className="p-6 border-t border-border flex justify-end gap-2">
                     {!notification.read && (
                         <Button

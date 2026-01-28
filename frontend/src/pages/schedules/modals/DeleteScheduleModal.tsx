@@ -96,7 +96,6 @@ export function DeleteScheduleModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Schedule Info */}
           <div className="rounded-lg border border-border bg-accent/50 p-3">
             <p className="text-sm font-medium mb-1">Schedule:</p>
             <p className="font-semibold">{schedule.customer_name}</p>
@@ -105,7 +104,6 @@ export function DeleteScheduleModal({
             </p>
           </div>
 
-          {/* Template Info */}
           {schedule.template_id && (
             <div className="rounded-lg border border-blue-500/50 bg-blue-50/50 dark:bg-blue-950/20 p-3">
               <p className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
@@ -120,7 +118,6 @@ export function DeleteScheduleModal({
             </div>
           )}
 
-          {/* Warning */}
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
             <p className="text-sm text-destructive font-medium mb-2">
               ⚠️ Warning: This action cannot be undone!
@@ -135,7 +132,6 @@ export function DeleteScheduleModal({
             </ul>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
               <p className="text-sm text-destructive font-medium">{error}</p>

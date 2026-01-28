@@ -6,7 +6,6 @@ import { logger } from '@/lib/logger';
 window.Pusher = Pusher;
 
 export const initEcho = (token: string) => {
-  // Only initialize if WebSocket is enabled (useful for development)
   const isEnabled = import.meta.env.VITE_REVERB_ENABLED !== 'false';
 
   if (!isEnabled) {

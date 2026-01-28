@@ -1,5 +1,3 @@
-// Updated MapCustomerModal with toggle between Suggested Matches and Search
-
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -55,7 +53,6 @@ export function MapCustomerModal({
   const observerTarget = useRef<HTMLDivElement>(null)
   const [viewMode, setViewMode] = useState<'suggested' | 'search'>('suggested')
 
-  // ✅ FIXED TYPE ERROR HERE
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       if (
@@ -118,7 +115,7 @@ export function MapCustomerModal({
             </DialogTitle>
           </div>
           <DialogDescription>
-            {isBulk 
+            {isBulk
               ? `Map ${totalCount} selected customers to an existing customer or create new ones`
               : <>Map <strong>{currentCustomer.name}</strong> from {currentCustomer.integration_type} to an existing customer</>
             }
@@ -191,7 +188,6 @@ export function MapCustomerModal({
             </div>
           ) : (
             <>
-              {/* Toggle Suggested vs Search - only show for single customer */}
               {!isBulk && (
                 <div className="flex gap-2 mt-2">
                   <Button
@@ -213,7 +209,6 @@ export function MapCustomerModal({
                 </div>
               )}
 
-              {/* Suggested Matches - only for single customer */}
               {!isBulk && viewMode === 'suggested' && suggestedMatches.length > 0 && (
                 <div className="space-y-2 mt-3">
                   {suggestedMatches.map((match) => (
@@ -236,7 +231,6 @@ export function MapCustomerModal({
                 </div>
               )}
 
-              {/* Search Section - always show for bulk, or when search tab selected for single */}
               {(isBulk || viewMode === 'search') && (
                 <div className="flex flex-col gap-2 mt-3 h-full">
                   <div className="relative">

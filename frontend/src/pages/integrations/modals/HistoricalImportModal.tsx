@@ -62,12 +62,9 @@ export function HistoricalImportModal({
         setIsSubmitting(true);
 
         try {
-            // End date should be end of TODAY (includes all of today's data)
             const endDate = new Date();
             endDate.setHours(23, 59, 59, 999);
 
-            // Start date: "90 days" means 90 days back from TODAY
-            // Dec 16 - 89 days = Sep 17 (because we count today as day 1)
             const startDate = new Date();
             startDate.setDate(startDate.getDate() - daysNum + 1);
             startDate.setHours(0, 0, 0, 0);
@@ -196,20 +193,20 @@ export function HistoricalImportModal({
 
                         {(integration.type === "datto" ||
                             integration.type === "datto_rmm") && (
-                            <div className="flex gap-2">
-                                <span className="text-lg">💡</span>
-                                <div className="flex-1 space-y-1">
-                                    <p className="text-sm font-medium">
-                                        Datto Historical Import
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Fetches historical alerts and backfills
-                                        device uptime snapshots for trend
-                                        analysis.
-                                    </p>
+                                <div className="flex gap-2">
+                                    <span className="text-lg">💡</span>
+                                    <div className="flex-1 space-y-1">
+                                        <p className="text-sm font-medium">
+                                            Datto Historical Import
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Fetches historical alerts and backfills
+                                            device uptime snapshots for trend
+                                            analysis.
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
                         <div className="flex gap-2 pt-2 border-t">
                             <span className="text-lg">⚠️</span>

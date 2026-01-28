@@ -54,7 +54,6 @@ export interface UnmappedSummary {
     by_integration_type: Record<string, number>
 }
 
-// API Response Types
 export type CustomerListResponse = PaginatedResponse<Customer>
 
 export type UnmappedCustomersResponse = PaginatedResponse<UnmappedCustomer> & {

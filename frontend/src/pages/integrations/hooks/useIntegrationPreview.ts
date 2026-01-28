@@ -36,10 +36,8 @@ export function useIntegrationPreview() {
         params
       )
 
-      // Handle both direct data and nested data structures
       const data = (response as { data?: unknown }).data || response
 
-      // Check if the data itself is the IntegrationPreviewType
       if (
         typeof data === 'object' &&
         data !== null &&
@@ -56,7 +54,6 @@ export function useIntegrationPreview() {
           throw new Error(previewData.message || 'Failed to load preview data')
         }
       } else {
-        // Fallback for direct preview object
         setPreview(data as IntegrationPreviewType)
       }
     } catch (err: unknown) {
@@ -79,8 +76,8 @@ export function useIntegrationPreview() {
     try {
       await loadPreview()
       toast.success('Preview Refreshed', 'Integration data has been updated')
-    } catch {
-      // Error already handled in loadPreview
+    } catch (error) {
+      logger.debug('Refresh failed', error)
     } finally {
       setRefreshing(false)
     }
@@ -98,11 +95,9 @@ export function useIntegrationPreview() {
   }
 
   const handleDownloadReport = () => {
-    // Show confirmation modal first
     setShowDownloadConfirm(true)
   }
 
-  // Check if this is ITGlue integration - only check type, not ID
   const integrationType = preview?.integration?.type?.toLowerCase() || ''
   const isITGlueIntegration = integrationType === 'itglue' || integrationType.includes('it_glue')
   const isLibreNMSIntegration = integrationType === 'librenms' || integrationType.includes('libre_nms')
@@ -114,14 +109,14 @@ export function useIntegrationPreview() {
       if (isITGlueIntegration) {
         const currentDate = new Date()
         await reportApi.downloadLicenseConsumptionReport(
-          currentDate.getMonth() + 1, // JavaScript months are 0-indexed
+          currentDate.getMonth() + 1,
           currentDate.getFullYear(),
           deliverViaEmail ? emailTo : undefined,
           undefined // emailFrom will be the logged-in user's email from backend
         )
       } else if (isLibreNMSIntegration) {
         await reportApi.downloadLibreNMSDeviceReport(
-          undefined, // No group ID for company-wide report
+          undefined,
           deliverViaEmail ? emailTo : undefined,
           undefined
         )
@@ -129,7 +124,6 @@ export function useIntegrationPreview() {
 
       if (deliverViaEmail) {
         toast.success('Report Sent & Downloaded', `Report has been downloaded and sent to ${emailTo}`)
-        // Reset email fields
         setDeliverViaEmail(false)
         setEmailTo('')
       } else {

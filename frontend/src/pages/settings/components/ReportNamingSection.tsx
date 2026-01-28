@@ -53,9 +53,7 @@ export default function ReportNamingSection() {
         fetchSettings()
     }, [fetchSettings])
 
-    // Update preview when pattern changes
     useEffect(() => {
-        // Simple local preview
         const tokens: Record<string, string> = {
             '{customer_name}': 'Acme_Corp',
             '{report_type}': 'monthly-summary',
@@ -82,7 +80,6 @@ export default function ReportNamingSection() {
         const newValue = pattern.slice(0, start) + token + pattern.slice(end)
         setPattern(newValue)
 
-        // Set cursor after inserted token
         setTimeout(() => {
             input.focus()
             const newPos = start + token.length
@@ -133,7 +130,6 @@ export default function ReportNamingSection() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                {/* Pattern Input */}
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Naming Pattern</label>
                     <Input
@@ -144,7 +140,6 @@ export default function ReportNamingSection() {
                     />
                 </div>
 
-                {/* Token Badges */}
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
                         <Info className="h-3.5 w-3.5" />
@@ -164,13 +159,11 @@ export default function ReportNamingSection() {
                     </div>
                 </div>
 
-                {/* Preview */}
                 <div className="rounded-lg border bg-muted/50 p-4">
                     <div className="text-sm font-medium text-muted-foreground mb-1">Preview</div>
                     <code className="text-sm font-mono break-all">{preview}</code>
                 </div>
 
-                {/* Save Button */}
                 <div className="flex justify-end">
                     <Button onClick={handleSave} disabled={saving}>
                         {saving ? (

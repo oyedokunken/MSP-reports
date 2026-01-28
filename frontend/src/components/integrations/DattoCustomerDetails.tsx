@@ -41,14 +41,6 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
     { key: 'on_demand', label: 'On Demand' },
     { key: 'description', label: 'Description' },
   ]
-
-  // Device fields are rendered inline in the UI, not in a table
-  // const deviceFields = [
-  //   { key: 'devices_total', label: 'Total Devices' },
-  //   { key: 'devices_online', label: 'Online' },
-  //   { key: 'devices_offline', label: 'Offline' },
-  // ]
-
   const autotaskFields = [
     { key: 'autotask_company_id', label: 'Autotask Company ID' },
     { key: 'autotask_company_name', label: 'Autotask Company Name' },
@@ -61,7 +53,6 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
 
   return (
     <Accordion type="multiple" className="w-full">
-      {/* Site Information */}
       <AccordionItem value="site" className="border-b-0 bg-transparent">
         <AccordionTrigger className="hover:no-underline">
           <div className="flex items-center gap-2">
@@ -95,7 +86,6 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
         </AccordionContent>
       </AccordionItem>
 
-      {/* Device Statistics */}
       {hasDeviceData && (
         <AccordionItem value="devices" className="border-b-0 bg-transparent">
           <AccordionTrigger className="hover:no-underline">
@@ -148,7 +138,6 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
         </AccordionItem>
       )}
 
-      {/* Portal Access */}
       {hasPortalUrl && (
         <AccordionItem value="portal" className="border-b-0 bg-transparent">
           <AccordionTrigger className="hover:no-underline">
@@ -173,7 +162,6 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
         </AccordionItem>
       )}
 
-      {/* Autotask Integration */}
       {hasAutotaskLink && (
         <AccordionItem value="autotask" className="border-b-0 bg-transparent">
           <AccordionTrigger className="hover:no-underline">
@@ -209,7 +197,6 @@ export default function DattoCustomerDetails({ metadata }: DattoCustomerDetailsP
         </AccordionItem>
       )}
 
-      {/* Notes */}
       {hasNotes && (
         <AccordionItem value="notes" className="border-b-0 bg-transparent">
           <AccordionTrigger className="hover:no-underline">

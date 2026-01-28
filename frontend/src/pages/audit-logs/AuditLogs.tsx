@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react'
 import FloatingLayout from '@/components/layout/FloatingLayout'
-import { 
-  AuditLogsHeader, 
-  AuditLogsTable, 
-  AuditLogsControls, 
-  Pagination 
+import {
+  AuditLogsHeader,
+  AuditLogsTable,
+  AuditLogsControls,
+  Pagination
 } from './components'
 import { useAuditLogsStore, type AuditLogsState } from '../../stores/useAuditLogsStore'
 
 export default function AuditLogs() {
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  // Zustand store - individual selectors for optimal performance
   const auditLogs = useAuditLogsStore((state: AuditLogsState) => state.auditLogs)
   const isLoading = useAuditLogsStore((state: AuditLogsState) => state.isLoading)
   const error = useAuditLogsStore((state: AuditLogsState) => state.error)
@@ -26,7 +25,6 @@ export default function AuditLogs() {
   const setFilters = useAuditLogsStore((state: AuditLogsState) => state.setFilters)
   const exportLogs = useAuditLogsStore((state: AuditLogsState) => state.exportLogs)
 
-  // Fetch data on mount
   useEffect(() => {
     fetchAuditLogs()
     fetchStats()

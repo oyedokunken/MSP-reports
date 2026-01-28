@@ -70,7 +70,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     included_sections: [],
   })
 
-  // Load initial data
   useEffect(() => {
     if (open) {
       fetchCustomers(1)
@@ -91,12 +90,8 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
         })
         setSelectedCustomerId(template.customer_id)
         setIsGlobalTemplate(template.customer_id === null)
-        
-        // We need to infer the integration from the report type if not explicitly stored
-        // This is a best effort until we add integration_type to the template model
-        // Skip customer and report type selection when editing - go straight to sections
+
         setStep(3)
-        // Load report types for the customer (needed for section configuration)
         if (template.customer_id) {
           fetchAvailableReportTypes(template.customer_id)
         } else {
@@ -119,12 +114,10 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const handleSearchChange = (search: string) => {
     setCustomerSearch(search)
 
-    // Clear existing timeout
     if (searchDebounce) {
       clearTimeout(searchDebounce)
     }
 
-    // Set new timeout to search after 500ms of no typing
     const timeout = setTimeout(() => {
       setCurrentPage(1)
       fetchCustomers(1, search)
@@ -133,7 +126,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     setSearchDebounce(timeout)
   }
 
-  // Fetch report types when customer is selected OR when global template mode is enabled
   useEffect(() => {
     if (isGlobalTemplate) {
       fetchAllReportTypes()
@@ -143,9 +135,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCustomerId, isGlobalTemplate])
 
-  // Auto-select default sections when report type changes (only for new templates)
   useEffect(() => {
-    // Don't auto-select sections when editing an existing template, unless the type changed
     if (template && formData.report_type === template.report_type) {
       return
     }
@@ -238,7 +228,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     }
   }
 
-  // Effect to infer selectedIntegration from template's report type or available options
   useEffect(() => {
     if (template && availableReportTypes.length > 0) {
       const selectedRt = availableReportTypes.find(rt => rt.type === template.report_type)
@@ -253,7 +242,7 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   }
 
   const handleBack = () => {
-    // Constraint removed to allow navigation
+
 
     if (step > 1) setStep(step - 1)
   }
@@ -261,7 +250,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const canProceed = () => {
     switch (step) {
       case 1:
-        // For global templates, only need template name. For customer-specific, need customer selection too.
         if (isGlobalTemplate) {
           return formData.template_name.trim() !== '' && selectedIntegration !== null
         }
@@ -280,7 +268,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
 
-    // For customer-specific templates, require customer selection
     if (!isGlobalTemplate && !selectedCustomerId) {
       setError('Customer is required for customer-specific templates')
       setStep(1)
@@ -303,11 +290,9 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
     setIsSubmitting(true)
 
     try {
-      // Ensure time_of_day is in correct format (HH:MM)
       let cleanTimeOfDay = '09:00'
       if (formData.time_of_day) {
         const timeStr = String(formData.time_of_day).trim()
-        // Check if it matches HH:MM format
         if (/^\d{2}:\d{2}$/.test(timeStr)) {
           cleanTimeOfDay = timeStr
         }
@@ -338,7 +323,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
       logger.error('Error message:', error.message)
       logger.error('Error errors:', error.errors)
 
-      // Handle validation errors (422)
       if (error.errors) {
         const errors = error.errors
         const errorMessages = Object.entries(errors)
@@ -383,7 +367,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
         <div className="py-4 space-y-6">
           {step === 1 && (
             <div className="space-y-4">
-              {/* Global Template Toggle */}
               <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
                 <div className="flex items-center gap-3">
                   {isGlobalTemplate ? (
@@ -441,7 +424,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                 />
               </div>
 
-              {/* Customer Selection - only show for customer-specific templates */}
               {!isGlobalTemplate && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -473,7 +455,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                     )}
                   </div>
 
-                  {/* Customer Search */}
                   <div className="mb-3">
                     <Input
                       type="text"
@@ -494,7 +475,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                     }}
                   />
 
-                  {/* Integration Selection for Customer-Specific */}
                   {selectedCustomerId && (
                     <div className="space-y-2 mt-4 animate-in fade-in slide-in-from-top-2">
                       <Label className="flex items-center gap-2">
@@ -514,8 +494,8 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                             }}
                             className={`
                               p-3 rounded-md border text-left transition-all
-                              ${selectedIntegration === integration.integration_type 
-                                ? 'border-primary bg-primary/5 ring-1 ring-primary' 
+                              ${selectedIntegration === integration.integration_type
+                                ? 'border-primary bg-primary/5 ring-1 ring-primary'
                                 : 'border-border hover:bg-muted/50'
                               }
                             `}
@@ -530,7 +510,6 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                 </div>
               )}
 
-              {/* Integration Selection for Global Templates */}
               {isGlobalTemplate && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                   <Label>Select Integration Context *</Label>
@@ -549,8 +528,8 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                         }}
                         className={`
                           p-3 rounded-md border text-left transition-all
-                          ${selectedIntegration === integration 
-                            ? 'border-primary bg-primary/5 ring-1 ring-primary' 
+                          ${selectedIntegration === integration
+                            ? 'border-primary bg-primary/5 ring-1 ring-primary'
                             : 'border-border hover:bg-muted/50'
                           }
                         `}
@@ -573,8 +552,8 @@ export function CreateTemplateModal({ open, onOpenChange, template, onSuccess }:
                 </div>
               ) : (
                 <ReportTypeSelector
-                  reportTypes={availableReportTypes.filter(rt => 
-                    !selectedIntegration || 
+                  reportTypes={availableReportTypes.filter(rt =>
+                    !selectedIntegration ||
                     rt.required_integrations.some(i => i.toLowerCase() === selectedIntegration.toLowerCase())
                   )}
                   selectedType={formData.report_type}

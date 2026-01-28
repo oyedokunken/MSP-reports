@@ -31,12 +31,10 @@ export const DynamicSection: React.FC<DynamicSectionProps> = ({
         section.defaultCollapsed || false
     );
 
-    // Get data for this section
     const sectionData = section.dataPath
         ? getValueByPath(data, section.dataPath)
         : data;
 
-    // Check if data is empty
     const isEmpty =
         !sectionData ||
         (Array.isArray(sectionData) && sectionData.length === 0) ||

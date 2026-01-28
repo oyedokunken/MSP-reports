@@ -71,7 +71,6 @@ export function ReportCard({
         isSelected && "ring-2 ring-primary border-primary bg-primary/5"
       )}
     >
-      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="flex items-center gap-3">
@@ -96,7 +95,6 @@ export function ReportCard({
         {getStatusBadge(report.status)}
       </div>
 
-      {/* Info Section */}
       <div className="mt-6 space-y-3 flex-1">
         <div className="flex items-center gap-2 text-sm">
           <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -128,7 +126,6 @@ export function ReportCard({
         )}
       </div>
 
-      {/* Actions */}
       <div className="mt-4 border-t border-border pt-4">
         <div className="flex gap-2">
           <button
@@ -188,7 +185,6 @@ export function ReportCard({
         </div>
       </div>
 
-      {/* Preview Modal */}
       <ReportPreviewModal
         open={showPreview}
         onClose={() => setShowPreview(false)}
@@ -196,7 +192,6 @@ export function ReportCard({
         reportName={`${report.customer_name} - ${formatReportType(report.report_type || 'custom_report')}`}
       />
 
-      {/* Share Link Modal */}
       <ShareLinkModal
         open={showShareModal}
         onClose={() => setShowShareModal(false)}

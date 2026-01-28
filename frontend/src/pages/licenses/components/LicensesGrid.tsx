@@ -71,7 +71,6 @@ export function LicensesGrid({
 
   return (
     <div className="space-y-6">
-      {/* Expiring Soon Warning */}
       {expiringSoon.length > 0 && (
         <Card className="border-orange-500/30 bg-orange-50 dark:bg-orange-950/20">
           <CardContent className="pt-5 pb-5">
@@ -90,7 +89,6 @@ export function LicensesGrid({
         </Card>
       )}
 
-      {/* User License Status */}
       {userLicenseStatus && (
         <Card className="border-border/50">
           <CardContent className="pt-5 pb-5">
@@ -116,7 +114,6 @@ export function LicensesGrid({
         </Card>
       )}
 
-      {/* License Enforcement Status */}
       {!licenseEnforcementEnabled && (
         <Card className="border-blue-500/30 bg-blue-50 dark:bg-blue-950/20">
           <CardContent className="pt-5 pb-5">
@@ -135,7 +132,6 @@ export function LicensesGrid({
         </Card>
       )}
 
-      {/* Active Licenses Grid */}
       <div>
         <h3 className="text-lg font-medium mb-4 text-foreground">Active Licenses</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -95,7 +95,6 @@ export default function ScheduleList() {
           />
         )}
 
-        {/* Pagination */}
         {!isLoading && getFilteredSchedules().length > perPage && (
           <Pagination
             currentPage={currentPage}

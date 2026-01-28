@@ -19,7 +19,6 @@ export function EnterpriseAuthOptions({ isOpen, onLdapClick, onOAuthClick, onSam
         }`}
     >
       <div className="space-y-3">
-        {/* SAML/SSO Login */}
         <button
           type="button"
           onClick={onSamlClick}
@@ -33,7 +32,6 @@ export function EnterpriseAuthOptions({ isOpen, onLdapClick, onOAuthClick, onSam
           <span>Sign in with SSO</span>
         </button>
 
-        {/* Microsoft 365 Login (via Keycloak) */}
         <button
           type="button"
           onClick={onOAuthClick}
@@ -47,7 +45,6 @@ export function EnterpriseAuthOptions({ isOpen, onLdapClick, onOAuthClick, onSam
           <span>Sign in with Microsoft 365</span>
         </button>
 
-        {/* Active Directory/LDAP Login */}
         <button
           type="button"
           onClick={onLdapClick}

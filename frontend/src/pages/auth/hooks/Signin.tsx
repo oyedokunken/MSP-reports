@@ -21,7 +21,6 @@ const Signin = () => {
     } = useAuthForm({
         redirectTo: "/dashboard",
         onSuccess: () => {
-            // Login successful
         },
         onError: (err) => {
             logger.error("Login failed:", err);
@@ -31,9 +30,7 @@ const Signin = () => {
     return (
         <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 p-4">
             <div className="w-full max-w-md">
-                {/* Card Container */}
                 <div className="bg-white rounded-lg border border-gray-200 shadow-xl p-8">
-                    {/* Logo */}
                     <div className="flex justify-center mb-10">
                         <img
                             src="/logo.png"
@@ -42,7 +39,6 @@ const Signin = () => {
                         />
                     </div>
 
-                    {/* Welcome Heading */}
                     <div className="text-center space-y-2 mb-10">
                         <h1 className="text-3xl font-bold text-gray-900">
                             Welcome Back
@@ -52,7 +48,6 @@ const Signin = () => {
                         </p>
                     </div>
 
-                    {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-2">
                             <label
@@ -108,7 +103,6 @@ const Signin = () => {
                                     )}
                                 </button>
                             </div>
-                            {/* Forgot Password Link */}
                             <div className="text-right pt-1">
                                 <Link
                                     to="/forgot-password"
@@ -146,7 +140,6 @@ const Signin = () => {
                             )}
                         </Button>
 
-                        {/* Privacy Policy Notice */}
                         <div className="text-xs text-gray-500 text-center pt-2">
                             By continuing, you agree to our{" "}
                             <Link
@@ -158,7 +151,6 @@ const Signin = () => {
                         </div>
                     </form>
 
-                    {/* Footer Links */}
                     <div className="mt-6 space-y-4">
                         <div className="text-center text-sm text-gray-600">
                             Don't have an account?{" "}
@@ -170,7 +162,6 @@ const Signin = () => {
                             </Link>
                         </div>
 
-                        {/* Divider */}
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
                                 <div className="w-full border-t border-gray-200"></div>
@@ -182,7 +173,6 @@ const Signin = () => {
                             </div>
                         </div>
 
-                        {/* SSO Button (Optional - can be removed if not needed) */}
                         <Button
                             type="button"
                             variant="outline"
@@ -229,7 +219,6 @@ const Signin = () => {
                     </div>
                 </div>
 
-                {/* Bottom Footer */}
                 <div className="mt-6 text-center">
                     <p className="text-xs text-gray-500">
                         Secured by{" "}

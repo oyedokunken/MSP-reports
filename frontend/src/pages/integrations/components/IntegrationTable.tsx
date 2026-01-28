@@ -42,7 +42,6 @@ import { EmptyState, LoadingSpinner } from "@/components/ui/LoadingStates";
 import type { Integration } from "../types/integration";
 import { getStatusText } from "../utils/statusBadge";
 import { cn } from "@/lib/utils";
-
 type IntegrationTableProps = {
     isLoading: boolean;
     items: Integration[];
@@ -62,7 +61,6 @@ type IntegrationTableProps = {
     onPreviewData: (integration: Integration) => void;
     sourceOfTruthId: number | null;
 };
-
 export function IntegrationTable({
     isLoading,
     items,
@@ -89,7 +87,6 @@ export function IntegrationTable({
         }
         return <Cable className="h-4 w-4 text-primary" />;
     };
-
     if (isLoading) {
         return (
             <Card className="overflow-hidden border-none shadow-none bg-transparent">
@@ -120,7 +117,6 @@ export function IntegrationTable({
             </Card>
         );
     }
-
     if (items.length === 0) {
         return (
             <div className="py-12">
@@ -134,11 +130,9 @@ export function IntegrationTable({
             </div>
         );
     }
-
     const sortedItems = [...items].sort((a, b) =>
         a.id === sourceOfTruthId ? -1 : b.id === sourceOfTruthId ? 1 : 0
     );
-
     return (
         <TooltipProvider>
             <div className="border rounded-xl overflow-hidden bg-card">
@@ -159,7 +153,6 @@ export function IntegrationTable({
                             const isSourceOfTruth = sourceOfTruthId === integration.id;
                             const statusInfo = getStatusText(integration.status, integration.syncStatus);
                             const isSettingSourceOfTruth = settingSourceOfTruthId === integration.id;
-
                             return (
                                 <TableRow
                                     key={integration.id}

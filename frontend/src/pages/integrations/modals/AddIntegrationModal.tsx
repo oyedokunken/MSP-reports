@@ -10,6 +10,7 @@ import { api } from '@/lib/api'
 import { SuccessDialog } from '@/components/modals/SuccessDialog'
 import { DynamicCredentialForm } from '@/components/integrations/DynamicCredentialForm'
 import { useIntegrationConfig } from '@/hooks/useIntegrationConfig'
+import type { Integration } from '../types/integration'
 
 interface AddIntegrationModalProps {
   open: boolean
@@ -40,10 +41,8 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
     configuration: {},
   })
 
-  // Fetch integration config when type changes
   const { config, loading: loadingConfig } = useIntegrationConfig(formData.integration_type || null)
 
-  // Initialize default credential values when config loads
   useEffect(() => {
     if (config && config.credential_fields) {
       const defaultCredentials: Record<string, string> = {}
@@ -68,7 +67,7 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
     setIsSubmitting(true)
 
     try {
-      const response = await api.post('/integrations', formData)
+      const response = await api.post<{ data: Integration }>('/integrations', formData)
 
       if (response.data) {
 
@@ -145,7 +144,6 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Integration Type */}
           <div className="space-y-2">
             <Label htmlFor="integration_type">Integration Type *</Label>
             <Select
@@ -167,7 +165,6 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
             <p className="text-xs text-muted-foreground">Choose the type of integration to add</p>
           </div>
 
-          {/* Display Name */}
           <div className="space-y-2">
             <Label htmlFor="display_name">Display Name *</Label>
             <Input
@@ -181,7 +178,6 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
             />
           </div>
 
-          {/* Status */}
           <div className="space-y-2">
             <Label htmlFor="status">Status *</Label>
             <Select
@@ -201,7 +197,6 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
             </Select>
           </div>
 
-          {/* Credential Fields - Dynamic based on integration type */}
           {loadingConfig && (
             <div className="flex items-center justify-center py-4">
               <Spinner className="h-6 w-6" />

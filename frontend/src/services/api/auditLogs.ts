@@ -26,14 +26,10 @@ export const auditLogsService = {
   },
 
   exportLogs: async (params: Partial<AuditLogsFilters>) => {
-    // For exports, we might want to use a direct window.open or a blob download
-    // But since our api util adds the prefix and token, let's construct the URL
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
     const searchParams = new URLSearchParams(params as Record<string, string>)
     if (token) searchParams.append('api_token', token) // If backend supports token in query
     
-    // Better way: trigger the download via window.location for csv if token is handled
-    // Or fetch as blob. Let's assume the user just wants the export triggered.
     const baseUrl = import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/api`
     const url = `${baseUrl}/audit-logs/export?${searchParams.toString()}`
     

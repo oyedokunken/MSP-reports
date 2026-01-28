@@ -6,7 +6,6 @@ import { MonitoringHeader, MetricsCards, ActivityTrendChart } from "./components
 export default function Monitoring() {
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Zustand store - individual selectors for optimal performance
     const systemStatus = useMonitoringStore((state) => state.systemStatus);
     const integrationMetrics = useMonitoringStore(
         (state) => state.integrationMetrics
@@ -20,12 +19,10 @@ export default function Monitoring() {
         (state) => state.fetchAllMetrics
     );
 
-    // Fetch data on mount
     useEffect(() => {
         fetchAllMetrics();
     }, [fetchAllMetrics]);
 
-    // Auto-refresh every 30 seconds
     useEffect(() => {
         const interval = setInterval(() => {
             fetchAllMetrics();

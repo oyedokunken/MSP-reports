@@ -73,7 +73,6 @@ export const IntegrationPreview = () => {
             </div>
           )}
 
-          {/* Footer Info */}
           <div className="p-4 bg-card dark:bg-[hsl(var(--auth-card))] border border-border rounded-lg">
             <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
               <span>
@@ -87,7 +86,6 @@ export const IntegrationPreview = () => {
         </div>
       </FloatingLayout>
 
-      {/* Download Confirmation Modal */}
       {showDownloadConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
@@ -100,7 +98,6 @@ export const IntegrationPreview = () => {
                 : 'This will generate a PDF report containing device status and metrics for all customers in your LibreNMS integration.'}
             </p>
 
-            {/* Deliver via Email Checkbox */}
             <div className="mb-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -115,7 +112,6 @@ export const IntegrationPreview = () => {
               </label>
             </div>
 
-            {/* Email Fields (shown when checkbox is checked) */}
             {deliverViaEmail && (
               <div className="space-y-3 mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                 <div>

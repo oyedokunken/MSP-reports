@@ -24,10 +24,9 @@ export function SystemStatusMetricCard({ status }: SystemStatusMetricCardProps) 
     )
   }
 
-  // Determine overall health
-  const overallHealth = status.integrations.health === 'healthy' && 
-                        status.reports.health === 'healthy' && 
-                        status.queue.health === 'healthy'
+  const overallHealth = status.integrations.health === 'healthy' &&
+    status.reports.health === 'healthy' &&
+    status.queue.health === 'healthy'
     ? 'healthy'
     : 'degraded'
 

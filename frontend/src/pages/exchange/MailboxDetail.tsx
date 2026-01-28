@@ -30,13 +30,11 @@ interface MailboxDetail {
   serverName: string
   distinguishedName: string
 
-  // Quotas
   prohibitSendQuotaMB: number | null
   prohibitSendReceiveQuotaMB: number | null
   issueWarningQuotaMB: number | null
   useDatabaseQuotaDefaults: boolean
 
-  // Current usage
   totalItemSizeMB: number
   totalDeletedItemSizeMB: number
   itemCount: number
@@ -44,7 +42,6 @@ interface MailboxDetail {
   lastLogonTime: string | null
   lastLogoffTime: string | null
 
-  // Archive
   archiveEnabled: boolean
   archiveGuid: string | null
   archiveName: string | null
@@ -52,24 +49,20 @@ interface MailboxDetail {
   archiveQuotaMB: number | null
   archiveSizeMB: number | null
 
-  // Litigation hold
   litigationHoldEnabled: boolean
   litigationHoldDate: string | null
   litigationHoldOwner: string | null
   retentionPolicy: string | null
 
-  // Forwarding
   forwardingAddress: string | null
   forwardingSmtpAddress: string | null
   deliverToMailboxAndForward: boolean
 
-  // Organizational
   organizationalUnit: string | null
   office: string | null
   department: string | null
   company: string | null
 
-  // Metadata
   whenCreated: string | null
   whenChanged: string | null
   exchangeVersion: string | null
@@ -82,9 +75,7 @@ export default function MailboxDetail() {
 
   useEffect(() => {
     // TODO: Implement API endpoint
-    // if (id) {
-    //   fetchMailbox()
-    // }
+
     setIsLoading(false)
     setMailbox(null)
   }, [id])
@@ -145,7 +136,6 @@ export default function MailboxDetail() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center space-between">
           <div className="flex items-center space-x-4">
             <Link to="/exchange/mailboxes">
@@ -165,7 +155,6 @@ export default function MailboxDetail() {
         </div>
 
 
-        {/* Basic Information */}
         <Card>
           <CardHeader>
             <CardTitle>Mailbox Information</CardTitle>
@@ -243,16 +232,12 @@ export default function MailboxDetail() {
           </CardContent>
         </Card>
 
-        {/* Statistics */}
         <MailboxStatistics mailbox={mailbox} />
 
-        {/* Email Aliases */}
         <EmailAliases mailboxId={mailbox.id} />
 
-        {/* Permissions */}
         <MailboxPermissions mailboxId={mailbox.id} />
 
-        {/* Archive Information */}
         {mailbox.archiveEnabled && (
           <Card>
             <CardHeader>
@@ -284,7 +269,6 @@ export default function MailboxDetail() {
           </Card>
         )}
 
-        {/* Litigation Hold */}
         {mailbox.litigationHoldEnabled && (
           <Card className="border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20">
             <CardHeader>
@@ -314,7 +298,6 @@ export default function MailboxDetail() {
           </Card>
         )}
 
-        {/* Forwarding */}
         {(mailbox.forwardingAddress || mailbox.forwardingSmtpAddress) && (
           <Card>
             <CardHeader>
@@ -349,7 +332,6 @@ export default function MailboxDetail() {
           </Card>
         )}
 
-        {/* Technical Details */}
         <Card>
           <CardHeader>
             <CardTitle>Technical Details</CardTitle>

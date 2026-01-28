@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Folder, File, ChevronRight, Home, Plus, CornerUpLeft } from 'lucide-react';
 import { api } from '@/lib/api';
-import { cn } from '@/lib/utils'; // Assuming cn utility exists, otherwise use standard class string concat
+import { cn } from '@/lib/utils';
 
 interface FileItem {
   id: string;
@@ -50,12 +50,9 @@ export function FileBrowserModal({
       const response = await api.get<{ data: FileItem[] }>(`/integrations/${integrationId}/sharepoint/browse`, {
         params: { path }
       });
-      // api.get returns the body directly, which is { data: items, status: ... }
-      // So response has property .data which is the array
       if (Array.isArray(response.data)) {
         setItems(response.data);
       } else {
-        // Fallback for empty or unexpected response - data should be FileItem[] but may be undefined
         setItems(response.data || []);
       }
     } catch (err: unknown) {
@@ -77,7 +74,7 @@ export function FileBrowserModal({
       });
       setNewFolderName('');
       setIsCreatingFolder(false);
-      loadItems(currentPath); // Refresh
+      loadItems(currentPath);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       setError(error.response?.data?.message || 'Failed to create folder');
@@ -109,7 +106,6 @@ export function FileBrowserModal({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Toolbar & Breadcrumbs */}
         <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md border min-h-[44px]">
           <Button
             variant="ghost"
@@ -142,7 +138,6 @@ export function FileBrowserModal({
                     index === breadcrumbs.length - 1 && "font-semibold text-foreground"
                   )}
                     onClick={() => {
-                      // Navigate to this specific crumb
                       const newPath = breadcrumbs.slice(0, index + 1).join('/');
                       setCurrentPath(newPath);
                     }}
@@ -167,7 +162,6 @@ export function FileBrowserModal({
           </Button>
         </div>
 
-        {/* Create Folder Form */}
         {isCreatingFolder && (
           <div className="flex items-center gap-2 p-2 bg-muted/30 rounded border animate-in slide-in-from-top-2">
             <Folder className="h-4 w-4 text-primary" />
@@ -185,7 +179,6 @@ export function FileBrowserModal({
           </div>
         )}
 
-        {/* File List */}
         <div className="flex-1 overflow-y-auto border rounded-md mt-2 relative bg-background">
           {loading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">

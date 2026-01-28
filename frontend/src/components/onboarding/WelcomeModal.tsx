@@ -24,10 +24,8 @@ export function WelcomeModal() {
     openWelcomeModal,
   } = useOnboardingStore()
 
-  // Show welcome modal on first login or if user hasn't seen it
   useEffect(() => {
     if (user && !hasSeenWelcome) {
-      // Small delay to let the dashboard load first
       const timer = setTimeout(() => {
         openWelcomeModal()
       }, 500)

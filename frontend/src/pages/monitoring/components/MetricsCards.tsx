@@ -14,7 +14,6 @@ interface MetricsCardsProps {
 export function MetricsCards({ systemStatus, integrationMetrics, reportMetrics, queueMetrics }: MetricsCardsProps) {
 
 
-  // Calculate overall integration metrics
   const totalSyncs = integrationMetrics?.integrations.reduce((sum, int) => sum + int.metrics.total_syncs, 0) || 0
   const successfulSyncs = integrationMetrics?.integrations.reduce((sum, int) => sum + int.metrics.successful_syncs, 0) || 0
   const failedSyncs = integrationMetrics?.integrations.reduce((sum, int) => sum + int.metrics.failed_syncs, 0) || 0
@@ -22,9 +21,7 @@ export function MetricsCards({ systemStatus, integrationMetrics, reportMetrics, 
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* System Status */}
       <SystemStatusMetricCard status={systemStatus} />
-      {/* Integration Metrics */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -81,7 +78,6 @@ export function MetricsCards({ systemStatus, integrationMetrics, reportMetrics, 
         </CardContent>
       </Card>
 
-      {/* Report Metrics */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -133,7 +129,6 @@ export function MetricsCards({ systemStatus, integrationMetrics, reportMetrics, 
         </CardContent>
       </Card>
 
-      {/* Queue Metrics */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">

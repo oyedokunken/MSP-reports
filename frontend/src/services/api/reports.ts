@@ -27,31 +27,25 @@ export const reportApi = {
 
             const url = `/reports/itglue/license-consumption${params.toString() ? `?${params.toString()}` : ''}`
 
-            // If sending via email, don't expect blob response
             if (emailTo && emailFrom) {
                 await apiClient.get(url)
-                // Email sent successfully, no download needed
                 return
             }
 
-            // Otherwise, download the file
             const response = await apiClient.get(url, {
-                responseType: 'blob', // Important: Handle binary data
+                responseType: 'blob',
             })
 
-            // Create blob from response
             const blob = new Blob([response.data], {
                 type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             })
 
-            // Generate filename with date
             const monthName = month
                 ? new Date(year || new Date().getFullYear(), month - 1).toLocaleString('default', { month: 'long' })
                 : new Date().toLocaleString('default', { month: 'long' })
             const yearValue = year || new Date().getFullYear()
             const filename = `license-consumption-${monthName}-${yearValue}.xlsx`
 
-            // Create download link and trigger download
             const downloadUrl = window.URL.createObjectURL(blob)
             const link = document.createElement('a')
             link.href = downloadUrl
@@ -59,7 +53,6 @@ export const reportApi = {
             document.body.appendChild(link)
             link.click()
 
-            // Cleanup
             link.remove()
             window.URL.revokeObjectURL(downloadUrl)
         } catch (error) {
@@ -86,20 +79,16 @@ export const reportApi = {
 
             const url = `/reports/librenms/devices${params.toString() ? `?${params.toString()}` : ''}`
 
-            // Always download the file, even if sending via email
             const response = await apiClient.get(url, {
-                responseType: 'blob', // Important: Handle binary data
+                responseType: 'blob',
             })
 
-            // Create blob from response
             const blob = new Blob([response.data], {
                 type: 'application/pdf',
             })
 
-            // Generate filename with date
             const filename = `librenms-devices-${new Date().toISOString().split('T')[0]}.pdf`
 
-            // Create download link and trigger download
             const downloadUrl = window.URL.createObjectURL(blob)
             const link = document.createElement('a')
             link.href = downloadUrl
@@ -107,7 +96,6 @@ export const reportApi = {
             document.body.appendChild(link)
             link.click()
 
-            // Cleanup
             link.remove()
             window.URL.revokeObjectURL(downloadUrl)
         } catch (error) {

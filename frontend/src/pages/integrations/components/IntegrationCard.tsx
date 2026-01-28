@@ -34,7 +34,6 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-
 type IntegrationCardProps = {
     integration: Integration;
     isSyncing: boolean;
@@ -52,7 +51,6 @@ type IntegrationCardProps = {
     onPreviewData: (integration: Integration) => void;
     isSourceOfTruth?: boolean;
 };
-
 export function IntegrationCard({
     integration,
     isSyncing,
@@ -77,23 +75,16 @@ export function IntegrationCard({
         }
         return <Cable className="h-6 w-6 text-primary" />;
     };
-
     const statusInfo = getStatusText(
         integration.status,
         integration.syncStatus
     );
-
-    // Trigger refresh when countdown hits 0 (sync expected soon)
     const handleCountdownComplete = useCallback(() => {
-        // This will be called by useCountdown when timer reaches 0
-        // Triggering immediate refresh catches the scheduled sync
     }, []);
-
     const countdown = useCountdown(
         integration.nextSyncAt ?? null,
         handleCountdownComplete
     );
-
     return (
         <TooltipProvider>
             <AnimatedCard
@@ -139,7 +130,6 @@ export function IntegrationCard({
                         <span className="truncate">{statusInfo.text}</span>
                     </span>
                 </div>
-
                 <div className="mt-6 space-y-3 flex-1">
                     <div className="flex items-center justify-between text-sm gap-2">
                         <span className="text-muted-foreground flex-shrink-0">
@@ -189,8 +179,6 @@ export function IntegrationCard({
                                             : "Syncs automatically with master list"}
                         </span>
                     </div>
-
-                    {/* Progress Bar for either Manual Sync or Historical Import */}
                     {(isSyncing || integration.status === 'importing_historical') && (
                         <div className="mt-3 space-y-2">
                             <div className="flex items-center justify-between text-xs">
@@ -210,7 +198,6 @@ export function IntegrationCard({
                         </div>
                     )}
                 </div>
-
                 <div className="mt-4 space-y-2 border-t border-border pt-4">
                     <div className="flex gap-2">
                         {isSourceOfTruth && (

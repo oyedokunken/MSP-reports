@@ -1,5 +1,3 @@
-// Knowledge base for MSP System support chatbot
-// Last updated: January 2026
 
 export const knowledgeBase = {
   integrations: {
@@ -18,7 +16,7 @@ export const knowledgeBase = {
 6. Click **"Save"** to activate
 
 The integration will start syncing automatically.`,
-      
+
       'sync': `**Integration Syncing:**
 
 - **Auto-sync**: Runs every 4 hours by default
@@ -27,7 +25,7 @@ The integration will start syncing automatically.`,
 - **Failed syncs**: Check the error message and verify credentials
 
 You can view sync history and logs in the integration details.`,
-      
+
       'source of truth': `**Source of Truth Integration:**
 
 The Source of Truth (SOT) integration is your primary customer list source.
@@ -77,7 +75,7 @@ When customers from different integrations have different names, you need to map
    - **Ignore**: Skip this customer
 
 **Auto-mapping** suggests matches based on name similarity (85%+ confidence).`,
-      
+
       'master vs secondary': `**Master List vs Secondary List:**
 
 **[Master List](/platform/customers/master):**
@@ -89,7 +87,7 @@ When customers from different integrations have different names, you need to map
 - Customers from non-SOT integrations
 - Already mapped to Master List customers
 - Shows which integrations each customer appears in`,
-      
+
       'merge split': `**Merge & Split Customers:**
 
 **Merge**: Combine duplicate customers
@@ -119,7 +117,7 @@ When customers from different integrations have different names, you need to map
 4. Click **"Save Schedule"**
 
 Reports generate automatically based on your schedule.`,
-      
+
       'schedules': `**Report Schedules:**
 
 View all schedules in [Schedules](/platform/schedules) page:
@@ -130,7 +128,7 @@ View all schedules in [Schedules](/platform/schedules) page:
 - **Run Now**: Generate report immediately
 
 Next generation time is shown on each schedule card.`,
-      
+
       'delivery': `**Report Delivery:**
 
 Reports are automatically:
@@ -140,7 +138,7 @@ Reports are automatically:
 - Stored in the system for download
 
 Check delivery status in the [Reports](/platform/reports) page.`,
-      
+
       'download': `**Downloading Reports:**
 
 1. Go to [Reports](/platform/reports)
@@ -171,7 +169,7 @@ The [Monitoring](/admin/monitoring) page shows:
 - Activity trends (7-day graph)
 
 Auto-refreshes every 30 seconds.`,
-      
+
       'alerts': `**System Alerts:**
 
 You'll be notified when:
@@ -281,7 +279,7 @@ Admins can manage users in [Admin → Users](/admin/users):
 4. Click **"Create User"**
 
 Users receive login credentials via email.`,
-      
+
       'permissions': `**User Permissions:**
 
 Granular permissions control what users can do:
@@ -309,7 +307,7 @@ The [Dashboard](/platform/dashboard) shows:
 - Quick access to key features
 
 Navigate using the sidebar menu to access all features.`,
-      
+
       'getting started': `**Getting Started:**
 
 1. **Add Integration**: Connect your first system in [Integrations](/platform/integrations)
@@ -423,7 +421,6 @@ Configure notification preferences in **Settings → Notifications**.`,
   },
 }
 
-// Simple pattern matching to find relevant answers
 export function findAnswer(question: string): string {
   const normalized = question
     .toLowerCase()
@@ -579,7 +576,6 @@ export function findAnswer(question: string): string {
     return knowledgeBase.general.answers.navigation
   }
 
-  // Default response if no match found
   return `I'm not sure about that. Here are some topics I can help with:
 
 **Integrations**

@@ -43,7 +43,6 @@ export function AuditLogDetailDialog({ log, isOpen, onClose }: AuditLogDetailDia
         </DialogHeader>
 
         <div className="mt-6 space-y-8">
-          {/* Main Info Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div className="space-y-4">
               <section>
@@ -103,7 +102,6 @@ export function AuditLogDetailDialog({ log, isOpen, onClose }: AuditLogDetailDia
             </div>
           </div>
 
-          {/* Event Payload */}
           {log.event_data && Object.keys(log.event_data).length > 0 && (
             <section>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">

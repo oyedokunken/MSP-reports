@@ -26,7 +26,6 @@ export function useAuthForm(options: UseAuthFormOptions = {}) {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
-        // Validation
         if (!email || !password) {
             setError("Email and password are required");
             return;
@@ -39,14 +38,12 @@ export function useAuthForm(options: UseAuthFormOptions = {}) {
             await login({
                 email,
                 password,
-                auth_method: "local", // Default to local auth
+                auth_method: "local",
                 rememberMe: getRememberMe?.() ?? false,
             });
 
-            // Success callback
             onSuccess?.();
 
-            // Navigate to dashboard or specified route
             navigate(redirectTo);
         } catch (err: unknown) {
             const error = err as { response?: { data?: { message?: string } }; message?: string };
@@ -56,7 +53,6 @@ export function useAuthForm(options: UseAuthFormOptions = {}) {
                 "Failed to sign in";
             setError(errorMessage);
 
-            // Error callback
             onError?.(error as Error);
         } finally {
             setIsSubmitting(false);
@@ -100,7 +96,6 @@ export const useSignin = () => {
         getRememberMe: () => rememberMe,
     });
 
-    // Lock body scroll while enterprise auth drawer is open
     useEffect(() => {
         if (!showAuthOptions) return;
         const prevOverflow = document.body.style.overflow;

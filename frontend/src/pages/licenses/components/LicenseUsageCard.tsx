@@ -22,7 +22,6 @@ export function LicenseUsageCard({ usage }: LicenseUsageCardProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {/* Integrations Usage */}
       <Card className="border-border/50">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
@@ -74,7 +73,6 @@ export function LicenseUsageCard({ usage }: LicenseUsageCardProps) {
         </CardContent>
       </Card>
 
-      {/* Retention */}
       <Card className="border-border/50">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
@@ -114,7 +112,6 @@ export function LicenseUsageCard({ usage }: LicenseUsageCardProps) {
         </CardContent>
       </Card>
 
-      {/* Users */}
       <Card className="border-border/50">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">

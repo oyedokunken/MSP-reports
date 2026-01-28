@@ -68,7 +68,6 @@ export function ConfirmationModal({
                 className="bg-background dark:bg-[hsl(var(--auth-card))] rounded-xl border border-border shadow-2xl max-w-md w-full my-auto animate-in fade-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
                 <div className="p-6 pb-4">
                     <div className="flex items-start gap-4">
                         <div
@@ -96,7 +95,6 @@ export function ConfirmationModal({
                     </div>
                 </div>
 
-                {/* Footer */}
                 <div className="p-6 pt-4 border-t border-border flex justify-end gap-3">
                     <Button
                         variant="outline"

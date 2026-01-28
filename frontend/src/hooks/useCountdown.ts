@@ -18,7 +18,6 @@ export function useCountdown(targetDate: string | null, onCountdownComplete?: ()
             if (distance < 0) {
                 setCountdown('Syncing soon...');
 
-                // Trigger callback once when countdown completes
                 if (onCountdownComplete && !hasTriggeredCallback.current) {
                     hasTriggeredCallback.current = true;
                     onCountdownComplete();
@@ -26,7 +25,6 @@ export function useCountdown(targetDate: string | null, onCountdownComplete?: ()
                 return;
             }
 
-            // Reset callback trigger if countdown is active again (new sync scheduled)
             hasTriggeredCallback.current = false;
 
             const hours = Math.floor(distance / (1000 * 60 * 60));
@@ -42,8 +40,8 @@ export function useCountdown(targetDate: string | null, onCountdownComplete?: ()
             }
         };
 
-        updateCountdown(); // Initial update
-        const interval = setInterval(updateCountdown, 1000); // Update every second
+        updateCountdown();
+        const interval = setInterval(updateCountdown, 1000);
 
         return () => clearInterval(interval);
     }, [targetDate, onCountdownComplete]);

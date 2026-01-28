@@ -33,10 +33,10 @@ interface CreateUserForm {
   force_password_change?: boolean
 }
 
-// Password strength calculation
+
 function calculatePasswordStrength(password: string): { score: number; label: string; color: string } {
   let score = 0
-  
+
   if (password.length >= 6) score += 1
   if (password.length >= 8) score += 1
   if (password.length >= 12) score += 1
@@ -44,7 +44,7 @@ function calculatePasswordStrength(password: string): { score: number; label: st
   if (/[A-Z]/.test(password)) score += 1
   if (/[0-9]/.test(password)) score += 1
   if (/[^a-zA-Z0-9]/.test(password)) score += 1
-  
+
   if (score <= 2) return { score, label: 'Weak', color: 'bg-red-500' }
   if (score <= 4) return { score, label: 'Fair', color: 'bg-orange-500' }
   if (score <= 5) return { score, label: 'Good', color: 'bg-yellow-500' }
@@ -69,7 +69,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     force_password_change: true,
   })
 
-  // Calculate password strength
   const passwordStrength = calculatePasswordStrength(formData.password)
 
   const [selectedCustomers, setSelectedCustomers] = useState<number[]>([])
@@ -84,7 +83,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
   const [searchDebounce, setSearchDebounce] = useState<number | null>(null)
   const [isSelectingAll, setIsSelectingAll] = useState(false)
 
-  // Fetch customers with pagination
   const fetchCustomers = async (page: number = 1, search: string = '') => {
     try {
       setIsLoadingCustomers(true)
@@ -104,7 +102,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     }
   }
 
-  // Fetch roles on mount
   useEffect(() => {
     const fetchRoles = async () => {
       try {
@@ -125,7 +122,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Load initial customers
   useEffect(() => {
     if (open) {
       fetchCustomers(1)
@@ -145,11 +141,11 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
         scoped_customers: selectedCustomers.length > 0 ? selectedCustomers : undefined,
       }
       const response = await api.post('/users', payload)
+      const data = (response as { data?: unknown }).data || response
 
-      if (response.data) {
+      if (data) {
         setSuccess(true)
         toast.success('User Created', `${formData.name} has been created successfully`)
-        // Reset form after 1 second and close
         setTimeout(() => {
           setSuccess(false)
           setFormData({
@@ -212,7 +208,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     setSelectedCustomers(prev => prev.filter(id => id !== customerId))
   }
 
-  // Select all customers on current page
   const selectCurrentPage = () => {
     const currentPageIds = customers.map(c => c.customer_id)
     setSelectedCustomers(prev => {
@@ -226,30 +221,25 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     })
   }
 
-  // Deselect all customers on current page
   const deselectCurrentPage = () => {
     const currentPageIds = customers.map(c => c.customer_id)
     setSelectedCustomers(prev => prev.filter(id => !currentPageIds.includes(id)))
   }
 
-  // Check if all customers on current page are selected
   const isCurrentPageAllSelected = () => {
     if (customers.length === 0) return false
     return customers.every(c => selectedCustomers.includes(c.customer_id))
   }
 
-  // Check if some customers on current page are selected
   const isCurrentPagePartiallySelected = () => {
     if (customers.length === 0) return false
     const selectedOnPage = customers.filter(c => selectedCustomers.includes(c.customer_id))
     return selectedOnPage.length > 0 && selectedOnPage.length < customers.length
   }
 
-  // Select all customers across all pages
   const selectAllCustomers = async () => {
     try {
       setIsSelectingAll(true)
-      // Fetch all customer IDs from the API
       const response = await customerApi.getAllCustomerIds()
       if (response.data) {
         setSelectedCustomers(response.data)
@@ -263,7 +253,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     }
   }
 
-  // Deselect all customers
   const deselectAllCustomers = () => {
     setSelectedCustomers([])
   }
@@ -276,12 +265,10 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
   const handleSearchChange = (search: string) => {
     setCustomerSearch(search)
 
-    // Clear existing timeout
     if (searchDebounce) {
       clearTimeout(searchDebounce)
     }
 
-    // Set new timeout to search after 500ms of no typing
     const timeout = setTimeout(() => {
       setCurrentPage(1)
       fetchCustomers(1, search)
@@ -328,11 +315,8 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Two Column Grid */}
           <div className="grid grid-cols-2 gap-6 divide-x divide-border">
-            {/* Left Column */}
             <div className="space-y-4 pr-6">
-              {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="modal-name">Full Name *</Label>
                 <div className="relative">
@@ -350,7 +334,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                 </div>
               </div>
 
-              {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="modal-email">Email Address *</Label>
                 <div className="relative">
@@ -368,7 +351,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                 </div>
               </div>
 
-              {/* Password */}
               <div className="space-y-2">
                 <Label htmlFor="modal-password">Password *</Label>
                 <div className="relative">
@@ -397,20 +379,18 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                     )}
                   </button>
                 </div>
-                {/* Password Strength Indicator */}
                 {formData.password && (
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Password Strength</span>
-                      <span className={`font-medium ${
-                        passwordStrength.label === 'Weak' ? 'text-red-500' :
+                      <span className={`font-medium ${passwordStrength.label === 'Weak' ? 'text-red-500' :
                         passwordStrength.label === 'Fair' ? 'text-orange-500' :
-                        passwordStrength.label === 'Good' ? 'text-yellow-600' :
-                        'text-green-500'
-                      }`}>{passwordStrength.label}</span>
+                          passwordStrength.label === 'Good' ? 'text-yellow-600' :
+                            'text-green-500'
+                        }`}>{passwordStrength.label}</span>
                     </div>
                     <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className={`h-full transition-all duration-300 ${passwordStrength.color}`}
                         style={{ width: `${(passwordStrength.score / 7) * 100}%` }}
                       />
@@ -422,7 +402,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                 )}
               </div>
 
-              {/* Force Password Change */}
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="force-password-change"
@@ -438,7 +417,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                 </label>
               </div>
 
-              {/* Role */}
               <div className="space-y-2">
                 <Label htmlFor="modal-role">Role *</Label>
                 <Select
@@ -465,7 +443,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                 </Select>
               </div>
 
-              {/* Status */}
               <div className="space-y-2">
                 <Label htmlFor="modal-status">Status *</Label>
                 <Select
@@ -485,9 +462,7 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
               </div>
             </div>
 
-            {/* Right Column */}
             <div className="space-y-4 pl-6">
-              {/* Auth Method */}
               <div className="space-y-2">
                 <Label htmlFor="modal-auth">Authentication Method *</Label>
                 <Select
@@ -507,7 +482,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                 </Select>
               </div>
 
-              {/* Customer Scoping */}
               <div className="space-y-2">
                 <Label htmlFor="modal-customers" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
@@ -517,7 +491,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                   Leave empty for full access. Select specific customers to restrict this user's access.
                 </p>
 
-                {/* Selected Customers */}
                 {selectedCustomers.length > 0 && (
                   <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/30">
                     {selectedCustomers.map(customerId => (
@@ -535,7 +508,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                   </div>
                 )}
 
-                {/* Customer Search */}
                 <Input
                   id="modal-customers"
                   type="text"
@@ -545,7 +517,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                   disabled={isSubmitting || isLoadingCustomers}
                 />
 
-                {/* Bulk Selection Controls */}
                 <div className="flex flex-wrap items-center gap-3 p-2 bg-muted/30 rounded-md">
                   <div className="flex items-center gap-2">
                     <Button
@@ -593,7 +564,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                   )}
                 </div>
 
-                {/* Customer List */}
                 <div className="border rounded-md max-h-48 overflow-y-auto">
                   {isLoadingCustomers ? (
                     <div className="p-4 text-center text-sm text-muted-foreground">
@@ -623,7 +593,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
                 </div>
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
                   <button
@@ -650,7 +619,6 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
             </div>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
               <p className="text-sm text-destructive font-medium">{error}</p>

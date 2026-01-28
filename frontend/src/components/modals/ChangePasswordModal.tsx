@@ -28,7 +28,6 @@ export function ChangePasswordModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validation
     if (!currentPassword.trim()) {
       setError('Please enter your current password')
       return
@@ -117,7 +116,6 @@ export function ChangePasswordModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Current Password */}
           <div>
             <Label htmlFor="currentPassword" className="text-sm font-medium mb-2 block">
               Current Password
@@ -133,7 +131,6 @@ export function ChangePasswordModal({
             />
           </div>
 
-          {/* New Password */}
           <div>
             <Label htmlFor="newPassword" className="text-sm font-medium mb-2 block">
               New Password
@@ -149,7 +146,6 @@ export function ChangePasswordModal({
             />
           </div>
 
-          {/* Confirm New Password */}
           <div>
             <Label htmlFor="confirmPassword" className="text-sm font-medium mb-2 block">
               Confirm New Password
@@ -165,7 +161,6 @@ export function ChangePasswordModal({
             />
           </div>
 
-          {/* Password Requirements */}
           <div className="rounded-lg border border-border bg-accent/50 p-3">
             <p className="text-xs font-medium mb-2">Password Requirements:</p>
             <ul className="text-xs text-muted-foreground space-y-1">

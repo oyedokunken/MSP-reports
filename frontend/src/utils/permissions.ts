@@ -10,10 +10,8 @@ export function hasPermission(
     section: string,
     action: string
 ): boolean {
-    // Admins bypass all permission checks
     if (isAdmin(user)) return true
 
-    // Check specific permission
     const permissions = user?.permissions as Record<string, Record<string, boolean>> | undefined
     return permissions?.[section]?.[action] === true
 }

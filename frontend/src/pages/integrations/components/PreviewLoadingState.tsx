@@ -5,7 +5,6 @@ export function PreviewLoadingState() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        {/* Header Skeleton */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Skeleton className="h-10 w-10 rounded-lg" />
@@ -20,7 +19,6 @@ export function PreviewLoadingState() {
           </div>
         </div>
 
-        {/* Stats Cards Skeleton */}
         <div className="grid gap-4 md:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="p-4 bg-card border border-border rounded-lg">
@@ -31,7 +29,6 @@ export function PreviewLoadingState() {
           ))}
         </div>
 
-        {/* Content Skeleton */}
         <div className="space-y-4">
           <Skeleton className="h-6 w-40" />
           <div className="space-y-3">
@@ -49,7 +46,6 @@ export function PreviewLoadingState() {
           </div>
         </div>
 
-        {/* Footer Skeleton */}
         <div className="p-4 bg-card border border-border rounded-lg">
           <div className="flex items-center justify-between">
             <Skeleton className="h-4 w-48" />

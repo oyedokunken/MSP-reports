@@ -32,16 +32,15 @@ const Signin = () => {
   } = useSignin();
 
   const [showLdapModal, setShowLdapModal] = useState(false);
-  const [ldapConfigured] = useState(false); // Set to true once LDAP is configured
-  const [oauthConfigured] = useState(true); // Keycloak OIDC is configured
-  const [samlConfigured] = useState(true); // SAML is now configured
+  const [ldapConfigured] = useState(false);
+  const [oauthConfigured] = useState(true);
+  const [samlConfigured] = useState(true);
   const { login } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
   const handleLdapLogin = async (username: string, password: string) => {
     try {
-      // Construct email from username (add domain if needed)
       const email = username.includes('@') ? username : `${username}@domain.local`;
 
       await login({
@@ -62,12 +61,10 @@ const Signin = () => {
   };
 
   const handleOAuthLogin = () => {
-    // Redirect to Keycloak OAuth endpoint
     window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8081'}/api/auth/keycloak/redirect`;
   };
 
   const handleSamlLogin = () => {
-    // Redirect to SAML endpoint
     window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8081'}/api/auth/saml/login`;
   };
 
@@ -75,14 +72,11 @@ const Signin = () => {
     <div className="min-h-screen flex">
       <BrandingPanel />
 
-      {/* Right Panel - Form */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-12 bg-gray-50">
         <div className="max-w-md w-full">
           <MobileLogo />
 
-          {/* Form Container */}
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-            {/* Header */}
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-gray-900 font-athletics">Sign In</h2>
               <p className="mt-2 text-sm text-gray-600 font-athletics">
@@ -90,7 +84,6 @@ const Signin = () => {
               </p>
             </div>
 
-            {/* Sign In Form */}
             <div
               aria-hidden={showAuthOptions}
               className={`transform transition-all duration-300 ease-in-out ${showAuthOptions
@@ -134,7 +127,6 @@ const Signin = () => {
             <AuthFooter />
           </div>
 
-          {/* LDAP Login Modal */}
           <LdapLoginModal
             isOpen={showLdapModal}
             onClose={() => setShowLdapModal(false)}

@@ -3,14 +3,12 @@ import type { Integration } from '@/pages/integrations/types/integration'
 import { PAGINATION } from '@/lib/constants'
 
 interface IntegrationState {
-  // Search, Filter & Pagination (client-side)
   searchQuery: string
   statusFilters: string[]
   integrationTypeFilters: string[]
   currentPage: number
   perPage: number
 
-  // Modal state
   modals: {
     add: boolean
     edit: boolean
@@ -23,20 +21,17 @@ interface IntegrationState {
   }
   selectedIntegration: Integration | null
 
-  // Actions
   setPage: (page: number) => void
   setSearchQuery: (query: string) => void
   setStatusFilters: (statuses: string[]) => void
   setIntegrationTypeFilters: (types: string[]) => void
 
-  // Modal actions
   openModal: (modal: keyof IntegrationState['modals'], integration?: Integration) => void
   closeModal: (modal: keyof IntegrationState['modals']) => void
   setSelectedIntegration: (integration: Integration | null) => void
 }
 
 export const useIntegrationStore = create<IntegrationState>((set) => ({
-  // Initial state
   searchQuery: '',
   statusFilters: [],
   integrationTypeFilters: [],
@@ -55,13 +50,11 @@ export const useIntegrationStore = create<IntegrationState>((set) => ({
   },
   selectedIntegration: null,
 
-  // Actions
   setPage: (page: number) => set({ currentPage: page }),
   setSearchQuery: (query: string) => set({ searchQuery: query, currentPage: 1 }),
   setStatusFilters: (statuses: string[]) => set({ statusFilters: statuses, currentPage: 1 }),
   setIntegrationTypeFilters: (types: string[]) => set({ integrationTypeFilters: types, currentPage: 1 }),
 
-  // Modal actions
   openModal: (modal, integration) => {
     set(state => ({
       modals: { ...state.modals, [modal]: true },

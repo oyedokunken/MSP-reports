@@ -250,7 +250,6 @@ export function UsersTable({
                     isCurrentUser && "bg-primary/5"
                   )}
                 >
-                  {/* User Info */}
                   <TableCell className="py-3">
                     <div className="flex items-center gap-3">
                       <div className="relative flex-shrink-0">
@@ -260,7 +259,6 @@ export function UsersTable({
                             alt={user.name}
                             className="h-10 w-10 rounded-full object-cover"
                             onError={(e) => {
-                              // Fallback to initials if image fails to load
                               const target = e.target as HTMLImageElement
                               target.style.display = 'none'
                               target.nextElementSibling?.classList.remove('hidden')
@@ -294,7 +292,6 @@ export function UsersTable({
                     </div>
                   </TableCell>
 
-                  {/* Role */}
                   <TableCell className="py-3">
                     <Badge 
                       variant={isAdmin ? "default" : "secondary"}
@@ -308,7 +305,6 @@ export function UsersTable({
                     </Badge>
                   </TableCell>
 
-                  {/* Status */}
                   <TableCell className="py-3">
                     <Badge 
                       variant="outline" 
@@ -318,19 +314,16 @@ export function UsersTable({
                     </Badge>
                   </TableCell>
 
-                  {/* Auth Method */}
                   <TableCell className="py-3">
                     <span className="text-sm text-muted-foreground capitalize">{user.auth_method}</span>
                   </TableCell>
 
-                  {/* Last Active */}
                   <TableCell className="py-3">
                     <span className="text-sm text-muted-foreground">
                       {user.last_login ? formatDateOnly(user.last_login) : 'Never'}
                     </span>
                   </TableCell>
 
-                  {/* Actions */}
                   <TableCell className="py-3">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

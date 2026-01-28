@@ -2,7 +2,6 @@ import { Outlet } from "react-router-dom";
 import { useEffect } from "react";
 
 const Layout = () => {
-    // Force light mode on auth pages
     useEffect(() => {
         document.documentElement.classList.remove('dark');
     }, []);

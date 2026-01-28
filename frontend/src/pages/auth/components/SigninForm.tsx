@@ -17,7 +17,6 @@ interface SigninFormProps {
   onSubmit: (e: React.FormEvent) => void;
 }
 
-// Email validation regex
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export function SigninForm({
@@ -83,16 +82,14 @@ export function SigninForm({
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate all fields
+
     const emailErr = validateEmail(email);
     const passwordErr = validatePassword(password);
-    
+
     setEmailError(emailErr);
     setPasswordError(passwordErr);
     setTouched({ email: true, password: true });
-    
-    // Only submit if no errors
+
     if (!emailErr && !passwordErr) {
       onSubmit(e);
     }
@@ -100,7 +97,6 @@ export function SigninForm({
 
   return (
     <form className="space-y-6" onSubmit={handleFormSubmit} noValidate>
-      {/* Email Field */}
       <div>
         <label htmlFor="email" className="block text-sm text-left font-medium text-gray-700 mb-2 font-athletics">
           Email address
@@ -116,11 +112,10 @@ export function SigninForm({
           disabled={isSubmitting}
           aria-invalid={!!emailError}
           aria-describedby={emailError ? "email-error" : undefined}
-          className={`appearance-none relative block w-full px-4 py-3 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out ${
-            emailError && touched.email
+          className={`appearance-none relative block w-full px-4 py-3 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out ${emailError && touched.email
               ? 'border-red-500 focus:ring-red-500'
               : 'border-gray-300'
-          }`}
+            }`}
           placeholder="admin@example.com"
         />
         {emailError && touched.email && (
@@ -128,7 +123,6 @@ export function SigninForm({
         )}
       </div>
 
-      {/* Password Field */}
       <div>
         <label htmlFor="password" className="block text-sm text-left font-medium text-gray-700 mb-2 font-athletics">
           Password
@@ -145,11 +139,10 @@ export function SigninForm({
             disabled={isSubmitting}
             aria-invalid={!!passwordError}
             aria-describedby={passwordError ? "password-error" : undefined}
-            className={`appearance-none relative block w-full px-4 py-3 pr-12 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out ${
-              passwordError && touched.password
+            className={`appearance-none relative block w-full px-4 py-3 pr-12 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out ${passwordError && touched.password
                 ? 'border-red-500 focus:ring-red-500'
                 : 'border-gray-300'
-            }`}
+              }`}
             placeholder="*******"
           />
           <button
@@ -170,7 +163,6 @@ export function SigninForm({
         )}
       </div>
 
-      {/* Remember Me and Forgot Password */}
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <input
@@ -193,14 +185,12 @@ export function SigninForm({
         </div>
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="rounded-md bg-red-50 border border-red-200 p-3">
           <p className="text-sm text-red-800 text-center">{error}</p>
         </div>
       )}
 
-      {/* Sign In Button */}
       <div>
         <button
           type="submit"

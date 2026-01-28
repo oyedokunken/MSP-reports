@@ -4,22 +4,18 @@ import { logger } from '@/lib/logger'
 import type { UserWithPermissions } from '@/pages/users/types'
 
 interface UsersState {
-  // Data
   users: UserWithPermissions[]
   isLoading: boolean
   error: string | null
 
-  // Pagination
   currentPage: number
   perPage: number
   totalUsers: number
   totalPages: number
 
-  // Search and filter
   searchQuery: string
   statusFilter: string // 'all' | 'active' | 'inactive' | 'admin'
 
-  // Modal state
   modals: {
     create: boolean
     edit: boolean
@@ -29,27 +25,22 @@ interface UsersState {
   }
   selectedUser: UserWithPermissions | null
 
-  // Actions
   fetchUsers: (page?: number) => Promise<void>
   deactivateUser: (userId: number) => Promise<void>
   reactivateUser: (userId: number) => Promise<void>
 
-  // Pagination actions
   setPage: (page: number) => void
 
-  // Search and filter actions
   setSearchQuery: (query: string) => void
   setStatusFilter: (filter: string) => void
   getFilteredUsers: () => UserWithPermissions[]
 
-  // Modal actions
   openModal: (modal: keyof UsersState['modals'], user?: UserWithPermissions) => void
   closeModal: (modal: keyof UsersState['modals']) => void
   setSelectedUser: (user: UserWithPermissions | null) => void
 }
 
 export const useUsersStore = create<UsersState>((set, get) => ({
-  // Initial state
   users: [],
   isLoading: true,
   error: null,
@@ -68,13 +59,11 @@ export const useUsersStore = create<UsersState>((set, get) => ({
   },
   selectedUser: null,
 
-  // Fetch users
   fetchUsers: async (page?: number) => {
     const currentPage = page ?? get().currentPage
     set({ isLoading: true, error: null })
     try {
       const response = await userApi.getUsers(currentPage, get().perPage)
-      // User type from API matches UserWithPermissions structure
       const usersList = response.data as UserWithPermissions[]
       const pagination = response.pagination
 
@@ -95,7 +84,6 @@ export const useUsersStore = create<UsersState>((set, get) => ({
     }
   },
 
-  // Deactivate user
   deactivateUser: async (userId: number) => {
     try {
       await userApi.deactivateUser(userId)
@@ -106,7 +94,6 @@ export const useUsersStore = create<UsersState>((set, get) => ({
     }
   },
 
-  // Reactivate user
   reactivateUser: async (userId: number) => {
     try {
       await userApi.reactivateUser(userId)
@@ -117,13 +104,11 @@ export const useUsersStore = create<UsersState>((set, get) => ({
     }
   },
 
-  // Pagination actions
   setPage: (page: number) => {
     set({ currentPage: page })
     get().fetchUsers(page)
   },
 
-  // Search and filter actions
   setSearchQuery: (query: string) => set({ searchQuery: query }),
 
   setStatusFilter: (filter: string) => set({ statusFilter: filter }),
@@ -133,7 +118,6 @@ export const useUsersStore = create<UsersState>((set, get) => ({
 
     let filtered = users
 
-    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(user =>
@@ -143,7 +127,6 @@ export const useUsersStore = create<UsersState>((set, get) => ({
       )
     }
 
-    // Apply status filter
     if (statusFilter !== 'all') {
       if (statusFilter === 'admin') {
         filtered = filtered.filter(user => user.role?.name === 'Admin')
@@ -155,7 +138,6 @@ export const useUsersStore = create<UsersState>((set, get) => ({
     return filtered
   },
 
-  // Modal actions
   openModal: (modal, user) => {
     set(state => ({
       modals: { ...state.modals, [modal]: true },

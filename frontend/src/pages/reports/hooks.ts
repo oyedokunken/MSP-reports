@@ -35,7 +35,6 @@ export const useReportsList = () => {
 
   const clearSelection = () => setSelectedReportIds([])
 
-  // React Query for fetching reports
   const { data: reportData, isLoading } = useQuery({
     queryKey: ['reports', customerId, page],
     queryFn: async () => {
@@ -57,7 +56,6 @@ export const useReportsList = () => {
     setSearchParams(params)
   }
 
-  // Derived state (filtering)
   const filteredReports = useMemo(() => {
     return reports.filter(report => {
       if (searchQuery && !report.customer_name.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -77,7 +75,6 @@ export const useReportsList = () => {
     return Array.from(new Set(reports.map(r => r.report_type)))
   }, [reports])
 
-  // Mutations
   const downloadMutation = useMutation({
     mutationFn: async (reportId: number) => {
       const response = await apiClient.get(`/reports/${reportId}/download`, {

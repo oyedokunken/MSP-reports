@@ -27,18 +27,6 @@ import { ApiKeysList } from '@/pages/api-keys'
 import TemplateList from '@/pages/templates/TemplateList'
 import Profile from '@/pages/profile/Profile'
 // TODO: Create these pages when needed
-// import { 
-//   ActiveDirectoryDashboard, 
-//   UsersList as ADUsersList, 
-//   UserDetail as ADUserDetail,
-//   GroupsList as ADGroupsList,
-//   GroupDetail as ADGroupDetail
-// } from '@/pages/active-directory'
-// import {
-//   ExchangeDashboard,
-//   MailboxesList,
-//   MailboxDetail
-// } from '@/pages/exchange'
 import Licenses from '@/pages/licenses/Licenses'
 import Monitoring from '@/pages/monitoring/Monitoring'
 import { AuditLogs } from '@/pages/audit-logs'
@@ -52,7 +40,6 @@ import { Loader2 } from 'lucide-react'
 
 import { hasPermission } from '@/utils/permissions'
 
-// Protected route wrapper 
 function ProtectedRoute({ children, permission }: { children: React.ReactNode, permission?: { section: string, action: string } }) {
   const { user, isAuthenticated, isLoading } = useAuth()
 
@@ -75,7 +62,6 @@ function ProtectedRoute({ children, permission }: { children: React.ReactNode, p
   return <>{children}</>
 }
 
-// Public route wrapper (redirects to dashboard if already logged in) 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
 
@@ -97,7 +83,6 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public auth layout with nested routes */}
       <Route
         path="/"
         element={
@@ -117,7 +102,6 @@ function AppRoutes() {
         <Route path="auth/callback" element={<AuthCallback />} />
       </Route>
 
-      {/* Protected routes */}
       <Route
         path="/platform/dashboard"
         element={
@@ -154,81 +138,9 @@ function AppRoutes() {
         }
       />
 
-      {/* TODO: Uncomment when Active Directory pages are created
-      <Route
-        path="/platform/active-directory"
-        element={
-          <ProtectedRoute>
-            <ActiveDirectoryDashboard />
-          </ProtectedRoute>
-        }
-      />
+      {/* TODO: Add Active Directory and Exchange routes when features are implemented */}
 
-      <Route
-        path="/platform/active-directory/users"
-        element={
-          <ProtectedRoute>
-            <ADUsersList />
-          </ProtectedRoute>
-        }
-      />
 
-      <Route
-        path="/platform/active-directory/users/:id"
-        element={
-          <ProtectedRoute>
-            <ADUserDetail />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/platform/active-directory/groups"
-        element={
-          <ProtectedRoute>
-            <ADGroupsList />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/platform/active-directory/groups/:id"
-        element={
-          <ProtectedRoute>
-            <ADGroupDetail />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/platform/exchange"
-        element={
-          <ProtectedRoute>
-            <ExchangeDashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/platform/exchange/mailboxes"
-        element={
-          <ProtectedRoute>
-            <MailboxesList />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/platform/exchange/mailboxes/:id"
-        element={
-          <ProtectedRoute>
-            <MailboxDetail />
-          </ProtectedRoute>
-        }
-      />
-      */}
-
-      {/* Redirect old customers route to master list */}
       <Route
         path="/platform/customers"
         element={<Navigate to="/platform/customers/master" replace />}
@@ -396,7 +308,6 @@ function AppRoutes() {
         }
       />
 
-      {/* Documentation routes - accessible to all authenticated users */}
       <Route
         path="/docs"
         element={
@@ -415,7 +326,6 @@ function AppRoutes() {
         }
       />
 
-      {/* 404 Not Found for unknown routes */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

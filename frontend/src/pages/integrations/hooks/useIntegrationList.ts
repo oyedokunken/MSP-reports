@@ -29,7 +29,6 @@ export function useIntegrationList(): UseIntegrationListReturn {
     try {
       setIsLoading(true)
       const response = await api.get<{ data?: { available_types: string[], configured: ConfiguredIntegration[] }; available_types?: string[]; configured?: ConfiguredIntegration[] }>('/integrations')
-      // Handle both wrapped and unwrapped response formats
       const data = response.data || response
 
       setAvailableTypes(data.available_types || [])

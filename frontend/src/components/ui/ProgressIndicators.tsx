@@ -85,7 +85,6 @@ export function CircularProgress({
     return (
         <div className="relative inline-flex items-center justify-center">
             <svg width={size} height={size} className="transform -rotate-90">
-                {/* Background circle */}
                 <circle
                     cx={size / 2}
                     cy={size / 2}
@@ -95,7 +94,6 @@ export function CircularProgress({
                     fill="none"
                     className="text-gray-200 dark:text-gray-800"
                 />
-                {/* Progress circle */}
                 <circle
                     cx={size / 2}
                     cy={size / 2}

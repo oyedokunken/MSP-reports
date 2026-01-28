@@ -14,7 +14,6 @@ export function ContactInfo() {
         </p>
       </div>
 
-      {/* Contact Information */}
       <div className="space-y-4 mb-6">
         <div className="bg-gray-50 rounded-lg p-4 space-y-3">
           <div className="flex items-start gap-3">
@@ -52,7 +51,6 @@ export function ContactInfo() {
         </div>
       </div>
 
-      {/* Back to Sign In */}
       <Link to="/login" className="w-full">
         <Button className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-shadow">
           <ArrowLeft className="mr-2 h-4 w-4" />

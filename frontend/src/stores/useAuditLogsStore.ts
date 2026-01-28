@@ -13,7 +13,6 @@ export interface AuditLogsState {
   totalLogs: number
   filters: AuditLogsFilters
 
-  // Actions
   fetchAuditLogs: () => Promise<void>
   fetchStats: () => Promise<void>
   setPage: (page: number) => void

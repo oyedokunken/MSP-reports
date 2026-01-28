@@ -43,7 +43,6 @@ export function CustomerCard({
 
   return (
     <AnimatedCard className="p-6 h-full flex flex-col">
-      {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
@@ -64,9 +63,7 @@ export function CustomerCard({
         </Badge>
       </div>
 
-      {/* Info Section */}
       <div className="mt-6 space-y-3">
-        {/* Integrations */}
         <div className="flex items-center gap-2 text-sm">
           <Cable className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <div className="flex flex-wrap gap-1 overflow-hidden">
@@ -78,7 +75,6 @@ export function CustomerCard({
           </div>
         </div>
 
-        {/* Report Status */}
         <div className="flex items-center gap-2 pt-2">
           {hasReports ? (
             <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -94,9 +90,7 @@ export function CustomerCard({
         </div>
       </div>
 
-      {/* Actions */}
       <div className="mt-4 border-t border-border pt-4 space-y-2">
-        {/* Setup Reports - Full Width Primary Button */}
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -120,7 +114,6 @@ export function CustomerCard({
           </Tooltip>
         </TooltipProvider>
 
-        {/* Secondary Actions Row - All inline with consistent height */}
         <div className="flex gap-2">
           <button
             onClick={onMoreInfo}

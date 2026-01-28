@@ -23,7 +23,6 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
   const maxFileSizeMB = 2
   const title = type === 'company' ? 'Company Logo' : 'Profile Logo'
 
-  // Clear preview when currentLogoUrl updates (after successful upload)
   useEffect(() => {
     if (currentLogoUrl && preview) {
       setPreview(null)
@@ -32,14 +31,12 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
 
   const validateImage = (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
-      // Check file size (2MB max)
       if (file.size > maxFileSizeMB * 1024 * 1024) {
         toast.error('File too large', `Maximum file size is ${maxFileSizeMB}MB`)
         resolve(false)
         return
       }
 
-      // Check file type
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml']
       if (!validTypes.includes(file.type)) {
         toast.error('Invalid format', 'Only JPEG, PNG, and SVG images are allowed')
@@ -47,7 +44,6 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
         return
       }
 
-      // Check dimensions (for non-SVG images)
       if (file.type !== 'image/svg+xml') {
         const img = new Image()
         img.onload = () => {
@@ -74,21 +70,18 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate image
     const isValid = await validateImage(file)
     if (!isValid) {
       e.target.value = '' // Reset file input
       return
     }
 
-    // Show preview
     const reader = new FileReader()
     reader.onloadend = () => {
       setPreview(reader.result as string)
     }
     reader.readAsDataURL(file)
 
-    // Upload immediately
     await handleUpload(file)
     e.target.value = '' // Reset file input
   }
@@ -113,8 +106,6 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
         if (data.data?.logo_url) {
           onUploadSuccess(data.data.logo_url)
         }
-        // Don't clear preview immediately - let the currentLogoUrl prop update first
-        // The preview will be replaced by currentLogoUrl on next render
       } else {
         toast.error('Upload Failed', data.message || 'Failed to upload logo')
       }
@@ -168,7 +159,6 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
       <label className="block text-sm font-medium text-foreground">{title}</label>
 
       <div className="flex items-start gap-4">
-        {/* Image Preview */}
         <div className="flex-shrink-0">
           <div className="w-32 h-32 border-2 border-dashed border-border rounded-lg flex items-center justify-center bg-muted/20 overflow-hidden">
             {displayImageUrl ? (
@@ -183,7 +173,6 @@ export function LogoUpload({ type, currentLogoUrl, onUploadSuccess, onDeleteSucc
           </div>
         </div>
 
-        {/* Upload Controls */}
         <div className="flex-1 space-y-2">
           <input
             ref={fileInputRef}

@@ -95,7 +95,6 @@ export function DeleteIntegrationModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Integration Info */}
           <div className="rounded-lg border border-border bg-accent/50 p-3">
             <p className="text-sm font-medium mb-1">Integration:</p>
             <p className="font-semibold">{integration.name}</p>
@@ -104,7 +103,6 @@ export function DeleteIntegrationModal({
             </p>
           </div>
 
-          {/* Warning */}
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
             <p className="text-sm text-destructive font-medium mb-2">
               ⚠️ Warning: This action cannot be undone!
@@ -116,7 +114,6 @@ export function DeleteIntegrationModal({
             </ul>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
               <p className="text-sm text-destructive font-medium">{error}</p>

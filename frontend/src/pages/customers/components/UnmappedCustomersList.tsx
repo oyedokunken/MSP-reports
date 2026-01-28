@@ -16,7 +16,6 @@ export function UnmappedCustomersList({ customers, onSelectCustomer }: UnmappedC
         <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/30">
             <CardContent className="py-4">
                 <div className="flex flex-col gap-4">
-                    {/* Header */}
                     <div className="flex items-start gap-3">
                         <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex-shrink-0">
                             <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
@@ -47,7 +46,6 @@ export function UnmappedCustomersList({ customers, onSelectCustomer }: UnmappedC
                         </div>
                     </div>
 
-                    {/* Scrollable Customer List */}
                     <div className="border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900">
                         <div className="max-h-[400px] overflow-y-auto">
                             <div className="divide-y divide-border">

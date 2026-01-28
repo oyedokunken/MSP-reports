@@ -36,9 +36,9 @@ function formatType(type: string): string {
   return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
 }
 
-export function IntegrationHeader ({ 
-  onAdd, 
-  searchQuery, 
+export function IntegrationHeader({
+  onAdd,
+  searchQuery,
   statusFilters,
   integrationTypeFilters,
   uniqueTypes,
@@ -72,10 +72,8 @@ export function IntegrationHeader ({
         <h1 className="text-3xl font-bold text-foreground">Integrations</h1>
         <p className="mt-2 text-muted-foreground">Manage connections to external systems</p>
       </div>
-      
-      {/* Search and Filters */}
+
       <div className="flex flex-col md:flex-row gap-3">
-        {/* Filter Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="w-full md:w-auto h-10">
@@ -89,7 +87,6 @@ export function IntegrationHeader ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
-            {/* Status Section */}
             <DropdownMenuLabel>Status</DropdownMenuLabel>
             <DropdownMenuCheckboxItem
               checked={statusFilters.includes('active')}
@@ -116,7 +113,6 @@ export function IntegrationHeader ({
               Error
             </DropdownMenuCheckboxItem>
 
-            {/* Integration Types Section */}
             {uniqueTypes.length > 0 && (
               <>
                 <DropdownMenuSeparator />
@@ -135,7 +131,6 @@ export function IntegrationHeader ({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* View Mode Toggle */}
         {onViewModeChange && (
           <TooltipProvider>
             <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-md bg-white dark:bg-slate-900 p-1 h-10">
@@ -181,7 +176,6 @@ export function IntegrationHeader ({
           </TooltipProvider>
         )}
 
-        {/* Search */}
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -192,7 +186,6 @@ export function IntegrationHeader ({
           />
         </div>
 
-        {/* Add Integration Button */}
         <button className="flex items-center text-white gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 h-10" onClick={onAdd}>
           <Plus className="h-4 w-4 text-white" />
           Add Integration

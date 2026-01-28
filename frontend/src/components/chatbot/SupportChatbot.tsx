@@ -6,21 +6,13 @@ import { Card, CardContent } from '@/components/ui/card'
 import { findAnswer } from './knowledgeBase'
 import { useAuth } from '@/contexts/AuthContext'
 
-// Convert markdown-style links [text](url) to clickable elements
-// Convert markdown-style links [text](url) to clickable elements
 function parseMessageContent(content: string): string {
-  // Convert markdown links to clickable spans with data attributes
-  // Pattern: [link text](/path/to/page)
   return content
     .replace(/\[([^\]]+)\]\((\/[^)]+)\)/g, '<a href="$2" class="chatbot-link text-primary underline hover:text-primary/80 cursor-pointer font-medium" data-internal-link="$2">$1</a>')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n/g, '<br/>')
 }
 
-// ... inside component ...
-// dangerouslySetInnerHTML={{ 
-//   __html: parseMessageContent(message.content)
-// }}
 
 interface Message {
   id: string
@@ -50,7 +42,6 @@ export function SupportChatbot() {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Update welcome message when user changes
   useEffect(() => {
     if (user && !hasShownWelcome) {
       setMessages([getWelcomeMessage()])
@@ -58,16 +49,16 @@ export function SupportChatbot() {
     }
   }, [user, hasShownWelcome, getWelcomeMessage])
 
-  // Hide pulse after first open
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   useEffect(() => {
     if (isOpen) {
       setShowPulse(false)
     }
   }, [isOpen])
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
 
   useEffect(() => {
     scrollToBottom()
@@ -76,7 +67,6 @@ export function SupportChatbot() {
   const handleSend = () => {
     if (!input.trim()) return
 
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -88,7 +78,6 @@ export function SupportChatbot() {
     setInput('')
     setIsTyping(true)
 
-    // Simulate typing delay
     setTimeout(() => {
       const answer = findAnswer(input)
       const assistantMessage: Message = {
@@ -119,7 +108,6 @@ export function SupportChatbot() {
   if (!isOpen) {
     return (
       <div className="fixed bottom-6 right-6 z-50" data-tour="chatbot-button">
-        {/* Pulse animation ring */}
         {showPulse && (
           <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
         )}
@@ -165,7 +153,6 @@ export function SupportChatbot() {
       </div>
 
       <CardContent className="flex-1 flex flex-col p-0 overflow-hidden bg-gradient-to-b from-background to-muted/20">
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-5 space-y-3">
           {messages.map((message) => (
             <div
@@ -217,7 +204,6 @@ export function SupportChatbot() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick Questions */}
         {messages.length === 1 && (
           <div className="px-5 pb-3 border-t border-border/50 pt-4 bg-muted/30">
             <p className="text-xs font-semibold text-muted-foreground mb-3">
@@ -237,7 +223,6 @@ export function SupportChatbot() {
           </div>
         )}
 
-        {/* Input */}
         <div className="p-4 border-t border-border/50 bg-background">
           <div className="flex gap-2">
             <input

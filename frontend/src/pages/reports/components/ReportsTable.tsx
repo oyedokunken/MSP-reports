@@ -275,7 +275,6 @@ export function ReportsTable({
                 </Table>
             </div >
 
-            {/* Preview Modal */}
             {
                 previewReport && (
                     <ReportPreviewModal
@@ -287,7 +286,6 @@ export function ReportsTable({
                 )
             }
 
-            {/* Share Link Modal */}
             {
                 shareReport && (
                     <ShareLinkModal

@@ -48,7 +48,6 @@ export default function ApiKeysList() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">API Keys</h1>
@@ -62,7 +61,6 @@ export default function ApiKeysList() {
           </Button>
         </div>
 
-        {/* Security Notice */}
         <Card className="border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20">
           <CardContent className="pt-6">
             <div className="flex gap-3">
@@ -83,7 +81,6 @@ export default function ApiKeysList() {
           </CardContent>
         </Card>
 
-        {/* API Keys List */}
         <div className="space-y-4">
           {isLoading ? (
             <Card>
@@ -132,7 +129,6 @@ export default function ApiKeysList() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* API Key Display */}
                   <div>
                     <label className="text-sm font-medium text-foreground mb-2 block">
                       API Key
@@ -166,7 +162,6 @@ export default function ApiKeysList() {
                     </div>
                   </div>
 
-                  {/* Permissions */}
                   {apiKey.permissions && (
                     <div>
                       <label className="text-sm font-medium text-foreground mb-2 block">
@@ -186,7 +181,6 @@ export default function ApiKeysList() {
                     </div>
                   )}
 
-                  {/* IP Whitelist */}
                   {apiKey.ip_whitelist && apiKey.ip_whitelist.length > 0 && (
                     <div>
                       <label className="text-sm font-medium text-foreground mb-2 block">
@@ -202,7 +196,6 @@ export default function ApiKeysList() {
                     </div>
                   )}
 
-                  {/* Actions */}
                   {!apiKey.revoked && (
                     <div className="flex justify-end pt-2">
                       <Button
@@ -222,7 +215,6 @@ export default function ApiKeysList() {
         </div>
       </div>
 
-      {/* Modals */}
       <CreateApiKeyModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}

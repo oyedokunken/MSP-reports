@@ -41,7 +41,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 export default function NotificationsPage() {
   const toast = useToast()
 
-  // Store state and actions
   const fetchNotifications = useNotificationStore((state) => state.fetchNotifications)
   const isLoading = useNotificationStore((state) => state.isLoading)
   const selectedIds = useNotificationStore((state) => state.selectedIds)
@@ -65,7 +64,6 @@ export default function NotificationsPage() {
   const error = useNotificationStore((state) => state.error)
   const getFilteredNotifications = useNotificationStore((state) => state.getFilteredNotifications)
 
-  // Local UI state
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
   const [showMarkAllConfirm, setShowMarkAllConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | number | null>(null)
@@ -74,7 +72,6 @@ export default function NotificationsPage() {
   const [selectionMode, setSelectionMode] = useState(false)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
 
-  // Derived state (re-computed whenever store values change)
   const filteredNotifications = useMemo(() => getFilteredNotifications(), [getFilteredNotifications])
   const groupedNotifications = useMemo(() => groupNotificationsByDate(filteredNotifications), [filteredNotifications])
   const unreadCount = getUnreadCount()
@@ -85,15 +82,12 @@ export default function NotificationsPage() {
     (filters.severity !== 'all' ? 1 : 0) +
     (filters.type !== 'all' ? 1 : 0)
 
-  // Initialization
   useEffect(() => {
     fetchNotifications()
   }, [fetchNotifications])
 
-  // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if typing in search
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
 
       switch (e.key.toLowerCase()) {
@@ -125,7 +119,6 @@ export default function NotificationsPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selectedNotification, selectionMode, selectedCount, selectAll, deselectAll, markAsRead])
 
-  // Handlers
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id)
     setSelectedNotification(notification)
@@ -179,7 +172,6 @@ export default function NotificationsPage() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
@@ -239,9 +231,7 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        {/* Controls Bar */}
         <div className="flex flex-col md:flex-row gap-3">
-          {/* Filter Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full md:w-auto h-10 gap-2">
@@ -304,7 +294,6 @@ export default function NotificationsPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Search Box */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -316,7 +305,6 @@ export default function NotificationsPage() {
             />
           </div>
 
-          {/* Sort Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full md:w-auto h-10 gap-2">
@@ -349,7 +337,6 @@ export default function NotificationsPage() {
           </DropdownMenu>
         </div>
 
-        {/* List Section */}
         <AnimatedCard className="p-0 overflow-hidden min-h-[400px]">
           {isLoading ? (
             <div className="divide-y divide-border">
@@ -403,7 +390,6 @@ export default function NotificationsPage() {
             <div className="flex flex-col">
               {groupedNotifications.map((group) => (
                 <div key={group.label} className="flex flex-col">
-                  {/* Group Header */}
                   <div
                     className="flex items-center gap-2 px-4 py-2 bg-muted/30 sticky top-0 z-10 cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => toggleGroup(group.label)}
@@ -422,7 +408,6 @@ export default function NotificationsPage() {
                     </Badge>
                   </div>
 
-                  {/* Group Items */}
                   {!collapsedGroups.has(group.label) && (
                     <div className="divide-y divide-border">
                       <AnimatePresence initial={false}>
@@ -508,7 +493,6 @@ export default function NotificationsPage() {
         </AnimatedCard>
       </div>
 
-      {/* Notification Detail Modal */}
       {selectedNotification && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -518,7 +502,6 @@ export default function NotificationsPage() {
             className="bg-background dark:bg-[hsl(var(--auth-card))] rounded-2xl border border-border shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-0 flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
             <div className="p-6 border-b border-border flex items-start justify-between bg-muted/10">
               <div className="flex items-start gap-4 flex-1">
                 <div className="flex-shrink-0 mt-1.5">
@@ -549,7 +532,6 @@ export default function NotificationsPage() {
               </Button>
             </div>
 
-            {/* Modal Content */}
             <div className="p-8 space-y-8">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-1">
@@ -593,7 +575,6 @@ export default function NotificationsPage() {
               )}
             </div>
 
-            {/* Modal Footer */}
             <div className="p-6 border-t border-border flex justify-end gap-3 bg-muted/10">
               <Button
                 variant="outline"
@@ -629,7 +610,6 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {/* Confirmation Modals */}
       <ConfirmationModal
         isOpen={showMarkAllConfirm}
         onClose={() => setShowMarkAllConfirm(false)}

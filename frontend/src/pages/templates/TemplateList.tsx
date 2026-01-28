@@ -71,7 +71,7 @@ export default function TemplateList() {
       setTemplates(data)
     } catch (error) {
       toast.error('Failed to load templates')
-      logger.error(error)
+      logger.error('Failed to load templates', error as Error)
     } finally {
       setLoading(false)
     }
@@ -88,7 +88,6 @@ export default function TemplateList() {
       setIsDeleting(true)
       const response = await templateApi.delete(deletingTemplate.template_id)
 
-      // Show feedback about cascade deletion
       const schedulesDeleted = response?.schedules_deleted || 0
       if (schedulesDeleted > 0) {
         toast.success(`Template deleted successfully. ${schedulesDeleted} schedule${schedulesDeleted !== 1 ? 's' : ''} also removed.`)
@@ -100,7 +99,7 @@ export default function TemplateList() {
       loadTemplates()
     } catch (error) {
       toast.error('Failed to delete template')
-      logger.error(error)
+      logger.error('Failed to delete template', error as Error)
     } finally {
       setIsDeleting(false)
     }
@@ -108,10 +107,8 @@ export default function TemplateList() {
 
   const handleViewReports = (template: ReportTemplate) => {
     if (template.customer_id) {
-      // Navigate to customer's configure reports page
       navigate(`/platform/customers/${template.customer_id}/configure-reports`)
     } else {
-      // For global templates, open the apply modal
       setApplyingTemplate(template)
     }
   }
@@ -150,13 +147,11 @@ export default function TemplateList() {
   const uniqueReportTypes = Array.from(new Set(templates.map(t => t.report_type)))
   const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + (reportTypeFilter !== 'all' ? 1 : 0)
 
-  // Pagination
   const totalPages = Math.ceil(filteredTemplates.length / perPage)
   const startIndex = (currentPage - 1) * perPage
   const endIndex = startIndex + perPage
   const paginatedTemplates = filteredTemplates.slice(startIndex, endIndex)
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
   }, [searchQuery, statusFilter, reportTypeFilter])
@@ -177,14 +172,11 @@ export default function TemplateList() {
             </p>
           </div>
 
-          {/* Filters and Search */}
           <div className="flex flex-col sm:flex-row gap-3">
-            {/* Count - Hidden on mobile */}
             <div className="hidden sm:flex items-center text-sm text-muted-foreground whitespace-nowrap px-3 h-10 border rounded-md">
               {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''}
             </div>
 
-            {/* Filter Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="w-full sm:w-auto h-10 border">
@@ -198,7 +190,6 @@ export default function TemplateList() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
-                {/* Status Section */}
                 <DropdownMenuLabel>Status</DropdownMenuLabel>
                 <DropdownMenuCheckboxItem
                   checked={statusFilter === 'active'}
@@ -213,7 +204,6 @@ export default function TemplateList() {
                   Inactive
                 </DropdownMenuCheckboxItem>
 
-                {/* Report Type Section */}
                 {uniqueReportTypes.length > 0 && (
                   <>
                     <DropdownMenuSeparator />
@@ -232,7 +222,6 @@ export default function TemplateList() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -243,7 +232,6 @@ export default function TemplateList() {
               />
             </div>
 
-            {/* Create Button */}
             <Button onClick={() => setCreateModalOpen(true)} className="w-full sm:w-auto h-10">
               <Plus className="h-4 w-4 sm:mr-2" />
               <span className="hidden sm:inline">Create Template</span>
@@ -256,7 +244,6 @@ export default function TemplateList() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <Card key={i} className="relative overflow-hidden flex flex-col p-0">
-                {/* Header */}
                 <div className="pt-3 px-4 pb-2 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <Skeleton className="h-5 w-3/4" />
@@ -266,9 +253,7 @@ export default function TemplateList() {
                   <Skeleton className="h-4 w-2/3" />
                 </div>
 
-                {/* Content */}
                 <CardContent className="px-4 pb-4 pt-0 space-y-3 flex-1 flex flex-col">
-                  {/* Metadata */}
                   <div className="space-y-2 text-sm flex-1">
                     <div className="flex items-center gap-2">
                       <Skeleton className="h-3.5 w-3.5 rounded" />
@@ -284,7 +269,6 @@ export default function TemplateList() {
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex gap-1.5 pt-3">
                     <Skeleton className="flex-1 h-8" />
                     <Skeleton className="h-8 w-8" />
@@ -329,10 +313,8 @@ export default function TemplateList() {
                 className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 transition-all duration-200 border-border/50 flex flex-col p-0 cursor-pointer"
                 onClick={() => setPreviewingTemplate(template)}
               >
-                {/* Top Accent Bar */}
                 <div className={`absolute top-0 left-0 right-0 h-1 ${template.active ? 'bg-primary' : 'bg-muted'}`} />
 
-                {/* Header */}
                 <div className="pt-3 px-4 pb-2 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-base line-clamp-1 flex-1">
@@ -358,9 +340,7 @@ export default function TemplateList() {
                   )}
                 </div>
 
-                {/* Content */}
                 <CardContent className="px-4 pb-4 pt-0 space-y-3 flex-1 flex flex-col">
-                  {/* Metadata */}
                   <div className="space-y-2 text-sm flex-1">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <FileText className="h-3.5 w-3.5 flex-shrink-0" />
@@ -396,7 +376,6 @@ export default function TemplateList() {
                     )}
                   </div>
 
-                  {/* Actions */}
                   <div className="flex gap-1.5 pt-3 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
                     <Button
                       size="sm"
@@ -466,7 +445,6 @@ export default function TemplateList() {
           </div>
         )}
 
-        {/* Pagination */}
         {!loading && filteredTemplates.length > perPage && (
           <Pagination
             currentPage={currentPage}

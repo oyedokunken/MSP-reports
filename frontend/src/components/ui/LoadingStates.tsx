@@ -8,7 +8,6 @@ import { Skeleton } from './skeleton'
 export function StatCardSkeleton() {
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-[hsl(var(--auth-card))] p-6 shadow-sm">
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-gray-100 dark:bg-gray-800 p-2">
@@ -22,7 +21,6 @@ export function StatCardSkeleton() {
         <Skeleton className="h-6 w-16 rounded-full" />
       </div>
 
-      {/* Content */}
       <div className="mt-6 space-y-3">
         <div className="flex items-center justify-between">
           <Skeleton className="h-4 w-20" />
@@ -34,7 +32,6 @@ export function StatCardSkeleton() {
         </div>
       </div>
 
-      {/* Actions */}
       <div className="mt-6 flex gap-2">
         <Skeleton className="h-9 flex-1" />
         <Skeleton className="h-9 w-9" />

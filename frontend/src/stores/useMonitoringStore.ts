@@ -10,7 +10,6 @@ import type {
 } from '@/types/api/monitoring'
 
 interface MonitoringState {
-  // Data
   systemStatus: SystemStatus | null
   integrationMetrics: IntegrationMetrics | null
   reportMetrics: ReportMetrics | null
@@ -20,7 +19,6 @@ interface MonitoringState {
   error: string | null
   lastUpdated: Date | null
 
-  // Actions
   fetchSystemStatus: () => Promise<void>
   fetchIntegrationMetrics: () => Promise<void>
   fetchReportMetrics: () => Promise<void>
@@ -30,7 +28,6 @@ interface MonitoringState {
 }
 
 export const useMonitoringStore = create<MonitoringState>((set) => ({
-  // Initial state
   systemStatus: null,
   integrationMetrics: null,
   reportMetrics: null,
@@ -40,7 +37,6 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
   error: null,
   lastUpdated: null,
 
-  // Fetch system status
   fetchSystemStatus: async () => {
     try {
       const response = await monitoringApi.getSystemStatus()
@@ -54,7 +50,6 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
     }
   },
 
-  // Fetch integration metrics
   fetchIntegrationMetrics: async () => {
     try {
       const response = await monitoringApi.getIntegrationMetrics()
@@ -67,7 +62,6 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
     }
   },
 
-  // Fetch report metrics
   fetchReportMetrics: async () => {
     try {
       const response = await monitoringApi.getReportMetrics()
@@ -80,7 +74,6 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
     }
   },
 
-  // Fetch queue metrics
   fetchQueueMetrics: async () => {
     try {
       const response = await monitoringApi.getQueueMetrics()
@@ -93,7 +86,6 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
     }
   },
 
-  // Fetch activity trends
   fetchActivityTrends: async () => {
     try {
       const response = await monitoringApi.getActivityTrends()
@@ -106,7 +98,6 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
     }
   },
 
-  // Fetch all metrics
   fetchAllMetrics: async () => {
     set({ isLoading: true, error: null })
     try {
@@ -132,5 +123,4 @@ export const useMonitoringStore = create<MonitoringState>((set) => ({
   },
 }))
 
-// Re-export types for backward compatibility
 export type { SystemStatus, IntegrationMetrics, ReportMetrics, QueueMetrics, ActivityTrends }

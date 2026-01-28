@@ -67,9 +67,7 @@ export function SchedulesHeader({
                 </p>
             </div>
             
-            {/* Filters and Search */}
             <div className="flex flex-col md:flex-row gap-3">
-                {/* Filter Dropdown */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" className="w-full md:w-auto h-10">
@@ -83,7 +81,6 @@ export function SchedulesHeader({
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
-                        {/* Status Section */}
                         <DropdownMenuLabel>Status</DropdownMenuLabel>
                         <DropdownMenuCheckboxItem
                             checked={statusFilter === 'active'}
@@ -98,7 +95,6 @@ export function SchedulesHeader({
                             Inactive
                         </DropdownMenuCheckboxItem>
 
-                        {/* Frequency Section */}
                         {uniqueFrequencies.length > 0 && (
                             <>
                                 <DropdownMenuSeparator />
@@ -118,7 +114,6 @@ export function SchedulesHeader({
                     </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* View Mode Toggle */}
                 <TooltipProvider>
                     <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-md bg-white dark:bg-slate-900 p-1 h-10">
                         <Tooltip>
@@ -158,7 +153,6 @@ export function SchedulesHeader({
                     </div>
                 </TooltipProvider>
 
-                {/* Search */}
                 <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -169,7 +163,6 @@ export function SchedulesHeader({
                     />
                 </div>
 
-                {/* Create Schedule Button */}
                 <Button onClick={onCreateSchedule} className="h-10">
                     <Calendar className="h-4 w-4 mr-2" />
                     Create Schedule

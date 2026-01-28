@@ -4,9 +4,9 @@ import FloatingLayout from '@/components/layout/FloatingLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-import { 
-  Mail, Users, Database, Archive, Shield, RefreshCw, 
- TrendingUp, HardDrive 
+import {
+  Mail, Users, Database, Archive, Shield, RefreshCw,
+  TrendingUp, HardDrive
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { SyncStatus } from './components/SyncStatus'
@@ -34,9 +34,7 @@ export default function ExchangeDashboard() {
 
   useEffect(() => {
     // TODO: Implement API endpoint
-    // fetchStats()
     setIsLoading(false)
-    // Mock data for now
     setStats({
       totalMailboxes: 0,
       userMailboxes: 0,
@@ -87,7 +85,6 @@ export default function ExchangeDashboard() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Exchange Online</h1>
@@ -101,7 +98,6 @@ export default function ExchangeDashboard() {
           </Button>
         </div>
 
-        {/* Sync Status */}
         <SyncStatus stats={{
           lastSyncAt: stats.lastSyncAt,
           nextSyncAt: stats.nextSyncAt,
@@ -109,9 +105,7 @@ export default function ExchangeDashboard() {
           domain: stats.domain
         }} />
 
-        {/* Statistics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Total Mailboxes */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500">Total Mailboxes</CardTitle>
@@ -129,7 +123,6 @@ export default function ExchangeDashboard() {
             </CardContent>
           </Card>
 
-          {/* User Mailboxes */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500">User Mailboxes</CardTitle>
@@ -147,7 +140,6 @@ export default function ExchangeDashboard() {
             </CardContent>
           </Card>
 
-          {/* Shared Mailboxes */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500">Shared Mailboxes</CardTitle>
@@ -165,7 +157,6 @@ export default function ExchangeDashboard() {
             </CardContent>
           </Card>
 
-          {/* Total Storage */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-500">Total Storage</CardTitle>
@@ -184,9 +175,7 @@ export default function ExchangeDashboard() {
           </Card>
         </div>
 
-        {/* Additional Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Archive Mailboxes */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center text-base">
@@ -197,14 +186,13 @@ export default function ExchangeDashboard() {
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{stats.mailboxesWithArchive}</div>
               <p className="text-sm text-muted-foreground mt-1">
-                {stats.totalMailboxes > 0 
+                {stats.totalMailboxes > 0
                   ? `${((stats.mailboxesWithArchive / stats.totalMailboxes) * 100).toFixed(1)}% of mailboxes`
                   : 'No mailboxes'}
               </p>
             </CardContent>
           </Card>
 
-          {/* Litigation Hold */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center text-base">
@@ -222,7 +210,6 @@ export default function ExchangeDashboard() {
             </CardContent>
           </Card>
 
-          {/* Average Size */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center text-base">
@@ -237,7 +224,6 @@ export default function ExchangeDashboard() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>

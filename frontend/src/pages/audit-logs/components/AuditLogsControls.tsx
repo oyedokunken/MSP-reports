@@ -49,7 +49,6 @@ export function AuditLogsControls({
 
   return (
     <div className="flex flex-col md:flex-row items-center gap-3">
-      {/* Filters Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="w-full md:w-auto gap-2 border shadow-sm">
@@ -130,7 +129,6 @@ export function AuditLogsControls({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Search Bar */}
       <div className="relative flex-1 w-full md:w-auto">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         <Input
@@ -149,7 +147,6 @@ export function AuditLogsControls({
         )}
       </div>
 
-      {/* Date Range */}
       <div className="flex items-center gap-2 w-full md:w-auto">
         <div className="relative flex items-center bg-white dark:bg-gray-900 border rounded-lg h-10 px-1 shadow-sm overflow-hidden group">
           <Calendar className="h-4 w-4 ml-2 mr-1 text-gray-400" />
@@ -177,7 +174,6 @@ export function AuditLogsControls({
         </div>
       </div>
 
-      {/* Export Button */}
       <Button
         variant="default"
         onClick={onExport}

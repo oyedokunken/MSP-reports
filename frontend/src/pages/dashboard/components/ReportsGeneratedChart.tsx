@@ -19,21 +19,17 @@ export function ReportsGeneratedChart({ isLoading, data }: ReportsGeneratedChart
   useEffect(() => {
     if (!chartRef.current || isLoading || data.length === 0) return
 
-    // Initialize chart
     if (!chartInstanceRef.current) {
       chartInstanceRef.current = echarts.init(chartRef.current)
     }
 
     const chart = chartInstanceRef.current
 
-    // Prepare data
     const dates = data.map(item => item.date)
     const counts = data.map(item => item.count)
 
-    // Detect mobile
     const isMobile = window.innerWidth < 640
 
-    // Chart options
     const option: echarts.EChartsOption = {
       tooltip: {
         trigger: 'axis',
@@ -140,7 +136,6 @@ export function ReportsGeneratedChart({ isLoading, data }: ReportsGeneratedChart
 
     chart.setOption(option)
 
-    // Handle resize
     const handleResize = () => {
       chart.resize()
     }
@@ -151,7 +146,6 @@ export function ReportsGeneratedChart({ isLoading, data }: ReportsGeneratedChart
     }
   }, [data, isLoading])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (chartInstanceRef.current) {

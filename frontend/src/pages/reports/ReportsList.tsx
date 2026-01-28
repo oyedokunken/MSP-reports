@@ -88,7 +88,6 @@ export default function ReportsList() {
           />
         )}
 
-        {/* Pagination */}
         {!isLoading && total > perPage && (
           <Pagination
             currentPage={currentPage}
@@ -101,7 +100,6 @@ export default function ReportsList() {
         )}
       </div>
 
-      {/* Individual Delete Confirmation */}
       <ConfirmationModal
         isOpen={!!reportToDelete}
         onClose={() => setReportToDelete(null)}
@@ -118,7 +116,6 @@ export default function ReportsList() {
         type="danger"
       />
 
-      {/* Bulk Delete Confirmation */}
       <ConfirmationModal
         isOpen={showBulkDeleteConfirm}
         onClose={() => setShowBulkDeleteConfirm(false)}
@@ -133,7 +130,6 @@ export default function ReportsList() {
         type="danger"
       />
 
-      {/* Bulk Generate Modal */}
       <BulkGenerateModal
         open={showBulkGenerateModal}
         onOpenChange={setShowBulkGenerateModal}

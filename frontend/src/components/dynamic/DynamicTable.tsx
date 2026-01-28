@@ -35,7 +35,6 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
 
   const pageSize = config.pageSize || 10
 
-  // Filter data
   const filteredData = useMemo(() => {
     if (!config.filterable || Object.keys(filterValues).length === 0) {
       return data
@@ -50,7 +49,6 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
     })
   }, [data, filterValues, config.filterable])
 
-  // Sort data
   const sortedData = useMemo(() => {
     if (!sortColumn) return filteredData
 
@@ -60,7 +58,6 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
 
       if (aValue === bValue) return 0
 
-      // Type guard for comparison - convert to string for safe comparison
       const aStr = String(aValue ?? '')
       const bStr = String(bValue ?? '')
       const comparison = aStr < bStr ? -1 : 1
@@ -68,7 +65,6 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
     })
   }, [filteredData, sortColumn, sortDirection])
 
-  // Paginate data
   const paginatedData = useMemo(() => {
     if (!config.paginated) return sortedData
 
@@ -116,7 +112,6 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
     const formatted = formatValue(value, column.format)
 
     if (column.format === 'status' && column.colorMap) {
-      // Convert unknown value to string for index access
       const valueStr = String(value ?? '')
       const colorClass = column.colorMap[valueStr] || 'gray'
       const colorMap: Record<string, string> = {
@@ -146,15 +141,12 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
         const customerId = row.id as number
         const customerName = String(row.name || 'Customer')
 
-        // Open modal immediately with loading state
         setLicenseModalData({
           customerName,
           customerId,
           licenses: null // null means loading
         })
 
-        // Fetch licenses
-        // Fetch licenses
         try {
           const response = await api.get<{ licenses: License[] }>(`/integrations/${integrationId}/customer-licenses`, {
             customer_id: customerId
@@ -191,7 +183,6 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Export CSV button removed - use "Download Licenses" button in header instead */}
 
       <div className="overflow-x-auto border border-border rounded-lg">
         <table className="min-w-full divide-y divide-border">
@@ -315,7 +306,6 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
         </div>
       )}
 
-      {/* License Modal */}
       {licenseModalData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setLicenseModalData(null)}>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-3xl w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>

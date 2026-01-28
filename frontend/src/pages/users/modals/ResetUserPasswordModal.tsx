@@ -111,14 +111,12 @@ export function ResetUserPasswordModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Warning */}
           <div className="rounded-lg border border-orange-500/50 bg-orange-500/10 p-3">
             <p className="text-sm text-orange-700 dark:text-orange-400">
               ⚠️ This will log out the user from all devices and they will need to sign in with the new password.
             </p>
           </div>
 
-          {/* New Password */}
           <div>
             <Label htmlFor="newPassword" className="text-sm font-medium mb-2 block">
               New Password
@@ -153,7 +151,6 @@ export function ResetUserPasswordModal({
             </div>
           </div>
 
-          {/* Password Requirements */}
           <div className="rounded-lg border border-border bg-accent/50 p-3">
             <p className="text-xs font-medium mb-2">Password Requirements:</p>
             <ul className="text-xs text-muted-foreground space-y-1">

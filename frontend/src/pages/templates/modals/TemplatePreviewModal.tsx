@@ -74,7 +74,6 @@ export function TemplatePreviewModal({
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
-          {/* Template Configuration */}
           <div className="rounded-lg border p-4 space-y-4">
             <h3 className="font-semibold text-lg flex items-center gap-2">
               <Settings className="h-5 w-5" />
@@ -82,7 +81,6 @@ export function TemplatePreviewModal({
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Report Type */}
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-muted-foreground text-sm">
                   <FileText className="h-4 w-4" />
@@ -91,7 +89,6 @@ export function TemplatePreviewModal({
                 <p className="text-foreground pl-6">{formatReportType(template.report_type)}</p>
               </div>
 
-              {/* Frequency */}
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-muted-foreground text-sm">
                   <Calendar className="h-4 w-4" />
@@ -100,7 +97,6 @@ export function TemplatePreviewModal({
                 <p className="text-foreground pl-6">{getFrequencyLabel(template.frequency)}</p>
               </div>
 
-              {/* Customer */}
               {template.customer && (
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -111,7 +107,6 @@ export function TemplatePreviewModal({
                 </div>
               )}
 
-              {/* Schedule Time */}
               {template.time_of_day && (
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -126,7 +121,6 @@ export function TemplatePreviewModal({
             </div>
           </div>
 
-          {/* Included Sections */}
           {template.included_sections && template.included_sections.length > 0 && (
             <div className="rounded-lg border p-4 space-y-3">
               <h3 className="font-semibold text-lg flex items-center gap-2">
@@ -150,7 +144,6 @@ export function TemplatePreviewModal({
             </div>
           )}
 
-          {/* Delivery Settings */}
           {template.delivery_settings && template.delivery_settings.recipients && template.delivery_settings.recipients.length > 0 && (
             <div className="rounded-lg border p-4 space-y-3">
               <h3 className="font-semibold text-lg">Delivery Settings</h3>
@@ -169,7 +162,6 @@ export function TemplatePreviewModal({
             </div>
           )}
 
-          {/* Schedule Count */}
           {template.schedules_count !== undefined && template.schedules_count > 0 && (
             <div className="rounded-lg border p-4 bg-blue-50 dark:bg-blue-950/20">
               <p className="text-sm text-blue-900 dark:text-blue-100">
@@ -179,7 +171,6 @@ export function TemplatePreviewModal({
           )}
         </div>
 
-        {/* Footer Actions */}
         <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>
             Close

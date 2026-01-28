@@ -17,7 +17,6 @@ interface OnboardingState {
   isTourActive: boolean
   showWelcomeModal: boolean
   
-  // Actions
   setHasSeenWelcome: (seen: boolean) => void
   setHasCompletedTour: (completed: boolean) => void
   startTour: () => void

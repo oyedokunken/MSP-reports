@@ -68,7 +68,6 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          {/* Info Alert */}
           <Alert className="bg-blue-50 border-blue-200">
             <MdInfo className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-sm text-blue-800">
@@ -76,7 +75,6 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
             </AlertDescription>
           </Alert>
 
-          {/* Username Field */}
           <div className="space-y-2">
             <Label htmlFor="ldap-username">Domain Username</Label>
             <Input
@@ -94,7 +92,6 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
             </p>
           </div>
 
-          {/* Password Field */}
           <div className="space-y-2">
             <Label htmlFor="ldap-password">Password</Label>
             <div className="relative">
@@ -123,14 +120,12 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
             </div>
           </div>
 
-          {/* Error Message */}
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
-          {/* Action Buttons */}
           <div className="flex gap-3 pt-2">
             <Button
               type="button"
@@ -158,7 +153,6 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
           </div>
         </form>
 
-        {/* Help Text */}
         <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
           <p className="text-xs text-gray-600">
             <strong>Need help?</strong> Contact your IT administrator if you're having trouble signing in with your domain credentials.

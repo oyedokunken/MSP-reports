@@ -18,21 +18,16 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
 import { useIntegrationsQuery, useSyncIntegrationMutation, useSetSourceOfTruthMutation } from "./hooks/useIntegrations";
-
 export default function IntegrationList() {
     const toast = useToast();
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    // React Query
     const { data, isLoading } = useIntegrationsQuery();
-
     const allIntegrations = data?.integrations || [];
     const availableTypesFromApi = data?.availableTypes || [];
     const syncMutation = useSyncIntegrationMutation();
     const setSourceOfTruthMutation = useSetSourceOfTruthMutation();
-
-    // Zustand store - UI State
     const modals = useIntegrationStore((state) => state.modals);
     const selectedIntegration = useIntegrationStore((state) => state.selectedIntegration);
     const currentPage = useIntegrationStore((state) => state.currentPage);
@@ -40,7 +35,6 @@ export default function IntegrationList() {
     const searchQuery = useIntegrationStore((state) => state.searchQuery);
     const statusFilters = useIntegrationStore((state) => state.statusFilters);
     const integrationTypeFilters = useIntegrationStore((state) => state.integrationTypeFilters);
-
     const setPage = useIntegrationStore((state) => state.setPage);
     const setSearchQuery = useIntegrationStore((state) => state.setSearchQuery);
     const setStatusFilters = useIntegrationStore((state) => state.setStatusFilters);
@@ -48,73 +42,55 @@ export default function IntegrationList() {
     const openModal = useIntegrationStore((state) => state.openModal);
     const closeModal = useIntegrationStore((state) => state.closeModal);
 
-    // Local state for fake sync progress (visual only)
     const [syncingId, setSyncingId] = useState<number | null>(null);
     const [syncProgress, setSyncProgress] = useState(0);
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
-    // Derived State: Filtering
     const filteredIntegrations = allIntegrations.filter((int) => {
-        // Search filter
         const matchesSearch = !searchQuery.trim() ||
             int.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             int.type.toLowerCase().includes(searchQuery.toLowerCase());
 
-        // Status filter
         const matchesStatus = statusFilters.length === 0 ||
             statusFilters.some((status) => int.status.toLowerCase() === status.toLowerCase());
 
-        // Integration type filter
         const matchesType = integrationTypeFilters.length === 0 ||
             integrationTypeFilters.some((type) => int.type.toLowerCase() === type.toLowerCase());
-
         return matchesSearch && matchesStatus && matchesType;
     });
 
-    // Derived State: Pagination
     const paginatedIntegrations = filteredIntegrations.slice(
         (currentPage - 1) * perPage,
         currentPage * perPage
     );
 
-    // Derived State: Unique values for filters
     const uniqueTypes = [...new Set(allIntegrations.map((int) => int.type))].sort();
 
-    // Derived State: Source of Truth
-    // In the old code, this was stored in store. Now we derive it from data.
-    // However, the component expects `sourceOfTruthId`.
     const sourceOfTruthId = allIntegrations.find(i => i.isSourceOfTruth)?.id || null;
 
-    // Fake sync progress for UX
     useEffect(() => {
         if (!syncingId) {
             setSyncProgress(0);
             return;
         }
-
         const interval = setInterval(() => {
             setSyncProgress((prev) => {
                 if (prev >= 90) return prev;
                 return prev + Math.random() * 15;
             });
         }, 300);
-
         return () => clearInterval(interval);
     }, [syncingId]);
-
     const handleSync = async (integrationId: number, name: string) => {
         if (!hasPermission(user, 'integrations', 'sync')) {
             toast.error('Permission Denied', 'You don\'t have permission to sync integrations');
             return;
         }
-
         setSyncingId(integrationId);
         setSyncProgress(0);
-
         try {
             await syncMutation.mutateAsync(integrationId);
             setSyncProgress(100);
-            // Small delay to show completion before clearing
             setTimeout(() => setSyncingId(null), 500);
             toast.success("Sync Started", `${name} sync has been initiated.`);
         } catch (error) {
@@ -123,13 +99,11 @@ export default function IntegrationList() {
             toast.error("Sync Failed", `${name}: ${message}`);
         }
     };
-
     const handleSetSourceOfTruth = async (id: number, name: string) => {
         if (!hasPermission(user, 'integrations', 'manage')) {
             toast.error('Permission Denied', 'You don\'t have permission to manage integrations');
             return;
         }
-
         try {
             await setSourceOfTruthMutation.mutateAsync(id);
             toast.success(
@@ -141,7 +115,6 @@ export default function IntegrationList() {
             toast.error("Failed to Update", message);
         }
     };
-
     return (
         <FloatingLayout>
             <div className="space-y-6">
@@ -163,7 +136,6 @@ export default function IntegrationList() {
                     viewMode={viewMode}
                     onViewModeChange={setViewMode}
                 />
-
                 {viewMode === 'grid' ? (
                     <IntegrationGrid
                         isLoading={isLoading}
@@ -253,8 +225,6 @@ export default function IntegrationList() {
                         sourceOfTruthId={sourceOfTruthId}
                     />
                 )}
-
-                {/* Pagination */}
                 {!isLoading && filteredIntegrations.length > perPage && (
                     <Pagination
                         currentPage={currentPage}
@@ -265,8 +235,6 @@ export default function IntegrationList() {
                         perPage={perPage}
                     />
                 )}
-
-                {/* Modals */}
                 <AddIntegrationModal
                     open={modals.add}
                     onOpenChange={(open) =>
@@ -278,7 +246,6 @@ export default function IntegrationList() {
                         toast.success("Integration added successfully");
                     }}
                 />
-
                 <EditIntegrationModal
                     open={modals.edit}
                     onOpenChange={(open) =>
@@ -293,7 +260,6 @@ export default function IntegrationList() {
                         );
                     }}
                 />
-
                 <DeleteIntegrationModal
                     open={modals.delete}
                     onOpenChange={(open) =>
@@ -308,7 +274,6 @@ export default function IntegrationList() {
                         );
                     }}
                 />
-
                 <ViewSyncLogsModal
                     open={modals.syncLogs}
                     onOpenChange={(open) =>
@@ -316,7 +281,6 @@ export default function IntegrationList() {
                     }
                     integration={selectedIntegration}
                 />
-
                 <IntegrationHealthModal
                     open={modals.health}
                     onOpenChange={(open) =>
@@ -324,7 +288,6 @@ export default function IntegrationList() {
                     }
                     integration={selectedIntegration}
                 />
-
                 <RateLimitStatusModal
                     open={modals.rateLimit}
                     onOpenChange={(open) =>
@@ -332,7 +295,6 @@ export default function IntegrationList() {
                     }
                     integration={selectedIntegration}
                 />
-
                 <HistoricalImportModal
                     open={modals.historicalImport}
                     onOpenChange={(open) =>
@@ -349,7 +311,6 @@ export default function IntegrationList() {
                         );
                     }}
                 />
-
                 <ViewHistoricalImportJobsModal
                     open={modals.viewHistoricalJobs}
                     onOpenChange={(open) =>

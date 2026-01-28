@@ -49,7 +49,6 @@ export function CustomersFilters({
   const hasActiveFilters = searchQuery || statusFilters.length > 0 || reportFilters.length > 0 || integrationFilters.length > 0
   const activeFilterCount = statusFilters.length + reportFilters.length + integrationFilters.length
 
-  // Fetch available integration types
   useEffect(() => {
     const fetchIntegrationTypes = async () => {
       try {
@@ -93,7 +92,6 @@ export function CustomersFilters({
   return (
     <div className="space-y-3">
       <div className="flex flex-col md:flex-row gap-3">
-        {/* Filter Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="w-full md:w-auto h-10">
@@ -107,7 +105,6 @@ export function CustomersFilters({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
-            {/* Status Section */}
             <DropdownMenuLabel>Status</DropdownMenuLabel>
             <DropdownMenuCheckboxItem
               checked={statusFilters.includes('active')}
@@ -124,7 +121,6 @@ export function CustomersFilters({
 
             <DropdownMenuSeparator />
 
-            {/* Customers (Report Configuration) Section */}
             <DropdownMenuLabel>Customers</DropdownMenuLabel>
             <DropdownMenuCheckboxItem
               checked={reportFilters.includes('configured')}
@@ -139,7 +135,6 @@ export function CustomersFilters({
               Not Configured
             </DropdownMenuCheckboxItem>
 
-            {/* Integrations Section */}
             {integrationTypes.length > 0 && (
               <>
                 <DropdownMenuSeparator />
@@ -159,7 +154,6 @@ export function CustomersFilters({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* View Toggle */}
         {onViewChange && (
           <Tabs value={view} onValueChange={(v) => onViewChange(v as 'grid' | 'table')} className="w-auto">
             <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 h-10">
@@ -175,7 +169,6 @@ export function CustomersFilters({
           </Tabs>
         )}
 
-        {/* Search */}
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -186,7 +179,6 @@ export function CustomersFilters({
           />
         </div>
 
-        {/* Create Static Customer Button */}
         {onCreateStatic && (
           <Button onClick={onCreateStatic} className="flex items-center gap-2 h-10">
             <UserPlus className="h-4 w-4" />
@@ -194,8 +186,7 @@ export function CustomersFilters({
           </Button>
         )}
       </div>
-      
-      {/* Active Filters Display */}
+
       {hasActiveFilters && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Filter className="h-4 w-4" />

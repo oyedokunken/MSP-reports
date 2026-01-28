@@ -25,7 +25,6 @@ const ResetPassword = () => {
   if (success) {
     return (
       <Card className="w-full max-w-[400px] border-border bg-[hsl(var(--auth-card))] shadow-2xl">
-        {/* Logo */}
         <div className="flex justify-center pt-8 pb-4">
           <img src="/logo.png" alt="Logo" className="h-8 w-auto opacity-90" />
         </div>
@@ -50,7 +49,6 @@ const ResetPassword = () => {
 
   return (
     <Card className="w-full max-w-[400px] border-border bg-[hsl(var(--auth-card))] shadow-2xl">
-      {/* Logo */}
       <div className="flex justify-center pt-8 pb-6">
         <img src="/logo.png" alt="Logo" className="h-8 w-auto opacity-90" />
       </div>
@@ -124,7 +122,6 @@ const ResetPassword = () => {
             </div>
           </div>
 
-          {/* Password Requirements */}
           <div className="rounded-lg border border-border bg-accent/50 p-3">
             <p className="text-xs font-medium mb-2">Password Requirements:</p>
             <ul className="text-xs text-muted-foreground space-y-1">
@@ -164,7 +161,6 @@ const ResetPassword = () => {
         </form>
       </CardContent>
 
-      {/* Secured by Footer */}
       <div className="relative">
         <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-60"></div>
         <div className="flex justify-center py-3">

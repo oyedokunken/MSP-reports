@@ -90,11 +90,9 @@ export function UserCard({
 
   return (
     <Card className="group relative overflow-hidden border-border/50 bg-card hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
-      {/* Top Accent Line */}
       <div className={cn("absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity")} />
 
       <CardContent className="p-6">
-        {/* Header Section */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -169,7 +167,6 @@ export function UserCard({
           </DropdownMenu>
         </div>
 
-        {/* Role Badge */}
         <div className="mb-6">
           <Badge variant="secondary" className={cn("px-3 py-1 text-xs font-medium rounded-full transition-colors", roleConfig.className)}>
             {user.role.name.toLowerCase() === 'admin' && <Shield className="mr-1.5 h-3 w-3" />}
@@ -177,7 +174,6 @@ export function UserCard({
           </Badge>
         </div>
 
-        {/* Details Grid */}
         <div className="grid grid-cols-2 gap-y-4 gap-x-2 py-4 border-t border-border/50">
           <div className="space-y-1">
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1.5">

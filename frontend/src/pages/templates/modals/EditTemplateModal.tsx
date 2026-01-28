@@ -70,7 +70,6 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
     active: true,
   })
 
-  // Populate form when template changes
   useEffect(() => {
     if (template) {
       setFormData({
@@ -84,7 +83,6 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
     }
   }, [template])
 
-  // Fetch available sections for the report type
   useEffect(() => {
     const fetchSections = async () => {
       if (!template) return
@@ -120,9 +118,7 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
         active: formData.active,
       }
 
-      // Only include time_of_day if it has a value, and format it correctly (HH:MM)
       if (formData.time_of_day) {
-        // Remove seconds if present (e.g., "14:30:00" -> "14:30")
         const timeParts = formData.time_of_day.split(':')
         updateData.time_of_day = `${timeParts[0]}:${timeParts[1]}`
       }
@@ -157,7 +153,6 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Template Name */}
           <div className="space-y-2">
             <Label htmlFor="template_name">
               Template Name <span className="text-destructive">*</span>
@@ -172,7 +167,6 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
             />
           </div>
 
-          {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -185,7 +179,6 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
             />
           </div>
 
-          {/* Frequency */}
           <div className="space-y-2">
             <Label htmlFor="frequency">
               Frequency <span className="text-destructive">*</span>
@@ -208,7 +201,6 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
             </Select>
           </div>
 
-          {/* Time of Day */}
           <div className="space-y-2">
             <Label htmlFor="time_of_day">Time of Day (Optional)</Label>
             <Input
@@ -223,7 +215,6 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
             </p>
           </div>
 
-          {/* Timezone */}
           <div className="space-y-2">
             <Label htmlFor="timezone">
               Timezone <span className="text-destructive">*</span>
@@ -246,7 +237,6 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
             </Select>
           </div>
 
-          {/* Active Status */}
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <Label htmlFor="active" className="text-base">
@@ -264,7 +254,6 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
             />
           </div>
 
-          {/* Sync Impact Warning */}
           {template && template.schedules_count && template.schedules_count > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
               <div className="flex items-start gap-3">
@@ -282,7 +271,6 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
             </div>
           )}
 
-          {/* Read-only Information */}
           {template && (
             <div className="rounded-lg border p-4 space-y-3 bg-muted/50">
               <h4 className="font-medium text-sm">Template Information</h4>
@@ -318,7 +306,6 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
             </div>
           )}
 
-          {/* Included Sections */}
           {template && template.included_sections && template.included_sections.length > 0 && (
             <div className="rounded-lg border p-4 space-y-3 bg-muted/50">
               <h4 className="font-medium text-sm">Included Report Sections</h4>

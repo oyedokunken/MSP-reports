@@ -26,7 +26,6 @@ export default function Dashboard() {
     return (
         <FloatingLayout>
             <div className="h-full flex flex-col gap-4">
-                {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-foreground">
@@ -51,12 +50,9 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Stats Grid */}
                 <StatsGrid isLoading={isLoading} stats={stats} />
 
-                {/* Main Content - 2 Column Layout */}
                 <div className="grid gap-4 lg:grid-cols-2 flex-1 min-h-0">
-                    {/* Left Column */}
                     <div className="flex flex-col gap-4 min-h-0">
                         <div className="h-[580px]">
                             <IntegrationsSummary
@@ -69,7 +65,6 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Right Column */}
                     <div className="flex flex-col gap-4 min-h-0">
                         <div className="h-[580px]">
                             <ReportsGeneratedChart

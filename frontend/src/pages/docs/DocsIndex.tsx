@@ -92,7 +92,6 @@ export default function DocsIndex() {
   return (
     <FloatingLayout>
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-        {/* Hero Section */}
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto px-4 py-12 md:py-16">
             <div className="max-w-3xl mx-auto text-center">
@@ -107,7 +106,6 @@ export default function DocsIndex() {
                 browse by category.
               </p>
 
-              {/* Take the Tour Button */}
               <div className="mb-8">
                 <Button
                   onClick={() => {
@@ -123,7 +121,6 @@ export default function DocsIndex() {
                 </Button>
               </div>
 
-              {/* Search */}
               <div className="relative max-w-xl mx-auto">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -135,7 +132,6 @@ export default function DocsIndex() {
                 />
               </div>
 
-              {/* Search Results Dropdown */}
               {searchQuery && searchResults.length > 0 && (
                 <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-xl mt-2 bg-background border rounded-xl shadow-lg z-50 max-h-96 overflow-y-auto">
                   {searchResults.slice(0, 8).map((article) => (
@@ -159,7 +155,6 @@ export default function DocsIndex() {
           </div>
         </div>
 
-        {/* Categories Grid */}
         <div className="container mx-auto px-4 py-12">
           {filteredData.length === 0 ? (
             <div className="text-center py-12">
@@ -204,7 +199,6 @@ export default function DocsIndex() {
           )}
         </div>
 
-        {/* Quick Links Footer */}
         <div className="border-t bg-muted/30">
           <div className="container mx-auto px-4 py-8">
             <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">

@@ -8,7 +8,7 @@ export interface Notification {
   title: string
   description?: string
   time: string
-  rawDate: string // Added for sorting and grouping
+  rawDate: string
   read: boolean
   type: string
   severity: 'green' | 'yellow' | 'red' | 'blue'
@@ -27,7 +27,6 @@ interface NotificationState {
   error: string | null
   echo: ReturnType<typeof initEcho> | null
 
-  // Filters & Search
   searchQuery: string
   filters: {
     type: string | 'all'
@@ -39,7 +38,6 @@ interface NotificationState {
     direction: SortDirection
   }
 
-  // Actions
   fetchNotifications: (page?: number) => Promise<void>
   markAsRead: (id: string | number) => Promise<void>
   markAllAsRead: () => Promise<void>
@@ -49,7 +47,6 @@ interface NotificationState {
   listenForNotifications: (user_id: string | number, token: string) => void
   disconnectEcho: () => void
 
-  // Local UI actions
   setSearchQuery: (query: string) => void
   setFilters: (filters: Partial<NotificationState['filters']>) => void
   setSortConfig: (config: Partial<NotificationState['sortConfig']>) => void
@@ -57,13 +54,11 @@ interface NotificationState {
   selectAll: () => void
   deselectAll: () => void
 
-  // Derived Data Helpers
   getFilteredNotifications: () => Notification[]
   getUnreadCount: () => number
   getSelectedCount: () => number
 }
 
-// Helper to format date for display
 const formatTime = (dateString: string) => {
   const date = new Date(dateString)
   return date.toLocaleString('en-US', {
@@ -249,17 +244,15 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     const echoInstance = initEcho(token)
 
-    // If Echo is disabled, don't try to listen
     if (!echoInstance) {
       logger.info('Real-time notifications disabled')
       return
     }
 
-    // Listen for Laravel Notifications on private channel
     echoInstance.private(`App.Models.User.${user_id}`)
       .notification((notification: { id?: string | number; type?: string; title?: string; description?: string; severity?: 'green' | 'yellow' | 'red' | 'blue'; metadata?: Record<string, unknown> }) => {
         const newNotification: Notification = {
-          id: notification.id || Date.now(), // Fallback ID
+          id: notification.id || Date.now(),
           type: notification.type || 'info',
           title: notification.title || 'New Notification',
           description: notification.description || '',
@@ -297,7 +290,6 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     let filtered = [...notifications]
 
-    // 1. Search Query
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(n =>
@@ -306,24 +298,20 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       )
     }
 
-    // 2. Status Filter
     if (filters.status !== 'all') {
       filtered = filtered.filter(n =>
         filters.status === 'read' ? n.read : !n.read
       )
     }
 
-    // 3. Type Filter
     if (filters.type !== 'all') {
       filtered = filtered.filter(n => n.type === filters.type)
     }
 
-    // 4. Severity Filter
     if (filters.severity !== 'all') {
       filtered = filtered.filter(n => n.severity === filters.severity)
     }
 
-    // 5. Sorting
     filtered.sort((a, b) => {
       let comparison = 0
 

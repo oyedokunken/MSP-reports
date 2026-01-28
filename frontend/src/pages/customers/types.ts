@@ -18,7 +18,6 @@ export type Stat = {
   color: string
 }
 
-// MapCustomerModal types
 export interface IntegrationCustomer {
   integration_customer_id: number
   integration_type: string

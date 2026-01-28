@@ -25,7 +25,6 @@ interface Customer {
   status: string
 }
 
-// Map report_type to required integration type
 const getRequiredIntegration = (reportType: string): string | null => {
   const mapping: Record<string, string> = {
     'autotask_summary': 'Autotask',
@@ -55,7 +54,6 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
   const observerTarget = useRef<HTMLDivElement>(null)
   const isInitialLoad = useRef(true)
 
-  // Get required integration for filtering
   const requiredIntegration = template?.report_type ? getRequiredIntegration(template.report_type) : null
 
   useEffect(() => {
@@ -73,7 +71,6 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
-  // Load initial customers
   const loadInitialCustomers = async () => {
     setIsLoading(true)
     try {
@@ -105,7 +102,6 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
     }
   }
 
-  // Load more customers (with search support)
   const loadMoreCustomers = useCallback(async (page: number, append: boolean = false) => {
     if (append) {
       setIsLoadingMore(true)
@@ -153,11 +149,9 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
     }
   }, [searchQuery, requiredIntegration])
 
-  // Search with debounce - skip initial load to prevent double fetch
   useEffect(() => {
     if (!open) return
 
-    // Skip on initial load (loadInitialCustomers already called)
     if (isInitialLoad.current) {
       isInitialLoad.current = false
       return
@@ -170,7 +164,6 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
     return () => clearTimeout(timeoutId)
   }, [searchQuery, open, loadMoreCustomers])
 
-  // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -364,7 +357,6 @@ export function ApplyTemplateModal({ open, onOpenChange, template, onSuccess }: 
                     </div>
                   ))}
 
-                  {/* Infinite scroll trigger */}
                   <div ref={observerTarget} className="py-2">
                     {isLoadingMore && (
                       <div className="flex items-center justify-center py-2">

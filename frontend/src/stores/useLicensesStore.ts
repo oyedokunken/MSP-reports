@@ -10,30 +10,25 @@ import type {
   LicenseUsage
 } from '@/types/api/license'
 
-// Re-export for backward compatibility
 export type { License, UserLicenseStatus, LicenseData, LicenseUsage }
 
 
 interface LicensesState {
-  // Data
   licenseData: LicenseData | null
   usage: LicenseUsage | null
   isLoading: boolean
   error: string | null
 
-  // Actions
   fetchLicenses: () => Promise<void>
   fetchUsage: () => Promise<void>
 }
 
 export const useLicensesStore = create<LicensesState>((set) => ({
-  // Initial state
   licenseData: null,
   usage: null,
   isLoading: true,
   error: null,
 
-  // Fetch licenses
   fetchLicenses: async () => {
     set({ isLoading: true, error: null })
     try {
@@ -53,7 +48,6 @@ export const useLicensesStore = create<LicensesState>((set) => ({
     }
   },
 
-  // Fetch license usage
   fetchUsage: async () => {
     try {
       const response = await api.get<LicenseUsageResponse>('/licenses/usage')

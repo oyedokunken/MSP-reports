@@ -30,10 +30,9 @@ export function SystemStatusCard({ status }: SystemStatusCardProps) {
     return ((status.system.storage.free_bytes / status.system.storage.total_bytes) * 100).toFixed(2)
   }
 
-  // Determine overall health
-  const overallHealth = status.integrations.health === 'healthy' && 
-                        status.reports.health === 'healthy' && 
-                        status.queue.health === 'healthy'
+  const overallHealth = status.integrations.health === 'healthy' &&
+    status.reports.health === 'healthy' &&
+    status.queue.health === 'healthy'
     ? 'healthy'
     : 'degraded'
 

@@ -4,19 +4,16 @@ import { transformIntegrations } from '@/pages/integrations/utils/transformInteg
 import type { IntegrationListResponse } from '@/types/api/integration';
 import type { Integration } from '@/pages/integrations/types/integration';
 
-// Keys
 export const integrationKeys = {
   all: ['integrations'] as const,
   lists: () => [...integrationKeys.all, 'list'] as const,
 };
 
-// Types
 interface IntegrationsData {
   integrations: Integration[];
   availableTypes: string[];
 }
 
-// Fetcher
 const fetchIntegrations = async (): Promise<IntegrationsData> => {
   const response = await api.get<IntegrationListResponse>('/integrations');
   return {
@@ -57,7 +54,6 @@ export const useSyncIntegrationMutation = () => {
       return id;
     },
     onSuccess: () => {
-      // Invalidate to immediately refresh the integration list UI
       queryClient.invalidateQueries({ queryKey: integrationKeys.lists() });
     },
   });

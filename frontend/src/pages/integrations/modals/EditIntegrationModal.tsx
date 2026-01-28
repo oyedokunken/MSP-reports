@@ -110,7 +110,6 @@ export function EditIntegrationModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Display Name */}
           <div>
             <Label htmlFor="displayName" className="text-sm font-medium mb-2 block">
               Display Name

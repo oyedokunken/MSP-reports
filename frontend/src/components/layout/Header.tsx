@@ -28,7 +28,6 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[hsl(var(--auth-card))] shadow-sm">
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-3">
-          {/* Mobile menu button */}
           <button
             onClick={onMenuClick}
             className="lg:hidden rounded-md p-2 text-foreground hover:bg-muted"

@@ -60,7 +60,6 @@ export function RecentActivityCard({ isLoading, items, onInfo }: RecentActivityC
                 </h2>
             </div>
 
-            {/* Quick Actions Grid */}
             <div className="grid gap-3 grid-cols-4 mb-6 flex-shrink-0">
                 {quickActions.map((action) => {
                     const Icon = action.icon;
@@ -81,10 +80,8 @@ export function RecentActivityCard({ isLoading, items, onInfo }: RecentActivityC
                 })}
             </div>
 
-            {/* Divider */}
             <div className="border-t border-border mb-4 flex-shrink-0"></div>
 
-            {/* Recent Activity Section */}
             <div className="flex items-center justify-between mb-4 flex-shrink-0">
                 <h2 className="text-lg font-semibold text-foreground">
                     Recent Activity

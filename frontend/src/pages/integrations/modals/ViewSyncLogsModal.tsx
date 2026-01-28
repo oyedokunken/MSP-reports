@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { FileText, CheckCircle, XCircle, Clock } from "lucide-react";
 import { api } from "@/lib/api";
 
-// ---- Types ----
 
 import type { Integration } from "../types/integration";
 
@@ -46,8 +45,6 @@ interface ViewSyncLogsModalProps {
     integration: Integration | null;
 }
 
-// ---- Component ----
-
 export function ViewSyncLogsModal({
     open,
     onOpenChange,
@@ -64,7 +61,6 @@ export function ViewSyncLogsModal({
         setError("");
 
         try {
-            // ✅ use `integration.id` — backend expects that field
             const response = await api.get<SyncLogsApiData>(
                 `/integrations/${integration.id}/sync-logs`,
             );
@@ -200,7 +196,7 @@ export function ViewSyncLogsModal({
 
                                     {log.error_messages &&
                                         Object.keys(log.error_messages).length >
-                                            0 && (
+                                        0 && (
                                             <div className="rounded bg-destructive/10 p-2 overflow-hidden">
                                                 <p className="text-xs text-destructive font-medium">
                                                     Errors:

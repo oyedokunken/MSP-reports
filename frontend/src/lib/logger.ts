@@ -39,9 +39,8 @@ class Logger {
         if (this.isDevelopment) {
             console.error(errorMessage, { error, ...context });
         } else {
-            // In production, you might want to send to Sentry, LogRocket, etc.
             console.error(errorMessage);
-            // this.sendToErrorTracking(message, error, context);
+
         }
     }
 
@@ -61,17 +60,8 @@ class Logger {
     apiError(endpoint: string, error: unknown, context?: LogContext): void {
         this.error(`API call failed: ${endpoint}`, error, context);
     }
-
-    /**
-     * Optional: Send errors to tracking service
-     * Uncomment and implement when ready to integrate Sentry, etc.
-     */
-    // private sendToErrorTracking(message: string, error: unknown, context?: LogContext): void {
-    //   // Example: Sentry.captureException(error, { extra: { message, ...context } });
-    // }
 }
 
 export const logger = new Logger();
 
-// Export for backward compatibility with existing console.error calls
 export default logger;

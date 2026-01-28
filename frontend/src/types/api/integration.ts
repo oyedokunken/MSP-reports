@@ -105,7 +105,6 @@ export interface HistoricalImportJob {
     completed_at: string | null
 }
 
-// API Response Types
 export interface IntegrationListResponse {
     available_types: string[]
     configured: Integration[]

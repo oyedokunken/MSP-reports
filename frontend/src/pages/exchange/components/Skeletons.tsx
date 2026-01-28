@@ -4,7 +4,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 export function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Header Skeleton */}
       <div className="flex items-center justify-between">
         <div>
           <Skeleton className="h-9 w-64" />
@@ -13,7 +12,6 @@ export function DashboardSkeleton() {
         <Skeleton className="h-10 w-32" />
       </div>
 
-      {/* Sync Status Skeleton */}
       <Card>
         <CardHeader>
           <Skeleton className="h-6 w-32" />
@@ -30,7 +28,6 @@ export function DashboardSkeleton() {
         </CardContent>
       </Card>
 
-      {/* Stats Grid Skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[1, 2, 3, 4].map((i) => (
           <Card key={i}>
@@ -45,7 +42,6 @@ export function DashboardSkeleton() {
         ))}
       </div>
 
-      {/* Additional Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[1, 2, 3].map((i) => (
           <Card key={i}>
@@ -66,7 +62,6 @@ export function DashboardSkeleton() {
 export function MailboxesListSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Header Skeleton */}
       <div className="flex items-center justify-between">
         <div>
           <Skeleton className="h-9 w-64" />
@@ -78,7 +73,6 @@ export function MailboxesListSkeleton() {
         </div>
       </div>
 
-      {/* Filters Skeleton */}
       <Card>
         <CardContent className="pt-6">
           <div className="grid grid-cols-3 gap-4">
@@ -89,7 +83,6 @@ export function MailboxesListSkeleton() {
         </CardContent>
       </Card>
 
-      {/* Table Skeleton */}
       <Card>
         <CardHeader>
           <Skeleton className="h-6 w-24" />
@@ -121,7 +114,6 @@ export function MailboxesListSkeleton() {
 export function MailboxDetailSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Header Skeleton */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Skeleton className="h-8 w-20" />
@@ -133,7 +125,6 @@ export function MailboxDetailSkeleton() {
         <Skeleton className="h-8 w-32" />
       </div>
 
-      {/* Basic Information Skeleton */}
       <Card>
         <CardHeader>
           <Skeleton className="h-6 w-48" />
@@ -150,7 +141,6 @@ export function MailboxDetailSkeleton() {
         </CardContent>
       </Card>
 
-      {/* Statistics Skeleton */}
       <Card>
         <CardHeader>
           <Skeleton className="h-6 w-48" />
@@ -170,7 +160,6 @@ export function MailboxDetailSkeleton() {
         </CardContent>
       </Card>
 
-      {/* Additional Cards */}
       {[1, 2].map((i) => (
         <Card key={i}>
           <CardHeader>

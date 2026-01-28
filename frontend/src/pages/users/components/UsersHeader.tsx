@@ -38,14 +38,11 @@ export function UsersHeader({
         </p>
       </div>
 
-      {/* Filters and Search */}
       <div className="flex flex-col md:flex-row gap-3">
-        {/* Count */}
         <div className="flex items-center text-sm text-muted-foreground whitespace-nowrap px-3 h-10 border rounded-md">
           {filteredCount} user{filteredCount !== 1 ? 's' : ''}
         </div>
 
-        {/* Filter Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="w-full md:w-auto h-10 border">
@@ -83,7 +80,6 @@ export function UsersHeader({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Search */}
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -94,7 +90,6 @@ export function UsersHeader({
           />
         </div>
 
-        {/* Create User Button */}
         <Button onClick={onCreateUser} className="h-10">
           <UserPlus className="h-4 w-4 mr-2" />
           Add User

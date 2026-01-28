@@ -73,7 +73,7 @@ export function SplitCustomerModal({
       const historyList = Array.isArray(data) ? data : (data.data || [])
       setMergeHistory(historyList)
     } catch {
-      // Merge history is optional, fail silently
+      void 0;
     }
   }, [customer])
 
@@ -174,7 +174,6 @@ export function SplitCustomerModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Merge History */}
           {mergeHistory.length > 0 && (
             <div className="rounded-lg border border-purple-500/50 bg-purple-500/10 p-3">
               <div className="flex items-center gap-2 mb-2">
@@ -204,14 +203,12 @@ export function SplitCustomerModal({
             </div>
           )}
 
-          {/* Info */}
           <div className="rounded-lg border border-blue-500/50 bg-blue-500/10 p-3">
             <p className="text-sm text-blue-700 dark:text-blue-400">
               ℹ️ Select which integrations should be moved to the new customer. The remaining integrations will stay with "{customer.name}".
             </p>
           </div>
 
-          {/* New Customer Name */}
           <div>
             <Label htmlFor="newName" className="text-sm font-medium mb-2 block">
               New Customer Name
@@ -227,7 +224,6 @@ export function SplitCustomerModal({
             />
           </div>
 
-          {/* Integration Selection */}
           <div>
             <Label className="text-sm font-medium mb-2 block">
               Select integrations to move to new customer

@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import type { CompanyBranding } from '@/types/branding'
 
 interface SettingsState {
-  // Company info
   companyName: string
   primaryHex: string
   secondaryHex: string
@@ -11,35 +10,28 @@ interface SettingsState {
   address: string
   websiteUrl: string
 
-  // Branding assets
   logoUrl: string | null
   faviconUrl: string | null
 
-  // Email delivery
   fromEmail: string
   fromName: string
   supportEmail: string
   supportPhone: string
 
-  // SMTP settings
   smtpHost: string
   smtpPort: number
   smtpEncryption: string
   smtpUsername: string
   smtpPassword?: string
 
-  // Report branding
   footerText: string
   reportHeaderText: string
 
-  // API key
   apiKeyMasked: string
   lastGenerated: string | null
 
-  // Modal state
   changePasswordModalOpen: boolean
 
-  // Actions
   setCompanyName: (name: string) => void
   setPrimaryHex: (hex: string) => void
   setSecondaryHex: (hex: string) => void
@@ -63,16 +55,13 @@ interface SettingsState {
   setSmtpUsername: (user: string) => void
   setSmtpPassword: (pass: string) => void
 
-  // Initialize from branding
   initializeFromBranding: (branding: CompanyBranding) => void
 
-  // Computed
   isValidHex: () => boolean
   isValidSecondaryHex: () => boolean
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  // Initial state
   companyName: '',
   primaryHex: '#3b82f6',
   secondaryHex: '#7c3aed',
@@ -97,7 +86,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   smtpUsername: '',
   smtpPassword: '',
 
-  // Actions
   setCompanyName: (name: string) => set({ companyName: name }),
   setPrimaryHex: (hex: string) => set({ primaryHex: hex }),
   setSecondaryHex: (hex: string) => set({ secondaryHex: hex }),
@@ -121,7 +109,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setLastGenerated: (key: string | null) => set({ lastGenerated: key }),
   setChangePasswordModalOpen: (open: boolean) => set({ changePasswordModalOpen: open }),
 
-  // Initialize from branding
   initializeFromBranding: (branding: CompanyBranding) => {
     set({
       companyName: branding.company_name || '',
@@ -139,7 +126,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     })
   },
 
-  // Computed - validate hex colors
   isValidHex: () => {
     const { primaryHex } = get()
     return /^#([0-9a-f]{6})$/i.test(primaryHex)

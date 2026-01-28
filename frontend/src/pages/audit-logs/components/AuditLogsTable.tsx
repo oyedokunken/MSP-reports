@@ -21,7 +21,6 @@ interface AuditLogsTableProps {
   error: string | null
 }
 
-// Helper function to format relative time
 function formatRelativeTime(date: Date): string {
   const now = new Date()
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
@@ -112,7 +111,6 @@ export function AuditLogsTable({
 
   return (
     <div className="space-y-4">
-      {/* Desktop Table View */}
       <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -146,7 +144,6 @@ export function AuditLogsTable({
                     key={log.audit_log_id}
                     className="group transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50"
                   >
-                    {/* Event */}
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
                         <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colors.bg}`}>
@@ -163,7 +160,6 @@ export function AuditLogsTable({
                       </div>
                     </td>
 
-                    {/* Actor */}
                     <td className="px-4 py-4">
                       <div className="flex flex-col gap-1">
                         <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -175,7 +171,6 @@ export function AuditLogsTable({
                       </div>
                     </td>
 
-                    {/* Target */}
                     <td className="px-4 py-4">
                       <div className="flex flex-col gap-1">
                         <span className="text-sm text-gray-900 dark:text-white">
@@ -189,7 +184,6 @@ export function AuditLogsTable({
                       </div>
                     </td>
 
-                    {/* Time */}
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
                         <Clock className="h-4 w-4 text-gray-400" />
@@ -202,7 +196,6 @@ export function AuditLogsTable({
                       </div>
                     </td>
 
-                    {/* IP Address */}
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
                         <MapPin className="h-4 w-4 text-gray-400" />
@@ -212,7 +205,6 @@ export function AuditLogsTable({
                       </div>
                     </td>
 
-                    {/* View Button */}
                     <td className="px-4 py-4 text-right">
                       <Button
                         variant="ghost"
@@ -232,7 +224,6 @@ export function AuditLogsTable({
         </div>
       </div>
 
-      {/* Mobile Card View */}
       <div className="grid grid-cols-1 gap-4 md:hidden">
         {logs.map((log) => {
           const EventIcon = getEventIcon(log.event_type)

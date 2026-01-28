@@ -9,7 +9,6 @@ export default function NotFound() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center p-4">
       <div className="max-w-lg w-full text-center">
-        {/* Logo */}
         <div className="mb-8">
           {branding?.logo_url ? (
             <img
@@ -33,7 +32,6 @@ export default function NotFound() {
           )}
         </div>
 
-        {/* 404 Display */}
         <div className="relative mb-8">
           <h1 className="text-[120px] md:text-[180px] font-bold text-muted-foreground/20 leading-none select-none">
             404
@@ -46,13 +44,11 @@ export default function NotFound() {
           </div>
         </div>
 
-        {/* Message */}
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
           Sorry, the page you're looking for doesn't exist or has been moved. 
           Check the URL or navigate back to a known page.
         </p>
 
-        {/* Actions */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button asChild size="lg" className="w-full sm:w-auto">
             <Link to="/platform/dashboard">
@@ -68,7 +64,6 @@ export default function NotFound() {
           </Button>
         </div>
 
-        {/* Back Link */}
         <div className="mt-8">
           <button
             onClick={() => window.history.back()}

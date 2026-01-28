@@ -31,7 +31,6 @@ export function TourOverlay() {
 
   const calculatePosition = useCallback(() => {
     if (!step?.target) {
-      // Center the tooltip if no target
       setTooltipPosition({
         top: window.innerHeight / 2 - 100,
         left: window.innerWidth / 2 - 175,
@@ -43,7 +42,6 @@ export function TourOverlay() {
 
     const element = document.querySelector(step.target)
     if (!element) {
-      // Fallback to center if element not found
       setTooltipPosition({
         top: window.innerHeight / 2 - 100,
         left: window.innerWidth / 2 - 175,
@@ -95,7 +93,6 @@ export function TourOverlay() {
         break
     }
 
-    // Keep tooltip within viewport
     if (left < padding) left = padding
     if (left + tooltipWidth > window.innerWidth - padding) {
       left = window.innerWidth - tooltipWidth - padding
@@ -108,18 +105,15 @@ export function TourOverlay() {
     setTooltipPosition({ top, left, arrowPosition })
   }, [step])
 
-  // Navigate to the correct route for the current step
   useEffect(() => {
     if (isTourActive && step?.route && location.pathname !== step.route) {
       navigate(step.route)
     }
   }, [isTourActive, step, location.pathname, navigate])
 
-  // Recalculate position when step changes or window resizes
   useEffect(() => {
     if (!isTourActive) return
 
-    // Wait for navigation and DOM updates
     const timer = setTimeout(() => {
       calculatePosition()
     }, 300)
@@ -133,7 +127,6 @@ export function TourOverlay() {
     }
   }, [isTourActive, currentStep, calculatePosition, location.pathname])
 
-  // Handle keyboard navigation
   useEffect(() => {
     if (!isTourActive) return
 
@@ -155,10 +148,8 @@ export function TourOverlay() {
 
   return (
     <>
-      {/* Backdrop overlay */}
       <div className="fixed inset-0 z-[9998] bg-black/50 transition-opacity" />
 
-      {/* Highlight cutout for target element */}
       {targetRect && (
         <div
           className="fixed z-[9999] rounded-lg ring-4 ring-primary ring-offset-2 ring-offset-background transition-all duration-300 pointer-events-none"
@@ -172,7 +163,6 @@ export function TourOverlay() {
         />
       )}
 
-      {/* Tooltip */}
       <div
         className={cn(
           "fixed z-[10000] w-[350px] rounded-xl bg-background border shadow-2xl p-5 transition-all duration-300",
@@ -183,7 +173,6 @@ export function TourOverlay() {
           left: tooltipPosition.left,
         }}
       >
-        {/* Close button */}
         <button
           onClick={skipTour}
           className="absolute top-3 right-3 p-1 rounded-md hover:bg-muted transition-colors"
@@ -192,7 +181,6 @@ export function TourOverlay() {
           <X className="h-4 w-4 text-muted-foreground" />
         </button>
 
-        {/* Step indicator */}
         <div className="flex items-center gap-1.5 mb-3">
           {tourSteps.map((_, index) => (
             <div
@@ -212,13 +200,11 @@ export function TourOverlay() {
           </span>
         </div>
 
-        {/* Content */}
         <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
         <p className="text-sm text-muted-foreground leading-relaxed mb-4">
           {step.description}
         </p>
 
-        {/* Navigation buttons */}
         <div className="flex items-center justify-between gap-2">
           <Button
             variant="ghost"

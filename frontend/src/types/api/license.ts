@@ -57,7 +57,6 @@ export interface LicenseCheck {
     reason?: string
 }
 
-// API Response Types
 export type LicenseListResponse = ApiSuccessResponse<LicenseData>
 export type LicenseUsageResponse = ApiSuccessResponse<LicenseUsage>
 export type IntegrationLicenseCheckResponse = ApiSuccessResponse<LicenseCheck>

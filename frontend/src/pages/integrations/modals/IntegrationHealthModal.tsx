@@ -44,7 +44,6 @@ export function IntegrationHealthModal({
 
     try {
       const response = await api.get<{ data?: HealthCheckResult } & HealthCheckResult>(`/integrations/${integration.id}/health`)
-      // Handle both wrapped and unwrapped response formats
       const data = response.data || response
       setHealthData(data as HealthCheckResult)
     } catch (err: unknown) {

@@ -21,7 +21,6 @@ export function EmailAliases({ mailboxId }: EmailAliasesProps) {
 
   useEffect(() => {
     // TODO: Implement API endpoint
-    // fetchAliases()
     setIsLoading(false)
     setAliases([])
   }, [mailboxId])

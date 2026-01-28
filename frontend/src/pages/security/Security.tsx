@@ -29,7 +29,6 @@ export default function Security() {
   return (
     <FloatingLayout>
       <div className="space-y-8">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -44,7 +43,6 @@ export default function Security() {
           </div>
         </div>
 
-        {/* Password Section */}
         <section className="rounded-lg border border-gray-200 dark:border-0 bg-white dark:bg-[hsl(var(--auth-card))] p-5 shadow-sm">
           <h2 className="text-base font-semibold text-foreground">Password</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -61,7 +59,6 @@ export default function Security() {
           </div>
         </section>
 
-        {/* API Access Section */}
         <section className="rounded-lg border border-gray-200 dark:border-0 bg-white dark:bg-[hsl(var(--auth-card))] p-5 shadow-sm">
           <h2 className="text-base font-semibold text-foreground">API Access</h2>
           <p className="mt-1 text-sm text-muted-foreground">Manage API keys for external integrations</p>
@@ -90,7 +87,6 @@ export default function Security() {
         </section>
       </div>
 
-      {/* Change Password Modal */}
       <ChangePasswordModal
         open={changePasswordModalOpen}
         onOpenChange={setChangePasswordModalOpen}
@@ -99,7 +95,6 @@ export default function Security() {
         }}
       />
 
-      {/* API Key Modal */}
       <ApiKeyModal
         open={apiKeyModalOpen}
         onOpenChange={(open) => {

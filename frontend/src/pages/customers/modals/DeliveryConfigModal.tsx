@@ -49,7 +49,6 @@ export function DeliveryConfigModal({
 
     const [, setDeliveryData] = useState<CustomerDeliveryResponse | null>(null);
 
-    // Form state
     const [enabledMethods, setEnabledMethods] = useState<string[]>(['email']);
     const [emailDestination, setEmailDestination] = useState("");
     const [emailCc, setEmailCc] = useState("");
@@ -77,7 +76,6 @@ export function DeliveryConfigModal({
             const data = await getCustomerDeliveryConfig(customer.customer_id);
             setDeliveryData(data);
 
-            // Populate form from config
             const config = data.delivery_config;
             setEnabledMethods(config.enabled_methods || (config.method ? [config.method] : ['email']));
             setEmailDestination(config.email?.destination || customer.report_destination || "");
@@ -218,7 +216,6 @@ export function DeliveryConfigModal({
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Delivery Methods Selection */}
                         <div className="space-y-3">
                             <Label className="text-sm font-medium">Enabled Delivery Methods</Label>
                             <div className="flex flex-wrap gap-4">
@@ -248,7 +245,6 @@ export function DeliveryConfigModal({
                         </div>
 
                         <Accordion type="multiple" defaultValue={enabledMethods} className="w-full">
-                            {/* Email Configuration */}
                             {enabledMethods.includes('email') && (
                                 <AccordionItem value="email">
                                     <AccordionTrigger className="hover:no-underline">
@@ -302,7 +298,6 @@ export function DeliveryConfigModal({
                                 </AccordionItem>
                             )}
 
-                            {/* SharePoint Configuration */}
                             {enabledMethods.includes('sharepoint') && (
                                 <AccordionItem value="sharepoint">
                                     <AccordionTrigger className="hover:no-underline">
@@ -419,7 +414,6 @@ export function DeliveryConfigModal({
                             )}
                         </Accordion>
 
-                        {/* Test Result */}
                         {testResult && (
                             <div className={`rounded-lg border p-3 flex items-start gap-2 ${testResult.success
                                 ? 'border-green-500/50 bg-green-500/10'

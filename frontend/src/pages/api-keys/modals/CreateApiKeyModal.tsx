@@ -36,7 +36,6 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
     reports: { view: false, configure: false, generate: false, download: false },
   })
 
-  // Load customers when modal opens
   useEffect(() => {
     if (open) {
       loadCustomers()
@@ -124,7 +123,6 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Display Name */}
               <div className="space-y-2">
                 <Label htmlFor="displayName">Display Name *</Label>
                 <Input
@@ -139,7 +137,6 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
                 </p>
               </div>
 
-              {/* Customer Scope (for AD/Exchange agents) */}
               <div className="space-y-2">
                 <Label htmlFor="customerId">Customer Scope (Optional)</Label>
                 <Select value={customerId} onValueChange={setCustomerId}>
@@ -160,7 +157,6 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
                 </p>
               </div>
 
-              {/* IP Whitelist */}
               <div className="space-y-2">
                 <Label htmlFor="ipWhitelist">IP Whitelist (Optional)</Label>
                 <Input
@@ -174,11 +170,9 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
                 </p>
               </div>
 
-              {/* Permissions */}
               <div className="space-y-4">
                 <Label>Permissions *</Label>
 
-                {/* Integrations */}
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Integrations</p>
                   <div className="space-y-2 pl-4">
@@ -200,7 +194,6 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
                   </div>
                 </div>
 
-                {/* Customers */}
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Customers</p>
                   <div className="space-y-2 pl-4">
@@ -222,7 +215,6 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
                   </div>
                 </div>
 
-                {/* Reports */}
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Reports</p>
                   <div className="space-y-2 pl-4">
@@ -275,7 +267,6 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
             </DialogHeader>
 
             <div className="space-y-4">
-              {/* Warning */}
               <div className="flex gap-3 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
                 <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
@@ -288,7 +279,6 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
                 </div>
               </div>
 
-              {/* API Key Display */}
               <div className="space-y-2">
                 <Label>Your API Key</Label>
                 <div className="flex gap-2">
@@ -303,7 +293,6 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
                 </div>
               </div>
 
-              {/* Display Name */}
               <div className="space-y-2">
                 <Label>Display Name</Label>
                 <Input value={displayName} readOnly />

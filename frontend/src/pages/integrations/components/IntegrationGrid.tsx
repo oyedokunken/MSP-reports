@@ -63,13 +63,12 @@ export function IntegrationGrid({
                 </div>
             ) : (
                 [...items]
-                    // ✅ This ensures Source of Truth card is always first
                     .sort((a, b) =>
                         a.id === sourceOfTruthId
                             ? -1
                             : b.id === sourceOfTruthId
-                            ? 1
-                            : 0
+                                ? 1
+                                : 0
                     )
                     .map((integration) => (
                         <IntegrationCard
@@ -94,7 +93,7 @@ export function IntegrationGrid({
             )}
 
             {!isLoading && items.length > 0 && (
-                <button 
+                <button
                     onClick={onEmptyAction}
                     className="rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-800 bg-white dark:bg-[hsl(var(--auth-card))] p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center min-h-[250px]"
                 >

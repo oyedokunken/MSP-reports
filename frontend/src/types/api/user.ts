@@ -94,7 +94,6 @@ export interface User {
     updated_at?: string
 }
 
-// API Response Types
 export interface UserListResponse extends ApiSuccessResponse<User[]> {
     pagination?: {
         current_page: number

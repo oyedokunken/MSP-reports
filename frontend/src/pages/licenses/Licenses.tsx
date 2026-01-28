@@ -9,7 +9,6 @@ import {
 } from "./components";
 
 export default function Licenses() {
-    // Zustand store - individual selectors for optimal performance
     const licenseData = useLicensesStore((state) => state.licenseData);
     const usage = useLicensesStore((state) => state.usage);
     const isLoading = useLicensesStore((state) => state.isLoading);
@@ -17,7 +16,6 @@ export default function Licenses() {
     const fetchLicenses = useLicensesStore((state) => state.fetchLicenses);
     const fetchUsage = useLicensesStore((state) => state.fetchUsage);
 
-    // Fetch data on mount
     useEffect(() => {
         fetchLicenses();
         fetchUsage();

@@ -72,7 +72,6 @@ export function CompanyInfoSection({
       <p className="mt-1 text-sm text-muted-foreground">Update your company details and branding</p>
 
       <div className="mt-4 grid gap-6 grid-cols-1 md:grid-cols-12">
-        {/* General Info */}
         <div className="md:col-span-4">
           <label className="block text-sm font-medium text-foreground">Company Name</label>
           <input
@@ -130,7 +129,6 @@ export function CompanyInfoSection({
 
         <div className="col-span-12 h-px bg-border my-2" />
 
-        {/* Brand Colors */}
         <div className="col-span-12">
             <h3 className="text-sm font-semibold text-foreground mb-3">Brand Colors</h3>
         </div>
@@ -177,7 +175,6 @@ export function CompanyInfoSection({
             </div>
         </div>
 
-        {/* URL Inputs moved next to colors */}
         <div className="md:col-span-3">
             <label className="block text-sm font-medium text-foreground mb-2">Logo URL (Optional)</label>
             <input
@@ -200,7 +197,6 @@ export function CompanyInfoSection({
             />
         </div>
 
-        {/* Uploads - Keep as is but full width container */}
         <div className="col-span-12 grid gap-6 md:grid-cols-2 mt-2">
             <LogoUpload
                type="company"
@@ -218,7 +214,6 @@ export function CompanyInfoSection({
 
         <div className="col-span-12 h-px bg-border my-2" />
 
-        {/* Support & Reporting */}
         <div className="col-span-12">
             <h3 className="text-sm font-semibold text-foreground mb-3">Support & Reporting</h3>
         </div>

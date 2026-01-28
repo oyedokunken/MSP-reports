@@ -20,20 +20,17 @@ export function ActivityTrendChart({ data }: ActivityTrendChartProps) {
   useEffect(() => {
     if (!chartRef.current || chartData.length === 0) return
 
-    // Initialize chart
     if (!chartInstanceRef.current) {
       chartInstanceRef.current = echarts.init(chartRef.current)
     }
 
     const chart = chartInstanceRef.current
 
-    // Prepare data
     const dates = chartData.map(item => item.date)
     const syncsData = chartData.map(item => item.syncs)
     const reportsData = chartData.map(item => item.reports)
     const jobsData = chartData.map(item => item.jobs)
 
-    // Chart options
     const option: echarts.EChartsOption = {
       tooltip: {
         trigger: 'axis',
@@ -171,7 +168,6 @@ export function ActivityTrendChart({ data }: ActivityTrendChartProps) {
 
     chart.setOption(option)
 
-    // Handle resize
     const handleResize = () => {
       chart.resize()
     }
@@ -182,7 +178,6 @@ export function ActivityTrendChart({ data }: ActivityTrendChartProps) {
     }
   }, [chartData])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (chartInstanceRef.current) {

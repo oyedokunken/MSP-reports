@@ -77,7 +77,6 @@ export function ReportPreviewModal({
       setLoading(true)
       setError(null)
 
-      // Use apiClient which handles the correct base URL and auth headers automatically
       const response = await apiClient.get(`/reports/${reportId}/download`, {
         responseType: 'blob',
         headers: {
@@ -85,7 +84,6 @@ export function ReportPreviewModal({
         },
       })
 
-      // Create object URL from the blob
       const blob = new Blob([response.data], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       setPdfUrl(url)
@@ -192,7 +190,6 @@ export function ReportPreviewModal({
             </div>
           </div>
 
-          {/* Tab Switcher */}
           <div className="flex items-center gap-1 mt-4 border-b">
             <button
               onClick={() => setActiveTab('pdf')}
@@ -220,7 +217,6 @@ export function ReportPreviewModal({
             </button>
           </div>
 
-          {/* Toolbar */}
           <div className="flex items-center justify-between gap-2 mt-4">
             {activeTab === 'pdf' ? (
               <div className="flex items-center gap-1 border rounded-md">
@@ -260,7 +256,6 @@ export function ReportPreviewModal({
               </div>
             )}
 
-            {/* Action Buttons */}
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -309,9 +304,7 @@ export function ReportPreviewModal({
           </div>
         )}
 
-        {/* Content Area */}
         <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900">
-          {/* PDF Preview Tab */}
           {activeTab === 'pdf' && (
             <>
               {loading && (
@@ -356,7 +349,6 @@ export function ReportPreviewModal({
             </>
           )}
 
-          {/* Email Preview Tab */}
           {activeTab === 'email' && (
             <div className="p-6">
               {emailLoading && (
@@ -370,7 +362,6 @@ export function ReportPreviewModal({
 
               {!emailLoading && emailPreview && (
                 <div className="max-w-3xl mx-auto space-y-4">
-                  {/* Email Header Info */}
                   <div className="bg-white dark:bg-gray-800 rounded-lg border p-4 space-y-3">
                     <div className="flex items-start gap-3">
                       <span className="text-sm font-medium text-muted-foreground w-16">From:</span>
@@ -396,7 +387,6 @@ export function ReportPreviewModal({
                     </div>
                   </div>
 
-                  {/* Email Body Preview */}
                   <div className="bg-white dark:bg-gray-800 rounded-lg border overflow-hidden">
                     <div className="p-2 bg-muted/50 border-b text-xs text-muted-foreground">
                       Email Body Preview

@@ -52,7 +52,6 @@ export function MergeCustomersModal({
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const observerTarget = useRef<HTMLDivElement>(null);
 
-    // Load initial customers (no search)
     const loadInitialCustomers = useCallback(async () => {
         setIsSearching(true);
         try {
@@ -65,21 +64,18 @@ export function MergeCustomersModal({
             const customers = Array.isArray(data) ? data : (data.data || []);
             const pagination = Array.isArray(data) ? { current_page: 1, last_page: 1 } : (data.pagination || { current_page: 1, last_page: 1 });
 
-            // Map API response
             const mapped = customers.map((c) => ({
                 ...c,
                 name: c.canonical_name || c.name,
                 integration_count: c.integrations?.length || 0
             }));
 
-            // Filter out current customer
             const filtered = mapped.filter(
                 (c: Customer) => c.customer_id !== customer?.customer_id
             );
 
             setSearchResults(filtered);
 
-            // Check pagination
             const currentPageNum = (pagination as Pagination).current_page || 1;
             const lastPage = (pagination as Pagination).last_page || 1;
             setHasMore(currentPageNum < lastPage);
@@ -102,12 +98,10 @@ export function MergeCustomersModal({
             setSearchResults([]);
             setCurrentPage(1);
             setHasMore(true);
-            // Load initial customers when modal opens
             loadInitialCustomers();
         }
     }, [open, loadInitialCustomers]);
 
-    // Load more customers (with or without search)
     const loadMoreCustomers = useCallback(async (page: number, append: boolean = false) => {
 
         if (append) {
@@ -119,10 +113,9 @@ export function MergeCustomersModal({
         try {
             const params = new URLSearchParams({
                 page: page.toString(),
-                per_page: '20' // Load 20 at a time
+                per_page: '20'
             });
 
-            // Add search if exists
             if (searchTerm.trim()) {
                 params.append('search', searchTerm);
             }
@@ -131,14 +124,12 @@ export function MergeCustomersModal({
             const customers = Array.isArray(data) ? data : (data.data || []);
             const pagination = Array.isArray(data) ? { current_page: 1, last_page: 1 } : (data.pagination || { current_page: 1, last_page: 1 });
 
-            // Map API response to Customer type (API returns canonical_name, we need name)
             const mapped = customers.map((c) => ({
                 ...c,
                 name: c.canonical_name || c.name,
                 integration_count: c.integrations?.length || 0
             }));
 
-            // Filter out the current customer
             const filtered = mapped.filter(
                 (c: Customer) => c.customer_id !== customer?.customer_id
             );
@@ -149,7 +140,6 @@ export function MergeCustomersModal({
                 setSearchResults(filtered);
             }
 
-            // Check if there are more pages
             const currentPageNum = pagination.current_page || page;
             const lastPage = pagination.last_page || 1;
             setHasMore(currentPageNum < lastPage);
@@ -166,19 +156,16 @@ export function MergeCustomersModal({
         }
     }, [searchTerm, customer?.customer_id]);
 
-    // Search when search term changes
     useEffect(() => {
         if (!open) return;
 
         setCurrentPage(1);
         setHasMore(true);
 
-        // Debounce search
         const timeoutId = setTimeout(() => loadMoreCustomers(1, false), 300);
         return () => clearTimeout(timeoutId);
     }, [searchTerm, open, loadMoreCustomers]);
 
-    // Infinite scroll observer
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
@@ -201,7 +188,6 @@ export function MergeCustomersModal({
         };
     }, [hasMore, isLoadingMore, isSearching, currentPage, loadMoreCustomers]);
 
-    // Always use searchResults (includes initial load and search)
     const filteredCustomers = searchResults;
 
     const selectedCustomer = allCustomers.find(
@@ -283,7 +269,6 @@ export function MergeCustomersModal({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Warning */}
                     <div className="rounded-lg border border-orange-500/50 bg-orange-500/10 p-3">
                         <div className="flex items-start gap-2">
                             <AlertTriangle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
@@ -305,7 +290,6 @@ export function MergeCustomersModal({
                         </div>
                     </div>
 
-                    {/* Search */}
                     <div>
                         <Label
                             htmlFor="search"
@@ -327,7 +311,6 @@ export function MergeCustomersModal({
                         </div>
                     </div>
 
-                    {/* Customer List */}
                     <div className="max-h-64 overflow-y-auto space-y-2 border border-border rounded-lg p-2">
                         {isSearching && currentPage === 1 ? (
                             <div className="flex items-center justify-center py-8">
@@ -364,7 +347,6 @@ export function MergeCustomersModal({
                                     </button>
                                 ))}
 
-                                {/* Infinite scroll trigger */}
                                 <div ref={observerTarget} className="py-2">
                                     {isLoadingMore && (
                                         <div className="flex items-center justify-center py-2">

@@ -18,7 +18,6 @@ export default function UsersList() {
   const toast = useToast()
   const { user: currentUser } = useAuth()
 
-  // Zustand store - individual selectors for optimal performance
 
   const isLoading = useUsersStore(state => state.isLoading)
   const error = useUsersStore(state => state.error)
@@ -40,24 +39,20 @@ export default function UsersList() {
   const closeModal = useUsersStore(state => state.closeModal)
   const setSelectedUser = useUsersStore(state => state.setSelectedUser)
 
-  // Local state for confirmation modals
   const [deactivateConfirm, setDeactivateConfirm] = useState<UserWithPermissions | null>(null)
   const [reactivateConfirm, setReactivateConfirm] = useState<UserWithPermissions | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Get filtered users and sort them (current user first)
   const filteredUsers = getFilteredUsers().sort((a, b) => {
     if (a.user_id === currentUser?.user_id) return -1
     if (b.user_id === currentUser?.user_id) return 1
     return 0
   })
 
-  // Fetch users on mount
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
 
-  // Handler functions
   const handleDeactivate = async () => {
     if (!hasPermission(currentUser, 'users', 'manage')) {
       toast.error('Permission Denied', 'You don\'t have permission to manage users')
@@ -174,7 +169,6 @@ export default function UsersList() {
           }}
         />
 
-        {/* Modals */}
         <CreateUserModal
           open={modals.create}
           onOpenChange={(open) => open ? openModal('create') : closeModal('create')}
@@ -224,7 +218,6 @@ export default function UsersList() {
           }}
         />
 
-        {/* Confirmation Modals */}
         <ConfirmationModal
           isOpen={deactivateConfirm !== null}
           onClose={() => setDeactivateConfirm(null)}

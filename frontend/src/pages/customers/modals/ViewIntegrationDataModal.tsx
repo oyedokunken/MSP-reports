@@ -56,14 +56,11 @@ export function ViewIntegrationDataModal({
                 : `/integrations/${integrationId}/preview`;
 
             const response = await api.get<{ data?: PreviewData; preview?: PreviewData } & PreviewData>(url);
-            // Handle multiple response structure variations
             const data = response.data || response;
 
             if (data.success && data.sections) {
-                // New format: { success: true, sections: [...] }
                 setPreviewData(data);
             } else if (response.preview) {
-                // Legacy format: { preview: {...} }
                 setPreviewData(response.preview);
             } else {
                 setPreviewData(data);
@@ -179,7 +176,6 @@ export function ViewIntegrationDataModal({
     const renderPreviewData = () => {
         if (!previewData) return null;
 
-        // If there are sections, render them
         if (previewData.sections && Array.isArray(previewData.sections)) {
             return (
                 <div className="space-y-4">
@@ -188,7 +184,6 @@ export function ViewIntegrationDataModal({
             );
         }
 
-        // Otherwise, render data as JSON
         if (previewData.data) {
             return (
                 <div className="rounded-lg border border-border p-4">

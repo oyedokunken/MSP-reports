@@ -47,7 +47,7 @@ export function EditUserModal({
   const [searchDebounce, setSearchDebounce] = useState<number | null>(null)
   const toast = useToast()
 
-  // Fetch customers with pagination
+
   const fetchCustomers = async (page: number = 1, search: string = '') => {
     try {
       setIsLoadingCustomers(true)
@@ -66,7 +66,6 @@ export function EditUserModal({
     }
   }
 
-  // Load initial customers
   useEffect(() => {
     if (open) {
       fetchCustomers(1)
@@ -171,12 +170,10 @@ export function EditUserModal({
   const handleSearchChange = (search: string) => {
     setCustomerSearch(search)
 
-    // Clear existing timeout
     if (searchDebounce) {
       clearTimeout(searchDebounce)
     }
 
-    // Set new timeout to search after 500ms of no typing
     const timeout = setTimeout(() => {
       setCurrentPage(1)
       fetchCustomers(1, search)
@@ -230,7 +227,6 @@ export function EditUserModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
           <div>
             <Label htmlFor="name" className="text-sm font-medium mb-2 block">
               Full Name
@@ -246,7 +242,6 @@ export function EditUserModal({
             />
           </div>
 
-          {/* Email */}
           <div>
             <Label htmlFor="email" className="text-sm font-medium mb-2 block">
               Email Address
@@ -262,7 +257,6 @@ export function EditUserModal({
             />
           </div>
 
-          {/* Role */}
           <div>
             <Label htmlFor="role" className="text-sm font-medium mb-2 block">
               Role
@@ -287,7 +281,6 @@ export function EditUserModal({
             </Select>
           </div>
 
-          {/* Customer Scoping */}
           <div className="space-y-2">
             <Label htmlFor="edit-customers" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -297,7 +290,6 @@ export function EditUserModal({
               Leave empty for full access. Select specific customers to restrict this user's access.
             </p>
 
-            {/* Selected Customers */}
             {selectedCustomers.length > 0 && (
               <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-muted/30">
                 {selectedCustomers.map(customerId => (
@@ -315,7 +307,6 @@ export function EditUserModal({
               </div>
             )}
 
-            {/* Customer Search */}
             <Input
               id="edit-customers"
               type="text"
@@ -325,7 +316,6 @@ export function EditUserModal({
               disabled={isSubmitting || isLoadingCustomers}
             />
 
-            {/* Customer List */}
             <div className="border rounded-md max-h-48 overflow-y-auto">
               {isLoadingCustomers ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">
@@ -356,7 +346,6 @@ export function EditUserModal({
               )}
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
                 <button

@@ -37,7 +37,6 @@ export const useIntegrationConfig = (integrationType: string | null): UseIntegra
       setError(null);
 
       try {
-        // api.get returns the unwrapped data
         const response = await api.get<ApiResponse>(
           `/integrations/config/${integrationType}`
         );
@@ -47,11 +46,9 @@ export const useIntegrationConfig = (integrationType: string | null): UseIntegra
           return;
         }
 
-        // Cast to our expected type
         const data = response as ApiResponse;
 
         if (data.success && data.config) {
-          // Store the full config (including hidden fields for default values)
           setConfig(data.config);
         } else {
           setError(data.error || 'Failed to load integration configuration');

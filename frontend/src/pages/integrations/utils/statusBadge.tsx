@@ -2,7 +2,6 @@ import React from 'react'
 import { CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
 
 export const getStatusIcon = (status: string, syncStatus: string): React.ReactNode => {
-  // Prioritize sync status over integration status
   if (syncStatus === 'success') {
     return <CheckCircle2 className="h-5 w-5 text-green-500" />
   }
@@ -16,12 +15,10 @@ export const getStatusIcon = (status: string, syncStatus: string): React.ReactNo
 }
 
 export const getStatusText = (status: string, syncStatus: string): { text: string, color: string } => {
-  // Prioritize sync status for display
   if (syncStatus === 'failed') {
     return { text: 'Sync Failed', color: 'text-red-600 bg-red-50' }
   }
-  
-  // Check integration status
+
   if (status === 'error') {
     return { text: 'Error', color: 'text-red-600 bg-red-50' }
   }

@@ -18,14 +18,13 @@ export function CustomerIntegrationSelector({
     <div>
       <div className="border rounded-lg max-h-64 overflow-y-auto">
         {customers.map((customer) => {
-          // Use integrations from customer object if not provided in prop
-          const integrations = customerIntegrations[customer.customer_id] || 
+          const integrations = customerIntegrations[customer.customer_id] ||
             customer.integrations?.map(i => i.integration_type) || []
-            
+
           const isSelected = selectedCustomerId === customer.customer_id
-          
-          // Format integrations for inline display
-          const integrationsText = integrations.length > 0 
+
+
+          const integrationsText = integrations.length > 0
             ? integrations.join(', ')
             : 'No integrations'
 
@@ -35,8 +34,8 @@ export function CustomerIntegrationSelector({
               onClick={() => onSelect(customer)}
               className={`
                 w-full px-3 py-1.5 text-left transition-colors border-b last:border-b-0 text-sm
-                ${isSelected 
-                  ? 'bg-primary/5 text-primary font-medium' 
+                ${isSelected
+                  ? 'bg-primary/5 text-primary font-medium'
                   : 'hover:bg-muted/50'
                 }
               `}

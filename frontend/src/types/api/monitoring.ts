@@ -118,7 +118,6 @@ export interface ActivityTrends {
     activity_data: ActivityTrendData[]
 }
 
-// API Response Types
 export type SystemStatusResponse = ApiSuccessResponse<SystemStatus>
 export type IntegrationMetricsResponse = ApiSuccessResponse<IntegrationMetrics>
 export type ReportMetricsResponse = ApiSuccessResponse<ReportMetrics>

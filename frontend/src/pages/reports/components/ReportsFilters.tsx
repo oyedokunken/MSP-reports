@@ -67,7 +67,6 @@ export function ReportsFilters({
 
   return (
     <div className="flex flex-col md:flex-row gap-3">
-      {/* Filter Dropdown */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="w-full md:w-auto h-10">
@@ -81,7 +80,6 @@ export function ReportsFilters({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
-          {/* Status Section */}
           <DropdownMenuLabel>Status</DropdownMenuLabel>
           <DropdownMenuCheckboxItem
             checked={statusFilters.includes('completed')}
@@ -108,7 +106,6 @@ export function ReportsFilters({
             Failed
           </DropdownMenuCheckboxItem>
 
-          {/* Report Types Section */}
           {uniqueReportTypes.length > 0 && (
             <>
               <DropdownMenuSeparator />
@@ -127,7 +124,6 @@ export function ReportsFilters({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* View Mode Toggle - Matches Map Customers design */}
       {onViewModeChange && (
         <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-md bg-white dark:bg-slate-900 p-1 h-10">
           <button
@@ -157,7 +153,6 @@ export function ReportsFilters({
         </div>
       )}
 
-      {/* Search */}
       <div className="flex-1 relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -168,7 +163,6 @@ export function ReportsFilters({
         />
       </div>
 
-      {/* Bulk Generate Button */}
       {!customerId && onBulkGenerate && (
         <Button 
           onClick={onBulkGenerate}
@@ -179,7 +173,6 @@ export function ReportsFilters({
         </Button>
       )}
 
-      {/* Bulk Delete Button */}
       {selectedCount > 0 && (
         <Button
           variant="destructive"

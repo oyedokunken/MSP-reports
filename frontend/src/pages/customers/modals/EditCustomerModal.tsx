@@ -37,7 +37,6 @@ export function EditCustomerModal({
 
     useEffect(() => {
         if (open && customer) {
-            // Prefer canonical_name if available, otherwise fallback to name
             setName(customer.canonical_name || customer.name || "");
             setError("");
         }
@@ -59,7 +58,6 @@ export function EditCustomerModal({
                 canonical_name: name.trim(),
             });
 
-            // Optimistic update
             if (customer?.customer_id) {
                 updateCustomer(customer.customer_id, {
                     canonical_name: name.trim(),
@@ -102,7 +100,6 @@ export function EditCustomerModal({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Customer Name */}
                     <div>
                         <Label
                             htmlFor="name"

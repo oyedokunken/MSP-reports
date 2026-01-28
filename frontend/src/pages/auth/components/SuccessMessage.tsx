@@ -9,7 +9,6 @@ interface SuccessMessageProps {
 export function SuccessMessage({ email }: SuccessMessageProps) {
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-      {/* Success Icon and Message */}
       <div className="flex flex-col items-center text-center space-y-5">
         <div className="rounded-full bg-green-500/10 p-3">
           <CheckCircle2 className="h-16 w-16 text-green-500" />

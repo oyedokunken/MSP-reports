@@ -9,14 +9,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { ArrowLeft, UserPlus, Mail, Lock, User as UserIcon } from 'lucide-react'
 import { api } from '@/lib/api'
 
-interface CreateUserForm {
-  name: string
-  email: string
-  password: string
-  role_id: number
-  status: 'active' | 'inactive' | 'locked'
-  auth_method: 'local' | 'saml' | 'm365' | 'ldap'
-}
+import type { CreateUserForm, UserWithPermissions } from './types'
 
 export default function CreateUser() {
   const navigate = useNavigate()
@@ -39,11 +32,11 @@ export default function CreateUser() {
     setIsSubmitting(true)
 
     try {
-      const response = await api.post('/users', formData)
+      const response = await api.post<{ data: UserWithPermissions }>('/users', formData)
 
       if (response.data) {
         setSuccess(true)
-        // Redirect to users list after 2 seconds
+
         setTimeout(() => {
           navigate('/users')
         }, 2000)
@@ -112,7 +105,6 @@ export default function CreateUser() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>
               <div className="relative">
@@ -130,7 +122,6 @@ export default function CreateUser() {
               </div>
             </div>
 
-            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email Address *</Label>
               <div className="relative">
@@ -151,7 +142,6 @@ export default function CreateUser() {
               </p>
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password">Password *</Label>
               <div className="relative">
@@ -173,7 +163,6 @@ export default function CreateUser() {
               </p>
             </div>
 
-            {/* Role */}
             <div className="space-y-2">
               <Label htmlFor="role">Role *</Label>
               <Select
@@ -194,7 +183,6 @@ export default function CreateUser() {
               </p>
             </div>
 
-            {/* Status */}
             <div className="space-y-2">
               <Label htmlFor="status">Status *</Label>
               <Select
@@ -213,7 +201,6 @@ export default function CreateUser() {
               </Select>
             </div>
 
-            {/* Auth Method */}
             <div className="space-y-2">
               <Label htmlFor="auth_method">Authentication Method *</Label>
               <Select
@@ -233,14 +220,12 @@ export default function CreateUser() {
               </Select>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
                 <p className="text-sm text-destructive font-medium">{error}</p>
               </div>
             )}
 
-            {/* Submit Button */}
             <div className="flex gap-3 pt-4">
               <Button
                 type="button"

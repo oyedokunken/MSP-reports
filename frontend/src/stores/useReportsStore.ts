@@ -20,45 +20,36 @@ export interface GeneratedReport {
 }
 
 interface ReportsState {
-  // Data
   reports: GeneratedReport[]
   isLoading: boolean
   customerName: string
 
-  // Pagination
   currentPage: number
   totalPages: number
   perPage: number
   total: number
 
-  // Filters
   searchQuery: string
   statusFilters: string[]
   reportTypeFilters: string[]
 
-  // Download state
   downloading: number | null
 
-  // Delete state
   deleting: number | null
 
-  // Actions
   fetchReports: (customerId?: string | null, page?: number, options?: { background?: boolean }) => Promise<void>
   downloadReport: (reportId: number) => Promise<{ success: boolean; error?: string }>
   deleteReport: (reportId: number) => Promise<{ success: boolean; error?: string }>
 
-  // Filter actions
   setSearchQuery: (query: string) => void
   setStatusFilters: (statuses: string[]) => void
   setReportTypeFilters: (types: string[]) => void
 
-  // Computed
   getFilteredReports: () => GeneratedReport[]
   getUniqueReportTypes: () => string[]
 }
 
 export const useReportsStore = create<ReportsState>((set, get) => ({
-  // Initial state
   reports: [],
   isLoading: true,
   customerName: '',
@@ -72,7 +63,6 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
   downloading: null,
   deleting: null,
 
-  // Fetch reports
   fetchReports: async (customerId = null, page = 1, options = { background: false }) => {
     if (!options.background) {
       set({ isLoading: true })
@@ -87,7 +77,6 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
       const reportsList = response.data.reports
       const pagination = response.data.pagination
 
-      // Set customer name from first report if filtering by customer
       const customerName = customerId && reportsList.length > 0
         ? reportsList[0].customer_name
         : ''
@@ -108,18 +97,15 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
     }
   },
 
-  // Download report
   downloadReport: async (reportId: number) => {
     set({ downloading: reportId })
     try {
-      // Use apiClient directly for blob downloads
       const response = await apiClient.get(`/reports/${reportId}/download`, {
         responseType: 'blob',
       })
 
       const blob = response.data
 
-      // Extract filename from Content-Disposition header or use default
       const contentDisposition = response.headers['content-disposition']
       let filename = `report_${reportId}.pdf`
 
@@ -151,13 +137,11 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
     }
   },
 
-  // Delete report
   deleteReport: async (reportId: number) => {
     set({ deleting: reportId })
     try {
       await api.delete(`/reports/${reportId}`)
 
-      // Remove the report from the list
       const { reports } = get()
       set({
         reports: reports.filter(r => r.generated_report_id !== reportId),
@@ -175,27 +159,22 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
     }
   },
 
-  // Filter actions
   setSearchQuery: (query: string) => set({ searchQuery: query }),
   setStatusFilters: (statuses: string[]) => set({ statusFilters: statuses }),
   setReportTypeFilters: (types: string[]) => set({ reportTypeFilters: types }),
 
-  // Computed - get filtered reports
   getFilteredReports: () => {
     const { reports, searchQuery, statusFilters, reportTypeFilters } = get()
 
     return reports.filter(report => {
-      // Search filter
       if (searchQuery && !report.customer_name.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false
       }
 
-      // Status filter
       if (statusFilters.length > 0 && !statusFilters.includes(report.status)) {
         return false
       }
 
-      // Report type filter
       if (reportTypeFilters.length > 0 && !reportTypeFilters.includes(report.report_type)) {
         return false
       }
@@ -204,7 +183,6 @@ export const useReportsStore = create<ReportsState>((set, get) => ({
     })
   },
 
-  // Computed - get unique report types
   getUniqueReportTypes: () => {
     const { reports } = get()
     return Array.from(new Set(reports.map(r => r.report_type)))

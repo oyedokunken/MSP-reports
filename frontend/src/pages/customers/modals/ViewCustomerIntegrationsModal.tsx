@@ -16,7 +16,7 @@ import {
     Cable,
     Trash2,
     Info,
-    // ExternalLink,
+
 } from "lucide-react";
 import { api } from "@/lib/api";
 import type { Customer } from "../types";

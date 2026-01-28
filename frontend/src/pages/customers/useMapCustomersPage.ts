@@ -8,7 +8,6 @@ type SortDirection = 'asc' | 'desc';
 export { type SortField, type SortDirection };
 
 export const useMapCustomersPage = () => {
-    // Store state
     const unmappedCustomers = useCustomersStore((state) => state.unmappedCustomers);
     const unmappedCount = useCustomersStore((state) => state.unmappedCount);
     const unmappedCurrentPage = useCustomersStore((state) => state.unmappedCurrentPage);
@@ -23,7 +22,6 @@ export const useMapCustomersPage = () => {
     const unmappedSearchQuery = useCustomersStore((state) => state.unmappedSearchQuery);
     const setUnmappedSearchQuery = useCustomersStore((state) => state.setUnmappedSearchQuery);
 
-    // Local state
     const [searchQuery, setSearchQuery] = useState(unmappedSearchQuery);
     const [isLoading, setIsLoading] = useState(true);
     const [sortField, setSortField] = useState<SortField>('name');
@@ -32,7 +30,6 @@ export const useMapCustomersPage = () => {
     const [view, setView] = useState<'grid' | 'table'>('grid');
     const [integrationFilters, setIntegrationFilters] = useState<string[]>([]);
 
-    // Initial load
     useEffect(() => {
         const loadCustomers = async () => {
             setIsLoading(true);
@@ -43,7 +40,6 @@ export const useMapCustomersPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Debounced search
     useEffect(() => {
         const timer = setTimeout(() => {
             if (searchQuery !== unmappedSearchQuery) {
@@ -53,7 +49,6 @@ export const useMapCustomersPage = () => {
         return () => clearTimeout(timer);
     }, [searchQuery, unmappedSearchQuery, setUnmappedSearchQuery]);
 
-    // Derived data
     const integrationTypes = useMemo(() => {
         return [...new Set(unmappedCustomers.map(c => c.integration_type))];
     }, [unmappedCustomers]);
@@ -78,11 +73,9 @@ export const useMapCustomersPage = () => {
         });
     }, [unmappedCustomers, sortField, sortDirection, integrationFilters]);
 
-    // Selection state
     const isAllSelected = filteredAndSortedCustomers.length > 0 && selectedIds.size === filteredAndSortedCustomers.length;
     const isPartiallySelected = selectedIds.size > 0 && selectedIds.size < filteredAndSortedCustomers.length;
 
-    // Handlers
     const handleSort = useCallback((field: SortField) => {
         if (sortField === field) {
             setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -147,7 +140,6 @@ export const useMapCustomersPage = () => {
     }, [filteredAndSortedCustomers, selectedIds, setSelectedUnmappedCustomer, openModal]);
 
     return {
-        // State
         isLoading,
         searchQuery,
         sortField,
@@ -159,21 +151,17 @@ export const useMapCustomersPage = () => {
         filteredAndSortedCustomers,
         isAllSelected,
         isPartiallySelected,
-        // Store state
         unmappedCount,
         unmappedCurrentPage,
         unmappedTotalPages,
         unmappedSearchQuery,
         modals,
         selectedUnmappedCustomer,
-        // Setters
         setSearchQuery,
         setView,
-        // Store actions
         openModal,
         closeModal,
         getMappedCustomers,
-        // Handlers
         handleSort,
         handleMapClick,
         handleMapSuccess,

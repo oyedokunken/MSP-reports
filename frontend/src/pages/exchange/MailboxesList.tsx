@@ -37,18 +37,16 @@ export default function MailboxesList() {
 
   useEffect(() => {
     // TODO: Implement API endpoint
-    // fetchMailboxes()
     setIsLoading(false)
-    // Empty state for now
     setMailboxes([])
   }, [])
 
   const filteredMailboxes = mailboxes.filter(mailbox => {
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = searchQuery === '' ||
       mailbox.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       mailbox.primarySmtpAddress?.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const matchesType = typeFilter === 'all' || 
+    const matchesType = typeFilter === 'all' ||
       (typeFilter === 'user' && !mailbox.isShared && !mailbox.isResource) ||
       (typeFilter === 'shared' && mailbox.isShared) ||
       (typeFilter === 'resource' && mailbox.isResource)
@@ -103,7 +101,7 @@ export default function MailboxesList() {
   const getTypeIcon = (mailbox: Mailbox) => {
     if (mailbox.isShared) return <Database className="w-5 h-5 text-purple-600" />
     if (mailbox.isResource) {
-      return mailbox.resourceType === 'Room' 
+      return mailbox.resourceType === 'Room'
         ? <Home className="w-5 h-5 text-blue-600" />
         : <UsersIcon className="w-5 h-5 text-green-600" />
     }
@@ -129,7 +127,6 @@ export default function MailboxesList() {
   return (
     <FloatingLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Exchange Mailboxes</h1>
@@ -149,11 +146,9 @@ export default function MailboxesList() {
           </div>
         </div>
 
-        {/* Filters */}
         <Card>
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Search */}
               <div>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -166,7 +161,6 @@ export default function MailboxesList() {
                 </div>
               </div>
 
-              {/* Type Filter */}
               <div>
                 <select
                   value={typeFilter}
@@ -180,7 +174,6 @@ export default function MailboxesList() {
                 </select>
               </div>
 
-              {/* Archive Filter */}
               <div>
                 <select
                   value={archiveFilter}
@@ -196,7 +189,6 @@ export default function MailboxesList() {
           </CardContent>
         </Card>
 
-        {/* Mailboxes Table */}
         <Card>
           <CardHeader>
             <CardTitle>Mailboxes</CardTitle>

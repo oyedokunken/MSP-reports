@@ -3,16 +3,13 @@ import { Shield, BarChart3, Zap } from 'lucide-react';
 export function BrandingPanel() {
   return (
     <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 via-blue-600 to-indigo-700 relative overflow-hidden h-screen">
-      {/* Animated Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 -left-4 w-72 h-72 bg-white rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
         <div className="absolute top-0 -right-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-2000"></div>
         <div className="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"></div>
       </div>
 
-      {/* Content - Fixed to viewport height, no scroll */}
       <div className="relative z-10 flex flex-col p-6 text-white w-full h-screen max-h-screen overflow-hidden">
-        {/* Logo */}
         <div className="flex-shrink-0 mb-4">
           <img
             src="/logo.png"
@@ -21,7 +18,6 @@ export function BrandingPanel() {
           />
         </div>
 
-        {/* Dashboard Image - Takes available space at top */}
         <div className="flex-1 flex items-center justify-center min-h-0 mb-4">
           <img
             src="/web-programming.png"
@@ -30,7 +26,6 @@ export function BrandingPanel() {
           />
         </div>
 
-        {/* Title and Description */}
         <div className="flex-shrink-0 mb-3">
           <h1 className="text-xl xl:text-2xl font-bold font-athletics mb-1 leading-tight">
             Welcome to MSP Reports Platform
@@ -40,7 +35,6 @@ export function BrandingPanel() {
           </p>
         </div>
 
-        {/* Features - Compact inline */}
         <div className="flex-shrink-0 grid grid-cols-3 gap-2 mb-2">
           <div className="text-center">
             <div className="flex justify-center mb-1">
@@ -70,7 +64,6 @@ export function BrandingPanel() {
           </div>
         </div>
           
-        {/* Footer */}
         <div className="flex-shrink-0 text-indigo-200 text-[10px] font-athletics text-center pt-2 mt-2 border-t border-white/10">
           © 2025 {import.meta.env.VITE_COMPANY_NAME || 'MSP'}. All rights reserved.
         </div>

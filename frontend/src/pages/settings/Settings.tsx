@@ -8,6 +8,8 @@ import { useBranding } from '@/contexts/BrandingContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { hasPermission } from '@/utils/permissions'
 import { api } from '@/lib/api'
+import type { CompanySettingsResponse } from '@/types/api/settings'
+import type { WhiteLabelSettings } from '@/types/auth'
 import {
   Dialog,
   DialogContent,
@@ -24,6 +26,8 @@ import {
   EmailDeliverySection,
   ReportNamingSection,
 } from './components'
+
+
 
 export default function Settings() {
   const toast = useToast()
@@ -82,44 +86,15 @@ export default function Settings() {
   const fetchSettings = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await api.get('/company/settings')
+      const response = await api.get<CompanySettingsResponse>('/company/settings')
 
       if (response.data) {
-        const data = response.data as {
-          name?: string;
-          contact_email?: string;
-          contact_phone?: string;
-          address?: string;
-          settings?: {
-            white_label?: {
-              primary_color?: string;
-              secondary_color?: string;
-              logo_url?: string;
-              favicon_url?: string;
-              email_from_address?: string;
-              email_from_name?: string;
-              support_email?: string;
-              support_phone?: string;
-              footer_text?: string;
-              report_header_text?: string;
-              website_url?: string;
-            };
-            mail_settings?: {
-              smtp?: {
-                host?: string;
-                port?: number;
-                encryption?: string;
-                username?: string;
-              };
-            };
-          };
-        }
+        const data = response.data
         setCompanyName(data.name || '')
         setContactEmail(data.contact_email || '')
         setContactPhone(data.contact_phone || '')
         setAddress(data.address || '')
 
-        // Load branding from settings
         if (data.settings?.white_label) {
           const branding = data.settings.white_label
           setPrimaryHex(branding.primary_color || '#3b82f6')
@@ -135,14 +110,12 @@ export default function Settings() {
           setWebsiteUrl(branding.website_url || '')
         }
 
-        // Load SMTP settings
         if (data.settings?.mail_settings?.smtp) {
           const smtp = data.settings.mail_settings.smtp
           setSmtpHost(smtp.host || '')
           setSmtpPort(smtp.port || 587)
           setSmtpEncryption(smtp.encryption || 'tls')
           setSmtpUsername(smtp.username || '')
-          // Don't set password from backend for security (it might be masked or empty anyway)
         }
       }
     } catch (error) {
@@ -180,7 +153,6 @@ export default function Settings() {
   }, [fetchSettings])
 
   const handleSaveBranding = async () => {
-    // Check edit permission (Admins auto-pass)
     if (!hasPermission(user, 'company_settings', 'edit')) {
       toast.error('Permission Denied', 'You don\'t have permission to edit company settings')
       return
@@ -194,7 +166,6 @@ export default function Settings() {
     try {
       setSaving(true)
 
-      // Save company info
       await api.patch('/company/settings', {
         name: companyName,
         contact_email: contactEmail,
@@ -202,7 +173,6 @@ export default function Settings() {
         address: address,
       })
 
-      // Save branding
       const brandingData = {
         company_name: companyName,
         primary_color: primaryHex,
@@ -218,8 +188,6 @@ export default function Settings() {
 
       const response = await api.patch('/company/branding', brandingData)
 
-      // Update branding context immediately with response from backend
-      // Response structure: { status: 'success', message: '...', data: { ...branding } }
       const savedBranding = (response as { data?: unknown })?.data || response
 
       if (savedBranding && typeof savedBranding === 'object') {
@@ -253,7 +221,6 @@ export default function Settings() {
 
         setBranding(newBranding)
 
-        // Also update localStorage company data so it persists on refresh
         const companyStr = localStorage.getItem('company')
         if (companyStr) {
           try {
@@ -261,22 +228,20 @@ export default function Settings() {
             company.settings = company.settings || {}
             company.settings.white_label = newBranding
             localStorage.setItem('company', JSON.stringify(company))
-          } catch {
-            // Silently handle localStorage errors
+          } catch (error) {
+            logger.debug('Failed to parse stored settings', error)
           }
         }
       }
 
       toast.success('Saved', 'Branding updated successfully')
 
-      // Show logout warning modal
       setShowLogoutWarning(true)
 
-      // Update branding context immediately to apply color changes
       if (branding) {
         setBranding({
           ...branding,
-          ...savedBranding,
+          ...(savedBranding as Partial<WhiteLabelSettings>),
           company_name: companyName,
           primary_color: primaryHex,
         })
@@ -293,7 +258,6 @@ export default function Settings() {
   }
 
   const handleSaveEmail = async () => {
-    // Check edit permission (Admins auto-pass)
     if (!hasPermission(user, 'company_settings', 'edit')) {
       toast.error('Permission Denied', 'You don\'t have permission to edit company settings')
       return
@@ -392,7 +356,6 @@ export default function Settings() {
         <ReportNamingSection />
       </div>
 
-      {/* Logout Warning Modal */}
       <Dialog open={showLogoutWarning} onOpenChange={setShowLogoutWarning}>
         <DialogContent>
           <DialogHeader>

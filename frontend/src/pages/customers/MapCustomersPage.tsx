@@ -65,7 +65,6 @@ export default function MapCustomersPage() {
     return (
         <FloatingLayout>
             <div className="space-y-6 max-w-full overflow-hidden">
-                {/* Header */}
                 <div>
                     <div className="flex items-center gap-4">
                         {/* <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 flex-shrink-0">
@@ -87,9 +86,7 @@ export default function MapCustomersPage() {
 
                 {unmappedCount > 0 || unmappedSearchQuery ? (
                     <>
-                        {/* Controls: Filters, View Toggle, Search */}
                         <div className="flex flex-col md:flex-row gap-3 mb-6">
-                            {/* Filters Dropdown */}
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="outline" className="h-10">
@@ -137,7 +134,6 @@ export default function MapCustomersPage() {
                                 </DropdownMenuContent>
                             </DropdownMenu>
 
-                            {/* View Toggle */}
                             <Tabs value={view} onValueChange={(v) => setView(v as 'grid' | 'table')} className="w-auto">
                                 <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 h-10">
                                     <TabsTrigger value="grid" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md">
@@ -151,7 +147,6 @@ export default function MapCustomersPage() {
                                 </TabsList>
                             </Tabs>
 
-                            {/* Search Bar */}
                             <div className="relative flex-1">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
@@ -169,7 +164,6 @@ export default function MapCustomersPage() {
                             </p>
                         )}
 
-                        {/* Bulk Action Bar */}
                         {selectedIds.size > 0 && (
                             <div className="mb-4 p-3 bg-primary/10 rounded-lg flex items-center justify-between">
                                 <span className="text-sm font-medium">
@@ -239,14 +233,12 @@ export default function MapCustomersPage() {
                                                             : "hover:border-slate-300 dark:hover:border-slate-700"
                                                     )}
                                                 >
-                                                    {/* Selection Indicator Overlay */}
                                                     {isSelected && (
                                                         <div className="absolute top-2 right-2 z-10">
                                                             <CheckCircle2 className="h-5 w-5 text-primary fill-white" />
                                                         </div>
                                                     )}
 
-                                                    {/* Header */}
                                                     <div className="flex items-start justify-between gap-3 mb-1">
                                                         <div className="flex items-center gap-3 min-w-0 flex-1">
                                                             <div className={cn(
@@ -275,14 +267,12 @@ export default function MapCustomersPage() {
                                                         </Badge>
                                                     </div>
 
-                                                    {/* Info Section */}
                                                     <div>
                                                         <p className="text-[11px] text-muted-foreground/60 font-mono truncate">
                                                             External ID: {customer.external_id}
                                                         </p>
                                                     </div>
 
-                                                    {/* Footer Action */}
                                                     <div className="mt-auto pt-4">
                                                         <Button
                                                             className="w-full gap-2 font-semibold shadow-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
@@ -448,7 +438,6 @@ export default function MapCustomersPage() {
                             </TabsContent>
                         </Tabs>
 
-                        {/* Pagination */}
                         {unmappedTotalPages > 1 && (
                             <div className="mt-4">
                                 <Pagination

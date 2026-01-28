@@ -23,7 +23,6 @@ export function MailboxPermissions({ mailboxId }: MailboxPermissionsProps) {
 
   useEffect(() => {
     // TODO: Implement API endpoint
-    // fetchPermissions()
     setIsLoading(false)
     setPermissions([])
   }, [mailboxId])

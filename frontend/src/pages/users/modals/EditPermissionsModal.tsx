@@ -56,7 +56,6 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
     if (user && user.permissions) {
       setPermissions(user.permissions)
     } else if (user) {
-      // Set default permissions if none exist
       setPermissions({
         integrations: { view: true, manage: false, sync: false },
         customers: { view: true, edit: false, map: false },

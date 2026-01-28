@@ -1,5 +1,6 @@
-/**
 import { logger } from '@/lib/logger'
+
+/**
  * Tenant Isolation Utilities
  * Ensures data isolation and prevents cross-tenant data leakage
  */
@@ -24,7 +25,6 @@ export function verifyTenantData(
     return { isValid: true, errors, warnings }
   }
 
-  // Check single object
   if (typeof data === 'object' && data !== null && 'company_id' in data) {
     const obj = data as { company_id?: string }
     if (obj.company_id && obj.company_id !== expectedCompanyId) {
@@ -34,7 +34,6 @@ export function verifyTenantData(
     }
   }
 
-  // Check array of objects
   if (Array.isArray(data)) {
     data.forEach((item: unknown, index: number) => {
       if (typeof item === 'object' && item !== null && 'company_id' in item) {
@@ -48,7 +47,6 @@ export function verifyTenantData(
     })
   }
 
-  // Check nested data property
   if (typeof data === 'object' && data !== null && 'data' in data) {
     const obj = data as { data?: unknown }
     if (Array.isArray(obj.data)) {
@@ -91,13 +89,11 @@ export function logIsolationViolation(
     url: window.location.href,
   }
 
-  // Log to console in development
   if (import.meta.env.DEV) {
     logger.error('🚨 TENANT ISOLATION VIOLATION:', violation)
   }
 
-  // In production, this would be sent to a monitoring service
-  // Implementation depends on the monitoring solution chosen
+
 }
 
 /**
@@ -107,7 +103,6 @@ export function sanitizeTenantInput<T>(input: T): T {
   if (typeof input === 'object' && input !== null) {
     const sanitized = { ...input } as Record<string, unknown>
 
-    // Remove any company_id from user input
     delete sanitized.company_id
     delete sanitized.companyId
 

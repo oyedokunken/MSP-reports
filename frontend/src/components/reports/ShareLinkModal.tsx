@@ -41,7 +41,6 @@ export function ShareLinkModal({
 
       const response = await apiClient.post(`/reports/${reportId}/share`)
 
-      // Handle potentially wrapped response
       const responseData = response.data
 
       const data = (responseData as { data?: { share_url: string; expires_at: string } }).data || responseData
@@ -95,7 +94,6 @@ export function ShareLinkModal({
     try {
       if (!isoString) return ''
       const date = new Date(isoString)
-      // Check if date is valid
       if (isNaN(date.getTime())) return ''
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     } catch (e) {
@@ -118,19 +116,16 @@ export function ShareLinkModal({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Report Info */}
           <div className="p-3 bg-muted/50 rounded-lg">
             <p className="text-sm font-medium text-foreground">{reportName}</p>
           </div>
 
-          {/* Error State */}
           {error && (
             <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
               <p className="text-sm text-destructive">{error}</p>
             </div>
           )}
 
-          {/* Generate Button (shown when no link yet) */}
           {!shareLink && !loading && (
             <Button
               type="button"
@@ -147,7 +142,6 @@ export function ShareLinkModal({
             </Button>
           )}
 
-          {/* Loading State */}
           {loading && (
             <div className="flex items-center justify-center py-6">
               <Spinner className="h-8 w-8" />
@@ -155,10 +149,8 @@ export function ShareLinkModal({
             </div>
           )}
 
-          {/* Share Link Display */}
           {shareLink && !loading && (
             <div className="space-y-4">
-              {/* Link Input with Copy */}
               <div className="flex gap-2">
                 <Input
                   value={shareLink || ''}
@@ -181,7 +173,6 @@ export function ShareLinkModal({
                 </Button>
               </div>
 
-              {/* Expiry Info */}
               {expiresAt && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
@@ -189,7 +180,6 @@ export function ShareLinkModal({
                 </div>
               )}
 
-              {/* Action Buttons */}
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -220,7 +210,6 @@ export function ShareLinkModal({
                 </Button>
               </div>
 
-              {/* Generate New Link */}
               <Button
                 type="button"
                 variant="ghost"

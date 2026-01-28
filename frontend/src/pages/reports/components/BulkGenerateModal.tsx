@@ -60,7 +60,6 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
   const [results, setResults] = useState<GenerationResult | null>(null)
   const [error, setError] = useState('')
 
-  // Fetch customers with active schedules
   useEffect(() => {
     if (open) {
       fetchCustomers()
@@ -73,7 +72,7 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
       const response = await api.get<{ data: Customer[] }>('/customers', {
         params: { per_page: 500, has_schedules: true }
       })
-      setCustomers(response.data.data || [])
+      setCustomers(response.data || [])
     } catch (err) {
       logger.error('Failed to fetch customers:', err)
       setError('Failed to load customers')
@@ -113,7 +112,7 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
         frequency: frequency,
       })
 
-      setResults(response.data.data)
+      setResults(response.data)
       setStep('results')
       onSuccess?.()
     } catch (err: unknown) {
@@ -147,7 +146,6 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
       </DialogHeader>
 
       <div className="space-y-4 py-4">
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -158,7 +156,6 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
           />
         </div>
 
-        {/* Select All */}
         <div className="flex items-center justify-between border-b pb-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <Checkbox
@@ -172,7 +169,6 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
           </span>
         </div>
 
-        {/* Customer List */}
         <div className="max-h-[300px] overflow-y-auto space-y-1 border rounded-lg p-2">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -239,7 +235,6 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
           </div>
         )}
 
-        {/* Frequency Selection */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Report Frequency</label>
           <div className="grid grid-cols-2 gap-2">
@@ -247,11 +242,10 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
               <button
                 key={freq}
                 onClick={() => setFrequency(freq)}
-                className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
-                  frequency === freq
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border hover:bg-muted'
-                }`}
+                className={`p-3 rounded-lg border text-sm font-medium transition-colors ${frequency === freq
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border hover:bg-muted'
+                  }`}
               >
                 {freq.charAt(0).toUpperCase() + freq.slice(1)}
               </button>
@@ -262,7 +256,6 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
           </p>
         </div>
 
-        {/* Summary */}
         <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
           <h4 className="text-sm font-medium">Summary</h4>
           <ul className="text-sm text-muted-foreground space-y-1">
@@ -318,7 +311,6 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
       </DialogHeader>
 
       <div className="space-y-4 py-4">
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           <div className="rounded-lg border bg-green-50 dark:bg-green-950/20 p-3 text-center">
             <p className="text-2xl font-bold text-green-600">{results?.successful || 0}</p>
@@ -334,7 +326,6 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
           </div>
         </div>
 
-        {/* Errors */}
         {results?.errors && results.errors.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-destructive">Errors</h4>
@@ -348,7 +339,6 @@ export function BulkGenerateModal({ open, onOpenChange, onSuccess }: BulkGenerat
           </div>
         )}
 
-        {/* Success List */}
         {results?.reports && results.reports.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-green-600">Generated Reports</h4>

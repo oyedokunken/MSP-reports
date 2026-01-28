@@ -52,7 +52,6 @@ export default function AppSidebar() {
   const { state } = useSidebar()
   const [createUserOpen, setCreateUserOpen] = useState(false)
   const [customersExpanded, setCustomersExpanded] = useState(() => {
-    // Check sessionStorage first, then fallback to pathname check
     const stored = sessionStorage.getItem('customersExpanded')
     if (stored !== null) {
       return stored === 'true'
@@ -68,7 +67,6 @@ export default function AppSidebar() {
 
   const unmappedCount = useCustomersStore((state) => state.unmappedCount)
 
-  // Keep customers dropdown open when navigating within customers section
   useEffect(() => {
     if (location.pathname.startsWith('/platform/customers')) {
       setCustomersExpanded(true)
@@ -76,7 +74,6 @@ export default function AppSidebar() {
     }
   }, [location.pathname])
 
-  // Persist dropdown state to sessionStorage
   useEffect(() => {
     sessionStorage.setItem('customersExpanded', String(customersExpanded))
   }, [customersExpanded])
@@ -105,21 +102,17 @@ export default function AppSidebar() {
   ].filter(item => item.show !== false)
 
   const isActive = (path: string) => {
-    // For exact match paths (dashboard, settings)
     if (path === '/platform/dashboard' || path === '/admin/settings') {
       return location.pathname === path
     }
-    // For section paths, check if current path starts with the section path
     return location.pathname.startsWith(path)
   }
 
-  // Handler to navigate without expanding sidebar when collapsed
   const handleNavClick = (e: React.MouseEvent, path: string) => {
     if (state === 'collapsed') {
       e.preventDefault()
       navigate(path)
     }
-    // If expanded, let the Link component handle navigation normally
   }
 
   return (
@@ -132,7 +125,6 @@ export default function AppSidebar() {
               className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 hover:opacity-80 transition-opacity"
               onClick={(e) => handleNavClick(e, '/platform/dashboard')}
             >
-              {/* Expanded state */}
               {state === 'expanded' && (
                 <div className="flex items-center justify-center w-full">
                   {branding?.logo_url && branding.logo_url !== 'null' ? (
@@ -149,7 +141,6 @@ export default function AppSidebar() {
                     />
                   ) : null}
                   
-                  {/* Default Expanded Fallback */}
                   <div className={cn(
                     "flex items-center",
                     branding?.logo_url && branding.logo_url !== 'null' ? "hidden" : ""
@@ -168,7 +159,6 @@ export default function AppSidebar() {
                 </div>
               )}
 
-              {/* Collapsed state */}
               {state === 'collapsed' && (
                 <div className="flex items-center justify-center w-full">
                   {branding?.logo_url && branding.logo_url !== 'null' ? (
@@ -185,7 +175,6 @@ export default function AppSidebar() {
                     />
                   ) : null}
 
-                  {/* Default Collapsed Fallback */}
                   <div className={cn(
                     "flex items-center justify-center w-full",
                     branding?.logo_url && branding.logo_url !== 'null' ? "hidden" : ""
@@ -247,7 +236,6 @@ export default function AppSidebar() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
 
-                    {/* Insert Customers menu after Integrations */}
                     {item.path === '/platform/integrations' && hasPermission(user, 'customers', 'view') && (
                       <SidebarMenuItem className="group-data-[collapsible=icon]:static" data-tour="nav-customers">
                         {state === 'collapsed' ? (
@@ -361,7 +349,6 @@ export default function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Only show Admin group if there are admin items */}
         {adminNavItems.length > 0 && (
           <SidebarGroup className="mt-4 group-data-[collapsible=icon]:mt-2">
             <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Admin</SidebarGroupLabel>
@@ -395,7 +382,6 @@ export default function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="px-3 pb-3 group-data-[collapsible=icon]:px-2">
-        {/* Help & Documentation Link */}
         <SidebarMenu className="border-t border-sidebar-border pt-3 group-data-[collapsible=icon]:pt-2">
           <SidebarMenuItem className="relative group-data-[collapsible=icon]:static">
             <SidebarMenuButton
@@ -413,15 +399,12 @@ export default function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-      {/* Collapsible rail to toggle icon mode */}
       <SidebarRail />
 
-      {/* Create User Modal */}
       <CreateUserModal
         open={createUserOpen}
         onOpenChange={setCreateUserOpen}
         onSuccess={() => {
-          // User created successfully - list will refresh automatically
         }}
       />
     </Sidebar>

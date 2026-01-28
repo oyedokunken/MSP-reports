@@ -48,7 +48,6 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
     }
   }, [open])
 
-  // Load initial customers (no search)
   const loadInitialCustomers = async () => {
     setIsLoading(true)
     try {
@@ -77,7 +76,6 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
     }
   }
 
-  // Load more customers (with or without search)
   const loadMoreCustomers = useCallback(async (page: number, append: boolean = false) => {
     if (append) {
       setIsLoadingMore(true)
@@ -124,7 +122,6 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
     }
   }, [searchQuery])
 
-  // Search when search query changes
   useEffect(() => {
     if (!open) return
 
@@ -135,7 +132,6 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
     return () => clearTimeout(timeoutId)
   }, [searchQuery, open, loadMoreCustomers])
 
-  // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -177,7 +173,6 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
         </DialogHeader>
 
         <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -188,7 +183,6 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
             />
           </div>
 
-          {/* Customer List */}
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Spinner className="h-8 w-8" />
@@ -234,7 +228,6 @@ export function SelectCustomerModal({ open, onOpenChange }: SelectCustomerModalP
                 </button>
               ))}
 
-              {/* Infinite scroll trigger */}
               <div ref={observerTarget} className="py-2">
                 {isLoadingMore && (
                   <div className="flex items-center justify-center py-2">

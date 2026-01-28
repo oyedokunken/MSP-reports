@@ -17,19 +17,16 @@ export interface ReportSchedule {
 }
 
 interface SchedulesState {
-  // Data
   schedules: ReportSchedule[]
   allSchedules: ReportSchedule[]
   isLoading: boolean
 
-  // Search, Filters & Pagination
   searchQuery: string
   statusFilter: string
   frequencyFilter: string
   currentPage: number
   perPage: number
 
-  // Actions
   fetchSchedules: () => Promise<void>
   deleteSchedule: (scheduleId: number) => Promise<void>
   setPage: (page: number) => void
@@ -41,7 +38,6 @@ interface SchedulesState {
 }
 
 export const useSchedulesStore = create<SchedulesState>((set, get) => ({
-  // Initial state
   schedules: [],
   allSchedules: [],
   isLoading: true,
@@ -51,7 +47,6 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
   currentPage: 1,
   perPage: 9,
 
-  // Fetch schedules
   fetchSchedules: async () => {
     set({ isLoading: true })
     try {
@@ -76,7 +71,6 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     }
   },
 
-  // Delete schedule (backend also deletes associated template)
   deleteSchedule: async (scheduleId: number) => {
     try {
       await api.delete(`/reports/schedules/${scheduleId}`)
@@ -87,7 +81,6 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     }
   },
 
-  // Pagination action
   setPage: (page: number) => {
     const { perPage } = get()
     const filtered = get().getFilteredSchedules()
@@ -101,7 +94,6 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     })
   },
 
-  // Search action
   setSearchQuery: (query: string) => {
     set({ searchQuery: query, currentPage: 1 })
     const { perPage } = get()
@@ -110,7 +102,6 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     set({ schedules: paginatedSchedules })
   },
 
-  // Status filter action
   setStatusFilter: (status: string) => {
     set({ statusFilter: status, currentPage: 1 })
     const { perPage } = get()
@@ -119,7 +110,6 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     set({ schedules: paginatedSchedules })
   },
 
-  // Frequency filter action
   setFrequencyFilter: (frequency: string) => {
     set({ frequencyFilter: frequency, currentPage: 1 })
     const { perPage } = get()
@@ -128,22 +118,18 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     set({ schedules: paginatedSchedules })
   },
 
-  // Get filtered schedules based on search and filters
   getFilteredSchedules: () => {
     const { allSchedules, searchQuery, statusFilter, frequencyFilter } = get()
 
     return allSchedules.filter(schedule => {
-      // Search filter
       const matchesSearch = !searchQuery.trim() ||
         schedule.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         schedule.report_type.toLowerCase().includes(searchQuery.toLowerCase())
 
-      // Status filter
       const matchesStatus = statusFilter === 'all' ||
         (statusFilter === 'active' && schedule.active) ||
         (statusFilter === 'inactive' && !schedule.active)
 
-      // Frequency filter
       const matchesFrequency = frequencyFilter === 'all' ||
         schedule.frequency.toLowerCase() === frequencyFilter.toLowerCase()
 
@@ -151,7 +137,6 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     })
   },
 
-  // Get unique frequencies for filter dropdown
   getUniqueFrequencies: () => {
     const { allSchedules } = get()
     const frequencies = [...new Set(allSchedules.map(s => s.frequency))]

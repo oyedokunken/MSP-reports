@@ -56,7 +56,6 @@ export function ViewHistoricalImportJobsModal({
 
     try {
       const response = await api.get<{ data?: { jobs: HistoricalImportJob[] }; jobs?: HistoricalImportJob[] }>(`/integrations/${integration.id}/historical-import-jobs`)
-      // Handle both wrapped and unwrapped response formats
       const data = response.data || response
       setJobs(Array.isArray(data.jobs) ? data.jobs : [])
     } catch (err: unknown) {
@@ -115,12 +114,10 @@ export function ViewHistoricalImportJobsModal({
     if (job.status === 'completed') return 100
     if (job.status === 'failed') return 0
 
-    // Use progress_percentage from API if available (more accurate for parallel jobs)
     if (typeof job.progress_percentage === 'number') {
       return job.progress_percentage
     }
 
-    // Fallback to date-based calculation for old jobs
     if (!job.current_position || !job.import_start_date || !job.import_end_date) return 0
 
     const start = new Date(job.import_start_date).getTime()
@@ -185,7 +182,6 @@ export function ViewHistoricalImportJobsModal({
                     key={`job-${job.id}-${index}`}
                     className="rounded-lg border border-border p-4 space-y-3"
                   >
-                    {/* Header */}
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -202,7 +198,6 @@ export function ViewHistoricalImportJobsModal({
                       </div>
                     </div>
 
-                    {/* Progress Bar */}
                     {(job.status === 'running' || job.status === 'queued') && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
@@ -225,7 +220,6 @@ export function ViewHistoricalImportJobsModal({
                       </div>
                     )}
 
-                    {/* Stats Grid */}
                     <div className="grid grid-cols-3 gap-3 pt-3 border-t">
                       <div>
                         <p className="text-xs text-muted-foreground">Records Imported</p>
@@ -241,7 +235,6 @@ export function ViewHistoricalImportJobsModal({
                       </div>
                     </div>
 
-                    {/* Timestamps */}
                     <div className="grid grid-cols-2 gap-3 text-xs pt-3 border-t">
                       <div key={`${job.id}-created`}>
                         <p className="text-muted-foreground">Created</p>

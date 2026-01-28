@@ -88,14 +88,12 @@ export function DeleteUserModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* User Info */}
           <div className="rounded-lg border border-border bg-accent/50 p-3">
             <p className="text-sm font-medium mb-1">User:</p>
             <p className="font-semibold">{user.name}</p>
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
 
-          {/* Warning */}
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
             <p className="text-sm text-destructive font-medium mb-2">⚠️ Warning: This action cannot be undone!</p>
             <ul className="text-xs text-destructive/80 space-y-1 list-disc list-inside">

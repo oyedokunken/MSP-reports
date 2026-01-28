@@ -139,7 +139,6 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
 
   return (
     <Accordion type="multiple" className="w-full">
-      {/* Organization Information */}
       <AccordionItem value="organization">
         <AccordionTrigger className="hover:no-underline">
           <div className="flex items-center gap-2">
@@ -152,7 +151,6 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
         </AccordionContent>
       </AccordionItem>
 
-      {/* Contact Information */}
       {hasContactInfo && (
         <AccordionItem value="contact">
           <AccordionTrigger className="hover:no-underline">
@@ -167,7 +165,6 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
         </AccordionItem>
       )}
 
-      {/* Address */}
       {hasAddressInfo && (
         <AccordionItem value="address">
           <AccordionTrigger className="hover:no-underline">
@@ -182,7 +179,6 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
         </AccordionItem>
       )}
 
-      {/* System Information */}
       {hasSystemInfo && (
         <AccordionItem value="system">
           <AccordionTrigger className="hover:no-underline">
@@ -197,7 +193,6 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
         </AccordionItem>
       )}
 
-      {/* Important Dates */}
       {hasDates && (
         <AccordionItem value="dates">
           <AccordionTrigger className="hover:no-underline">
@@ -212,7 +207,6 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
         </AccordionItem>
       )}
 
-      {/* Notes/Alerts */}
       {hasNotesOrAlerts && (
         <AccordionItem value="notes">
           <AccordionTrigger className="hover:no-underline">
@@ -246,7 +240,6 @@ export default function ITGlueCustomerDetails({ metadata }: ITGlueCustomerDetail
         </AccordionItem>
       )}
 
-      {/* Logo */}
       {hasLogoUrl && (
         <AccordionItem value="logo">
           <AccordionTrigger className="hover:no-underline">

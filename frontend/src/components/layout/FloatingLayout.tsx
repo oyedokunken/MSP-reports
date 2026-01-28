@@ -19,18 +19,13 @@ export default function FloatingLayout({ children }: FloatingLayoutProps) {
         <SidebarProvider>
             <SkipLink />
             <div className="flex h-screen w-full bg-gray-50 dark:bg-background">
-                {/* Sidebar */}
                 <AppSidebar />
-                {/* Main content area */}
                 <SidebarInset className="flex flex-col flex-1 overflow-hidden">
-                    {/* Sticky header */}
                     <FloatingNav />
-                    {/* Scrollable content */}
                     <main id="main-content" className="flex-1 overflow-y-auto">
                         <div className="p-7 md:p-8 max-w-full">{children}</div>
                     </main>
                 </SidebarInset>
-                {/* Support Chatbot */}
                 <SupportChatbot />
             </div>
         </SidebarProvider>

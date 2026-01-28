@@ -31,7 +31,6 @@ export interface AuditLogStats {
 }
 
 export const EVENT_TYPES = {
-  // User events
   user_login: 'User Login',
   user_logout: 'User Logout',
   user_jit_provisioned: 'User JIT Provisioned',
@@ -45,14 +44,12 @@ export const EVENT_TYPES = {
   user_password_changed: 'Password Changed',
   user_permissions_updated: 'Permissions Updated',
 
-  // Integration events
   integration_created: 'Integration Created',
   integration_updated: 'Integration Updated',
   integration_deleted: 'Integration Deleted',
   integration_synced: 'Integration Synced',
   historical_import_started: 'Historical Import Started',
 
-  // Customer events
   customer_created: 'Customer Created',
   customer_updated: 'Customer Updated',
   customer_mapped: 'Customer Mapped',
@@ -60,16 +57,13 @@ export const EVENT_TYPES = {
   customer_split: 'Customer Split',
   mapping_deleted: 'Mapping Deleted',
 
-  // Settings events
   settings_updated: 'Settings Updated',
   branding_updated: 'Branding Updated',
 
-  // Report events
   report_generated: 'Report Generated',
   report_emailed: 'Report Emailed',
   report_shared: 'Report Shared',
 
-  // API Key events
   api_key_created: 'API Key Created',
   api_key_deleted: 'API Key Deleted',
 } as const

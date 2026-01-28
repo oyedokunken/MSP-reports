@@ -52,11 +52,9 @@ export const useDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // Replace useIntegrationStore with React Query
     const { data, refetch: refetchIntegrations } = useIntegrationsQuery();
     const integrations = useMemo(() => data?.integrations || [], [data?.integrations]);
 
-    // Other stores still valid
     const totalCustomers = useCustomersStore((state) => state.totalCustomersCount);
     const systemStatus = useMonitoringStore((state) => state.systemStatus);
     const reportMetrics = useMonitoringStore((state) => state.reportMetrics);
@@ -90,7 +88,6 @@ export const useDashboard = () => {
             }
         });
 
-        // Blend real notifications with legacy metrics
         const realActivities: RecentActivity[] = notifications.map((n, idx) => ({
             id: typeof n.id === 'number' ? n.id : (1000 + idx),
             type: n.type,
@@ -150,7 +147,6 @@ export const useDashboard = () => {
         }
     };
 
-    // Show all integrations on dashboard with scroll, source of truth first
     const dashboardIntegrations: Integration[] = integrations
         .map((int) => ({
             id: int.id,
@@ -163,13 +159,11 @@ export const useDashboard = () => {
             isSourceOfTruth: int.isSourceOfTruth || false,
         }))
         .sort((a, b) => {
-            // Source of truth always first
             if (a.isSourceOfTruth && !b.isSourceOfTruth) return -1;
             if (!a.isSourceOfTruth && b.isSourceOfTruth) return 1;
             return 0;
         });
 
-    // Limit to 5 upcoming reports for dashboard (performance)
     const upcomingReports: UpcomingReport[] = schedules
         .filter((s) => s.active)
         .slice(0, 5)
@@ -189,7 +183,6 @@ export const useDashboard = () => {
     const successRate = reportMetrics?.metrics.success_rate || 0;
     const queueHealth = systemStatus?.queue.health || "unknown";
 
-    // Fetch monthly report analytics data
     const [reportsChartData, setReportsChartData] = useState<Array<{ date: string; count: number }>>([])
 
     useEffect(() => {
@@ -201,7 +194,6 @@ export const useDashboard = () => {
                 setReportsChartData(response.data.monthly_data)
             } catch (error) {
                 logger.apiError('/monitoring/monthly-analytics', error, { months: 6 });
-                // Fallback to empty array on error
                 setReportsChartData([])
             }
         }

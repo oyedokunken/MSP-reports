@@ -36,7 +36,6 @@ export function LogoUpload({
   const maxFileSizeMB = 2
   const title = type === 'company' ? 'Company Logo' : 'Profile Logo'
 
-  // Clear preview when currentLogoUrl updates (after successful upload)
   useEffect(() => {
     if (currentLogoUrl && preview) {
       setPreview(null)
@@ -87,21 +86,18 @@ export function LogoUpload({
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate image
     const isValid = await validateImage(file)
     if (!isValid) {
       e.target.value = '' // Reset file input
       return
     }
 
-    // Show preview
     const reader = new FileReader()
     reader.onloadend = () => {
       setPreview(reader.result as string)
     }
     reader.readAsDataURL(file)
 
-    // Upload immediately
     await handleUpload(file)
     e.target.value = '' // Reset file input
   }
@@ -186,7 +182,6 @@ export function LogoUpload({
         <label className="block text-sm font-medium text-foreground">{title}</label>
 
         <div className="flex items-start gap-4">
-          {/* Image Preview with Hover Overlay */}
           <div className="flex-shrink-0 relative group">
             <div className="w-32 h-32 border-2 border-dashed border-border rounded-lg flex items-center justify-center bg-muted/20 overflow-hidden relative">
               {displayImageUrl ? (
@@ -196,7 +191,6 @@ export function LogoUpload({
                       alt={title}
                       className="w-full h-full object-cover"
                     />
-                    {/* Delete Overlay */}
                     <div 
                       className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
                       onClick={handleDeleteClick}
@@ -215,7 +209,6 @@ export function LogoUpload({
             </div>
           </div>
 
-          {/* Upload Controls */}
           <div className="flex-1 space-y-2">
             <input
               ref={fileInputRef}

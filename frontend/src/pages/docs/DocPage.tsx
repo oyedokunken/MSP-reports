@@ -119,7 +119,6 @@ export default function DocPage() {
   return (
     <FloatingLayout>
       <div className="min-h-screen bg-background">
-        {/* Mobile Header */}
         <div className="sticky top-0 z-40 lg:hidden border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center justify-between px-4 py-3">
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -140,17 +139,14 @@ export default function DocPage() {
         </div>
 
         <div className="flex">
-          {/* Desktop Sidebar */}
           <aside className="hidden lg:block w-72 shrink-0 border-r sticky top-0 h-screen overflow-hidden">
             <ScrollArea className="h-full py-6 px-4">
               <SidebarContent />
             </ScrollArea>
           </aside>
 
-          {/* Main Content */}
           <main className="flex-1 min-w-0">
             <div className="max-w-4xl mx-auto px-4 py-8 lg:px-8 lg:py-12">
-              {/* Breadcrumb */}
               <nav className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground mb-6">
                 <Link to="/docs" className="hover:text-foreground">
                   Documentation
@@ -163,7 +159,6 @@ export default function DocPage() {
                 <span className="text-foreground">{article.title}</span>
               </nav>
 
-              {/* Article Header */}
               <div className="mb-8">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -195,12 +190,10 @@ export default function DocPage() {
 
               <Separator className="mb-8" />
 
-              {/* Article Content */}
               <article className="prose prose-slate dark:prose-invert max-w-none prose-headings:scroll-mt-20 prose-h1:text-2xl prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-7 prose-li:leading-7 prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-pre:bg-muted prose-pre:border">
                 <ReactMarkdown>{article.content}</ReactMarkdown>
               </article>
 
-              {/* Related Articles */}
               {relatedArticles.length > 0 && (
                 <div className="mt-12 pt-8 border-t">
                   <h2 className="text-xl font-semibold mb-4">Related Articles</h2>
@@ -234,7 +227,6 @@ export default function DocPage() {
                 </div>
               )}
 
-              {/* Navigation */}
               <div className="mt-12 pt-8 border-t">
                 <div className="flex items-center justify-between">
                   <Button variant="ghost" asChild>

@@ -147,7 +147,6 @@ export function LicenseCheckCard() {
       </CardHeader>
       <CardContent className="pt-0">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Integration Check */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-md bg-primary/10">
@@ -183,7 +182,6 @@ export function LicenseCheckCard() {
             <ResultBadge result={integrationResult} />
           </div>
 
-          {/* Retention Check */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-md bg-primary/10">
@@ -221,7 +219,6 @@ export function LicenseCheckCard() {
             <ResultBadge result={retentionResult} />
           </div>
 
-          {/* User Check */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-md bg-primary/10">

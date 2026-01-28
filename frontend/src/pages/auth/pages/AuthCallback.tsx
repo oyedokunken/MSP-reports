@@ -30,7 +30,6 @@ export default function AuthCallback() {
             try {
                 setStatus('Fetching user data...');
 
-                // Store the token with correct key
                 localStorage.setItem('auth_token', token);
 
                 const response = await api.get<{ data: Record<string, unknown> }>('/auth/me', {

@@ -43,7 +43,6 @@ export function RateLimitStatusModal({
 
     try {
       const response = await api.get<{ data?: RateLimitStatus } & RateLimitStatus>(`/integrations/${integration.id}/rate-limit`)
-      // Handle both wrapped and unwrapped response formats
       const data = response.data || response
       setRateLimitData(data as RateLimitStatus)
     } catch (err: unknown) {
@@ -97,7 +96,6 @@ export function RateLimitStatusModal({
             </div>
           ) : rateLimitData ? (
             <>
-              {/* Status Overview */}
               <div className="rounded-lg border border-border p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Integration Type</span>
@@ -115,7 +113,6 @@ export function RateLimitStatusModal({
                 </div>
               </div>
 
-              {/* Hourly Usage */}
               <div className="rounded-lg border border-border p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Requests This Hour</span>
@@ -139,7 +136,6 @@ export function RateLimitStatusModal({
                 </div>
               </div>
 
-              {/* Limits Info */}
               <div className="rounded-lg border border-border p-4 space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Per Minute Limit</span>

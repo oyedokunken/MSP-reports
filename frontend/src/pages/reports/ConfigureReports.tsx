@@ -121,7 +121,6 @@ export default function ConfigureReports() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Schedules */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="border border-border shadow-sm">
               <CardHeader className="pb-0">
@@ -203,9 +202,7 @@ export default function ConfigureReports() {
             </Card>
           </div>
 
-          {/* Right Column: Settings & Actions */}
           <div className="space-y-6">
-            {/* Delivery & Actions Card */}
             <Card className="shadow-md border border-border">
               <CardHeader className="pb-0">
                 <CardTitle className="text-lg flex items-center gap-2">
@@ -217,10 +214,7 @@ export default function ConfigureReports() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 pt-4">
-                {/* Delivery Settings */}
                 <div className="space-y-3">
-                  {/* Delivery Method Selector (Only if SharePoint is available or configured) */}
-                  {/* Delivery Method Selector */}
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-muted-foreground uppercase">Delivery Method</Label>
                     <div className="flex flex-col gap-2">
@@ -326,7 +320,6 @@ export default function ConfigureReports() {
 
                 </div>
 
-                {/* Save Button */}
                 <Button
                   onClick={handleSaveConfiguration}
                   disabled={isSaving || isGenerating}
@@ -340,7 +333,6 @@ export default function ConfigureReports() {
                   Save Configuration
                 </Button>
 
-                {/* Divider with note */}
                 <div className="relative py-2">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-border" />
@@ -356,7 +348,6 @@ export default function ConfigureReports() {
                   Save configuration before generating reports
                 </p>
 
-                {/* Generate Button */}
                 <Button
                   onClick={handleGenerateSelectedSchedules}
                   disabled={isGenerating || isSaving || selectedSchedules.length === 0}
@@ -404,7 +395,6 @@ export default function ConfigureReports() {
               </CardContent>
             </Card>
 
-            {/* System Info */}
             <Card className="bg-primary/5 border-primary/20">
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center justify-between text-xs">
@@ -457,7 +447,6 @@ export default function ConfigureReports() {
         />
       )}
 
-      {/* Validation Error Modal */}
       <ConfirmationModal
         isOpen={showValidationModal}
         onClose={() => setShowValidationModal(false)}
@@ -472,7 +461,6 @@ export default function ConfigureReports() {
         type="warning"
       />
 
-      {/* Date Selection Modal */}
       <Dialog open={showGenerateModal} onOpenChange={setShowGenerateModal}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>

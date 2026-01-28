@@ -55,7 +55,6 @@ export function MailboxStatistics({ mailbox }: MailboxStatisticsProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {/* Usage Bar */}
           {mailbox.prohibitSendReceiveQuotaMB && (
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -81,7 +80,6 @@ export function MailboxStatistics({ mailbox }: MailboxStatisticsProps) {
             </div>
           )}
 
-          {/* Statistics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex items-start space-x-3">
               <HardDrive className="w-5 h-5 text-muted-foreground mt-0.5" />
@@ -132,7 +130,6 @@ export function MailboxStatistics({ mailbox }: MailboxStatisticsProps) {
             </div>
           </div>
 
-          {/* Quotas */}
           {(mailbox.prohibitSendQuotaMB || mailbox.prohibitSendReceiveQuotaMB || mailbox.issueWarningQuotaMB) && (
             <div className="pt-6 border-t">
               <h4 className="text-sm font-semibold text-foreground mb-4">Quotas</h4>
