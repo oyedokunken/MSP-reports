@@ -23,6 +23,8 @@ class LibreNMSIntegration implements IntegrationInterface
     protected LibreNMSClient $client;
     protected CustomerMappingService $mappingService;
     protected $progressCallback = null;
+    protected static array $customerMapCache = [];
+    protected static array $deviceGroupsMapCache = [];
 
     public function setProgressCallback(callable $callback): void
     {
@@ -96,15 +98,49 @@ class LibreNMSIntegration implements IntegrationInterface
                 break;
 
             case 'devices':
+                // Use optimized maps for device-group and customer association
+                $customerMap = $this->getCustomerMap();
+                $deviceGroupsMap = $this->getDeviceGroupsMap();
+                
+                // Fetch availability in parallel for this batch
+                $deviceIds = array_column($items, 'device_id');
+                $availabilityBatch = $this->client->getDeviceAvailabilityBatch($deviceIds);
+
                 foreach ($items as $device) {
                     try {
-                         // Store device details
-                        $deviceDetails = LibreNMSMapper::mapDeviceDetails($device, []);
+                        $deviceId = (int)($device['device_id'] ?? 0);
+                        if (!$deviceId) continue;
+                        
+                        // Get groups from our pre-loaded map
+                        $groups = $deviceGroupsMap[$deviceId] ?? [];
+                        
+                        // Find associated customer
+                        $integrationCustomerId = null;
+                        foreach ($groups as $group) {
+                            $externalId = 'group_' . $group['id'];
+                            if (isset($customerMap[$externalId])) {
+                                $integrationCustomerId = $customerMap[$externalId];
+                                break;
+                            }
+                        }
+
+                        // Store device details with customer association
+                        $deviceDetails = LibreNMSMapper::mapDeviceDetails($device, $groups);
+                        $deviceDetails['integration_customer_id'] = $integrationCustomerId;
                         $this->storeHistoricalData($deviceDetails);
 
-                        // Store device uptime data
+                        // Store device uptime data with customer association
                         $uptimeData = LibreNMSMapper::mapDeviceUptime($device);
+                        $uptimeData['integration_customer_id'] = $integrationCustomerId;
                         $this->storeHistoricalData($uptimeData);
+
+                        // Store device availability data with customer association
+                        $availability = $availabilityBatch[$deviceId] ?? [];
+                        if (!empty($availability)) {
+                            $mappedAvail = LibreNMSMapper::mapDeviceAvailability($deviceId, $availability);
+                            $mappedAvail['integration_customer_id'] = $integrationCustomerId;
+                            $this->storeHistoricalData($mappedAvail);
+                        }
                         
                         // Heartbeat
                         if (method_exists($this, 'sendHeartbeat')) {
@@ -139,7 +175,7 @@ class LibreNMSIntegration implements IntegrationInterface
                 Log::info('LibreNMS Integration: Syncing Groups', ['count' => count($groups)]);
                 
                 collect($groups)->chunk(50)->each(function ($chunk) {
-                     \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'groups', $chunk->toArray(), $this->currentSyncLogId);
+                     \App\Jobs\ProcessIntegrationBatchJob::dispatchSync($this->integration, 'groups', $chunk->toArray(), $this->currentSyncLogId);
                 });
                 
                 $totalProcessed += count($groups);
@@ -154,7 +190,7 @@ class LibreNMSIntegration implements IntegrationInterface
                     Log::info('LibreNMS Integration: Syncing Devices', ['count' => count($devices)]);
                     
                     collect($devices)->chunk(50)->each(function ($chunk) {
-                        \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, 'devices', $chunk->toArray(), $this->currentSyncLogId);
+                        \App\Jobs\ProcessIntegrationBatchJob::dispatchSync($this->integration, 'devices', $chunk->toArray(), $this->currentSyncLogId);
                     });
                     $totalProcessed += count($devices);
                 } catch (\Exception $e) {
@@ -208,6 +244,42 @@ class LibreNMSIntegration implements IntegrationInterface
     }
 
 
+
+    protected function getCustomerMap(): array
+    {
+        $id = $this->integration->integration_id;
+        if (!isset(self::$customerMapCache[$id])) {
+            self::$customerMapCache[$id] = IntegrationCustomer::where('integration_id', $id)
+                ->pluck('integration_customer_id', 'external_id')
+                ->toArray();
+        }
+        return self::$customerMapCache[$id];
+    }
+
+    protected function getDeviceGroupsMap(): array
+    {
+        $id = $this->integration->integration_id;
+        if (!isset(self::$deviceGroupsMapCache[$id])) {
+            $map = [];
+            try {
+                $allGroups = $this->client->getDeviceGroups();
+                foreach ($allGroups as $group) {
+                    try {
+                        $devicesInGroup = $this->client->getDevicesInGroup($group['id']);
+                        foreach ($devicesInGroup as $dev) {
+                            $map[$dev['device_id']][] = $group;
+                        }
+                    } catch (\Exception $e) {
+                        // Ignore single group failures
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('LibreNMS: Failed to build device-groups map', ['error' => $e->getMessage()]);
+            }
+            self::$deviceGroupsMapCache[$id] = $map;
+        }
+        return self::$deviceGroupsMapCache[$id];
+    }
 
     private function processUnmappedCustomers(): array
     {
@@ -298,7 +370,7 @@ class LibreNMSIntegration implements IntegrationInterface
                         // Map device details
                         $details = LibreNMSMapper::mapDeviceDetails($device, $groups);
                         $batchRecords[] = [
-                            'data_type' => 'device',
+                            'data_type' => 'device_details',
                             'integration_customer_id' => $integrationCustomerId,
                             'timestamp' => $startDate,
                             'payload' => $details['payload'],

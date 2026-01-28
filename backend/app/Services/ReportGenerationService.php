@@ -445,8 +445,10 @@ class ReportGenerationService
                     'threat_statistics' => $reportData['threat_statistics'] ?? [],
                     'device_statistics' => $reportData['device_statistics'] ?? [],
                     'date_range' => $reportData['date_range'] ?? [],
-                    // LibreNMS Device Report
+                    // LibreNMS Device Report & Summary
                     'groups' => $reportData['groups'] ?? [],
+                    'infrastructure' => $reportData['infrastructure'] ?? [],
+                    'top_issues' => $reportData['top_issues'] ?? [],
                     'render_part' => $renderPart,
                 ])->render();
             } catch (\Exception $e) {
@@ -508,8 +510,10 @@ class ReportGenerationService
                         'threat_statistics' => $reportData['threat_statistics'] ?? [],
                         'device_statistics' => $reportData['device_statistics'] ?? [],
                         'date_range' => $reportData['date_range'] ?? [],
-                        // LibreNMS Device Report
+                        // LibreNMS Device Report & Summary
                         'groups' => $reportData['groups'] ?? [],
+                        'infrastructure' => $reportData['infrastructure'] ?? [],
+                        'top_issues' => $reportData['top_issues'] ?? [],
                         'render_part' => $renderPart,
                     ])->render();
                 }
