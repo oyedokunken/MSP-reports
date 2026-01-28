@@ -59,8 +59,8 @@ class BarracudaClient
 
         try {
             $response = Http::asJson()->post($this->baseUrl . '/v1/authorization/token', [
-                'clientId' => $this->credentials['client_id'],
-                'clientSecret' => $this->credentials['client_secret'],
+                'ClientId' => $this->credentials['client_id'],
+                'ClientSecret' => $this->credentials['client_secret'],
             ]);
 
             if (!$response->successful()) {
