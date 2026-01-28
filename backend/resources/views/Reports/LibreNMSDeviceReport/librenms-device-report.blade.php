@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>LibreNMS Device Report</title>
+    <title>LibreNMS Device Report - {{ $customer->name }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -11,11 +11,11 @@
             color: #1a1a1a;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px 10px;
+            padding: {{ (isset($render_part) && $render_part === 'cover') ? '0' : '20px 10px' }};
             font-size: 12px;
         }
         .header { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #e5e5e5; text-align: center; }
-        .header .company-name { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+        .header .company-name { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; display: none; }
         .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
         .header .meta { font-size: 11px; color: #666; }
         .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 40px; }
@@ -47,11 +47,46 @@
         .info-table td:first-child { color: #666; }
         .info-table td:last-child { text-align: right; font-weight: 600; color: #1a1a1a; }
     </style>
+    <style>
+        /* Report Content Background Shapes */
+        .report-bg-shape-1 {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            background: #1e293b;
+            opacity: 0.02;
+            clip-path: polygon(100% 0, 0% 0, 100% 100%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .report-bg-shape-2 {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 30%;
+            height: 40%;
+            background: #1e293b;
+            opacity: 0.015;
+            clip-path: polygon(0 100%, 100% 100%, 0 0);
+            z-index: -1;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
+    @if(!isset($render_part) || $render_part === 'all' || $render_part === 'cover')
+        @include('CoverPages.default')
+    @endif
+    
+    @if(!isset($render_part) || $render_part === 'all' || $render_part === 'content')
+    <div class="report-bg-shape-1"></div>
+    <div class="report-bg-shape-2"></div>
+    
     <div class="header">
         <h1>Device Availability Report</h1>
-        <div class="company-name">{{ $branding['company_name'] ?? 'Territory Technology Solutions' }}</div>
         <div class="meta">{{ $customer->name }} • {{ $generated_at }}</div>
     </div>
 
@@ -150,5 +185,11 @@
             </table>
         </div>
     @endforeach
+    @endif
+
+    <script>
+        // Signal to Gotenberg that the page is ready
+        window.chartsRendered = true;
+    </script>
 </body>
 </html>
