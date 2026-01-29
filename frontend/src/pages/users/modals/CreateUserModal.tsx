@@ -15,6 +15,8 @@ import { customerApi } from '@/services/api/customers'
 import { userApi } from '@/services/api/users'
 import type { Customer } from '@/types/api/customer'
 import type { Role } from '@/types/api/user'
+import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/utils/permissions'
 
 interface CreateUserModalProps {
   open: boolean
@@ -102,6 +104,10 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
     }
   }
 
+  const { user } = useAuth()
+  const canViewRoles = hasPermission(user, 'users', 'view')
+  const canViewCustomers = hasPermission(user, 'customers', 'view')
+
   useEffect(() => {
     const fetchRoles = async () => {
       try {
@@ -118,17 +124,17 @@ export function CreateUserModal({ open, onOpenChange, onSuccess }: CreateUserMod
       }
     }
 
-    fetchRoles()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
     if (open) {
-      fetchCustomers(1)
-      setCurrentPage(1)
+      if (canViewRoles) {
+        fetchRoles()
+      }
+      if (canViewCustomers) {
+        fetchCustomers(1)
+        setCurrentPage(1)
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, canViewRoles, canViewCustomers])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

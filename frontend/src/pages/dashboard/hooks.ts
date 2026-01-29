@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { logger } from '@/lib/logger'
 import { useToast } from "@/components/ui/Toast";
 import { FileText, Cable, Users, Activity } from "lucide-react";
+import { hasPermission } from "@/utils/permissions";
 import { useCustomersStore } from "@/stores/useCustomersStore";
 import { useMonitoringStore } from "@/stores/useMonitoringStore";
 import { useSchedulesStore } from "@/stores/useSchedulesStore";
@@ -52,7 +53,13 @@ export const useDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const { data, refetch: refetchIntegrations } = useIntegrationsQuery();
+    const canViewIntegrations = hasPermission(user, 'integrations', 'view');
+    const canViewMonitoring = hasPermission(user, 'monitoring', 'view');
+    const canViewSchedules = hasPermission(user, 'reports', 'view');
+
+    const { data, refetch: refetchIntegrations } = useIntegrationsQuery({
+        enabled: isAuthenticated && canViewIntegrations
+    });
     const integrations = useMemo(() => data?.integrations || [], [data?.integrations]);
 
     const totalCustomers = useCustomersStore((state) => state.totalCustomersCount);
@@ -108,7 +115,7 @@ export const useDashboard = () => {
             loadDashboardData();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAuthenticated]);
+    }, [isAuthenticated, canViewIntegrations, canViewMonitoring, canViewSchedules]);
 
     const loadDashboardData = async () => {
         if (!isAuthenticated) {
@@ -116,14 +123,26 @@ export const useDashboard = () => {
         }
 
         setIsLoading(true);
+        const promises: Promise<any>[] = [];
+        
+        // Always fetch customers if authenticated (base permission)
+        promises.push(fetchCustomers());
+
+        if (canViewIntegrations) {
+            promises.push(refetchIntegrations());
+        }
+        
+        if (canViewMonitoring) {
+            promises.push(fetchSystemStatus());
+            promises.push(fetchReportMetrics());
+        }
+
+        if (canViewSchedules) {
+            promises.push(fetchSchedules());
+        }
+
         try {
-            await Promise.all([
-                refetchIntegrations(),
-                fetchCustomers(),
-                fetchSystemStatus(),
-                fetchReportMetrics(),
-                fetchSchedules(),
-            ]);
+            await Promise.all(promises);
         } catch (err) {
             if (isAuthenticated) {
                 logger.error('Dashboard data load error:', err);
@@ -187,7 +206,7 @@ export const useDashboard = () => {
 
     useEffect(() => {
         const fetchMonthlyReports = async () => {
-            if (!isAuthenticated) return
+            if (!isAuthenticated || !canViewMonitoring) return
 
             try {
                 const response = await monitoringApi.getMonthlyReportAnalytics(6)
@@ -199,7 +218,7 @@ export const useDashboard = () => {
         }
 
         fetchMonthlyReports()
-    }, [isAuthenticated, reportMetrics])
+    }, [isAuthenticated, canViewMonitoring, reportMetrics])
 
     const stats: Stat[] = [
         {
