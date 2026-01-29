@@ -26,7 +26,7 @@ interface LicensesState {
 export const useLicensesStore = create<LicensesState>((set) => ({
   licenseData: null,
   usage: null,
-  isLoading: true,
+  isLoading: false,
   error: null,
 
   fetchLicenses: async () => {
@@ -57,6 +57,8 @@ export const useLicensesStore = create<LicensesState>((set) => ({
       })
     } catch (error) {
       logger.apiError('/licenses/usage', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load license usage'
+      set({ error: errorMessage })
     }
   },
 }))

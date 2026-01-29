@@ -131,7 +131,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     try {
       await notificationApi.markAsRead(id)
-    } catch {
+    } catch (error) {
+      logger.apiError('markAsRead', error)
       set({ notifications: previousNotifications, unreadCount: get().unreadCount + 1 })
     }
   },
@@ -145,7 +146,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     try {
       await notificationApi.markAllAsRead()
-    } catch {
+    } catch (error) {
+      logger.apiError('markAllAsRead', error)
       set({ notifications: previousNotifications, unreadCount: previousNotifications.filter(n => !n.read).length })
     }
   },
@@ -167,7 +169,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     try {
       await notificationApi.deleteNotification(id)
-    } catch {
+    } catch (error) {
+      logger.apiError('deleteNotification', error)
       set({ notifications: previousNotifications, total: get().total + 1 })
     }
   },
@@ -187,10 +190,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     })
 
     try {
-      for (const id of selectedIds) {
-        await notificationApi.deleteNotification(id)
-      }
-    } catch {
+      await Promise.all(
+        Array.from(selectedIds).map((id) => notificationApi.deleteNotification(id))
+      )
+    } catch (error) {
+      logger.apiError('deleteSelected', error)
       set({ notifications: previousNotifications, total: previousNotifications.length })
     }
   },
@@ -207,7 +211,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     try {
       await notificationApi.deleteAllRead()
-    } catch {
+    } catch (error) {
+      logger.apiError('deleteAllRead', error)
       set({ notifications: previousNotifications, total: previousNotifications.length })
     }
   },
