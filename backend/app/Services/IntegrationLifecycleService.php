@@ -109,6 +109,7 @@ class IntegrationLifecycleService
         }
 
         // Create the Job Record
+        /** @var \App\Models\HistoricalImportJob $job */
         $job = $integration->historicalImportJobs()->create([
             'company_id' => $integration->company_id,
             'import_start_date' => $startDate,
@@ -142,6 +143,6 @@ class IntegrationLifecycleService
             'historical_import_status' => 'pending'
         ]);
 
-        Log::info("Queued automatic 30-day historical backfill with {$totalJobs} parallel chunks", ['job_id' => $job->id]);
+        Log::info("Queued automatic 30-day historical backfill with {$totalJobs} parallel chunks", ['job_id' => $job->historical_import_job_id]);
     }
 }

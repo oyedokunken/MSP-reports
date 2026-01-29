@@ -7,6 +7,28 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 use App\Traits\AuditTrail;
 
+/**
+ * @property int $integration_id
+ * @property int $company_id
+ * @property string $integration_type
+ * @property string $display_name
+ * @property string $status
+ * @property \Carbon\Carbon|null $last_sync_at
+ * @property string $last_sync_status
+ * @property string|null $error_message
+ * @property array|null $credentials
+ * @property array|null $configuration
+ * @property bool $is_source_of_truth
+ * @property string $historical_import_status
+ * @property int|null $historical_import_progress
+ * @property \Carbon\Carbon|null $last_historical_sync_at
+ * @property string|null $sync_schedule
+ * @property-read \App\Models\Company $company
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\IntegrationCustomer> $integrationCustomers
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\SyncLog> $syncLogs
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\HistoricalImportJob> $historicalImportJobs
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\IntegrationData> $integrationData
+ */
 class Integration extends Model
 {
     use HasFactory, AuditTrail;
@@ -95,27 +117,27 @@ class Integration extends Model
         'is_source_of_truth' => 'boolean',
     ];
 
-    public function company()
+    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
-    public function integrationCustomers()
+    public function integrationCustomers(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(IntegrationCustomer::class, 'integration_id', 'integration_id');
     }
 
-    public function syncLogs()
+    public function syncLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(SyncLog::class, 'integration_id', 'integration_id');
     }
 
-    public function historicalImportJobs()
+    public function historicalImportJobs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(HistoricalImportJob::class, 'integration_id', 'integration_id');
     }
 
-    public function integrationData()
+    public function integrationData(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(IntegrationData::class, 'integration_id', 'integration_id');
     }

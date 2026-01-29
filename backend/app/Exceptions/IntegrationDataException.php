@@ -14,7 +14,7 @@ class IntegrationDataException extends IntegrationException
         array $invalidData = [],
         string $integrationId = '',
         string $integrationType = '',
-        ?Exception $previous = null
+        ?\Exception $previous = null
     ) {
         parent::__construct($message, $integrationId, $integrationType, 422, $previous);
         $this->invalidData = $invalidData;

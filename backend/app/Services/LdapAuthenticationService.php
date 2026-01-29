@@ -90,11 +90,11 @@ class LdapAuthenticationService
     protected function getUserData(string $username): ?array
     {
         try {
-            $usernameAttr = env('LDAP_USER_ATTRIBUTE_USERNAME', 'samaccountname');
-            $emailAttr = env('LDAP_USER_ATTRIBUTE_EMAIL', 'mail');
-            $firstNameAttr = env('LDAP_USER_ATTRIBUTE_FIRSTNAME', 'givenname');
-            $lastNameAttr = env('LDAP_USER_ATTRIBUTE_LASTNAME', 'sn');
-            $displayNameAttr = env('LDAP_USER_ATTRIBUTE_DISPLAYNAME', 'displayname');
+            $usernameAttr = config('ldap.user_attributes.username', 'samaccountname');
+            $emailAttr = config('ldap.user_attributes.email', 'mail');
+            $firstNameAttr = config('ldap.user_attributes.firstname', 'givenname');
+            $lastNameAttr = config('ldap.user_attributes.lastname', 'sn');
+            $displayNameAttr = config('ldap.user_attributes.displayname', 'displayname');
 
             // Search for the user
             $results = $this->connection->query()
@@ -171,7 +171,7 @@ class LdapAuthenticationService
     public function userExists(string $username): bool
     {
         try {
-            $usernameAttr = env('LDAP_USER_ATTRIBUTE_USERNAME', 'samaccountname');
+            $usernameAttr = config('ldap.user_attributes.username', 'samaccountname');
             
             $results = $this->connection->query()
                 ->where($usernameAttr, '=', $username)

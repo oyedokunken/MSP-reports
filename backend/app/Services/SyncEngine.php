@@ -144,7 +144,7 @@ class SyncEngine
             'integration_id' => $integration->integration_id,
             'integration_type' => $integration->integration_type,
             'company_id' => $company->company_id,
-            'sync_log_id' => $syncLog->sync_log_id,
+            'sync_log_id' => $syncLog->sync_id,
             'errors' => $syncLog->error_messages,
         ]);
     }

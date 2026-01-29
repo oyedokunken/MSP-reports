@@ -172,7 +172,7 @@ class ActiveDirectoryController extends Controller
                 'message' => 'Active Directory data synced successfully',
                 'data' => [
                     'integrationId' => $integration->integration_id,
-                    'syncLogId' => $syncLog->id,
+                    'syncLogId' => $syncLog->sync_id,
                     'usersProcessed' => $usersProcessed,
                     'groupsProcessed' => $groupsProcessed,
                     'membershipsProcessed' => $membershipsProcessed,
@@ -196,8 +196,8 @@ class ActiveDirectoryController extends Controller
             DB::rollBack();
             
             Log::error('Active Directory sync failed', [
-                'company_id' => $companyId ?? null,
-                'customer_id' => $customerId ?? null,
+                'company_id' => $companyId,
+                'customer_id' => $customerId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);

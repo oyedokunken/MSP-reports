@@ -25,7 +25,7 @@ class ReportAnalyticsController extends Controller
             ->with('customer:customer_id,canonical_name,report_destination,report_configuration')
             ->orderBy('next_scheduled_at', 'asc')
             ->get()
-            ->map(function ($schedule) {
+            ->map(function (\App\Models\ReportSchedule $schedule) {
                 $customer = $schedule->customer;
                 
                 $emailDestination = $customer->report_destination 
@@ -78,7 +78,7 @@ class ReportAnalyticsController extends Controller
             ->orderBy('generated_at', 'desc')
             ->paginate($perPage);
 
-        $formattedReports = $reports->map(function ($report) {
+        $formattedReports = $reports->map(function (\App\Models\GeneratedReport $report) {
             // Check if file exists for completed reports
             if ($report->status === 'completed' && $report->file_path) {
                 if (!Storage::disk('reports')->exists($report->file_path)) {

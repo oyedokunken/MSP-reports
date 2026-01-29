@@ -20,7 +20,7 @@ class ReportRegistry
      */
     protected function getCacheTtl(): int
     {
-        return env('APP_ENV') === 'local' ? 0 : 3600;
+        return config('app.env') === 'local' ? 0 : 3600;
     }
 
     /**
@@ -78,7 +78,7 @@ class ReportRegistry
     public function getAvailable(int $companyId): array
     {
         // In development, always re-discover to pick up new report types
-        if (env('APP_ENV') === 'local') {
+        if (config('app.env') === 'local') {
             $this->discover();
         }
 
@@ -135,7 +135,7 @@ class ReportRegistry
     public function discover(): void
     {
         // In development, skip cache entirely and always discover fresh
-        $isDevelopment = env('APP_ENV') === 'local';
+        $isDevelopment = config('app.env') === 'local';
         
         // Check cache first (only in production)
         if (!$isDevelopment) {

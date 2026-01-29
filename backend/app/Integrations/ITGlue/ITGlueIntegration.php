@@ -116,7 +116,7 @@ class ITGlueIntegration implements IntegrationInterface
                 'started_at'     => now(),
                 'status'         => 'running',
             ]);
-            $this->currentSyncLogId = $syncLog->id;
+            $this->currentSyncLogId = $syncLog->sync_id;
             Log::info('Created new sync log entry', ['sync_id' => $this->currentSyncLogId]);
         }
 
@@ -519,9 +519,7 @@ class ITGlueIntegration implements IntegrationInterface
                 ];
             }
 
-            if (!empty($insertData)) {
-                \Illuminate\Support\Facades\DB::table('integration_data')->insert($insertData);
-            }
+            \Illuminate\Support\Facades\DB::table('integration_data')->insert($insertData);
         });
 
         $this->lastBatchProcessedCount = count($batch);
@@ -694,7 +692,7 @@ class ITGlueIntegration implements IntegrationInterface
         }
 
         return [
-            'success' => empty($errors),
+            'success' => true,
             'total_processed' => 0, // Zero because we use notifyProgress for everything
             'errors' => $errors,
         ];

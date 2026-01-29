@@ -7,6 +7,20 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Integration;
 
+/**
+ * @property int $sync_id
+ * @property int $integration_id
+ * @property string $sync_type
+ * @property \Carbon\Carbon|null $started_at
+ * @property \Carbon\Carbon|null $completed_at
+ * @property string $status
+ * @property int $records_synced
+ * @property int $records_failed
+ * @property array|null $error_messages
+ * @property int $rate_limit_hits
+ * @property array|null $customers_mapped
+ * @property-read \App\Models\Integration $integration
+ */
 class SyncLog extends Model
 {
     use HasFactory, SoftDeletes;
@@ -33,7 +47,7 @@ class SyncLog extends Model
         'completed_at' => 'datetime',
     ];
 
-    public function integration()
+    public function integration(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Integration::class, 'integration_id', 'integration_id');
     }

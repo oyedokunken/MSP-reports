@@ -16,8 +16,10 @@ class OAuthAuthenticationService
     public function redirectToMicrosoft()
     {
         try {
-            return Socialite::driver('microsoft')
-                ->scopes(config('auth_methods.oauth.microsoft.scopes'))
+            /** @var \Laravel\Socialite\Two\AbstractProvider $driver */
+            $driver = Socialite::driver('microsoft');
+            return $driver
+                ->scopes((array)config('auth_methods.oauth.microsoft.scopes'))
                 ->redirect();
         } catch (Exception $e) {
             Log::error('OAuth: Failed to redirect to Microsoft', [
@@ -35,6 +37,7 @@ class OAuthAuthenticationService
     public function handleMicrosoftCallback(): ?array
     {
         try {
+            /** @var \Laravel\Socialite\Two\User $microsoftUser */
             $microsoftUser = Socialite::driver('microsoft')->user();
 
             Log::info('OAuth: Microsoft authentication successful', [
@@ -163,7 +166,9 @@ class OAuthAuthenticationService
     public function redirectToKeycloak()
     {
         try {
-            return Socialite::driver('keycloak')
+            /** @var \Laravel\Socialite\Two\AbstractProvider $driver */
+            $driver = Socialite::driver('keycloak');
+            return $driver
                 ->enablePKCE()
                 ->scopes(['openid', 'profile', 'email'])
                 ->redirect();
@@ -181,10 +186,13 @@ class OAuthAuthenticationService
     public function handleKeycloakCallback(): ?array
     {
         try {
-            $driver = Socialite::driver('keycloak')->enablePKCE();
+            /** @var \Laravel\Socialite\Two\AbstractProvider $driver */
+            $driver = Socialite::driver('keycloak');
+            $driver->enablePKCE();
             $code = request()->input('code');
             Log::info('OAuth: Keycloak callback received with code: ' . ($code ? 'present' : 'missing'));
             
+            /** @var \Laravel\Socialite\Two\User $keycloakUser */
             $keycloakUser = $driver->user();
 
             return [

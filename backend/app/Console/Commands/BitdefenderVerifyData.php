@@ -31,8 +31,8 @@ class BitdefenderVerifyData extends Command
             $integration
         );
 
-        $this->info("Starting verification for integration #{$integration->id}");
-        $this->info("Name: " . ($integration->name ?? 'Unnamed'));
+        $this->info("Starting verification for integration #{$integration->integration_id}");
+        $this->info("Name: " . ($integration->display_name ?? 'Unnamed'));
         $this->newLine();
 
         // Companies verification (unchanged)

@@ -8,6 +8,75 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Scopes\CompanyScope;
 use App\Models\Scopes\CustomerScope;
 
+/**
+ * @property int $id
+ * @property int $company_id
+ * @property int $integration_id
+ * @property int $customer_id
+ * @property string $guid
+ * @property string $identity
+ * @property string|null $display_name
+ * @property string|null $alias
+ * @property string|null $primary_smtp_address
+ * @property string|null $user_principal_name
+ * @property string|null $sam_account_name
+ * @property string|null $recipient_type
+ * @property string|null $recipient_type_details
+ * @property bool $is_shared
+ * @property bool $is_resource
+ * @property string|null $resource_type
+ * @property bool $hidden_from_address_lists
+ * @property string|null $external_directory_object_id
+ * @property string|null $database_name
+ * @property string|null $server_name
+ * @property string|null $distinguished_name
+ * @property string|null $license_type
+ * @property array|null $assigned_licenses
+ * @property int|null $prohibit_send_quota_mb
+ * @property int|null $prohibit_send_receive_quota_mb
+ * @property int|null $issue_warning_quota_mb
+ * @property bool $use_database_quota_defaults
+ * @property int|null $total_item_size_mb
+ * @property int|null $total_deleted_item_size_mb
+ * @property int|null $item_count
+ * @property int|null $deleted_item_count
+ * @property \Carbon\Carbon|null $last_logon_time
+ * @property \Carbon\Carbon|null $last_logoff_time
+ * @property bool $archive_enabled
+ * @property string|null $archive_guid
+ * @property string|null $archive_name
+ * @property string|null $archive_database
+ * @property int|null $archive_quota_mb
+ * @property int|null $archive_warning_quota_mb
+ * @property int|null $archive_size_mb
+ * @property bool $litigation_hold_enabled
+ * @property \Carbon\Carbon|null $litigation_hold_date
+ * @property string|null $litigation_hold_owner
+ * @property string|null $retention_policy
+ * @property string|null $retention_comment
+ * @property string|null $retention_url
+ * @property string|null $forwarding_address
+ * @property string|null $forwarding_smtp_address
+ * @property bool $deliver_to_mailbox_and_forward
+ * @property string|null $organizational_unit
+ * @property string|null $office
+ * @property string|null $department
+ * @property string|null $company_name
+ * @property string|null $custom_attribute_1
+ * @property string|null $custom_attribute_2
+ * @property string|null $custom_attribute_3
+ * @property \Carbon\Carbon|null $when_created
+ * @property \Carbon\Carbon|null $when_changed
+ * @property string|null $exchange_version
+ * @property-read float|null $quota_usage_percentage
+ * @property-read \App\Models\Company $company
+ * @property-read \App\Models\Integration $integration
+ * @property-read \App\Models\Customer $customer
+ * @property-read \App\Models\ActiveDirectoryUser|null $activeDirectoryUser
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\ExchangeEmailAlias> $emailAliases
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\ExchangeMailboxPermission> $permissions
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\ExchangeMailboxStatistic> $statistics
+ */
 class ExchangeMailbox extends Model
 {
     protected static function booted(): void

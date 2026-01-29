@@ -86,4 +86,21 @@ return [
         'driver' => env('CACHE_DRIVER', 'file'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | LDAP User Attributes
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure the LDAP attribute mappings for user lookup.
+    |
+    */
+
+    'user_attributes' => [
+        'username' => env('LDAP_USER_ATTRIBUTE_USERNAME', 'samaccountname'),
+        'email' => env('LDAP_USER_ATTRIBUTE_EMAIL', 'mail'),
+        'firstname' => env('LDAP_USER_ATTRIBUTE_FIRSTNAME', 'givenname'),
+        'lastname' => env('LDAP_USER_ATTRIBUTE_LASTNAME', 'sn'),
+        'displayname' => env('LDAP_USER_ATTRIBUTE_DISPLAYNAME', 'displayname'),
+    ],
+
 ];

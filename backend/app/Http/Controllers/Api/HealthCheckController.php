@@ -68,7 +68,7 @@ class HealthCheckController extends Controller
                 $query->where('started_at', '>=', $startDate);
             }])
             ->get()
-            ->map(function ($integration) {
+            ->map(function (\App\Models\Integration $integration) {
                 $logs = $integration->syncLogs;
                 $totalSyncs = $logs->count();
                 $successfulSyncs = $logs->where('status', 'success')->count();
@@ -120,7 +120,7 @@ class HealthCheckController extends Controller
 
         $avgGenerationTime = $reports
             ->filter(fn($r) => $r->status === 'completed')
-            ->map(function ($report) {
+            ->map(function (\App\Models\GeneratedReport $report) {
                 if ($report->generated_at && $report->created_at) {
                     return $report->generated_at->diffInSeconds($report->created_at);
                 }
@@ -147,7 +147,7 @@ class HealthCheckController extends Controller
                     ->where('status', 'failed')
                     ->sortByDesc('generated_at')
                     ->take(5)
-                    ->map(fn($r) => [
+                    ->map(fn(\App\Models\GeneratedReport $r) => [
                         'generated_report_id' => $r->generated_report_id,
                         'customer_id' => $r->customer_id,
                         'generated_at' => $r->generated_at,

@@ -208,7 +208,7 @@ class ITGlueClient
         $this->rateLimiter->recordRequest($this->integration);
 
         if ($response->status() === 429 && $retryCount < 3) {
-            $retryAfter = (int) $response->header('Retry-After', 60);
+            $retryAfter = (int) ($response->header('Retry-After') ?? 60);
             $backoff = $retryAfter * pow(2, $retryCount);
             sleep($backoff);
             return $this->makeRequest($endpoint, $params, $retryCount + 1);

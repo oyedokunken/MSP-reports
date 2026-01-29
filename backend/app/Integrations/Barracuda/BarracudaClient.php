@@ -5,6 +5,8 @@ namespace App\Integrations\Barracuda;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
@@ -136,7 +138,7 @@ class BarracudaClient
         
         try {
             $response = $this->makeRequest('GET', "/v1/accounts/{$parentAccountId}/child-accounts");
-            return $response ?? [];
+            return $response;
         } catch (\Exception $e) {
             Log::error('Barracuda: Failed to fetch child accounts', [
                 'integration_id' => $this->integration->integration_id,
@@ -183,7 +185,7 @@ class BarracudaClient
         
         try {
             $response = $this->makeRequest('GET', "/v1/product-state/{$accountId}");
-            return $response ?? [];
+            return $response;
         } catch (\Exception $e) {
             Log::error('Barracuda: Failed to fetch product state', [
                 'integration_id' => $this->integration->integration_id,
@@ -225,7 +227,7 @@ class BarracudaClient
             ]);
             
             $response = $this->makeRequest('GET', '/beta/alerts', $params);
-            return $response ?? [];
+            return $response;
         } catch (\Exception $e) {
             Log::error('Barracuda: Failed to fetch alerts', [
                 'integration_id' => $this->integration->integration_id,
@@ -267,7 +269,7 @@ class BarracudaClient
             ]);
             
             $response = $this->makeRequest('GET', '/v1/reports/report-data', $params);
-            return $response ?? [];
+            return $response;
         } catch (\Exception $e) {
             Log::error('Barracuda: Failed to fetch report data', [
                 'integration_id' => $this->integration->integration_id,

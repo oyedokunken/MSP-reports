@@ -219,7 +219,7 @@ MSG;
         }
 
         $reportName = $report->reportSchedule?->report_type ?? 'Report';
-        $customerName = $customer->name ?? 'Unknown Customer';
+        $customerName = $customer->canonical_name ?? 'Unknown Customer';
         $deliveryMethodsStr = implode(', ', $successMethods);
         $destinationsStr = implode(', ', $destinations);
 
@@ -276,7 +276,7 @@ MSG;
         }
 
         $reportName = $report->reportSchedule?->report_type ?? 'Report';
-        $customerName = $customer->name ?? 'Unknown Customer';
+        $customerName = $customer->canonical_name ?? 'Unknown Customer';
         $deliveryMethodsStr = implode(', ', $deliveryMethods);
         $deliveredAt = $report->delivered_at?->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s');
 

@@ -4,7 +4,7 @@ namespace App\Reports\MonthlyComprehensive;
 
 use App\Reports\Contracts\BaseDataGatherer;
 use App\Reports\UptimeReport\UptimeDataGatherer;
-use App\Reports\TicketSummary\TicketDataGatherer;
+use App\Reports\TicketSummary\TicketSummaryDataGatherer;
 use App\Reports\BackupStatus\BackupDataGatherer;
 use App\Reports\SecuritySummary\SecurityDataGatherer;
 
@@ -40,12 +40,12 @@ class ComprehensiveDataGatherer extends BaseDataGatherer
     public function getTicketSection(): array
     {
         try {
-            $ticketGatherer = new TicketDataGatherer($this->customer);
+            $ticketGatherer = new TicketSummaryDataGatherer($this->customer);
             $period = [
                 'start' => $this->startDate,
                 'end' => $this->endDate,
             ];
-            $data = $ticketGatherer->getAggregatedData($period);
+            $data = $ticketGatherer->getReportData($period);
             
             if (empty($data) || ($data['tickets_opened'] ?? 0) == 0) {
                 return [];

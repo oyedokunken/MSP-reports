@@ -279,7 +279,7 @@ class DattoClient
     public function getSaasDomains(): array
     {
         $response = $this->makeSaasRequest('/saas/domains');
-        return $response ?? [];
+        return $response;
     }
     
     public function getRmmDevices(string $siteUid): array

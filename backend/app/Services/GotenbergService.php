@@ -33,8 +33,9 @@ class GotenbergService
             throw new Exception('Gotenberg service is disabled');
         }
 
+        $endpoint = "{$this->baseUrl}/forms/chromium/convert/html";
+
         try {
-            $endpoint = "{$this->baseUrl}/forms/chromium/convert/html";
 
             // Build the multipart form data properly
             $multipart = [];
@@ -88,7 +89,7 @@ class GotenbergService
         } catch (Exception $e) {
             Log::error('Gotenberg PDF generation failed', [
                 'error' => $e->getMessage(),
-                'url' => $endpoint ?? null,
+                'url' => $endpoint,
             ]);
 
             throw new Exception("Failed to generate PDF: {$e->getMessage()}");

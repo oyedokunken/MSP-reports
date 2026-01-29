@@ -13,6 +13,7 @@ class KaseyaClient
     protected array $credentials;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
+    protected string $baseUrl;
 
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {

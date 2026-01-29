@@ -282,7 +282,9 @@ XML;
             
             // Register IDs on Response and Assertion elements
             foreach ($xpath->query('//*[@ID]') as $node) {
-                $node->setIdAttribute('ID', true);
+                if ($node instanceof \DOMElement) {
+                    $node->setIdAttribute('ID', true);
+                }
             }
 
             // Create XMLSecurityDSig instance

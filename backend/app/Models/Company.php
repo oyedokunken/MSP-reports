@@ -12,6 +12,26 @@ use App\Models\License;
 use App\Models\AuditLog;
 use App\Traits\AuditTrail;
 
+/**
+ * @property int $company_id
+ * @property string $name
+ * @property string|null $abn
+ * @property string|null $contact_email
+ * @property string|null $contact_phone
+ * @property string|null $address
+ * @property string $status
+ * @property string $subscription_tier
+ * @property array|null $settings
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\User> $users
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\Integration> $integrations
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\Customer> $customers
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\License> $licenses
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\ApiKey> $apiKeys
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\AuditLog> $auditLogs
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\ReportSchedule> $reportSchedules
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\GeneratedReport> $generatedReports
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\HistoricalImportJob> $historicalImportJobs
+ */
 class Company extends Model
 {
     use HasFactory, AuditTrail;

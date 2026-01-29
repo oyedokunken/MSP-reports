@@ -36,7 +36,7 @@ class CheckADSPLALicensing extends Command
             return 1;
         }
 
-        $this->info("Checking SPLA licensing for Customer: {$customer->name} (#{$customerId}) (Source: Agent Data)");
+        $this->info("Checking SPLA licensing for Customer: {$customer->canonical_name} (#{$customerId}) (Source: Agent Data)");
 
         try {
             // 1. Fetch License Assignments

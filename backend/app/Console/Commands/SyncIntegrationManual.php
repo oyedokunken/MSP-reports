@@ -180,6 +180,7 @@ class SyncIntegrationManual extends Command
                 $this->warn("Run 'php artisan queue:work --once' to process them, or check worker logs.");
 
                 // Set up Redis counter for batch tracking using the Master Lock logic
+                $redis = null;
                 try {
                     $redis = \Illuminate\Support\Facades\Redis::connection();
                     $redis->set("sync_log:{$syncLog->sync_id}:master_running", 0); // Manual dispatch is already done
@@ -195,7 +196,7 @@ class SyncIntegrationManual extends Command
                 ]);
 
                 // Final check if workers already finished
-                if ((int) $redis->get("sync_log:{$syncLog->sync_id}:pending") <= 0) {
+                if ($redis && (int) $redis->get("sync_log:{$syncLog->sync_id}:pending") <= 0) {
                      $this->info("All batches finished instantly. Finalizing...");
                      // Re-use syncEngine logic
                      $syncLog->update(['status' => 'success', 'completed_at' => now()]);

@@ -102,7 +102,7 @@ class SharePointDriver implements DeliveryDriverInterface
 
         } catch (\Exception $e) {
             Log::error('SharePoint Delivery Failed', [
-                'report' => $report->id,
+                'report' => $report->generated_report_id,
                 'error' => $e->getMessage()
             ]);
             

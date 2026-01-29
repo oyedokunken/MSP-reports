@@ -33,7 +33,7 @@ class MailService
                 'username' => $smtp['username'] ?? null,
                 'password' => $smtp['password'] ?? null,
                 'timeout' => null,
-                'local_domain' => env('MAIL_EHLO_DOMAIN'),
+                'local_domain' => config('mail.mailers.smtp.local_domain'),
             ];
 
             // Use 'build' if available (Laravel 10+) or dynamically set config

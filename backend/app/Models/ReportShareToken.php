@@ -6,6 +6,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $generated_report_id
+ * @property int $company_id
+ * @property string $token
+ * @property string|null $signature
+ * @property \Carbon\Carbon $expires_at
+ * @property-read \App\Models\GeneratedReport $generatedReport
+ * @property-read \App\Models\Company $company
+ */
 class ReportShareToken extends Model
 {
     use HasFactory;

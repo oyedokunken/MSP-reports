@@ -47,7 +47,7 @@ class TestOptimizedSync extends Command
         $startDate = now()->subDays($daysBack)->startOfDay();
         
         $this->info("=== Testing Optimized Sync ===");
-        $this->info("Integration: {$integration->name} (ID: {$integration->integration_id})");
+        $this->info("Integration: {$integration->display_name} (ID: {$integration->integration_id})");
         $this->info("Type: {$integration->integration_type}");
         $this->info("Days back: {$daysBack}");
         $this->line('');

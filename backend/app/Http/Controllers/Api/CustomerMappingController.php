@@ -91,7 +91,7 @@ class CustomerMappingController extends Controller
             ->paginate($perPage);
 
         // Map customers to response format
-        $data = $customers->map(function ($customer) {
+        $data = $customers->map(function (\App\Models\Customer $customer) {
             return [
                 'customer_id' => $customer->customer_id,
                 'canonical_name' => $customer->canonical_name,
@@ -99,8 +99,9 @@ class CustomerMappingController extends Controller
                 'is_static' => $customer->is_static,
                 'report_destination' => e($customer->report_destination),
                 'report_schedules_count' => $customer->reportSchedules->count(),
-                'integrations' => $customer->integrationCustomers->map(function ($ic) {
+                'integrations' => $customer->integrationCustomers->map(function (\App\Models\IntegrationCustomer $ic) {
                     // Use eager-loaded relationship instead of query
+                    /** @var \App\Models\CustomerMapping|null $mapping */
                     $mapping = $ic->customerMappings->first();
                     
                     return [
@@ -248,7 +249,7 @@ class CustomerMappingController extends Controller
                         'canonical_name' => $suggestion['customer']->canonical_name,
                         'is_static' => $suggestion['customer']->is_static ?? false,
                         'confidence_score' => $suggestion['confidence_score'],
-                        'integrations' => $suggestion['customer']->integrationCustomers->map(function($ic) {
+                        'integrations' => $suggestion['customer']->integrationCustomers->map(function(\App\Models\IntegrationCustomer $ic) {
                             return ['id' => $ic->integration_customer_id];
                         }),
                     ];
@@ -494,8 +495,9 @@ class CustomerMappingController extends Controller
             ], 404);
         }
 
-        $integrations = $customer->integrationCustomers->map(function ($ic) {
+        $integrations = $customer->integrationCustomers->map(function (\App\Models\IntegrationCustomer $ic) {
             // Use eager-loaded relationship
+            /** @var \App\Models\CustomerMapping|null $mapping */
             $mapping = $ic->customerMappings->first();
             
             return [
@@ -579,7 +581,7 @@ class CustomerMappingController extends Controller
                     return $item->data_payload['resource_id'];
                 });
 
-            $technicianStats = $topTechnicians->map(function($tech) use ($resources) {
+            $technicianStats = $topTechnicians->map(function(\App\Models\IntegrationData $tech) use ($resources) {
                 $resource = $resources->get($tech->resource_id);
                 $firstName = $resource ? ($resource->data_payload['first_name'] ?? '') : '';
                 $lastName = $resource ? ($resource->data_payload['last_name'] ?? '') : '';

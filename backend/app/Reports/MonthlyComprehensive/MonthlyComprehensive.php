@@ -229,6 +229,10 @@ class MonthlyComprehensive extends BaseReport
             $weightedSum += $scores[$i] * $weights[$i];
         }
         
+        if ($totalWeight === 0) {
+            return 0;
+        }
+        
         return (int) round($weightedSum / $totalWeight);
     }
 

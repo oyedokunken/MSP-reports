@@ -7,6 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Company;
 use App\Models\Scopes\CompanyScope;
 
+/**
+ * @property-read \App\Models\Company $company
+ * @property-read \Illuminate\Database\Eloquent\Model|null $actor
+ * @property-read \Illuminate\Database\Eloquent\Model|null $target
+ */
 class AuditLog extends Model
 {
     use HasFactory;

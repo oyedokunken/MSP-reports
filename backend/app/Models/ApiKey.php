@@ -9,6 +9,26 @@ use App\Models\User;
 use App\Models\AuditLog;
 use App\Models\Scopes\CompanyScope;
 
+/**
+ * @property int $api_key_id
+ * @property int $company_id
+ * @property int|null $customer_id
+ * @property int $created_by_user_id
+ * @property string $display_name
+ * @property string $key_hash
+ * @property \Carbon\Carbon|null $last_used_at
+ * @property array|null $permissions
+ * @property array|null $ip_whitelist
+ * @property array|null $allowed_endpoints
+ * @property bool $revoked
+ * @property \Carbon\Carbon|null $revoked_at
+ * @property int|null $revoked_by_user_id
+ * @property-read \App\Models\Company $company
+ * @property-read \App\Models\Customer|null $customer
+ * @property-read \App\Models\User $createdBy
+ * @property-read \App\Models\User|null $revokedBy
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\AuditLog> $auditLogs
+ */
 class ApiKey extends Model
 {
     use HasFactory;
@@ -45,27 +65,27 @@ class ApiKey extends Model
     ];
 
     
-    public function company()
+    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
-    public function customer()
+    public function customer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
     }
 
-    public function createdBy()
+    public function createdBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id', 'user_id');
     }
 
-    public function revokedBy()
+    public function revokedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'revoked_by_user_id', 'user_id');
     }
 
-    public function auditLogs()
+    public function auditLogs(): \Illuminate\Database\Eloquent\Relations\MorphMany
     {
         return $this->morphMany(AuditLog::class, 'actor');
     }

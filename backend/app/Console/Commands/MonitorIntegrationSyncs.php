@@ -80,6 +80,7 @@ class MonitorIntegrationSyncs extends Command
             ->get();
 
         foreach ($staleSyncs as $sync) {
+            /** @var \App\Models\SyncLog $sync */
             $sync->update([
                 'status' => 'failed',
                 'completed_at' => $now,
@@ -97,6 +98,7 @@ class MonitorIntegrationSyncs extends Command
             ->get();
 
         foreach ($runningSyncs as $sync) {
+            /** @var \App\Models\SyncLog $sync */
             // Check heartbeat or update age in PHP (timezone sensitive)
             $heartbeatAt = $sync->last_heartbeat_at ?? $sync->updated_at ?? $sync->started_at;
             $ageInMinutes = abs($now->diffInMinutes($heartbeatAt, false));

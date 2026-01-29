@@ -50,6 +50,7 @@ class CheckDattoStatus extends Command
 
         $this->info("=== Data Records ===");
         $total = 0;
+        /** @var \App\Models\IntegrationData $row */
         foreach ($data as $row) {
             $this->info("{$row->data_type}: {$row->count}");
             $total += $row->count;

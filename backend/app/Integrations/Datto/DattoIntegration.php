@@ -1113,7 +1113,7 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
             return [
                 'success' => true,
                 'customer' => $customer ? [
-                    'id' => $customer->id,
+                    'id' => $customer->integration_customer_id,
                     'name' => $customer->name,
                     'external_id' => $customer->external_id,
                 ] : null,
@@ -1336,12 +1336,7 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
                 'company_id' => $this->integration->company_id,
                 'integration_id' => $this->integration->integration_id,
                 'integration_customer_id' => $integrationCustomer->integration_customer_id,
-                'company_id' => $this->integration->company_id,
-                'integration_id' => $this->integration->integration_id,
-                'integration_customer_id' => $integrationCustomer->integration_customer_id,
                 'data_type' => IntegrationDataType::UPTIME_METRIC,
-                'data_timestamp' => $metricTimestamp,
-                'data_payload' => $uptimePayload,
                 'data_timestamp' => $metricTimestamp,
                 'data_payload' => $uptimePayload,
                 'imported_at' => now(),

@@ -77,7 +77,7 @@ class ReportTypeRegistry
         // Get customer's active integration types (e.g., ['autotask', 'datto'])
         $customerIntegrations = $customer
             ->integrationCustomers
-            ->map(function ($ic) {
+            ->map(function (\App\Models\IntegrationCustomer $ic) {
                 return strtolower($ic->integration->integration_type);
             })
             ->unique()

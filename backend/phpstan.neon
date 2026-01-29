@@ -1,0 +1,12 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+    
+    # Level 2 - stricter type checking
+    level: 2
+    
+    # Report unmatched ignores as warnings, not errors
+    reportUnmatchedIgnoredErrors: false

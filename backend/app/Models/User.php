@@ -12,6 +12,28 @@ use App\Models\Role;
 use App\Models\Scopes\CompanyScope;
 use App\Traits\AuditTrail;
 
+/**
+ * @property int $user_id
+ * @property int $company_id
+ * @property int $role_id
+ * @property string $name
+ * @property string $email
+ * @property string $password
+ * @property string $status
+ * @property string $auth_method
+ * @property bool $force_password_change
+ * @property string|null $profile_picture
+ * @property array|null $permissions
+ * @property array|null $settings
+ * @property \Carbon\Carbon|null $last_login_at
+ * @property \Carbon\Carbon|null $email_verified_at
+ * @property string|null $remember_token
+ * @property-read \App\Models\Company $company
+ * @property-read \App\Models\Role $role
+ * @property-read \Illuminate\Notifications\DatabaseNotificationCollection|\Illuminate\Notifications\DatabaseNotification[] $notifications
+ * @property-read \Illuminate\Notifications\DatabaseNotificationCollection|\Illuminate\Notifications\DatabaseNotification[] $unreadNotifications
+ * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\AuditLog> $auditLogs
+ */
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, AuditTrail;
@@ -52,7 +74,7 @@ class User extends Authenticatable
         'force_password_change' => 'boolean',
     ];
 
-    protected $appends = ['last_login', 'created_at', 'profile_picture_url'];
+    protected $appends = ['last_login', 'profile_picture_url'];
 
     /**
      * Accessor for last_login (maps from last_login_at for frontend compatibility)
@@ -83,17 +105,17 @@ class User extends Authenticatable
 
 
     
-    public function company()
+    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
-    public function auditLogs()
+    public function auditLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(AuditLog::class, 'user_id', 'user_id');
     }
 
-    public function role()
+    public function role(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id', 'id');
     }

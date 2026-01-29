@@ -11,7 +11,7 @@ class IntegrationAuthException extends IntegrationException
         string $message = 'Integration authentication failed',
         string $integrationId = '',
         string $integrationType = '',
-        ?Exception $previous = null
+        ?\Exception $previous = null
     ) {
         parent::__construct($message, $integrationId, $integrationType, 401, $previous);
     }

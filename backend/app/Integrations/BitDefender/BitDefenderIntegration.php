@@ -285,7 +285,7 @@ class BitDefenderIntegration implements IntegrationInterface
                 // CRITICAL FIX: For endpoint snapshots, we must only delete records for THIS specific timestamp.
                 // otherwise, importing Day 2 overwrites Day 1 (same external_id).
                 // Endpoint batches are always uniform in timestamp (see getHistoricalData).
-                if ($dataType === 'bitdefender_endpoint' && !empty($batch)) {
+                if ($dataType === 'bitdefender_endpoint') {
                     $ts = $batch[0]['timestamp'] ?? null;
                     if ($ts) {
                         $query->where('data_timestamp', $ts);
@@ -318,9 +318,7 @@ class BitDefenderIntegration implements IntegrationInterface
                 ];
             }
 
-            if (!empty($inserts)) {
-                DB::table('integration_data')->insert($inserts);
-            }
+            DB::table('integration_data')->insert($inserts);
         });
     }
 
