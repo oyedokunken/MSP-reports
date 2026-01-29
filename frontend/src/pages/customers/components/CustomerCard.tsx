@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { FileText, Settings, MoreVertical, Edit, Cable, GitMerge, GitBranch, Info, Building2, CheckCircle, XCircle, Send } from 'lucide-react'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/utils/permissions'
 import type { MappedCustomer } from '@/stores/useCustomersStore'
 
 interface CustomerCardProps {
@@ -39,7 +40,8 @@ export function CustomerCard({
 }: CustomerCardProps) {
   const { user } = useAuth()
   const hasReports = customer.report_schedules_count && customer.report_schedules_count > 0
-  const canAccessReports = user?.permissions?.reports?.configure || user?.permissions?.reports?.generate
+  const canConfigureReports = hasPermission(user, 'reports', 'configure')
+  const canEditCustomers = hasPermission(user, 'customers', 'edit')
 
   return (
     <AnimatedCard className="p-6 h-full flex flex-col">
@@ -95,9 +97,9 @@ export function CustomerCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                onClick={canAccessReports ? onSetupReports : undefined}
-                disabled={!canAccessReports}
-                className={`w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${canAccessReports
+                onClick={canConfigureReports ? onSetupReports : undefined}
+                disabled={!canConfigureReports}
+                className={`w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${canConfigureReports
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer'
                   : 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
                   }`}
@@ -106,9 +108,9 @@ export function CustomerCard({
                 Setup Reports
               </button>
             </TooltipTrigger>
-            {!canAccessReports && (
+            {!canConfigureReports && (
               <TooltipContent>
-                <p>You need <strong>reports.configure</strong> or <strong>reports.generate</strong> permission</p>
+                <p>You need <strong>reports.configure</strong> permission</p>
               </TooltipContent>
             )}
           </Tooltip>
@@ -136,31 +138,41 @@ export function CustomerCard({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Customer
-              </DropdownMenuItem>
+              {canEditCustomers && (
+                <DropdownMenuItem onClick={onEdit}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Customer
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={onViewIntegrations}>
                 <Cable className="mr-2 h-4 w-4" />
                 View Integrations
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onApplyTemplate}>
-                <FileText className="mr-2 h-4 w-4" />
-                Apply Report Template
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onConfigureDelivery}>
-                <Send className="mr-2 h-4 w-4" />
-                Delivery Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={onMerge}>
-                <GitMerge className="mr-2 h-4 w-4" />
-                Merge Customer
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onSplit}>
-                <GitBranch className="mr-2 h-4 w-4" />
-                Split Customer
-              </DropdownMenuItem>
+              {canConfigureReports && (
+                <>
+                  <DropdownMenuItem onClick={onApplyTemplate}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Apply Report Template
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onConfigureDelivery}>
+                    <Send className="mr-2 h-4 w-4" />
+                    Delivery Settings
+                  </DropdownMenuItem>
+                </>
+              )}
+              {canEditCustomers && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onMerge}>
+                    <GitMerge className="mr-2 h-4 w-4" />
+                    Merge Customer
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onSplit}>
+                    <GitBranch className="mr-2 h-4 w-4" />
+                    Split Customer
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

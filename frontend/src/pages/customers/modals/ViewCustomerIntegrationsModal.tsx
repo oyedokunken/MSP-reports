@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissions";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -47,6 +49,8 @@ export function ViewCustomerIntegrationsModal({
     onSuccess,
 }: ViewCustomerIntegrationsModalProps) {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const canEdit = hasPermission(user, "customers", "edit");
     const [isLoading, setIsLoading] = useState(false);
     const [integrations, setIntegrations] = useState<IntegrationMapping[]>([]);
     const [error, setError] = useState("");
@@ -172,26 +176,28 @@ export function ViewCustomerIntegrationsModal({
                                                     Mapped: {new Date(integration.mapped_at).toLocaleDateString()}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        handleDeleteMapping(
-                                                            customer.customer_id,
-                                                            integration.mapping_id
-                                                        )
-                                                    }
-                                                    disabled={deletingId === integration.mapping_id}
-                                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                >
-                                                    {deletingId === integration.mapping_id ? (
-                                                        <Spinner className="h-4 w-4" />
-                                                    ) : (
-                                                        <Trash2 className="h-4 w-4" />
-                                                    )}
-                                                </Button>
-                                            </div>
+                                             {canEdit && (
+                                                <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            handleDeleteMapping(
+                                                                customer.customer_id,
+                                                                integration.mapping_id
+                                                            )
+                                                        }
+                                                        disabled={deletingId === integration.mapping_id}
+                                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                    >
+                                                        {deletingId === integration.mapping_id ? (
+                                                            <Spinner className="h-4 w-4" />
+                                                        ) : (
+                                                            <Trash2 className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>

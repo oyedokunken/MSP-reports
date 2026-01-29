@@ -24,6 +24,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissions";
 
 export default function MasterCustomerList() {
     const [showCreateStatic, setShowCreateStatic] = useState(false);
@@ -58,6 +60,11 @@ export default function MasterCustomerList() {
         handleModalSuccess,
     } = useMasterCustomerList();
 
+    const { user } = useAuth();
+    const canConfigureReports = hasPermission(user, 'reports', 'configure');
+    const canEditCustomers = hasPermission(user, 'customers', 'edit');
+    const canMapCustomers = hasPermission(user, 'customers', 'map');
+
     return (
         <FloatingLayout>
             <div className="space-y-6 max-w-full overflow-hidden">
@@ -86,7 +93,7 @@ export default function MasterCustomerList() {
                     onStatusFiltersChange={setStatusFilters}
                     onReportFiltersChange={setReportFilters}
                     onIntegrationFiltersChange={setIntegrationFilters}
-                    onCreateStatic={() => setShowCreateStatic(true)}
+                    onCreateStatic={canMapCustomers ? () => setShowCreateStatic(true) : undefined}
                     view={view}
                     onViewChange={setView}
                 />
@@ -180,7 +187,8 @@ export default function MasterCustomerList() {
                                                             size="sm"
                                                             variant="default"
                                                             className="h-8 px-3"
-                                                            onClick={() => navigate(`/platform/customers/${customer.customer_id}/configure-reports`)}
+                                                            onClick={canConfigureReports ? () => navigate(`/platform/customers/${customer.customer_id}/configure-reports`) : undefined}
+                                                            disabled={!canConfigureReports}
                                                         >
                                                             <Settings className="h-3.5 w-3.5 mr-1" />
                                                             Setup
@@ -196,31 +204,41 @@ export default function MasterCustomerList() {
                                                                     <FileText className="mr-2 h-4 w-4" />
                                                                     View History
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleCustomerAction(customer, 'edit')}>
-                                                                    <Edit className="mr-2 h-4 w-4" />
-                                                                    Edit Customer
-                                                                </DropdownMenuItem>
+                                                                {canEditCustomers && (
+                                                                    <DropdownMenuItem onClick={() => handleCustomerAction(customer, 'edit')}>
+                                                                        <Edit className="mr-2 h-4 w-4" />
+                                                                        Edit Customer
+                                                                    </DropdownMenuItem>
+                                                                )}
                                                                 <DropdownMenuItem onClick={() => handleCustomerAction(customer, 'integrations')}>
                                                                     <Cable className="mr-2 h-4 w-4" />
                                                                     View Integrations
                                                                 </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleCustomerAction(customer, 'applyTemplate')}>
-                                                                    <FileText className="mr-2 h-4 w-4" />
-                                                                    Apply Template
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleCustomerAction(customer, 'delivery')}>
-                                                                    <Send className="mr-2 h-4 w-4" />
-                                                                    Delivery Settings
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem onClick={() => handleCustomerAction(customer, 'merge')}>
-                                                                    <GitMerge className="mr-2 h-4 w-4" />
-                                                                    Merge Customer
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleCustomerAction(customer, 'split')}>
-                                                                    <GitBranch className="mr-2 h-4 w-4" />
-                                                                    Split Customer
-                                                                </DropdownMenuItem>
+                                                                {canConfigureReports && (
+                                                                    <>
+                                                                        <DropdownMenuItem onClick={() => handleCustomerAction(customer, 'applyTemplate')}>
+                                                                            <FileText className="mr-2 h-4 w-4" />
+                                                                            Apply Template
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem onClick={() => handleCustomerAction(customer, 'delivery')}>
+                                                                            <Send className="mr-2 h-4 w-4" />
+                                                                            Delivery Settings
+                                                                        </DropdownMenuItem>
+                                                                    </>
+                                                                )}
+                                                                {canEditCustomers && (
+                                                                    <>
+                                                                        <DropdownMenuSeparator />
+                                                                        <DropdownMenuItem onClick={() => handleCustomerAction(customer, 'merge')}>
+                                                                            <GitMerge className="mr-2 h-4 w-4" />
+                                                                            Merge Customer
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem onClick={() => handleCustomerAction(customer, 'split')}>
+                                                                            <GitBranch className="mr-2 h-4 w-4" />
+                                                                            Split Customer
+                                                                        </DropdownMenuItem>
+                                                                    </>
+                                                                )}
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </div>

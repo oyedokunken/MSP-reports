@@ -5,6 +5,8 @@ import type { CanonicalCustomer, MappingRow, IntegrationCustomer, ExistingCustom
 import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
 import { useCustomersStore } from '@/stores/useCustomersStore'
+import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/utils/permissions'
 
 export const useCustomerMapping = (initialRows: MappingRow[], canonical: CanonicalCustomer[]) => {
   const [rows, setRows] = useState<MappingRow[]>(initialRows)
@@ -419,18 +421,24 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
   const getMappedCustomers = useCustomersStore((state) => state.getMappedCustomers)
   const getUnmappedCustomers = useCustomersStore((state) => state.getUnmappedCustomers)
 
+  const { user } = useAuth()
+  const canMap = hasPermission(user, 'customers', 'map')
+
   useEffect(() => {
-    const fetchArgs: [number, boolean, boolean | null] = sotFilter === null
-      ? [1, false, null]
-      : [1, false, sotFilter]
+    const fetchArgs: [number, boolean, boolean | null, boolean] = sotFilter === null
+      ? [1, false, null, !canMap]
+      : [1, false, sotFilter, !canMap]
 
     fetchCustomers(...fetchArgs).catch((err) => {
+      // Don't toast 403s if it's just the unmapped check failing
+      if (err.response?.status === 403 && !canMap) return;
+      
       toast.error(
         "Failed to load customers",
         err.response?.data?.message || err.message
       )
     })
-  }, [fetchCustomers, toast, sotFilter])
+  }, [fetchCustomers, toast, sotFilter, canMap])
 
   const mappedCustomers = getMappedCustomers()
   const unmappedCustomers = getUnmappedCustomers()
@@ -453,7 +461,7 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
   }, [unmappedCustomers, setSelectedUnmappedCustomer, openModal])
 
   const handleMapSuccess = useCallback(async () => {
-    await fetchCustomers(currentPage, true, sotFilter)
+    await fetchCustomers(currentPage, true, sotFilter, !canMap)
     const updatedUnmapped = getUnmappedCustomers()
 
     if (updatedUnmapped.length > 0) {
@@ -484,43 +492,44 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
   }, [setSelectedCustomer, openModal])
 
   const handleModalSuccess = useCallback((modalType: CustomerAction, message: string, description: string) => {
-    fetchCustomers(currentPage, true, sotFilter)
+    fetchCustomers(currentPage, true, sotFilter, !canMap)
     closeModal(modalType)
     toast.success(message, description)
   }, [fetchCustomers, currentPage, sotFilter, closeModal, toast])
 
   const handlePageChange = useCallback((page: number) => {
-    fetchCustomers(page, false, sotFilter)
-  }, [fetchCustomers, sotFilter])
+    fetchCustomers(page, false, sotFilter, !canMap)
+  }, [fetchCustomers, sotFilter, canMap])
 
   const handleSetSearchQuery = useCallback((query: string) => {
     useCustomersStore.setState({ searchQuery: query, currentPage: 1 })
-    fetchCustomers(1, false, sotFilter)
-  }, [fetchCustomers, sotFilter])
+    fetchCustomers(1, false, sotFilter, !canMap)
+  }, [fetchCustomers, sotFilter, canMap])
 
   const handleSetStatusFilters = useCallback((statuses: string[]) => {
     useCustomersStore.setState({ statusFilters: statuses, currentPage: 1 })
-    fetchCustomers(1, false, sotFilter)
-  }, [fetchCustomers, sotFilter])
+    fetchCustomers(1, false, sotFilter, !canMap)
+  }, [fetchCustomers, sotFilter, canMap])
 
   const handleSetReportFilters = useCallback((filters: string[]) => {
     useCustomersStore.setState({ reportFilters: filters, currentPage: 1 })
-    fetchCustomers(1, false, sotFilter)
-  }, [fetchCustomers, sotFilter])
+    fetchCustomers(1, false, sotFilter, !canMap)
+  }, [fetchCustomers, sotFilter, canMap])
 
   const handleSetIntegrationFilters = useCallback((filters: string[]) => {
     useCustomersStore.setState({ integrationFilters: filters, currentPage: 1 })
-    fetchCustomers(1, false, sotFilter)
-  }, [fetchCustomers, sotFilter])
+    fetchCustomers(1, false, sotFilter, !canMap)
+  }, [fetchCustomers, sotFilter, canMap])
 
   const handleClearAllFilters = useCallback(() => {
     useCustomersStore.setState({ statusFilters: [], reportFilters: [], integrationFilters: [], searchQuery: '', currentPage: 1 })
-    fetchCustomers(1, false, sotFilter)
-  }, [fetchCustomers, sotFilter])
+    fetchCustomers(1, false, sotFilter, !canMap)
+  }, [fetchCustomers, sotFilter, canMap])
 
   return {
     navigate,
     toast,
+    canMap,
     customers,
     mappedCustomers,
     unmappedCustomers,
@@ -567,7 +576,8 @@ export const useCustomerList = () => {
     setStatusFilters,
     setReportFilters,
     setIntegrationFilters,
-    fetchCustomers: storeFetchCustomers,
+    fetchCustomers: (page?: number, silent?: boolean, sot?: boolean | null, skipUnmapped?: boolean) => 
+      storeFetchCustomers(page, silent, sot, skipUnmapped ?? !base.canMap),
   }
 }
 
@@ -575,7 +585,12 @@ export const useMasterCustomerList = () => {
   const base = useBaseCustomerList(true)
   const [sotIntegrationName, setSotIntegrationName] = useState<string | null>(null)
 
+  const { user } = useAuth()
+  const canViewIntegrations = hasPermission(user, 'integrations', 'view')
+
   useEffect(() => {
+    if (!canViewIntegrations) return
+
     api.get('/integrations').then((response: unknown) => {
       const typedResponse = response as { configured?: Array<{ is_source_of_truth?: boolean; display_name?: string; integration_type?: string }> }
       const sotIntegration = typedResponse.configured?.find((int) => int.is_source_of_truth === true)
@@ -585,7 +600,7 @@ export const useMasterCustomerList = () => {
     }).catch((err: unknown) => {
       logger.error('Failed to fetch SOT integration:', err)
     })
-  }, [])
+  }, [canViewIntegrations])
 
   return {
     ...base,

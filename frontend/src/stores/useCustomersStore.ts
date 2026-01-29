@@ -45,7 +45,7 @@ interface CustomersState {
     integration_count: number
   } | null
 
-  fetchCustomers: (page?: number, silent?: boolean, sourceOfTruthOnly?: boolean | null) => Promise<void>
+  fetchCustomers: (page?: number, silent?: boolean, sourceOfTruthOnly?: boolean | null, skipUnmapped?: boolean) => Promise<void>
   fetchUnmappedCustomers: (page?: number, search?: string) => Promise<void>
   setUnmappedSearchQuery: (query: string) => void
 
@@ -99,7 +99,7 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   unmappedPerPage: PAGINATION.CUSTOMERS_PER_PAGE,
   unmappedSearchQuery: '',
 
-  fetchCustomers: async (page: number = 1, silent: boolean = false, sourceOfTruthOnly: boolean | null = null) => {
+  fetchCustomers: async (page: number = 1, silent: boolean = false, sourceOfTruthOnly: boolean | null = null, skipUnmapped: boolean = false) => {
     if (!silent) set({ isLoading: true })
     try {
       const { searchQuery, statusFilters, reportFilters, integrationFilters } = get()
@@ -122,7 +122,9 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
         isLoading: false,
       })
 
-      await get().fetchUnmappedCustomers()
+      if (!skipUnmapped) {
+        await get().fetchUnmappedCustomers()
+      }
     } catch (err) {
       logger.error('Failed to fetch customers', err)
       set({ isLoading: false })

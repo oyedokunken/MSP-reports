@@ -13,6 +13,8 @@ import {
 import { Search, Filter, UserPlus, LayoutGrid, List } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/utils/permissions'
 
 interface CustomersFiltersProps {
   searchQuery: string
@@ -49,6 +51,9 @@ export function CustomersFilters({
   const hasActiveFilters = searchQuery || statusFilters.length > 0 || reportFilters.length > 0 || integrationFilters.length > 0
   const activeFilterCount = statusFilters.length + reportFilters.length + integrationFilters.length
 
+  const { user } = useAuth()
+  const canViewIntegrations = hasPermission(user, 'integrations', 'view')
+
   useEffect(() => {
     const fetchIntegrationTypes = async () => {
       try {
@@ -62,8 +67,11 @@ export function CustomersFilters({
         logger.error('Failed to fetch integration types:', error)
       }
     }
-    fetchIntegrationTypes()
-  }, [])
+    
+    if (canViewIntegrations) {
+      fetchIntegrationTypes()
+    }
+  }, [canViewIntegrations])
 
   const toggleStatusFilter = (status: string) => {
     if (statusFilters.includes(status)) {
