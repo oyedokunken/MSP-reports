@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Autotask;
 
 use App\Integrations\Contracts\IntegrationInterface;
@@ -20,7 +22,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Integrations\Contracts\IntegrationDataType;
 
-class AutotaskIntegration implements IntegrationInterface
+final class AutotaskIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
@@ -583,7 +585,7 @@ class AutotaskIntegration implements IntegrationInterface
         $this->bulkStoreHistoricalData($records[0]['data_type'] ?? 'unknown', $records);
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         return now()->subDays(365);
     }

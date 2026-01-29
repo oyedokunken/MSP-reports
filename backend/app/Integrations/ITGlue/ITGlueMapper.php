@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\ITGlue;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class ITGlueMapper
+final class ITGlueMapper
 {
     private const EXPIRY_KEYWORDS = ['expiry', 'expiration', 'renewal'];
     private const EXCLUDED_EXPIRY_VALUES = ['processing', 'pending', 'active', 'inactive', 'expired'];

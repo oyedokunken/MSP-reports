@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
@@ -24,7 +26,7 @@ use App\Integrations\VeeamOne\VeeamOneIntegration;
 use App\Integrations\Contracts\IntegrationInterface;
 
 
-class ImportHistoricalDataJob implements ShouldQueue
+final class ImportHistoricalDataJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

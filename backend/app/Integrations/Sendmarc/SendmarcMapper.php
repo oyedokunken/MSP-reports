@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Sendmarc;
 
 use Carbon\Carbon;
 
-class SendmarcMapper
+final class SendmarcMapper
 {
     /**
      * @param array<string, mixed> $domain

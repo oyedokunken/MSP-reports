@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\RocketCyber;
 
 use Carbon\Carbon;
 
-class RocketCyberMapper
+final class RocketCyberMapper
 {
     /**
      * Map RocketCyber account to standardized customer format

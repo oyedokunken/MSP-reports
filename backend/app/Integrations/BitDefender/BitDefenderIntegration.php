@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\BitDefender;
 
 use App\Integrations\Contracts\IntegrationInterface;
@@ -18,7 +20,7 @@ use App\Integrations\Concerns\HasHeartbeat;
 use Exception;
 use Illuminate\Support\Collection;
 
-class BitDefenderIntegration implements IntegrationInterface
+final class BitDefenderIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
@@ -546,7 +548,7 @@ class BitDefenderIntegration implements IntegrationInterface
         ];
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         return now()->subDays(90);
     }

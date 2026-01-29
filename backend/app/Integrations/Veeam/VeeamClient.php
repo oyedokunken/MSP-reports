@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Veeam;
 
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use Illuminate\Support\Facades\Log;
 
-class VeeamClient
+final class VeeamClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

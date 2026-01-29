@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Kaseya;
 use App\Integrations\Concerns\HasHeartbeat;
 
@@ -10,7 +12,7 @@ use App\Services\RateLimiter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class KaseyaIntegration implements IntegrationInterface
+final class KaseyaIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;

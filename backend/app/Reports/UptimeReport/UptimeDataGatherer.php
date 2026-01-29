@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Reports\UptimeReport;
 
 use App\Reports\Contracts\BaseDataGatherer;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
@@ -13,7 +15,7 @@ use App\Models\CustomerMapping;
 use App\Services\CustomerMappingService;
 use Illuminate\Support\Facades\Log;
 
-class AutoMatchCustomersJob implements ShouldQueue
+final class AutoMatchCustomersJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

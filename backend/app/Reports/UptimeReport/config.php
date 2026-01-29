@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'id' => 'uptime_monthly',
     'name' => 'Monthly Uptime Report',

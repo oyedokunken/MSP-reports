@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\SharePoint;
 use App\Integrations\Concerns\HasHeartbeat;
 
@@ -7,7 +9,7 @@ use App\Models\Integration;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class SharePointIntegration
+final class SharePointIntegration
 {
     /** @var Integration */
     protected $integration;

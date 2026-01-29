@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'id' => 'librenms_device_report',
     'class' => \App\Reports\LibreNMSDeviceReport\LibreNMSDeviceReport::class,

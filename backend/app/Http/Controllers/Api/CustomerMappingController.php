@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -13,7 +15,7 @@ use App\Models\AuditLog;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 
-class CustomerMappingController extends Controller
+final class CustomerMappingController extends Controller
 {
     public function getCustomers(Request $request): \Illuminate\Http\JsonResponse
     {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'Datto',
     'display_name' => 'Datto RMM & Backup',

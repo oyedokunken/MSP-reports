@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'SAT',
     'description' => 'Security Awareness Training platform integration (placeholder configuration)',

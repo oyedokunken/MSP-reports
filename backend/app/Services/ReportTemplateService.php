@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Customer;
@@ -9,7 +11,7 @@ use App\Models\ReportTemplate;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
-class ReportTemplateService
+final class ReportTemplateService
 {
     /**
      * Apply template to a single customer (COPY settings, not link)

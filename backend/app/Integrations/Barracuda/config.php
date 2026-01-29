@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'Barracuda',
     'display_name' => 'Barracuda Email Security',

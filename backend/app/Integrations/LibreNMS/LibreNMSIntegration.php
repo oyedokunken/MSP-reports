@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\LibreNMS;
 
 use App\Integrations\Contracts\IntegrationInterface;
@@ -15,7 +17,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
-class LibreNMSIntegration implements IntegrationInterface
+final class LibreNMSIntegration implements IntegrationInterface
 {
     use HasHeartbeat;
 
@@ -450,7 +452,7 @@ class LibreNMSIntegration implements IntegrationInterface
         ];
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         // LibreNMS tracks availability up to 365 days
         return Carbon::now()->subDays(365);

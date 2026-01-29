@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Company;
@@ -9,7 +11,7 @@ use App\Models\IntegrationCustomer;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
-class CustomerMappingService
+final class CustomerMappingService
 {
     protected ?EmbeddingService $embeddingService = null;
 

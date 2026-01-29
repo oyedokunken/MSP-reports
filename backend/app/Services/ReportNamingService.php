@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Company;
@@ -8,7 +10,7 @@ use App\Models\ReportSchedule;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
-class ReportNamingService
+final class ReportNamingService
 {
     /**
      * Default naming pattern if none configured

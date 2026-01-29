@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Veeam;
 use App\Integrations\Concerns\HasHeartbeat;
 
@@ -10,7 +12,7 @@ use App\Services\RateLimiter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class VeeamIntegration implements IntegrationInterface
+final class VeeamIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;

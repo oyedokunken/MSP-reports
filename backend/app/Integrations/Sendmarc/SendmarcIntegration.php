@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Sendmarc;
 
 use App\Integrations\Contracts\IntegrationInterface;
@@ -16,7 +18,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
-class SendmarcIntegration implements IntegrationInterface
+final class SendmarcIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
@@ -370,7 +372,7 @@ class SendmarcIntegration implements IntegrationInterface
         ];
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         return now()->subDays(90);
     }

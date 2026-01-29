@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Veeam;
 
-class VeeamMapper
+final class VeeamMapper
 {
     /**
      * Map Veeam backup job into a standardized IntegrationData payload.

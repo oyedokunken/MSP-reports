@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Kaseya;
 
-class KaseyaMapper
+final class KaseyaMapper
 {
     /**
      * Map Kaseya compliance assessment into a standardized IntegrationData payload.

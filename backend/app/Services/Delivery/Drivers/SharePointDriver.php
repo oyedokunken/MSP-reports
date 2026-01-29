@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Delivery\Drivers;
 
 use App\Models\GeneratedReport;
@@ -11,7 +13,7 @@ use App\Services\ReportNamingService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
-class SharePointDriver implements DeliveryDriverInterface
+final class SharePointDriver implements DeliveryDriverInterface
 {
     public function getIdentifier(): string
     {

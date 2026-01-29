@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'id' => 'itglue_summary',
     'name' => 'ITGlue Summary Report',

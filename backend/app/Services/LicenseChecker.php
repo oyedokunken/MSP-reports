@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Company;
 use App\Models\License;
 
-class LicenseChecker
+final class LicenseChecker
 {
     public function hasLicense(Company $company, string $productSku): bool
     {

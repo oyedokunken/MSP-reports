@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\M365;
 
 use App\Integrations\Contracts\IntegrationInterface;
@@ -10,7 +12,7 @@ use App\Services\RateLimiter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class M365Integration implements IntegrationInterface
+final class M365Integration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;

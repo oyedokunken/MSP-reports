@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'SharePoint Global',
     'description' => 'Deliver reports to company-wide SharePoint folders.',

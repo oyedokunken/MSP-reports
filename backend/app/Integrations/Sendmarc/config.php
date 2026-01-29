@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'Sendmarc',
     'display_name' => 'Sendmarc DMARC',

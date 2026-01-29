@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Exceptions;
 
 use Exception;
 
-class AuthenticationException extends Exception
+final class AuthenticationException extends Exception
 {
     protected int $statusCode;
     protected ?string $responseBody;

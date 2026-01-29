@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\ITGlue;
 
 use App\Integrations\Contracts\IntegrationInterface;
@@ -16,7 +18,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
 use App\Integrations\Contracts\IntegrationDataType;
 
-class ITGlueIntegration implements IntegrationInterface
+final class ITGlueIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
@@ -710,7 +712,7 @@ class ITGlueIntegration implements IntegrationInterface
         ];
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         return Carbon::now();
     }

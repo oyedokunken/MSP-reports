@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Integration;
@@ -14,7 +16,7 @@ use App\Jobs\ImportHistoricalDataJob;
  * Service dedicated to managing the lifecycle of an Integration:
  * Onboarding, Offboarding, and State Transitions.
  */
-class IntegrationLifecycleService
+final class IntegrationLifecycleService
 {
     protected SyncEngine $syncEngine;
     protected LicenseChecker $licenseChecker;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\RocketCyber;
 use App\Integrations\Concerns\HasHeartbeat;
 
@@ -14,7 +16,7 @@ use App\Services\CustomerMappingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class RocketCyberIntegration implements IntegrationInterface
+final class RocketCyberIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
@@ -178,7 +180,7 @@ class RocketCyberIntegration implements IntegrationInterface
         ];
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         return now()->subDays(90);
     }

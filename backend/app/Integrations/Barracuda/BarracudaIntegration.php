@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Barracuda;
 use App\Integrations\Concerns\HasHeartbeat;
 
@@ -17,7 +19,7 @@ use App\Services\CustomerMappingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class BarracudaIntegration implements IntegrationInterface
+final class BarracudaIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
@@ -179,7 +181,7 @@ class BarracudaIntegration implements IntegrationInterface
         ];
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         return now()->subDays(90);
     }

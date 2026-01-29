@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'Kaseya',
     'description' => 'Kaseya GRC (Governance, Risk, and Compliance) integration (placeholder configuration)',

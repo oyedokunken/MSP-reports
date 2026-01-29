@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
@@ -20,7 +22,7 @@ use App\Integrations\SaaS\SaaSIntegration;
 use App\Integrations\VeeamOne\VeeamOneIntegration;
 use App\Integrations\Contracts\IntegrationInterface;
 
-class SyncRecentDataJob implements ShouldQueue
+final class SyncRecentDataJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

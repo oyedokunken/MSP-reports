@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\VeeamOne;
 
 use Illuminate\Http\Client\Response;
@@ -18,7 +20,7 @@ use App\Integrations\Exceptions\AuthenticationException;
  *
  * @see https://github.com/marktellier/veeam-one-restfulapi-powershell-tutorial
  */
-class VeeamOneClient
+final class VeeamOneClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

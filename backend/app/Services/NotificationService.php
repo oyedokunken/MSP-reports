@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Company;
@@ -10,7 +12,7 @@ use App\Notifications\ReportDelivered;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
-class NotificationService
+final class NotificationService
 {
     /**
      * Send sync failure notification to company admins

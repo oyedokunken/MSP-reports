@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'id' => 'librenms_summary',
     'class' => \App\Reports\LibreNMSSummary\LibreNMSSummary::class,

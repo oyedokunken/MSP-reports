@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'id' => 'ad_spla_licensing',
     'name' => 'AD SPLA Licensing Report',

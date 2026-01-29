@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Barracuda;
 
 use Illuminate\Http\Client\Response;
@@ -13,7 +15,7 @@ use App\Integrations\Exceptions\AuthenticationException;
 use App\Integrations\Exceptions\ApiResponseException;
 use App\Integrations\Exceptions\RateLimitExceededException;
 
-class BarracudaClient
+final class BarracudaClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

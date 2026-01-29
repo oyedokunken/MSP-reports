@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Autotask;
 
-class AutotaskMapper
+final class AutotaskMapper
 {
     /**
      * @param array<string, mixed> $autotaskCompany

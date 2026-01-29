@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'id' => 'monthly_comprehensive',
     'name' => 'Monthly Comprehensive Report',

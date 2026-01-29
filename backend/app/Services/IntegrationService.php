@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Integration;
@@ -11,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class IntegrationService
+final class IntegrationService
 {
     protected SyncEngine $syncEngine;
     protected LicenseChecker $licenseChecker;

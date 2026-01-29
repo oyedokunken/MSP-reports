@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Reports\Contracts;
 
 use App\Models\Company;

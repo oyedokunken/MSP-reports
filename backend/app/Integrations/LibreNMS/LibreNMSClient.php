@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\LibreNMS;
 
 use Illuminate\Http\Client\Response;
@@ -10,7 +12,7 @@ use App\Models\Integration;
 use App\Integrations\Exceptions\ApiResponseException;
 use App\Integrations\Exceptions\RateLimitExceededException;
 
-class LibreNMSClient
+final class LibreNMSClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

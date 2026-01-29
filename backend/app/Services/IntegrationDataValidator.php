@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
 
-class IntegrationDataValidator
+final class IntegrationDataValidator
 {
     /**
      * Validate and sanitize integration data payload

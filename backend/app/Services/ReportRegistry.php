@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Reports\Contracts\ReportInterface;
@@ -7,7 +9,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
-class ReportRegistry
+final class ReportRegistry
 {
     /** @var array<string, array<string, mixed>> */
     protected array $reports = [];

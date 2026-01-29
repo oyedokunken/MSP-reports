@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use LdapRecord\Connection;
@@ -7,7 +9,7 @@ use LdapRecord\Container;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
-class LdapAuthenticationService
+final class LdapAuthenticationService
 {
     protected Connection $connection;
 

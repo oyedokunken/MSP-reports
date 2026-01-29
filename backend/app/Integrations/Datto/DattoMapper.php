@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Datto;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class DattoMapper
+final class DattoMapper
 {
     /**
      * @param array<string, mixed> $dattoCustomer

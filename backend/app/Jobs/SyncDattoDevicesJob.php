@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
@@ -11,7 +13,7 @@ use App\Models\Integration;
 use App\Integrations\Datto\DattoIntegration;
 use Illuminate\Support\Facades\Log;
 
-class SyncDattoDevicesJob implements ShouldQueue
+final class SyncDattoDevicesJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

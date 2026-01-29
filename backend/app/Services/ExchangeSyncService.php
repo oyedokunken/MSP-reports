@@ -1,5 +1,8 @@
 <?php
 
+declare(strict_types=1);
+
+
 namespace App\Services;
 
 use App\Models\Company;
@@ -12,7 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class ExchangeSyncService
+final class ExchangeSyncService
 {
     /**
      * Get or create the Exchange integration for a company

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
@@ -16,7 +18,7 @@ use App\Services\MailService;
 use App\Services\Delivery\DeliveryManager;
 use App\Services\NotificationService;
 
-class DeliverReportJob implements ShouldQueue
+final class DeliverReportJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

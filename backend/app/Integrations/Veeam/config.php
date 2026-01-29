@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'Veeam',
     'description' => 'Veeam Service Provider Console backup and recovery integration (placeholder configuration)',

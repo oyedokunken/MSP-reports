@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Mail\AlertNotificationMail;
@@ -10,7 +12,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
-class AlertNotificationService
+final class AlertNotificationService
 {
     protected MailService $mailService;
 

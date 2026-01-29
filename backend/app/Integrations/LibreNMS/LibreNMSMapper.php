@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\LibreNMS;
 
 use Carbon\Carbon;
 
-class LibreNMSMapper
+final class LibreNMSMapper
 {
     /**
      * @param array<string, mixed> $group

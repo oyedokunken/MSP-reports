@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\ThreatLocker;
 
 use Carbon\Carbon;
 
-class ThreatLockerMapper
+final class ThreatLockerMapper
 {
     /**
      * Map ThreatLocker organization to standardized customer format

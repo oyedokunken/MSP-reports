@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'SaaS Alerts',
     'description' => 'SaaS Alerts - Security monitoring and alerting for SaaS applications',

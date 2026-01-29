@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Kemp;
 use App\Integrations\Concerns\HasHeartbeat;
 
@@ -13,7 +15,7 @@ use App\Services\CustomerMappingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class KempIntegration implements IntegrationInterface
+final class KempIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
@@ -159,7 +161,7 @@ class KempIntegration implements IntegrationInterface
         ];
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         // Kemp provides current state only, no historical data
         return now();

@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Jobs\GenerateReportJob;
 use App\Models\ReportSchedule;
 use Carbon\Carbon;
 
-class ScheduleEvaluator
+final class ScheduleEvaluator
 {
     /**
      * @return array<string, int>

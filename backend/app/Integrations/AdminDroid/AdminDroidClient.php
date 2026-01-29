@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\AdminDroid;
 
 use App\Services\RateLimiter;
@@ -10,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
-class AdminDroidClient
+final class AdminDroidClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

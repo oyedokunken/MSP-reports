@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\AdminDroid;
 
 use Carbon\Carbon;
 
-class AdminDroidMapper
+final class AdminDroidMapper
 {
     /**
      * Map M365 organization to standardized customer format

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Reports\ITGlueSummary;
 
 use App\Integrations\Contracts\IntegrationDataType;

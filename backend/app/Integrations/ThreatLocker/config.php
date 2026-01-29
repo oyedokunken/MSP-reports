@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'ThreatLocker',
     'description' => 'ThreatLocker application allowlisting and ringfencing integration (placeholder configuration)',

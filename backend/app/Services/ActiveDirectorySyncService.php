@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\ActiveDirectoryGroup;
@@ -11,7 +13,7 @@ use App\Models\Integration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class ActiveDirectorySyncService
+final class ActiveDirectorySyncService
 {
     /**
      * Get or create single Active Directory integration for this company

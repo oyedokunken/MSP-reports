@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -9,7 +11,7 @@ use App\Services\ReportTemplateService;
 use App\Services\ReportRegistry;
 use Illuminate\Http\Request;
 
-class ReportTemplateController extends Controller
+final class ReportTemplateController extends Controller
 {
     public function __construct(
         private ReportTemplateService $templateService

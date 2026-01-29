@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
@@ -8,7 +10,7 @@ use RobRichards\XMLSecLibs\XMLSecurityKey;
 use DOMDocument;
 use Exception;
 
-class SamlAuthenticationService
+final class SamlAuthenticationService
 {
     /**
      * Check if SAML is enabled

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\RocketCyber;
 
 use App\Services\RateLimiter;
@@ -9,7 +11,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
-class RocketCyberClient
+final class RocketCyberClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'id' => 'saas_summary',
     'name' => 'SaaS Alerts Security Report',

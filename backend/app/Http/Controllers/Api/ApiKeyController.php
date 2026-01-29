@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -10,7 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 
-class ApiKeyController extends Controller
+final class ApiKeyController extends Controller
 {
     /**
      * List all API keys for the authenticated user's company

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\ThreatLocker;
 
 use App\Services\RateLimiter;
@@ -10,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
-class ThreatLockerClient
+final class ThreatLockerClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

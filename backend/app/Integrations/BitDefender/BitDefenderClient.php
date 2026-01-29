@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\BitDefender;
 
 use Illuminate\Http\Client\Response;
@@ -13,7 +15,7 @@ use App\Integrations\Exceptions\RateLimitExceededException;
 use Carbon\Carbon;
 use Exception;
 
-class BitDefenderClient
+final class BitDefenderClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\User;
@@ -13,7 +15,7 @@ use App\Services\LdapAuthenticationService;
 use App\Services\UserProvisioningService;
 use Illuminate\Http\Request;
 
-class AuthService
+final class AuthService
 {
     /**
      * Attempt to authenticate a user.

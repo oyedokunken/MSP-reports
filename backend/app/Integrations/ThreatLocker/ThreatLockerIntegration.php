@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\ThreatLocker;
 use App\Integrations\Concerns\HasHeartbeat;
 
@@ -14,7 +16,7 @@ use App\Services\CustomerMappingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class ThreatLockerIntegration implements IntegrationInterface
+final class ThreatLockerIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
@@ -180,7 +182,7 @@ class ThreatLockerIntegration implements IntegrationInterface
         ];
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         return now()->subDays(90);
     }

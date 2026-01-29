@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\SAT;
 use App\Integrations\Concerns\HasHeartbeat;
 
@@ -10,7 +12,7 @@ use App\Services\RateLimiter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class SATIntegration implements IntegrationInterface
+final class SATIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'AdminDroid',
     'description' => 'AdminDroid Microsoft 365 reporting and analytics integration (placeholder configuration)',

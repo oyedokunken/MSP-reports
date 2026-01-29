@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Vonahi;
 
 use Carbon\Carbon;
 
-class VonahiMapper
+final class VonahiMapper
 {
     /**
      * Map Vonahi organization to standardized customer format

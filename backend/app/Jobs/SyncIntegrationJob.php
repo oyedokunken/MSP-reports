@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
@@ -16,7 +18,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\IntegrationSyncFailedMail;
 use App\Integrations\Contracts\IntegrationInterface;
 
-class SyncIntegrationJob implements ShouldQueue
+final class SyncIntegrationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\SaaS;
 
 use App\Integrations\Contracts\IntegrationInterface;
@@ -16,7 +18,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
-class SaaSIntegration implements IntegrationInterface
+final class SaaSIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
@@ -333,7 +335,7 @@ class SaaSIntegration implements IntegrationInterface
         );
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         return now()->subDays(365);
     }

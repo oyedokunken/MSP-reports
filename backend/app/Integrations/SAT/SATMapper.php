@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\SAT;
 
-class SATMapper
+final class SATMapper
 {
     /**
      * Map SAT training completion into a standardized IntegrationData payload.

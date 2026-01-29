@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Autotask;
 
 use Carbon\Carbon;
@@ -10,7 +12,7 @@ use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
 use App\Integrations\Exceptions\RateLimitExceededException;
 
-class AutotaskClient
+final class AutotaskClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

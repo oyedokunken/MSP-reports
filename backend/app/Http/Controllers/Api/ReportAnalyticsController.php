@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -15,7 +17,7 @@ use App\Models\ReportShareToken;
 use App\Services\ReportNamingService;
 use App\Jobs\DeliverReportJob;
 
-class ReportAnalyticsController extends Controller
+final class ReportAnalyticsController extends Controller
 {
     public function getScheduledReports(Request $request): \Illuminate\Http\JsonResponse
     {

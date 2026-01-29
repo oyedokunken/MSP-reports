@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use Illuminate\Bus\Queueable;
@@ -12,7 +14,7 @@ use App\Services\ReportGenerationService;
 use App\Jobs\DeliverReportJob;
 use Illuminate\Support\Facades\Log;
 
-class GenerateReportJob implements ShouldQueue
+final class GenerateReportJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

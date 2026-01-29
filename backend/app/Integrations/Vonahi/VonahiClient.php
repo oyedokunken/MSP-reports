@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Vonahi;
 
 use App\Services\RateLimiter;
@@ -9,7 +11,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
-class VonahiClient
+final class VonahiClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

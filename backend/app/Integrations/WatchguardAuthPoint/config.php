@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'WatchguardAuthPoint',
     'description' => 'WatchGuard AuthPoint multi-factor authentication integration (placeholder configuration)',

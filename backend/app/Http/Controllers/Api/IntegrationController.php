@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -13,7 +15,7 @@ use App\Services\LicenseChecker;
 use App\Services\IntegrationService;
 use Illuminate\Validation\Rule;
 
-class IntegrationController extends Controller
+final class IntegrationController extends Controller
 {
     protected IntegrationService $integrationService;
     protected \App\Services\IntegrationLifecycleService $lifecycleService;

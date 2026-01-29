@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\M365;
 
-class M365Mapper
+final class M365Mapper
 {
     /**
      * Map M365 audit log into a standardized IntegrationData payload.

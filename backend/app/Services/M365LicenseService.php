@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
-class M365LicenseService
+final class M365LicenseService
 {
     /**
      * Common Microsoft 365 SKU IDs to Friendly Names

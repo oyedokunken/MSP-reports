@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Kemp;
 
 use App\Services\RateLimiter;
@@ -9,7 +11,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
-class KempClient
+final class KempClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

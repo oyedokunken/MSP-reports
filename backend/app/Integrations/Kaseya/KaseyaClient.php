@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Kaseya;
 
 use Illuminate\Support\Facades\Http;
@@ -8,7 +10,7 @@ use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
 
-class KaseyaClient
+final class KaseyaClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

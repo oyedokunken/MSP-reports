@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\VeeamOne;
 use App\Integrations\Concerns\HasHeartbeat;
 
@@ -18,7 +20,7 @@ use Illuminate\Support\Facades\Log;
  * Syncs backup job status, alarms, protected workloads, and repository info
  * from the Veeam ONE REST API.
  */
-class VeeamOneIntegration implements IntegrationInterface
+final class VeeamOneIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
@@ -394,7 +396,7 @@ class VeeamOneIntegration implements IntegrationInterface
         }
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         // Veeam ONE typically retains data for 1 year
         return Carbon::now()->subYear();

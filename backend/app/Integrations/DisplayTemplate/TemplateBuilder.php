@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\DisplayTemplate;
 
 /**
@@ -7,7 +9,7 @@ namespace App\Integrations\DisplayTemplate;
  * 
  * Fluent builder for creating display templates programmatically
  */
-class TemplateBuilder
+final class TemplateBuilder
 {
     /** @var array<string, mixed> */
     private array $template = [

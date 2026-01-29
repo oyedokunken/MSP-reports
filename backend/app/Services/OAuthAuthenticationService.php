@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
-class OAuthAuthenticationService
+final class OAuthAuthenticationService
 {
     /**
      * Redirect to Microsoft OAuth provider

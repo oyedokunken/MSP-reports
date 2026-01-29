@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\ITGlue;
 
 use Illuminate\Http\Client\Response;
@@ -12,7 +14,7 @@ use App\Integrations\Exceptions\AuthenticationException;
 use App\Integrations\Exceptions\ApiResponseException;
 use App\Integrations\Exceptions\RateLimitExceededException;
 
-class ITGlueClient
+final class ITGlueClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

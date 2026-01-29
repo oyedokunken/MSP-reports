@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\VeeamOne;
 
 use App\Integrations\Contracts\IntegrationDataType;
@@ -8,7 +10,7 @@ use Carbon\Carbon;
 /**
  * Maps Veeam ONE API responses to standardized IntegrationData payloads
  */
-class VeeamOneMapper
+final class VeeamOneMapper
 {
     /**
      * Map backup job to IntegrationData format

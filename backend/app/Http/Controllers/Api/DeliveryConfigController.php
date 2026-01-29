@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -8,7 +10,7 @@ use App\Models\Customer;
 use App\Services\Delivery\DeliveryManager;
 use Illuminate\Support\Facades\Log;
 
-class DeliveryConfigController extends Controller
+final class DeliveryConfigController extends Controller
 {
     protected DeliveryManager $deliveryManager;
 

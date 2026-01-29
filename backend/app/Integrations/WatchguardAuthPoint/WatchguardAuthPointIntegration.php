@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\WatchguardAuthPoint;
 
 use App\Integrations\Concerns\HasHeartbeat;
@@ -14,7 +16,7 @@ use App\Services\CustomerMappingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class WatchguardAuthPointIntegration implements IntegrationInterface
+final class WatchguardAuthPointIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
     use HasHeartbeat;
@@ -156,7 +158,7 @@ class WatchguardAuthPointIntegration implements IntegrationInterface
         ];
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         return now()->subDays(90);
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'Kemp',
     'description' => 'Kemp load balancer integration (placeholder configuration)',

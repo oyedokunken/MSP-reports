@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Datto;
 
 use Carbon\Carbon;
@@ -12,7 +14,7 @@ use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
 use App\Integrations\Exceptions\RateLimitExceededException;
 
-class DattoClient
+final class DattoClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

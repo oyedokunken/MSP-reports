@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'RocketCyber',
     'description' => 'RocketCyber security monitoring and threat detection integration (placeholder configuration)',

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'id' => 'security_summary',
     'name' => 'Security Summary Report',

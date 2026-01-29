@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Exports;
 
 use App\Models\IntegrationData;
@@ -23,7 +25,7 @@ use Carbon\Carbon;
 /**
  * @implements WithMapping<object>
  */
-class LibreNMSDeviceExport implements FromCollection, WithHeadings, WithMapping, WithTitle, ShouldAutoSize, WithStyles, WithColumnWidths, WithCustomStartCell
+final class LibreNMSDeviceExport implements FromCollection, WithHeadings, WithMapping, WithTitle, ShouldAutoSize, WithStyles, WithColumnWidths, WithCustomStartCell
 {
     protected string $primaryColor = '215982'; // Primary blue
     protected string $accentColor1 = 'A42152'; // Accent red (Down)

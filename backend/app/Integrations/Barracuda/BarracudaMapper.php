@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Barracuda;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class BarracudaMapper
+final class BarracudaMapper
 {
     /**
      * Map Barracuda account to customer format

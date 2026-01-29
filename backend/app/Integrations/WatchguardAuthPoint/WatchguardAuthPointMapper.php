@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\WatchguardAuthPoint;
 
 use Carbon\Carbon;
 
-class WatchguardAuthPointMapper
+final class WatchguardAuthPointMapper
 {
     /**
      * Map WatchGuard account to standardized customer format

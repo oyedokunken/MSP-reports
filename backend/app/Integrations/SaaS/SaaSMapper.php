@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\SaaS;
 
-class SaaSMapper
+final class SaaSMapper
 {
     /**
      * Map SaaS Alerts customer to standardized IntegrationCustomer format.

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\DisplayTemplate;
 
 /**
@@ -8,7 +10,7 @@ namespace App\Integrations\DisplayTemplate;
  * Defines the structure for integration display templates that describe
  * how data should be rendered in the frontend without requiring custom components.
  */
-class TemplateSchema
+final class TemplateSchema
 {
     /**
      * Validate a display template structure

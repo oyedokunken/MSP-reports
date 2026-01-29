@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\SAT;
 
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use Illuminate\Support\Facades\Log;
 
-class SATClient
+final class SATClient
 {
     /** @var array<string, mixed> */
     protected array $credentials;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'M365',
     'description' => 'Microsoft 365 audit logs and security integration (placeholder configuration)',

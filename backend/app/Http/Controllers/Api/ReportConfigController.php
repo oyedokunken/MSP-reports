@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -13,7 +15,7 @@ use Carbon\Carbon;
 use App\Services\ReportGenerationService;
 use App\Services\ReportRegistry;
 
-class ReportConfigController extends Controller
+final class ReportConfigController extends Controller
 {
     protected ReportGenerationService $reportService;
     protected ReportRegistry $registry;

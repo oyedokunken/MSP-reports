@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\M365;
 
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use Illuminate\Support\Facades\Log;
 
-class M365Client
+final class M365Client
 {
     /** @var array<string, mixed> */
     protected array $credentials;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'Vonahi',
     'description' => 'Vonahi Security penetration testing and vulnerability assessment integration (placeholder configuration)',

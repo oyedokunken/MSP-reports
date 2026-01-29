@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\AlertLog;
@@ -14,7 +16,7 @@ use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Storage;
 
 // Backend Alert Engine
-class AlertEngine
+final class AlertEngine
 {
     protected AlertNotificationService $notificationService;
 

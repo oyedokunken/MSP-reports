@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\User;
@@ -8,7 +10,7 @@ use App\Models\AuditLog;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-class UserProvisioningService
+final class UserProvisioningService
 {
     /**
      * Provision a new user via JIT (Just-In-Time) provisioning

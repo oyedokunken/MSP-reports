@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -13,7 +15,7 @@ use App\Models\GeneratedReport;
 use App\Models\SyncLog;
 use Carbon\Carbon;
 
-class HealthCheckController extends Controller
+final class HealthCheckController extends Controller
 {
     public function index(): \Illuminate\Http\JsonResponse
     {

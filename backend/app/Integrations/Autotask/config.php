@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'Autotask',
     'display_name' => 'Autotask PSA',

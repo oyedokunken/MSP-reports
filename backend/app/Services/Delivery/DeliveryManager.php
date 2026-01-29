@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Delivery;
 
 use App\Models\GeneratedReport;
@@ -8,7 +10,7 @@ use App\Models\Company;
 use App\Services\Delivery\Contracts\DeliveryDriverInterface;
 use Illuminate\Support\Facades\Log;
 
-class DeliveryManager
+final class DeliveryManager
 {
     /** @var array<string, DeliveryDriverInterface> */
     protected array $drivers = [];

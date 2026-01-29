@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Datto;
 
 use App\Integrations\Contracts\IntegrationInterface;
@@ -20,7 +22,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
-class DattoIntegration implements IntegrationInterface
+final class DattoIntegration implements IntegrationInterface
 {
     use HasHeartbeat;
 
@@ -607,7 +609,7 @@ class DattoIntegration implements IntegrationInterface
         ];
     }
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         
         return now()->subDays(90);

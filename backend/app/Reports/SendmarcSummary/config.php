@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'id' => 'sendmarc_summary',
     'name' => 'Sendmarc Summary Report',

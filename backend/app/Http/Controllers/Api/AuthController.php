@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -20,7 +22,7 @@ use App\Services\OAuthAuthenticationService;
 use App\Services\SamlAuthenticationService;
 use App\Services\AuthService;
 
-class AuthController extends Controller
+final class AuthController extends Controller
 {
     protected OAuthAuthenticationService $oauthService;
     protected SamlAuthenticationService $samlService;
@@ -506,7 +508,7 @@ class AuthController extends Controller
     /**
      * Initiate SAML login
      */
-    public function initiateSamlLogin(): \Illuminate\Http\RedirectResponse|string
+    public function initiateSamlLogin(): \Illuminate\Http\RedirectResponse
     {
         try {
             if (!$this->samlService->isEnabled()) {

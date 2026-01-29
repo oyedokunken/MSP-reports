@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'Veeam ONE',
     'description' => 'Veeam ONE Reporting Server integration for backup monitoring, job status, alarms, and repository tracking.',

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\ReportSchedule;
@@ -7,7 +9,7 @@ use App\Services\ReportGenerationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class ReportScheduleService
+final class ReportScheduleService
 {
     protected ReportGenerationService $generationService;
 

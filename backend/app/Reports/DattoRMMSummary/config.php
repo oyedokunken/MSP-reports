@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'id' => 'datto_rmm_summary',
     'name' => 'Datto RMM Summary',

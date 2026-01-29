@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'name' => 'BitDefender',
     'description' => 'BitDefender endpoint security and antivirus integration (placeholder configuration)',

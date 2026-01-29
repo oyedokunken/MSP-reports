@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Kemp;
 
 use Carbon\Carbon;
 
-class KempMapper
+final class KempMapper
 {
     /**
      * Map Kemp Virtual Service to standardized format

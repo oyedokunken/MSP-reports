@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Customer;
 
-class ReportTypeRegistry
+final class ReportTypeRegistry
 {
     /**
      * Get all defined report types and their requirements

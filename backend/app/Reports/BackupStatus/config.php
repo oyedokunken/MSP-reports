@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'id' => 'backup_status',
     'name' => 'Backup Status Report',

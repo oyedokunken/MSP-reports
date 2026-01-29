@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Delivery\Drivers;
 
 use App\Models\GeneratedReport;
@@ -10,7 +12,7 @@ use App\Services\MailService;
 use App\Mail\ReportDeliveryMail;
 use Illuminate\Support\Facades\Log;
 
-class EmailDriver implements DeliveryDriverInterface
+final class EmailDriver implements DeliveryDriverInterface
 {
     public function getIdentifier(): string
     {

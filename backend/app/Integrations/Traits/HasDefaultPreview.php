@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Integrations\Traits;
 
 use App\Integrations\DisplayTemplate\TemplateBuilder;
