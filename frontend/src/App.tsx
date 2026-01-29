@@ -123,7 +123,7 @@ function AppRoutes() {
       <Route
         path="/platform/integrations/:integrationId/preview"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'integrations', action: 'view' }}>
             <IntegrationPreview />
           </ProtectedRoute>
         }
@@ -167,7 +167,7 @@ function AppRoutes() {
       <Route
         path="/platform/customers/map"
         element={
-          <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
+          <ProtectedRoute permission={{ section: 'customers', action: 'map' }}>
             <MapCustomersPage />
           </ProtectedRoute>
         }
@@ -176,7 +176,7 @@ function AppRoutes() {
       <Route
         path="/platform/customers/:customerId/integrations"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
             <CustomerIntegrationDetails />
           </ProtectedRoute>
         }
@@ -185,7 +185,7 @@ function AppRoutes() {
       <Route
         path="/platform/customers/:id/configure-reports"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'reports', action: 'configure' }}>
             <ConfigureReports />
           </ProtectedRoute>
         }
@@ -194,7 +194,7 @@ function AppRoutes() {
       <Route
         path="/platform/customers/:id/reports"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'reports', action: 'view' }}>
             <CustomerReports />
           </ProtectedRoute>
         }
@@ -239,7 +239,7 @@ function AppRoutes() {
       <Route
         path="/admin/security"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'security', action: 'view_logs' }}>
             <Security />
           </ProtectedRoute>
         }
@@ -257,7 +257,7 @@ function AppRoutes() {
       <Route
         path="/admin/users/create"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={{ section: 'users', action: 'manage' }}>
             <CreateUser />
           </ProtectedRoute>
         }
