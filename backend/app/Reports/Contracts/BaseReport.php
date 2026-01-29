@@ -116,7 +116,7 @@ abstract class BaseReport implements ReportInterface
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
         $bytes = max($bytes, 0);
-        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = (int) floor(($bytes ? log($bytes) : 0) / log(1024));
         $pow = min($pow, count($units) - 1);
         $bytes /= (1 << (10 * $pow));
         
@@ -299,7 +299,12 @@ abstract class BaseReport implements ReportInterface
     protected static function hasDataInRange(int $customerId, Carbon $startDate, Carbon $endDate): bool
     {
         // Get report config from child class
-        $configPath = dirname((new \ReflectionClass(static::class))->getFileName()) . '/config.php';
+        $reflection = new \ReflectionClass(static::class);
+        $fileName = $reflection->getFileName();
+        if ($fileName === false) {
+            return false;
+        }
+        $configPath = dirname($fileName) . '/config.php';
         
         if (!file_exists($configPath)) {
             return false;

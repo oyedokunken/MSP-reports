@@ -100,6 +100,8 @@ class LdapAuthenticationService
             $results = $this->connection->query()
                 ->where($usernameAttr, '=', $username)
                 ->get();
+            
+            /** @var \LdapRecord\Query\Collection $results */
 
             if ($results->isEmpty()) {
                 Log::warning('LDAP: User not found in directory', ['username' => $username]);
@@ -176,6 +178,8 @@ class LdapAuthenticationService
             $results = $this->connection->query()
                 ->where($usernameAttr, '=', $username)
                 ->get();
+            
+            /** @var \LdapRecord\Query\Collection $results */
 
             return !$results->isEmpty();
         } catch (Exception $e) {

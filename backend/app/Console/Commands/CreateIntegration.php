@@ -201,6 +201,9 @@ class CreateIntegration extends Command
         })->toArray();
 
         $selected = $this->choice('Select a company', $choices);
+        if (!is_string($selected)) {
+            throw new \RuntimeException('Invalid selection');
+        }
 
         // Extract company ID from selection
         preg_match('/\(ID: (\d+)\)/', $selected, $matches);
@@ -222,7 +225,8 @@ class CreateIntegration extends Command
             return [];
         }
 
-        $directories = array_filter(glob($integrationsPath . '/*'), 'is_dir');
+        $globResult = glob($integrationsPath . '/*');
+        $directories = array_filter(is_array($globResult) ? $globResult : [], 'is_dir');
 
         foreach ($directories as $dir) {
             $integrationName = basename($dir);
@@ -236,7 +240,9 @@ class CreateIntegration extends Command
             
             if (file_exists($configFile)) {
                 $config = require $configFile;
-                $integrations[$integrationName] = $config;
+                if (is_array($config)) {
+                    $integrations[$integrationName] = $config;
+                }
             }
         }
 

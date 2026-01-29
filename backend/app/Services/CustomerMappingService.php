@@ -299,7 +299,7 @@ class CustomerMappingService
             $matchedCustomer = $existingCustomers->firstWhere('customer_id', $bestSuggestion['id']);
 
             if ($matchedCustomer !== null) {
-                $results[$match['unmapped_id']] = [
+                $results[(int) $match['unmapped_id']] = [
                     'customer' => $matchedCustomer,
                     'confidence_score' => (int) round($bestSuggestion['score']),
                     'mapping_type' => 'auto_embedding',

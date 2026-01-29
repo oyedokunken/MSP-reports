@@ -77,7 +77,8 @@ class LibreNMSReportController extends Controller
             // Gotenberg service URL
             $gotenbergUrl = 'http://reporting-gotenberg:3000';
 
-            $filename = 'librenms_devices_' . ($groupId ? 'group_' . $groupId . '_' : '') . date('Y-m-d_H-i-s') . '.pdf';
+            $groupIdString = is_array($groupId) ? implode('_', $groupId) : (string) $groupId;
+            $filename = 'librenms_devices_' . ($groupId ? 'group_' . $groupIdString . '_' : '') . date('Y-m-d_H-i-s') . '.pdf';
 
             $request = Gotenberg::chromium($gotenbergUrl)
                 ->pdf()

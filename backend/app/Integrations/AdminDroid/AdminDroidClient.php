@@ -148,6 +148,9 @@ class AdminDroidClient
         $nextLink = '/users?$top=999&$select=id,displayName,mail,userPrincipalName,accountEnabled,createdDateTime,lastSignInDateTime';
 
         while ($nextLink) {
+            if (!is_string($nextLink)) {
+                break;
+            }
             $response = $this->makeRequest($nextLink);
             $users = $response['value'] ?? [];
             $allUsers = array_merge($allUsers, $users);

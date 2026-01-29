@@ -256,6 +256,8 @@ class BitDefenderIntegration implements IntegrationInterface
     protected function bulkUpsertCustomers(array $customerRows, int $chunkSize = 500): void
     {
         if (empty($customerRows)) return;
+        
+        $chunkSize = max(1, $chunkSize);
 
         foreach (array_chunk($customerRows, $chunkSize) as $chunk) {
             DB::transaction(function () use ($chunk) {
@@ -377,14 +379,14 @@ class BitDefenderIntegration implements IntegrationInterface
     public function getCustomers(): array
     {
         $companies = $this->client->getEndpoints();
-        return array_map(function ($company) {
+        return array_values(array_map(function ($company) {
             return [
                 'external_id' => $company['id'] ?? null,
                 'name'        => $company['name'] ?? 'Unknown',
                 'metadata'    => $company,
                 'active'      => true,
             ];
-        }, $companies);
+        }, $companies));
     }
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array

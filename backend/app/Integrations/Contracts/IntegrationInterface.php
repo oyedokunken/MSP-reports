@@ -4,7 +4,7 @@ namespace App\Integrations\Contracts;
 
 use Carbon\Carbon;
 
-interface IntegrationInterface
+interface IntegrationInterface extends HeartbeatInterface
 {
     public function authenticate(): bool;
 

@@ -114,13 +114,14 @@ class SyncIntegrationManual extends Command
             }
 
             if (method_exists($instance, 'setSyncLogId')) {
-                /** @var object $instance */
+                /** @var \App\Integrations\Contracts\IntegrationInterface $instance */
                 $instance->setSyncLogId($syncLog->sync_id);
             }
 
             $this->info("Starting sync...");
             $this->newLine();
 
+            /** @var \App\Integrations\Contracts\IntegrationInterface $instance */
             $result = $instance->sync();
 
             $recordsSynced = $result['records_synced'] ?? 0;
@@ -145,7 +146,7 @@ class SyncIntegrationManual extends Command
             }
 
             // Historical data polling
-            if (!$this->option('skip-historical') && method_exists($instance, 'getMetadata') && method_exists($instance, 'getHistoricalData')) {
+            if (!$this->option('skip-historical')) {
                 $metadata = $instance->getMetadata();
                 $skipHistorical = $integration->integration_type === 'Datto';
 

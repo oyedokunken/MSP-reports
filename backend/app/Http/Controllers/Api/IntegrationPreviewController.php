@@ -26,6 +26,7 @@ class IntegrationPreviewController extends Controller
 
             // Get integration instance
             $integrationClass = $this->getIntegrationClass($integration);
+            /** @var \App\Integrations\Contracts\IntegrationInterface $integrationInstance */
             $integrationInstance = new $integrationClass($integration);
 
             // Get display template
@@ -70,6 +71,7 @@ class IntegrationPreviewController extends Controller
 
             // Get integration instance
             $integrationClass = $this->getIntegrationClass($integration);
+            /** @var \App\Integrations\Contracts\IntegrationInterface $integrationInstance */
             $integrationInstance = new $integrationClass($integration);
 
             // Get optional customer filter
@@ -115,6 +117,7 @@ class IntegrationPreviewController extends Controller
                 'integration_id' => $integration->integration_id,
             ]);
             
+            /** @var \App\Integrations\Contracts\IntegrationInterface $integrationInstance */
             $integrationInstance = new $integrationClass($integration);
 
             // Get optional customer filter
@@ -182,6 +185,7 @@ class IntegrationPreviewController extends Controller
 
             // Get integration instance
             $integrationClass = $this->getIntegrationClass($integration);
+            /** @var \App\Integrations\Contracts\IntegrationInterface $integrationInstance */
             $integrationInstance = new $integrationClass($integration);
 
             // Check if integration has getCustomerLicenses method

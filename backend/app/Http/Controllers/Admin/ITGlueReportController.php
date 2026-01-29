@@ -33,10 +33,12 @@ class ITGlueReportController extends Controller
                 // Generate the Excel file in memory
                 $export = new LicenseConsumptionExport($month, $year);
                 
-                Mail::send([], [], function ($message) use ($emailTo, $senderEmail, $senderName, $filename, $export, $month, $year) {
+                $timestamp = mktime(0, 0, 0, (int)$month, 1, (int)$year);
+                
+                Mail::send([], [], function ($message) use ($emailTo, $senderEmail, $senderName, $filename, $export, $timestamp) {
                     $message->to($emailTo)
                         ->replyTo($senderEmail, $senderName) // Reply to the logged-in user
-                        ->subject('M365 License Consumption Report - ' . date('F Y', mktime(0, 0, 0, $month, 1, $year)))
+                        ->subject('M365 License Consumption Report - ' . date('F Y', $timestamp ?: null))
                         ->attachData(
                             Excel::raw($export, \Maatwebsite\Excel\Excel::XLSX),
                             $filename,
@@ -45,7 +47,7 @@ class ITGlueReportController extends Controller
                         ->html(
                             '<h2>M365 License Consumption Report</h2>' .
                             '<p>Please find attached the M365 License Consumption Report for ' . 
-                            date('F Y', mktime(0, 0, 0, $month, 1, $year)) . '.</p>' .
+                            date('F Y', $timestamp ?: null) . '.</p>' .
                             '<p>This report contains license consumption data for all customers in your ITGlue integration.</p>' .
                             '<br><p>Best regards,<br>' . htmlspecialchars($senderName) . '</p>'
                         );

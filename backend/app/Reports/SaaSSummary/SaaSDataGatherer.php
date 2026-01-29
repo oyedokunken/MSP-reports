@@ -236,7 +236,12 @@ class SaaSDataGatherer
      */
     public function gatherDailyTrends(Collection $events, Carbon $startDate, Carbon $endDate): array
     {
-        $trends = [];
+        $trends = [
+            'labels' => [],
+            'total' => [],
+            'threats' => [],
+            'failures' => [],
+        ];
         $current = $startDate->copy()->startOfDay();
         $target = $endDate->copy()->endOfDay();
 

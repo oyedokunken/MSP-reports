@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Integrations\AdminDroid;
+use App\Integrations\Concerns\HasHeartbeat;
 
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\Traits\HasDefaultPreview;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 class AdminDroidIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
+    use HasHeartbeat;
     protected Integration $integration;
     protected AdminDroidClient $client;
     protected CustomerMappingService $mappingService;
@@ -98,7 +100,7 @@ class AdminDroidIntegration implements IntegrationInterface
     public function getCustomers(): array
     {
         $orgs = $this->client->getOrganization();
-        return array_map(fn($org) => AdminDroidMapper::mapOrganization($org), $orgs);
+        return array_values(array_map(fn($org) => AdminDroidMapper::mapOrganization($org), $orgs));
     }
 
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array

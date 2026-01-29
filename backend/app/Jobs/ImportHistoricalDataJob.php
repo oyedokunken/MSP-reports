@@ -21,6 +21,7 @@ use App\Integrations\LibreNMS\LibreNMSIntegration;
 use App\Integrations\SaaS\SaaSIntegration;
 use App\Integrations\BitDefender\BitDefenderIntegration;
 use App\Integrations\VeeamOne\VeeamOneIntegration;
+use App\Integrations\Contracts\IntegrationInterface;
 
 
 class ImportHistoricalDataJob implements ShouldQueue
@@ -99,9 +100,11 @@ class ImportHistoricalDataJob implements ShouldQueue
                         if ($job) {
                             $baseProgress = $job->jobs_completed / $job->total_jobs;
                             $currentChunkContribution = ($subProgress / 100) * (1 / $job->total_jobs);
-                            $newProgress = min(99, round(($baseProgress + $currentChunkContribution) * 100));
+                            /** @var int $newProgress */
+                            $newProgress = (int) min(99, round(($baseProgress + $currentChunkContribution) * 100));
                             
-                            if ($newProgress > $job->progress_percent) {
+                            $jobProgress = $job->progress_percent ?? 0;
+                            if ($newProgress > $jobProgress) {
                                 $job->update(['progress_percent' => $newProgress]);
                                 $integration->update(['historical_import_progress' => $newProgress]);
                             }
@@ -116,6 +119,7 @@ class ImportHistoricalDataJob implements ShouldQueue
                 'end_date' => $endDate->toDateString(),
             ]);
             
+            /** @var IntegrationInterface $integrationClass */
             $result = $integrationClass->getHistoricalData(
                 $currentDate,
                 $endDate
@@ -159,12 +163,12 @@ class ImportHistoricalDataJob implements ShouldQueue
             
             // Calculate progress from completed jobs
             if (isset($this->importJob->total_jobs) && $this->importJob->total_jobs > 0) {
-                $this->importJob->progress_percent = min(100, round(($this->importJob->jobs_completed / $this->importJob->total_jobs) * 100));
+                $this->importJob->progress_percent = (int) min(100, round(($this->importJob->jobs_completed / $this->importJob->total_jobs) * 100));
             } else {
                 // Fallback to date-based if total_jobs wasn't set
                 $totalDays = $this->importJob->import_start_date->diffInDays($this->importJob->import_end_date) ?: 1;
                 $completedDays = $this->importJob->import_start_date->diffInDays($endDate);
-                $this->importJob->progress_percent = min(100, round(($completedDays / $totalDays) * 100));
+                $this->importJob->progress_percent = (int) min(100, round(($completedDays / $totalDays) * 100));
             }
             
             $this->importJob->save();
@@ -311,9 +315,9 @@ class ImportHistoricalDataJob implements ShouldQueue
     }
 
     /**
-     * @return object|null
+     * @return IntegrationInterface|null
      */
-    private function loadIntegrationClass(Integration $integration)
+    private function loadIntegrationClass(Integration $integration): ?IntegrationInterface
     {
         $integrationClasses = [
             'Autotask' => AutotaskIntegration::class,

@@ -57,7 +57,9 @@ class ReportRegistry
         }
 
         try {
-            return new $className($companyId);
+            /** @var \App\Reports\Contracts\ReportInterface $instance */
+            $instance = new $className($companyId);
+            return $instance;
         } catch (\Exception $e) {
             Log::error('Failed to instantiate report', [
                 'report_id' => $reportId,

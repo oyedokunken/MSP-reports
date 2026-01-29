@@ -298,7 +298,7 @@ class BitDefenderClient
                     throw new ApiResponseException(
                         "JSON-RPC error: {$data['error']['message']}",
                         $data['error']['code'] ?? 500,
-                        json_encode($data['error'])
+                        (string) json_encode($data['error'])
                     );
                 }
 

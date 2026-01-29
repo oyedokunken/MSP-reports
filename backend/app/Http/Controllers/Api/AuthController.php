@@ -37,8 +37,11 @@ class AuthController extends Controller
     }
     public function authLogin(LoginRequest $request): \Illuminate\Http\JsonResponse
     {
+        /** @var array{email: string, auth_method: string, password: string} $credentials */
+        $credentials = $request->validated();
+
         $result = $this->authService->login(
-            $request->validated(),
+            $credentials,
             $request->ip(),
             $request->userAgent()
         );

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Integrations\RocketCyber;
+use App\Integrations\Concerns\HasHeartbeat;
 
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\Traits\HasDefaultPreview;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 class RocketCyberIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
+    use HasHeartbeat;
     protected Integration $integration;
     protected RocketCyberClient $client;
     protected CustomerMappingService $mappingService;

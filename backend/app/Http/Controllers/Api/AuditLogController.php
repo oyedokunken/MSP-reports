@@ -134,6 +134,10 @@ class AuditLogController extends Controller
         $filename = "audit_logs_" . now()->format('Y-m-d_His') . ".csv";
         $handle = fopen('php://temp', 'w+');
         
+        if ($handle === false) {
+            return response('Failed to generate CSV', 500);
+        }
+        
         // CSV Header
         fputcsv($handle, ['ID', 'Event Type', 'Actor Type', 'Actor ID', 'Target Type', 'Target ID', 'Data', 'IP Address', 'Created At']);
 

@@ -480,6 +480,13 @@ class UserController extends Controller
         $filename = 'profile_' . $user->user_id . '_' . time() . '.' . $file->getClientOriginalExtension();
         $path = $file->storeAs('profile-pictures', $filename, 'public');
 
+        if ($path === false) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to store profile picture.',
+            ], 500);
+        }
+
         $user->profile_picture = $path;
         $user->save();
 

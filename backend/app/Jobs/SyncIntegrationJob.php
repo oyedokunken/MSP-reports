@@ -14,6 +14,7 @@ use App\Services\SyncEngine;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\IntegrationSyncFailedMail;
+use App\Integrations\Contracts\IntegrationInterface;
 
 class SyncIntegrationJob implements ShouldQueue
 {
@@ -110,6 +111,7 @@ class SyncIntegrationJob implements ShouldQueue
                 'integration_type' => $this->integration->integration_type,
             ]);
             
+            /** @var IntegrationInterface $integrationClass */
             $result = $integrationClass->sync();
             
             Log::info('Sync() method completed', [
@@ -119,32 +121,32 @@ class SyncIntegrationJob implements ShouldQueue
             
             $recordsSynced = $result['records_synced'] ?? 0;
             
-            if (method_exists($integrationClass, 'getMetadata') && method_exists($integrationClass, 'getHistoricalData')) {
-                $metadata = $integrationClass->getMetadata();
+            $metadata = $integrationClass->getMetadata();
+            
+            $skipHistorical = $this->integration->integration_type === 'Datto';
+            
+            if (($metadata['supports_historical'] ?? false) && !$skipHistorical) {
+                $startDate = now()->subHours(4); 
+                $endDate = now();
                 
-                $skipHistorical = $this->integration->integration_type === 'Datto';
-                
-                if (($metadata['supports_historical'] ?? false) && !$skipHistorical) {
-                    $startDate = now()->subHours(4); 
-                    $endDate = now();
+                try {
+                    /** @var IntegrationInterface $integrationClass */
+                    $dataResult = $integrationClass->getHistoricalData($startDate, $endDate);
                     
-                    try {
-                        $dataResult = $integrationClass->getHistoricalData($startDate, $endDate);
-                        
-                        $recordsSynced += ($dataResult['total_processed'] ?? 0);
-                        if (!empty($dataResult['errors'])) {
-                            $result['errors'] = array_merge($result['errors'] ?? [], $dataResult['errors']);
-                        }
-                    } catch (\Exception $e) {
-                         Log::error('Integration data polling failed', [
-                            'integration_id' => $this->integration->integration_id,
-                            'type' => $this->integration->integration_type,
-                            'error' => $e->getMessage()
-                        ]);
-                        $result['errors'][] = "Data polling failed: " . $e->getMessage();
+                    $recordsSynced += ($dataResult['total_processed'] ?? 0);
+                    if (!empty($dataResult['errors'])) {
+                        $result['errors'] = array_merge($result['errors'] ?? [], $dataResult['errors']);
                     }
+                } catch (\Exception $e) {
+                     Log::error('Integration data polling failed', [
+                        'integration_id' => $this->integration->integration_id,
+                        'type' => $this->integration->integration_type,
+                        'error' => $e->getMessage()
+                    ]);
+                    $result['errors'][] = "Data polling failed: " . $e->getMessage();
                 }
             }
+            
             $recordsFailed = $result['records_failed'] ?? 0;
             $customersMapped = $result['customers_mapped'] ?? [];
             
@@ -335,9 +337,9 @@ class SyncIntegrationJob implements ShouldQueue
     }
 
     /**
-     * @return object|null
+     * @return IntegrationInterface|null
      */
-    private function loadIntegrationClass()
+    private function loadIntegrationClass(): ?IntegrationInterface
     {
         $integrationType = $this->integration->integration_type;
         
@@ -379,6 +381,7 @@ class SyncIntegrationJob implements ShouldQueue
             'integration_type' => $integrationType,
         ]);
         
+        /** @var IntegrationInterface $instance */
         return $instance;
     }
 

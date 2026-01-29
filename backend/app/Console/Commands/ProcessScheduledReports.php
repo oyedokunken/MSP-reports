@@ -85,15 +85,16 @@ class ProcessScheduledReports extends Command
     {
         $this->newLine();
         $this->info("Processing completed:");
-        $this->line("  Processed: {$results['processed']}");
-        $this->line("  Succeeded: {$results['succeeded']}");
+        $this->line("  Processed: " . (is_array($results['processed']) ? count($results['processed']) : $results['processed']));
+        $this->line("  Succeeded: " . (is_array($results['succeeded']) ? count($results['succeeded']) : $results['succeeded']));
         
         if ($results['failed'] > 0) {
-            $this->error("  Failed: {$results['failed']}");
+            $this->error("  Failed: " . (is_array($results['failed']) ? count($results['failed']) : $results['failed']));
             
-            if (!empty($results['errors'])) {
+            if (isset($results['errors']) && is_iterable($results['errors'])) {
                 $this->newLine();
                 $this->error("Errors:");
+                /** @var array<string, mixed> $error */
                 foreach ($results['errors'] as $error) {
                     $this->line("  Schedule #{$error['schedule_id']} ({$error['report_type']}): {$error['error']}");
                 }

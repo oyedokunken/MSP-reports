@@ -418,7 +418,9 @@ class ReportGenerationService
 
             // Try to render using Blade view name (dot notation)
             try {
-                return view($templatePath, [
+                /** @var view-string $templateView */
+                $templateView = $templatePath;
+                return view($templateView, [
                     'reportData' => $reportData,
                     'schedule' => $schedule,
                     'customer' => $schedule->customer,
@@ -616,7 +618,7 @@ class ReportGenerationService
                 }
 
                 // Validate it's an image
-                if (!str_starts_with($mimeType, 'image/')) {
+                if (is_string($mimeType) && !str_starts_with($mimeType, 'image/')) {
                     Log::warning('File is not an image', [
                         'url' => $url,
                         'mime_type' => $mimeType,

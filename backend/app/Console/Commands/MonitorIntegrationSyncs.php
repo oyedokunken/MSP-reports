@@ -64,7 +64,8 @@ class MonitorIntegrationSyncs extends Command
             }
         }
 
-        $this->info(json_encode($counters));
+        $output = json_encode($counters);
+        $this->info($output !== false ? $output : 'Failed to encode counters');
         return 0;
     }
 
@@ -257,7 +258,7 @@ class MonitorIntegrationSyncs extends Command
         $minutes = 240; // Default 4 hours
         
         $parts = preg_split('/\s+/', trim($cronExpression));
-        if (count($parts) >= 2) {
+        if (is_array($parts) && count($parts) >= 2) {
             $minuteField = $parts[0];
             $hourField = $parts[1];
             

@@ -403,6 +403,16 @@ class HealthCheckController extends Controller
         try {
             $disk = disk_free_space(storage_path());
             $total = disk_total_space(storage_path());
+
+            if ($disk === false || $total === false || $total === 0.0) {
+                return [
+                    'status' => 'warning',
+                    'message' => 'Could not determine disk space',
+                    'free_bytes' => 0.0,
+                    'total_bytes' => 0.0,
+                ];
+            }
+
             $percentFree = ($disk / $total) * 100;
 
             $status = $percentFree < 10 ? 'critical' : ($percentFree < 20 ? 'warning' : 'healthy');
@@ -410,8 +420,8 @@ class HealthCheckController extends Controller
             return [
                 'status' => $status,
                 'message' => sprintf('%.2f%% disk space available', $percentFree),
-                'free_bytes' => $disk,
-                'total_bytes' => $total,
+                'free_bytes' => (float)$disk,
+                'total_bytes' => (float)$total,
             ];
         } catch (\Exception $e) {
             return [

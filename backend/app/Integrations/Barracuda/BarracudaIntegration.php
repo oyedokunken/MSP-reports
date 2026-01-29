@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Integrations\Barracuda;
+use App\Integrations\Concerns\HasHeartbeat;
 
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\Traits\HasDefaultPreview;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\Log;
 class BarracudaIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
+    use HasHeartbeat;
     protected Integration $integration;
     protected BarracudaClient $client;
     protected CustomerMappingService $mappingService;

@@ -516,8 +516,8 @@ class ExchangeSyncService
             'user_mailboxes' => $userMailboxCount,
             'shared_mailboxes' => $sharedMailboxCount,
             'resource_mailboxes' => $resourceMailboxCount,
-            'total_storage_mb' => $totalStorageMB,
-            'total_storage_gb' => round($totalStorageMB / 1024, 2),
+            'total_storage_mb' => (float) $totalStorageMB,
+            'total_storage_gb' => round(((float)$totalStorageMB) / 1024, 2),
             'last_sync' => $integration->last_sync_at?->toIso8601String(),
             'last_sync_status' => $integration->last_sync_status,
         ];

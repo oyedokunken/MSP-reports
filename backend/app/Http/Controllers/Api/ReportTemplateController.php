@@ -212,6 +212,7 @@ class ReportTemplateController extends Controller
             'customer_id' => 'required|exists:customers,customer_id',
         ]);
         
+        /** @var \App\Models\Customer $customer */
         $customer = Customer::findOrFail($validated['customer_id']);
         $schedule = $this->templateService->applyTemplateToCustomer($template, $customer);
         

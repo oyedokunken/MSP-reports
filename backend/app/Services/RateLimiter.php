@@ -73,11 +73,15 @@ class RateLimiter
             $minuteKey = $this->getKey($integration, 'minute');
             $hourKey = $this->getKey($integration, 'hour');
 
-            $minuteCount = $this->get($minuteKey) ?? 0;
-            $hourCount = $this->get($hourKey) ?? 0;
+            $minuteCount = (int) ($this->get($minuteKey) ?? 0);
+            $hourCount = (int) ($this->get($hourKey) ?? 0);
 
-            $minuteTtl = $this->useRedis ? Redis::ttl($minuteKey) : 60;
-            $hourTtl = $this->useRedis ? Redis::ttl($hourKey) : 3600;
+            $minuteTtlResult = $this->useRedis ? Redis::ttl($minuteKey) : 60;
+            $hourTtlResult = $this->useRedis ? Redis::ttl($hourKey) : 3600;
+
+            // Ensure we have integers for TTL
+            $minuteTtl = (int) $minuteTtlResult;
+            $hourTtl = (int) $hourTtlResult;
 
             return [
                 'per_minute' => [

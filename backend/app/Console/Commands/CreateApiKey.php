@@ -263,6 +263,9 @@ class CreateApiKey extends Command
         })->toArray();
 
         $selected = $this->choice('Select a company', $choices);
+        if (!is_string($selected)) {
+            throw new \RuntimeException('Invalid selection');
+        }
 
         // Extract company ID from selection
         preg_match('/\(ID: (\d+)\)/', $selected, $matches);
@@ -293,6 +296,9 @@ class CreateApiKey extends Command
         })->toArray();
 
         $selected = $this->choice('Select a customer', $choices);
+        if (!is_string($selected)) {
+            throw new \RuntimeException('Invalid selection');
+        }
 
         // Extract customer ID from selection
         preg_match('/\(ID: (\d+)\)/', $selected, $matches);

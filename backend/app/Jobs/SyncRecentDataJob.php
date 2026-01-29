@@ -18,6 +18,7 @@ use App\Integrations\ITGlue\ITGlueIntegration;
 use App\Integrations\LibreNMS\LibreNMSIntegration;
 use App\Integrations\SaaS\SaaSIntegration;
 use App\Integrations\VeeamOne\VeeamOneIntegration;
+use App\Integrations\Contracts\IntegrationInterface;
 
 class SyncRecentDataJob implements ShouldQueue
 {
@@ -65,6 +66,7 @@ class SyncRecentDataJob implements ShouldQueue
                 'date_range' => [$startDate->toDateString(), $endDate->toDateString()],
             ]);
 
+            /** @var IntegrationInterface $integrationClass */
             $result = $integrationClass->getHistoricalData($startDate, $endDate);
 
             $rateLimiter->recordRequest($this->integration);
@@ -112,9 +114,9 @@ class SyncRecentDataJob implements ShouldQueue
     }
 
     /**
-     * @return object|null
+     * @return IntegrationInterface|null
      */
-    private function loadIntegrationClass(Integration $integration)
+    private function loadIntegrationClass(Integration $integration): ?IntegrationInterface
     {
         $integrationClasses = [
             'Autotask' => AutotaskIntegration::class,

@@ -146,7 +146,7 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
     }
 
     /**
-     * @param object $license
+     * @param object{company_name: string, license_name: string, active_count: float, consumed_count: float, unused_count: float, consumption_rate: float, last_updated_at: Carbon|\Illuminate\Support\Carbon|string} $license
      * @return array<int, string|int>
      */
     public function map($license): array
@@ -167,7 +167,8 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
      */
     public function title(): string
     {
-        return 'License Consumption - ' . date('F Y', mktime(0, 0, 0, $this->month, 1, $this->year));
+        $timestamp = mktime(0, 0, 0, $this->month, 1, $this->year);
+        return 'License Consumption - ' . date('F Y', $timestamp !== false ? $timestamp : null);
     }
 
     /**
@@ -205,7 +206,8 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
     {
         // Add title and date
         $reportTitle = 'License Consumption Report';
-        $reportPeriod = date('F Y', mktime(0, 0, 0, $this->month, 1, $this->year));
+        $timestamp = mktime(0, 0, 0, $this->month, 1, $this->year);
+        $reportPeriod = date('F Y', $timestamp !== false ? $timestamp : (int) time());
         
         $sheet->setCellValue('D1', $reportTitle);
         $sheet->setCellValue('G1', 'Report Period: ' . $reportPeriod);

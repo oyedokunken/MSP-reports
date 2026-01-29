@@ -112,7 +112,7 @@ class CustomerMappingController extends Controller
                         'external_id' => e($ic->external_id),
                         'name' => html_entity_decode($ic->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                         'active' => (bool) $ic->active,
-                        'last_seen_at' => $ic->last_seen_at ? (int)($ic->last_seen_at->timestamp * 1000) : null,
+                        'last_seen_at' => $ic->last_seen_at instanceof \Carbon\Carbon ? (int)$ic->last_seen_at->timestamp * 1000 : null,
                         'mapping' => $mapping ? [
                             'type' => $mapping->mapping_type,
                             'confidence_score' => $mapping->confidence_score,
@@ -243,7 +243,7 @@ class CustomerMappingController extends Controller
                 'external_id' => e($ic->external_id),
                 'name' => html_entity_decode($ic->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                 'active' => (bool) $ic->active,
-                'last_seen_at' => $ic->last_seen_at ? (int)($ic->last_seen_at->timestamp * 1000) : null,
+                'last_seen_at' => $ic->last_seen_at instanceof \Carbon\Carbon ? (int)$ic->last_seen_at->timestamp * 1000 : null,
                 'suggested_matches' => array_map(function($suggestion) {
                     return [
                         'customer_id' => $suggestion['customer']->customer_id,
@@ -356,8 +356,16 @@ class CustomerMappingController extends Controller
         }
 
         // OPTIMIZED: Eager load integration to prevent N+1
+        /** @var \App\Models\IntegrationCustomer|null $integrationCustomer */
         $integrationCustomer = IntegrationCustomer::with('integration')
             ->find($request->integration_customer_id);
+
+        if (!$integrationCustomer) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration customer not found.',
+            ], 404);
+        }
 
         // Verify tenant isolation
         if ($integrationCustomer->integration->company_id !== $company->company_id) {

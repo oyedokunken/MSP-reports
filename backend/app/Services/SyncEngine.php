@@ -122,7 +122,8 @@ class SyncEngine
         $integration->last_sync_status = $status;
 
         if ($status === 'failed' && !empty($errors)) {
-            $integration->error_message = json_encode($errors);
+            $encodedErrors = json_encode($errors);
+            $integration->error_message = $encodedErrors !== false ? $encodedErrors : 'Unknown error';
         } else {
             $integration->error_message = null;
             // Reset status to active when sync succeeds

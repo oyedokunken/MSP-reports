@@ -5,8 +5,8 @@ parameters:
     paths:
         - app/
     
-    # Level 6 - report missing typehints
-    level: 6
+    # Level 7 - check for nullables
+    level: 7
     
     # Report unmatched ignores as warnings, not errors
     reportUnmatchedIgnoredErrors: false

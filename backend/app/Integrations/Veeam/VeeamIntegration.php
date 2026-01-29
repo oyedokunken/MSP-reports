@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Integrations\Veeam;
+use App\Integrations\Concerns\HasHeartbeat;
 
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\Traits\HasDefaultPreview;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 class VeeamIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
+    use HasHeartbeat;
     protected Integration $integration;
     protected VeeamClient $client;
 

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Integrations\VeeamOne;
+use App\Integrations\Concerns\HasHeartbeat;
 
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\Contracts\IntegrationDataType;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Log;
 class VeeamOneIntegration implements IntegrationInterface
 {
     use HasDefaultPreview;
+    use HasHeartbeat;
 
     protected Integration $integration;
     protected VeeamOneClient $client;

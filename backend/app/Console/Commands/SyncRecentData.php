@@ -68,6 +68,7 @@ class SyncRecentData extends Command
                 'credentials' => [],
             ]);
             $instance = new $className($tempIntegration);
+            /** @var \App\Integrations\Contracts\IntegrationInterface $instance */
             $metadata = $instance->getMetadata();
 
             if (!($metadata['supports_historical'] ?? false)) {

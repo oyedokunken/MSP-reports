@@ -320,6 +320,13 @@ class CompanyController extends Controller
             // Store file in public/logos directory
             $path = $file->storeAs('logos', $filename, 'public');
 
+            if ($path === false) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Failed to store logo.',
+                ], 500);
+            }
+
             // Update company settings
             if ($type === 'company') {
                 $settings['white_label']['logo_url'] = $path;

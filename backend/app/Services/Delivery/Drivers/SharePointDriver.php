@@ -75,7 +75,7 @@ class SharePointDriver implements DeliveryDriverInterface
                     ->first();
             }
 
-            if (!$integration) {
+            if (!$integration instanceof \App\Models\Integration) {
                 throw new \Exception('No active SharePoint integration found for this company.');
             }
 
@@ -146,7 +146,7 @@ class SharePointDriver implements DeliveryDriverInterface
                     ->first();
             }
 
-            if (!$integration) {
+            if (!$integration instanceof \App\Models\Integration) {
                 return [
                     'success' => false,
                     'message' => 'No active SharePoint integration found. Please configure one in Integrations settings.',

@@ -160,7 +160,9 @@ XML;
 XML;
 
         // Encode and deflate the request
-        $encodedRequest = base64_encode(gzdeflate($authnRequest));
+        /** @var string|false $deflated */
+        $deflated = gzdeflate($authnRequest);
+        $encodedRequest = base64_encode($deflated !== false ? $deflated : '');
 
         // Build redirect URL
         $redirectUrl = $idpSsoUrl . '?SAMLRequest=' . urlencode($encodedRequest);
@@ -275,9 +277,12 @@ XML;
             $xpath->registerNamespace('saml', 'urn:oasis:names:tc:SAML:2.0:assertion');
             
             // Register IDs on Response and Assertion elements
-            foreach ($xpath->query('//*[@ID]') as $node) {
-                if ($node instanceof \DOMElement) {
-                    $node->setIdAttribute('ID', true);
+            $nodes = $xpath->query('//*[@ID]');
+            if ($nodes !== false) {
+                foreach ($nodes as $node) {
+                    if ($node instanceof \DOMElement) {
+                        $node->setIdAttribute('ID', true);
+                    }
                 }
             }
 
@@ -352,7 +357,7 @@ XML;
         }
 
         // Remove any existing headers/footers and whitespace
-        $cert = str_replace(['-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----'], '', $cert);
+        $cert = str_replace(['-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----'], '', $cert !== false ? $cert : '');
         $cert = str_replace(["\r", "\n", " "], '', $cert);
         
         // Re-add proper PEM format
@@ -430,12 +435,13 @@ XML;
         try {
             $attributes = [];
             $attributeStatements = $assertion->xpath('saml:AttributeStatement/saml:Attribute');
-
-            foreach ($attributeStatements as $attribute) {
-                $name = (string)$attribute['Name'];
-                $values = $attribute->xpath('saml:AttributeValue');
-                if (!empty($values)) {
-                    $attributes[$name] = (string)$values[0];
+            if (is_array($attributeStatements)) {
+                foreach ($attributeStatements as $attribute) {
+                    $name = (string)$attribute['Name'];
+                    $values = $attribute->xpath('saml:AttributeValue');
+                    if (is_array($values) && !empty($values)) {
+                        $attributes[$name] = (string)$values[0];
+                    }
                 }
             }
 
@@ -488,7 +494,7 @@ XML;
             $cert = file_get_contents($cert);
         }
 
-        $cert = str_replace(['-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----'], '', $cert);
+        $cert = str_replace(['-----BEGIN CERTIFICATE-----', '-----END CERTIFICATE-----'], '', $cert !== false ? $cert : '');
         $cert = str_replace(["\r", "\n", " "], '', $cert);
         return $cert;
     }

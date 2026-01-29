@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Integrations\SharePoint;
+use App\Integrations\Concerns\HasHeartbeat;
 
 use App\Models\Integration;
 use Illuminate\Support\Facades\Http;

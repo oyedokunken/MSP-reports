@@ -36,7 +36,8 @@ class IntegrationService
             return [];
         }
 
-        $directories = array_filter(glob($integrationsPath . '/*'), 'is_dir');
+        $globResult = glob($integrationsPath . '/*');
+        $directories = array_filter(is_array($globResult) ? $globResult : [], 'is_dir');
 
         foreach ($directories as $dir) {
             $integrationName = basename($dir);
@@ -71,6 +72,7 @@ class IntegrationService
             'integration_type' => $integrationType,
             'credentials' => [],
         ]);
+        /** @var \App\Integrations\Contracts\IntegrationInterface $instance */
         $instance = new $className($tempIntegration);
         
         $metadata = $instance->getMetadata();
@@ -214,6 +216,7 @@ class IntegrationService
             'configuration' => $configuration,
         ]);
 
+        /** @var \App\Integrations\Contracts\IntegrationInterface $instance */
         $instance = new $className($tempIntegration);
         if (!$instance->authenticate()) {
              throw new \Exception("Authentication failed. Please verify your credentials.");

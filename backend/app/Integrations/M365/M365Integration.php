@@ -4,6 +4,7 @@ namespace App\Integrations\M365;
 
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\Traits\HasDefaultPreview;
+use App\Integrations\Concerns\HasHeartbeat;
 use App\Models\Integration;
 use App\Services\RateLimiter;
 use Carbon\Carbon;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 class M365Integration implements IntegrationInterface
 {
     use HasDefaultPreview;
+    use HasHeartbeat;
     protected Integration $integration;
     protected M365Client $client;
 

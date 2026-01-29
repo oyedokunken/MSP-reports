@@ -17,16 +17,24 @@ class BitdefenderVerifyData extends Command
 
     public function handle(): int
     {
-        $integrationId = $this->argument('integrationId')
-            ?? $this->ask('Enter the integration ID to verify');
+        $integrationId = $this->argument('integrationId');
+        if (empty($integrationId)) {
+             $integrationId = $this->ask('Enter the integration ID to verify');
+        }
 
+        if (empty($integrationId)) {
+             $this->error('Invalid integration ID');
+             return self::FAILURE;
+        }
+
+        /** @var string|int $integrationId */
         $sampleSize = (int) $this->option('sample');
 
         $integration = Integration::findOrFail($integrationId);
 
         $rateLimiter = app(RateLimiter::class);
         $client = new BitDefenderClient(
-            $integration->credentials ?? [],
+            is_array($integration->credentials) ? $integration->credentials : [],
             $rateLimiter,
             $integration
         );
