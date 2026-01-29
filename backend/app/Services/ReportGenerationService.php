@@ -520,7 +520,9 @@ class ReportGenerationService
             }
         }
 
-        return view('reports.template', [
+        /** @var view-string $viewName */
+        $viewName = 'reports.template';
+        return view($viewName, [
             'reportData' => $reportData,
             'schedule' => $schedule,
             'branding' => $reportData['branding'] ?? [],

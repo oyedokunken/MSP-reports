@@ -61,7 +61,9 @@ class ScheduleEvaluator
         $config = $schedule->schedule_config;
         $timeOfDay = $schedule->time_of_day ?? '09:00';
 
-        [$hour, $minute] = explode(':', $timeOfDay);
+        $parts = explode(':', $timeOfDay);
+        $hour = (int) $parts[0];
+        $minute = (int) ($parts[1] ?? 0);
 
         $now = Carbon::now($timezone);
         $next = Carbon::now($timezone);

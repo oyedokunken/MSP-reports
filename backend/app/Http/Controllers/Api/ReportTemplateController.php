@@ -317,7 +317,10 @@ class ReportTemplateController extends Controller
         }
 
         $customerIntegrations = $customer->integrationCustomers
-            ->map(fn(\App\Models\IntegrationCustomer $ic) => strtolower($ic->integration->integration_type))
+            ->map(function ($ic) {
+                /** @var \App\Models\IntegrationCustomer $ic */
+                return strtolower($ic->integration->integration_type);
+            })
             ->unique()
             ->values()
             ->toArray();

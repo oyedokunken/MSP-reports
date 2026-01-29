@@ -38,11 +38,11 @@ class CompanyScope implements Scope
     public function extend(Builder $builder): void
     {
         $builder->macro('withoutCompanyScope', function (Builder $builder) {
-            return $builder->withoutGlobalScope($this);
+            return $builder->withoutGlobalScope(CompanyScope::class);
         });
 
         $builder->macro('forCompany', function (Builder $builder, int $companyId) {
-            return $builder->withoutGlobalScope($this)
+            return $builder->withoutGlobalScope(CompanyScope::class)
                           ->where($builder->getModel()->getTable() . '.company_id', $companyId);
         });
     }

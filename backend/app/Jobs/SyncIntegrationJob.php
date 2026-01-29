@@ -38,7 +38,7 @@ class SyncIntegrationJob implements ShouldQueue
     public function middleware(): array
     {
         return [
-            (new WithoutOverlapping($this->integration->integration_id))
+            (new WithoutOverlapping((string)$this->integration->integration_id))
                 ->releaseAfter(60) 
                 ->expireAfter(3600) 
         ];

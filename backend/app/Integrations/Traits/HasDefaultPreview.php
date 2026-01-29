@@ -46,7 +46,7 @@ trait HasDefaultPreview
             ])
             ->sortable()
             ->filterable()
-            ->paginated(25)
+            ->paginated(true, 25)
             ->selectable()
             ->exportable()
             ->end();

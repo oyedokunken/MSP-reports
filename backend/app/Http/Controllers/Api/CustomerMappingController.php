@@ -99,7 +99,8 @@ class CustomerMappingController extends Controller
                 'is_static' => $customer->is_static,
                 'report_destination' => e($customer->report_destination),
                 'report_schedules_count' => $customer->reportSchedules->count(),
-                'integrations' => $customer->integrationCustomers->map(function (\App\Models\IntegrationCustomer $ic) {
+                'integrations' => $customer->integrationCustomers->map(function ($ic) {
+                    /** @var \App\Models\IntegrationCustomer $ic */
                     // Use eager-loaded relationship instead of query
                     /** @var \App\Models\CustomerMapping|null $mapping */
                     $mapping = $ic->customerMappings->first();
@@ -249,7 +250,8 @@ class CustomerMappingController extends Controller
                         'canonical_name' => $suggestion['customer']->canonical_name,
                         'is_static' => $suggestion['customer']->is_static ?? false,
                         'confidence_score' => $suggestion['confidence_score'],
-                        'integrations' => $suggestion['customer']->integrationCustomers->map(function(\App\Models\IntegrationCustomer $ic) {
+                        'integrations' => $suggestion['customer']->integrationCustomers->map(function($ic) {
+                            /** @var \App\Models\IntegrationCustomer $ic */
                             return ['id' => $ic->integration_customer_id];
                         }),
                     ];
@@ -495,7 +497,8 @@ class CustomerMappingController extends Controller
             ], 404);
         }
 
-        $integrations = $customer->integrationCustomers->map(function (\App\Models\IntegrationCustomer $ic) {
+        $integrations = $customer->integrationCustomers->map(function ($ic) {
+            /** @var \App\Models\IntegrationCustomer $ic */
             // Use eager-loaded relationship
             /** @var \App\Models\CustomerMapping|null $mapping */
             $mapping = $ic->customerMappings->first();

@@ -85,7 +85,7 @@ class ReportConfigController extends Controller
         $allReports = $this->registry->getAvailable($company->company_id);
 
         // Filter reports based on customer's integrations
-        $availableReports = collect($allReports)->filter(function ($report) use ($customerIntegrations) {
+        $availableReports = array_filter($allReports, function (array $report) use ($customerIntegrations): bool {
             $requiredIntegrations = $report['required_integrations'] ?? [];
             
             // If no required integrations specified, report is always available
@@ -100,7 +100,10 @@ class ReportConfigController extends Controller
             
             // Check if customer has at least one of the required integrations
             return !empty(array_intersect($requiredIntegrations, $customerIntegrations));
-        })->map(function ($report) use ($customerIntegrations, $customerId, $frequency) {
+        });
+
+        /** @var array $data */
+        $data = array_map(function (array $report) use ($customerIntegrations, $customerId, $frequency): array {
             $requiredIntegrations = $report['required_integrations'] ?? [];
             $matchedIntegrations = array_intersect($requiredIntegrations, $customerIntegrations);
             
@@ -113,34 +116,25 @@ class ReportConfigController extends Controller
                     \Log::warning("Failed to check data availability for {$report['id']}", [
                         'error' => $e->getMessage()
                     ]);
-                    $hasData = false;
                 }
             }
             
             return [
                 'id' => $report['id'],
-                'report_type' => $report['id'],
                 'name' => $report['name'],
-                'description' => $report['description'],
-                'category' => $report['category'] ?? 'general',
-                'frequency_options' => $report['frequencies'] ?? ['on-demand'],
-                'formats' => $report['formats'] ?? ['pdf'],
-                'icon' => $report['icon'] ?? 'file-text',
-                'enabled' => $report['enabled'] ?? true,
-                'data_types' => $report['data_types'] ?? [],
-                'integration_source' => !empty($matchedIntegrations) ? reset($matchedIntegrations) : 'Multiple',
+                'description' => $report['description'] ?? '',
+                'category' => $report['category'] ?? 'General',
+                'matched_integrations' => array_values($matchedIntegrations),
+                'required_integrations' => $report['required_integrations'] ?? [],
                 'has_data' => $hasData,
+                'is_available' => true,
+                'metadata' => $report['metadata'] ?? [],
             ];
-        })->values()->all();
+        }, $availableReports);
 
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'customer_id' => $customer->customer_id,
-                'customer_name' => $customer->canonical_name,
-                'linked_integrations' => $customerIntegrations,
-                'available_reports' => $availableReports,
-            ]
+            'data' => array_values($data),
         ]);
     }
 

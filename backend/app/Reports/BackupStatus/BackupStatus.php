@@ -26,7 +26,8 @@ class BackupStatus extends BaseReport
             ->whereBetween('data_timestamp', [$startDate, $endDate])
             ->orderBy('data_timestamp', 'desc')
             ->get()
-            ->map(function (\App\Models\IntegrationData $item) {
+            ->map(function ($item) {
+                /** @var \App\Models\IntegrationData $item */
                 return $item->data_payload;
             });
 

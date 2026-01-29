@@ -290,7 +290,7 @@ class AdminDroidIntegration implements IntegrationInterface
             ])
             ->sortable()
             ->filterable()
-            ->paginated(25)
+            ->paginated(true, 25)
             ->end();
         
         return $builder->build();

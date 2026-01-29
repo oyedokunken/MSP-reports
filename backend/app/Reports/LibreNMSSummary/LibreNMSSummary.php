@@ -59,7 +59,8 @@ class LibreNMSSummary extends BaseReport
                 $query->where('integration_type', 'LibreNMS');
             })
             ->get()
-            ->map(function(\App\Models\IntegrationCustomer $ic) {
+            ->map(function($ic) {
+                /** @var \App\Models\IntegrationCustomer $ic */
                 return str_replace('group_', '', (string)$ic->external_id);
             })
             ->toArray();

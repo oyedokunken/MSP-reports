@@ -65,10 +65,10 @@ class SaaSMapper
      * Map SaaS Alerts security event to standardized IntegrationData format.
      * 
      * @param array $saasEvent Raw event data from SaaS Alerts API
-     * @param string $integrationCustomerId The IntegrationCustomer ID this event belongs to
+     * @param int|string|null $integrationCustomerId The IntegrationCustomer ID this event belongs to
      * @return array Standardized event data for IntegrationData storage
      */
-    public static function mapEvent(array $saasEvent, ?string $integrationCustomerId = null): array
+    public static function mapEvent(array $saasEvent, $integrationCustomerId = null): array
     {
         $eventId = $saasEvent['eventId'] ?? $saasEvent['_id'] ?? null;
         

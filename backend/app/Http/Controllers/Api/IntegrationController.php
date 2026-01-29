@@ -492,7 +492,7 @@ class IntegrationController extends Controller
         $endDate = \Carbon\Carbon::parse($validated['end_date'])->endOfDay();
         $requestedMonths = $startDate->diffInMonths($endDate);
         
-        $retentionCheck = $licenseChecker->canExtendRetention($company, $requestedMonths);
+        $retentionCheck = $licenseChecker->canExtendRetention($company, (int)$requestedMonths);
         
         if (!$retentionCheck['allowed']) {
             return response()->json([

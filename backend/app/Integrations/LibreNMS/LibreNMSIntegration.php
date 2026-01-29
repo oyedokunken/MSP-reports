@@ -566,7 +566,7 @@ class LibreNMSIntegration implements IntegrationInterface
             ])
             ->sortable()
             ->filterable()
-            ->paginated(25)
+            ->paginated(true, 25)
             ->end();
         
         // Overview metrics

@@ -33,7 +33,7 @@ class ProcessScheduledReports extends Command
         try {
             // Process specific schedule if provided
             if ($scheduleId = $this->option('schedule')) {
-                return $this->processSpecificSchedule($scheduleService, $scheduleId);
+                return $this->processSpecificSchedule($scheduleService, (int)$scheduleId);
             }
 
             // Process all due schedules

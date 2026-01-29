@@ -29,7 +29,7 @@ class TestOptimizedSync extends Command
     public function handle()
     {
         $integrationId = $this->argument('integration_id');
-        $daysBack = $this->option('days');
+        $daysBack = (int) $this->option('days');
         
         $integration = Integration::find($integrationId);
         
