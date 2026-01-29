@@ -363,7 +363,7 @@ class SyncIntegrationJob implements ShouldQueue
         }
 
         // Inject SyncLogID if supported (via HasHeartbeat trait)
-        if (method_exists($instance, 'setSyncLogId') && $this->syncLog) {
+        if (method_exists($instance, 'setSyncLogId')) {
             $instance->setSyncLogId($this->syncLog->sync_id);
         }
         
@@ -377,11 +377,9 @@ class SyncIntegrationJob implements ShouldQueue
 
     public function sendHeartbeat(): void
     {
-        if ($this->syncLog) {
-            // Update timestamp directly in DB to avoid model event overhead/cache issues
-            \Illuminate\Support\Facades\DB::table('sync_logs')
-                ->where('sync_id', $this->syncLog->sync_id)
-                ->update(['last_heartbeat_at' => now()]);
-        }
+        // Update timestamp directly in DB to avoid model event overhead/cache issues
+        \Illuminate\Support\Facades\DB::table('sync_logs')
+            ->where('sync_id', $this->syncLog->sync_id)
+            ->update(['last_heartbeat_at' => now()]);
     }
 }

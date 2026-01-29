@@ -360,7 +360,7 @@ class ReportTemplateController extends Controller
             
             // Check data availability
             $hasData = null;
-            $reportClass = $report['class'] ?? (is_object($reportInstance) ? get_class($reportInstance) : null);
+            $reportClass = $report['class'] ?? get_class($reportInstance);
             
             if ($reportClass && method_exists($reportClass, 'hasRecentData')) {
                 try {
@@ -375,8 +375,8 @@ class ReportTemplateController extends Controller
 
             $reportTypes[] = [
                 'type' => $report['id'],
-                'name' => $report['name'] ?? $metadata['name'] ?? 'Unknown Report',
-                'description' => $report['description'] ?? $metadata['description'] ?? '',
+                'name' => $report['name'],
+                'description' => $report['description'],
                 'required_integrations' => $requiredIntegrations,
                 'has_data' => $hasData,
                 'available_sections' => $report['available_sections'] ?? [
@@ -413,8 +413,8 @@ class ReportTemplateController extends Controller
             
             $reportTypes[] = [
                 'type' => $report['id'],
-                'name' => $report['name'] ?? $metadata['name'] ?? 'Unknown Report',
-                'description' => $report['description'] ?? $metadata['description'] ?? '',
+                'name' => $report['name'],
+                'description' => $report['description'],
                 'required_integrations' => $report['required_integrations'] ?? [],
                 'available_sections' => $report['available_sections'] ?? [
                     ['id' => 'all', 'label' => 'All Sections', 'default' => true],

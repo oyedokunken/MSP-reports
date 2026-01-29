@@ -153,7 +153,7 @@ class AutotaskDataGatherer
                 'last_modified_user_id' => $payload['last_modified_user_id'] ?? null,
             ];
         })->filter(function($item) use ($startDate, $endDate) {
-            $dateWorked = isset($item['date_worked']) && $item['date_worked'] !== 'Unknown' 
+            $dateWorked = $item['date_worked'] !== 'Unknown' 
                 ? Carbon::parse($item['date_worked']) 
                 : null;
             

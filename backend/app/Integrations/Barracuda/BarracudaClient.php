@@ -34,9 +34,10 @@ class BarracudaClient
         $this->baseUrl = rtrim($this->baseUrl, '/');
         
         // Enable mock mode if no credentials or test credentials
+        // Enable mock mode if no credentials or test credentials
         $this->useMockData = empty($credentials['client_id']) || 
                             empty($credentials['client_secret']) ||
-                            str_starts_with($credentials['client_id'] ?? '', 'test_');
+                            str_starts_with($credentials['client_id'], 'test_');
     }
 
     /**

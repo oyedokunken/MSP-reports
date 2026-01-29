@@ -132,7 +132,6 @@ class BitDefenderSummary extends BaseReport
 
         \Log::info('Generating BitDefender report', [
             'customer_id' => $customer->customer_id,
-            'has_trends' => isset($reportData['infrastructure_trends']),
             'trend_labels_count' => count($reportData['infrastructure_trends']['labels'] ?? []),
         ]);
 

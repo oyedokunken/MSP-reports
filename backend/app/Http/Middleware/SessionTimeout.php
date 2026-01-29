@@ -39,7 +39,7 @@ class SessionTimeout
         // Check if token has expired based on creation time
         $token = $user->currentAccessToken();
         
-        if ($token && $token->created_at) {
+        if ($token->created_at) {
             $tokenAge = Carbon::parse($token->created_at);
             $maxSessionDuration = self::MAX_SESSION_HOURS;
             
@@ -60,14 +60,14 @@ class SessionTimeout
         $company = $user->company;
         $timeoutMinutes = self::DEFAULT_TIMEOUT_MINUTES;
         
-        if ($company && isset($company->settings['authentication']['session_timeout_minutes'])) {
+        if (isset($company->settings['authentication']['session_timeout_minutes'])) {
             $timeoutMinutes = (int) $company->settings['authentication']['session_timeout_minutes'];
             // Ensure timeout is reasonable (between 5 minutes and 480 minutes / 8 hours)
             $timeoutMinutes = max(5, min(480, $timeoutMinutes));
         }
 
         // Check last activity (stored in token's last_used_at)
-        if ($token && $token->last_used_at) {
+        if ($token->last_used_at) {
             $lastActivity = Carbon::parse($token->last_used_at);
             
             if ($lastActivity->diffInMinutes(now()) >= $timeoutMinutes) {

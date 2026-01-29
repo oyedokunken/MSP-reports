@@ -29,7 +29,7 @@ class EvaluateReportSchedules extends Command
                 $this->info("Set next schedule for {$schedule->report_type}: {$schedule->next_scheduled_at}");
             }
 
-            if ($schedule->next_scheduled_at && $now->gte($schedule->next_scheduled_at)) {
+            if ($now->gte($schedule->next_scheduled_at)) {
                 GenerateReportJob::dispatch($schedule);
                 $reportsQueued++;
 
@@ -53,7 +53,7 @@ class EvaluateReportSchedules extends Command
         $now = Carbon::now($timezone);
         
         $timeParts = explode(':', $schedule->time_of_day ?? '09:00');
-        $hour = (int)($timeParts[0] ?? 9);
+        $hour = (int)($timeParts[0]);
         $minute = (int)($timeParts[1] ?? 0);
 
         switch ($schedule->frequency) {

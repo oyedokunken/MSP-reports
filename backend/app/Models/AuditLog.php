@@ -52,12 +52,8 @@ class AuditLog extends Model
             return $this->event_data['actor_name'] ?? ($this->actor_type === 'System' ? 'System' : $this->actor_type);
         }
 
-        try {
-            if ($this->actor) {
-                return $this->actor->name ?? $this->actor->display_name ?? 'Unknown';
-            }
-        } catch (\Throwable $e) {
-            // Fallback if class still not found or other error
+        if ($this->actor) {
+            return $this->actor->name ?? $this->actor->display_name ?? 'Unknown';
         }
 
         return $this->event_data['actor_name'] ?? 'Unknown';
@@ -71,12 +67,8 @@ class AuditLog extends Model
             return $this->event_data['target_name'] ?? '-';
         }
 
-        try {
-            if ($this->target) {
-                return $this->target->name ?? $this->target->display_name ?? $this->target->canonical_name ?? '-';
-            }
-        } catch (\Throwable $e) {
-            // Fallback
+        if ($this->target) {
+            return $this->target->name ?? $this->target->display_name ?? $this->target->canonical_name ?? '-';
         }
 
         return $this->event_data['target_name'] ?? '-';

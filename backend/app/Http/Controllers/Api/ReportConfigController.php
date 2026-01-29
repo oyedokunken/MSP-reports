@@ -575,7 +575,7 @@ class ReportConfigController extends Controller
 
         // Also revert customer report_configuration to template versions if applicable
         $customer = $schedule->customer;
-        if ($customer && ($template->included_sections || $template->delivery_settings || $template->report_options)) {
+        if ($template->included_sections || $template->delivery_settings || $template->report_options) {
             $reportConfig = $customer->report_configuration ?? [];
             
             if ($template->included_sections) {

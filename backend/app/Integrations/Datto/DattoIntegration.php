@@ -192,21 +192,6 @@ class DattoIntegration implements IntegrationInterface
             'last_sync' => now(),
         ], now()->addMinutes(10));
     }
-    private function processUnmappedCustomers(): array
-    {
-        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->count();
-        
-        if ($unmappedCount > 0) {
-            BatchAutoMatchCustomersJob::dispatchSync($this->integration);
-            \Log::info('Datto: Dispatched auto-match job', [
-                'integration_id' => $this->integration->integration_id,
-                'unmapped_count' => $unmappedCount,
-            ]);
-        }
-        return [];
-    }
 
     public function getCustomers(): array
     {
@@ -672,63 +657,9 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         });
     }
 
-    /**
-     * @deprecated Use bulkStoreDevices() or bulkStoreAlerts() instead for better performance
-     * Kept for backward compatibility only
-     */
-    private function storeHistoricalData(array $data): void
-    {
-        // Determine unique key based on data type
-        $payload = $data['payload'];
-        $uniqueKey = $this->getUniqueKeyFromPayload($data['data_type'], $payload);
-        
-        if ($uniqueKey) {
-            // Use upsert pattern - update if exists, insert if not
-            DB::table('integration_data')->updateOrInsert(
-                [
-                    'integration_id' => $this->integration->integration_id,
-                    'data_type' => $data['data_type'],
-                    'integration_customer_id' => $data['integration_customer_id'],
-                    // Use raw SQL to match on JSONB field
-                ],
-                [
-                    'company_id' => $this->integration->company_id,
-                    'integration_id' => $this->integration->integration_id,
-                    'integration_customer_id' => $data['integration_customer_id'],
-                    'data_type' => $data['data_type'],
-                    'data_timestamp' => $data['timestamp'],
-                    'data_payload' => $payload,
-                    'imported_at' => now(),
-                    'data_version' => 1,
-                ]
-            );
-        } else {
-            // Fallback to insert for data types without unique keys
-            IntegrationData::create([
-                'company_id' => $this->integration->company_id,
-                'integration_id' => $this->integration->integration_id,
-                'integration_customer_id' => $data['integration_customer_id'],
-                'data_type' => $data['data_type'],
-                'data_timestamp' => $data['timestamp'],
-                'data_payload' => $payload,
-                'imported_at' => now(),
-                'data_version' => 1,
-            ]);
-        }
-    }
 
-    /**
-     * Get unique key from payload based on data type
-     */
-    private function getUniqueKeyFromPayload(string $dataType, array $payload): ?string
-    {
-        return match($dataType) {
-            IntegrationDataType::ALERT => $payload['alert_uid'] ?? null,
-            IntegrationDataType::DEVICE_STATUS => $payload['device_uid'] ?? null,
-            IntegrationDataType::UPTIME_METRIC => $payload['device_uid'] ?? null,
-            default => null,
-        };
-    }
+
+
 
     /**
      * @deprecated Use bulkStoreAlerts() instead for better performance

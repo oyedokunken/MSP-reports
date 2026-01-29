@@ -83,7 +83,7 @@ class AdminDroidMapper
                 'app_display_name' => $signIn['appDisplayName'] ?? null,
                 'ip_address' => $signIn['ipAddress'] ?? null,
                 'location' => $signIn['location'] ?? null,
-                'status' => $signIn['status']['errorCode'] ?? 0 === 0 ? 'Success' : 'Failed',
+                'status' => ($signIn['status']['errorCode'] ?? 0) === 0 ? 'Success' : 'Failed',
                 'error_code' => $signIn['status']['errorCode'] ?? null,
                 'client_app' => $signIn['clientAppUsed'] ?? null,
                 'device_detail' => $signIn['deviceDetail'] ?? null,

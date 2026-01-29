@@ -29,7 +29,7 @@ class ApiKeyController extends Controller
                     'display_name' => $key->display_name,
                     'customer_id' => $key->customer_id,
                     'customer_name' => $key->customer?->canonical_name,
-                    'created_by' => $key->createdBy?->name,
+                    'created_by' => $key->createdBy->name,
                     'created_at' => $key->created_at->toIso8601String(),
                     'last_used_at' => $key->last_used_at?->toIso8601String(),
                     'permissions' => $key->permissions,

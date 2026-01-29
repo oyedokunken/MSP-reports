@@ -22,7 +22,7 @@ class ScopeCustomerAccess
         $user = $request->user();
 
         // If user is authenticated and has customer scoping defined
-        if ($user && !empty($user->scoped_customers) && is_array($user->scoped_customers)) {
+        if ($user && !empty($user->scoped_customers)) {
             // Store scoped customer IDs in request for use in controllers
             $request->attributes->set('scoped_customers', $user->scoped_customers);
 

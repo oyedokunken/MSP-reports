@@ -68,7 +68,7 @@ class ReportGenerationService
             // Prepare options from schedule_config
             $options = [];
             if ($schedule->schedule_config) {
-                $options = is_array($schedule->schedule_config) ? $schedule->schedule_config : json_decode($schedule->schedule_config, true);
+                $options = $schedule->schedule_config;
             }
 
             // Add frequency to options so report can adjust title dynamically
@@ -97,7 +97,7 @@ class ReportGenerationService
             // Try to get file size, with fallback to direct file access
             $fileSize = Storage::disk('reports')->size($pdfPath);
 
-            if ($fileSize === false || $fileSize === null || $fileSize === 0) {
+            if ($fileSize === 0) {
                 // Fallback: try getting size directly from filesystem
                 $fullPath = Storage::disk('reports')->path($pdfPath);
                 if (file_exists($fullPath)) {

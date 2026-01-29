@@ -107,7 +107,7 @@ class DattoRMMDataGatherer
             $resolvedAt = isset($payload['resolved_at']) ? Carbon::parse($payload['resolved_at']) : null;
             
             $resolutionMinutes = null;
-            if ($timestamp && $resolvedAt) {
+            if ($resolvedAt) {
                 $resolutionMinutes = $timestamp->diffInMinutes($resolvedAt);
             }
             
@@ -120,8 +120,8 @@ class DattoRMMDataGatherer
                 'resolved_on' => $resolvedAt ? $resolvedAt->format('M d, Y H:i') : null,
                 'muted' => $payload['muted'] ?? false,
                 'ticket_number' => $payload['ticket_number'] ?? null,
-                'timestamp' => $timestamp ? $timestamp->format('M d, Y H:i') : 'Unknown',
-                'timestamp_obj' => $timestamp ? \Carbon\Carbon::parse($timestamp) : null,
+                'timestamp' => $timestamp->format('M d, Y H:i'),
+                'timestamp_obj' => $timestamp,
                 'resolution_minutes' => $resolutionMinutes,
                 'device_uid' => $payload['device_uid'] ?? null,
                 'device_name' => $payload['device_name'] ?? 'Unknown',

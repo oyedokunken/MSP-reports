@@ -336,26 +336,9 @@ class ITGlueIntegration implements IntegrationInterface
         }
     }
 
-    private function storeCustomer(array $customer): void
-    {
-        IntegrationCustomer::withoutGlobalScopes()->updateOrCreate(
-            [
-                'integration_id' => $this->integration->integration_id,
-                'external_id'    => $customer['external_id'],
-            ],
-            [
-                'name'         => $customer['name'],
-                'metadata'     => $customer['metadata'],
-                'active'       => $customer['active'],
-                'last_seen_at' => now(),
-            ]
-        );
-    }
-
     private function bulkStoreCustomers(array $customers): void
     {
         if (empty($customers)) {
-            Log::info('ITGlue: No customers to store');
             return;
         }
 
@@ -420,9 +403,7 @@ class ITGlueIntegration implements IntegrationInterface
                     }
                 }
                 $this->bulkStoreCustomers($batch);
-                if (method_exists($this, 'sendHeartbeat')) {
-                    $this->sendHeartbeat();
-                }
+                $this->sendHeartbeat();
                 break;
 
             case IntegrationDataType::SSL_CERTIFICATE:
@@ -434,12 +415,14 @@ class ITGlueIntegration implements IntegrationInterface
                 $batch = [];
                 foreach ($items as $item) {
                     try {
-                        $data = match ($type) {
-                            IntegrationDataType::SSL_CERTIFICATE, 'ssl_certs' => ITGlueMapper::mapSslCertificate($item),
-                            IntegrationDataType::DOMAINS, 'domains'           => ITGlueMapper::mapDomain($item),
-                            IntegrationDataType::FLEXIBLE_ASSETS, 'flexible_assets' => ITGlueMapper::mapFlexibleAsset($item),
-                            default => null,
-                        };
+                        $data = null;
+                        if ($type === IntegrationDataType::SSL_CERTIFICATE || $type === 'ssl_certs') {
+                            $data = ITGlueMapper::mapSslCertificate($item);
+                        } elseif ($type === IntegrationDataType::DOMAINS || $type === 'domains') { // @phpstan-ignore-line
+                            $data = ITGlueMapper::mapDomain($item);
+                        } elseif ($type === IntegrationDataType::FLEXIBLE_ASSETS || $type === 'flexible_assets') { // @phpstan-ignore-line
+                            $data = ITGlueMapper::mapFlexibleAsset($item);
+                        }
 
                         if (!$data) {
                             continue;
@@ -841,17 +824,5 @@ class ITGlueIntegration implements IntegrationInterface
 
         return 0;
     }
-
-    private function resolveIntegrationCustomerId($itGlueOrgId): ?int
-    {
-        if (empty($itGlueOrgId)) {
-            return null;
-        }
-
-        $integrationCustomer = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
-            ->where('external_id', (string)$itGlueOrgId)
-            ->first();
-
-        return $integrationCustomer?->integration_customer_id;
-    }
 }
+

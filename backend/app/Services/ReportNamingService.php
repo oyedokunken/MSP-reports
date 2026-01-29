@@ -76,7 +76,7 @@ class ReportNamingService
         $customer = $customer ?: $schedule->customer;
         
         return [
-            '{customer_name}' => $customer?->canonical_name ?? 'Unknown',
+            '{customer_name}' => $customer->canonical_name ?? 'Unknown',
             '{report_type}' => $schedule->report_type,
             '{date}' => $now->format('Y-m-d'),
             '{month}' => $now->format('F'),

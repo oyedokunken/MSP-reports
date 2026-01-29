@@ -29,7 +29,6 @@ class AlertNotificationMail extends Mailable
             'critical' => '🚨 CRITICAL',
             'warning' => '⚠️ WARNING',
             'info' => 'ℹ️ INFO',
-            default => 'ALERT',
         };
 
         return new Envelope(

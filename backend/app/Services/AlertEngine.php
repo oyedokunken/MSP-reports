@@ -170,7 +170,6 @@ class AlertEngine
             'm' => now()->subMinutes((int) $value),
             'h' => now()->subHours((int) $value),
             'd' => now()->subDays((int) $value),
-            default => now()->subHour(),
         };
     }
 

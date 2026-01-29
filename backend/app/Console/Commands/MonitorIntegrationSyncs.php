@@ -130,7 +130,7 @@ class MonitorIntegrationSyncs extends Command
             if ($pendingValue <= 0 || ($isStalled && $ageInMinutes >= 10)) {
                 // No pending batches OR stalled - mark as complete
                 $failedKey = "sync_log:{$sync->sync_id}:failed";
-                $failedCount = (int) \Illuminate\Support\Facades\Redis::get($failedKey) ?? 0;
+                $failedCount = (int) \Illuminate\Support\Facades\Redis::get($failedKey);
                 
                 $status = $failedCount > 0 ? 'partial' : 'success';
                 $errors = $failedCount > 0 ? ["{$failedCount} batch(es) failed"] : [];

@@ -121,7 +121,7 @@ class LibreNMSClient
             });
 
             foreach ($responses as $id => $response) {
-                if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
+                if ($response->successful()) {
                     $data = $response->json();
                     $results[$id] = $data['availability'] ?? [];
                 } else {

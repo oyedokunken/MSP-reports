@@ -88,7 +88,6 @@ class AlertNotificationService
             'critical' => '#dc2626',
             'warning' => '#f59e0b',
             'info' => '#3b82f6',
-            default => '#6b7280',
         };
 
         $payload = [

@@ -750,66 +750,8 @@ class AutotaskIntegration implements IntegrationInterface
         // However, standard storeCustomer was just updating one by one.
     }
 
-    private function storeHistoricalData(array $data): void
-    {
-        $payload = $data['payload'];
-        $uniqueKey = $this->getUniqueKeyFromPayload($data['data_type'], $payload);
-        
-        if ($uniqueKey) {
-            $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
-                ->where('data_type', $data['data_type'])
-                ->whereRaw("data_payload->>'{$this->getUniqueKeyField($data['data_type'])}' = ?", [$uniqueKey])
-                ->first();
 
-            if ($existing) {
-                $existing->update([
-                    'data_payload' => $payload,
-                    'imported_at' => now(),
-                ]);
-            } else {
-                IntegrationData::create([
-                    'company_id' => $this->integration->company_id,
-                    'integration_id' => $this->integration->integration_id,
-                    'integration_customer_id' => $data['integration_customer_id'],
-                    'data_type' => $data['data_type'],
-                    'data_timestamp' => $data['timestamp'],
-                    'data_payload' => $payload,
-                    'imported_at' => now(),
-                    'data_version' => 1,
-                ]);
-            }
-        } else {
-            IntegrationData::create([
-                'company_id' => $this->integration->company_id,
-                'integration_id' => $this->integration->integration_id,
-                'integration_customer_id' => $data['integration_customer_id'],
-                'data_type' => $data['data_type'],
-                'data_timestamp' => $data['timestamp'],
-                'data_payload' => $payload,
-                'imported_at' => now(),
-                'data_version' => 1,
-            ]);
-        }
-    }
 
-    private function getUniqueKeyFromPayload(string $dataType, array $payload): ?string
-    {
-        $keyField = $this->getUniqueKeyField($dataType);
-        return $keyField ? ($payload[$keyField] ?? null) : null;
-    }
-
-    private function getUniqueKeyField(string $dataType): ?string
-    {
-        return match($dataType) {
-            IntegrationDataType::TICKET => 'ticket_id',
-            IntegrationDataType::TIME_ENTRY => 'time_entry_id',
-            IntegrationDataType::RESOURCE => 'resource_id',
-            IntegrationDataType::CONTRACT => 'contract_id',
-            IntegrationDataType::CONTACT => 'contact_id',
-            IntegrationDataType::TICKET_NOTE => 'note_id',
-            default => null,
-        };
-    }
     private function bulkStoreHistoricalData(string $dataType, array $batch): void
     {
         if (empty($batch)) return;

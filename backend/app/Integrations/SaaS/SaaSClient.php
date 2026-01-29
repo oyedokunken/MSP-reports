@@ -231,9 +231,11 @@ class SaaSClient
             $scrollId = $responseData['_scroll_id']
                 ?? $responseData['scroll_id']
                 ?? $responseData['next_scroll_id']
-                ?? $response->header('Scroll-Id')
-                ?? $response->header('X-Scroll-Id')
-                ?? null;
+                ?? $response->header('Scroll-Id');
+
+            if (empty($scrollId)) {
+                $scrollId = $response->header('X-Scroll-Id') ?: null;
+            }
 
             $reachedEnd = count($page) < $size;
 

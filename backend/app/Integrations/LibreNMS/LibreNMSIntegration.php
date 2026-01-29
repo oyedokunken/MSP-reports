@@ -87,9 +87,7 @@ class LibreNMSIntegration implements IntegrationInterface
                         $this->storeCustomer($standardized);
                         
                         // Heartbeat
-                        if (method_exists($this, 'sendHeartbeat')) {
-                            $this->sendHeartbeat();
-                        }
+                        $this->sendHeartbeat();
                     } catch (\Exception $e) {
                          $groupId = $group['id'] ?? 'unknown';
                          Log::error('LibreNMS Batch: Failed to process group', ['group_id' => $groupId, 'error' => $e->getMessage()]);
@@ -143,9 +141,7 @@ class LibreNMSIntegration implements IntegrationInterface
                         }
                         
                         // Heartbeat
-                        if (method_exists($this, 'sendHeartbeat')) {
-                            $this->sendHeartbeat();
-                        }
+                        $this->sendHeartbeat();
                     } catch (\Exception $e) {
                         $deviceId = $device['device_id'] ?? 'unknown';
                         Log::error('LibreNMS Batch: Failed to process device', ['device_id' => $deviceId, 'error' => $e->getMessage()]);

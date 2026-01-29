@@ -146,7 +146,7 @@ class ReportTemplateService
 
             // Also update customer config if needed
             $customer = $schedule->customer;
-            if ($customer && ($template->included_sections || $template->delivery_settings || $template->report_options)) {
+            if ($template->included_sections || $template->delivery_settings || $template->report_options) {
                 $customer->update([
                     'report_configuration' => array_merge(
                         $customer->report_configuration ?? [],

@@ -586,7 +586,7 @@ class ReportAnalyticsController extends Controller
 
         $report = $shareToken->generatedReport;
 
-        if (!$report || !$report->file_path || !Storage::disk('reports')->exists($report->file_path)) {
+        if (!$report->file_path || !Storage::disk('reports')->exists($report->file_path)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Report file not found.'

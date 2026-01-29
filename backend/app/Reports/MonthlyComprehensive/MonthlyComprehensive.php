@@ -181,60 +181,7 @@ class MonthlyComprehensive extends BaseReport
             'template' => $template,
         ];
     }
-    
-    private function calculateHealthScore(array $data): int
-    {
-        $weights = [];
-        
-        // Uptime score (30% weight)
-        if (!empty($data['uptime'])) {
-            $uptimePercent = floatval($data['uptime']['average_uptime'] ?? 0);
-            $scores[] = $uptimePercent;
-            $weights[] = 30;
-        }
-        
-        // Backup score (25% weight)
-        if (!empty($data['backups'])) {
-            $backupRate = floatval($data['backups']['success_rate'] ?? 0);
-            $scores[] = $backupRate;
-            $weights[] = 25;
-        }
-        
-        // Ticket score (25% weight) - based on closure rate
-        if (!empty($data['tickets'])) {
-            $ticketsOpened = $data['tickets']['tickets_opened'] ?? 1;
-            $ticketsClosed = $data['tickets']['tickets_closed'] ?? 0;
-            $ticketRate = $ticketsOpened > 0 ? ($ticketsClosed / $ticketsOpened) * 100 : 100;
-            $scores[] = $ticketRate;
-            $weights[] = 25;
-        }
-        
-        // Security score (20% weight) - inverse of critical alerts
-        if (!empty($data['security'])) {
-            $criticalAlerts = $data['security']['critical_alerts'] ?? 0;
-            $securityScore = max(0, 100 - ($criticalAlerts * 10)); // Each critical alert reduces score by 10
-            $scores[] = $securityScore;
-            $weights[] = 20;
-        }
-        
-        // Calculate weighted average
-        if (empty($scores)) {
-            return 0;
-        }
-        
-        $totalWeight = array_sum($weights);
-        $weightedSum = 0;
-        
-        for ($i = 0; $i < count($scores); $i++) {
-            $weightedSum += $scores[$i] * $weights[$i];
-        }
-        
-        if ($totalWeight === 0) {
-            return 0;
-        }
-        
-        return (int) round($weightedSum / $totalWeight);
-    }
+
 
     public function getTemplate(): string
     {

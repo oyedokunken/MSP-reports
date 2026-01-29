@@ -17,7 +17,7 @@ class CustomerScope implements Scope
             $user = auth()->user();
             
             // If the user has scoped customers, restrict the query
-            if ($user->scoped_customers && is_array($user->scoped_customers) && count($user->scoped_customers) > 0) {
+            if ($user->scoped_customers) {
                 $column = $this->getScopeColumn($model);
                 
                 if ($column) {

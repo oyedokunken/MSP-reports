@@ -174,12 +174,8 @@ MSG;
         $company = $report->company;
         $customer = $report->customer;
         
-        if (!$company || !$customer) {
-            Log::warning('Cannot send delivery confirmation: missing company or customer', [
-                'report_id' => $report->generated_report_id,
-            ]);
-            return;
-        }
+        // Report model guaranteed to have company and customer in this context
+
 
         // Get users who should receive delivery confirmations
         // Check company settings first, then fall back to users with report permissions
@@ -218,7 +214,7 @@ MSG;
             }
         }
 
-        $reportName = $report->reportSchedule?->report_type ?? 'Report';
+        $reportName = $report->reportSchedule->report_type ?? 'Report';
         $customerName = $customer->canonical_name ?? 'Unknown Customer';
         $deliveryMethodsStr = implode(', ', $successMethods);
         $destinationsStr = implode(', ', $destinations);
@@ -275,7 +271,7 @@ MSG;
             return;
         }
 
-        $reportName = $report->reportSchedule?->report_type ?? 'Report';
+        $reportName = $report->reportSchedule->report_type ?? 'Report';
         $customerName = $customer->canonical_name ?? 'Unknown Customer';
         $deliveryMethodsStr = implode(', ', $deliveryMethods);
         $deliveredAt = $report->delivered_at?->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s');

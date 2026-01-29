@@ -26,7 +26,7 @@ class EnforceCompanyScope
         }
 
         
-        if ($user->company && in_array($user->company->status, ['suspended'])) {
+        if (in_array($user->company->status, ['suspended'])) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Company account is suspended. Please contact support.',
