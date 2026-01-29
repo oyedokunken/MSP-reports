@@ -1,27 +1,36 @@
+import { z } from 'zod'
 import type { Integration } from '../types/integration'
 
+const DISPLAY_TIMEZONE = 'Australia/Darwin'
+
+const ApiIntegrationSchema = z.object({
+  integration_id: z.number(),
+  display_name: z.string(),
+  integration_type: z.string().optional(),
+  status: z.string(),
+  last_sync_at: z.string().optional(),
+  last_sync_status: z.string().optional(),
+  unmapped_customers_count: z.number().optional(),
+  total_customers_count: z.number().optional(),
+  is_source_of_truth: z.boolean().optional(),
+  next_sync_at: z.string().nullable().optional(),
+  records_synced: z.number().optional(),
+  last_error: z.string().nullable().optional(),
+  historical_import_status: z.string().nullable().optional(),
+  historical_import_progress: z.number().optional(),
+})
+
+const IntegrationsResponseSchema = z.object({
+  configured: z.array(ApiIntegrationSchema).optional(),
+})
+
 export const transformIntegrations = (responseData: unknown): Integration[] => {
-  const data = responseData as {
-    configured?: Array<{
-      integration_id: number
-      display_name: string
-      integration_type?: string
-      status: string
-      last_sync_at?: string
-      last_sync_status?: string
-      unmapped_customers_count?: number
-      total_customers_count?: number
-      is_source_of_truth?: boolean
-      next_sync_at?: string | null
-      records_synced?: number
-      last_error?: string | null
-      historical_import_status?: string | null
-      historical_import_progress?: number
-    }>
+  const parsed = IntegrationsResponseSchema.safeParse(responseData)
+  if (!parsed.success) {
+    return []
   }
 
-
-  const configured = Array.isArray(data.configured) ? data.configured : []
+  const configured = parsed.data.configured ?? []
 
   return configured.map((int) => ({
     id: int.integration_id,
@@ -35,8 +44,7 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        // Use Australia/Darwin timezone for consistency with backend reporting schedules
-        timeZone: 'Australia/Darwin',
+        timeZone: DISPLAY_TIMEZONE,
       })
       : 'Never',
     syncStatus: (int.last_sync_status || 'pending') as Integration['syncStatus'],
@@ -50,3 +58,4 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
     historicalImportProgress: int.historical_import_progress || 0,
   }))
 }
+
