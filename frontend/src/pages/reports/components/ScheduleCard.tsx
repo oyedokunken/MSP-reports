@@ -29,7 +29,7 @@ interface ScheduleCardProps {
     onSelect: (scheduleId: number) => void
     onUpdate: (index: number, field: keyof EnabledReport, value: string | number | boolean | string[]) => void
     onReset: (scheduleId: number) => void
-    onNavigateToTemplates: () => void
+    onNavigateToTemplates?: () => void
 }
 
 export function ScheduleCard({
@@ -274,19 +274,21 @@ export function ScheduleCard({
                                                 Reset
                                             </Button>
                                         )}
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                onNavigateToTemplates()
-                                            }}
-                                            disabled={isDisabled}
-                                            className="h-6 px-2 text-[10px] gap-1"
-                                        >
-                                            Edit Template
-                                            <ExternalLink className="h-3 w-3" />
-                                        </Button>
+                                        {onNavigateToTemplates && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    onNavigateToTemplates()
+                                                }}
+                                                disabled={isDisabled}
+                                                className="h-6 px-2 text-[10px] gap-1"
+                                            >
+                                                Edit Template
+                                                <ExternalLink className="h-3 w-3" />
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>

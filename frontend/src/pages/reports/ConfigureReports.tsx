@@ -23,6 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ReportPreviewModal } from '@/components/reports/ReportPreviewModal'
 import { BatchPreviewModal } from './components/BatchPreviewModal'
 import { useConfigureReportsPage } from './useConfigureReportsPage'
+import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/utils/permissions'
 
 export default function ConfigureReports() {
   const {
@@ -75,6 +77,9 @@ export default function ConfigureReports() {
     handleDeliverAllReports,
     handleDiscardReports,
   } = useConfigureReportsPage()
+
+  const { user } = useAuth()
+  const canConfigureTemplates = hasPermission(user, 'reports', 'configure')
 
   if (isLoading) {
     return (
@@ -167,14 +172,16 @@ export default function ConfigureReports() {
                     <p className="text-xs text-muted-foreground mt-1 mb-6">
                       Templates define the base schedules for your customers
                     </p>
-                    <Button
-                      onClick={() => navigate('/platform/templates')}
-                      size="sm"
-                      className="gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Browse Templates
-                    </Button>
+                    {canConfigureTemplates && (
+                      <Button
+                        onClick={() => navigate('/platform/templates')}
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Browse Templates
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-1 xl:grid-cols-2">
@@ -192,7 +199,7 @@ export default function ConfigureReports() {
                           onSelect={handleToggleScheduleSelection}
                           onUpdate={handleUpdateReport}
                           onReset={handleResetSchedule}
-                          onNavigateToTemplates={() => navigate('/platform/templates')}
+                          onNavigateToTemplates={canConfigureTemplates ? () => navigate('/platform/templates') : undefined}
                         />
                       )
                     })}

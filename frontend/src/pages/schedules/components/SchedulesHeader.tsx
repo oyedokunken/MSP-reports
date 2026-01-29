@@ -22,6 +22,8 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissions";
 
 export type ViewMode = 'grid' | 'table';
 
@@ -54,6 +56,9 @@ export function SchedulesHeader({
     viewMode,
     onViewModeChange
 }: SchedulesHeaderProps) {
+    const { user } = useAuth();
+    const canCreateSchedule = hasPermission(user, 'schedules', 'create');
+    
     const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + (frequencyFilter !== 'all' ? 1 : 0);
 
     return (
@@ -163,10 +168,12 @@ export function SchedulesHeader({
                     />
                 </div>
 
-                <Button onClick={onCreateSchedule} className="h-10">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Create Schedule
-                </Button>
+                {canCreateSchedule && (
+                    <Button onClick={onCreateSchedule} className="h-10">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Create Schedule
+                    </Button>
+                )}
             </div>
         </div>
     );

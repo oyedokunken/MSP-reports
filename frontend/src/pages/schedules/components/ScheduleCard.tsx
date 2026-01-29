@@ -21,6 +21,7 @@ interface ScheduleCardProps {
 export function ScheduleCard({ schedule, onConfigure, onDelete }: ScheduleCardProps) {
     const { user } = useAuth();
     const canConfigure = hasPermission(user, 'reports', 'configure');
+    const canDelete = hasPermission(user, 'schedules', 'delete');
 
     return (
         <AnimatedCard className="p-6 h-full flex flex-col">
@@ -116,7 +117,7 @@ export function ScheduleCard({ schedule, onConfigure, onDelete }: ScheduleCardPr
                             )}
                         </Tooltip>
                     </TooltipProvider>
-                    {onDelete && (
+                    {onDelete && canDelete && (
                         <Button 
                             variant="outline" 
                             size="sm" 

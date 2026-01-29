@@ -51,6 +51,7 @@ export function SchedulesTable({
 }: SchedulesTableProps) {
     const { user } = useAuth();
     const canConfigure = hasPermission(user, 'reports', 'configure');
+    const canDelete = hasPermission(user, 'schedules', 'delete');
 
     if (isLoading) {
         return (
@@ -222,20 +223,22 @@ export function SchedulesTable({
                                             </TooltipContent>
                                         </Tooltip>
 
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => onDelete(schedule.report_schedule_id)}
-                                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                    <span className="sr-only">Delete Schedule</span>
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>Delete Schedule</TooltipContent>
-                                        </Tooltip>
+                                        {canDelete && (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => onDelete(schedule.report_schedule_id)}
+                                                        className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                        <span className="sr-only">Delete Schedule</span>
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>Delete Schedule</TooltipContent>
+                                            </Tooltip>
+                                        )}
                                     </div>
                                 </TableCell>
                             </TableRow>
