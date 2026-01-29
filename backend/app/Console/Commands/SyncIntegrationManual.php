@@ -24,6 +24,7 @@ class SyncIntegrationManual extends Command
 
     protected $description = 'Manually run an integration sync (bypasses queue for debugging)';
 
+    /** @var array<string, class-string> */
     protected array $integrationClasses = [
         'Autotask' => AutotaskIntegration::class,
         'Datto' => DattoIntegration::class,
@@ -113,6 +114,7 @@ class SyncIntegrationManual extends Command
             }
 
             if (method_exists($instance, 'setSyncLogId')) {
+                /** @var object $instance */
                 $instance->setSyncLogId($syncLog->sync_id);
             }
 

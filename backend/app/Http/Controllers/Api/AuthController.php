@@ -35,7 +35,7 @@ class AuthController extends Controller
         $this->samlService = $samlService;
         $this->authService = $authService;
     }
-    public function authLogin(LoginRequest $request)
+    public function authLogin(LoginRequest $request): \Illuminate\Http\JsonResponse
     {
         $result = $this->authService->login(
             $request->validated(),
@@ -49,7 +49,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function authLogout(Request $request)
+    public function authLogout(Request $request): \Illuminate\Http\JsonResponse
     {
         $this->authService->logout(
             $request->user(),
@@ -63,7 +63,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function me(Request $request)
+    public function me(Request $request): \Illuminate\Http\JsonResponse
     {
         $user = $request->user()->load('role', 'company');
         
@@ -75,7 +75,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function requestPasswordReset(Request $request)
+    public function requestPasswordReset(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'email' => 'required|email',
@@ -136,7 +136,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function resetPassword(Request $request)
+    public function resetPassword(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'email' => 'required|email',
@@ -194,7 +194,7 @@ class AuthController extends Controller
         ]);
     }
 
-    public function changePassword(Request $request)
+    public function changePassword(Request $request): \Illuminate\Http\JsonResponse
     {
         $user = $request->user();
         
@@ -241,7 +241,7 @@ class AuthController extends Controller
     /**
      * Redirect to Microsoft OAuth provider
      */
-    public function redirectToMicrosoft()
+    public function redirectToMicrosoft(): \Illuminate\Http\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
     {
         try {
             if (!$this->oauthService->isEnabled()) {
@@ -277,7 +277,7 @@ class AuthController extends Controller
     /**
      * Handle Microsoft OAuth callback
      */
-    public function handleMicrosoftCallback(Request $request)
+    public function handleMicrosoftCallback(Request $request): \Illuminate\Http\RedirectResponse
     {
         try {
             // Handle OAuth callback
@@ -357,7 +357,7 @@ class AuthController extends Controller
     /**
      * Redirect to Keycloak OAuth provider
      */
-    public function redirectToKeycloak()
+    public function redirectToKeycloak(): \Illuminate\Http\JsonResponse|\Symfony\Component\HttpFoundation\RedirectResponse
     {
         try {
             if (!$this->oauthService->isKeycloakEnabled()) {
@@ -393,7 +393,7 @@ class AuthController extends Controller
     /**
      * Handle Keycloak OAuth callback
      */
-    public function handleKeycloakCallback(Request $request)
+    public function handleKeycloakCallback(Request $request): \Illuminate\Http\RedirectResponse
     {
         try {
             Log::info('Keycloak Callback Request:', $request->all());
@@ -464,7 +464,7 @@ class AuthController extends Controller
     /**
      * Get SAML metadata
      */
-    public function getSamlMetadata()
+    public function getSamlMetadata(): \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
     {
         try {
             if (!$this->samlService->isEnabled()) {
@@ -503,7 +503,7 @@ class AuthController extends Controller
     /**
      * Initiate SAML login
      */
-    public function initiateSamlLogin()
+    public function initiateSamlLogin(): \Illuminate\Http\RedirectResponse|string
     {
         try {
             if (!$this->samlService->isEnabled()) {
@@ -535,7 +535,7 @@ class AuthController extends Controller
     /**
      * Handle SAML Assertion Consumer Service (ACS)
      */
-    public function handleSamlAcs(Request $request)
+    public function handleSamlAcs(Request $request): \Illuminate\Http\RedirectResponse
     {
         try {
             $samlResponse = $request->input('SAMLResponse');
@@ -610,7 +610,7 @@ class AuthController extends Controller
     /**
      * Handle SAML Single Logout Service (SLS)
      */
-    public function handleSamlSls(Request $request)
+    public function handleSamlSls(Request $request): \Illuminate\Http\RedirectResponse
     {
         try {
             // Handle logout request from IdP

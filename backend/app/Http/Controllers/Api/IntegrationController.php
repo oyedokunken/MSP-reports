@@ -127,7 +127,7 @@ class IntegrationController extends Controller
         }
     }
 
-    public function triggerSync(Request $request, $id)
+    public function triggerSync(Request $request, int $id): JsonResponse
     {
         $company = $request->user()->company;
         $integration = $company->integrations()->find($id);
@@ -160,7 +160,7 @@ class IntegrationController extends Controller
         }
     }
 
-    public function getIntegrationCustomers(Request $request, $id)
+    public function getIntegrationCustomers(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -203,7 +203,7 @@ class IntegrationController extends Controller
         ]);
     }
 
-    public function setSourceIntegration(Request $request)
+    public function setSourceIntegration(Request $request): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -245,7 +245,7 @@ class IntegrationController extends Controller
         ], 200);
     }
 
-    public function updateIntegration(Request $request, $id)
+    public function updateIntegration(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -297,7 +297,7 @@ class IntegrationController extends Controller
         ]);
     }
 
-    public function deleteIntegration(Request $request, $id)
+    public function deleteIntegration(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -328,7 +328,7 @@ class IntegrationController extends Controller
         ]);
     }
 
-    public function getSyncLogs(Request $request, $id)
+    public function getSyncLogs(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -376,7 +376,7 @@ class IntegrationController extends Controller
         ]);
     }
 
-    public function healthCheck(Request $request, $id)
+    public function healthCheck(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -417,7 +417,7 @@ class IntegrationController extends Controller
         ]);
     }
 
-    public function getRateLimitStatus(Request $request, $id)
+    public function getRateLimitStatus(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -467,7 +467,7 @@ class IntegrationController extends Controller
         ]);
     }
 
-    public function startHistoricalImport(Request $request, $id, LicenseChecker $licenseChecker)
+    public function startHistoricalImport(Request $request, int $id, LicenseChecker $licenseChecker): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -548,11 +548,11 @@ class IntegrationController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => "Historical import started with {$totalJobs} parallel chunks.",
-            'job_id' => $job->id
+            'job_id' => $job->historical_import_job_id
         ]);
     }
     
-    public function browseSharePoint(Request $request, $id)
+    public function browseSharePoint(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -588,7 +588,7 @@ class IntegrationController extends Controller
         }
     }
     
-    public function createSharePointFolder(Request $request, $id)
+    public function createSharePointFolder(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -626,7 +626,7 @@ class IntegrationController extends Controller
         }
     }
 
-    public function getHistoricalImportJobs(Request $request, $id)
+    public function getHistoricalImportJobs(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -657,6 +657,7 @@ class IntegrationController extends Controller
 
     /**
      * Helper to read an integration's config file
+     * @return array<string, mixed>
      */
     private function getIntegrationConfig(string $integrationType): array
     {

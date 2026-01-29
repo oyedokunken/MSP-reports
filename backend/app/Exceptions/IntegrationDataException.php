@@ -7,8 +7,12 @@ namespace App\Exceptions;
  */
 class IntegrationDataException extends IntegrationException
 {
+    /** @var array<string, mixed> */
     protected array $invalidData;
 
+    /**
+     * @param array<string, mixed> $invalidData
+     */
     public function __construct(
         string $message = 'Invalid integration data',
         array $invalidData = [],
@@ -20,11 +24,17 @@ class IntegrationDataException extends IntegrationException
         $this->invalidData = $invalidData;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getInvalidData(): array
     {
         return $this->invalidData;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function context(): array
     {
         return array_merge(parent::context(), [

@@ -257,6 +257,10 @@ class AutotaskSummary extends BaseReport
 
     // ==================== Summary Calculation Methods ====================
 
+    /**
+     * @param Collection<int, mixed> $tickets
+     * @return array<string, mixed>
+     */
     private function getTicketSummary(Collection $tickets): array
     {
         $totalTickets = $tickets->count();
@@ -270,10 +274,14 @@ class AutotaskSummary extends BaseReport
             : 0;
         
         // Priority breakdown
-        $priorityBreakdown = $tickets->groupBy('priority')->map->count()->toArray();
+        $priorityBreakdown = $tickets->groupBy(function($item): string {
+            return (string)($item['priority'] ?? 'unknown');
+        })->map->count()->toArray();
         
         // Top issues
-        $topIssues = $tickets->groupBy('title')
+        $topIssues = $tickets->groupBy(function($item): string {
+            return (string)($item['title'] ?? 'unknown');
+        })
             ->map(function($group) {
                 return [
                     'title' => $group->first()['title'],
@@ -295,6 +303,10 @@ class AutotaskSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, mixed> $timeEntries
+     * @return array<string, mixed>
+     */
     private function getTimeSummary(Collection $timeEntries): array
     {
         $totalHours = $timeEntries->sum('hours_worked');
@@ -313,12 +325,20 @@ class AutotaskSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, mixed> $timeEntries
+     * @param Collection<int, mixed> $tickets
+     * @param Collection<int, mixed> $resources
+     * @return array<int, mixed>
+     */
     private function getTechnicianSummary(Collection $timeEntries, Collection $tickets, Collection $resources): array
     {
         $resourceMap = $resources->keyBy('resource_id')->toArray();
         
         // Group time entries by resource
-        $technicianData = $timeEntries->groupBy('resource_id')
+        $technicianData = $timeEntries->groupBy(function($item): string {
+            return (string)($item['resource_id'] ?? 'unknown');
+        })
             ->map(function($entries, $resourceId) use ($resourceMap, $tickets) {
                 $resource = $resourceMap[$resourceId] ?? null;
                 $name = $resource ? $resource['name'] : "Resource {$resourceId}";
@@ -349,6 +369,10 @@ class AutotaskSummary extends BaseReport
         return $technicianData;
     }
 
+    /**
+     * @param Collection<int, mixed> $contracts
+     * @return array<string, mixed>
+     */
     private function getContractSummary(Collection $contracts): array
     {
         return [
@@ -362,6 +386,12 @@ class AutotaskSummary extends BaseReport
 
     // ==================== Alert Generation ====================
 
+    /**
+     * @param Collection<int, mixed> $tickets
+     * @param Collection<int, mixed> $contracts
+     * @param array<string, mixed> $timeSummary
+     * @return array<int, array{type: string, severity: string, title: string, description: string}>
+     */
     private function generateAlerts(Collection $tickets, Collection $contracts, array $timeSummary): array
     {
         $alerts = [];
@@ -412,6 +442,12 @@ class AutotaskSummary extends BaseReport
         return $alerts;
     }
 
+    /**
+     * @param Collection<int, mixed> $tickets
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return array{labels: array<int, string>, created: array<int, int>, completed: array<int, int>}
+     */
     private function calculateDailyTrends(Collection $tickets, Carbon $startDate, Carbon $endDate): array
     {
         $days = [];

@@ -12,11 +12,15 @@ use App\Integrations\Exceptions\RateLimitExceededException;
 
 class LibreNMSClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -40,24 +44,36 @@ class LibreNMSClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getDeviceGroups(): array
     {
         $response = $this->makeRequest('/devicegroups');
         return $response['groups'] ?? [];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getDevicesInGroup(int $groupId): array
     {
         $response = $this->makeRequest("/devicegroups/{$groupId}");
         return $response['devices'] ?? [];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getAllDevices(): array
     {
         $response = $this->makeRequest('/devices');
         return $response['devices'] ?? [];
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getDevice(int $deviceId): ?array
     {
         try {
@@ -74,6 +90,9 @@ class LibreNMSClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getDeviceAvailability(int $deviceId): array
     {
         try {
@@ -95,6 +114,9 @@ class LibreNMSClient
 
     /**
      * Fetch availability for multiple devices in parallel
+     * 
+     * @param array<int, int> $deviceIds
+     * @return array<int, array<int, array<string, mixed>>>
      */
     public function getDeviceAvailabilityBatch(array $deviceIds): array
     {
@@ -138,6 +160,9 @@ class LibreNMSClient
         return $results;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getDeviceGroupsForDevice(int $deviceId): array
     {
         try {
@@ -157,6 +182,10 @@ class LibreNMSClient
         }
     }
 
+    /**
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
+     */
     protected function makeRequest(string $endpoint, array $params = []): array
     {
         // LibreNMS is internal server with high rate limit (20,000/hour)

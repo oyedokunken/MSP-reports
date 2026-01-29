@@ -26,11 +26,13 @@ class BitDefenderIntegration implements IntegrationInterface
     protected Integration $integration;
     protected BitDefenderClient $client;
     protected CustomerMappingService $mappingService;
+    /** @var array<string, mixed> */
     protected array $mappedDuringSync = [];
 
     // Tunable parameters
     protected int $batchSize = 50;      // companies per dispatched batch/job
     protected int $pageSize   = 100;    // max perPage allowed by Bitdefender API
+    /** @var callable|null */
     protected $progressCallback = null;
 
     public function setProgressCallback(callable $callback): void
@@ -46,6 +48,9 @@ class BitDefenderIntegration implements IntegrationInterface
         $this->mappingService = app(CustomerMappingService::class);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -65,6 +70,9 @@ class BitDefenderIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         $startTime = microtime(true);
@@ -130,6 +138,9 @@ class BitDefenderIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $companies
+     */
     protected function syncCustomers(array $companies): void
     {
         $customerRows = collect($companies)
@@ -149,6 +160,9 @@ class BitDefenderIntegration implements IntegrationInterface
         Log::info('Customers bulk upsert completed', ['count' => count($customerRows)]);
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $companies
+     */
     protected function syncEndpointsAndQuarantine(array $companies, int $startOffset, int $totalCompanies): void
     {
         // 1. Bulk fetch ALL quarantine items (handle permission 403 gracefully)
@@ -236,6 +250,9 @@ class BitDefenderIntegration implements IntegrationInterface
         Log::info('Endpoints & quarantine processing completed');
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $customerRows
+     */
     protected function bulkUpsertCustomers(array $customerRows, int $chunkSize = 500): void
     {
         if (empty($customerRows)) return;
@@ -261,6 +278,9 @@ class BitDefenderIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $batch
+     */
     protected function bulkStoreHistoricalData(string $dataType, array $batch): void
     {
         if (empty($batch)) return;

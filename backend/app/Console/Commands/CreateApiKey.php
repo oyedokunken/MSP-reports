@@ -32,7 +32,7 @@ class CreateApiKey extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
         $this->info('=== Create New API Key ===');
         $this->newLine();

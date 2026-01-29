@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 use App\Models\Scopes\CustomerScope;
@@ -14,7 +13,7 @@ use App\Models\Scopes\CustomerScope;
  * @property int|null $template_id
  * @property string $report_type
  * @property string $frequency
- * @property array|null $schedule_config
+ * @property array<string, mixed>|null $schedule_config
  * @property string $time_of_day
  * @property bool $active
  * @property \Carbon\Carbon|null $last_generated_at
@@ -24,11 +23,10 @@ use App\Models\Scopes\CustomerScope;
  * @property-read \App\Models\Company $company
  * @property-read \App\Models\Customer $customer
  * @property-read \App\Models\ReportTemplate|null $template
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\GeneratedReport> $generatedReports
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\GeneratedReport> $generatedReports
  */
 class ReportSchedule extends Model
 {
-    use HasFactory;
 
     protected $primaryKey = 'report_schedule_id';
 
@@ -62,32 +60,52 @@ class ReportSchedule extends Model
     ];
 
     // Relationships
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Company, $this>
+     */
     public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Customer, $this>
+     */
     public function customer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<GeneratedReport, $this>
+     */
     public function generatedReports(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(GeneratedReport::class, 'report_schedule_id', 'report_schedule_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<ReportTemplate, $this>
+     */
     public function template(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(ReportTemplate::class, 'template_id', 'template_id');
     }
 
     // Scopes
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
+     */
     public function scopeActive($query)
     {
         return $query->where('active', true);
     }
 
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
+     */
     public function scopeDue($query)
     {
         return $query->where('active', true)
@@ -97,12 +115,22 @@ class ReportSchedule extends Model
             });
     }
 
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @param int $hours
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
+     */
     public function scopeOverdue($query, int $hours = 24)
     {
         return $query->where('active', true)
             ->where('next_scheduled_at', '<', now()->subHours($hours));
     }
 
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @param int $hours
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
+     */
     public function scopeUpcoming($query, int $hours = 24)
     {
         return $query->where('active', true)

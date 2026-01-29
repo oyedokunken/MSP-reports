@@ -15,11 +15,15 @@ use Exception;
 
 class BitDefenderClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -53,6 +57,8 @@ class BitDefenderClient
     /**
      * Fetch all managed companies (customers/organizations).
      * Renamed for clarity — previously getEndpoints().
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getCompaniesList(): array
     {
@@ -73,7 +79,11 @@ class BitDefenderClient
         }
     }
 
-    // Alias for backward compatibility if needed
+    /**
+     * Alias for backward compatibility if needed
+     * 
+     * @return array<int, array<string, mixed>>
+     */
     public function getEndpoints(): array
     {
         return $this->getCompaniesList();
@@ -84,7 +94,7 @@ class BitDefenderClient
      * This is much faster than per-company calls when you have many companies.
      *
      * @param int $perPage Max 100
-     * @return array All endpoint items
+     * @return array<int, array<string, mixed>> All endpoint items
      */
     public function fetchAllEndpointsPaginated(int $perPage = 100): array
     {
@@ -131,6 +141,8 @@ class BitDefenderClient
     /**
      * Fetch endpoints for ONE specific company (if you still need it for incremental sync).
      * Uses pagination + filtering.
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getEndpointsForCompany(string $companyId, int $perPage = 100): array
     {
@@ -172,7 +184,7 @@ class BitDefenderClient
      * Fetch ALL quarantine items (paginated) with optional date range.
      * Corrected: uses 'filters' for startDate/endDate (ISO 8601).
      *
-     * @return array All quarantine/threat items
+     * @return array<int, array<string, mixed>> All quarantine/threat items
      */
     public function getThreatDetections(?Carbon $startDate = null, ?Carbon $endDate = null, int $perPage = 100): array
     {
@@ -231,6 +243,9 @@ class BitDefenderClient
     /**
      * Core JSON-RPC request method.
      * Added basic retry on rate limit / transient errors.
+     * 
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
      */
     protected function makeRequest(string $method, array $params = [], string $category = 'network', int $retries = 2, int $timeout = 120): array
     {

@@ -44,8 +44,12 @@ class AutotaskIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    /** @var array<string, mixed> */
     protected $mappedDuringSync = [];
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         $errors = [];
@@ -240,6 +244,9 @@ class AutotaskIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<mixed>
+     */
     private function processUnmappedCustomers(): array
     {
         // For source of truth integrations, customers are mapped inline in storeCustomer()
@@ -267,12 +274,18 @@ class AutotaskIntegration implements IntegrationInterface
         return [];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         $autotaskCompanies = $this->client->getCompanies();
         return array_map(fn($company) => AutotaskMapper::mapCompany($company), $autotaskCompanies);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         $errors = [];
@@ -555,6 +568,9 @@ class AutotaskIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $records
+     */
     public function storeHistoricalDataBatch(array $records): void
     {
         if (empty($records)) {
@@ -572,6 +588,9 @@ class AutotaskIntegration implements IntegrationInterface
         return now()->subDays(365);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -604,6 +623,9 @@ class AutotaskIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [
@@ -612,6 +634,9 @@ class AutotaskIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -674,6 +699,9 @@ class AutotaskIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @param array<string, mixed> $customer
+     */
     private function storeCustomer(array $customer): void
     {
         if (empty($customer['external_id']) || empty($customer['name'])) {
@@ -712,6 +740,9 @@ class AutotaskIntegration implements IntegrationInterface
         });
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $customers
+     */
     private function bulkStoreCustomers(array $customers): void
     {
         if (empty($customers)) return;
@@ -752,6 +783,9 @@ class AutotaskIntegration implements IntegrationInterface
 
 
 
+    /**
+     * @param array<int, array<string, mixed>> $batch
+     */
     private function bulkStoreHistoricalData(string $dataType, array $batch): void
     {
         if (empty($batch)) return;
@@ -804,6 +838,9 @@ class AutotaskIntegration implements IntegrationInterface
             ]);
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $items
+     */
     public function processBatch(string $type, array $items): void
     {
         switch ($type) {

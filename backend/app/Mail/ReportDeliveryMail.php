@@ -20,6 +20,7 @@ class ReportDeliveryMail extends Mailable
 
     public GeneratedReport $report;
     public Company $company;
+    /** @var array<string, mixed> */
     public array $branding;
 
     public function __construct(GeneratedReport $report, Company $company)
@@ -69,6 +70,9 @@ class ReportDeliveryMail extends Mailable
         );
     }
 
+    /**
+     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     */
     public function attachments(): array
     {
         $attachments = [];

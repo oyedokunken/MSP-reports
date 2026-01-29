@@ -18,6 +18,8 @@ class ReportScheduleService
 
     /**
      * Process all due report schedules
+     * 
+     * @return array{processed: int, succeeded: int, failed: int, errors: array<int, array{schedule_id: int, report_type: string, customer_id: int, error: string}>}
      */
     public function processDueSchedules(): array
     {
@@ -234,6 +236,8 @@ class ReportScheduleService
 
     /**
      * Get schedules that are overdue
+     * 
+     * @return \Illuminate\Database\Eloquent\Collection<int, ReportSchedule>
      */
     public function getOverdueSchedules(): \Illuminate\Database\Eloquent\Collection
     {
@@ -245,6 +249,9 @@ class ReportScheduleService
 
     /**
      * Get upcoming schedules
+     * 
+     * @param int $hours
+     * @return \Illuminate\Database\Eloquent\Collection<int, ReportSchedule>
      */
     public function getUpcomingSchedules(int $hours = 24): \Illuminate\Database\Eloquent\Collection
     {

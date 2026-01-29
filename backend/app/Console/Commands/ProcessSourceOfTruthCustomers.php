@@ -13,7 +13,7 @@ class ProcessSourceOfTruthCustomers extends Command
     protected $signature = 'customers:process-source-of-truth {integration_id?}';
     protected $description = 'Process unmapped customers from source of truth integration and auto-create unified customers';
 
-    public function handle()
+    public function handle(): int
     {
         $integrationId = $this->argument('integration_id');
 

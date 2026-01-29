@@ -10,6 +10,10 @@ class ITGlueMapper
     private const EXPIRY_KEYWORDS = ['expiry', 'expiration', 'renewal'];
     private const EXCLUDED_EXPIRY_VALUES = ['processing', 'pending', 'active', 'inactive', 'expired'];
 
+    /**
+     * @param array<string, mixed> $organization
+     * @return array<string, mixed>
+     */
     public static function mapCustomer(array $organization): array
     {
         $attributes = $organization['attributes'] ?? [];
@@ -50,6 +54,10 @@ class ITGlueMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $certificate
+     * @return array<string, mixed>
+     */
     public static function mapSslCertificate(array $certificate): array
     {
         $attributes = $certificate['attributes'] ?? [];
@@ -79,6 +87,10 @@ class ITGlueMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $domain
+     * @return array<string, mixed>
+     */
     public static function mapDomain(array $domain): array
     {
         $attributes = $domain['attributes'] ?? [];
@@ -104,6 +116,10 @@ class ITGlueMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $asset
+     * @return array<string, mixed>
+     */
     public static function mapFlexibleAsset(array $asset): array
     {
         $attributes = $asset['attributes'] ?? [];
@@ -132,6 +148,10 @@ class ITGlueMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $organization
+     * @return array<string, mixed>
+     */
     public static function mapOrganizationData(array $organization): array
     {
         $attributes = $organization['attributes'] ?? [];
@@ -161,6 +181,9 @@ class ITGlueMapper
 
     /**
      * Scan all traits for any expiry-like fields and return structured expiry info.
+     * 
+     * @param array<string, mixed> $traits
+     * @return array<string, array<string, mixed>>
      */
     private static function scanAllExpiries(array $traits): array
     {
@@ -230,6 +253,9 @@ class ITGlueMapper
         }
     }
 
+    /**
+     * @param array<string, mixed> $traits
+     */
     private static function detectExpiryDate(array $traits): ?string
     {
         foreach ($traits as $key => $value) {

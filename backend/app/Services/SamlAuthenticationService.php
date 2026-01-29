@@ -31,9 +31,7 @@ class SamlAuthenticationService
     }
 
     /**
-     * Validate SAML configuration
-     *
-     * @return array
+     * @return array{valid: bool, errors: array<int, string>}
      */
     public function validateConfiguration(): array
     {
@@ -137,9 +135,7 @@ XML;
     }
 
     /**
-     * Generate SAML AuthnRequest
-     *
-     * @return array [url, request_id]
+     * @return array{url: string, request_id: string}
      */
     public function generateAuthnRequest(): array
     {
@@ -179,10 +175,8 @@ XML;
     }
 
     /**
-     * Parse and validate SAML response
-     *
      * @param string $samlResponse Base64 encoded SAML response
-     * @return array|null User data if valid, null if invalid
+     * @return array{email: string, name: string, firstname: string, lastname: string}|null User data if valid, null if invalid
      */
     public function parseResponse(string $samlResponse): ?array
     {
@@ -428,10 +422,8 @@ XML;
     }
 
     /**
-     * Extract user attributes from SAML assertion
-     *
      * @param \SimpleXMLElement $assertion
-     * @return array|null
+     * @return array{email: string, name: string, firstname: string, lastname: string}|null
      */
     protected function extractAttributes(\SimpleXMLElement $assertion): ?array
     {

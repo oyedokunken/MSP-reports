@@ -114,6 +114,13 @@ class SaaSSummary extends BaseReport
         return $this->filterSections($reportData, $options);
     }
 
+    /**
+     * @param \Illuminate\Support\Collection<int, array<string, mixed>> $events
+     * @param array<string, mixed> $threatStats
+     * @param array<string, mixed> $deviceStats
+     * @param \Illuminate\Support\Collection<int, array<string, mixed>> $userActivity
+     * @return array<string, mixed>
+     */
     private function buildExecutiveSummary($events, $threatStats, $deviceStats, $userActivity): array
     {
         $totalEvents = $events->count();
@@ -131,6 +138,12 @@ class SaaSSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param array<string, mixed> $threatStats
+     * @param \Illuminate\Support\Collection<int, array<string, mixed>> $userActivity
+     * @param \Illuminate\Support\Collection<int, array<string, mixed>> $geographicData
+     * @return array<int, array{severity: string, title: string, description: string, action: string}>
+     */
     private function buildRecommendations($threatStats, $userActivity, $geographicData): array
     {
         $recommendations = [];

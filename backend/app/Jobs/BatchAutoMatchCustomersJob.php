@@ -16,8 +16,8 @@ class BatchAutoMatchCustomersJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 2;
-    public $timeout = 600; // 10 minutes for batch processing
+    public int $tries = 2;
+    public int $timeout = 600; // 10 minutes for batch processing
 
     protected Integration $integration;
 
@@ -96,7 +96,7 @@ class BatchAutoMatchCustomersJob implements ShouldQueue
 
                         if ($match) {
                             $requiresManualReview = $company->settings['customer_mapping']['manual_match_required'] ?? false;
-                            $mappingType = $match['mapping_type'] ?? 'auto';
+                            $mappingType = $match['mapping_type'];
 
                             // Update IntegrationCustomer.customer_id
                             $integrationCustomer->customer_id = $match['customer']->customer_id;

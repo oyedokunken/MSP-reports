@@ -12,7 +12,7 @@ class EvaluateReportSchedules extends Command
     protected $signature = 'reports:evaluate-schedules';
     protected $description = 'Evaluate report schedules and queue reports that are due';
 
-    public function handle()
+    public function handle(): int
     {
         $this->info('Evaluating report schedules...');
 

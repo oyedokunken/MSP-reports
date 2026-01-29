@@ -17,8 +17,8 @@ class AutoMatchCustomersJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 2;
-    public $timeout = 300;
+    public int $tries = 2;
+    public int $timeout = 300;
 
     protected IntegrationCustomer $integrationCustomer;
 
@@ -67,7 +67,7 @@ class AutoMatchCustomersJob implements ShouldQueue
 
             if ($match) {
                 $requiresManualReview = $company->settings['customer_mapping']['manual_match_required'] ?? false;
-                $mappingType = $match['mapping_type'] ?? 'auto';
+                $mappingType = $match['mapping_type'];
 
                 // Update IntegrationCustomer.customer_id (CRITICAL!)
                 $this->integrationCustomer->customer_id = $match['customer']->customer_id;

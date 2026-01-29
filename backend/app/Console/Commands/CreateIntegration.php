@@ -29,7 +29,7 @@ class CreateIntegration extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
         $this->info('=== Create New Integration ===');
         $this->newLine();
@@ -211,6 +211,7 @@ class CreateIntegration extends Command
 
     /**
      * Scan available integrations from filesystem
+     * @return array<string, array<string, mixed>>
      */
     protected function scanAvailableIntegrations(): array
     {
@@ -244,6 +245,8 @@ class CreateIntegration extends Command
 
     /**
      * Get credentials from integration config file
+     * @param array<string, mixed> $integrationConfig
+     * @return array<string, mixed>
      */
     protected function getCredentialsFromConfig(array $integrationConfig): array
     {
@@ -325,6 +328,8 @@ class CreateIntegration extends Command
 
     /**
      * Get configuration from integration config file
+     * @param array<string, mixed> $integrationConfig
+     * @return array<string, mixed>
      */
     protected function getConfigurationFromConfig(array $integrationConfig): array
     {

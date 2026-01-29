@@ -15,7 +15,7 @@ class BitdefenderVerifyData extends Command
     protected $signature = 'bitdefender:verify-data {integrationId?} {--sample=5}';
     protected $description = 'Compare DB data vs live Bitdefender API for accuracy';
 
-    public function handle()
+    public function handle(): int
     {
         $integrationId = $this->argument('integrationId')
             ?? $this->ask('Enter the integration ID to verify');

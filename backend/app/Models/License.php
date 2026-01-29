@@ -9,8 +9,6 @@ use App\Models\Scopes\CompanyScope;
 
 class License extends Model
 {
-    use HasFactory;
-
     protected $primaryKey = 'license_id';
 
     protected static function booted(): void
@@ -33,7 +31,10 @@ class License extends Model
         'expiry_date' => 'datetime',
     ];
 
-    public function company()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Company, $this>
+     */
+    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }

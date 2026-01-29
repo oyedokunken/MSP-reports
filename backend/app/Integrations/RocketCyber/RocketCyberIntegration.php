@@ -19,6 +19,7 @@ class RocketCyberIntegration implements IntegrationInterface
     protected Integration $integration;
     protected RocketCyberClient $client;
     protected CustomerMappingService $mappingService;
+    /** @var array<int, mixed> */
     protected array $mappedDuringSync = [];
 
     public function __construct(Integration $integration)
@@ -34,6 +35,9 @@ class RocketCyberIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         $errors = [];
@@ -99,6 +103,9 @@ class RocketCyberIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<int, mixed>
+     */
     private function processUnmappedCustomers(): array
     {
         $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
@@ -115,12 +122,18 @@ class RocketCyberIntegration implements IntegrationInterface
         return [];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         $accounts = $this->client->getAccounts();
         return array_map(fn($account) => RocketCyberMapper::mapAccount($account), $accounts);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         $data = [];
@@ -168,6 +181,9 @@ class RocketCyberIntegration implements IntegrationInterface
         return now()->subDays(90);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -200,6 +216,9 @@ class RocketCyberIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [
@@ -208,6 +227,9 @@ class RocketCyberIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @param array<string, mixed> $customer
+     */
     private function storeCustomer(array $customer): void
     {
         $integrationCustomer = IntegrationCustomer::updateOrCreate(
@@ -230,6 +252,9 @@ class RocketCyberIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function storeHistoricalData(array $data): void
     {
         $payload = $data['payload'];
@@ -273,6 +298,9 @@ class RocketCyberIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -295,6 +323,9 @@ class RocketCyberIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getDisplayTemplate(): array
     {
         $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('rocketcyber', 'RocketCyber');

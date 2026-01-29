@@ -20,12 +20,16 @@ class DeliverReportJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 3;
-    public $timeout = 120;
+    public int $tries = 3;
+    public int $timeout = 120;
 
     protected GeneratedReport $generatedReport;
+    /** @var array<int, string>|null */
     protected ?array $customRecipients;
 
+    /**
+     * @param array<int, string>|null $customRecipients
+     */
     public function __construct(GeneratedReport $generatedReport, ?array $customRecipients = null)
     {
         $this->generatedReport = $generatedReport;

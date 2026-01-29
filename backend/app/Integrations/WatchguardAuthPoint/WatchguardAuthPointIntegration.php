@@ -32,6 +32,9 @@ class WatchguardAuthPointIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         $errors = [];
@@ -109,12 +112,18 @@ class WatchguardAuthPointIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         $accountId = $this->integration->credentials['account_id'] ?? '';
         return [WatchguardAuthPointMapper::mapAccount([], $accountId)];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         $data = [];
@@ -149,6 +158,9 @@ class WatchguardAuthPointIntegration implements IntegrationInterface
         return now()->subDays(90);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -181,6 +193,9 @@ class WatchguardAuthPointIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [
@@ -189,6 +204,9 @@ class WatchguardAuthPointIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @param array<string, mixed> $customer
+     */
     private function storeCustomer(array $customer): void
     {
         IntegrationCustomer::updateOrCreate(
@@ -205,6 +223,9 @@ class WatchguardAuthPointIntegration implements IntegrationInterface
         );
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function storeHistoricalData(array $data): void
     {
         $payload = $data['payload'];
@@ -239,6 +260,9 @@ class WatchguardAuthPointIntegration implements IntegrationInterface
         ]);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -278,6 +302,9 @@ class WatchguardAuthPointIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getDisplayTemplate(): array
     {
         $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('watchguardauthpoint', 'WatchGuard AuthPoint');

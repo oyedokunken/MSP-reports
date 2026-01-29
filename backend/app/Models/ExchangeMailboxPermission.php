@@ -31,6 +31,8 @@ class ExchangeMailboxPermission extends Model
 
     /**
      * Get the company that owns this permission
+     * 
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {
@@ -39,6 +41,8 @@ class ExchangeMailboxPermission extends Model
 
     /**
      * Get the integration that synced this permission
+     * 
+     * @return BelongsTo<Integration, $this>
      */
     public function integration(): BelongsTo
     {
@@ -47,6 +51,8 @@ class ExchangeMailboxPermission extends Model
 
     /**
      * Get the customer this permission belongs to
+     * 
+     * @return BelongsTo<Customer, $this>
      */
     public function customer(): BelongsTo
     {
@@ -55,6 +61,8 @@ class ExchangeMailboxPermission extends Model
 
     /**
      * Get the mailbox this permission is on
+     * 
+     * @return BelongsTo<ExchangeMailbox, $this>
      */
     public function mailbox(): BelongsTo
     {
@@ -63,6 +71,8 @@ class ExchangeMailboxPermission extends Model
 
     /**
      * Get the AD user who has this permission (if sam_account_name matches)
+     * 
+     * @return BelongsTo<ActiveDirectoryUser, $this>
      */
     public function activeDirectoryUser(): BelongsTo
     {
@@ -73,6 +83,9 @@ class ExchangeMailboxPermission extends Model
 
     /**
      * Scope: Full Access permissions only
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeFullAccess($query)
     {
@@ -81,6 +94,9 @@ class ExchangeMailboxPermission extends Model
 
     /**
      * Scope: Send As permissions only
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeSendAs($query)
     {
@@ -89,6 +105,9 @@ class ExchangeMailboxPermission extends Model
 
     /**
      * Scope: Send On Behalf permissions only
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeSendOnBehalf($query)
     {
@@ -97,6 +116,9 @@ class ExchangeMailboxPermission extends Model
 
     /**
      * Scope: Non-inherited permissions only
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeNotInherited($query)
     {
@@ -105,6 +127,9 @@ class ExchangeMailboxPermission extends Model
 
     /**
      * Scope: Active permissions (not deny)
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeActive($query)
     {

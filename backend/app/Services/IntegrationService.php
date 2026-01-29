@@ -24,6 +24,8 @@ class IntegrationService
 
     /**
      * Scan available integrations from filesystem
+     * 
+     * @return array<int, string>
      */
     public function scanAvailableIntegrations(): array
     {
@@ -54,6 +56,9 @@ class IntegrationService
 
     /**
      * Get metadata and credential fields for a specific integration type
+     * 
+     * @param string $integrationType
+     * @return array{name: string, description: string, credential_fields: array<int, array<string, mixed>>, data_types: array<int, string>, supports_historical: bool, historical_range_days: int}
      */
     public function getIntegrationTypeConfig(string $integrationType): array
     {
@@ -83,6 +88,10 @@ class IntegrationService
 
     /**
      * Create a new integration for a company
+     * 
+     * @param Company $company
+     * @param array<string, mixed> $data
+     * @return Integration
      */
     public function createIntegration(Company $company, array $data): Integration
     {
@@ -135,6 +144,11 @@ class IntegrationService
         });
     }
 
+    /**
+     * @param string $type
+     * @param array<string, mixed> $credentials
+     * @return array<string, mixed>
+     */
     protected function prepareCredentials(string $type, array $credentials): array
     {
         $credentials = array_filter($credentials, fn($v) => $v !== null && $v !== '');
@@ -176,6 +190,14 @@ class IntegrationService
         return $credentials;
     }
 
+    /**
+     * @param string $type
+     * @param Company $company
+     * @param array<string, mixed> $credentials
+     * @param string $displayName
+     * @param array<string, mixed> $configuration
+     * @return void
+     */
     protected function testAuthentication(string $type, Company $company, array $credentials, string $displayName, array $configuration): void
     {
         $className = "App\\Integrations\\{$type}\\{$type}Integration";

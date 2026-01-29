@@ -31,7 +31,7 @@ use App\Models\Scopes\CustomerScope;
  * @property string|null $server_name
  * @property string|null $distinguished_name
  * @property string|null $license_type
- * @property array|null $assigned_licenses
+ * @property array<string, mixed>|null $assigned_licenses
  * @property int|null $prohibit_send_quota_mb
  * @property int|null $prohibit_send_receive_quota_mb
  * @property int|null $issue_warning_quota_mb
@@ -73,9 +73,9 @@ use App\Models\Scopes\CustomerScope;
  * @property-read \App\Models\Integration $integration
  * @property-read \App\Models\Customer $customer
  * @property-read \App\Models\ActiveDirectoryUser|null $activeDirectoryUser
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\ExchangeEmailAlias> $emailAliases
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\ExchangeMailboxPermission> $permissions
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\ExchangeMailboxStatistic> $statistics
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ExchangeEmailAlias> $emailAliases
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ExchangeMailboxPermission> $permissions
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ExchangeMailboxStatistic> $statistics
  */
 class ExchangeMailbox extends Model
 {
@@ -174,6 +174,8 @@ class ExchangeMailbox extends Model
 
     /**
      * Get the company that owns this mailbox
+     * 
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {
@@ -182,6 +184,8 @@ class ExchangeMailbox extends Model
 
     /**
      * Get the integration that synced this mailbox
+     * 
+     * @return BelongsTo<Integration, $this>
      */
     public function integration(): BelongsTo
     {
@@ -190,6 +194,8 @@ class ExchangeMailbox extends Model
 
     /**
      * Get the customer this mailbox belongs to
+     * 
+     * @return BelongsTo<Customer, $this>
      */
     public function customer(): BelongsTo
     {
@@ -198,6 +204,8 @@ class ExchangeMailbox extends Model
 
     /**
      * Get the AD user this mailbox is linked to (if sam_account_name matches)
+     * 
+     * @return BelongsTo<ActiveDirectoryUser, $this>
      */
     public function activeDirectoryUser(): BelongsTo
     {
@@ -208,6 +216,8 @@ class ExchangeMailbox extends Model
 
     /**
      * Get all email aliases for this mailbox
+     * 
+     * @return HasMany<ExchangeEmailAlias, $this>
      */
     public function emailAliases(): HasMany
     {
@@ -216,6 +226,8 @@ class ExchangeMailbox extends Model
 
     /**
      * Get all permissions for this mailbox
+     * 
+     * @return HasMany<ExchangeMailboxPermission, $this>
      */
     public function permissions(): HasMany
     {
@@ -224,6 +236,8 @@ class ExchangeMailbox extends Model
 
     /**
      * Get all statistics snapshots for this mailbox
+     * 
+     * @return HasMany<ExchangeMailboxStatistic, $this>
      */
     public function statistics(): HasMany
     {
@@ -232,6 +246,8 @@ class ExchangeMailbox extends Model
 
     /**
      * Get the latest statistics for this mailbox
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne<\App\Models\ExchangeMailboxStatistic, $this>|null
      */
     public function latestStatistics()
     {
@@ -241,6 +257,9 @@ class ExchangeMailbox extends Model
 
     /**
      * Scope: User mailboxes only
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeUserMailboxes($query)
     {
@@ -251,6 +270,9 @@ class ExchangeMailbox extends Model
 
     /**
      * Scope: Shared mailboxes only
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeSharedMailboxes($query)
     {
@@ -259,6 +281,9 @@ class ExchangeMailbox extends Model
 
     /**
      * Scope: Resource mailboxes (rooms/equipment)
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeResourceMailboxes($query)
     {
@@ -267,6 +292,9 @@ class ExchangeMailbox extends Model
 
     /**
      * Scope: Mailboxes with archives enabled
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeWithArchive($query)
     {
@@ -275,6 +303,9 @@ class ExchangeMailbox extends Model
 
     /**
      * Scope: Mailboxes on litigation hold
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeOnLitigationHold($query)
     {

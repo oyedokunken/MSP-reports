@@ -132,7 +132,7 @@ class BitDefenderSummary extends BaseReport
 
         \Log::info('Generating BitDefender report', [
             'customer_id' => $customer->customer_id,
-            'trend_labels_count' => count($reportData['infrastructure_trends']['labels'] ?? []),
+            'trend_labels_count' => count($reportData['infrastructure_trends']['labels']),
         ]);
 
         return $this->filterSections($reportData, $options);
@@ -160,6 +160,12 @@ class BitDefenderSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Carbon|string|null $timestamp
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return bool
+     */
     private function inRange($timestamp, Carbon $start, Carbon $end): bool
     {
         if (!$timestamp) return false;
@@ -167,6 +173,10 @@ class BitDefenderSummary extends BaseReport
         return $ts->between($start->copy()->startOfDay(), $end->copy()->endOfDay());
     }
 
+    /**
+     * @param Collection<int, mixed> $endpoints
+     * @return array<string, mixed>
+     */
     private function analyzeEndpoints(Collection $endpoints): array
     {
         $total = $endpoints->count();
@@ -196,6 +206,10 @@ class BitDefenderSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, mixed> $endpoints
+     * @return array<string, mixed>
+     */
     private function analyzePolicies(Collection $endpoints): array
     {
         $policyCounts = [];
@@ -239,6 +253,10 @@ class BitDefenderSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, mixed> $endpoints
+     * @return array<string, mixed>
+     */
     private function analyzeOperatingSystems(Collection $endpoints): array
     {
         $osCounts = [];
@@ -268,6 +286,10 @@ class BitDefenderSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, mixed> $threats
+     * @return array<string, mixed>
+     */
     private function analyzeThreats(Collection $threats): array
     {
         $threatsList = $threats->map(function ($item) {
@@ -288,6 +310,12 @@ class BitDefenderSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, mixed> $history
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return array{labels: array<int, string>, total: array<int, int>, managed: array<int, int>}
+     */
     private function analyzeInfrastructureTrends(Collection $history, Carbon $startDate, Carbon $endDate): array
     {
         $days = [];
@@ -302,8 +330,8 @@ class BitDefenderSummary extends BaseReport
 
         // Snapshots from BitDefender can be multiple per day if synced often, 
         // but we want the unique count of devices that were present on each day.
-        $byDay = $history->groupBy(function($item) {
-            return Carbon::parse($item['timestamp'])->format('M d');
+        $byDay = $history->groupBy(function($item): string {
+            return (string)Carbon::parse($item['timestamp'])->format('M d');
         });
 
         foreach ($byDay as $day => $snapshots) {
@@ -325,6 +353,12 @@ class BitDefenderSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param array<string, mixed> $endpointSummary
+     * @param array<string, mixed> $policySummary
+     * @param array<string, mixed> $threatSummary
+     * @return array<int, string>
+     */
     private function buildRecommendations(array $endpointSummary, array $policySummary, array $threatSummary): array
     {
         $recs = [];

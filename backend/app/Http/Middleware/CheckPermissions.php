@@ -42,7 +42,7 @@ class CheckPermissions
         return $next($request);
     }
 
-    private function hasPermission($user, string $resource, string $action): bool
+    private function hasPermission(\App\Models\User $user, string $resource, string $action): bool
     {
         $permissions = $user->permissions ?? [];
 

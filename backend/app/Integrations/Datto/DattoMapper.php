@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Log;
 
 class DattoMapper
 {
+    /**
+     * @param array<string, mixed> $dattoCustomer
+     * @return array<string, mixed>
+     */
     public static function mapCustomer(array $dattoCustomer): array
     {
         if (isset($dattoCustomer['uid']) && isset($dattoCustomer['devicesStatus'])) {
@@ -31,6 +35,10 @@ class DattoMapper
         ];
     }
     
+    /**
+     * @param array<string, mixed> $site
+     * @return array<string, mixed>
+     */
     public static function mapRmmSite(array $site): array
     {
         $devicesStatus = $site['devicesStatus'] ?? [];
@@ -56,6 +64,10 @@ class DattoMapper
         ];
     }
     
+    /**
+     * @param array<string, mixed> $domain
+     * @return array<string, mixed>
+     */
     public static function mapSaasBackupData(array $domain): array
     {
         $stats = $domain['backupStats'] ?? [];
@@ -81,6 +93,10 @@ class DattoMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $dattoBackup
+     * @return array<string, mixed>
+     */
     public static function mapBackupData(array $dattoBackup): array
     {
         if (isset($dattoBackup['backupStats'])) {
@@ -118,6 +134,10 @@ class DattoMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $device
+     * @return array<string, mixed>
+     */
     public static function mapDeviceData(array $device): array
     {
         return [
@@ -150,6 +170,10 @@ class DattoMapper
         ];
     }
     
+    /**
+     * @param array<string, mixed> $alert
+     * @return array<string, mixed>
+     */
     public static function mapAlertData(array $alert): array
     {
         return [
@@ -176,6 +200,10 @@ class DattoMapper
         ];
     }
     
+    /**
+     * @param array<string, mixed> $dattoUptime
+     * @return array<string, mixed>
+     */
     public static function mapUptimeData(array $dattoUptime): array
     {
         return [

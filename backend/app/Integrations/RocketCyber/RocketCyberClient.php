@@ -11,11 +11,15 @@ use Carbon\Carbon;
 
 class RocketCyberClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -60,6 +64,8 @@ class RocketCyberClient
 
     /**
      * Get all accounts/customers from RocketCyber
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getAccounts(): array
     {
@@ -100,6 +106,8 @@ class RocketCyberClient
 
     /**
      * Get security incidents
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getSecurityIncidents(?string $accountId = null, ?Carbon $since = null): array
     {
@@ -120,6 +128,8 @@ class RocketCyberClient
 
     /**
      * Get threat detections/events
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getThreatDetections(?string $accountId = null, ?Carbon $since = null): array
     {
@@ -140,6 +150,8 @@ class RocketCyberClient
 
     /**
      * Get agents/endpoints
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getAgents(?string $accountId = null): array
     {
@@ -156,6 +168,9 @@ class RocketCyberClient
 
     /**
      * Make authenticated request to RocketCyber API
+     * 
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>|null
      */
     protected function makeRequest(string $endpoint, array $params = []): ?array
     {

@@ -11,6 +11,12 @@ class AutotaskDataGatherer
 {
     /**
      * Gather ticket data for a customer within a date range
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return Collection<int, mixed>
      */
     public function gatherTickets(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
     {
@@ -100,6 +106,12 @@ class AutotaskDataGatherer
 
     /**
      * Gather time entry data for a customer within a date range
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return Collection<int, mixed>
      */
     public function gatherTimeEntries(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
     {
@@ -163,6 +175,9 @@ class AutotaskDataGatherer
 
     /**
      * Gather resource (technician) data for a company
+     * 
+     * @param Customer $customer
+     * @return Collection<int, mixed>
      */
     public function gatherResources(Customer $customer): Collection
     {
@@ -212,6 +227,10 @@ class AutotaskDataGatherer
 
     /**
      * Gather contract data for a customer
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @return Collection<int, mixed>
      */
     public function gatherContracts(Customer $customer, array $integrationCustomerIds): Collection
     {

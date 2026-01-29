@@ -7,6 +7,9 @@ class SATMapper
     /**
      * Map SAT training completion into a standardized IntegrationData payload.
      * Currently placeholder only.
+     * 
+     * @param array<string, mixed> $completion
+     * @return array<string, mixed>
      */
     public static function mapTrainingCompletion(array $completion): array
     {
@@ -22,6 +25,9 @@ class SATMapper
     /**
      * Map SAT phishing simulation into a standardized IntegrationData payload.
      * Currently placeholder only.
+     * 
+     * @param array<string, mixed> $simulation
+     * @return array<string, mixed>
      */
     public static function mapPhishingSimulation(array $simulation): array
     {

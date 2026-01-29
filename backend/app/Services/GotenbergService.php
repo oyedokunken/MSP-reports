@@ -23,7 +23,7 @@ class GotenbergService
      * Convert HTML to PDF using Gotenberg API
      *
      * @param string $html The HTML content to convert
-     * @param array $options Additional options for PDF generation
+     * @param array<string, mixed> $options Additional options for PDF generation
      * @return string Binary PDF content
      * @throws Exception
      */
@@ -99,7 +99,7 @@ class GotenbergService
     /**
      * Merge multiple PDF binaries into a single PDF using Gotenberg
      *
-     * @param array $pdfBinaries Array of binary PDF strings
+     * @param array<int, string> $pdfBinaries Array of binary PDF strings
      * @return string Merged binary PDF content
      * @throws Exception
      */
@@ -140,8 +140,8 @@ class GotenbergService
     /**
      * Build form data for Gotenberg request
      *
-     * @param array $options
-     * @return array
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
      */
     private function buildFormData(array $options): array
     {
@@ -206,7 +206,7 @@ class GotenbergService
     /**
      * Get Gotenberg service status with details
      *
-     * @return array
+     * @return array{available: bool, health?: mixed, error?: string}
      */
     public function getStatus(): array
     {

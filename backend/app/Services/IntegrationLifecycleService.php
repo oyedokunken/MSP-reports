@@ -33,6 +33,10 @@ class IntegrationLifecycleService
     /**
      * The "Zero-Touch" Onboarding Flow.
      * Creates the integration and immediately kicks off necessary automation.
+     * 
+     * @param Company $company
+     * @param array<string, mixed> $data
+     * @return Integration
      */
     public function onboardNewIntegration(Company $company, array $data): Integration
     {

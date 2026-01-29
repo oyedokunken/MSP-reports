@@ -153,6 +153,13 @@ class MonthlyComprehensive extends BaseReport
     
     /**
      * Generate a sub-report and return its data structure
+     * 
+     * @param \App\Reports\Contracts\ReportInterface $report
+     * @param array{id: string, type: string, title: string} $reportInfo
+     * @param Customer $customer
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return array<string, mixed>
      */
     private function generateSubReport($report, array $reportInfo, Customer $customer, Carbon $startDate, Carbon $endDate): array
     {

@@ -9,6 +9,7 @@ namespace App\Integrations\DisplayTemplate;
  */
 class TemplateBuilder
 {
+    /** @var array<string, mixed> */
     private array $template = [
         'version' => '1.0',
         'metadata' => [],
@@ -34,12 +35,18 @@ class TemplateBuilder
         return new SectionBuilder($this, $id, $title, $component);
     }
 
+    /**
+     * @param array<string, mixed> $section
+     */
     public function appendSection(array $section): self
     {
         $this->template['sections'][] = $section;
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function build(): array
     {
         // Sort sections by order if specified
@@ -61,6 +68,7 @@ class TemplateBuilder
 class SectionBuilder
 {
     private TemplateBuilder $templateBuilder;
+    /** @var array<string, mixed> */
     private array $section;
 
     public function __construct(TemplateBuilder $templateBuilder, string $id, string $title, string $component)
@@ -111,13 +119,18 @@ class SectionBuilder
         return $this;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     public function config(array $config): self
     {
         $this->section['config'] = array_merge($this->section['config'], $config);
         return $this;
     }
 
-    // Table-specific helpers
+    /**
+     * @param array<int, array<string, mixed>> $columns
+     */
     public function tableColumns(array $columns): self
     {
         $this->section['config']['columns'] = $columns;
@@ -162,6 +175,9 @@ class SectionBuilder
         return $this;
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $series
+     */
     public function chartSeries(array $series): self
     {
         $this->section['config']['series'] = $series;

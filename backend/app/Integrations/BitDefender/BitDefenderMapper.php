@@ -7,6 +7,9 @@ class BitDefenderMapper
     /**
      * Map BitDefender endpoint (device) data into a standardized IntegrationData payload.
      * Endpoints are actual computers/devices managed by BitDefender.
+     * 
+     * @param array<string, mixed> $endpoint
+     * @return array<string, mixed>
      */
     public static function mapEndpoint(array $endpoint): array
     {
@@ -35,6 +38,9 @@ class BitDefenderMapper
 
     /**
      * Map BitDefender threat detection (quarantine item) into a standardized IntegrationData payload.
+     * 
+     * @param array<string, mixed> $threat
+     * @return array<string, mixed>
      */
     public static function mapThreatDetection(array $threat, ?int $integrationCustomerId = null): array
     {

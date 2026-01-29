@@ -16,8 +16,8 @@ class GenerateReportJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 2;
-    public $timeout = 600; 
+    public int $tries = 2;
+    public int $timeout = 600; 
 
     protected ReportSchedule $schedule;
 

@@ -23,19 +23,20 @@ use App\Traits\AuditTrail;
  * @property string $auth_method
  * @property bool $force_password_change
  * @property string|null $profile_picture
- * @property array|null $permissions
- * @property array|null $settings
+ * @property array<string, mixed>|null $permissions
+ * @property array<string, mixed>|null $settings
  * @property \Carbon\Carbon|null $last_login_at
  * @property \Carbon\Carbon|null $email_verified_at
  * @property string|null $remember_token
  * @property-read \App\Models\Company $company
  * @property-read \App\Models\Role $role
- * @property-read \Illuminate\Notifications\DatabaseNotificationCollection|\Illuminate\Notifications\DatabaseNotification[] $notifications
- * @property-read \Illuminate\Notifications\DatabaseNotificationCollection|\Illuminate\Notifications\DatabaseNotification[] $unreadNotifications
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\AuditLog> $auditLogs
+ * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
+ * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $unreadNotifications
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\AuditLog> $auditLogs
  */
 class User extends Authenticatable
 {
+    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, AuditTrail;
 
     protected $primaryKey = 'user_id';
@@ -79,15 +80,17 @@ class User extends Authenticatable
     /**
      * Accessor for last_login (maps from last_login_at for frontend compatibility)
      */
-    public function getLastLoginAttribute()
+    public function getLastLoginAttribute(): ?string
     {
         return $this->last_login_at?->toIso8601String();
     }
 
     /**
      * Accessor for created_at (ensure it's always included)
+     * 
+     * @param string|null $value
      */
-    public function getCreatedAtAttribute($value)
+    public function getCreatedAtAttribute(?string $value): ?string
     {
         return $value ? \Carbon\Carbon::parse($value)->toIso8601String() : null;
     }
@@ -95,7 +98,7 @@ class User extends Authenticatable
     /**
      * Accessor for profile_picture_url
      */
-    public function getProfilePictureUrlAttribute()
+    public function getProfilePictureUrlAttribute(): ?string
     {
         if (!$this->profile_picture) {
             return null;
@@ -105,16 +108,25 @@ class User extends Authenticatable
 
 
     
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Company, $this>
+     */
     public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<AuditLog, $this>
+     */
     public function auditLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(AuditLog::class, 'user_id', 'user_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Role, $this>
+     */
     public function role(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Role::class, 'role_id', 'id');

@@ -27,6 +27,9 @@ class M365Integration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         Log::info('M365Integration::sync called - not yet implemented', [
@@ -42,12 +45,18 @@ class M365Integration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         // No customer concept defined for M365 yet
         return [];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         return [
@@ -61,6 +70,9 @@ class M365Integration implements IntegrationInterface
         return null;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -89,6 +101,9 @@ class M365Integration implements IntegrationInterface
         return $this->authenticate();
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [
@@ -99,6 +114,8 @@ class M365Integration implements IntegrationInterface
 
     /**
      * Get licensing info for a specific user
+     * 
+     * @return array<string, mixed>
      */
     public function getUserLicensing(string $upn): array
     {

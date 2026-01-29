@@ -7,8 +7,8 @@ class SaaSMapper
     /**
      * Map SaaS Alerts customer to standardized IntegrationCustomer format.
      * 
-     * @param array $saasCustomer Raw customer data from SaaS Alerts API
-     * @return array Standardized customer data
+     * @param array<string, mixed> $saasCustomer Raw customer data from SaaS Alerts API
+     * @return array<string, mixed> Standardized customer data
      */
     public static function mapCustomer(array $saasCustomer): array
     {
@@ -31,9 +31,9 @@ class SaaSMapper
     /**
      * Map SaaS Alerts user to standardized IntegrationData format.
      * 
-     * @param array $saasUser Raw user data from SaaS Alerts API
-     * @param string $integrationCustomerId The IntegrationCustomer ID this user belongs to
-     * @return array Standardized user data for IntegrationData storage
+     * @param array<string, mixed> $saasUser Raw user data from SaaS Alerts API
+     * @param string|null $integrationCustomerId The IntegrationCustomer ID this user belongs to
+     * @return array<string, mixed> Standardized user data for IntegrationData storage
      */
     public static function mapUser(array $saasUser, ?string $integrationCustomerId = null): array
     {
@@ -64,9 +64,9 @@ class SaaSMapper
     /**
      * Map SaaS Alerts security event to standardized IntegrationData format.
      * 
-     * @param array $saasEvent Raw event data from SaaS Alerts API
+     * @param array<string, mixed> $saasEvent Raw event data from SaaS Alerts API
      * @param int|string|null $integrationCustomerId The IntegrationCustomer ID this event belongs to
-     * @return array Standardized event data for IntegrationData storage
+     * @return array<string, mixed> Standardized event data for IntegrationData storage
      */
     public static function mapEvent(array $saasEvent, $integrationCustomerId = null): array
     {

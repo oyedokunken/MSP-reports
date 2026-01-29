@@ -45,6 +45,13 @@ class ExchangeSyncService
 
     /**
      * Process sync data from Exchange agent
+     * 
+     * @param Integration $integration
+     * @param int $customerId
+     * @param string $syncType
+     * @param array<string, mixed> $data
+     * @param array<string, mixed> $metadata
+     * @return array{mailboxes: int, aliases: int, permissions: int, statistics: int}
      */
     public function processSyncData(
         Integration $integration,
@@ -124,6 +131,11 @@ class ExchangeSyncService
 
     /**
      * Process mailboxes from sync data
+     * 
+     * @param Integration $integration
+     * @param int $customerId
+     * @param array<int, array<string, mixed>> $mailboxes
+     * @return int
      */
     protected function processMailboxes(Integration $integration, int $customerId, array $mailboxes): int
     {
@@ -235,6 +247,11 @@ class ExchangeSyncService
 
     /**
      * Process email aliases from sync data
+     * 
+     * @param Integration $integration
+     * @param int $customerId
+     * @param array<int, array<string, mixed>> $aliases
+     * @return int
      */
     protected function processEmailAliases(Integration $integration, int $customerId, array $aliases): int
     {
@@ -302,6 +319,11 @@ class ExchangeSyncService
 
     /**
      * Process mailbox permissions from sync data
+     * 
+     * @param Integration $integration
+     * @param int $customerId
+     * @param array<int, array<string, mixed>> $permissions
+     * @return int
      */
     protected function processPermissions(Integration $integration, int $customerId, array $permissions): int
     {
@@ -374,6 +396,12 @@ class ExchangeSyncService
 
     /**
      * Process mailbox statistics from sync data
+     * 
+     * @param Integration $integration
+     * @param int $customerId
+     * @param array<int, array<string, mixed>> $statistics
+     * @param string $syncTimestamp
+     * @return int
      */
     protected function processStatistics(Integration $integration, int $customerId, array $statistics, string $syncTimestamp): int
     {
@@ -453,6 +481,10 @@ class ExchangeSyncService
 
     /**
      * Get status for a specific customer
+     * 
+     * @param Integration $integration
+     * @param int $customerId
+     * @return array{total_mailboxes: int, user_mailboxes: int, shared_mailboxes: int, resource_mailboxes: int, total_storage_mb: float, total_storage_gb: float, last_sync: string|null, last_sync_status: string|null}
      */
     public function getCustomerStatus(Integration $integration, int $customerId): array
     {
@@ -493,6 +525,9 @@ class ExchangeSyncService
 
     /**
      * Parse date string to Carbon instance
+     * 
+     * @param string|null $date
+     * @return \Carbon\Carbon|null
      */
     private function parseDate(?string $date)
     {

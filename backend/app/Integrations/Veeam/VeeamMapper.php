@@ -7,6 +7,9 @@ class VeeamMapper
     /**
      * Map Veeam backup job into a standardized IntegrationData payload.
      * Currently placeholder only.
+     * 
+     * @param array<string, mixed> $job
+     * @return array<string, mixed>
      */
     public static function mapBackupJob(array $job): array
     {
@@ -22,6 +25,9 @@ class VeeamMapper
     /**
      * Map Veeam backup session into a standardized IntegrationData payload.
      * Currently placeholder only.
+     * 
+     * @param array<string, mixed> $session
+     * @return array<string, mixed>
      */
     public static function mapBackupSession(array $session): array
     {
@@ -37,6 +43,9 @@ class VeeamMapper
     /**
      * Map Veeam protected VM into a standardized IntegrationData payload.
      * Currently placeholder only.
+     * 
+     * @param array<string, mixed> $vm
+     * @return array<string, mixed>
      */
     public static function mapProtectedVM(array $vm): array
     {

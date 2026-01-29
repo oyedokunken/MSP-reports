@@ -36,8 +36,12 @@ class BarracudaIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    /** @var array<string, mixed> */
     protected $mappedDuringSync = [];
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         $errors = [];
@@ -111,6 +115,9 @@ class BarracudaIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function processUnmappedCustomers(): array
     {
         // Only dispatch if there are actually unmapped customers
@@ -128,12 +135,18 @@ class BarracudaIntegration implements IntegrationInterface
         return []; // Batch job handles mapping asynchronously
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         $barracudaCustomers = $this->client->getCustomers();
         return array_map(fn($customer) => BarracudaMapper::mapCustomer($customer), $barracudaCustomers);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         $data = [];
@@ -169,6 +182,9 @@ class BarracudaIntegration implements IntegrationInterface
         return now()->subDays(90);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -200,6 +216,9 @@ class BarracudaIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [
@@ -208,6 +227,9 @@ class BarracudaIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -230,6 +252,9 @@ class BarracudaIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @param array<string, mixed> $customer
+     */
     private function storeCustomer(array $customer): void
     {
         $integrationCustomer = IntegrationCustomer::updateOrCreate(
@@ -251,6 +276,9 @@ class BarracudaIntegration implements IntegrationInterface
         // Batch job processes all unmapped customers at end of sync
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function storeHistoricalData(array $data): void
     {
         $payload = $data['payload'];
@@ -296,6 +324,9 @@ class BarracudaIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getDisplayTemplate(): array
     {
         $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('barracuda', 'Barracuda');
@@ -336,6 +367,9 @@ class BarracudaIntegration implements IntegrationInterface
         return $builder->build();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getPreviewData(?int $integrationCustomerId = null): array
     {
         try {

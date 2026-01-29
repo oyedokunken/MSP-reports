@@ -19,10 +19,11 @@ class SyncIntegrationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 5; 
-    public $timeout = 3600; 
-    public $backoff = [60, 300, 900, 1800]; 
-    public $deleteWhenMissingModels = true;
+    public int $tries = 5; 
+    public int $timeout = 3600; 
+    /** @var array<int, int> */
+    public array $backoff = [60, 300, 900, 1800]; 
+    public bool $deleteWhenMissingModels = true;
     // public $queue = 'sync'; // Removed to avoid conflict with Queueable trait
 
     protected Integration $integration;
@@ -35,6 +36,9 @@ class SyncIntegrationJob implements ShouldQueue
         $this->onQueue('sync');
     }
 
+    /**
+     * @return array<int, object>
+     */
     public function middleware(): array
     {
         return [
@@ -330,6 +334,9 @@ class SyncIntegrationJob implements ShouldQueue
         }
     }
 
+    /**
+     * @return object|null
+     */
     private function loadIntegrationClass()
     {
         $integrationType = $this->integration->integration_type;

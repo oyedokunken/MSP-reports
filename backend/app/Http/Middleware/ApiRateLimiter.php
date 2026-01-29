@@ -12,6 +12,7 @@ class ApiRateLimiter
 {
     /**
      * Rate limits per endpoint type (requests per minute)
+     * @var array<string, int>
      */
     protected array $limits = [
         'default' => 60,

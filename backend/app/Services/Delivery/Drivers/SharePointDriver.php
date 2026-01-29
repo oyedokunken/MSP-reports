@@ -23,6 +23,9 @@ class SharePointDriver implements DeliveryDriverInterface
         return 'SharePoint';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getConfigSchema(): array
     {
         return [
@@ -31,6 +34,10 @@ class SharePointDriver implements DeliveryDriverInterface
         ];
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array{valid: bool, errors: array<int, string>}
+     */
     public function validateConfig(array $config): array
     {
         if (empty($config['path'])) {
@@ -43,6 +50,13 @@ class SharePointDriver implements DeliveryDriverInterface
         return ['valid' => true, 'errors' => []];
     }
 
+    /**
+     * @param GeneratedReport $report
+     * @param array<string, mixed> $config
+     * @param Company $company
+     * @param Customer $customer
+     * @return array{success: bool, destination: string, message?: string, details?: array<string, mixed>}
+     */
     public function deliver(GeneratedReport $report, array $config, Company $company, Customer $customer): array
     {
         try {
@@ -94,6 +108,7 @@ class SharePointDriver implements DeliveryDriverInterface
             return [
                 'success' => true,
                 'message' => 'Uploaded to SharePoint',
+                'destination' => $config['path'] ?? '',
                 'details' => [
                     'item_id' => $result['id'],
                     'web_url' => $result['web_url']
@@ -110,6 +125,11 @@ class SharePointDriver implements DeliveryDriverInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @param Company $company
+     * @return array{success: bool, message: string}
+     */
     public function testConnection(array $config, Company $company): array
     {
         try {

@@ -11,11 +11,15 @@ use Carbon\Carbon;
 
 class KempClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -60,6 +64,8 @@ class KempClient
 
     /**
      * Get LoadMaster statistics
+     * 
+     * @return array<string, mixed>
      */
     public function getStats(): array
     {
@@ -69,6 +75,8 @@ class KempClient
 
     /**
      * Get all Virtual Services
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getVirtualServices(): array
     {
@@ -90,6 +98,8 @@ class KempClient
 
     /**
      * Get Virtual Service details
+     * 
+     * @return array<string, mixed>
      */
     public function getVirtualService(string $vsIndex): array
     {
@@ -102,6 +112,8 @@ class KempClient
 
     /**
      * Get all Real Servers
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getRealServers(): array
     {
@@ -121,6 +133,8 @@ class KempClient
 
     /**
      * Get system information
+     * 
+     * @return array<string, mixed>
      */
     public function getSystemInfo(): array
     {
@@ -130,6 +144,8 @@ class KempClient
 
     /**
      * Get license information
+     * 
+     * @return array<string, mixed>
      */
     public function getLicenseInfo(): array
     {
@@ -139,6 +155,9 @@ class KempClient
 
     /**
      * Make authenticated request to Kemp LoadMaster API
+     * 
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>|null
      */
     protected function makeRequest(string $endpoint, array $params = []): ?array
     {

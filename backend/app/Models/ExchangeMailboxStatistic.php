@@ -43,6 +43,8 @@ class ExchangeMailboxStatistic extends Model
 
     /**
      * Get the company that owns this statistic
+     * 
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {
@@ -51,6 +53,8 @@ class ExchangeMailboxStatistic extends Model
 
     /**
      * Get the integration that synced this statistic
+     * 
+     * @return BelongsTo<Integration, $this>
      */
     public function integration(): BelongsTo
     {
@@ -59,6 +63,8 @@ class ExchangeMailboxStatistic extends Model
 
     /**
      * Get the customer this statistic belongs to
+     * 
+     * @return BelongsTo<Customer, $this>
      */
     public function customer(): BelongsTo
     {
@@ -67,6 +73,8 @@ class ExchangeMailboxStatistic extends Model
 
     /**
      * Get the mailbox these statistics belong to
+     * 
+     * @return BelongsTo<ExchangeMailbox, $this>
      */
     public function mailbox(): BelongsTo
     {
@@ -75,6 +83,9 @@ class ExchangeMailboxStatistic extends Model
 
     /**
      * Scope: Latest statistics only
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeLatest($query)
     {
@@ -83,6 +94,11 @@ class ExchangeMailboxStatistic extends Model
 
     /**
      * Scope: Statistics within date range
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @param string|\Carbon\Carbon $startDate
+     * @param string|\Carbon\Carbon $endDate
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeBetweenDates($query, $startDate, $endDate)
     {
@@ -91,6 +107,10 @@ class ExchangeMailboxStatistic extends Model
 
     /**
      * Scope: Statistics for a specific database
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @param string $database
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeForDatabase($query, string $database)
     {

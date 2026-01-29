@@ -103,19 +103,19 @@ class ITGlueSummary extends BaseReport
         // Create executive summary
         $executiveSummary = [
             'licenses' => [
-                'total' => $licenseSummary['total_licenses'] ?? 0,
-                'over_provisioned' => $licenseSummary['over_provisioned'] ?? 0,
-                'well_utilized' => $licenseSummary['well_utilized'] ?? 0,
+                'total' => $licenseSummary['total_licenses'],
+                'over_provisioned' => $licenseSummary['over_provisioned'],
+                'well_utilized' => $licenseSummary['well_utilized'],
             ],
             'ssl_certificates' => [
-                'total' => $sslSummary['total_certificates'] ?? 0,
-                'critical' => $sslSummary['critical'] ?? 0,
-                'warning' => $sslSummary['warning'] ?? 0,
+                'total' => $sslSummary['total_certificates'],
+                'critical' => $sslSummary['critical'],
+                'warning' => $sslSummary['warning'],
             ],
             'domains' => [
-                'total' => $domainSummary['total_domains'] ?? 0,
-                'critical' => $domainSummary['critical'] ?? 0,
-                'warning' => $domainSummary['warning'] ?? 0,
+                'total' => $domainSummary['total_domains'],
+                'critical' => $domainSummary['critical'],
+                'warning' => $domainSummary['warning'],
             ],
             'total_alerts' => count($allAlerts),
         ];
@@ -176,6 +176,10 @@ class ITGlueSummary extends BaseReport
 
     // Data gathering is now handled by ITGlueDataGatherer
 
+    /**
+     * @param Collection<int, mixed> $licenses
+     * @return array{total_licenses: int, over_provisioned: int, under_provisioned: int, well_utilized: int}
+     */
     private function getLicenseSummary(Collection $licenses): array
     {
         return [
@@ -186,6 +190,10 @@ class ITGlueSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, mixed> $licenses
+     * @return array<int, string>
+     */
     private function getLicenseRecommendations(Collection $licenses): array
     {
         $recommendations = [];
@@ -204,6 +212,10 @@ class ITGlueSummary extends BaseReport
     }
 
 
+    /**
+     * @param Collection<int, mixed> $certificates
+     * @return array{total_certificates: int, critical: int, warning: int}
+     */
     private function getCertificateSummary(Collection $certificates): array
     {
         return [
@@ -213,6 +225,10 @@ class ITGlueSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, mixed> $certificates
+     * @return array<int, array{type: string, severity: string, title: string, description: string}>
+     */
     private function getCertificateAlerts(Collection $certificates): array
     {
         $alerts = [];
@@ -231,6 +247,10 @@ class ITGlueSummary extends BaseReport
     }
 
 
+    /**
+     * @param Collection<int, mixed> $domains
+     * @return array{total_domains: int, critical: int, warning: int}
+     */
     private function getDomainSummary(Collection $domains): array
     {
         return [
@@ -240,6 +260,10 @@ class ITGlueSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, mixed> $domains
+     * @return array<int, array{type: string, severity: string, title: string, description: string}>
+     */
     private function getDomainAlerts(Collection $domains): array
     {
         $alerts = [];

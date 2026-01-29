@@ -17,9 +17,9 @@ use App\Models\Scopes\CompanyScope;
  * @property string $display_name
  * @property string $key_hash
  * @property \Carbon\Carbon|null $last_used_at
- * @property array|null $permissions
- * @property array|null $ip_whitelist
- * @property array|null $allowed_endpoints
+ * @property array<string, mixed>|null $permissions
+ * @property array<string, mixed>|null $ip_whitelist
+ * @property array<string, mixed>|null $allowed_endpoints
  * @property bool $revoked
  * @property \Carbon\Carbon|null $revoked_at
  * @property int|null $revoked_by_user_id
@@ -27,11 +27,10 @@ use App\Models\Scopes\CompanyScope;
  * @property-read \App\Models\Customer|null $customer
  * @property-read \App\Models\User $createdBy
  * @property-read \App\Models\User|null $revokedBy
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\AuditLog> $auditLogs
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\AuditLog> $auditLogs
  */
 class ApiKey extends Model
 {
-    use HasFactory;
 
     protected $primaryKey = 'api_key_id';
 
@@ -65,26 +64,41 @@ class ApiKey extends Model
     ];
 
     
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Company, $this>
+     */
     public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Customer, $this>
+     */
     public function customer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     */
     public function createdBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id', 'user_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     */
     public function revokedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'revoked_by_user_id', 'user_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\MorphMany<AuditLog, $this>
+     */
     public function auditLogs(): \Illuminate\Database\Eloquent\Relations\MorphMany
     {
         return $this->morphMany(AuditLog::class, 'actor');

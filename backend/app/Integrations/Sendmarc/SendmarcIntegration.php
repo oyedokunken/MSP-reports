@@ -32,6 +32,9 @@ class SendmarcIntegration implements IntegrationInterface
         $this->mappingService = app(CustomerMappingService::class);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -51,8 +54,12 @@ class SendmarcIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    /** @var array<int, mixed> */
     protected $mappedDuringSync = [];
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         $errors = [];
@@ -167,6 +174,9 @@ class SendmarcIntegration implements IntegrationInterface
         ], now()->addMinutes(10));
     }
 
+    /**
+     * @return array<int, mixed>
+     */
     private function processUnmappedCustomers(): array
     {
         // Only dispatch if there are actually unmapped customers
@@ -184,6 +194,9 @@ class SendmarcIntegration implements IntegrationInterface
         return []; // Batch job handles mapping asynchronously
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         $allDomains = [];
@@ -206,6 +219,9 @@ class SendmarcIntegration implements IntegrationInterface
         return array_map(fn($domain) => SendmarcMapper::mapDomain($domain), $allDomains);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         // NO MORE $data = [] bucket! Just track stats
@@ -359,6 +375,9 @@ class SendmarcIntegration implements IntegrationInterface
         return now()->subDays(90);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -391,6 +410,9 @@ class SendmarcIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [
@@ -399,6 +421,9 @@ class SendmarcIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @param array<string, mixed> $customer
+     */
     private function storeCustomer(array $customer): void
     {
         $integrationCustomer = IntegrationCustomer::updateOrCreate(
@@ -425,6 +450,9 @@ class SendmarcIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function storeHistoricalData(array $data): void
     {
         $domainUuid = $data['payload']['domain_uuid'] ?? null;
@@ -514,6 +542,9 @@ class SendmarcIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function storeCurrentMetrics(array $data): void
     {
         $domainUuid = $data['payload']['domain_uuid'] ?? null;
@@ -577,6 +608,9 @@ class SendmarcIntegration implements IntegrationInterface
             ]);
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $items
+     */
     public function processBatch(string $type, array $items): void
     {
         if ($type === 'domains') {

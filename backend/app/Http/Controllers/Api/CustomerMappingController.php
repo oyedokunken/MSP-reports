@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerMappingController extends Controller
 {
-    public function getCustomers(Request $request)
+    public function getCustomers(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -145,7 +145,7 @@ class CustomerMappingController extends Controller
     /**
      * Get all customer IDs for bulk selection (e.g., user scoping)
      */
-    public function getAllCustomerIds(Request $request)
+    public function getAllCustomerIds(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -160,7 +160,7 @@ class CustomerMappingController extends Controller
         ]);
     }
 
-    public function getUnmappedCustomers(Request $request)
+    public function getUnmappedCustomers(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -280,7 +280,7 @@ class CustomerMappingController extends Controller
     /**
      * Create a static customer (not linked to any integration)
      */
-    public function createStaticCustomer(Request $request)
+    public function createStaticCustomer(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -324,7 +324,7 @@ class CustomerMappingController extends Controller
         }
     }
 
-    public function mapCustomer(Request $request)
+    public function mapCustomer(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -469,17 +469,12 @@ class CustomerMappingController extends Controller
         }
     }
 
-    public function getCustomerIntegrations(Request $request, $id)
+    public function getCustomerIntegrations(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
-        if (!is_numeric($id)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid customer ID format.',
-            ], 400);
-        }
+
 
         // OPTIMIZED: Eager load relationships to prevent N+1
         $customer = Customer::with([
@@ -528,7 +523,7 @@ class CustomerMappingController extends Controller
         ]);
     }
 
-    public function getCustomerIntegrationStats(Request $request, $customerId, $integrationCustomerId)
+    public function getCustomerIntegrationStats(Request $request, int $customerId, int $integrationCustomerId): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -581,7 +576,8 @@ class CustomerMappingController extends Controller
                 ->whereIn(\DB::raw("CAST(data_payload->>'resource_id' AS TEXT)"), $resourceIds)
                 ->get()
                 ->keyBy(function($item) {
-                    return $item->data_payload['resource_id'];
+                    /** @var \App\Models\IntegrationData $item */
+                    return (string) ($item->data_payload['resource_id'] ?? '');
                 });
 
             $technicianStats = $topTechnicians->map(function(\App\Models\IntegrationData $tech) use ($resources) {
@@ -641,7 +637,7 @@ class CustomerMappingController extends Controller
         ]);
     }
 
-    public function updateCustomer(Request $request, $id)
+    public function updateCustomer(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -695,7 +691,7 @@ class CustomerMappingController extends Controller
         ]);
     }
 
-    public function mergeCustomers(Request $request, $id)
+    public function mergeCustomers(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -799,7 +795,7 @@ class CustomerMappingController extends Controller
         }
     }
 
-    public function splitCustomer(Request $request, $id)
+    public function splitCustomer(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -891,7 +887,7 @@ class CustomerMappingController extends Controller
         }
     }
 
-    public function deleteMapping(Request $request, $customerId, $mappingId)
+    public function deleteMapping(Request $request, int $customerId, int $mappingId): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -959,7 +955,7 @@ class CustomerMappingController extends Controller
      * Get smart match suggestions using embedding service
      * This provides more intelligent matching for difficult cases
      */
-    public function getSmartMatchSuggestions(Request $request)
+    public function getSmartMatchSuggestions(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -1036,7 +1032,7 @@ class CustomerMappingController extends Controller
     /**
      * Check embedding service status
      */
-    public function getEmbeddingStatus(Request $request)
+    public function getEmbeddingStatus(Request $request): \Illuminate\Http\JsonResponse
     {
         $embeddingService = app(\App\Services\EmbeddingService::class);
 
@@ -1060,7 +1056,7 @@ class CustomerMappingController extends Controller
     /**
      * Batch auto-match unmapped customers using embeddings
      */
-    public function batchAutoMatch(Request $request)
+    public function batchAutoMatch(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;

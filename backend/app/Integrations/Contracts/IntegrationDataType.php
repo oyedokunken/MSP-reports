@@ -48,6 +48,8 @@ final class IntegrationDataType
 
     /**
      * Get all valid data types
+     * 
+     * @return array<int, string>
      */
     public static function all(): array
     {
@@ -82,6 +84,8 @@ final class IntegrationDataType
 
     /**
      * Get ITGlue specific types
+     * 
+     * @return array<int, string>
      */
     public static function itglue(): array
     {
@@ -94,6 +98,8 @@ final class IntegrationDataType
 
     /**
      * Get Datto specific types
+     * 
+     * @return array<int, string>
      */
     public static function datto(): array
     {
@@ -107,6 +113,8 @@ final class IntegrationDataType
 
     /**
      * Get Veeam ONE specific types
+     * 
+     * @return array<int, string>
      */
     public static function veeamOne(): array
     {

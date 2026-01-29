@@ -15,8 +15,8 @@ class SyncDattoDevicesJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 20; // Allow multiple retries/releases for rate limits
-    public $timeout = 1800; // 30 minutes - fetching all devices can take time due to rate limits
+    public int $tries = 20; // Allow multiple retries/releases for rate limits
+    public int $timeout = 1800; // 30 minutes - fetching all devices can take time due to rate limits
 
     protected Integration $integration;
 

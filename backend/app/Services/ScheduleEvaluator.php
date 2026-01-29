@@ -8,6 +8,9 @@ use Carbon\Carbon;
 
 class ScheduleEvaluator
 {
+    /**
+     * @return array<string, int>
+     */
     public function evaluateDueReports(): array
     {
         $results = [
@@ -92,6 +95,9 @@ class ScheduleEvaluator
         return $next;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function calculateDailyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
     {
         $next->setTime($hour, $minute, 0);
@@ -109,6 +115,9 @@ class ScheduleEvaluator
         return $next;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function calculateWeeklyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
     {
         $dayOfWeek = $config['day_of_week'] ?? 1;
@@ -123,6 +132,9 @@ class ScheduleEvaluator
         return $next;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function calculateMonthlyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
     {
         $dayOfMonth = $config['day_of_month'] ?? 1;
@@ -143,6 +155,9 @@ class ScheduleEvaluator
         return $next;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function calculateYearlyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
     {
         $month = $config['month'] ?? 1;
@@ -159,6 +174,9 @@ class ScheduleEvaluator
         return $next;
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function previewNextRuns(ReportSchedule $schedule, int $count = 5): array
     {
         $runs = [];

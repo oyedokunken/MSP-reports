@@ -8,11 +8,15 @@ use Illuminate\Support\Facades\Log;
 
 class SATClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -34,6 +38,8 @@ class SATClient
 
     /**
      * Placeholder for future SAT API calls.
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getTrainingCompletions(): array
     {
@@ -46,6 +52,8 @@ class SATClient
 
     /**
      * Placeholder for future SAT phishing simulation results.
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getPhishingSimulations(): array
     {

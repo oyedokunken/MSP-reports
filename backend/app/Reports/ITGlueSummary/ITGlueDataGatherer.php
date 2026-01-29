@@ -12,6 +12,10 @@ class ITGlueDataGatherer
 {
     /**
      * Gather license data (flexible assets) for a customer
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @return Collection<int, mixed>
      */
     public function gatherLicenses(Customer $customer, array $integrationCustomerIds): Collection
     {
@@ -68,6 +72,10 @@ class ITGlueDataGatherer
 
     /**
      * Gather SSL certificate data for a customer
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @return Collection<int, mixed>
      */
     public function gatherCertificates(Customer $customer, array $integrationCustomerIds): Collection
     {
@@ -116,6 +124,10 @@ class ITGlueDataGatherer
 
     /**
      * Gather domain registration data for a customer
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @return Collection<int, mixed>
      */
     public function gatherDomains(Customer $customer, array $integrationCustomerIds): Collection
     {
@@ -183,6 +195,9 @@ class ITGlueDataGatherer
 
     /**
      * Extract first value from array or return as-is
+     * 
+     * @param mixed $value
+     * @return mixed
      */
     private function extractValue($value)
     {
@@ -194,6 +209,10 @@ class ITGlueDataGatherer
 
     /**
      * Calculate license utilization percentage from extracted values
+     * 
+     * @param mixed $total
+     * @param mixed $used
+     * @return int
      */
     private function calculateUtilizationFromValues($total, $used): int
     {

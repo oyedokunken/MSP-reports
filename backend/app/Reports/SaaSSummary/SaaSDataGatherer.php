@@ -12,6 +12,12 @@ class SaaSDataGatherer
     /**
      * Gather security events for the customer
      * Limited to 10,000 most recent events to prevent memory issues
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return Collection<int, mixed>
      */
     public function gatherSecurityEvents(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
     {
@@ -75,6 +81,9 @@ class SaaSDataGatherer
 
     /**
      * Gather user activity statistics
+     * 
+     * @param Collection<int, array<string, mixed>> $events
+     * @return Collection<int, mixed>
      */
     public function gatherUserActivity(Collection $events): Collection
     {
@@ -107,6 +116,9 @@ class SaaSDataGatherer
 
     /**
      * Gather geographic access patterns
+     * 
+     * @param Collection<int, array<string, mixed>> $events
+     * @return Collection<int, mixed>
      */
     public function gatherGeographicData(Collection $events): Collection
     {
@@ -130,6 +142,9 @@ class SaaSDataGatherer
 
     /**
      * Gather application usage statistics
+     * 
+     * @param Collection<int, array<string, mixed>> $events
+     * @return Collection<int, mixed>
      */
     public function gatherApplicationUsage(Collection $events): Collection
     {
@@ -151,6 +166,9 @@ class SaaSDataGatherer
 
     /**
      * Gather threat and security statistics
+     * 
+     * @param Collection<int, array<string, mixed>> $events
+     * @return array<string, mixed>
      */
     public function gatherThreatStatistics(Collection $events): array
     {
@@ -181,6 +199,9 @@ class SaaSDataGatherer
 
     /**
      * Gather device statistics
+     * 
+     * @param Collection<int, array<string, mixed>> $events
+     * @return array<string, mixed>
      */
     public function gatherDeviceStatistics(Collection $events): array
     {
@@ -207,6 +228,11 @@ class SaaSDataGatherer
 
     /**
      * Gather daily trends for security events
+     * 
+     * @param Collection<int, array<string, mixed>> $events
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return array{labels: array<int, string>, total: array<int, int>, threats: array<int, int>, failures: array<int, int>}
      */
     public function gatherDailyTrends(Collection $events, Carbon $startDate, Carbon $endDate): array
     {

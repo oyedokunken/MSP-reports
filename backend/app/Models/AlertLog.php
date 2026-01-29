@@ -8,7 +8,6 @@ use App\Models\Scopes\CompanyScope;
 
 class AlertLog extends Model
 {
-    use HasFactory;
 
     protected $primaryKey = 'alert_log_id';
 
@@ -38,17 +37,26 @@ class AlertLog extends Model
         'acknowledged_at' => 'datetime',
     ];
 
-    public function company()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Company, $this>
+     */
+    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
-    public function alertRule()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<AlertRule, $this>
+     */
+    public function alertRule(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(AlertRule::class, 'alert_rule_id', 'alert_rule_id');
     }
 
-    public function acknowledgedByUser()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     */
+    public function acknowledgedByUser(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'acknowledged_by', 'user_id');
     }

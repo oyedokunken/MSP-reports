@@ -47,6 +47,13 @@ class SPLALicensing extends BaseReport
         return $hasLicenses;
     }
 
+    /**
+     * @param Customer $customer
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
         // 1. Fetch License Assignments
@@ -71,6 +78,7 @@ class SPLALicensing extends BaseReport
         foreach ($grouped as $licenseName => $items) {
             $userList = [];
             foreach ($items as $item) {
+                /** @var ActiveDirectoryLicenseAssignment $item */
                 $user = $users->get($item->user_sam_account_name);
                 $userList[] = [
                     'upn' => $user ? $user->user_principal_name : $item->user_dn,
@@ -88,13 +96,14 @@ class SPLALicensing extends BaseReport
         $totalSPLAUsers = $assignments->unique('user_sam_account_name')->count();
 
         // Identify products with users
+        /** @var array<int, string> $activeProducts */
         $activeProducts = array_keys($splaCounts);
 
         // Create executive summary
         $executiveSummary = [
             'total_spla_users' => $totalSPLAUsers,
             'active_products' => $activeProducts,
-            'product_breakdown' => collect($splaCounts)->map(fn($data) => $data['count'])->toArray(),
+            'product_breakdown' => collect($splaCounts)->map(fn($data): int => (int)$data['count'])->toArray(),
         ];
 
         return [

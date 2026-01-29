@@ -33,6 +33,11 @@ class ActiveDirectorySyncService
 
     /**
      * Process users from sync payload
+     * 
+     * @param Integration $integration
+     * @param int $customerId
+     * @param array<int, array<string, mixed>> $users
+     * @return int
      */
     public function processUsers(Integration $integration, int $customerId, array $users): int
     {
@@ -88,6 +93,11 @@ class ActiveDirectorySyncService
 
     /**
      * Process groups from sync payload
+     * 
+     * @param Integration $integration
+     * @param int $customerId
+     * @param array<int, array<string, mixed>> $groups
+     * @return int
      */
     public function processGroups(Integration $integration, int $customerId, array $groups): int
     {
@@ -129,6 +139,11 @@ class ActiveDirectorySyncService
 
     /**
      * Process group memberships from sync payload
+     * 
+     * @param Integration $integration
+     * @param int $customerId
+     * @param array<int, array<string, mixed>> $memberships
+     * @return int
      */
     public function processMemberships(Integration $integration, int $customerId, array $memberships): int
     {
@@ -169,6 +184,11 @@ class ActiveDirectorySyncService
 
     /**
      * Process license assignments from sync payload
+     * 
+     * @param Integration $integration
+     * @param int $customerId
+     * @param array<int, array<string, mixed>> $licenseAssignments
+     * @return int
      */
     public function processLicenseAssignments(Integration $integration, int $customerId, array $licenseAssignments): int
     {
@@ -211,6 +231,11 @@ class ActiveDirectorySyncService
     /**
      * Clean up orphaned records (users/groups that no longer exist in AD)
      * Only runs on full syncs, scoped to specific customer
+     * 
+     * @param Integration $integration
+     * @param int $customerId
+     * @param string $syncType
+     * @return array{users: int, groups: int}
      */
     public function cleanupOrphans(Integration $integration, int $customerId, string $syncType): array
     {
@@ -237,8 +262,11 @@ class ActiveDirectorySyncService
 
     /**
      * Parse date string to Carbon instance
+     * 
+     * @param string|null $date
+     * @return \Carbon\Carbon|null
      */
-    private function parseDate(?string $date)
+    private function parseDate(?string $date): ?\Carbon\Carbon
     {
         if (!$date) {
             return null;
@@ -253,6 +281,10 @@ class ActiveDirectorySyncService
 
     /**
      * Get status and statistics for a specific customer
+     * 
+     * @param Integration $integration
+     * @param int|null $customerId
+     * @return array{users: array{total: int, enabled: int, disabled: int, locked_out: int}, groups: array{total: int}, memberships: array{total: int}, last_sync: array{started_at: string|null, completed_at: string|null, status: string, records_synced: int}|null}
      */
     public function getCustomerStatus(Integration $integration, ?int $customerId): array
     {

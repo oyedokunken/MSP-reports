@@ -176,6 +176,9 @@ class AdminDroidIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @param array<string, mixed> $customer
+     */
     private function storeCustomer(array $customer): void
     {
         IntegrationCustomer::updateOrCreate(
@@ -192,6 +195,9 @@ class AdminDroidIntegration implements IntegrationInterface
         );
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function storeHistoricalData(array $data): void
     {
         $payload = $data['payload'];

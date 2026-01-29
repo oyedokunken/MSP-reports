@@ -23,6 +23,9 @@ class AlertEngine
         $this->notificationService = $notificationService;
     }
 
+    /**
+     * @return array{evaluated: int, triggered: int, skipped_cooldown: int, errors: int}
+     */
     public function evaluateAllRules(): array
     {
         $results = [
@@ -70,6 +73,12 @@ class AlertEngine
         return $this->checkCondition($metricValue, $rule->condition);
     }
 
+    /**
+     * @param string $metricType
+     * @param int $companyId
+     * @param array<string, mixed> $condition
+     * @return float|null
+     */
     protected function getMetricValue(string $metricType, int $companyId, array $condition): ?float
     {
         $period = $condition['period'] ?? '1h';
@@ -88,6 +97,11 @@ class AlertEngine
         };
     }
 
+    /**
+     * @param float $value
+     * @param array<string, mixed> $condition
+     * @return bool
+     */
     protected function checkCondition(float $value, array $condition): bool
     {
         $operator = $condition['operator'] ?? '>';
@@ -146,6 +160,10 @@ class AlertEngine
         );
     }
 
+    /**
+     * @param AlertRule $rule
+     * @return array<string, mixed>
+     */
     protected function getAlertContext(AlertRule $rule): array
     {
         return [

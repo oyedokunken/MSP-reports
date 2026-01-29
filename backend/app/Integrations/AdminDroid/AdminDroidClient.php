@@ -12,6 +12,7 @@ use Carbon\Carbon;
 
 class AdminDroidClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
@@ -20,6 +21,9 @@ class AdminDroidClient
 
     protected const TOKEN_CACHE_KEY_PREFIX = 'admindroid_token_';
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -124,6 +128,8 @@ class AdminDroidClient
 
     /**
      * Get organization info
+     * 
+     * @return array<int|string, array<string, mixed>>
      */
     public function getOrganization(): array
     {
@@ -133,6 +139,8 @@ class AdminDroidClient
 
     /**
      * Get users
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getUsers(): array
     {
@@ -155,6 +163,8 @@ class AdminDroidClient
 
     /**
      * Get M365 reports - user activity
+     * 
+     * @return array<string, mixed>
      */
     public function getM365Reports(): array
     {
@@ -164,6 +174,8 @@ class AdminDroidClient
 
     /**
      * Get sign-in activity
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getSignInActivity(?Carbon $since = null): array
     {
@@ -174,6 +186,8 @@ class AdminDroidClient
 
     /**
      * Get user activity reports
+     * 
+     * @return array<string, mixed>
      */
     public function getUserActivity(): array
     {
@@ -183,6 +197,8 @@ class AdminDroidClient
 
     /**
      * Get mailbox usage
+     * 
+     * @return array<string, mixed>
      */
     public function getMailboxUsage(): array
     {
@@ -192,6 +208,8 @@ class AdminDroidClient
 
     /**
      * Get OneDrive usage
+     * 
+     * @return array<string, mixed>
      */
     public function getOneDriveUsage(): array
     {
@@ -201,6 +219,8 @@ class AdminDroidClient
 
     /**
      * Get SharePoint usage
+     * 
+     * @return array<string, mixed>
      */
     public function getSharePointUsage(): array
     {
@@ -210,6 +230,8 @@ class AdminDroidClient
 
     /**
      * Get Teams usage
+     * 
+     * @return array<string, mixed>
      */
     public function getTeamsUsage(): array
     {
@@ -219,6 +241,8 @@ class AdminDroidClient
 
     /**
      * Make authenticated request to Microsoft Graph API
+     * 
+     * @return array<string, mixed>|null
      */
     protected function makeRequest(string $endpoint): ?array
     {

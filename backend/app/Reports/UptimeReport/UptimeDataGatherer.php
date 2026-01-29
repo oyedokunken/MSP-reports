@@ -8,6 +8,8 @@ class UptimeDataGatherer extends BaseDataGatherer
 {
     /**
      * Get uptime metrics summary
+     * 
+     * @return array{average_uptime: float, worst_day_uptime: float, best_day_uptime: float, total_downtime_minutes: float, daily_breakdown: array<int, array{date: string, uptime: float, downtime_minutes: float}>}
      */
     public function getUptimeMetrics(): array
     {
@@ -57,6 +59,8 @@ class UptimeDataGatherer extends BaseDataGatherer
 
     /**
      * Get device-level breakdown
+     * 
+     * @return array<int, array{device_name: string, device_id: string, average_uptime: float, total_downtime_minutes: float, measurement_count: int}>
      */
     public function getDeviceBreakdown(): array
     {
@@ -70,8 +74,8 @@ class UptimeDataGatherer extends BaseDataGatherer
             return [];
         }
 
-        return $data->groupBy(function ($item) {
-            return $item->data_payload['device_uid'] ?? 'unknown';
+        return $data->groupBy(function ($item): string {
+            return (string)($item->data_payload['device_uid'] ?? 'unknown');
         })->map(function ($deviceData, $deviceUid) {
             $uptimes = $deviceData->map(fn($item) => data_get($item->data_payload, 'uptime_percentage', 0));
             $downtimes = $deviceData->map(fn($item) => data_get($item->data_payload, 'downtime_minutes', 0));
@@ -88,6 +92,8 @@ class UptimeDataGatherer extends BaseDataGatherer
 
     /**
      * Get uptime trend over time
+     * 
+     * @return array<int, array{timestamp: string, uptime: float, device: string}>
      */
     public function getUptimeTrend(): array
     {

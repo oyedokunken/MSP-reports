@@ -22,8 +22,11 @@ class LibreNMSIntegration implements IntegrationInterface
     protected Integration $integration;
     protected LibreNMSClient $client;
     protected CustomerMappingService $mappingService;
+    /** @var callable|null */
     protected $progressCallback = null;
+    /** @var array<int, array<string, int>> */
     protected static array $customerMapCache = [];
+    /** @var array<int, array<int, array<int, array<string, mixed>>>> */
     protected static array $deviceGroupsMapCache = [];
 
     public function setProgressCallback(callable $callback): void
@@ -46,6 +49,9 @@ class LibreNMSIntegration implements IntegrationInterface
         $this->mappingService = app(CustomerMappingService::class);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -77,6 +83,9 @@ class LibreNMSIntegration implements IntegrationInterface
         ]);
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $items
+     */
     public function processBatch(string $type, array $items): void
     {
         switch ($type) {
@@ -151,9 +160,13 @@ class LibreNMSIntegration implements IntegrationInterface
         }
     }
 
+    /** @var array<int, mixed> */
     protected $mappedDuringSync = [];
 
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         $errors = [];
@@ -241,6 +254,9 @@ class LibreNMSIntegration implements IntegrationInterface
 
 
 
+    /**
+     * @return array<string, int>
+     */
     protected function getCustomerMap(): array
     {
         $id = $this->integration->integration_id;
@@ -252,6 +268,9 @@ class LibreNMSIntegration implements IntegrationInterface
         return self::$customerMapCache[$id];
     }
 
+    /**
+     * @return array<int, array<int, array<string, mixed>>>
+     */
     protected function getDeviceGroupsMap(): array
     {
         $id = $this->integration->integration_id;
@@ -277,6 +296,9 @@ class LibreNMSIntegration implements IntegrationInterface
         return self::$deviceGroupsMapCache[$id];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function processUnmappedCustomers(): array
     {
         // Only dispatch if there are actually unmapped customers
@@ -294,12 +316,18 @@ class LibreNMSIntegration implements IntegrationInterface
         return [];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         $groups = $this->client->getDeviceGroups();
         return array_map(fn($group) => LibreNMSMapper::mapDeviceGroup($group), $groups);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         $totalProcessed = 0;
@@ -428,6 +456,9 @@ class LibreNMSIntegration implements IntegrationInterface
         return Carbon::now()->subDays(365);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -461,6 +492,9 @@ class LibreNMSIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [
@@ -469,6 +503,9 @@ class LibreNMSIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @param array<string, mixed> $customer
+     */
     private function storeCustomer(array $customer): void
     {
         $integrationCustomer = IntegrationCustomer::updateOrCreate(
@@ -492,6 +529,9 @@ class LibreNMSIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $batch
+     */
     private function bulkStoreHistoricalData(array $batch): void
     {
         if (empty($batch)) return;
@@ -533,11 +573,17 @@ class LibreNMSIntegration implements IntegrationInterface
         );
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function storeHistoricalData(array $data): void
     {
         $this->bulkStoreHistoricalData([$data]);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getDisplayTemplate(): array
     {
         $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('librenms', 'LibreNMS');
@@ -582,6 +628,9 @@ class LibreNMSIntegration implements IntegrationInterface
         return $builder->build();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getPreviewData(?int $integrationCustomerId = null): array
     {
         try {

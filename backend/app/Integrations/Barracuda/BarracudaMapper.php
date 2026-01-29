@@ -9,6 +9,9 @@ class BarracudaMapper
 {
     /**
      * Map Barracuda account to customer format
+     * 
+     * @param array<string, mixed> $barracudaAccount
+     * @return array<string, mixed>
      */
     public static function mapCustomer(array $barracudaAccount): array
     {
@@ -30,6 +33,9 @@ class BarracudaMapper
 
     /**
      * Map email security data for historical storage
+     * 
+     * @param array<string, mixed> $barracudaThreat
+     * @return array<string, mixed>
      */
     public static function mapSecurityData(array $barracudaThreat): array
     {
@@ -53,6 +59,9 @@ class BarracudaMapper
 
     /**
      * Map spam filtering data for historical storage
+     * 
+     * @param array<string, mixed> $barracudaSpam
+     * @return array<string, mixed>
      */
     public static function mapSpamData(array $barracudaSpam): array
     {
@@ -73,6 +82,9 @@ class BarracudaMapper
 
     /**
      * Map compliance report data for historical storage
+     * 
+     * @param array<string, mixed> $barracudaCompliance
+     * @return array<string, mixed>
      */
     public static function mapComplianceData(array $barracudaCompliance): array
     {

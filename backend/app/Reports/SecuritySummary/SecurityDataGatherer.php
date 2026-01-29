@@ -14,6 +14,10 @@ class SecurityDataGatherer
         $this->customer = $customer;
     }
 
+    /**
+     * @param mixed $period
+     * @return array<string, mixed>
+     */
     public function getAggregatedData($period): array
     {
         return [

@@ -8,6 +8,9 @@ class AdminDroidMapper
 {
     /**
      * Map M365 organization to standardized customer format
+     * 
+     * @param array<string, mixed> $org
+     * @return array<string, mixed>
      */
     public static function mapOrganization(array $org): array
     {
@@ -29,6 +32,9 @@ class AdminDroidMapper
 
     /**
      * Map M365 user to standardized format
+     * 
+     * @param array<string, mixed> $user
+     * @return array<string, mixed>
      */
     public static function mapUser(array $user, ?int $integrationCustomerId = null): array
     {
@@ -52,6 +58,9 @@ class AdminDroidMapper
 
     /**
      * Map AdminDroid M365 report into a standardized IntegrationData payload
+     * 
+     * @param array<string, mixed> $report
+     * @return array<string, mixed>
      */
     public static function mapM365Report(array $report, ?int $integrationCustomerId = null): array
     {
@@ -65,6 +74,9 @@ class AdminDroidMapper
 
     /**
      * Map sign-in activity to standardized format
+     * 
+     * @param array<string, mixed> $signIn
+     * @return array<string, mixed>
      */
     public static function mapSignInActivity(array $signIn, ?int $integrationCustomerId = null): array
     {
@@ -95,6 +107,9 @@ class AdminDroidMapper
 
     /**
      * Map AdminDroid user activity into a standardized IntegrationData payload
+     * 
+     * @param array<string, mixed> $activity
+     * @return array<string, mixed>
      */
     public static function mapUserActivity(array $activity, ?int $integrationCustomerId = null): array
     {
@@ -108,6 +123,9 @@ class AdminDroidMapper
 
     /**
      * Map mailbox usage to standardized format
+     * 
+     * @param array<string, mixed> $mailbox
+     * @return array<string, mixed>
      */
     public static function mapMailboxUsage(array $mailbox, ?int $integrationCustomerId = null): array
     {
@@ -127,6 +145,9 @@ class AdminDroidMapper
 
     /**
      * Map Teams usage to standardized format
+     * 
+     * @param array<string, mixed> $teams
+     * @return array<string, mixed>
      */
     public static function mapTeamsUsage(array $teams, ?int $integrationCustomerId = null): array
     {

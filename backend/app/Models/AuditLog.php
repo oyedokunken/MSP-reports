@@ -14,7 +14,6 @@ use App\Models\Scopes\CompanyScope;
  */
 class AuditLog extends Model
 {
-    use HasFactory;
 
     protected $primaryKey = 'audit_log_id';
     public $timestamps = false;
@@ -44,7 +43,10 @@ class AuditLog extends Model
 
     protected $appends = ['actor_name', 'target_name'];
 
-    public function getActorNameAttribute()
+    /**
+     * @return string
+     */
+    public function getActorNameAttribute(): string
     {
         // Skip relationship resolution for non-model types like 'System'
         $morphMap = \Illuminate\Database\Eloquent\Relations\Relation::morphMap();
@@ -59,7 +61,10 @@ class AuditLog extends Model
         return $this->event_data['actor_name'] ?? 'Unknown';
     }
 
-    public function getTargetNameAttribute()
+    /**
+     * @return string
+     */
+    public function getTargetNameAttribute(): string
     {
         // Skip relationship resolution for unknown types
         $morphMap = \Illuminate\Database\Eloquent\Relations\Relation::morphMap();
@@ -75,17 +80,26 @@ class AuditLog extends Model
     }
 
     
-    public function company()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Company, $this>
+     */
+    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
-    public function actor()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\MorphTo<\Illuminate\Database\Eloquent\Model, $this>
+     */
+    public function actor(): \Illuminate\Database\Eloquent\Relations\MorphTo
     {
         return $this->morphTo();
     }
 
-    public function target()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\MorphTo<\Illuminate\Database\Eloquent\Model, $this>
+     */
+    public function target(): \Illuminate\Database\Eloquent\Relations\MorphTo
     {
         return $this->morphTo();
     }

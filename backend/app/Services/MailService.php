@@ -54,8 +54,8 @@ class MailService
      * Send a mailable using the tenant's mailer
      *
      * @param Company $company
-     * @param string|array $to
-     * @param \Illuminate\Mail\Mailable $mailable
+     * @param string|array<int, string> $to
+     * @param \Illuminate\Contracts\Mail\Mailable $mailable
      * @return void
      */
     public function send(Company $company, $to, $mailable)

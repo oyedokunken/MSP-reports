@@ -20,15 +20,18 @@ use PhpOffice\PhpSpreadsheet\Style\Color;
 use Illuminate\Support\Collection;
 use Carbon\Carbon;
 
+/**
+ * @implements WithMapping<object>
+ */
 class LibreNMSDeviceExport implements FromCollection, WithHeadings, WithMapping, WithTitle, ShouldAutoSize, WithStyles, WithColumnWidths, WithCustomStartCell
 {
-    protected $primaryColor = '215982'; // Primary blue
-    protected $accentColor1 = 'A42152'; // Accent red (Down)
-    protected $accentColor2 = '52A421'; // Accent green (Up)
-    protected $lightGrayColor = 'F5F5F5'; // Light background
+    protected string $primaryColor = '215982'; // Primary blue
+    protected string $accentColor1 = 'A42152'; // Accent red (Down)
+    protected string $accentColor2 = '52A421'; // Accent green (Up)
+    protected string $lightGrayColor = 'F5F5F5'; // Light background
 
     /**
-     * @return Collection
+     * @return Collection<int, mixed>
      */
     public function collection()
     {
@@ -67,6 +70,9 @@ class LibreNMSDeviceExport implements FromCollection, WithHeadings, WithMapping,
         });
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function headings(): array
     {
         return [
@@ -80,6 +86,10 @@ class LibreNMSDeviceExport implements FromCollection, WithHeadings, WithMapping,
         ];
     }
 
+    /**
+     * @param mixed $device
+     * @return array<int, string|int>
+     */
     public function map($device): array
     {
         return [
@@ -103,6 +113,9 @@ class LibreNMSDeviceExport implements FromCollection, WithHeadings, WithMapping,
         return 'B2';
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function columnWidths(): array
     {
         return [
@@ -116,6 +129,10 @@ class LibreNMSDeviceExport implements FromCollection, WithHeadings, WithMapping,
         ];
     }
 
+    /**
+     * @param Worksheet $sheet
+     * @return array<mixed>
+     */
     public function styles(Worksheet $sheet)
     {
         // Add title and date

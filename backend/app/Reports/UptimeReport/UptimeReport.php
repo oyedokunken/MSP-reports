@@ -62,7 +62,7 @@ class UptimeReport extends BaseReport
             'data' => [
                 'metrics' => $metrics,
                 'devices' => $deviceBreakdown,
-                'daily_breakdown' => $metrics['daily_breakdown'] ?? [],
+                'daily_breakdown' => $metrics['daily_breakdown'],
             ],
         ];
     }

@@ -4,6 +4,10 @@ namespace App\Integrations\Autotask;
 
 class AutotaskMapper
 {
+    /**
+     * @param array<string, mixed> $autotaskCompany
+     * @return array<string, mixed>
+     */
     public static function mapCompany(array $autotaskCompany): array
     {
         return [
@@ -95,6 +99,10 @@ class AutotaskMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $autotaskTicket
+     * @return array<string, mixed>
+     */
     public static function mapTicket(array $autotaskTicket): array
     {
         return [
@@ -119,6 +127,10 @@ class AutotaskMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $autotaskTimeEntry
+     * @return array<string, mixed>
+     */
     public static function mapTimeEntry(array $autotaskTimeEntry): array
     {
         return [
@@ -141,6 +153,10 @@ class AutotaskMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $autotaskResource
+     * @return array<string, mixed>
+     */
     public static function mapResource(array $autotaskResource): array
     {
         return [
@@ -159,6 +175,10 @@ class AutotaskMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $autotaskContract
+     * @return array<string, mixed>
+     */
     public static function mapContract(array $autotaskContract): array
     {
         return [
@@ -180,6 +200,10 @@ class AutotaskMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $autotaskContact
+     * @return array<string, mixed>
+     */
     public static function mapContact(array $autotaskContact): array
     {
         return [
@@ -201,6 +225,10 @@ class AutotaskMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $autotaskNote
+     * @return array<string, mixed>
+     */
     public static function mapTicketNote(array $autotaskNote): array
     {
         return [

@@ -8,11 +8,15 @@ use Illuminate\Support\Facades\Log;
 
 class VeeamClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -34,6 +38,7 @@ class VeeamClient
 
     /**
      * Placeholder for future Veeam API calls.
+     * @return array<int, array<string, mixed>>
      */
     public function getBackupJobs(): array
     {
@@ -46,6 +51,7 @@ class VeeamClient
 
     /**
      * Placeholder for future Veeam backup sessions.
+     * @return array<int, array<string, mixed>>
      */
     public function getBackupSessions(): array
     {
@@ -58,6 +64,7 @@ class VeeamClient
 
     /**
      * Placeholder for future Veeam protected VMs.
+     * @return array<int, array<string, mixed>>
      */
     public function getProtectedVMs(): array
     {

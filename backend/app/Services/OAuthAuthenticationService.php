@@ -32,7 +32,7 @@ class OAuthAuthenticationService
     /**
      * Handle Microsoft OAuth callback
      *
-     * @return array|null Returns user data if successful, null if failed
+     * @return array{email: string, name: string, external_id: string, avatar: string|null, token: string, refresh_token: string|null, expires_in: int|null}|null Returns user data if successful, null if failed
      */
     public function handleMicrosoftCallback(): ?array
     {
@@ -87,7 +87,7 @@ class OAuthAuthenticationService
     /**
      * Validate OAuth configuration
      *
-     * @return array
+     * @return array{valid: bool, errors: array<int, string>}
      */
     public function validateConfiguration(): array
     {
@@ -129,6 +129,8 @@ class OAuthAuthenticationService
 
     /**
      * Validate Keycloak configuration
+     * 
+     * @return array{valid: bool, errors: array<int, string>}
      */
     public function validateKeycloakConfiguration(): array
     {
@@ -162,6 +164,8 @@ class OAuthAuthenticationService
 
     /**
      * Redirect to Keycloak OAuth provider
+     * 
+     * @return \Symfony\Component\HttpFoundation\RedirectResponse
      */
     public function redirectToKeycloak()
     {
@@ -182,6 +186,8 @@ class OAuthAuthenticationService
 
     /**
      * Handle Keycloak OAuth callback
+     * 
+     * @return array{email: string, name: string, external_id: string, avatar: string|null, token: string, refresh_token: string|null, expires_in: int|null}|null
      */
     public function handleKeycloakCallback(): ?array
     {

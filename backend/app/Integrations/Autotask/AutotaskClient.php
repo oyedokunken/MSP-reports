@@ -12,6 +12,7 @@ use App\Integrations\Exceptions\RateLimitExceededException;
 
 class AutotaskClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected string $apiIntegrationCode;
@@ -20,6 +21,9 @@ class AutotaskClient
 
     protected bool $useMockData = false;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -61,6 +65,9 @@ class AutotaskClient
         return true;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCompanies(?Carbon $since = null): array
     {
         if ($this->useMockData) {
@@ -125,6 +132,9 @@ class AutotaskClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTickets(Carbon $startDate, Carbon $endDate): array
     {
         $allTickets = [];
@@ -183,6 +193,9 @@ class AutotaskClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTimeEntries(Carbon $startDate, Carbon $endDate): array
     {
         $allEntries = [];
@@ -241,6 +254,9 @@ class AutotaskClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getContracts(): array
     {
         $allContracts = [];
@@ -281,6 +297,9 @@ class AutotaskClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getResources(): array
     {
         $allResources = [];
@@ -314,6 +333,9 @@ class AutotaskClient
         return $allResources;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getContacts(Carbon $startDate, Carbon $endDate): array
     {
         $allContacts = [];
@@ -364,6 +386,9 @@ class AutotaskClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTicketNotes(Carbon $startDate, Carbon $endDate): array
     {
         $allNotes = [];
@@ -407,6 +432,9 @@ class AutotaskClient
         }
     }
 
+    /**
+     * @param array<string, mixed> $params
+     */
     protected function makeRequest(string $method, string $endpoint, array $params = []): Response
     {
         if (!$this->useMockData) {
@@ -495,6 +523,9 @@ class AutotaskClient
         throw $lastException;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function getMockCompanies(): array
     {
         \Log::info('Autotask Client: Using mock data mode');

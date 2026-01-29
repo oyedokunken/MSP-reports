@@ -24,7 +24,7 @@ class ReportConfigController extends Controller
         $this->registry = $registry;
     }
 
-    public function getAvailableReports(Request $request)
+    public function getAvailableReports(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -53,7 +53,7 @@ class ReportConfigController extends Controller
         ]);
     }
 
-    public function getAvailableReportsForCustomer(Request $request, $customerId)
+    public function getAvailableReportsForCustomer(Request $request, int $customerId): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -102,7 +102,7 @@ class ReportConfigController extends Controller
             return !empty(array_intersect($requiredIntegrations, $customerIntegrations));
         });
 
-        /** @var array $data */
+        /** @var array<int, array<string, mixed>> $data */
         $data = array_map(function (array $report) use ($customerIntegrations, $customerId, $frequency): array {
             $requiredIntegrations = $report['required_integrations'] ?? [];
             $matchedIntegrations = array_intersect($requiredIntegrations, $customerIntegrations);
@@ -138,7 +138,7 @@ class ReportConfigController extends Controller
         ]);
     }
 
-    public function getCustomerReports(Request $request, $id)
+    public function getCustomerReports(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -193,7 +193,7 @@ class ReportConfigController extends Controller
         ]);
     }
 
-    public function updateCustomerReports(Request $request, $id)
+    public function updateCustomerReports(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -260,7 +260,7 @@ class ReportConfigController extends Controller
         ]);
     }
 
-    public function updateCustomerReportDestination(Request $request, $id)
+    public function updateCustomerReportDestination(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -297,7 +297,7 @@ class ReportConfigController extends Controller
         ]);
     }
 
-    public function generateReport(Request $request, $customer_id)
+    public function generateReport(Request $request, int $customer_id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -393,7 +393,7 @@ class ReportConfigController extends Controller
     /**
      * Generate report from a specific schedule
      */
-    public function generateFromSchedule(Request $request, $schedule_id)
+    public function generateFromSchedule(Request $request, int $schedule_id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -463,7 +463,7 @@ class ReportConfigController extends Controller
     /**
      * Update an individual schedule's settings
      */
-    public function updateSchedule(Request $request, $schedule_id)
+    public function updateSchedule(Request $request, int $schedule_id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -529,7 +529,7 @@ class ReportConfigController extends Controller
     /**
      * Reset an individual schedule to its template settings
      */
-    public function resetSchedule(Request $request, $schedule_id)
+    public function resetSchedule(Request $request, int $schedule_id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -595,7 +595,7 @@ class ReportConfigController extends Controller
     /**
      * Generate reports for multiple customers at once (bulk generation)
      */
-    public function bulkGenerateReports(Request $request)
+    public function bulkGenerateReports(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;

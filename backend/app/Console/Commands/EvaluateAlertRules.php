@@ -11,7 +11,7 @@ class EvaluateAlertRules extends Command
     protected $signature = 'alerts:evaluate {--dry-run : Show what would be triggered without actually triggering}';
     protected $description = 'Evaluate all active alert rules and trigger notifications';
 
-    public function handle(AlertEngine $alertEngine)
+    public function handle(AlertEngine $alertEngine): int
     {
         $dryRun = $this->option('dry-run');
 
@@ -51,7 +51,7 @@ class EvaluateAlertRules extends Command
         }
     }
 
-    protected function showDryRun()
+    protected function showDryRun(): void
     {
         $rules = \App\Models\AlertRule::where('is_active', true)->get();
 

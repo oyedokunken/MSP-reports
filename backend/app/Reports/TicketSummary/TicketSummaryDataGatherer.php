@@ -17,6 +17,10 @@ class TicketSummaryDataGatherer
         $this->customer = $customer;
     }
 
+    /**
+     * @param array{start: Carbon, end: Carbon}|Carbon $period
+     * @return array<string, mixed>
+     */
     public function getReportData($period): array
     {
         $startDate = is_array($period) ? $period['start'] : now()->subMonth()->startOfMonth();
@@ -94,6 +98,10 @@ class TicketSummaryDataGatherer
         }
     }
 
+    /**
+     * @param \Illuminate\Support\Collection<int, IntegrationData> $records
+     * @return \Illuminate\Support\Collection<int, mixed>
+     */
     protected function extractTickets($records)
     {
         return $records->map(function ($record) {
@@ -111,6 +119,10 @@ class TicketSummaryDataGatherer
         });
     }
 
+    /**
+     * @param \Illuminate\Support\Collection<int, IntegrationData> $records
+     * @return \Illuminate\Support\Collection<int, mixed>
+     */
     protected function extractTimeEntries($records)
     {
         return $records->map(function ($record) {
@@ -128,7 +140,11 @@ class TicketSummaryDataGatherer
         });
     }
 
-    protected function extractResources($records)
+    /**
+     * @param \Illuminate\Support\Collection<int, IntegrationData> $records
+     * @return array<int|string, array{id: int|string, first_name: string, last_name: string, title: string, email: string|null}>
+     */
+    protected function extractResources($records): array
     {
         $resources = [];
         foreach ($records as $record) {
@@ -147,6 +163,10 @@ class TicketSummaryDataGatherer
         return $resources;
     }
 
+    /**
+     * @param \Illuminate\Support\Collection<int, array<string, mixed>> $tickets
+     * @return array<int, array<string, mixed>>
+     */
     protected function processTickets($tickets): array
     {
         return $tickets->map(function ($ticket) {
@@ -163,6 +183,10 @@ class TicketSummaryDataGatherer
         })->toArray();
     }
 
+    /**
+     * @param \Illuminate\Support\Collection<int, array<string, mixed>> $timeEntries
+     * @return array<int, array<string, mixed>>
+     */
     protected function processTimeEntries($timeEntries): array
     {
         return $timeEntries->map(function ($entry) {
@@ -180,6 +204,11 @@ class TicketSummaryDataGatherer
         })->toArray();
     }
 
+    /**
+     * @param \Illuminate\Support\Collection<int, array<string, mixed>> $tickets
+     * @param \Illuminate\Support\Collection<int, array<string, mixed>> $timeEntries
+     * @return array<string, mixed>
+     */
     protected function calculateSummary($tickets, $timeEntries): array
     {
         $totalTickets = $tickets->count();
@@ -217,13 +246,19 @@ class TicketSummaryDataGatherer
         ];
     }
 
+    /**
+     * @param \Illuminate\Support\Collection<int, array<string, mixed>> $tickets
+     * @return array<int, array{title: string, count: int}>
+     */
     protected function getTopIssues($tickets): array
     {
         return $tickets
-            ->groupBy('title')
+            ->groupBy(function($item): string {
+                return (string)($item['title'] ?? 'unknown');
+            })
             ->map(function ($group) {
                 return [
-                    'title' => $group->first()['title'] ?? 'Unknown',
+                    'title' => (string)($group->first()['title'] ?? 'Unknown'),
                     'count' => $group->count(),
                 ];
             })
@@ -233,10 +268,17 @@ class TicketSummaryDataGatherer
             ->toArray();
     }
 
+    /**
+     * @param \Illuminate\Support\Collection<int, array<string, mixed>> $timeEntries
+     * @param array<int|string, array<string, mixed>> $resources
+     * @return array<int, array{resource_id: mixed, name: string, title: string, total_hours: float, billable_hours: float}>
+     */
     protected function getTechnicianActivity($timeEntries, $resources): array
     {
         return $timeEntries
-            ->groupBy('resourceID')
+            ->groupBy(function($item): string {
+                return (string)($item['resourceID'] ?? 'unknown');
+            })
             ->map(function ($group) use ($resources) {
                 $resourceId = $group->first()['resourceID'] ?? null;
                 $resource = $resources[$resourceId] ?? null;
@@ -245,19 +287,19 @@ class TicketSummaryDataGatherer
                 $title = 'Technician';
                 
                 if ($resource) {
-                    $name = trim(($resource['first_name'] ?? '') . ' ' . ($resource['last_name'] ?? ''));
+                    $name = trim(((string)($resource['first_name'] ?? '')) . ' ' . ((string)($resource['last_name'] ?? '')));
                     if (empty($name)) {
                         $name = 'Resource ' . $resourceId;
                     }
-                    $title = $resource['title'] ?? 'Technician';
+                    $title = (string)($resource['title'] ?? 'Technician');
                 }
                 
                 return [
                     'resource_id' => $resourceId,
                     'name' => $name,
                     'title' => $title,
-                    'total_hours' => round($group->sum('hoursWorked'), 1),
-                    'billable_hours' => round($group->where('isNonBillable', false)->sum('hoursToBill'), 1),
+                    'total_hours' => (float)round($group->sum('hoursWorked'), 1),
+                    'billable_hours' => (float)round($group->where('isNonBillable', false)->sum('hoursToBill'), 1),
                 ];
             })
             ->sortByDesc('total_hours')
@@ -265,6 +307,9 @@ class TicketSummaryDataGatherer
             ->toArray();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function getEmptyData(): array
     {
         return [

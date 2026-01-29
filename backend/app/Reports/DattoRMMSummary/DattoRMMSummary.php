@@ -170,6 +170,9 @@ class DattoRMMSummary extends BaseReport
 
     /**
      * Calculate device summary statistics
+     * 
+     * @param \Illuminate\Support\Collection<int, mixed> $devices
+     * @return array<string, mixed>
      */
     private function getDeviceSummary($devices): array
     {
@@ -180,12 +183,12 @@ class DattoRMMSummary extends BaseReport
         $rebootRequired = $devices->where('reboot_required', true)->count();
 
         // Device type breakdown
-        $deviceTypes = $devices->groupBy(function($device) {
-            return $device['device_category'] ?: 'Unknown';
+        $deviceTypes = $devices->groupBy(function($device): string {
+            return (string)($device['device_category'] ?: 'Unknown');
         })->map->count()->toArray();
 
         // OS breakdown
-        $osBreakdown = $devices->groupBy(function($device) {
+        $osBreakdown = $devices->groupBy(function($device): string {
             $os = $device['operating_system'] ?? '';
             if (empty($os)) return 'Unknown';
             if (str_contains($os, 'Windows 11')) return 'Windows 11';
@@ -211,6 +214,9 @@ class DattoRMMSummary extends BaseReport
 
     /**
      * Calculate alert summary statistics
+     * 
+     * @param \Illuminate\Support\Collection<int, mixed> $alerts
+     * @return array<string, mixed>
      */
     private function getAlertSummary($alerts): array
     {
@@ -231,7 +237,7 @@ class DattoRMMSummary extends BaseReport
             : 0;
 
         // Top alert types
-        $topAlerts = $alerts->groupBy('diagnostics')
+        $topAlerts = $alerts->groupBy(fn($alert): string => (string)($alert['diagnostics'] ?? 'unknown'))
             ->map(function($group) {
                 return [
                     'message' => $group->first()['diagnostics'],
@@ -259,6 +265,9 @@ class DattoRMMSummary extends BaseReport
 
     /**
      * Calculate compliance summary
+     * 
+     * @param \Illuminate\Support\Collection<int, mixed> $devices
+     * @return array<string, mixed>
      */
     private function getComplianceSummary($devices): array
     {
@@ -286,6 +295,9 @@ class DattoRMMSummary extends BaseReport
 
     /**
      * Calculate security summary
+     * 
+     * @param \Illuminate\Support\Collection<int, mixed> $devices
+     * @return array<string, mixed>
      */
     private function getSecuritySummary($devices): array
     {
@@ -314,7 +326,12 @@ class DattoRMMSummary extends BaseReport
     }
 
     /**
-     * Generate recommendations based on data
+     * Generate daily trends for alerts
+     * 
+     * @param \Illuminate\Support\Collection<int, mixed> $alerts
+     * @param \Carbon\Carbon $startDate
+     * @param \Carbon\Carbon $endDate
+     * @return array{labels: array<int, string>, total: array<int, int>, critical: array<int, int>}
      */
     private function getDailyTrends($alerts, $startDate, $endDate): array
     {
@@ -350,6 +367,13 @@ class DattoRMMSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param \Illuminate\Support\Collection<int, mixed> $devices
+     * @param \Illuminate\Support\Collection<int, mixed> $alerts
+     * @param array<string, mixed> $complianceSummary
+     * @param array<string, mixed> $securitySummary
+     * @return array<int, array{severity: string, category: string, title: string, description: string, action: string}>
+     */
     private function generateRecommendations($devices, $alerts, $complianceSummary, $securitySummary): array
     {
         $recommendations = [];

@@ -28,6 +28,11 @@ class LicenseChecker
     }
 
     // Active Integration Middleware for Backend Servcies
+    /**
+     * @param Company $company
+     * @param string $integrationType
+     * @return array{allowed: bool, reason: string|null}
+     */
     public function canActivateIntegration(Company $company, string $integrationType): array
     {
         $productSku = "integration_{$integrationType}";
@@ -43,6 +48,11 @@ class LicenseChecker
     }
 
     // Retention Middleware for licenses
+    /**
+     * @param Company $company
+     * @param int $requestedMonths
+     * @return array{allowed: bool, reason: string|null}
+     */
     public function canExtendRetention(Company $company, int $requestedMonths): array
     {
         // Check for unlimited license first
@@ -96,6 +106,10 @@ class LicenseChecker
         return ['allowed' => true, 'reason' => null];
     }
 
+    /**
+     * @param Company $company
+     * @return \Illuminate\Database\Eloquent\Collection<int, License>
+     */
     public function getActiveLicenses(Company $company)
     {
         return $company
@@ -109,6 +123,10 @@ class LicenseChecker
             ->get();
     }
 
+    /**
+     * @param Company $company
+     * @return array{allowed: bool, reason: string|null}
+     */
     public function canCreateUser(Company $company): array
     {
         $licenseEnforcement = $company->settings['licensing']['license_enforcement'] ?? false;
@@ -151,6 +169,10 @@ class LicenseChecker
         return ['allowed' => true, 'reason' => null];
     }
 
+    /**
+     * @param Company $company
+     * @return array{licensed: bool, current_users: int, max_users: int|string, remaining: int|string, is_unlimited: bool}
+     */
     public function getUserLicenseStatus(Company $company): array
     {
         $userLicense = $company
@@ -172,6 +194,7 @@ class LicenseChecker
                 'current_users' => $currentUserCount,
                 'max_users' => 0,
                 'remaining' => 0,
+                'is_unlimited' => false,
             ];
         }
 
@@ -187,6 +210,11 @@ class LicenseChecker
         ];
     }
 
+    /**
+     * @param Company $company
+     * @param int $daysThreshold
+     * @return array<int, array{product_sku: string, license_type: string, expiry_date: \Carbon\Carbon|string, days_until_expiry: int}>
+     */
     public function getExpiringLicenses(Company $company, int $daysThreshold = 30): array
     {
         $expiringLicenses = $company

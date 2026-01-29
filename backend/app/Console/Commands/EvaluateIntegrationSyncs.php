@@ -14,7 +14,7 @@ class EvaluateIntegrationSyncs extends Command
                             {--integration= : Only process specific integration ID}';
     protected $description = 'Evaluate integration sync schedules and queue syncs that are due';
 
-    public function handle(SyncEngine $syncEngine)
+    public function handle(SyncEngine $syncEngine): int
     {
         $this->info('Evaluating integration sync schedules...');
 

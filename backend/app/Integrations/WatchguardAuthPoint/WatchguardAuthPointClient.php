@@ -12,6 +12,7 @@ use Carbon\Carbon;
 
 class WatchguardAuthPointClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
@@ -20,6 +21,9 @@ class WatchguardAuthPointClient
 
     protected const TOKEN_CACHE_KEY_PREFIX = 'watchguard_token_';
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -127,6 +131,8 @@ class WatchguardAuthPointClient
 
     /**
      * Get all users
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getUsers(): array
     {
@@ -141,6 +147,8 @@ class WatchguardAuthPointClient
 
     /**
      * Get authentication events/logs
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getAuthenticationEvents(?Carbon $since = null): array
     {
@@ -160,6 +168,8 @@ class WatchguardAuthPointClient
 
     /**
      * Get user enrollments/tokens
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getUserEnrollments(): array
     {
@@ -174,6 +184,8 @@ class WatchguardAuthPointClient
 
     /**
      * Get resources (protected applications)
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getResources(): array
     {
@@ -188,6 +200,9 @@ class WatchguardAuthPointClient
 
     /**
      * Make authenticated request to WatchGuard API
+     * 
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>|null
      */
     protected function makeRequest(string $endpoint, array $params = []): ?array
     {

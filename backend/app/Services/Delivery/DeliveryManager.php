@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 class DeliveryManager
 {
+    /** @var array<string, DeliveryDriverInterface> */
     protected array $drivers = [];
 
     public function __construct()
@@ -44,6 +45,8 @@ class DeliveryManager
 
     /**
      * Get all registered drivers
+     * 
+     * @return array<string, DeliveryDriverInterface>
      */
     public function getDrivers(): array
     {
@@ -52,6 +55,8 @@ class DeliveryManager
 
     /**
      * Get available delivery methods with their schemas
+     * 
+     * @return array<string, array{identifier: string, display_name: string, config_schema: array<string, mixed>}>
      */
     public function getAvailableMethods(): array
     {
@@ -72,8 +77,8 @@ class DeliveryManager
      * @param GeneratedReport $report
      * @param Customer $customer
      * @param Company $company
-     * @param array|null $overrideRecipients Override recipients (for manual sends)
-     * @return array Results for each delivery method attempted
+     * @param array<int, string>|null $overrideRecipients Override recipients (for manual sends)
+     * @return array<string, array{success: bool, destination?: string, message?: string}> Results for each delivery method attempted
      */
     public function deliver(
         GeneratedReport $report,
@@ -146,6 +151,9 @@ class DeliveryManager
 
     /**
      * Get enabled delivery methods from config
+     * 
+     * @param array<string, mixed> $deliveryConfig
+     * @return array<int, string>
      */
     protected function getEnabledMethods(array $deliveryConfig): array
     {
@@ -172,6 +180,9 @@ class DeliveryManager
 
     /**
      * Validate delivery configuration for a customer
+     * 
+     * @param array<string, mixed> $deliveryConfig
+     * @return array{valid: bool, errors: array<string, array<int, string>>}
      */
     public function validateConfig(array $deliveryConfig): array
     {
@@ -201,6 +212,11 @@ class DeliveryManager
 
     /**
      * Test a specific delivery method configuration
+     * 
+     * @param string $method
+     * @param array<string, mixed> $config
+     * @param Company $company
+     * @return array{success: bool, message: string}
      */
     public function testConnection(string $method, array $config, Company $company): array
     {

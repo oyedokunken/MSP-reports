@@ -14,6 +14,7 @@ use App\Integrations\Exceptions\RateLimitExceededException;
 
 class DattoClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
@@ -24,6 +25,9 @@ class DattoClient
     protected const TOKEN_CACHE_KEY_PREFIX = 'datto_rmm_token_';
     protected const TOKEN_EXPIRY = 99 * 3600;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -216,6 +220,9 @@ class DattoClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         if ($this->useMockData) {
@@ -237,6 +244,9 @@ class DattoClient
         return $customers;
     }
     
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getRmmSites(): array
     {
         if ($this->useMockData) {
@@ -276,12 +286,23 @@ class DattoClient
         return $allSites;
     }
     
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getSaasDomains(): array
     {
         $response = $this->makeSaasRequest('/saas/domains');
-        return $response;
+        // Response could be array of domains or an object with 'items' key
+        if (isset($response['items']) && is_array($response['items'])) {
+            return $response['items'];
+        }
+        /** @var array<int, array<string, mixed>> */
+        return array_values($response);
     }
     
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getRmmDevices(string $siteUid): array
     {
         $allDevices = [];
@@ -313,6 +334,9 @@ class DattoClient
         return $allDevices;
     }
     
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getRmmAlerts(string $siteUid, bool $openOnly = true, ?Carbon $since = null): array
     {
         $endpoint = $openOnly 
@@ -359,6 +383,9 @@ class DattoClient
         return $allAlerts;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getBackupHistory(Carbon $startDate, Carbon $endDate): array
     {
         if ($this->hasSaasCredentials()) {
@@ -368,6 +395,10 @@ class DattoClient
         return [];
     }
 
+    /**
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>|null
+     */
     protected function makeRmmRequest(string $endpoint, array $params = []): ?array
     {
         if (empty($this->accessToken)) {
@@ -473,6 +504,10 @@ class DattoClient
         throw new \Exception('Unexpected error in makeRmmRequest');
     }
     
+    /**
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
+     */
     protected function makeSaasRequest(string $endpoint, array $params = []): array
     {
         if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
@@ -516,6 +551,9 @@ class DattoClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function getMockCustomers(): array
     {
         \Log::info('Datto Client: Using mock data mode');

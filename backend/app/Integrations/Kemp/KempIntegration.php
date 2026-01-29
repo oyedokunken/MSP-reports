@@ -32,6 +32,9 @@ class KempIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         $errors = [];
@@ -103,6 +106,9 @@ class KempIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         $systemInfo = $this->client->getSystemInfo();
@@ -110,6 +116,9 @@ class KempIntegration implements IntegrationInterface
         return [KempMapper::mapLoadMaster($systemInfo, $baseUrl)];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         $data = [];
@@ -154,6 +163,9 @@ class KempIntegration implements IntegrationInterface
         return now();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -185,6 +197,9 @@ class KempIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [
@@ -193,6 +208,9 @@ class KempIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @param array<string, mixed> $customer
+     */
     private function storeCustomer(array $customer): void
     {
         IntegrationCustomer::updateOrCreate(
@@ -209,6 +227,9 @@ class KempIntegration implements IntegrationInterface
         );
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function storeHistoricalData(array $data): void
     {
         $payload = $data['payload'];
@@ -260,6 +281,9 @@ class KempIntegration implements IntegrationInterface
         ]);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -298,6 +322,9 @@ class KempIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getDisplayTemplate(): array
     {
         $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('kemp', 'Kemp LoadMaster');

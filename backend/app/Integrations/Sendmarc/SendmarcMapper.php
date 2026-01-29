@@ -6,6 +6,10 @@ use Carbon\Carbon;
 
 class SendmarcMapper
 {
+    /**
+     * @param array<string, mixed> $domain
+     * @return array<string, mixed>
+     */
     public static function mapDomain(array $domain): array
     {
         return [
@@ -27,6 +31,11 @@ class SendmarcMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $sender
+     * @param mixed $timestamp
+     * @return array<string, mixed>
+     */
     public static function mapSenderStatistics(array $sender, string $domainUuid, $timestamp = null): array
     {
         return [
@@ -57,6 +66,11 @@ class SendmarcMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $volumeData
+     * @param mixed $timestamp
+     * @return array<string, mixed>
+     */
     public static function mapVolumeTotals(array $volumeData, string $domainUuid, $timestamp = null): array
     {
         return [
@@ -77,6 +91,11 @@ class SendmarcMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $timelineData
+     * @param mixed $timestamp
+     * @return array<string, mixed>
+     */
     public static function mapVolumeTimeline(array $timelineData, string $domainUuid, int $index, $timestamp = null): array
     {
         return [
@@ -98,6 +117,11 @@ class SendmarcMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $ipData
+     * @param mixed $timestamp
+     * @return array<string, mixed>
+     */
     public static function mapIpAddressStatistics(array $ipData, string $domainUuid, $timestamp = null): array
     {
         return [

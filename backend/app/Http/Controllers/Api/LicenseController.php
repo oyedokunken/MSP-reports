@@ -9,7 +9,7 @@ use App\Models\License;
 
 class LicenseController extends Controller
 {
-    public function index(Request $request, LicenseChecker $licenseChecker)
+    public function index(Request $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -29,7 +29,7 @@ class LicenseController extends Controller
         ]);
     }
 
-    public function checkIntegrationLicense(Request $request, LicenseChecker $licenseChecker)
+    public function checkIntegrationLicense(Request $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -46,7 +46,7 @@ class LicenseController extends Controller
         ]);
     }
 
-    public function checkRetentionLicense(Request $request, LicenseChecker $licenseChecker)
+    public function checkRetentionLicense(Request $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -63,7 +63,7 @@ class LicenseController extends Controller
         ]);
     }
 
-    public function checkUserLicense(Request $request, LicenseChecker $licenseChecker)
+    public function checkUserLicense(Request $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -80,7 +80,7 @@ class LicenseController extends Controller
         ]);
     }
 
-    public function getLicenseUsage(Request $request, LicenseChecker $licenseChecker)
+    public function getLicenseUsage(Request $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;

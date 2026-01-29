@@ -8,7 +8,7 @@ class RolePermissionService
      * Get default permissions for a given role
      *
      * @param string $roleName
-     * @return array
+     * @return array<string, array<string, bool>>
      */
     public static function getDefaultPermissions(string $roleName): array
     {
@@ -24,6 +24,7 @@ class RolePermissionService
 
     /**
      * Admin - Full access to everything
+     * @return array<string, array<string, bool>>
      */
     private static function getAdminPermissions(): array
     {
@@ -94,6 +95,7 @@ class RolePermissionService
 
     /**
      * Manager - Report configuration and analytics, customer management
+     * @return array<string, array<string, bool>>
      */
     private static function getManagerPermissions(): array
     {
@@ -164,6 +166,7 @@ class RolePermissionService
 
     /**
      * Technician - Integration and sync management, limited customer access
+     * @return array<string, array<string, bool>>
      */
     private static function getTechnicianPermissions(): array
     {
@@ -234,6 +237,7 @@ class RolePermissionService
 
     /**
      * Viewer - Read-only report access
+     * @return array<string, array<string, bool>>
      */
     private static function getViewerPermissions(): array
     {
@@ -304,6 +308,7 @@ class RolePermissionService
 
     /**
      * Customer - Customer-facing read-only access to own reports
+     * @return array<string, array<string, bool>>
      */
     private static function getCustomerPermissions(): array
     {
@@ -375,7 +380,7 @@ class RolePermissionService
     /**
      * Check if a user has a specific permission
      *
-     * @param array|null $userPermissions
+     * @param array<string, array<string, bool>>|null $userPermissions
      * @param string $resource
      * @param string $action
      * @return bool
@@ -394,8 +399,8 @@ class RolePermissionService
      * Custom permissions override role defaults
      *
      * @param string $roleName
-     * @param array|null $customPermissions
-     * @return array
+     * @param array<string, array<string, bool>>|null $customPermissions
+     * @return array<string, array<string, bool>>
      */
     public static function mergePermissions(string $roleName, ?array $customPermissions): array
     {

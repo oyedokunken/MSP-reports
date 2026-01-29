@@ -17,7 +17,7 @@ class CleanupExpiredData extends Command
     protected $signature = 'data:cleanup {--dry-run : Show what would be deleted without actually deleting}';
     protected $description = 'Clean up expired data based on company retention policies';
 
-    public function handle()
+    public function handle(): int
     {
         $dryRun = $this->option('dry-run');
         
@@ -74,6 +74,9 @@ class CleanupExpiredData extends Command
         return 0;
     }
 
+    /**
+     * @param array<string, mixed> $retentionSettings
+     */
     private function cleanupGeneratedReports(Company $company, array $retentionSettings, bool $dryRun): int
     {
         $retentionDays = $retentionSettings['generated_reports_months'] ?? 36;
@@ -98,6 +101,9 @@ class CleanupExpiredData extends Command
         return $count;
     }
 
+    /**
+     * @param array<string, mixed> $retentionSettings
+     */
     private function cleanupSyncLogs(Company $company, array $retentionSettings, bool $dryRun): int
     {
         $retentionMonths = $retentionSettings['integration_sync_logs_months'] ?? 12;
@@ -122,6 +128,9 @@ class CleanupExpiredData extends Command
         return $count;
     }
 
+    /**
+     * @param array<string, mixed> $retentionSettings
+     */
     private function cleanupIntegrationData(Company $company, array $retentionSettings, bool $dryRun): int
     {
         $rawEventsDays = $retentionSettings['historical_data']['raw_events_days'] ?? 90;

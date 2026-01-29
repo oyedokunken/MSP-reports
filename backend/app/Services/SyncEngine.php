@@ -35,6 +35,9 @@ class SyncEngine
         return $syncLog;
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function evaluateScheduledSyncs(): array
     {
         $results = [
@@ -93,6 +96,10 @@ class SyncEngine
         return 4;
     }
 
+    /**
+     * @param array<int, string> $errors
+     * @param array<int|string, mixed> $customersMapped
+     */
     public function completeSyncLog(
         SyncLog $syncLog,
         string $status,

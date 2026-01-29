@@ -51,6 +51,13 @@ class LibreNMSSummary extends BaseReport
         return $hasData;
     }
 
+    /**
+     * @param Customer $customer
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
         // Get customer's LibreNMS group IDs (same as Device Report)
@@ -59,9 +66,9 @@ class LibreNMSSummary extends BaseReport
                 $query->where('integration_type', 'LibreNMS');
             })
             ->get()
-            ->map(function($ic) {
+            ->map(function($ic): string {
                 /** @var \App\Models\IntegrationCustomer $ic */
-                return str_replace('group_', '', (string)$ic->external_id);
+                return (string)str_replace('group_', '', (string)$ic->external_id);
             })
             ->toArray();
 
@@ -128,14 +135,14 @@ class LibreNMSSummary extends BaseReport
 
         $totalDevices = count($devices);
         $onlineDevices = count(array_filter($devices, fn($d) => $d['status'] === 'Online'));
-        $avgUptime30d = $totalDevices > 0 ? collect($devices)->avg('uptime_30d') : 0;
+        $avgUptime30d = $totalDevices > 0 ? (float)collect($devices)->avg('uptime_30d') : 0.0;
 
         // Breakdown stats
         $deviceTypes = [];
         $osTypes = [];
         foreach ($devices as $device) {
-            $type = $device['type'] ?: 'Unknown';
-            $os = $device['os'] ?: 'Unknown';
+            $type = (string)($device['type'] ?: 'Unknown');
+            $os = (string)($device['os'] ?: 'Unknown');
             $deviceTypes[$type] = ($deviceTypes[$type] ?? 0) + 1;
             $osTypes[$os] = ($osTypes[$os] ?? 0) + 1;
         }

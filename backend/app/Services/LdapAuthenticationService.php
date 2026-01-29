@@ -22,7 +22,7 @@ class LdapAuthenticationService
      *
      * @param string $username
      * @param string $password
-     * @return array|null Returns user data if successful, null if failed
+     * @return array{username: string, email: string, name: string, first_name: string|null, last_name: string|null, display_name: string|null}|null Returns user data if successful, null if failed
      */
     public function authenticate(string $username, string $password): ?array
     {
@@ -85,7 +85,7 @@ class LdapAuthenticationService
      * Get user data from LDAP
      *
      * @param string $username
-     * @return array|null
+     * @return array{username: string, email: string, name: string, first_name: string|null, last_name: string|null, display_name: string|null}|null
      */
     protected function getUserData(string $username): ?array
     {

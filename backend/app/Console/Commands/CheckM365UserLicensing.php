@@ -26,7 +26,7 @@ class CheckM365UserLicensing extends Command
     /**
      * Execute the console command.
      */
-    public function handle(M365LicenseService $licenseService)
+    public function handle(M365LicenseService $licenseService): int
     {
         $upn = $this->argument('upn');
         $integrationId = $this->option('integration');

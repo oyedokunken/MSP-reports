@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Scope;
 
 class CompanyScope implements Scope
 {
+    /**
+     * @param Builder<Model> $builder
+     * @param Model $model
+     */
     public function apply(Builder $builder, Model $model): void
     {
         if (auth()->check()) {
@@ -35,6 +39,9 @@ class CompanyScope implements Scope
         }
     }
 
+    /**
+     * @param Builder<Model> $builder
+     */
     public function extend(Builder $builder): void
     {
         $builder->macro('withoutCompanyScope', function (Builder $builder) {

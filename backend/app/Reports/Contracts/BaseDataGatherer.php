@@ -25,6 +25,9 @@ abstract class BaseDataGatherer
     /**
      * Query IntegrationData for specific data type
      * Returns query builder for further customization
+     * 
+     * @param string $dataType
+     * @return \Illuminate\Database\Eloquent\Builder<IntegrationData>
      */
     protected function queryDataType(string $dataType)
     {
@@ -40,6 +43,9 @@ abstract class BaseDataGatherer
     /**
      * Use TimescaleDB continuous aggregates for performance
      * Queries daily rollups instead of raw data
+     * 
+     * @param string $dataType
+     * @return \Illuminate\Database\Query\Builder
      */
     protected function queryDailyAggregate(string $dataType)
     {
@@ -53,6 +59,9 @@ abstract class BaseDataGatherer
 
     /**
      * Use TimescaleDB monthly aggregates
+     * 
+     * @param string $dataType
+     * @return \Illuminate\Database\Query\Builder
      */
     protected function queryMonthlyAggregate(string $dataType)
     {
@@ -67,6 +76,8 @@ abstract class BaseDataGatherer
     /**
      * Get all integration customer IDs for this customer
      * Useful for complex queries
+     * 
+     * @return array<int, int>
      */
     protected function getIntegrationCustomerIds(): array
     {
@@ -120,13 +131,17 @@ abstract class BaseDataGatherer
 
     /**
      * Helper to group data by a payload field
+     * 
+     * @param string $dataType
+     * @param string $field
+     * @return array<string, int>
      */
     protected function groupByField(string $dataType, string $field): array
     {
         $data = $this->queryDataType($dataType)->get();
         
-        return $data->groupBy(function ($item) use ($field) {
-            return data_get($item->data_payload, $field, 'unknown');
+        return $data->groupBy(function ($item) use ($field): string {
+            return (string)($item->data_payload[$field] ?? 'unknown');
         })->map(function ($group) {
             return $group->count();
         })->toArray();

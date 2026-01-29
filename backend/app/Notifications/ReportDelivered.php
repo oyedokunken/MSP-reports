@@ -11,10 +11,13 @@ class ReportDelivered extends Notification implements ShouldBroadcastNow
 {
     use Queueable;
 
+    /** @var array<string, mixed> */
     protected array $data;
 
     /**
      * Create a new notification instance.
+     * 
+     * @param array<string, mixed> $data
      */
     public function __construct(array $data = [])
     {

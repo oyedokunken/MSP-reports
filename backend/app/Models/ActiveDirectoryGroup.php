@@ -39,6 +39,8 @@ class ActiveDirectoryGroup extends Model
 
     /**
      * Get the company that owns the group
+     * 
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {
@@ -47,6 +49,8 @@ class ActiveDirectoryGroup extends Model
 
     /**
      * Get the integration that synced this group
+     * 
+     * @return BelongsTo<Integration, $this>
      */
     public function integration(): BelongsTo
     {
@@ -55,6 +59,8 @@ class ActiveDirectoryGroup extends Model
 
     /**
      * Get the customer this group belongs to
+     * 
+     * @return BelongsTo<Customer, $this>
      */
     public function customer(): BelongsTo
     {
@@ -63,6 +69,8 @@ class ActiveDirectoryGroup extends Model
 
     /**
      * Get memberships for this group
+     * 
+     * @return HasMany<ActiveDirectoryGroupMembership, $this>
      */
     public function memberships(): HasMany
     {
@@ -72,6 +80,9 @@ class ActiveDirectoryGroup extends Model
 
     /**
      * Scope to security groups only
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeSecurity($query)
     {
@@ -80,6 +91,9 @@ class ActiveDirectoryGroup extends Model
 
     /**
      * Scope to distribution groups only
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeDistribution($query)
     {
@@ -88,6 +102,9 @@ class ActiveDirectoryGroup extends Model
 
     /**
      * Scope to global scope groups
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeGlobalScope($query)
     {

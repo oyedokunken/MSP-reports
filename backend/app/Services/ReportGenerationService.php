@@ -139,6 +139,10 @@ class ReportGenerationService
         }
     }
 
+    /**
+     * @param ReportSchedule $schedule
+     * @return array{start: \Carbon\Carbon, end: \Carbon\Carbon}
+     */
     private function calculateReportPeriod(ReportSchedule $schedule): array
     {
         $now = now();
@@ -176,6 +180,11 @@ class ReportGenerationService
         }
     }
 
+    /**
+     * @param string $reportType
+     * @param int $companyId
+     * @return \App\Reports\Contracts\ReportInterface|null
+     */
     private function loadReportClass(string $reportType, int $companyId)
     {
         // Use registry to get report instance
@@ -192,6 +201,12 @@ class ReportGenerationService
         return $report;
     }
 
+    /**
+     * @param array<string, mixed> $reportData
+     * @param \App\Models\Company $company
+     * @param Customer $customer
+     * @return array<string, mixed>
+     */
     private function applyBranding(array $reportData, $company, Customer $customer): array
     {
         $whiteLabel = $company->settings['white_label'] ?? [];
@@ -233,6 +248,11 @@ class ReportGenerationService
         return $reportData;
     }
 
+    /**
+     * @param array<string, mixed> $reportData
+     * @param ReportSchedule $schedule
+     * @return string
+     */
     private function generatePDF(array $reportData, ReportSchedule $schedule): string
     {
         // Generate filename using naming service (respects company naming pattern)
@@ -377,11 +397,17 @@ class ReportGenerationService
         return $filename;
     }
 
+    /**
+     * @param array<string, mixed> $reportData
+     * @param ReportSchedule $schedule
+     * @param string $renderPart
+     * @return string
+     */
     private function generateHTML(array $reportData, ReportSchedule $schedule, string $renderPart = 'all'): string
     {
         $reportClass = $this->loadReportClass($schedule->report_type, $schedule->company_id);
 
-        if ($reportClass && method_exists($reportClass, 'getTemplate')) {
+        if ($reportClass) {
             $templatePath = $reportClass->getTemplate();
 
             Log::info('Generating report HTML', [
@@ -532,6 +558,10 @@ class ReportGenerationService
         ])->render();
     }
 
+    /**
+     * @param \App\Models\Company $company
+     * @return \Carbon\Carbon
+     */
     private function calculateRetentionDate($company): \Carbon\Carbon
     {
         $retentionDays = $company->settings['data_retention']['generated_reports_months'] ?? 36;
@@ -607,6 +637,10 @@ class ReportGenerationService
 
     /**
      * Generate PDF header HTML for repeating on every page
+     * 
+     * @param array<string, mixed> $reportData
+     * @param ReportSchedule $schedule
+     * @return string
      */
     private function generatePDFHeader(array $reportData, ReportSchedule $schedule): string
     {
@@ -621,6 +655,10 @@ class ReportGenerationService
 
     /**
      * Generate PDF footer HTML for repeating on every page with page numbers
+     * 
+     * @param array<string, mixed> $reportData
+     * @param ReportSchedule $schedule
+     * @return string
      */
     private function generatePDFFooter(array $reportData, ReportSchedule $schedule): string
     {

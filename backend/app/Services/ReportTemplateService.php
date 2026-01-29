@@ -48,6 +48,10 @@ class ReportTemplateService
 
     /**
      * Apply template to multiple customers
+     * 
+     * @param ReportTemplate $template
+     * @param array<int, int> $customerIds
+     * @return Collection<int, ReportSchedule>
      */
     public function applyTemplateToCustomers(ReportTemplate $template, array $customerIds): Collection
     {
@@ -115,6 +119,9 @@ class ReportTemplateService
 
     /**
      * Sync template changes to all linked schedules that haven't been customized.
+     * 
+     * @param ReportTemplate $template
+     * @return array{updated: int, skipped: int}
      */
     public function syncLinkedSchedules(ReportTemplate $template): array
     {

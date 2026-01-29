@@ -8,6 +8,10 @@ class IntegrationDataValidator
 {
     /**
      * Validate and sanitize integration data payload
+     * 
+     * @param string $dataType
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
      */
     public function validate(string $dataType, array $payload): array
     {
@@ -28,6 +32,9 @@ class IntegrationDataValidator
 
     /**
      * Sanitize payload to remove dangerous content
+     * 
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
      */
     private function sanitizePayload(array $payload): array
     {
@@ -53,6 +60,9 @@ class IntegrationDataValidator
 
     /**
      * Validate ticket data
+     * 
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     private function validateTicket(array $data): array
     {
@@ -67,6 +77,9 @@ class IntegrationDataValidator
 
     /**
      * Validate time entry data
+     * 
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     private function validateTimeEntry(array $data): array
     {
@@ -81,6 +94,9 @@ class IntegrationDataValidator
 
     /**
      * Validate device data
+     * 
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     private function validateDevice(array $data): array
     {
@@ -94,6 +110,9 @@ class IntegrationDataValidator
 
     /**
      * Validate alert data
+     * 
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     private function validateAlert(array $data): array
     {
@@ -108,6 +127,9 @@ class IntegrationDataValidator
 
     /**
      * Validate SSL certificate data
+     * 
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     private function validateSslCert(array $data): array
     {
@@ -123,6 +145,9 @@ class IntegrationDataValidator
 
     /**
      * Validate domain data
+     * 
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     private function validateDomain(array $data): array
     {
@@ -137,6 +162,9 @@ class IntegrationDataValidator
 
     /**
      * Sanitize data for logging (remove PII)
+     * 
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
      */
     public function sanitizeForLogging(array $data): array
     {

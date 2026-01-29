@@ -27,9 +27,10 @@ class ImportHistoricalDataJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 5;
-    public $timeout = 1800; 
-    public $backoff = [120, 300, 600, 1200];
+    public int $tries = 5;
+    public int $timeout = 1800; 
+    /** @var array<int, int> */
+    public array $backoff = [120, 300, 600, 1200];
 
     protected HistoricalImportJobModel $importJob;
     protected Carbon $chunkDate;
@@ -309,6 +310,9 @@ class ImportHistoricalDataJob implements ShouldQueue
         }
     }
 
+    /**
+     * @return object|null
+     */
     private function loadIntegrationClass(Integration $integration)
     {
         $integrationClasses = [

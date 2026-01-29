@@ -11,7 +11,7 @@ class CleanupStaleSyncs extends Command
     protected $signature = 'syncs:cleanup-stale';
     protected $description = 'Mark stale syncs (running > 2 hours) as failed';
 
-    public function handle()
+    public function handle(): int
     {
         $threshold = now()->subHours(2);
         

@@ -7,6 +7,9 @@ class KaseyaMapper
     /**
      * Map Kaseya compliance assessment into a standardized IntegrationData payload.
      * Currently placeholder only.
+     * 
+     * @param array<string, mixed> $assessment
+     * @return array<string, mixed>
      */
     public static function mapComplianceAssessment(array $assessment): array
     {
@@ -22,6 +25,9 @@ class KaseyaMapper
     /**
      * Map Kaseya risk assessment into a standardized IntegrationData payload.
      * Currently placeholder only.
+     * 
+     * @param array<string, mixed> $assessment
+     * @return array<string, mixed>
      */
     public static function mapRiskAssessment(array $assessment): array
     {
@@ -37,6 +43,9 @@ class KaseyaMapper
     /**
      * Map Kaseya audit report into a standardized IntegrationData payload.
      * Currently placeholder only.
+     * 
+     * @param array<string, mixed> $report
+     * @return array<string, mixed>
      */
     public static function mapAuditReport(array $report): array
     {

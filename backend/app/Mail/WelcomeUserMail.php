@@ -13,9 +13,9 @@ class WelcomeUserMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $user;
-    public $plainPassword;
-    public $loginUrl;
+    public User $user;
+    public string $plainPassword;
+    public string $loginUrl;
 
     public function __construct(User $user, string $plainPassword)
     {

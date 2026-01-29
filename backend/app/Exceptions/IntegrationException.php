@@ -34,6 +34,9 @@ class IntegrationException extends Exception
         return $this->integrationType;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function context(): array
     {
         return [

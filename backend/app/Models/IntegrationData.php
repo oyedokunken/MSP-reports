@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 use App\Models\Scopes\CustomerScope;
@@ -15,7 +14,7 @@ use App\Models\Scopes\CustomerScope;
  * @property string|null $external_id
  * @property string $data_type
  * @property \Carbon\Carbon $data_timestamp
- * @property array $data_payload
+ * @property array<string, mixed> $data_payload
  * @property \Carbon\Carbon $imported_at
  * @property int $data_version
  * @property int|null $resource_id
@@ -28,7 +27,6 @@ use App\Models\Scopes\CustomerScope;
  */
 class IntegrationData extends Model
 {
-    use HasFactory;
 
     protected $primaryKey = 'integration_data_id';
     public $incrementing = true;
@@ -58,16 +56,25 @@ class IntegrationData extends Model
         'data_payload' => 'array',
     ];
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Company, $this>
+     */
     public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Integration, $this>
+     */
     public function integration(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Integration::class, 'integration_id', 'integration_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<IntegrationCustomer, $this>
+     */
     public function integrationCustomer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(IntegrationCustomer::class, 'integration_customer_id', 'integration_customer_id');

@@ -61,6 +61,9 @@ class NotificationService
 
     /**
      * Send historical import completion notification
+     * 
+     * @param Integration $integration
+     * @param array<string, mixed> $stats
      */
     public function sendImportCompletionNotification(Integration $integration, array $stats): void
     {
@@ -146,6 +149,11 @@ MSP Reports Platform
 MSG;
     }
 
+    /**
+     * @param Integration $integration
+     * @param array<string, mixed> $stats
+     * @return string
+     */
     protected function buildImportCompletionMessage(Integration $integration, array $stats): string
     {
         $recordsImported = $stats['records_imported'] ?? 0;
@@ -168,6 +176,9 @@ MSG;
 
     /**
      * Send report delivery confirmation notification to company admins
+     * 
+     * @param GeneratedReport $report
+     * @param array<string, array{success: bool, destination?: string}> $deliveryResults
      */
     public function sendReportDeliveryConfirmation(GeneratedReport $report, array $deliveryResults): void
     {
@@ -206,7 +217,7 @@ MSG;
         $successMethods = [];
         $destinations = [];
         foreach ($deliveryResults as $method => $result) {
-            if ($result['success'] ?? false) {
+            if ($result['success']) {
                 $successMethods[] = ucfirst($method);
                 if (isset($result['destination'])) {
                     $destinations[] = $result['destination'];
@@ -257,6 +268,12 @@ MSG;
 
     /**
      * Send email confirmation for report delivery
+     * 
+     * @param GeneratedReport $report
+     * @param \App\Models\Customer $customer
+     * @param Company $company
+     * @param array<int, string> $deliveryMethods
+     * @param string $destinations
      */
     protected function sendDeliveryConfirmationEmail(
         GeneratedReport $report,

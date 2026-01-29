@@ -13,7 +13,7 @@ class CheckDattoStatus extends Command
     protected $signature = 'check:datto';
     protected $description = 'Check Datto integration status and data';
 
-    public function handle()
+    public function handle(): int
     {
         $this->info('=== Datto Integration Status ===');
         $this->newLine();

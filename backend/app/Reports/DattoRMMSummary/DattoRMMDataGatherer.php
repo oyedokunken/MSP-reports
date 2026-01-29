@@ -11,6 +11,12 @@ class DattoRMMDataGatherer
 {
     /**
      * Gather device data for a customer within a date range
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return Collection<int, mixed>
      */
     public function gatherDevices(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
     {
@@ -87,6 +93,12 @@ class DattoRMMDataGatherer
 
     /**
      * Gather alert data for a customer within a date range
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return Collection<int, mixed>
      */
     public function gatherAlerts(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
     {
@@ -133,6 +145,12 @@ class DattoRMMDataGatherer
 
     /**
      * Gather uptime metrics for devices
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return Collection<int, mixed>
      */
     public function gatherUptimeMetrics(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
     {

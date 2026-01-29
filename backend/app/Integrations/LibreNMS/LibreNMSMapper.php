@@ -6,6 +6,10 @@ use Carbon\Carbon;
 
 class LibreNMSMapper
 {
+    /**
+     * @param array<string, mixed> $group
+     * @return array<string, mixed>
+     */
     public static function mapDeviceGroup(array $group): array
     {
         return [
@@ -23,6 +27,11 @@ class LibreNMSMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $device
+     * @param array<string, mixed>|null $groups
+     * @return array<string, mixed>
+     */
     public static function mapDevice(array $device, ?array $groups = null): array
     {
         $deviceId = $device['device_id'];
@@ -92,6 +101,10 @@ class LibreNMSMapper
         ];
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $availability
+     * @return array<string, mixed>
+     */
     public static function mapDeviceAvailability(int $deviceId, array $availability): array
     {
         $availabilityData = [];
@@ -129,6 +142,10 @@ class LibreNMSMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $device
+     * @return array<string, mixed>
+     */
     public static function mapDeviceUptime(array $device): array
     {
         return [
@@ -148,6 +165,11 @@ class LibreNMSMapper
         ];
     }
 
+    /**
+     * @param array<string, mixed> $device
+     * @param array<int, array<string, mixed>> $groups
+     * @return array<string, mixed>
+     */
     public static function mapDeviceDetails(array $device, array $groups = []): array
     {
         return [

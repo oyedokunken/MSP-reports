@@ -28,6 +28,13 @@ class EmbeddingService
         }
     }
 
+    /**
+     * @param array<int, array{id: int|string, name: string}> $unmapped
+     * @param array<int, array{id: int|string, name: string}> $existing
+     * @param float $threshold
+     * @param int $topN
+     * @return array<int, array{unmapped_id: int|string, unmapped_name: string, suggestions: array<int, array{id: int|string, name: string, score: float}>}>
+     */
     public function findMatches(array $unmapped, array $existing, float $threshold = 0.6, int $topN = 3): array
     {
         if (empty($unmapped) || empty($existing)) {
@@ -58,6 +65,10 @@ class EmbeddingService
         }
     }
 
+    /**
+     * @param array<int, string> $names
+     * @return bool
+     */
     public function warmupCache(array $names): bool
     {
         if (empty($names)) {
@@ -77,6 +88,11 @@ class EmbeddingService
         }
     }
 
+    /**
+     * @param array<int, string> $queries
+     * @param array<int, string> $candidates
+     * @return array<string, array<string, float>>
+     */
     public function getSimilarity(array $queries, array $candidates): array
     {
         if (empty($queries) || empty($candidates)) {
@@ -111,6 +127,11 @@ class EmbeddingService
         }
     }
 
+    /**
+     * @param array<int, array{id: int|string, name: string}> $unmapped
+     * @param array<int, array{id: int|string, name: string}> $existing
+     * @return array<int, array{unmapped_id: int|string, unmapped_name: string, suggestions: array<int, array{id: int|string, name: string, score: float, reasoning?: string}>}>
+     */
     public function findMatchesWithAgent(array $unmapped, array $existing): array
     {
         if (empty($unmapped) || empty($existing)) {

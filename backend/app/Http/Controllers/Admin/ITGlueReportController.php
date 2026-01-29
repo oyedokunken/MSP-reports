@@ -14,7 +14,7 @@ class ITGlueReportController extends Controller
     /**
      * Download or Email the License Consumption Report
      */
-    public function downloadLicenseReport(Request $request)
+    public function downloadLicenseReport(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
     {
         $month = $request->input('month', date('n'));
         $year = $request->input('year', date('Y'));

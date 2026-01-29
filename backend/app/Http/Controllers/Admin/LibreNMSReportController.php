@@ -17,7 +17,7 @@ class LibreNMSReportController extends Controller
      * Preview the LibreNMS Device Report (HTML)
      * This is called by Gotenberg to generate the PDF
      */
-    public function previewDeviceReport(Request $request)
+    public function previewDeviceReport(Request $request): \Illuminate\View\View
     {
         $groupId = $request->query('group_id');
 
@@ -59,7 +59,7 @@ class LibreNMSReportController extends Controller
     /**
      * Download the LibreNMS Device Report (PDF)
      */
-    public function downloadDeviceReport(Request $request)
+    public function downloadDeviceReport(Request $request): \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
     {
         try {
             $groupId = $request->query('group_id');

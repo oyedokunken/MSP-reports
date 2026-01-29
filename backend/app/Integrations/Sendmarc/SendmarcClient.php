@@ -12,6 +12,7 @@ use App\Integrations\Exceptions\RateLimitExceededException;
 
 class SendmarcClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected string $bearerToken;
@@ -20,6 +21,9 @@ class SendmarcClient
 
     protected bool $useMockData = false;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -70,6 +74,9 @@ class SendmarcClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getAccounts(): array
     {
         if ($this->useMockData) {
@@ -103,6 +110,9 @@ class SendmarcClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getAccountDomains(string $accountUuid): array
     {
         try {
@@ -135,6 +145,9 @@ class SendmarcClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getDomainSenders(string $accountUuid, string $domainUuid, ?\Carbon\Carbon $startDate = null, ?\Carbon\Carbon $endDate = null): array
     {
         try {
@@ -174,6 +187,9 @@ class SendmarcClient
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getDomainVolumeTotals(string $accountUuid, string $domainUuid, ?\Carbon\Carbon $startDate = null, ?\Carbon\Carbon $endDate = null): array
     {
         try {
@@ -198,6 +214,9 @@ class SendmarcClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getDomainVolumeTimeline(string $accountUuid, string $domainUuid, ?\Carbon\Carbon $startDate = null, ?\Carbon\Carbon $endDate = null): array
     {
         try {
@@ -222,6 +241,9 @@ class SendmarcClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getDomainIpAddresses(string $accountUuid, string $domainUuid, ?\Carbon\Carbon $startDate = null, ?\Carbon\Carbon $endDate = null): array
     {
         try {
@@ -246,6 +268,9 @@ class SendmarcClient
         }
     }
 
+    /**
+     * @param array<string, mixed> $params
+     */
     protected function makeRequest(string $method, string $endpoint, array $params = []): Response
     {
         if (!$this->useMockData) {
@@ -292,6 +317,9 @@ class SendmarcClient
         return $response;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     protected function getMockAccounts(): array
     {
         return [

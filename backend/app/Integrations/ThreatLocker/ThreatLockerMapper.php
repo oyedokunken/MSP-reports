@@ -8,6 +8,9 @@ class ThreatLockerMapper
 {
     /**
      * Map ThreatLocker organization to standardized customer format
+     * 
+     * @param array<string, mixed> $org
+     * @return array<string, mixed>
      */
     public static function mapOrganization(array $org): array
     {
@@ -32,6 +35,9 @@ class ThreatLockerMapper
 
     /**
      * Map ThreatLocker computer/endpoint to standardized format
+     * 
+     * @param array<string, mixed> $computer
+     * @return array<string, mixed>
      */
     public static function mapComputer(array $computer, ?int $integrationCustomerId = null): array
     {
@@ -58,6 +64,9 @@ class ThreatLockerMapper
 
     /**
      * Map ThreatLocker policy data into a standardized IntegrationData payload
+     * 
+     * @param array<string, mixed> $policy
+     * @return array<string, mixed>
      */
     public static function mapPolicy(array $policy, ?int $integrationCustomerId = null): array
     {
@@ -82,6 +91,9 @@ class ThreatLockerMapper
 
     /**
      * Map ThreatLocker security event into a standardized IntegrationData payload
+     * 
+     * @param array<string, mixed> $event
+     * @return array<string, mixed>
      */
     public static function mapSecurityEvent(array $event, ?int $integrationCustomerId = null): array
     {
@@ -111,6 +123,9 @@ class ThreatLockerMapper
 
     /**
      * Map ThreatLocker application block into a standardized IntegrationData payload
+     * 
+     * @param array<string, mixed> $block
+     * @return array<string, mixed>
      */
     public static function mapApplicationBlock(array $block, ?int $integrationCustomerId = null): array
     {

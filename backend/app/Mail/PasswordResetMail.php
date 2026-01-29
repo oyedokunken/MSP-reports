@@ -8,14 +8,15 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use App\Models\User;
+use App\Models\Company; // Added Company import
 
 class PasswordResetMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public $user;
-    public $token;
-    public $resetUrl;
+    public User $user;
+    public string $token;
+    public string $resetUrl;
 
     public function __construct(User $user, string $token)
     {

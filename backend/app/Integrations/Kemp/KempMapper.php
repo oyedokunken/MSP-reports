@@ -8,6 +8,9 @@ class KempMapper
 {
     /**
      * Map Kemp Virtual Service to standardized format
+     * 
+     * @param array<string, mixed> $vs
+     * @return array<string, mixed>
      */
     public static function mapVirtualService(array $vs, ?int $integrationCustomerId = null): array
     {
@@ -38,6 +41,9 @@ class KempMapper
 
     /**
      * Map Kemp Real Server to standardized format
+     * 
+     * @param array<string, mixed> $rs
+     * @return array<string, mixed>
      */
     public static function mapRealServer(array $rs, ?int $integrationCustomerId = null): array
     {
@@ -64,6 +70,9 @@ class KempMapper
 
     /**
      * Map Kemp system stats to standardized format
+     * 
+     * @param array<string, mixed> $stats
+     * @return array<string, mixed>
      */
     public static function mapStats(array $stats, ?int $integrationCustomerId = null): array
     {
@@ -89,6 +98,9 @@ class KempMapper
 
     /**
      * Map Kemp LoadMaster as a "customer" (single device integration)
+     * 
+     * @param array<string, mixed> $systemInfo
+     * @return array<string, mixed>
      */
     public static function mapLoadMaster(array $systemInfo, string $baseUrl): array
     {

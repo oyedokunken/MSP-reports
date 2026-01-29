@@ -13,18 +13,17 @@ use App\Models\Scopes\CompanyScope;
  * @property string|null $description
  * @property string $severity
  * @property string $metric_type
- * @property array $condition
- * @property array $notification_channels
- * @property array|null $notification_config
+ * @property array<string, mixed> $condition
+ * @property array<string, mixed> $notification_channels
+ * @property array<string, mixed>|null $notification_config
  * @property int $cooldown_minutes
  * @property \Carbon\Carbon|null $last_triggered_at
  * @property bool $is_active
  * @property-read \App\Models\Company $company
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\AlertLog> $alertLogs
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\AlertLog> $alertLogs
  */
 class AlertRule extends Model
 {
-    use HasFactory;
 
     protected $primaryKey = 'alert_rule_id';
 
@@ -55,11 +54,17 @@ class AlertRule extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Company, $this>
+     */
     public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<AlertLog, $this>
+     */
     public function alertLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(AlertLog::class, 'alert_rule_id', 'alert_rule_id');

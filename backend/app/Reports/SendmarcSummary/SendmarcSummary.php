@@ -125,10 +125,10 @@ class SendmarcSummary extends BaseReport
             'complete_passes' => $totals['total_complete_passes'] ?? 0,
             'partial_passes' => ($totals['total_dkim_fails_spf_passes'] ?? 0) + ($totals['total_spf_fails_dkim_passes'] ?? 0),
             'complete_failures' => $totals['total_complete_failures'] ?? 0,
-            'compliance_rate' => $compliance['compliance_rate'] ?? 0,
-            'authorized_senders' => $senderSummary['authorized_senders'] ?? 0,
-            'unauthorized_senders' => $senderSummary['unauthorized_senders'] ?? 0,
-            'top_sender' => $senderSummary['top_sender'] ?? null,
+            'compliance_rate' => $compliance['compliance_rate'],
+            'authorized_senders' => $senderSummary['authorized_senders'],
+            'unauthorized_senders' => $senderSummary['unauthorized_senders'],
+            'top_sender' => $senderSummary['top_sender'],
         ];
 
         $recommendations = $this->buildRecommendations($totals, $senderSummary, $ipSummary);
@@ -148,8 +148,8 @@ class SendmarcSummary extends BaseReport
             'executive_summary' => $executiveSummary,
             'totals' => $totals,
             'compliance' => $compliance,
-            'top_senders' => $senderSummary['top_senders'] ?? [],
-            'ip_sources' => $ipSummary['top_ips'] ?? [],
+            'top_senders' => $senderSummary['top_senders'],
+            'ip_sources' => $ipSummary['top_ips'],
             'alerts' => $recommendations,
             'volume_timeline' => $timeline->map(fn($row) => [
                 'date' => Carbon::parse($row['timestamp'])->format('Y-m-d'),
@@ -184,6 +184,12 @@ class SendmarcSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Carbon|string|null $timestamp
+     * @param Carbon $start
+     * @param Carbon $end
+     * @return bool
+     */
     private function inRange($timestamp, Carbon $start, Carbon $end): bool
     {
         if (!$timestamp) return false;
@@ -191,6 +197,10 @@ class SendmarcSummary extends BaseReport
         return $ts->between($start->copy()->startOfDay(), $end->copy()->endOfDay());
     }
 
+    /**
+     * @param Collection<int, array<string, mixed>> $volumeTotals
+     * @return array<string, int>
+     */
     private function aggregateTotals(Collection $volumeTotals): array
     {
         $fields = [
@@ -208,11 +218,15 @@ class SendmarcSummary extends BaseReport
         return $totals;
     }
 
+    /**
+     * @param Collection<int, array<string, mixed>> $senders
+     * @return array{top_senders: array<int, array<string, mixed>>, top_sender: string|null, authorized_senders: int, unauthorized_senders: int}
+     */
     private function summarizeSenders(Collection $senders): array
     {
-        $grouped = $senders->groupBy(function ($row) {
+        $grouped = $senders->groupBy(function (array $row): string {
             $p = $row['payload'] ?? [];
-            return $p['organisation'] ?? $p['service'] ?? 'unknown';
+            return (string)($p['organisation'] ?? $p['service'] ?? 'unknown');
         });
         $summary = $grouped->map(function ($rows, $key) {
             $total = $rows->sum(fn ($r) => (int)($r['payload']['total_incidents'] ?? 0));
@@ -241,9 +255,13 @@ class SendmarcSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, array<string, mixed>> $ipStats
+     * @return array{top_ips: array<int, array<string, mixed>>}
+     */
     private function summarizeIpSources(Collection $ipStats): array
     {
-        $grouped = $ipStats->groupBy(fn ($row) => $row['payload']['ip_address'] ?? 'unknown');
+        $grouped = $ipStats->groupBy(fn (array $row): string => (string)($row['payload']['ip_address'] ?? 'unknown'));
         $summary = $grouped->map(function ($rows, $ip) {
             $total = $rows->sum(fn ($r) => (int)($r['payload']['total_incidents'] ?? 0));
             $passes = $rows->sum(fn ($r) => (int)($r['payload']['total_complete_passes'] ?? 0));
@@ -265,6 +283,10 @@ class SendmarcSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param array<string, int> $totals
+     * @return array{total_messages: int, compliance_rate: float}
+     */
     private function calculateCompliance(array $totals): array
     {
         $total = ($totals['total_complete_passes'] ?? 0)
@@ -278,6 +300,12 @@ class SendmarcSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param array<string, int> $totals
+     * @param array<string, mixed> $senderSummary
+     * @param array<string, mixed> $ipSummary
+     * @return array<int, string>
+     */
     private function buildRecommendations(array $totals, array $senderSummary, array $ipSummary): array
     {
         $recs = [];

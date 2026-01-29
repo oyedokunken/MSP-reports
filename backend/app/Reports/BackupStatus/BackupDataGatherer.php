@@ -16,6 +16,10 @@ class BackupDataGatherer
         $this->customer = $customer;
     }
 
+    /**
+     * @param array{start: Carbon, end: Carbon} $period
+     * @return array<string, mixed>
+     */
     public function getAggregatedData(array $period): array
     {
         $startDate = $period['start'];
@@ -77,8 +81,8 @@ class BackupDataGatherer
 
         // Get backup trends (daily counts)
         $dailyTrends = $backupData
-            ->groupBy(function ($item) {
-                return Carbon::parse($item->data_timestamp)->format('Y-m-d');
+            ->groupBy(function ($item): string {
+                return (string)Carbon::parse($item->data_timestamp)->format('Y-m-d');
             })
             ->map(function ($dayData, $date) {
                 return [
@@ -104,6 +108,9 @@ class BackupDataGatherer
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function getMockData(): array
     {
         return [

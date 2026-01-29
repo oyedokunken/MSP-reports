@@ -12,6 +12,8 @@ class TemplateSchema
 {
     /**
      * Validate a display template structure
+     * 
+     * @param array<string, mixed> $template
      */
     public static function validate(array $template): bool
     {
@@ -41,6 +43,8 @@ class TemplateSchema
 
     /**
      * Validate a section structure
+     * 
+     * @param array<string, mixed> $section
      */
     private static function validateSection(array $section): bool
     {
@@ -74,6 +78,8 @@ class TemplateSchema
 
     /**
      * Get the template schema structure documentation
+     * 
+     * @return array<string, mixed>
      */
     public static function getSchema(): array
     {

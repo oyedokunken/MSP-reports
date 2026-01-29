@@ -23,9 +23,10 @@ class SyncRecentDataJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 1;
-    public $timeout = 1200; // 20 minutes for data import
-    public $backoff = [300];
+    public int $tries = 1;
+    public int $timeout = 1200; // 20 minutes for data import
+    /** @var array<int, int> */
+    public array $backoff = [300];
 
     protected Integration $integration;
     protected int $daysBack;
@@ -110,6 +111,9 @@ class SyncRecentDataJob implements ShouldQueue
         }
     }
 
+    /**
+     * @return object|null
+     */
     private function loadIntegrationClass(Integration $integration)
     {
         $integrationClasses = [

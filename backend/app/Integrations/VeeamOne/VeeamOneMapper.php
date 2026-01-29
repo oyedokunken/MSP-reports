@@ -12,6 +12,9 @@ class VeeamOneMapper
 {
     /**
      * Map backup job to IntegrationData format
+     * 
+     * @param array<string, mixed> $job
+     * @return array<string, mixed>
      */
     public static function mapBackupJob(array $job): array
     {
@@ -42,6 +45,9 @@ class VeeamOneMapper
 
     /**
      * Map backup session to IntegrationData format
+     * 
+     * @param array<string, mixed> $session
+     * @return array<string, mixed>
      */
     public static function mapBackupSession(array $session): array
     {
@@ -78,6 +84,9 @@ class VeeamOneMapper
 
     /**
      * Map alarm to IntegrationData format
+     * 
+     * @param array<string, mixed> $alarm
+     * @return array<string, mixed>
      */
     public static function mapAlarm(array $alarm): array
     {
@@ -109,6 +118,9 @@ class VeeamOneMapper
 
     /**
      * Map repository to IntegrationData format
+     * 
+     * @param array<string, mixed> $repo
+     * @return array<string, mixed>
      */
     public static function mapRepository(array $repo): array
     {
@@ -139,6 +151,9 @@ class VeeamOneMapper
 
     /**
      * Map protected workload (VM) to IntegrationData format
+     * 
+     * @param array<string, mixed> $workload
+     * @return array<string, mixed>
      */
     public static function mapProtectedWorkload(array $workload): array
     {
@@ -189,6 +204,8 @@ class VeeamOneMapper
 
     /**
      * Calculate storage usage percentage
+     * 
+     * @param array<string, mixed> $repo
      */
     protected static function calculateUsagePercentage(array $repo): ?float
     {

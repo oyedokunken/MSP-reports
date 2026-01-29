@@ -8,6 +8,9 @@ class WatchguardAuthPointMapper
 {
     /**
      * Map WatchGuard account to standardized customer format
+     * 
+     * @param array<string, mixed> $account
+     * @return array<string, mixed>
      */
     public static function mapAccount(array $account, string $accountId): array
     {
@@ -28,6 +31,9 @@ class WatchguardAuthPointMapper
 
     /**
      * Map WatchGuard user to standardized format
+     * 
+     * @param array<string, mixed> $user
+     * @return array<string, mixed>
      */
     public static function mapUser(array $user, ?int $integrationCustomerId = null): array
     {
@@ -52,6 +58,9 @@ class WatchguardAuthPointMapper
 
     /**
      * Map WatchGuard AuthPoint authentication event into a standardized IntegrationData payload
+     * 
+     * @param array<string, mixed> $event
+     * @return array<string, mixed>
      */
     public static function mapAuthenticationEvent(array $event, ?int $integrationCustomerId = null): array
     {
@@ -82,6 +91,9 @@ class WatchguardAuthPointMapper
 
     /**
      * Map WatchGuard AuthPoint user enrollment/token into a standardized IntegrationData payload
+     * 
+     * @param array<string, mixed> $enrollment
+     * @return array<string, mixed>
      */
     public static function mapUserEnrollment(array $enrollment, ?int $integrationCustomerId = null): array
     {
@@ -107,7 +119,11 @@ class WatchguardAuthPointMapper
     }
 
     /**
+    /**
      * Map WatchGuard resource (protected application) to standardized format
+     * 
+     * @param array<string, mixed> $resource
+     * @return array<string, mixed>
      */
     public static function mapResource(array $resource, ?int $integrationCustomerId = null): array
     {

@@ -61,6 +61,10 @@ class RateLimiter
         }
     }
 
+    /**
+     * @param Integration $integration
+     * @return array{per_minute: array{limit: int, used: int, remaining: int, resets_in_seconds: int}, per_hour: array{limit: int, used: int, remaining: int, resets_in_seconds: int}}
+     */
     public function getStatus(Integration $integration): array
     {
         try {
@@ -118,6 +122,10 @@ class RateLimiter
         return true;
     }
 
+    /**
+     * @param Integration $integration
+     * @return array{requests_per_minute: int, requests_per_hour: int}
+     */
     private function getRateLimits(Integration $integration): array
     {
         $config = $integration->configuration ?? [];
@@ -133,6 +141,10 @@ class RateLimiter
         return "rate_limit:integration:{$integration->integration_id}:{$period}";
     }
 
+    /**
+     * @param string $key
+     * @return mixed
+     */
     private function get(string $key)
     {
         if ($this->useRedis) {

@@ -13,11 +13,15 @@ use App\Integrations\Exceptions\RateLimitExceededException;
 
 class SaaSClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(
         array $credentials,
         RateLimiter $rateLimiter,
@@ -101,6 +105,8 @@ class SaaSClient
 
     /**
      * Get details for a specific customer.
+     * 
+     * @return array<string, mixed>|null
      */
     public function getCustomer(string $customerId): ?array
     {
@@ -277,6 +283,8 @@ class SaaSClient
 
     /**
      * Get total count of events matching the criteria.
+     * 
+     * @param array<string, mixed> $params
      */
     public function getEventCount(array $params = []): int
     {
@@ -295,6 +303,9 @@ class SaaSClient
 
     /**
      * Core method to make authenticated requests.
+     * 
+     * @param array<string, mixed> $query
+     * @param array<string, mixed> $body
      */
     protected function makeRequest(string $method, string $endpoint, array $query = [], array $body = []): Response
     {

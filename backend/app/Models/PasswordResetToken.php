@@ -25,6 +25,10 @@ class PasswordResetToken extends Model
         return $this->expires_at->isPast();
     }
 
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
+     */
     public function scopeValid($query)
     {
         return $query->where('expires_at', '>', now());

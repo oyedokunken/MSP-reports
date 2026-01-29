@@ -23,7 +23,7 @@ class ReportTemplateController extends Controller
      * - active: Filter by active status (true/false)
      * - global: Filter for global templates only (true) or customer-specific only (false)
      */
-    public function index(Request $request)
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         $templates = ReportTemplate::query()
             ->with('customer')
@@ -53,7 +53,7 @@ class ReportTemplateController extends Controller
     /**
      * Get single template
      */
-    public function show(ReportTemplate $template)
+    public function show(ReportTemplate $template): \Illuminate\Http\JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -67,7 +67,7 @@ class ReportTemplateController extends Controller
      * If customer_id is provided, creates a customer-specific template and auto-creates a schedule.
      * If customer_id is null, creates a global template that can be applied to any customer later.
      */
-    public function store(Request $request)
+    public function store(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'customer_id' => 'nullable|integer|exists:customers,customer_id',
@@ -132,7 +132,7 @@ class ReportTemplateController extends Controller
     /**
      * Update template
      */
-    public function update(Request $request, ReportTemplate $template)
+    public function update(Request $request, ReportTemplate $template): \Illuminate\Http\JsonResponse
     {
         \Log::info('Template update request', [
             'template_id' => $template->template_id,
@@ -170,7 +170,7 @@ class ReportTemplateController extends Controller
     /**
      * Delete template and cascade delete associated schedules
      */
-    public function destroy(Request $request, ReportTemplate $template)
+    public function destroy(Request $request, ReportTemplate $template): \Illuminate\Http\JsonResponse
     {
         \Log::info('Delete template endpoint called', [
             'template_id' => $template->template_id,
@@ -206,7 +206,7 @@ class ReportTemplateController extends Controller
     /**
      * Apply template to single customer
      */
-    public function applyToCustomer(Request $request, ReportTemplate $template)
+    public function applyToCustomer(Request $request, ReportTemplate $template): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,customer_id',
@@ -225,7 +225,7 @@ class ReportTemplateController extends Controller
     /**
      * Apply template to multiple customers
      */
-    public function applyToCustomers(Request $request, ReportTemplate $template)
+    public function applyToCustomers(Request $request, ReportTemplate $template): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'customer_ids' => 'required|array',
@@ -249,7 +249,7 @@ class ReportTemplateController extends Controller
      * 
      * For global templates, requires customer_id in request to preview with a specific customer.
      */
-    public function preview(Request $request, ReportTemplate $template)
+    public function preview(Request $request, ReportTemplate $template): \Illuminate\Http\JsonResponse
     {
         try {
             // Load customer relationship
@@ -294,7 +294,7 @@ class ReportTemplateController extends Controller
     /**
      * Get available report types for a specific customer
      */
-    public function getAvailableReportTypes(Request $request, ReportRegistry $reportRegistry)
+    public function getAvailableReportTypes(Request $request, ReportRegistry $reportRegistry): \Illuminate\Http\JsonResponse
     {
         \Log::info('getAvailableReportTypes called', [
             'all_input' => $request->all(),
@@ -400,7 +400,7 @@ class ReportTemplateController extends Controller
     /**
      * Get all available report types (for global templates - no customer filtering)
      */
-    public function getAllReportTypes(ReportRegistry $reportRegistry)
+    public function getAllReportTypes(ReportRegistry $reportRegistry): \Illuminate\Http\JsonResponse
     {
         $companyId = auth()->user()->company_id;
         $allReports = $reportRegistry->getAvailable($companyId);
@@ -436,7 +436,7 @@ class ReportTemplateController extends Controller
     /**
      * Get customers who have this template applied via their schedules
      */
-    public function getAppliedCustomers(ReportTemplate $template)
+    public function getAppliedCustomers(ReportTemplate $template): \Illuminate\Http\JsonResponse
     {
         $customers = Customer::query()
             ->whereIn('customer_id', function($query) use ($template) {

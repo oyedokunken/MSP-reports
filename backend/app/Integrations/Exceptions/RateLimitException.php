@@ -6,7 +6,7 @@ use Exception;
 
 class RateLimitException extends Exception
 {
-    public $retryAfter;
+    public int $retryAfter;
 
     public function __construct(string $message = "Rate limit exceeded", int $retryAfter = 60)
     {

@@ -25,7 +25,9 @@ class ITGlueIntegration implements IntegrationInterface
     protected ITGlueClient $client;
     protected CustomerMappingService $mappingService;
     protected ?int $currentSyncLogId = null;
+    /** @var int */
     private $lastBatchProcessedCount = 0;
+    /** @var callable|null */
     protected $progressCallback = null;
 
     public function setProgressCallback(callable $callback): void
@@ -51,6 +53,9 @@ class ITGlueIntegration implements IntegrationInterface
         $this->mappingService = app(CustomerMappingService::class);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -78,6 +83,9 @@ class ITGlueIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return bool
+     */
     public function authenticate(): bool
     {
         return $this->client->testConnection();
@@ -95,6 +103,9 @@ class ITGlueIntegration implements IntegrationInterface
         ]);
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $items
+     */
     protected function dispatchBatches(string $type, array $items, int &$counter): void
     {
         collect($items)->chunk(200)->each(function (Collection $chunk) use ($type, &$counter) {
@@ -108,6 +119,9 @@ class ITGlueIntegration implements IntegrationInterface
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         if (!$this->currentSyncLogId) {
@@ -336,6 +350,9 @@ class ITGlueIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $customers
+     */
     private function bulkStoreCustomers(array $customers): void
     {
         if (empty($customers)) {
@@ -373,6 +390,9 @@ class ITGlueIntegration implements IntegrationInterface
     }
 
 
+    /**
+     * @param array<int, array<string, mixed>> $items
+     */
     public function processBatch(string $type, array $items): void
     {
         $this->lastBatchProcessedCount = 0;
@@ -451,6 +471,9 @@ class ITGlueIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $batch
+     */
     private function bulkStoreHistoricalData(string $dataType, array $batch): void
     {
         if (empty($batch)) {
@@ -514,12 +537,18 @@ class ITGlueIntegration implements IntegrationInterface
         return $this->lastBatchProcessedCount;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         $organizations = $this->client->getOrganizations();
         return array_map(fn($org) => ITGlueMapper::mapCustomer($org), $organizations);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         $totalProcessed = 0;
@@ -686,6 +715,9 @@ class ITGlueIntegration implements IntegrationInterface
         return Carbon::now();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -718,6 +750,9 @@ class ITGlueIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [
@@ -726,6 +761,9 @@ class ITGlueIntegration implements IntegrationInterface
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getDisplayTemplate(): array
     {
         $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('itglue', 'ITGlue');
@@ -770,6 +808,9 @@ class ITGlueIntegration implements IntegrationInterface
         return $builder->build();
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomerLicenses(int $integrationCustomerId): array
     {
         $licenses = IntegrationData::where('company_id', $this->integration->company_id)
@@ -808,7 +849,10 @@ class ITGlueIntegration implements IntegrationInterface
         return $licenses;
     }
 
-    private function getLicenseValue(array $traits, ...$keys): float
+    /**
+     * @param array<string, mixed> $traits
+     */
+    private function getLicenseValue(array $traits, string ...$keys): float
     {
         foreach ($keys as $key) {
             if (!isset($traits[$key])) {

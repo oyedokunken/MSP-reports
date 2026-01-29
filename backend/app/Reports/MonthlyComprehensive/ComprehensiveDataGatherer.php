@@ -12,6 +12,8 @@ class ComprehensiveDataGatherer extends BaseDataGatherer
 {
     /**
      * Get Uptime section data
+     * 
+     * @return array<string, mixed>
      */
     public function getUptimeSection(): array
     {
@@ -19,7 +21,7 @@ class ComprehensiveDataGatherer extends BaseDataGatherer
             $uptimeGatherer = new UptimeDataGatherer($this->customer, $this->startDate, $this->endDate);
             $metrics = $uptimeGatherer->getUptimeMetrics();
             
-            if (empty($metrics) || ($metrics['average_uptime'] ?? 0) == 0) {
+            if ($metrics['average_uptime'] == 0) {
                 return [];
             }
             
@@ -36,6 +38,8 @@ class ComprehensiveDataGatherer extends BaseDataGatherer
     
     /**
      * Get Tickets section data
+     * 
+     * @return array<string, mixed>
      */
     public function getTicketSection(): array
     {
@@ -65,6 +69,8 @@ class ComprehensiveDataGatherer extends BaseDataGatherer
     
     /**
      * Get Backups section data
+     * 
+     * @return array<string, mixed>
      */
     public function getBackupSection(): array
     {
@@ -93,6 +99,8 @@ class ComprehensiveDataGatherer extends BaseDataGatherer
     
     /**
      * Get Security section data
+     * 
+     * @return array<string, mixed>
      */
     public function getSecuritySection(): array
     {

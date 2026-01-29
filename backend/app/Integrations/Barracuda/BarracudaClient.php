@@ -15,6 +15,7 @@ use App\Integrations\Exceptions\RateLimitExceededException;
 
 class BarracudaClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
@@ -23,6 +24,9 @@ class BarracudaClient
     protected ?string $accessToken = null;
     protected ?int $tokenExpiresAt = null;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -129,7 +133,7 @@ class BarracudaClient
      * Get child accounts for a parent account
      * 
      * @param int $parentAccountId Parent/Partner Account ID
-     * @return array List of child accounts
+     * @return array<int, array<string, mixed>> List of child accounts
      */
     public function getChildAccounts(int $parentAccountId): array
     {
@@ -152,6 +156,8 @@ class BarracudaClient
 
     /**
      * Alias for getChildAccounts - used by integration framework
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getCustomers(): array
     {
@@ -176,7 +182,7 @@ class BarracudaClient
      * Get product state for an account
      * 
      * @param int $accountId Barracuda Account ID
-     * @return array Product status information
+     * @return array<int, array<string, mixed>> Product status information
      */
     public function getProductState(int $accountId): array
     {
@@ -205,7 +211,7 @@ class BarracudaClient
      * @param string|null $absoluteDateRangeStart Absolute start date (YYYY-MM-DD)
      * @param string|null $absoluteDateRangeEnd Absolute end date (YYYY-MM-DD)
      * @param int $skip Pagination offset
-     * @return array Paginated alerts response
+     * @return array<string, mixed> Paginated alerts response
      */
     public function getAlerts(
         ?string $accountId = null,
@@ -247,7 +253,7 @@ class BarracudaClient
      * @param string|null $relativeDateRange Relative date range (LAST_7_DAYS, LAST_30_DAYS, etc.)
      * @param string|null $absoluteDateRangeStart Absolute start date (YYYY-MM-DD)
      * @param string|null $absoluteDateRangeEnd Absolute end date (YYYY-MM-DD)
-     * @return array Report data with widgets
+     * @return array<string, mixed> Report data with widgets
      */
     public function getReportData(
         ?string $accountId = null,
@@ -283,6 +289,8 @@ class BarracudaClient
 
     /**
      * Legacy method for backward compatibility
+     * 
+     * @return array<string, mixed>
      */
     public function getSecurityData(Carbon $startDate, Carbon $endDate): array
     {
@@ -306,8 +314,8 @@ class BarracudaClient
      * 
      * @param string $method HTTP method (GET, POST, etc.)
      * @param string $endpoint API endpoint
-     * @param array $params Query parameters or request body
-     * @return array Response data
+     * @param array<string, mixed> $params Query parameters or request body
+     * @return array<mixed> Response data
      */
     protected function makeRequest(string $method, string $endpoint, array $params = []): array
     {
@@ -391,6 +399,8 @@ class BarracudaClient
 
     /**
      * Return mock customer data for testing
+     * 
+     * @return array<int, array<string, mixed>>
      */
     private function getMockCustomers(): array
     {
@@ -420,6 +430,8 @@ class BarracudaClient
 
     /**
      * Return mock product state for testing
+     * 
+     * @return array<int, array<string, mixed>>
      */
     private function getMockProductState(): array
     {
@@ -447,6 +459,8 @@ class BarracudaClient
 
     /**
      * Return mock alerts for testing
+     * 
+     * @return array<string, mixed>
      */
     private function getMockAlerts(): array
     {
@@ -483,6 +497,8 @@ class BarracudaClient
 
     /**
      * Return mock report data for testing
+     * 
+     * @return array<string, mixed>
      */
     private function getMockReportData(): array
     {
@@ -524,6 +540,8 @@ class BarracudaClient
 
     /**
      * Return mock security data for testing (legacy)
+     * 
+     * @return array<string, mixed>
      */
     private function getMockSecurityData(): array
     {

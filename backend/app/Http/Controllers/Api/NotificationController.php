@@ -11,7 +11,7 @@ class NotificationController extends Controller
     /**
      * Get paginated notifications for the authenticated user
      */
-    public function index(Request $request)
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         $user = $request->user();
         $perPage = $request->input('per_page', 20);
@@ -45,7 +45,7 @@ class NotificationController extends Controller
     /**
      * Mark a specific notification as read
      */
-    public function markAsRead(Request $request, $id)
+    public function markAsRead(Request $request, string $id): \Illuminate\Http\JsonResponse
     {
         $notification = $request->user()->notifications()->findOrFail($id);
         $notification->markAsRead();
@@ -59,7 +59,7 @@ class NotificationController extends Controller
     /**
      * Mark all notifications as read
      */
-    public function markAllAsRead(Request $request)
+    public function markAllAsRead(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->user()->unreadNotifications->markAsRead();
 
@@ -72,7 +72,7 @@ class NotificationController extends Controller
     /**
      * Delete a notification
      */
-    public function destroy(Request $request, $id)
+    public function destroy(Request $request, string $id): \Illuminate\Http\JsonResponse
     {
         $notification = $request->user()->notifications()->findOrFail($id);
         $notification->delete();
@@ -86,7 +86,7 @@ class NotificationController extends Controller
     /**
      * Delete all read notifications
      */
-    public function deleteAllRead(Request $request)
+    public function deleteAllRead(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->user()->readNotifications()->delete();
 

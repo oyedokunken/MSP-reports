@@ -14,6 +14,7 @@ use App\Integrations\Exceptions\RateLimitExceededException;
 
 class ITGlueClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
@@ -33,6 +34,9 @@ class ITGlueClient
     protected const ENDPOINT_SSL_CERTIFICATES     = '/ssl_certificates';
     protected const ENDPOINT_DOMAINS              = '/domains';
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -51,6 +55,9 @@ class ITGlueClient
         }
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getOrganizations(bool $bypassCache = false): array
     {
         $cacheKey = "itglue_orgs_{$this->integration->integration_id}";
@@ -64,6 +71,9 @@ class ITGlueClient
         });
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getFlexibleAssetTypes(): array
     {
         $cacheKey = "itglue_asset_types_{$this->integration->integration_id}";
@@ -73,6 +83,9 @@ class ITGlueClient
         );
     }
 
+    /**
+     * @return array<int, int>
+     */
     public function findLicenseAssetTypeIds(): array
     {
         $types = $this->getFlexibleAssetTypes();
@@ -104,6 +117,9 @@ class ITGlueClient
         return $ids;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getFlexibleAssets(int $typeId, ?string $orgId = null, bool $includeOrg = true): array
     {
         $params = [
@@ -122,6 +138,10 @@ class ITGlueClient
         return $this->fetchAllPages(self::ENDPOINT_FLEXIBLE_ASSETS, $params);
     }
 
+    /**
+     * @param array<string, mixed>|null $filters
+     * @return array<int, array<string, mixed>>
+     */
     public function getSslCertificates(?array $filters = null): array
     {
         $params = [
@@ -135,6 +155,10 @@ class ITGlueClient
         return $this->fetchAllPages(self::ENDPOINT_SSL_CERTIFICATES, $params);
     }
 
+    /**
+     * @param array<string, mixed>|null $filters
+     * @return array<int, array<string, mixed>>
+     */
     public function getDomains(?array $filters = null): array
     {
         $params = [
@@ -148,6 +172,10 @@ class ITGlueClient
         return $this->fetchAllPages(self::ENDPOINT_DOMAINS, $params);
     }
 
+    /**
+     * @param array<string, mixed> $params
+     * @return array<int, array<string, mixed>>
+     */
     protected function fetchAllPages(string $endpoint, array $params = []): array
     {
         $allData = [];
@@ -181,6 +209,10 @@ class ITGlueClient
         return $allData;
     }
 
+    /**
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
+     */
     protected function makeRequest(string $endpoint, array $params = [], int $retryCount = 0): array
     {
         if (!$this->rateLimiter->waitForSlot($this->integration, self::RATE_LIMIT_WAIT_TIMEOUT_SEC)) {

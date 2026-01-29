@@ -24,7 +24,7 @@ class FreshMigrateWithTimescale extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
         if (!$this->confirmToProceed()) {
             return 1;

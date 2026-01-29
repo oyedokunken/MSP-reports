@@ -20,26 +20,29 @@ use PhpOffice\PhpSpreadsheet\Style\Color;
 use Illuminate\Support\Collection;
 use Carbon\Carbon;
 
+/**
+ * @implements WithMapping<object>
+ */
 class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapping, WithTitle, ShouldAutoSize, WithStyles, WithColumnWidths, WithCustomStartCell
 {
-    protected $month;
-    protected $year;
+    protected int $month;
+    protected int $year;
     
     // Define colors
-    protected $primaryColor = '215982'; // Primary blue
-    protected $accentColor1 = 'A42152'; // Accent red
-    protected $accentColor2 = '52A421'; // Accent green
-    protected $charcoalColor = '333333'; // Dark text
-    protected $lightGrayColor = 'F5F5F5'; // Light background
+    protected string $primaryColor = '215982'; // Primary blue
+    protected string $accentColor1 = 'A42152'; // Accent red
+    protected string $accentColor2 = '52A421'; // Accent green
+    protected string $charcoalColor = '333333'; // Dark text
+    protected string $lightGrayColor = 'F5F5F5'; // Light background
 
     public function __construct(?int $month = null, ?int $year = null)
     {
-        $this->month = $month ?? date('n');
-        $this->year = $year ?? date('Y');
+        $this->month = $month ?? (int) date('n');
+        $this->year = $year ?? (int) date('Y');
     }
 
     /**
-     * @return Collection
+     * @return Collection<int, object>
      */
     public function collection(): Collection
     {
@@ -127,7 +130,7 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
     }
 
     /**
-     * @return array
+     * @return array<int, string>
      */
     public function headings(): array
     {
@@ -144,7 +147,7 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
 
     /**
      * @param object $license
-     * @return array
+     * @return array<int, string|int>
      */
     public function map($license): array
     {
@@ -178,7 +181,7 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
 
     /**
      * Define custom column widths
-     * @return array
+     * @return array<string, int>
      */
     public function columnWidths(): array
     {
@@ -196,7 +199,7 @@ class LicenseConsumptionExport implements FromCollection, WithHeadings, WithMapp
     /**
      * Apply styles to the Excel sheet
      * @param Worksheet $sheet
-     * @return array
+     * @return array<mixed>
      */
     public function styles(Worksheet $sheet)
     {

@@ -13,7 +13,7 @@ class CheckAutotaskStatus extends Command
     protected $signature = 'check:autotask';
     protected $description = 'Check Autotask integration status and data';
 
-    public function handle()
+    public function handle(): int
     {
         $this->info('=== Autotask Integration Status ===');
         $this->newLine();

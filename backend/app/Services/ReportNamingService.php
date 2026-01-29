@@ -69,6 +69,8 @@ class ReportNamingService
 
     /**
      * Build token replacement array from schedule data
+     * 
+     * @return array<string, string>
      */
     protected function buildTokens(ReportSchedule $schedule, ?Customer $customer = null, ?Carbon $date = null): array
     {
@@ -88,6 +90,10 @@ class ReportNamingService
 
     /**
      * Replace tokens in pattern with actual values
+     * 
+     * @param string $pattern
+     * @param array<string, string> $tokens
+     * @return string
      */
     public function parsePattern(string $pattern, array $tokens): string
     {
@@ -126,6 +132,8 @@ class ReportNamingService
 
     /**
      * Get available tokens for UI display
+     * 
+     * @return array<string, string>
      */
     public function getAvailableTokens(): array
     {

@@ -20,7 +20,7 @@ class DeliveryConfigController extends Controller
     /**
      * Get available delivery methods and their configuration schemas
      */
-    public function getAvailableMethods(Request $request)
+    public function getAvailableMethods(Request $request): \Illuminate\Http\JsonResponse
     {
         $methods = $this->deliveryManager->getAvailableMethods();
 
@@ -33,7 +33,7 @@ class DeliveryConfigController extends Controller
     /**
      * Get delivery configuration for a customer
      */
-    public function getCustomerDeliveryConfig(Request $request, $customerId)
+    public function getCustomerDeliveryConfig(Request $request, int $customerId): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -66,7 +66,7 @@ class DeliveryConfigController extends Controller
     /**
      * Update delivery configuration for a customer
      */
-    public function updateCustomerDeliveryConfig(Request $request, $customerId)
+    public function updateCustomerDeliveryConfig(Request $request, int $customerId): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -130,7 +130,7 @@ class DeliveryConfigController extends Controller
     /**
      * Test a delivery method connection
      */
-    public function testConnection(Request $request, $customerId)
+    public function testConnection(Request $request, int $customerId): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;

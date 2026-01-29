@@ -23,7 +23,7 @@ class AuditLogCleanupCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
         $days = (int) $this->argument('days');
         $cutoffDate = now()->subDays($days);
@@ -33,5 +33,7 @@ class AuditLogCleanupCommand extends Command
         $count = \App\Models\AuditLog::where('created_at', '<', $cutoffDate)->delete();
 
         $this->info("Successfully deleted {$count} audit log entries.");
+        
+        return 0;
     }
 }

@@ -21,19 +21,20 @@ use App\Traits\AuditTrail;
  * @property string|null $address
  * @property string $status
  * @property string $subscription_tier
- * @property array|null $settings
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\User> $users
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\Integration> $integrations
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\Customer> $customers
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\License> $licenses
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\ApiKey> $apiKeys
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\AuditLog> $auditLogs
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\ReportSchedule> $reportSchedules
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\GeneratedReport> $generatedReports
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\HistoricalImportJob> $historicalImportJobs
+ * @property array<string, mixed>|null $settings
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\User> $users
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Integration> $integrations
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Customer> $customers
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\License> $licenses
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ApiKey> $apiKeys
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\AuditLog> $auditLogs
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ReportSchedule> $reportSchedules
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\GeneratedReport> $generatedReports
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\HistoricalImportJob> $historicalImportJobs
  */
 class Company extends Model
 {
+    /** @use HasFactory<\Database\Factories\CompanyFactory> */
     use HasFactory, AuditTrail;
 
     protected $primaryKey = 'company_id';
@@ -55,47 +56,74 @@ class Company extends Model
 
     
 
-    public function users()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<User, $this>
+     */
+    public function users(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(User::class, 'company_id', 'company_id');
     }
 
-    public function integrations()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Integration, $this>
+     */
+    public function integrations(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Integration::class, 'company_id', 'company_id');
     }
 
-    public function customers()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Customer, $this>
+     */
+    public function customers(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Customer::class, 'company_id', 'company_id');
     }
 
-    public function licenses()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<License, $this>
+     */
+    public function licenses(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(License::class, 'company_id', 'company_id');
     }
 
-    public function apiKeys()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<ApiKey, $this>
+     */
+    public function apiKeys(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ApiKey::class, 'company_id', 'company_id');
     }
 
-    public function auditLogs()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<AuditLog, $this>
+     */
+    public function auditLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(AuditLog::class, 'company_id', 'company_id');
     }
 
-    public function reportSchedules()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<ReportSchedule, $this>
+     */
+    public function reportSchedules(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ReportSchedule::class, 'company_id', 'company_id');
     }
 
-    public function generatedReports()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<GeneratedReport, $this>
+     */
+    public function generatedReports(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(GeneratedReport::class, 'company_id', 'company_id');
     }
 
-    public function historicalImportJobs()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<HistoricalImportJob, $this>
+     */
+    public function historicalImportJobs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(HistoricalImportJob::class, 'company_id', 'company_id');
     }

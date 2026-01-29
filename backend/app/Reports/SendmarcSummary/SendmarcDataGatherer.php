@@ -10,6 +10,10 @@ class SendmarcDataGatherer
 {
     /**
      * Fetch sender statistics for the customer's mapped Sendmarc integration customers.
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @return Collection<int, mixed>
      */
     public function gatherSenderStatistics(Customer $customer, array $integrationCustomerIds): Collection
     {
@@ -21,7 +25,7 @@ class SendmarcDataGatherer
             ->where('data_type', 'sender_statistics')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->get()
-            ->map(fn ($row) => [
+            ->map(fn ($row): array => [
                 'integration_customer_id' => $row->integration_customer_id,
                 'timestamp' => $row->data_timestamp,
                 'payload' => $row->data_payload,
@@ -30,6 +34,10 @@ class SendmarcDataGatherer
 
     /**
      * Fetch volume totals per domain.
+     *
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @return Collection<int, mixed>
      */
     public function gatherVolumeTotals(Customer $customer, array $integrationCustomerIds): Collection
     {
@@ -41,7 +49,7 @@ class SendmarcDataGatherer
             ->where('data_type', 'volume_totals')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->get()
-            ->map(fn ($row) => [
+            ->map(fn ($row): array => [
                 'integration_customer_id' => $row->integration_customer_id,
                 'timestamp' => $row->data_timestamp,
                 'payload' => $row->data_payload,
@@ -50,6 +58,10 @@ class SendmarcDataGatherer
 
     /**
      * Fetch volume timeline entries.
+     *
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @return Collection<int, mixed>
      */
     public function gatherVolumeTimeline(Customer $customer, array $integrationCustomerIds): Collection
     {
@@ -70,6 +82,10 @@ class SendmarcDataGatherer
 
     /**
      * Fetch IP address statistics (sources).
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @return Collection<int, mixed>
      */
     public function gatherIpAddressStatistics(Customer $customer, array $integrationCustomerIds): Collection
     {

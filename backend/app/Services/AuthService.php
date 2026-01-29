@@ -18,10 +18,10 @@ class AuthService
     /**
      * Attempt to authenticate a user.
      *
-     * @param array $credentials
+     * @param array{email: string, auth_method: string, password: string} $credentials
      * @param string $ip
      * @param string|null $userAgent
-     * @return array
+     * @return array{user: User, company: \App\Models\Company, token: string, force_password_change: bool}
      * @throws ValidationException
      */
     public function login(array $credentials, string $ip, ?string $userAgent = null): array
@@ -185,6 +185,15 @@ class AuthService
         Cache::forget('login_attempts:' . $ip);
     }
 
+    /**
+     * @param User|null $user
+     * @param string $eventType
+     * @param array<string, mixed> $data
+     * @param string $ip
+     * @param string|null $userAgent
+     * @param int|null $companyId
+     * @return void
+     */
     protected function logAudit(?User $user, string $eventType, array $data, string $ip, ?string $userAgent = null, ?int $companyId = null): void
     {
         // Ensure companyId is never null - use 0 for system-level events

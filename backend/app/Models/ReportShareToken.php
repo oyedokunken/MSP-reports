@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -18,7 +17,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ReportShareToken extends Model
 {
-    use HasFactory;
 
     protected $fillable = [
         'generated_report_id',
@@ -37,7 +35,7 @@ class ReportShareToken extends Model
      * 
      * @param int $reportId
      * @param int $companyId
-     * @return array ['token' => string, 'signature' => string]
+     * @return array{token: string, signature: string, expires_at: \Carbon\Carbon}
      */
     public static function generateSecureToken(int $reportId, int $companyId): array
     {
@@ -70,6 +68,8 @@ class ReportShareToken extends Model
 
     /**
      * Get the generated report that this token belongs to.
+     * 
+     * @return BelongsTo<GeneratedReport, $this>
      */
     public function generatedReport(): BelongsTo
     {
@@ -78,6 +78,8 @@ class ReportShareToken extends Model
 
     /**
      * Get the company that this token belongs to.
+     * 
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {
@@ -94,6 +96,9 @@ class ReportShareToken extends Model
 
     /**
      * Scope to get only valid (non-expired) tokens.
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeValid($query)
     {

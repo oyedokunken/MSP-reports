@@ -68,6 +68,9 @@ class MonitorIntegrationSyncs extends Command
         return 0;
     }
 
+    /**
+     * @param array<string, int> $counters
+     */
     protected function performHealthChecks(Integration $integration, array &$counters): void
     {
         $now = now();
@@ -206,6 +209,9 @@ class MonitorIntegrationSyncs extends Command
         return now()->gte($nextDue);
     }
 
+    /**
+     * @param array<string, int> $counters
+     */
     protected function triggerSync(Integration $integration, array &$counters): void
     {
         $lockKey = "sync_trigger_lock:{$integration->integration_id}";

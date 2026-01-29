@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Log;
 
 class SharePointIntegration
 {
+    /** @var Integration */
     protected $integration;
+    /** @var string */
     protected $baseUrl = 'https://graph.microsoft.com/v1.0';
 
     public function __construct(Integration $integration)
@@ -16,11 +18,17 @@ class SharePointIntegration
         $this->integration = $integration;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata()
     {
         return require __DIR__ . '/config.php';
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields()
     {
         $config = $this->getMetadata();
@@ -38,6 +46,10 @@ class SharePointIntegration
         }
     }
 
+    /**
+     * @return string
+     * @throws \Exception
+     */
     protected function getAccessToken()
     {
         $credentials = $this->integration->credentials;
@@ -66,6 +78,9 @@ class SharePointIntegration
 
     /**
      * Get the Drive ID for the configured site URL
+     * 
+     * @return string
+     * @throws \Exception
      */
     public function getDriveId()
     {
@@ -110,6 +125,12 @@ class SharePointIntegration
      * Browse contents of a folder
      * @param string $path - Relative path from root, or empty for root
      */
+    /**
+     * Browse contents of a folder
+     * @param string $path - Relative path from root, or empty for root
+     * @return array<int, array<string, mixed>>
+     * @throws \Exception
+     */
     public function browse(string $path = '')
     {
         $token = $this->getAccessToken();
@@ -126,6 +147,7 @@ class SharePointIntegration
              throw new \Exception('Failed to browse folder: ' . $response->body());
         }
 
+        /** @var array<int, array<string, mixed>> $items */
         $items = $response->json('value');
         
         return collect($items)->map(function($item) {
@@ -142,6 +164,12 @@ class SharePointIntegration
 
     /**
      * Create a new folder
+     */
+    /**
+     * Create a new folder
+     * 
+     * @return array<string, mixed>
+     * @throws \Exception
      */
     public function createFolder(string $path, string $name)
     {
@@ -179,6 +207,14 @@ class SharePointIntegration
      * @param string $content File content
      * @param string $filename Name of the file
      * @param string $path Target folder path (relative to root)
+     */
+    /**
+     * Upload a file to SharePoint
+     * @param string $content File content
+     * @param string $filename Name of the file
+     * @param string $path Target folder path (relative to root)
+     * @return array<string, mixed>
+     * @throws \Exception
      */
     public function uploadFile(string $content, string $filename, string $path = '')
     {

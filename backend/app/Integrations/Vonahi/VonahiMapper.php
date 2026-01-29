@@ -8,6 +8,9 @@ class VonahiMapper
 {
     /**
      * Map Vonahi organization to standardized customer format
+     * 
+     * @param array<string, mixed> $org
+     * @return array<string, mixed>
      */
     public static function mapOrganization(array $org): array
     {
@@ -30,6 +33,9 @@ class VonahiMapper
 
     /**
      * Map Vonahi penetration test to standardized format
+     * 
+     * @param array<string, mixed> $pentest
+     * @return array<string, mixed>
      */
     public static function mapPenTest(array $pentest, ?int $integrationCustomerId = null): array
     {
@@ -60,6 +66,9 @@ class VonahiMapper
 
     /**
      * Map Vonahi security finding into a standardized IntegrationData payload
+     * 
+     * @param array<string, mixed> $finding
+     * @return array<string, mixed>
      */
     public static function mapSecurityFinding(array $finding, ?int $integrationCustomerId = null): array
     {
@@ -91,6 +100,9 @@ class VonahiMapper
 
     /**
      * Map Vonahi scan to standardized format
+     * 
+     * @param array<string, mixed> $scan
+     * @return array<string, mixed>
      */
     public static function mapScan(array $scan, ?int $integrationCustomerId = null): array
     {
@@ -116,7 +128,11 @@ class VonahiMapper
     }
 
     /**
+    /**
      * Map Vonahi asset to standardized format
+     * 
+     * @param array<string, mixed> $asset
+     * @return array<string, mixed>
      */
     public static function mapAsset(array $asset, ?int $integrationCustomerId = null): array
     {

@@ -8,6 +8,9 @@ class RocketCyberMapper
 {
     /**
      * Map RocketCyber account to standardized customer format
+     * 
+     * @param array<string, mixed> $account
+     * @return array<string, mixed>
      */
     public static function mapAccount(array $account): array
     {
@@ -32,6 +35,9 @@ class RocketCyberMapper
 
     /**
      * Map RocketCyber security incident into a standardized IntegrationData payload
+     * 
+     * @param array<string, mixed> $incident
+     * @return array<string, mixed>
      */
     public static function mapSecurityIncident(array $incident, ?int $integrationCustomerId = null): array
     {
@@ -60,6 +66,9 @@ class RocketCyberMapper
 
     /**
      * Map RocketCyber threat detection into a standardized IntegrationData payload
+     * 
+     * @param array<string, mixed> $threat
+     * @return array<string, mixed>
      */
     public static function mapThreatDetection(array $threat, ?int $integrationCustomerId = null): array
     {
@@ -90,6 +99,9 @@ class RocketCyberMapper
 
     /**
      * Map RocketCyber agent to standardized format
+     * 
+     * @param array<string, mixed> $agent
+     * @return array<string, mixed>
      */
     public static function mapAgent(array $agent, ?int $integrationCustomerId = null): array
     {

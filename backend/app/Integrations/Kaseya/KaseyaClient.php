@@ -10,11 +10,15 @@ use App\Integrations\Exceptions\AuthenticationException;
 
 class KaseyaClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
     protected string $baseUrl;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -36,6 +40,8 @@ class KaseyaClient
 
     /**
      * Placeholder for future Kaseya API calls.
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getComplianceAssessments(): array
     {
@@ -48,6 +54,8 @@ class KaseyaClient
 
     /**
      * Placeholder for future Kaseya risk assessments.
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getRiskAssessments(): array
     {
@@ -60,6 +68,8 @@ class KaseyaClient
 
     /**
      * Placeholder for future Kaseya audit reports.
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getAuditReports(): array
     {

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 
@@ -31,7 +30,6 @@ use App\Models\Scopes\CompanyScope;
  */
 class HistoricalImportJob extends Model
 {
-    use HasFactory;
 
     protected $primaryKey = 'historical_import_job_id';
 
@@ -70,11 +68,17 @@ class HistoricalImportJob extends Model
         'progress_percentage',
     ];
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Company, $this>
+     */
     public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Integration, $this>
+     */
     public function integration(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Integration::class, 'integration_id', 'integration_id');

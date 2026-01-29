@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 class M365Client
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
@@ -15,6 +16,9 @@ class M365Client
 
     protected string $baseUrl = 'https://graph.microsoft.com/v1.0';
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -87,6 +91,8 @@ class M365Client
 
     /**
      * Get user licensing information including direct and group-based assignments
+     * 
+     * @return array<string, mixed>
      */
     public function getUserLicensing(string $upn): array
     {
@@ -112,6 +118,7 @@ class M365Client
         $skusResponse = \Illuminate\Support\Facades\Http::withToken($token)
             ->get("{$this->baseUrl}/subscribedSkus");
         
+        /** @var array<int, array<string, mixed>> $skus */
         $skus = $skusResponse->successful() ? $skusResponse->json('value') : [];
         $skuPartNumbers = collect($skus)->pluck('skuPartNumber', 'skuId')->toArray();
 
@@ -119,7 +126,10 @@ class M365Client
         $licenses = [];
         foreach ($assignments as $assignment) {
             $skuId = $assignment['skuId'];
-            $state = collect($assignmentStates)->firstWhere('skuId', $skuId);
+            /** @var array<int, array<string, mixed>> $assignmentStates */
+            /** @var \Illuminate\Support\Collection<int, array<string, mixed>> $statesCollection */
+            $statesCollection = collect($assignmentStates);
+            $state = $statesCollection->firstWhere('skuId', $skuId);
             
             $source = 'Direct';
             $groupId = null;

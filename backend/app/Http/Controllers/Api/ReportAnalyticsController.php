@@ -17,7 +17,7 @@ use App\Jobs\DeliverReportJob;
 
 class ReportAnalyticsController extends Controller
 {
-    public function getScheduledReports(Request $request)
+    public function getScheduledReports(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -58,7 +58,7 @@ class ReportAnalyticsController extends Controller
         ], 200);
     }
     
-    public function getReportHistory(Request $request)
+    public function getReportHistory(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -125,7 +125,7 @@ class ReportAnalyticsController extends Controller
         ], 200);
     }
 
-    public function downloadReport(Request $request, $id)
+    public function downloadReport(Request $request, int $id): \Symfony\Component\HttpFoundation\StreamedResponse|\Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -169,7 +169,7 @@ class ReportAnalyticsController extends Controller
         ]);
     }
 
-    public function emailReport(Request $request, $id)
+    public function emailReport(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -270,7 +270,7 @@ class ReportAnalyticsController extends Controller
     /**
      * Deliver a previously generated report using configured delivery methods
      */
-    public function deliverReport(Request $request, $id)
+    public function deliverReport(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -326,7 +326,7 @@ class ReportAnalyticsController extends Controller
     }
 
 
-    public function deleteSchedule(Request $request, $id)
+    public function deleteSchedule(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -382,7 +382,7 @@ class ReportAnalyticsController extends Controller
         ], 200);
     }
 
-    public function deleteReport(Request $request, $id)
+    public function deleteReport(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -414,7 +414,7 @@ class ReportAnalyticsController extends Controller
         ], 200);
     }
 
-    public function batchDelete(Request $request)
+    public function batchDelete(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'report_ids' => 'required|array',
@@ -447,7 +447,7 @@ class ReportAnalyticsController extends Controller
         ], 200);
     }
 
-    public function discardReports(Request $request)
+    public function discardReports(Request $request): \Illuminate\Http\JsonResponse
     {
         $reportIds = $request->input('report_ids', []);
         $authUser = $request->user();
@@ -486,7 +486,7 @@ class ReportAnalyticsController extends Controller
     /**
      * Generate a quick share link for a report (valid for 1 hour)
      */
-    public function generateShareLink(Request $request, $id)
+    public function generateShareLink(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -552,7 +552,7 @@ class ReportAnalyticsController extends Controller
     /**
      * Download a shared report using a token (no authentication required)
      */
-    public function downloadSharedReport(Request $request, $token)
+    public function downloadSharedReport(Request $request, string $token): \Symfony\Component\HttpFoundation\StreamedResponse|\Illuminate\Http\JsonResponse
     {
         $shareToken = ReportShareToken::where('token', $token)
             ->with(['generatedReport.customer', 'generatedReport.reportSchedule'])
@@ -616,7 +616,7 @@ class ReportAnalyticsController extends Controller
     /**
      * Preview the email that will be sent with a report
      */
-    public function previewEmail(Request $request, $id)
+    public function previewEmail(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 

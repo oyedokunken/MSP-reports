@@ -32,16 +32,25 @@ class ActiveDirectoryLicenseAssignment extends Model
         static::addGlobalScope(new CustomerScope);
     }
 
+    /**
+     * @return BelongsTo<Company, $this>
+     */
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
     }
 
+    /**
+     * @return BelongsTo<Integration, $this>
+     */
     public function integration(): BelongsTo
     {
         return $this->belongsTo(Integration::class);
     }
 
+    /**
+     * @return BelongsTo<Customer, $this>
+     */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -49,6 +58,10 @@ class ActiveDirectoryLicenseAssignment extends Model
 
     /**
      * Scope to specific license type (e.g., SPLA)
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @param string $type
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeOfType($query, string $type)
     {
@@ -57,6 +70,10 @@ class ActiveDirectoryLicenseAssignment extends Model
 
     /**
      * Scope to specific license name
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @param string $licenseName
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeForLicense($query, string $licenseName)
     {

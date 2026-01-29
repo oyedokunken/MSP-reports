@@ -79,6 +79,7 @@ class ProcessScheduledReports extends Command
 
     /**
      * Display processing results
+     * @param array<string, int|array<int, array<string, mixed>>> $results
      */
     protected function displayResults(array $results): void
     {

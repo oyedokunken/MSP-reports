@@ -8,6 +8,7 @@ class M365LicenseService
      * Common Microsoft 365 SKU IDs to Friendly Names
      * @see https://learn.microsoft.com/en-us/azure/active-directory/enterprise-users/licensing-service-plan-reference
      */
+    /** @var array<string, string> */
     protected static array $skuMap = [
         '6fd2c87f-b296-42f0-b197-1e91e994b900' => 'Office 365 E3',
         'f245aec8-d61f-4283-9aed-279269599393' => 'Office 365 E3 (GCC)',

@@ -36,6 +36,9 @@ class DattoIntegration implements IntegrationInterface
         $this->mappingService = app(CustomerMappingService::class);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -76,8 +79,12 @@ class DattoIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    /** @var array<string, mixed> */
     protected $mappedDuringSync = [];
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         $errors = [];
@@ -193,12 +200,16 @@ class DattoIntegration implements IntegrationInterface
         ], now()->addMinutes(10));
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         $dattoCustomers = $this->client->getCustomers();
         return array_map(fn($customer) => DattoMapper::mapCustomer($customer), $dattoCustomers);
     }
 
+    /** @var callable|null */
     protected $progressCallback = null;
 
     public function setProgressCallback(callable $callback): void
@@ -217,6 +228,7 @@ class DattoIntegration implements IntegrationInterface
             ])
         ]);
     }
+    /** @var int */
     protected $lastBatchProcessedCount = 0;
 
     public function getLastBatchProcessedCount(): int
@@ -224,6 +236,9 @@ class DattoIntegration implements IntegrationInterface
         return $this->lastBatchProcessedCount;
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $items
+     */
     public function processBatch(string $type, array $items): void
     {
         $this->lastBatchProcessedCount = 0;
@@ -247,7 +262,10 @@ class DattoIntegration implements IntegrationInterface
         }
         // Legacy 'sites' case can be removed or kept for backward compatibility
     }
-protected function syncSiteDevices(string $siteUid, array $site): void
+/**
+     * @param array<string, mixed> $site
+     */
+    protected function syncSiteDevices(string $siteUid, array $site): void
     {
         $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->where('external_id', $siteUid)
@@ -296,7 +314,10 @@ protected function syncSiteDevices(string $siteUid, array $site): void
         }
     }
 
-protected function syncSiteAlerts(string $siteUid, array $site): void
+    /**
+     * @param array<string, mixed> $site
+     */
+    protected function syncSiteAlerts(string $siteUid, array $site): void
     {
         $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
             ->where('external_id', $siteUid)
@@ -355,6 +376,10 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         }
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $devices
+     * @param array<string, mixed> $site
+     */
     protected function bulkStoreDevices(array $devices, array $site): void
     {
         $siteUid = $site['uid'] ?? $site['id'] ?? null;
@@ -422,6 +447,10 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
             }
         });
     }
+    /**
+     * @param array<int, array<string, mixed>> $alerts
+     * @param array<string, mixed> $site
+     */
     protected function bulkStoreAlerts(array $alerts, array $site): void    
     {
         $siteUid = $site['uid'] ?? $site['id'] ?? null;
@@ -508,6 +537,9 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         });
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         $totalProcessed = 0;
@@ -581,6 +613,9 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         return now()->subDays(90);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -616,6 +651,9 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         }
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [
@@ -624,6 +662,9 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         ];
     }
 
+    /**
+     * @param array<string, mixed> $customer
+     */
     protected function storeCustomer(array $customer): void
     {
         if (empty($customer['external_id']) || empty($customer['name'])) {
@@ -664,6 +705,9 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
     /**
      * @deprecated Use bulkStoreAlerts() instead for better performance
      * Kept for syncDevices() backward compatibility
+     * 
+     * @param array<string, mixed> $alert
+     * @param array<string, mixed> $site
      */
     protected function storeAlertData(array $alert, array $site): void
     {
@@ -745,6 +789,9 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getDisplayTemplate(): array
     {
         $builder = new TemplateBuilder('datto', 'Datto RMM & Backup');
@@ -945,6 +992,9 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         return $builder->build();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getPreviewData(?int $integrationCustomerId = null): array
     {
         try {
@@ -1167,6 +1217,10 @@ protected function syncSiteAlerts(string $siteUid, array $site): void
         }
     }
 
+    /**
+     * @param array<string, mixed> $device
+     * @param array<string, mixed> $site
+     */
     protected function storeDeviceData(array $device, array $site, ?\Carbon\Carbon $timestamp = null): void
     {
         // Find the integration customer for this site

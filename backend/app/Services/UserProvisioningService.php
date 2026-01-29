@@ -17,7 +17,7 @@ class UserProvisioningService
      * @param string $email
      * @param string $name
      * @param string $authMethod (saml, m365, ldap)
-     * @param array $additionalData Optional additional user data
+     * @param array<string, mixed> $additionalData Optional additional user data
      * @return User
      */
     public function provisionUser(int $companyId, string $email, string $name, string $authMethod, array $additionalData = []): User
@@ -81,7 +81,7 @@ class UserProvisioningService
      * @param string $email
      * @param string $name
      * @param string $authMethod
-     * @param array $additionalData
+     * @param array<string, mixed> $additionalData
      * @return User
      */
     public function findOrProvisionUser(int $companyId, string $email, string $name, string $authMethod, array $additionalData = []): User
@@ -124,7 +124,7 @@ class UserProvisioningService
      * Update user attributes from external auth provider
      * 
      * @param User $user
-     * @param array $attributes
+     * @param array<string, mixed> $attributes
      * @return User
      */
     public function updateUserFromProvider(User $user, array $attributes): User

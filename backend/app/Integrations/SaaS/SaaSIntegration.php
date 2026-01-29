@@ -36,6 +36,9 @@ class SaaSIntegration implements IntegrationInterface
         $this->mappingService = app(CustomerMappingService::class);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCredentialFields(): array
     {
         return [
@@ -78,6 +81,8 @@ class SaaSIntegration implements IntegrationInterface
 
     /**
      * Full sync: customers only (events handled by historical import)
+     * 
+     * @return array<string, mixed>
      */
     public function sync(): array
     {
@@ -130,6 +135,8 @@ class SaaSIntegration implements IntegrationInterface
 
     /**
      * Process batch of items (required by framework)
+     * 
+     * @param array<int, array<string, mixed>> $items
      */
     public function processBatch(string $type, array $items): void
     {
@@ -154,6 +161,8 @@ class SaaSIntegration implements IntegrationInterface
 
     /**
      * Fetch and store historical events for all mapped customers
+     * 
+     * @return array<string, mixed>
      */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
@@ -259,6 +268,9 @@ class SaaSIntegration implements IntegrationInterface
     //  Private Helpers
     // ──────────────────────────────────────────────
 
+    /**
+     * @param array<string, mixed> $customer
+     */
     private function storeCustomer(array $customer): void
     {
         if (empty($customer['external_id']) || empty($customer['name'])) {
@@ -310,6 +322,9 @@ class SaaSIntegration implements IntegrationInterface
         ], now()->addMinutes(15));
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         return array_map(
@@ -323,6 +338,9 @@ class SaaSIntegration implements IntegrationInterface
         return now()->subDays(365);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -348,6 +366,9 @@ class SaaSIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [

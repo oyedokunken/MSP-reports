@@ -12,6 +12,10 @@ class BitDefenderDataGatherer
     /**
      * Fetch endpoint data for the customer's mapped BitDefender integration customers.
      * Returns only the latest snapshot for each unique endpoint.
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @return Collection<int, mixed>
      */
     public function gatherEndpoints(Customer $customer, array $integrationCustomerIds): Collection
     {
@@ -61,6 +65,10 @@ class BitDefenderDataGatherer
     /**
      * Fetch threat detection data.
      * Returns only unique threats (deduplicated by threat_id).
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @return Collection<int, mixed>
      */
     public function gatherThreatDetections(Customer $customer, array $integrationCustomerIds): Collection
     {
@@ -101,6 +109,12 @@ class BitDefenderDataGatherer
 
     /**
      * Fetch all endpoint snapshots in a date range for trend analysis.
+     * 
+     * @param Customer $customer
+     * @param array<int, int> $integrationCustomerIds
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @return Collection<int, mixed>
      */
     public function gatherAllEndpointsInRange(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
     {

@@ -22,6 +22,13 @@ class EmailDriver implements DeliveryDriverInterface
         return 'Email';
     }
 
+    /**
+     * @param GeneratedReport $report
+     * @param array<string, mixed> $config
+     * @param Company $company
+     * @param Customer $customer
+     * @return array{success: bool, destination: string, message?: string}
+     */
     public function deliver(GeneratedReport $report, array $config, Company $company, Customer $customer): array
     {
         // Handle override recipients (for manual sends)
@@ -63,6 +70,10 @@ class EmailDriver implements DeliveryDriverInterface
         ];
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array{valid: bool, errors: array<int, string>}
+     */
     public function validateConfig(array $config): array
     {
         $errors = [];
@@ -87,6 +98,9 @@ class EmailDriver implements DeliveryDriverInterface
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getConfigSchema(): array
     {
         return [
@@ -109,6 +123,11 @@ class EmailDriver implements DeliveryDriverInterface
         ];
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @param Company $company
+     * @return array{success: bool, message: string}
+     */
     public function testConnection(array $config, Company $company): array
     {
         $validation = $this->validateConfig($config);

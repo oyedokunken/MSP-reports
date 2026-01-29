@@ -26,7 +26,7 @@ class TestOptimizedSync extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
         $integrationId = $this->argument('integration_id');
         $daysBack = (int) $this->option('days');
@@ -109,6 +109,7 @@ class TestOptimizedSync extends Command
             $this->line('');
             $this->info("✅ Test completed successfully");
             
+            return 0;
         } catch (\Exception $e) {
             $this->error("Sync failed: " . $e->getMessage());
             $this->error($e->getTraceAsString());

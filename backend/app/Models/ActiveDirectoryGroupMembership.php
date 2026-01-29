@@ -26,6 +26,8 @@ class ActiveDirectoryGroupMembership extends Model
 
     /**
      * Get the company that owns the membership
+     * 
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {
@@ -34,6 +36,8 @@ class ActiveDirectoryGroupMembership extends Model
 
     /**
      * Get the integration that synced this membership
+     * 
+     * @return BelongsTo<Integration, $this>
      */
     public function integration(): BelongsTo
     {
@@ -42,6 +46,8 @@ class ActiveDirectoryGroupMembership extends Model
 
     /**
      * Get the customer this membership belongs to
+     * 
+     * @return BelongsTo<Customer, $this>
      */
     public function customer(): BelongsTo
     {
@@ -50,8 +56,10 @@ class ActiveDirectoryGroupMembership extends Model
 
     /**
      * Get the user for this membership
+     * 
+     * @return BelongsTo<ActiveDirectoryUser, $this>
      */
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(ActiveDirectoryUser::class, 'user_sam_account_name', 'sam_account_name')
             ->where('active_directory_users.company_id', $this->company_id);
@@ -59,8 +67,10 @@ class ActiveDirectoryGroupMembership extends Model
 
     /**
      * Get the group for this membership
+     * 
+     * @return BelongsTo<ActiveDirectoryGroup, $this>
      */
-    public function group()
+    public function group(): BelongsTo
     {
         return $this->belongsTo(ActiveDirectoryGroup::class, 'group_dn', 'distinguished_name')
             ->where('active_directory_groups.company_id', $this->company_id);
@@ -68,6 +78,9 @@ class ActiveDirectoryGroupMembership extends Model
 
     /**
      * Scope to direct memberships
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeDirect($query)
     {
@@ -76,6 +89,9 @@ class ActiveDirectoryGroupMembership extends Model
 
     /**
      * Scope to nested memberships
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeNested($query)
     {
@@ -84,6 +100,10 @@ class ActiveDirectoryGroupMembership extends Model
 
     /**
      * Scope by group name
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @param string $groupName
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeForGroup($query, string $groupName)
     {
@@ -92,6 +112,10 @@ class ActiveDirectoryGroupMembership extends Model
 
     /**
      * Scope by user
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @param string $samAccountName
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeForUser($query, string $samAccountName)
     {

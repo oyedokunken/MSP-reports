@@ -26,7 +26,7 @@ class CheckADSPLALicensing extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): int
     {
         $customerId = $this->argument('customer_id');
         $customer = Customer::find($customerId);

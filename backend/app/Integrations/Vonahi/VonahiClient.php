@@ -11,11 +11,15 @@ use Carbon\Carbon;
 
 class VonahiClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -60,6 +64,8 @@ class VonahiClient
 
     /**
      * Get all organizations/tenants
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getOrganizations(): array
     {
@@ -69,6 +75,8 @@ class VonahiClient
 
     /**
      * Get penetration tests
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getPenTests(?string $organizationId = null): array
     {
@@ -82,6 +90,8 @@ class VonahiClient
 
     /**
      * Get security findings/vulnerabilities
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getSecurityFindings(?string $pentestId = null): array
     {
@@ -95,6 +105,8 @@ class VonahiClient
 
     /**
      * Get vulnerability scans
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getScans(?string $organizationId = null): array
     {
@@ -108,6 +120,8 @@ class VonahiClient
 
     /**
      * Get assets/targets
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getAssets(?string $organizationId = null): array
     {
@@ -121,6 +135,9 @@ class VonahiClient
 
     /**
      * Make authenticated request to Vonahi API
+     * 
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>|null
      */
     protected function makeRequest(string $endpoint, array $params = []): ?array
     {

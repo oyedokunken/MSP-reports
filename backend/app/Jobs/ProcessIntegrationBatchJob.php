@@ -14,16 +14,19 @@ class ProcessIntegrationBatchJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 3;
-    public $timeout = 600; // 10 minutes per batch
+    public int $tries = 3;
+    public int $timeout = 600; // 10 minutes per batch
 
     protected Integration $integration;
     protected string $type;
+    /** @var array<int, mixed> */
     protected array $items;
     protected ?int $syncLogId;
 
     /**
      * Create a new job instance.
+     * 
+     * @param array<int, mixed> $items
      */
     public function __construct(Integration $integration, string $type, array $items, ?int $syncLogId = null)
     {
@@ -105,6 +108,8 @@ class ProcessIntegrationBatchJob implements ShouldQueue
 
     /**
      * Update batch counters in Redis
+     * 
+     * @param object $instance
      */
     private function updateBatchCounters($instance, bool $success): void
     {
@@ -200,6 +205,8 @@ class ProcessIntegrationBatchJob implements ShouldQueue
 
     /**
      * Complete sync if all batches are done
+     * 
+     * @param \Illuminate\Redis\Connections\Connection $redis
      */
     private function completeSyncIfAllBatchesDone($redis): void
     {

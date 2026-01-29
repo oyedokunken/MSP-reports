@@ -16,7 +16,7 @@ use App\Mail\WelcomeUserMail;
 
 class UserController extends Controller
 {
-    public function getUser(Request $request)
+    public function getUser(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -48,7 +48,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function createUser(Request $request, LicenseChecker $licenseChecker)
+    public function createUser(Request $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -156,7 +156,7 @@ class UserController extends Controller
         ], 201);
     }
 
-    public function updatePermissions(Request $request, $id)
+    public function updatePermissions(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -199,7 +199,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function updateUser(Request $request, $id)
+    public function updateUser(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -286,7 +286,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function deactivateUser(Request $request, $id)
+    public function deactivateUser(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -322,7 +322,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function reactivateUser(Request $request, $id)
+    public function reactivateUser(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -349,7 +349,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function deleteUser(Request $request, $id)
+    public function deleteUser(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -381,7 +381,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function resetUserPassword(Request $request, $id)
+    public function resetUserPassword(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -435,7 +435,7 @@ class UserController extends Controller
     /**
      * Get all available roles
      */
-    public function getRoles(Request $request)
+    public function getRoles(Request $request): \Illuminate\Http\JsonResponse
     {
         $roles = Role::select('id', 'name')->get();
 
@@ -448,7 +448,7 @@ class UserController extends Controller
     /**
      * Upload profile picture for a user
      */
-    public function uploadProfilePicture(Request $request, $id)
+    public function uploadProfilePicture(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -496,7 +496,7 @@ class UserController extends Controller
     /**
      * Delete profile picture for a user
      */
-    public function deleteProfilePicture(Request $request, $id)
+    public function deleteProfilePicture(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -529,7 +529,7 @@ class UserController extends Controller
     /**
      * Clear force password change flag after user changes password
      */
-    public function clearForcePasswordChange(Request $request)
+    public function clearForcePasswordChange(Request $request): \Illuminate\Http\JsonResponse
     {
         $user = $request->user();
         

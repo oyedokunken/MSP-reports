@@ -58,6 +58,8 @@ class ActiveDirectoryUser extends Model
 
     /**
      * Get the company that owns the user
+     * 
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {
@@ -66,6 +68,8 @@ class ActiveDirectoryUser extends Model
 
     /**
      * Get the integration that synced this user
+     * 
+     * @return BelongsTo<Integration, $this>
      */
     public function integration(): BelongsTo
     {
@@ -74,6 +78,8 @@ class ActiveDirectoryUser extends Model
 
     /**
      * Get the customer this user belongs to
+     * 
+     * @return BelongsTo<Customer, $this>
      */
     public function customer(): BelongsTo
     {
@@ -82,8 +88,10 @@ class ActiveDirectoryUser extends Model
 
     /**
      * Get group memberships for this user
+     * 
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<ActiveDirectoryGroupMembership, $this>
      */
-    public function groupMemberships()
+    public function groupMemberships(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ActiveDirectoryGroupMembership::class, 'user_sam_account_name', 'sam_account_name')
             ->where('active_directory_group_memberships.company_id', $this->company_id);
@@ -91,6 +99,9 @@ class ActiveDirectoryUser extends Model
 
     /**
      * Scope to only enabled users
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeEnabled($query)
     {
@@ -99,6 +110,9 @@ class ActiveDirectoryUser extends Model
 
     /**
      * Scope to only disabled users
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeDisabled($query)
     {
@@ -107,6 +121,10 @@ class ActiveDirectoryUser extends Model
 
     /**
      * Scope to users in a specific department
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @param string $department
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeInDepartment($query, string $department)
     {

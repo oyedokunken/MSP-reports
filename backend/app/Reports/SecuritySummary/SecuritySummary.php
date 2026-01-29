@@ -38,6 +38,13 @@ class SecuritySummary extends BaseReport
         return $hasData;
     }
 
+    /**
+     * @param Customer $customer
+     * @param Carbon $startDate
+     * @param Carbon $endDate
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
         // Get integration customer IDs for this customer

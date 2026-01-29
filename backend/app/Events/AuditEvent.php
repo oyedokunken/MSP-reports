@@ -14,13 +14,18 @@ class AuditEvent
     public ?string $actorType;
     public ?int $actorId;
     public ?string $targetType;
+    /** @var string|int|null */
     public $targetId;
+    /** @var array<string, mixed> */
     public array $eventData;
     public ?string $ipAddress;
     public ?string $userAgent;
 
     /**
      * Create a new event instance.
+     * 
+     * @param array<string, mixed> $eventData
+     * @param string|int|null $targetId
      */
     public function __construct(
         int $companyId,

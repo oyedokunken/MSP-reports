@@ -15,7 +15,7 @@ use Carbon\Carbon;
 
 class HealthCheckController extends Controller
 {
-    public function index()
+    public function index(): \Illuminate\Http\JsonResponse
     {
         $checks = [
             'api' => $this->checkApi(),
@@ -40,7 +40,7 @@ class HealthCheckController extends Controller
         ], $allHealthy ? 200 : 503);
     }
 
-    public function status(Request $request)
+    public function status(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -56,7 +56,7 @@ class HealthCheckController extends Controller
         ]);
     }
 
-    public function integrationMetrics(Request $request)
+    public function integrationMetrics(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $days = $request->input('days', 7);
@@ -101,7 +101,7 @@ class HealthCheckController extends Controller
         ]);
     }
 
-    public function reportMetrics(Request $request)
+    public function reportMetrics(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $days = $request->input('days', 7);
@@ -158,7 +158,7 @@ class HealthCheckController extends Controller
         ]);
     }
 
-    public function monthlyReportAnalytics(Request $request)
+    public function monthlyReportAnalytics(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $months = $request->input('months', 6);
@@ -204,7 +204,7 @@ class HealthCheckController extends Controller
         ]);
     }
 
-    public function queueMetrics(Request $request)
+    public function queueMetrics(Request $request): \Illuminate\Http\JsonResponse
     {
         try {
             $failedJobs = DB::table('failed_jobs')->count();
@@ -250,7 +250,7 @@ class HealthCheckController extends Controller
         }
     }
 
-    public function activityTrends(Request $request)
+    public function activityTrends(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $days = $request->input('days', 7);
@@ -327,6 +327,9 @@ class HealthCheckController extends Controller
 
     // Private helper methods
 
+    /**
+     * @return array{status: string, message: string}
+     */
     private function checkApi(): array
     {
         return [
@@ -335,6 +338,9 @@ class HealthCheckController extends Controller
         ];
     }
 
+    /**
+     * @return array{status: string, message: string}
+     */
     private function checkDatabase(): array
     {
         try {
@@ -353,6 +359,9 @@ class HealthCheckController extends Controller
         }
     }
 
+    /**
+     * @return array{status: string, message: string}
+     */
     private function checkRedis(): array
     {
         if ($this->isRedisRequired() === false) {
@@ -386,6 +395,9 @@ class HealthCheckController extends Controller
         return $cacheDriver === 'redis' || $queueDriver === 'redis' || $sessionDriver === 'redis';
     }
 
+    /**
+     * @return array{status: string, message: string, free_bytes?: float, total_bytes?: float}
+     */
     private function checkStorage(): array
     {
         try {
@@ -409,6 +421,9 @@ class HealthCheckController extends Controller
         }
     }
 
+    /**
+     * @return array<string, array<string, mixed>>
+     */
     private function getSystemStatus(): array
     {
         return [
@@ -420,6 +435,9 @@ class HealthCheckController extends Controller
         ];
     }
 
+    /**
+     * @return array{total: int, active: int, error: int, health: string}
+     */
     private function getIntegrationStatus(int $companyId): array
     {
         $integrations = Integration::where('company_id', $companyId)->get();
@@ -436,6 +454,9 @@ class HealthCheckController extends Controller
         ];
     }
 
+    /**
+     * @return array{last_24_hours: array{total: int, completed: int, failed: int, success_rate: float|int}, health: string}
+     */
     private function getReportStatus(int $companyId): array
     {
         $last24Hours = now()->subHours(24);
@@ -459,6 +480,9 @@ class HealthCheckController extends Controller
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function getQueueStatus(): array
     {
         try {
@@ -501,6 +525,9 @@ class HealthCheckController extends Controller
         }
     }
 
+    /**
+     * @return array<string, string>
+     */
     private function getRedisMemoryUsage(): array
     {
         // Skip Redis check if not required
@@ -529,6 +556,9 @@ class HealthCheckController extends Controller
         }
     }
 
+    /**
+     * @return array<string, string>
+     */
     private function getUptime(): array
     {
         // This is a placeholder - would need to track actual app start time

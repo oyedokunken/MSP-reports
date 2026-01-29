@@ -23,6 +23,8 @@ class ExchangeEmailAlias extends Model
 
     /**
      * Get the company that owns this alias
+     * 
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {
@@ -31,6 +33,8 @@ class ExchangeEmailAlias extends Model
 
     /**
      * Get the integration that synced this alias
+     * 
+     * @return BelongsTo<Integration, $this>
      */
     public function integration(): BelongsTo
     {
@@ -39,6 +43,8 @@ class ExchangeEmailAlias extends Model
 
     /**
      * Get the customer this alias belongs to
+     * 
+     * @return BelongsTo<Customer, $this>
      */
     public function customer(): BelongsTo
     {
@@ -47,6 +53,8 @@ class ExchangeEmailAlias extends Model
 
     /**
      * Get the mailbox this alias belongs to
+     * 
+     * @return BelongsTo<ExchangeMailbox, $this>
      */
     public function mailbox(): BelongsTo
     {
@@ -55,6 +63,9 @@ class ExchangeEmailAlias extends Model
 
     /**
      * Scope: Primary email addresses only
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopePrimary($query)
     {
@@ -63,6 +74,9 @@ class ExchangeEmailAlias extends Model
 
     /**
      * Scope: SMTP addresses only
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder<$this> $query
+     * @return \Illuminate\Database\Eloquent\Builder<$this>
      */
     public function scopeSmtp($query)
     {

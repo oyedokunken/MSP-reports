@@ -8,6 +8,8 @@ class ReportTypeRegistry
 {
     /**
      * Get all defined report types and their requirements
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public static function getReportTypes(): array
     {
@@ -65,6 +67,9 @@ class ReportTypeRegistry
 
     /**
      * Get report types available for a specific customer based on their active integrations
+     * 
+     * @param int $customerId
+     * @return array<int, array<string, mixed>>
      */
     public static function getAvailableForCustomer(int $customerId): array
     {

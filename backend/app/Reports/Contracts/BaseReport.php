@@ -42,6 +42,8 @@ abstract class BaseReport implements ReportInterface
 
     /**
      * Helper to get company's white-label settings
+     * 
+     * @return array<string, mixed>
      */
     protected function getBranding(): array
     {
@@ -145,13 +147,13 @@ abstract class BaseReport implements ReportInterface
      * Check if a section should be included based on template configuration
      * 
      * @param string $sectionId The section ID to check
-     * @param array $options The options array passed to generate()
+     * @param array<string, mixed> $options The options array passed to generate()
      * @return bool True if section should be included
      */
     protected function shouldIncludeSection(string $sectionId, array $options): bool
     {
         // If no included_sections specified, include all sections
-        if (!isset($options['included_sections']) || empty($options['included_sections'])) {
+        if (!isset($options['included_sections']) || !is_array($options['included_sections']) || empty($options['included_sections'])) {
             return true;
         }
 
@@ -167,14 +169,14 @@ abstract class BaseReport implements ReportInterface
     /**
      * Filter report data to only include selected sections
      * 
-     * @param array $reportData The full report data
-     * @param array $options The options array with included_sections
-     * @return array Filtered report data
+     * @param array<string, mixed> $reportData The full report data
+     * @param array<string, mixed> $options The options array with included_sections
+     * @return array<string, mixed> Filtered report data
      */
     protected function filterSections(array $reportData, array $options): array
     {
         // If no filtering needed, return as-is
-        if (!isset($options['included_sections']) || empty($options['included_sections'])) {
+        if (!isset($options['included_sections']) || !is_array($options['included_sections']) || empty($options['included_sections'])) {
             return $reportData;
         }
 
@@ -184,6 +186,7 @@ abstract class BaseReport implements ReportInterface
         }
 
         // Filter out sections not in included_sections
+        /** @var array<int|string, mixed> $includedSections */
         $includedSections = $options['included_sections'];
         $filtered = $reportData;
 
@@ -195,6 +198,8 @@ abstract class BaseReport implements ReportInterface
 
     /**
      * Get default metadata structure (can be overridden)
+     * 
+     * @return array<string, mixed>
      */
     public function getMetadata(): array
     {
@@ -249,7 +254,7 @@ abstract class BaseReport implements ReportInterface
      * Get date range based on frequency
      * 
      * @param string $frequency Frequency type
-     * @return array Array with 'start' and 'end' Carbon instances
+     * @return array{start: Carbon, end: Carbon}
      */
     protected static function getDateRangeForFrequency(string $frequency): array
     {

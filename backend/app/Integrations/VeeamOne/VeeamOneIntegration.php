@@ -40,6 +40,9 @@ class VeeamOneIntegration implements IntegrationInterface
         return $this->client->testConnection();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function sync(): array
     {
         $stats = [
@@ -113,6 +116,9 @@ class VeeamOneIntegration implements IntegrationInterface
         return $stats;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function syncBackupJobs(): array
     {
         $result = ['synced' => 0, 'new' => 0, 'error' => null];
@@ -158,6 +164,9 @@ class VeeamOneIntegration implements IntegrationInterface
         return $result;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function syncBackupSessions(): array
     {
         $result = ['synced' => 0, 'new' => 0, 'error' => null];
@@ -206,6 +215,9 @@ class VeeamOneIntegration implements IntegrationInterface
         return $result;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function syncAlarms(): array
     {
         $result = ['synced' => 0, 'new' => 0, 'error' => null];
@@ -251,6 +263,9 @@ class VeeamOneIntegration implements IntegrationInterface
         return $result;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function syncRepositories(): array
     {
         $result = ['synced' => 0, 'new' => 0, 'error' => null];
@@ -296,6 +311,9 @@ class VeeamOneIntegration implements IntegrationInterface
         return $result;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected function syncProtectedWorkloads(): array
     {
         $result = ['synced' => 0, 'new' => 0, 'error' => null];
@@ -341,6 +359,9 @@ class VeeamOneIntegration implements IntegrationInterface
         return $result;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getCustomers(): array
     {
         // Veeam ONE doesn't have a traditional customer concept
@@ -348,6 +369,9 @@ class VeeamOneIntegration implements IntegrationInterface
         return [];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
         try {
@@ -374,6 +398,9 @@ class VeeamOneIntegration implements IntegrationInterface
         return Carbon::now()->subYear();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMetadata(): array
     {
         return [
@@ -405,6 +432,9 @@ class VeeamOneIntegration implements IntegrationInterface
         return $this->authenticate();
     }
 
+    /**
+     * @return array<string, int>
+     */
     public function getRateLimits(): array
     {
         return [
@@ -415,6 +445,8 @@ class VeeamOneIntegration implements IntegrationInterface
 
     /**
      * Get dashboard widget data for reporting
+     * 
+     * @return array<string, mixed>
      */
     public function getDashboardData(int $dashboardId, int $widgetId, int $datasourceId): array
     {
@@ -423,6 +455,8 @@ class VeeamOneIntegration implements IntegrationInterface
 
     /**
      * Get server information
+     * 
+     * @return array<string, mixed>
      */
     public function getServerInfo(): array
     {
@@ -431,6 +465,8 @@ class VeeamOneIntegration implements IntegrationInterface
 
     /**
      * Get license information
+     * 
+     * @return array<string, mixed>
      */
     public function getLicenseInfo(): array
     {

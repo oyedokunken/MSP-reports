@@ -12,6 +12,7 @@ use Carbon\Carbon;
 
 class ThreatLockerClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
@@ -19,6 +20,9 @@ class ThreatLockerClient
 
     protected const CACHE_KEY_PREFIX = 'threatlocker_';
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(array $credentials, RateLimiter $rateLimiter, Integration $integration)
     {
         $this->credentials = $credentials;
@@ -64,6 +68,8 @@ class ThreatLockerClient
 
     /**
      * Get all organizations (customers) from ThreatLocker
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getOrganizations(): array
     {
@@ -108,6 +114,8 @@ class ThreatLockerClient
 
     /**
      * Get computers/endpoints for an organization
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getComputers(?string $organizationId = null): array
     {
@@ -153,6 +161,8 @@ class ThreatLockerClient
 
     /**
      * Get application policies
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getPolicies(?string $organizationId = null): array
     {
@@ -167,6 +177,8 @@ class ThreatLockerClient
 
     /**
      * Get security events/audit logs
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getSecurityEvents(?string $organizationId = null, ?Carbon $since = null): array
     {
@@ -187,6 +199,8 @@ class ThreatLockerClient
 
     /**
      * Get application blocks/denials
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getApplicationBlocks(?string $organizationId = null, ?Carbon $since = null): array
     {
@@ -207,6 +221,9 @@ class ThreatLockerClient
 
     /**
      * Make authenticated request to ThreatLocker API
+     * 
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>|null
      */
     protected function makeRequest(string $endpoint, array $params = []): ?array
     {

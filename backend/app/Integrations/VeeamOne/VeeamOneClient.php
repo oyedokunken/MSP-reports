@@ -20,6 +20,7 @@ use App\Integrations\Exceptions\AuthenticationException;
  */
 class VeeamOneClient
 {
+    /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
@@ -29,6 +30,9 @@ class VeeamOneClient
     protected const TOKEN_CACHE_KEY_PREFIX = 'veeam_one_token_';
     protected const TOKEN_EXPIRY_SECONDS = 840; // 14 minutes (tokens valid for 15)
 
+    /**
+     * @param array<string, mixed> $credentials
+     */
     public function __construct(
         array $credentials,
         RateLimiter $rateLimiter,
@@ -108,6 +112,8 @@ class VeeamOneClient
 
     /**
      * Get installation info
+     * 
+     * @return array<string, mixed>
      */
     public function getInstallationInfo(): array
     {
@@ -125,6 +131,8 @@ class VeeamOneClient
 
     /**
      * Get license information
+     * 
+     * @return array<string, mixed>
      */
     public function getLicense(): array
     {
@@ -142,6 +150,8 @@ class VeeamOneClient
 
     /**
      * Get current license usage
+     * 
+     * @return array<string, mixed>
      */
     public function getCurrentUsage(): array
     {
@@ -160,7 +170,7 @@ class VeeamOneClient
     /**
      * Get all dashboards
      *
-     * @return array<int, array>
+     * @return array<int, array<string, mixed>>
      */
     public function getDashboards(): array
     {
@@ -185,6 +195,8 @@ class VeeamOneClient
 
     /**
      * Get dashboard by ID
+     * 
+     * @return array<string, mixed>|null
      */
     public function getDashboard(int $dashboardId): ?array
     {
@@ -200,7 +212,7 @@ class VeeamOneClient
     /**
      * Get widgets for a dashboard
      *
-     * @return array<int, array>
+     * @return array<int, array<string, mixed>>
      */
     public function getWidgets(int $dashboardId): array
     {
@@ -220,7 +232,7 @@ class VeeamOneClient
     /**
      * Get widget data sources
      *
-     * @return array<int, array>
+     * @return array<int, array<string, mixed>>
      */
     public function getWidgetDatasources(int $dashboardId, int $widgetId): array
     {
@@ -238,6 +250,8 @@ class VeeamOneClient
 
     /**
      * Get widget data from a specific datasource
+     * 
+     * @return array<string, mixed>
      */
     public function getWidgetData(
         int $dashboardId,
@@ -267,8 +281,8 @@ class VeeamOneClient
     /**
      * Get alarms with optional filtering
      *
-     * @param array $params Optional filter params (status, objectType, etc.)
-     * @return array<int, array>
+     * @param array<string, mixed> $params Optional filter params (status, objectType, etc.)
+     * @return array<int, array<string, mixed>>
      */
     public function getAlarms(array $params = []): array
     {
@@ -286,6 +300,8 @@ class VeeamOneClient
 
     /**
      * Get alarm by ID
+     * 
+     * @return array<string, mixed>|null
      */
     public function getAlarm(int $alarmId): ?array
     {
@@ -300,8 +316,9 @@ class VeeamOneClient
 
     /**
      * Get protected workloads/VMs
-     *
-     * @return array<int, array>
+     * 
+     * @param array<string, mixed> $params
+     * @return array<int, array<string, mixed>>
      */
     public function getProtectedWorkloads(array $params = []): array
     {
@@ -320,7 +337,7 @@ class VeeamOneClient
     /**
      * Get backup infrastructure objects
      *
-     * @return array<int, array>
+     * @return array<int, array<string, mixed>>
      */
     public function getBackupInfrastructure(): array
     {
@@ -339,7 +356,7 @@ class VeeamOneClient
     /**
      * Get backup servers
      *
-     * @return array<int, array>
+     * @return array<int, array<string, mixed>>
      */
     public function getBackupServers(): array
     {
@@ -358,7 +375,7 @@ class VeeamOneClient
     /**
      * Get backup jobs
      *
-     * @return array<int, array>
+     * @return array<int, array<string, mixed>>
      */
     public function getBackupJobs(): array
     {
@@ -377,8 +394,8 @@ class VeeamOneClient
     /**
      * Get backup job sessions
      *
-     * @param array $params Optional filter params (jobId, startTime, endTime)
-     * @return array<int, array>
+     * @param array<string, mixed> $params Optional filter params (jobId, startTime, endTime)
+     * @return array<int, array<string, mixed>>
      */
     public function getBackupSessions(array $params = []): array
     {
@@ -397,7 +414,7 @@ class VeeamOneClient
     /**
      * Get repositories
      *
-     * @return array<int, array>
+     * @return array<int, array<string, mixed>>
      */
     public function getRepositories(): array
     {
@@ -526,6 +543,8 @@ class VeeamOneClient
 
     /**
      * Make authenticated API request
+     * 
+     * @param array<string, mixed> $params
      */
     protected function makeRequest(
         string $method,

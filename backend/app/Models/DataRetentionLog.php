@@ -2,13 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 
 class DataRetentionLog extends Model
 {
-    use HasFactory;
 
     protected $primaryKey = 'data_retention_log_id';
 
@@ -31,7 +29,10 @@ class DataRetentionLog extends Model
     ];
 
     
-    public function company()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Company, $this>
+     */
+    public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }

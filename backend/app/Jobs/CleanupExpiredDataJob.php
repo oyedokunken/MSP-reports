@@ -18,8 +18,8 @@ class CleanupExpiredDataJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 1;
-    public $timeout = 3600; 
+    public int $tries = 1;
+    public int $timeout = 3600; 
 
     public function handle(): void
     {
@@ -50,6 +50,9 @@ class CleanupExpiredDataJob implements ShouldQueue
         $this->cleanupSyncLogs($company, $retentionSettings);
     }
 
+    /**
+     * @param array<string, mixed> $retentionSettings
+     */
     private function cleanupGeneratedReports(Company $company, array $retentionSettings): void
     {
         $retentionMonths = $retentionSettings['generated_reports_months'] ?? 36;
@@ -91,6 +94,9 @@ class CleanupExpiredDataJob implements ShouldQueue
         }
     }
 
+    /**
+     * @param array<string, mixed> $retentionSettings
+     */
     private function cleanupSyncLogs(Company $company, array $retentionSettings): void
     {
         $retentionMonths = $retentionSettings['integration_sync_logs_months'] ?? 12;

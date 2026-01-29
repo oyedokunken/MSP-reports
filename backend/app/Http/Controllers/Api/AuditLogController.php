@@ -13,7 +13,7 @@ class AuditLogController extends Controller
     /**
      * Display a listing of audit logs with filtering and pagination.
      */
-    public function index(Request $request)
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         $companyId = $request->user()->company_id;
         $perPage = $request->input('per_page', 10);
@@ -72,7 +72,7 @@ class AuditLogController extends Controller
     /**
      * Get aggregate statistics for audit logs.
      */
-    public function stats(Request $request)
+    public function stats(Request $request): \Illuminate\Http\JsonResponse
     {
         $companyId = $request->user()->company_id;
         $today = Carbon::today();
@@ -111,7 +111,7 @@ class AuditLogController extends Controller
     /**
      * Export audit logs to CSV.
      */
-    public function export(Request $request)
+    public function export(Request $request): \Illuminate\Http\Response
     {
         $companyId = $request->user()->company_id;
         

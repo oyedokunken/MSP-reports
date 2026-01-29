@@ -7,6 +7,9 @@ class M365Mapper
     /**
      * Map M365 audit log into a standardized IntegrationData payload.
      * Currently placeholder only.
+     * 
+     * @param array<string, mixed> $log
+     * @return array<string, mixed>
      */
     public static function mapAuditLog(array $log): array
     {
@@ -22,6 +25,9 @@ class M365Mapper
     /**
      * Map M365 security alert into a standardized IntegrationData payload.
      * Currently placeholder only.
+     * 
+     * @param array<string, mixed> $alert
+     * @return array<string, mixed>
      */
     public static function mapSecurityAlert(array $alert): array
     {

@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 
 class ReportRegistry
 {
+    /** @var array<string, array<string, mixed>> */
     protected array $reports = [];
 
     protected const CACHE_KEY = 'report_registry';
@@ -25,6 +26,9 @@ class ReportRegistry
 
     /**
      * Register a report type
+     * 
+     * @param string $reportId
+     * @param array<string, mixed> $config
      */
     public function register(string $reportId, array $config): void
     {
@@ -66,6 +70,8 @@ class ReportRegistry
 
     /**
      * Get all registered reports
+     * 
+     * @return array<string, array<string, mixed>>
      */
     public function all(): array
     {
@@ -74,6 +80,9 @@ class ReportRegistry
 
     /**
      * Get available reports (with metadata)
+     * 
+     * @param int $companyId
+     * @return array<int, array<string, mixed>>
      */
     public function getAvailable(int $companyId): array
     {
@@ -111,6 +120,10 @@ class ReportRegistry
 
     /**
      * Get reports by category
+     * 
+     * @param string $category
+     * @param int $companyId
+     * @return array<int, array<string, mixed>>
      */
     public function getByCategory(string $category, int $companyId): array
     {
@@ -121,6 +134,10 @@ class ReportRegistry
 
     /**
      * Get reports that support a specific frequency
+     * 
+     * @param string $frequency
+     * @param int $companyId
+     * @return array<int, array<string, mixed>>
      */
     public function getByFrequency(string $frequency, int $companyId): array
     {
@@ -229,6 +246,9 @@ class ReportRegistry
 
     /**
      * Get report configuration
+     * 
+     * @param string $reportId
+     * @return array<string, mixed>|null
      */
     public function getConfig(string $reportId): ?array
     {

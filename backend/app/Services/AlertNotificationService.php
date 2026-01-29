@@ -19,6 +19,11 @@ class AlertNotificationService
         $this->mailService = $mailService;
     }
 
+    /**
+     * @param AlertLog $alertLog
+     * @param AlertRule $rule
+     * @return array<string, string>
+     */
     public function sendAlert(AlertLog $alertLog, AlertRule $rule): array
     {
         $status = [];

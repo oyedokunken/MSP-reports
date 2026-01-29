@@ -35,7 +35,7 @@ class CustomerMappingService
      * 
      * @param IntegrationCustomer $integrationCustomer
      * @param bool $useEmbeddings Whether to use embedding fallback (default: true)
-     * @return array|null Match result with 'customer', 'confidence_score', 'mapping_type'
+     * @return array{customer: Customer, confidence_score: int, mapping_type: string}|null Match result with 'customer', 'confidence_score', 'mapping_type'
      */
     public function autoMatchWithEmbeddings(IntegrationCustomer $integrationCustomer, bool $useEmbeddings = true): ?array
     {
@@ -128,7 +128,7 @@ class CustomerMappingService
      * - Typos and variations
      * 
      * @param IntegrationCustomer $integrationCustomer
-     * @return array|null Match result
+     * @return array{customer: Customer, confidence_score: int, mapping_type: string, reasoning: string}|null Match result
      */
     public function autoMatchWithAgent(IntegrationCustomer $integrationCustomer): ?array
     {
@@ -197,7 +197,7 @@ class CustomerMappingService
      * @param IntegrationCustomer $integrationCustomer
      * @param bool $useEmbeddings Whether to use embedding fallback
      * @param bool $useAgent Whether to use agent fallback (slowest)
-     * @return array|null Match result
+     * @return array{customer: Customer, confidence_score: int, mapping_type: string, reasoning?: string}|null Match result
      */
     public function autoMatchFull(IntegrationCustomer $integrationCustomer, bool $useEmbeddings = true, bool $useAgent = false): ?array
     {
@@ -230,9 +230,9 @@ class CustomerMappingService
      * Batch auto-match multiple integration customers using embeddings.
      * More efficient than calling autoMatchWithEmbeddings one by one.
      * 
-     * @param array $integrationCustomers Array of IntegrationCustomer models
+     * @param array<int, IntegrationCustomer> $integrationCustomers Array of IntegrationCustomer models
      * @param int $companyId Company ID for fetching existing customers
-     * @return array Map of integration_customer_id => match result
+     * @return array<int, array{customer: Customer, confidence_score: int, mapping_type: string}> Map of integration_customer_id => match result
      */
     public function batchAutoMatchWithEmbeddings(array $integrationCustomers, int $companyId): array
     {
@@ -317,6 +317,10 @@ class CustomerMappingService
         return $results;
     }
 
+    /**
+     * @param IntegrationCustomer $integrationCustomer
+     * @return array{customer: Customer, confidence_score: int, mapping_type: string}|null
+     */
     public function autoMatch(IntegrationCustomer $integrationCustomer): ?array
     {
         $company = $integrationCustomer->integration->company;
@@ -460,6 +464,11 @@ class CustomerMappingService
         ]);
     }
 
+    /**
+     * @param IntegrationCustomer $integrationCustomer
+     * @param int $limit
+     * @return array<int, array{customer: Customer, confidence_score: int}>
+     */
     public function getSuggestedMatches(IntegrationCustomer $integrationCustomer, int $limit = 5): array
     {
         $company = $integrationCustomer->integration->company;
@@ -493,6 +502,10 @@ class CustomerMappingService
     /**
      * Create a unified customer from a source of truth integration customer
      * This centralizes the logic previously duplicated in integration classes
+     * 
+     * @param IntegrationCustomer $integrationCustomer
+     * @param string $integrationType
+     * @return array{external_id: string, name: string, unified_customer_id: int, canonical_name: string}
      */
     public function createFromSourceOfTruth(IntegrationCustomer $integrationCustomer, string $integrationType): array
     {

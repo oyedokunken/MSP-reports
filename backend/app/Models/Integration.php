@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 use App\Traits\AuditTrail;
@@ -16,22 +15,22 @@ use App\Traits\AuditTrail;
  * @property \Carbon\Carbon|null $last_sync_at
  * @property string $last_sync_status
  * @property string|null $error_message
- * @property array|null $credentials
- * @property array|null $configuration
+ * @property array<string, mixed>|null $credentials
+ * @property array<string, mixed>|null $configuration
  * @property bool $is_source_of_truth
  * @property string $historical_import_status
  * @property int|null $historical_import_progress
  * @property \Carbon\Carbon|null $last_historical_sync_at
  * @property string|null $sync_schedule
  * @property-read \App\Models\Company $company
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\IntegrationCustomer> $integrationCustomers
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\SyncLog> $syncLogs
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\HistoricalImportJob> $historicalImportJobs
- * @property-read \Illuminate\Database\Eloquent\Collection<\App\Models\IntegrationData> $integrationData
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\IntegrationCustomer> $integrationCustomers
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\SyncLog> $syncLogs
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\HistoricalImportJob> $historicalImportJobs
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\IntegrationData> $integrationData
  */
 class Integration extends Model
 {
-    use HasFactory, AuditTrail;
+    use AuditTrail;
 
     protected $primaryKey = 'integration_id';
 
@@ -117,26 +116,41 @@ class Integration extends Model
         'is_source_of_truth' => 'boolean',
     ];
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Company, $this>
+     */
     public function company(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<IntegrationCustomer, $this>
+     */
     public function integrationCustomers(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(IntegrationCustomer::class, 'integration_id', 'integration_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<SyncLog, $this>
+     */
     public function syncLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(SyncLog::class, 'integration_id', 'integration_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<HistoricalImportJob, $this>
+     */
     public function historicalImportJobs(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(HistoricalImportJob::class, 'integration_id', 'integration_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<IntegrationData, $this>
+     */
     public function integrationData(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(IntegrationData::class, 'integration_id', 'integration_id');

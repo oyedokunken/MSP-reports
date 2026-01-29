@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 use App\Models\Scopes\CustomerScope;
@@ -22,7 +21,6 @@ use App\Models\Scopes\CustomerScope;
  */
 class CustomerMapping extends Model
 {
-    use HasFactory;
 
     protected $primaryKey = 'customer_mapping_id';
 
@@ -47,16 +45,25 @@ class CustomerMapping extends Model
         'confidence_score' => 'integer',
     ];
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Customer, $this>
+     */
     public function customer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Customer::class, 'customer_id', 'customer_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<IntegrationCustomer, $this>
+     */
     public function integrationCustomer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(IntegrationCustomer::class, 'integration_customer_id', 'integration_customer_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     */
     public function mappedByUser(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'mapped_by_user_id', 'user_id');

@@ -14,6 +14,8 @@ trait HasDefaultPreview
 {
     /**
      * Get a default display template for this integration
+     * 
+     * @return array<string, mixed>
      */
     public function getDisplayTemplate(): array
     {
@@ -66,6 +68,8 @@ trait HasDefaultPreview
 
     /**
      * Get default preview data showing synced customers
+     * 
+     * @return array<string, mixed>
      */
     public function getPreviewData(?int $integrationCustomerId = null): array
     {
@@ -143,6 +147,8 @@ trait HasDefaultPreview
 
     /**
      * Default credential fields - override in specific integrations
+     * 
+     * @return array<int, array<string, mixed>>
      */
     public function getCredentialFields(): array
     {

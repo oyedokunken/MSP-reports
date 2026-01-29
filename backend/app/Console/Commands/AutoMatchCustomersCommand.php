@@ -14,7 +14,7 @@ class AutoMatchCustomersCommand extends Command
 
     protected $description = 'Trigger auto-matching for unmapped integration customers';
 
-    public function handle()
+    public function handle(): int
     {
         $this->info('Starting auto-match process...');
 

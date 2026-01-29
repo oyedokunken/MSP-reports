@@ -4,6 +4,7 @@ namespace App\Integrations\Concerns;
 
 trait HasHeartbeat
 {
+    /** @var callable|null */
     protected $heartbeatCallback;
     protected ?int $currentSyncLogId = null;
 

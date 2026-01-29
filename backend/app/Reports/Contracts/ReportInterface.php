@@ -37,8 +37,8 @@ interface ReportInterface
      * @param Customer $customer
      * @param Carbon $startDate
      * @param Carbon $endDate
-     * @param array $options Additional configuration options
-     * @return array Report data structure
+     * @param array<string, mixed> $options Additional configuration options
+     * @return array<string, mixed> Report data structure
      */
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array;
 
