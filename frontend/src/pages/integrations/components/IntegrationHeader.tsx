@@ -16,6 +16,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/utils/permissions'
 
 export type ViewMode = 'grid' | 'table'
 
@@ -48,6 +50,8 @@ export function IntegrationHeader({
   viewMode = 'grid',
   onViewModeChange
 }: IntegrationHeaderProps) {
+  const { user } = useAuth()
+  const canManage = hasPermission(user, 'integrations', 'manage')
   const activeFilterCount = statusFilters.length + integrationTypeFilters.length
 
   const toggleStatusFilter = (status: string) => {
@@ -186,13 +190,13 @@ export function IntegrationHeader({
           />
         </div>
 
-        <button className="flex items-center text-white gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 h-10" onClick={onAdd}>
-          <Plus className="h-4 w-4 text-white" />
-          Add Integration
-        </button>
+        {canManage && (
+          <button className="flex items-center text-white gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 h-10" onClick={onAdd}>
+            <Plus className="h-4 w-4 text-white" />
+            Add Integration
+          </button>
+        )}
       </div>
     </div>
   )
 }
-
-

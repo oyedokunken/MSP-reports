@@ -24,12 +24,14 @@ const fetchIntegrations = async (): Promise<IntegrationsData> => {
 
 export const useIntegrationsQuery = (options?: {
   refetchInterval?: number | false
+  enabled?: boolean
 }) => {
   return useQuery({
     queryKey: integrationKeys.lists(),
     queryFn: fetchIntegrations,
     refetchInterval: options?.refetchInterval ?? 10000, // Default 10s (faster for progress updates)
     staleTime: 5000,
+    enabled: options?.enabled ?? true,
   });
 };
 

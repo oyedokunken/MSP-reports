@@ -19,6 +19,8 @@ import { LoadingSpinner } from "@/components/ui/LoadingStates";
 import type { Integration } from "../types/integration";
 import { getStatusIcon, getStatusText } from "../utils/statusBadge";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { hasPermission } from "@/utils/permissions";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -68,6 +70,10 @@ export function IntegrationCard({
     onPreviewData,
     isSourceOfTruth = false,
 }: IntegrationCardProps) {
+    const { user } = useAuth();
+    const canManageSlice = hasPermission(user, 'integrations', 'manage');
+    const canSyncSlice = hasPermission(user, 'integrations', 'sync');
+
     const getIntegrationIcon = (type: string) => {
         const normalizeType = type.toLowerCase();
         if (normalizeType.includes('sharepoint')) {
@@ -200,7 +206,7 @@ export function IntegrationCard({
                 </div>
                 <div className="mt-4 space-y-2 border-t border-border pt-4">
                     <div className="flex gap-2">
-                        {isSourceOfTruth && (
+                        {isSourceOfTruth && canSyncSlice && (
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <button
@@ -254,7 +260,7 @@ export function IntegrationCard({
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
-                                            {!isSourceOfTruth && (
+                                            {!isSourceOfTruth && canManageSlice && (
                                                 <>
                                                     <DropdownMenuItem
                                                         onClick={() =>
@@ -273,7 +279,7 @@ export function IntegrationCard({
                                                     <DropdownMenuSeparator />
                                                 </>
                                             )}
-                                            {!isSourceOfTruth && (
+                                            {!isSourceOfTruth && canSyncSlice && (
                                                 <DropdownMenuItem
                                                     onClick={() =>
                                                         onSync(integration.id, integration.name)
@@ -284,12 +290,14 @@ export function IntegrationCard({
                                                     Manual Sync
                                                 </DropdownMenuItem>
                                             )}
-                                            <DropdownMenuItem
-                                                onClick={() => onEdit(integration)}
-                                            >
-                                                <Settings className="mr-2 h-4 w-4" />
-                                                Edit Settings
-                                            </DropdownMenuItem>
+                                            {canManageSlice && (
+                                                <DropdownMenuItem
+                                                    onClick={() => onEdit(integration)}
+                                                >
+                                                    <Settings className="mr-2 h-4 w-4" />
+                                                    Edit Settings
+                                                </DropdownMenuItem>
+                                            )}
                                             <DropdownMenuItem
                                                 onClick={() => onViewLogs(integration)}
                                             >
@@ -308,12 +316,14 @@ export function IntegrationCard({
                                                 <Gauge className="mr-2 h-4 w-4" />
                                                 Rate Limit Status
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={() => onHistoricalImport(integration)}
-                                            >
-                                                <Database className="mr-2 h-4 w-4" />
-                                                Import Historical Data
-                                            </DropdownMenuItem>
+                                            {canSyncSlice && (
+                                                <DropdownMenuItem
+                                                    onClick={() => onHistoricalImport(integration)}
+                                                >
+                                                    <Database className="mr-2 h-4 w-4" />
+                                                    Import Historical Data
+                                                </DropdownMenuItem>
+                                            )}
                                             <DropdownMenuItem
                                                 onClick={() =>
                                                     onViewHistoricalJobs(integration)
@@ -322,14 +332,18 @@ export function IntegrationCard({
                                                 <FileText className="mr-2 h-4 w-4" />
                                                 View Import Jobs
                                             </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem
-                                                onClick={() => onDelete(integration)}
-                                                className="text-destructive"
-                                            >
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Delete Integration
-                                            </DropdownMenuItem>
+                                            {canManageSlice && (
+                                                <>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        onClick={() => onDelete(integration)}
+                                                        className="text-destructive"
+                                                    >
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        Delete Integration
+                                                    </DropdownMenuItem>
+                                                </>
+                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>

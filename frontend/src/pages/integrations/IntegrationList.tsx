@@ -166,9 +166,13 @@ export default function IntegrationList() {
                         onViewLogs={(int) => openModal("syncLogs", int)}
                         onHealthCheck={(int) => openModal("health", int)}
                         onRateLimit={(int) => openModal("rateLimit", int)}
-                        onHistoricalImport={(int) =>
+                        onHistoricalImport={(int) => {
+                            if (!hasPermission(user, 'integrations', 'sync')) {
+                                toast.error('Permission Denied', 'You don\'t have permission to start historical imports');
+                                return;
+                            }
                             openModal("historicalImport", int)
-                        }
+                        }}
                         onViewHistoricalJobs={(int) =>
                             openModal("viewHistoricalJobs", int)
                         }
@@ -208,9 +212,13 @@ export default function IntegrationList() {
                         onViewLogs={(int) => openModal("syncLogs", int)}
                         onHealthCheck={(int) => openModal("health", int)}
                         onRateLimit={(int) => openModal("rateLimit", int)}
-                        onHistoricalImport={(int) =>
+                        onHistoricalImport={(int) => {
+                            if (!hasPermission(user, 'integrations', 'sync')) {
+                                toast.error('Permission Denied', 'You don\'t have permission to start historical imports');
+                                return;
+                            }
                             openModal("historicalImport", int)
-                        }
+                        }}
                         onViewHistoricalJobs={(int) =>
                             openModal("viewHistoricalJobs", int)
                         }
