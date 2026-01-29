@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Hash;
 class UserSeeder extends Seeder
 {
     /**
-     * Seed admin user for first customer.
+     * Seed users for each default role.
      */
     public function run(): void
     {
@@ -23,73 +23,130 @@ class UserSeeder extends Seeder
             return;
         }
 
-        // Get or create admin role
-        $adminRole = Role::firstOrCreate(
-            ['name' => 'Admin'],
-            ['description' => 'Full system administrator']
+        $roles = Role::all();
+        $password = 'password123';
+
+        // 1. Admin User
+        $adminRole = $roles->where('name', 'Admin')->first();
+        if ($adminRole) {
+            User::firstOrCreate(
+                ['email' => 'admin@tts.com.au'],
+                [
+                    'company_id' => $company->company_id,
+                    'role_id' => $adminRole->id,
+                    'name' => 'TTS Administrator',
+                    'password' => Hash::make('ChangeMe123!'),
+                    'status' => 'active',
+                    'auth_method' => 'local',
+                    'permissions' => RolePermissionService::getDefaultPermissions('Admin'),
+                    'settings' => [
+                        'theme' => 'light',
+                        'notifications' => ['email' => true, 'browser' => true],
+                    ],
+                    'email_verified_at' => now(),
+                ]
+            );
+
+            // Kristian Admin
+            User::firstOrCreate(
+                ['email' => 'kristianbas14@gmail.com'],
+                [
+                    'company_id' => $company->company_id,
+                    'role_id' => $adminRole->id,
+                    'name' => 'Kristian',
+                    'password' => Hash::make($password),
+                    'status' => 'active',
+                    'auth_method' => 'local',
+                    'permissions' => RolePermissionService::getDefaultPermissions('Admin'),
+                    'settings' => ['theme' => 'dark'],
+                    'email_verified_at' => now(),
+                ]
+            );
+        }
+
+        // 2. Manager User
+        $managerRole = $roles->where('name', 'Manager')->first();
+        if ($managerRole) {
+            User::firstOrCreate(
+                ['email' => 'manager@tts.com.au'],
+                [
+                    'company_id' => $company->company_id,
+                    'role_id' => $managerRole->id,
+                    'name' => 'Territory Manager',
+                    'password' => Hash::make($password),
+                    'status' => 'active',
+                    'auth_method' => 'local',
+                    'permissions' => RolePermissionService::getDefaultPermissions('Manager'),
+                    'email_verified_at' => now(),
+                ]
+            );
+        }
+
+        // 3. Technician User
+        $techRole = $roles->where('name', 'Technician')->first();
+        if ($techRole) {
+            User::firstOrCreate(
+                ['email' => 'technician@tts.com.au'],
+                [
+                    'company_id' => $company->company_id,
+                    'role_id' => $techRole->id,
+                    'name' => 'Field Technician',
+                    'password' => Hash::make($password),
+                    'status' => 'active',
+                    'auth_method' => 'local',
+                    'permissions' => RolePermissionService::getDefaultPermissions('Technician'),
+                    'email_verified_at' => now(),
+                ]
+            );
+        }
+
+        // 4. Viewer User
+        $viewerRole = $roles->where('name', 'Viewer')->first();
+        if ($viewerRole) {
+            User::firstOrCreate(
+                ['email' => 'viewer@tts.com.au'],
+                [
+                    'company_id' => $company->company_id,
+                    'role_id' => $viewerRole->id,
+                    'name' => 'Internal Viewer',
+                    'password' => Hash::make($password),
+                    'status' => 'active',
+                    'auth_method' => 'local',
+                    'permissions' => RolePermissionService::getDefaultPermissions('Viewer'),
+                    'email_verified_at' => now(),
+                ]
+            );
+        }
+
+        // 5. Customer User
+        $customerRole = $roles->where('name', 'Customer')->first();
+        if ($customerRole) {
+            User::firstOrCreate(
+                ['email' => 'customer@tts.com.au'],
+                [
+                    'company_id' => $company->company_id,
+                    'role_id' => $customerRole->id,
+                    'name' => 'TTS Client User',
+                    'password' => Hash::make($password),
+                    'status' => 'active',
+                    'auth_method' => 'local',
+                    'scoped_customers' => [1], // Scoped to first customer example
+                    'permissions' => RolePermissionService::getDefaultPermissions('Customer'),
+                    'email_verified_at' => now(),
+                ]
+            );
+        }
+
+        $this->command->info('All 5 standard users seeded successfully.');
+        $this->command->table(
+            ['Role', 'Email', 'Password'],
+            [
+                ['Admin', 'admin@tts.com.au', 'ChangeMe123!'],
+                ['Manager', 'manager@tts.com.au', 'password123'],
+                ['Technician', 'technician@tts.com.au', 'password123'],
+                ['Viewer', 'viewer@tts.com.au', 'password123'],
+                ['Customer', 'customer@tts.com.au', 'password123'],
+            ]
         );
-
-        // Create admin user (if not exists) - Light theme
-        $adminUser = User::withoutGlobalScopes()->where('email', 'admin@tts.com.au')->first();
-        if (!$adminUser) {
-            User::create([
-                'company_id' => $company->company_id,
-                'role_id' => $adminRole->id,
-                'name' => 'TTS Administrator',
-                'email' => 'admin@tts.com.au',
-                'password' => Hash::make('ChangeMe123!'),
-                'status' => 'active',
-                'auth_method' => 'local',
-                'permissions' => RolePermissionService::getDefaultPermissions('Admin'),
-                'settings' => [
-                    'theme' => 'light',
-                    'notifications' => ['email' => true, 'browser' => true],
-                ],
-                'email_verified_at' => now(),
-            ]);
-        }
-
-        // Create test user (Kristian) - Dark theme
-        $kristianUser = User::withoutGlobalScopes()->where('email', 'kristianbas14@gmail.com')->first();
-        if (!$kristianUser) {
-            User::create([
-                'company_id' => $company->company_id,
-                'role_id' => $adminRole->id,
-                'name' => 'Kristian',
-                'email' => 'kristianbas14@gmail.com',
-                'password' => Hash::make('password123'),
-                'status' => 'active',
-                'auth_method' => 'local',
-                'permissions' => RolePermissionService::getDefaultPermissions('Admin'),
-                'settings' => [
-                    'theme' => 'dark',
-                    'notifications' => ['email' => true, 'browser' => false],
-                ],
-                'email_verified_at' => now(),
-            ]);
-        }
-
-        $this->command->info('Admin user created: admin@tts.com.au (password: ChangeMe123!)');
-        $this->command->info('Test user created: kristianbas14@gmail.com (password: password123)');
-
-        // Create Scoped Viewer (Test customer-level scoping)
-        $viewerRole = Role::where('name', 'Viewer')->first();
-        $viewerUser = User::withoutGlobalScopes()->where('email', 'viewer@tts.com.au')->first();
-        if (!$viewerUser) {
-            User::create([
-                'company_id' => $company->company_id,
-                'role_id' => $viewerRole->id,
-                'name' => 'Scoped Viewer',
-                'email' => 'viewer@tts.com.au',
-                'password' => Hash::make('password123'),
-                'status' => 'active',
-                'auth_method' => 'local',
-                'scoped_customers' => [1], // Scoped to first customer only
-                'permissions' => RolePermissionService::getDefaultPermissions('Viewer'),
-            ]);
-        }
-
-        $this->command->info('Scoped viewer created: viewer@tts.com.au (password: password123) - Scoped to Customer ID 1');
-        $this->command->warn('IMPORTANT: Change the default password after first login!');
     }
 }

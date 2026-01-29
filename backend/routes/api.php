@@ -68,45 +68,45 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
 
     // Users Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
-        Route::get('/users', [UserController::class, 'getUser']);
-        Route::get('/users/roles', [UserController::class, 'getRoles']);
-        Route::post('/users', [UserController::class, 'createUser']);
-        Route::patch('/users/{id}', [UserController::class, 'updateUser']);
-        Route::patch('/users/{id}/permissions', [UserController::class, 'updatePermissions']);
-        Route::patch('/users/{id}/deactivate', [UserController::class, 'deactivateUser']);
-        Route::patch('/users/{id}/reactivate', [UserController::class, 'reactivateUser']);
-        Route::delete('/users/{id}', [UserController::class, 'deleteUser']);
-        Route::post('/users/{id}/reset-password', [UserController::class, 'resetUserPassword']);
-        Route::post('/users/{id}/profile-picture', [UserController::class, 'uploadProfilePicture']);
-        Route::delete('/users/{id}/profile-picture', [UserController::class, 'deleteProfilePicture']);
+        Route::get('/users', [UserController::class, 'getUser'])->middleware('permission:users,view');
+        Route::get('/users/roles', [UserController::class, 'getRoles'])->middleware('permission:users,view');
+        Route::post('/users', [UserController::class, 'createUser'])->middleware('permission:users,manage');
+        Route::patch('/users/{id}', [UserController::class, 'updateUser'])->middleware('permission:users,manage');
+        Route::patch('/users/{id}/permissions', [UserController::class, 'updatePermissions'])->middleware('permission:users,manage');
+        Route::patch('/users/{id}/deactivate', [UserController::class, 'deactivateUser'])->middleware('permission:users,manage');
+        Route::patch('/users/{id}/reactivate', [UserController::class, 'reactivateUser'])->middleware('permission:users,manage');
+        Route::delete('/users/{id}', [UserController::class, 'deleteUser'])->middleware('permission:users,manage');
+        Route::post('/users/{id}/reset-password', [UserController::class, 'resetUserPassword'])->middleware('permission:users,manage');
+        Route::post('/users/{id}/profile-picture', [UserController::class, 'uploadProfilePicture'])->middleware('permission:users,manage');
+        Route::delete('/users/{id}/profile-picture', [UserController::class, 'deleteProfilePicture'])->middleware('permission:users,manage');
         Route::post('/users/force-password-change', [UserController::class, 'clearForcePasswordChange']);
     });
 
     // Integrations Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
-        Route::get('/integrations', [IntegrationController::class, 'getIntegrations']);
-        Route::get('/integrations/config/{integrationType}', [IntegrationController::class, 'getIntegrationTypeConfig']);
-        Route::post('/integrations', [IntegrationController::class, 'createIntegration']);
-        Route::get('/integrations/{id}/sync', [IntegrationController::class, 'triggerSync']);
-        Route::get('/integrations/{id}/customers', [IntegrationController::class, 'getIntegrationCustomers']);
-        Route::patch('/integrations/{id}', [IntegrationController::class, 'updateIntegration']);
-        Route::delete('/integrations/{id}', [IntegrationController::class, 'deleteIntegration']);
-        Route::get('/integrations/{id}/sync-logs', [IntegrationController::class, 'getSyncLogs']);
-        Route::get('/integrations/{id}/health', [IntegrationController::class, 'healthCheck']);
-        Route::get('/integrations/{id}/rate-limit', [IntegrationController::class, 'getRateLimitStatus']);
-        Route::post('/integrations/{id}/historical-import', [IntegrationController::class, 'startHistoricalImport']);
-        Route::get('/integrations/{id}/historical-import-jobs', [IntegrationController::class, 'getHistoricalImportJobs']);
-        Route::patch('/company/source-integration', [IntegrationController::class, 'setSourceIntegration']);
+        Route::get('/integrations', [IntegrationController::class, 'getIntegrations'])->middleware('permission:integrations,view');
+        Route::get('/integrations/config/{integrationType}', [IntegrationController::class, 'getIntegrationTypeConfig'])->middleware('permission:integrations,manage');
+        Route::post('/integrations', [IntegrationController::class, 'createIntegration'])->middleware('permission:integrations,manage');
+        Route::get('/integrations/{id}/sync', [IntegrationController::class, 'triggerSync'])->middleware('permission:integrations,sync');
+        Route::get('/integrations/{id}/customers', [IntegrationController::class, 'getIntegrationCustomers'])->middleware('permission:integrations,view');
+        Route::patch('/integrations/{id}', [IntegrationController::class, 'updateIntegration'])->middleware('permission:integrations,manage');
+        Route::delete('/integrations/{id}', [IntegrationController::class, 'deleteIntegration'])->middleware('permission:integrations,manage');
+        Route::get('/integrations/{id}/sync-logs', [IntegrationController::class, 'getSyncLogs'])->middleware('permission:integrations,view');
+        Route::get('/integrations/{id}/health', [IntegrationController::class, 'healthCheck'])->middleware('permission:integrations,view');
+        Route::get('/integrations/{id}/rate-limit', [IntegrationController::class, 'getRateLimitStatus'])->middleware('permission:integrations,view');
+        Route::post('/integrations/{id}/historical-import', [IntegrationController::class, 'startHistoricalImport'])->middleware('permission:integrations,sync');
+        Route::get('/integrations/{id}/historical-import-jobs', [IntegrationController::class, 'getHistoricalImportJobs'])->middleware('permission:integrations,sync');
+        Route::patch('/company/source-integration', [IntegrationController::class, 'setSourceIntegration'])->middleware('permission:integrations,manage');
         
         // SharePoint Routes
-        Route::get('/integrations/{id}/sharepoint/browse', [IntegrationController::class, 'browseSharePoint']);
-        Route::post('/integrations/{id}/sharepoint/folders', [IntegrationController::class, 'createSharePointFolder']);
+        Route::get('/integrations/{id}/sharepoint/browse', [IntegrationController::class, 'browseSharePoint'])->middleware('permission:integrations,view');
+        Route::post('/integrations/{id}/sharepoint/folders', [IntegrationController::class, 'createSharePointFolder'])->middleware('permission:integrations,manage');
         
         // Integration Preview Routes
-        Route::get('/integrations/{integration}/preview/template', [IntegrationPreviewController::class, 'getTemplate']);
-        Route::get('/integrations/{integration}/preview/data', [IntegrationPreviewController::class, 'getPreviewData']);
-        Route::get('/integrations/{integration}/preview', [IntegrationPreviewController::class, 'getPreview']);
-        Route::get('/integrations/{integration}/customer-licenses', [IntegrationPreviewController::class, 'getCustomerLicenses']);
+        Route::get('/integrations/{integration}/preview/template', [IntegrationPreviewController::class, 'getTemplate'])->middleware('permission:integrations,view');
+        Route::get('/integrations/{integration}/preview/data', [IntegrationPreviewController::class, 'getPreviewData'])->middleware('permission:integrations,view');
+        Route::get('/integrations/{integration}/preview', [IntegrationPreviewController::class, 'getPreview'])->middleware('permission:integrations,view');
+        Route::get('/integrations/{integration}/customer-licenses', [IntegrationPreviewController::class, 'getCustomerLicenses'])->middleware('permission:integrations,view');
     });
 
     // Active Directory Push Routes (from agent)
@@ -123,62 +123,63 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
 
     // Customer Mapping Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
-        Route::get('/customers', [CustomerMappingController::class, 'getCustomers']);
-        Route::get('/customers/all-ids', [CustomerMappingController::class, 'getAllCustomerIds']);
-        Route::get('/customers/unmapped', [CustomerMappingController::class, 'getUnmappedCustomers']);
-        Route::post('/customers/static', [CustomerMappingController::class, 'createStaticCustomer']);
-        Route::post('/customers/map', [CustomerMappingController::class, 'mapCustomer']);
-        Route::get('/customers/{id}/integrations', [CustomerMappingController::class, 'getCustomerIntegrations']);
-        Route::get('/customers/{customerId}/integrations/{integrationCustomerId}/stats', [CustomerMappingController::class, 'getCustomerIntegrationStats']);
-        Route::patch('/customers/{id}', [CustomerMappingController::class, 'updateCustomer']);
-        Route::post('/customers/{id}/merge', [CustomerMappingController::class, 'mergeCustomers']);
-        Route::post('/customers/{id}/split', [CustomerMappingController::class, 'splitCustomer']);
-        Route::delete('/customers/{customerId}/mappings/{mappingId}', [CustomerMappingController::class, 'deleteMapping']);
+        Route::get('/customers', [CustomerMappingController::class, 'getCustomers'])->middleware('permission:customers,view');
+        Route::get('/customers/all-ids', [CustomerMappingController::class, 'getAllCustomerIds'])->middleware('permission:customers,view');
+        Route::get('/customers/unmapped', [CustomerMappingController::class, 'getUnmappedCustomers'])->middleware('permission:customers,map');
+        Route::post('/customers/static', [CustomerMappingController::class, 'createStaticCustomer'])->middleware('permission:customers,map');
+        Route::post('/customers/map', [CustomerMappingController::class, 'mapCustomer'])->middleware('permission:customers,map');
+        Route::get('/customers/{id}/integrations', [CustomerMappingController::class, 'getCustomerIntegrations'])->middleware('permission:customers,view');
+        Route::get('/customers/{customerId}/integrations/{integrationCustomerId}/stats', [CustomerMappingController::class, 'getCustomerIntegrationStats'])->middleware('permission:customers,view');
+        Route::patch('/customers/{id}', [CustomerMappingController::class, 'updateCustomer'])->middleware('permission:customers,edit');
+        Route::post('/customers/{id}/merge', [CustomerMappingController::class, 'mergeCustomers'])->middleware('permission:customers,edit');
+        Route::post('/customers/{id}/split', [CustomerMappingController::class, 'splitCustomer'])->middleware('permission:customers,edit');
+        Route::delete('/customers/{customerId}/mappings/{mappingId}', [CustomerMappingController::class, 'deleteMapping'])->middleware('permission:customers,edit');
         
         // Smart matching with embeddings
-        Route::get('/customers/embedding-status', [CustomerMappingController::class, 'getEmbeddingStatus']);
-        Route::post('/customers/smart-match', [CustomerMappingController::class, 'getSmartMatchSuggestions']);
-        Route::post('/customers/batch-auto-match', [CustomerMappingController::class, 'batchAutoMatch']);
+        Route::get('/customers/embedding-status', [CustomerMappingController::class, 'getEmbeddingStatus'])->middleware('permission:customers,map');
+        Route::post('/customers/smart-match', [CustomerMappingController::class, 'getSmartMatchSuggestions'])->middleware('permission:customers,map');
+        Route::post('/customers/batch-auto-match', [CustomerMappingController::class, 'batchAutoMatch'])->middleware('permission:customers,map');
     });
 
     // Report Configuration Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
-        Route::get('/reports', [ReportConfigController::class, 'getAvailableReports']);
-        Route::get('/customers/{id}/available-reports', [ReportConfigController::class, 'getAvailableReportsForCustomer']);
-        Route::get('/customers/{id}/reports', [ReportConfigController::class, 'getCustomerReports']);
-        Route::patch('/customers/{id}/reports', [ReportConfigController::class, 'updateCustomerReports']);
-        Route::patch('/customers/{id}/report-destination', [ReportConfigController::class, 'updateCustomerReportDestination']);
-        Route::post('/reports/generate/{customer_id}', [ReportConfigController::class, 'generateReport']);
-        Route::post('/reports/bulk-generate', [ReportConfigController::class, 'bulkGenerateReports']);
-        Route::post('/reports/schedules/{schedule_id}/generate', [ReportConfigController::class, 'generateFromSchedule']);
-        Route::patch('/reports/schedules/{schedule_id}', [ReportConfigController::class, 'updateSchedule']);
-        Route::post('/reports/schedules/{schedule_id}/reset', [ReportConfigController::class, 'resetSchedule']);
+        Route::get('/reports', [ReportConfigController::class, 'getAvailableReports'])->middleware('permission:reports,view');
+        Route::get('/customers/{id}/available-reports', [ReportConfigController::class, 'getAvailableReportsForCustomer'])->middleware('permission:reports,view');
+        Route::get('/customers/{id}/reports', [ReportConfigController::class, 'getCustomerReports'])->middleware('permission:reports,view');
+        Route::patch('/customers/{id}/reports', [ReportConfigController::class, 'updateCustomerReports'])->middleware('permission:reports,configure');
+        Route::patch('/customers/{id}/report-destination', [ReportConfigController::class, 'updateCustomerReportDestination'])->middleware('permission:reports,configure');
+        Route::post('/reports/generate/{customer_id}', [ReportConfigController::class, 'generateReport'])->middleware('permission:reports,generate');
+        Route::post('/reports/bulk-generate', [ReportConfigController::class, 'bulkGenerateReports'])->middleware('permission:reports,generate');
+        Route::post('/reports/schedules/{schedule_id}/generate', [ReportConfigController::class, 'generateFromSchedule'])->middleware('permission:reports,generate');
+        Route::patch('/reports/schedules/{schedule_id}', [ReportConfigController::class, 'updateSchedule'])->middleware('permission:reports,configure');
+        // Resetting schedule is restricted to those who can configure
+        Route::post('/reports/schedules/{schedule_id}/reset', [ReportConfigController::class, 'resetSchedule'])->middleware('permission:reports,configure');
     });
 
     // Delivery Configuration Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
-        Route::get('/delivery/methods', [DeliveryConfigController::class, 'getAvailableMethods']);
-        Route::get('/customers/{id}/delivery', [DeliveryConfigController::class, 'getCustomerDeliveryConfig']);
-        Route::patch('/customers/{id}/delivery', [DeliveryConfigController::class, 'updateCustomerDeliveryConfig']);
-        Route::post('/customers/{id}/delivery/test', [DeliveryConfigController::class, 'testConnection']);
+        Route::get('/delivery/methods', [DeliveryConfigController::class, 'getAvailableMethods'])->middleware('permission:reports,view');
+        Route::get('/customers/{id}/delivery', [DeliveryConfigController::class, 'getCustomerDeliveryConfig'])->middleware('permission:reports,view');
+        Route::patch('/customers/{id}/delivery', [DeliveryConfigController::class, 'updateCustomerDeliveryConfig'])->middleware('permission:reports,configure');
+        Route::post('/customers/{id}/delivery/test', [DeliveryConfigController::class, 'testConnection'])->middleware('permission:reports,configure');
     });
 
     // Reporting & Analytics Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
-        Route::get('/reports/scheduled', [ReportAnalyticsController::class, 'getScheduledReports']);
-        Route::get('/reports/history', [ReportAnalyticsController::class, 'getReportHistory']);
-        Route::get('/reports/{id}/download', [ReportAnalyticsController::class, 'downloadReport']);
-        Route::post('/reports/{id}/email', [ReportAnalyticsController::class, 'emailReport']);
-        Route::post('/reports/{id}/deliver', [ReportAnalyticsController::class, 'deliverReport']);
-        Route::get('/reports/{id}/email-preview', [ReportAnalyticsController::class, 'previewEmail']);
-        Route::post('/reports/{id}/share', [ReportAnalyticsController::class, 'generateShareLink']);
-        Route::post('/reports/batch-discard', [ReportAnalyticsController::class, 'discardReports']);
-        Route::delete('/reports', [ReportAnalyticsController::class, 'batchDelete']);
-        Route::delete('/reports/{id}', [ReportAnalyticsController::class, 'deleteReport']);
-        Route::delete('/reports/schedules/{id}', [ReportAnalyticsController::class, 'deleteSchedule']);
+        Route::get('/reports/scheduled', [ReportAnalyticsController::class, 'getScheduledReports'])->middleware('permission:reports,view');
+        Route::get('/reports/history', [ReportAnalyticsController::class, 'getReportHistory'])->middleware('permission:reports,view');
+        Route::get('/reports/{id}/download', [ReportAnalyticsController::class, 'downloadReport'])->middleware('permission:reports,download');
+        Route::post('/reports/{id}/email', [ReportAnalyticsController::class, 'emailReport'])->middleware('permission:reports,generate');
+        Route::post('/reports/{id}/deliver', [ReportAnalyticsController::class, 'deliverReport'])->middleware('permission:reports,generate');
+        Route::get('/reports/{id}/email-preview', [ReportAnalyticsController::class, 'previewEmail'])->middleware('permission:reports,view');
+        Route::post('/reports/{id}/share', [ReportAnalyticsController::class, 'generateShareLink'])->middleware('permission:reports,view');
+        Route::post('/reports/batch-discard', [ReportAnalyticsController::class, 'discardReports'])->middleware('permission:reports,generate');
+        Route::delete('/reports', [ReportAnalyticsController::class, 'batchDelete'])->middleware('permission:reports,generate');
+        Route::delete('/reports/{id}', [ReportAnalyticsController::class, 'deleteReport'])->middleware('permission:reports,generate');
+        Route::delete('/reports/schedules/{id}', [ReportAnalyticsController::class, 'deleteSchedule'])->middleware('permission:reports,configure');
         
         // ITGlue Reports
-        Route::get('/reports/itglue/license-consumption', [ITGlueReportController::class, 'downloadLicenseReport']);
+        Route::get('/reports/itglue/license-consumption', [ITGlueReportController::class, 'downloadLicenseReport'])->middleware('permission:reports,download');
     });
 
     // Public shared report download (no auth required) - Rate limited to prevent abuse
@@ -190,55 +191,55 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
 
     // API Key Management Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
-        Route::get('/api-keys', [ApiKeyController::class, 'index']);
-        Route::post('/api-keys', [ApiKeyController::class, 'store']);
-        Route::post('/api-keys/{id}/revoke', [ApiKeyController::class, 'revoke']);
-        Route::delete('/api-keys/{id}', [ApiKeyController::class, 'destroy']);
+        Route::get('/api-keys', [ApiKeyController::class, 'index'])->middleware('permission:api_keys,view');
+        Route::post('/api-keys', [ApiKeyController::class, 'store'])->middleware('permission:api_keys,create');
+        Route::post('/api-keys/{id}/revoke', [ApiKeyController::class, 'revoke'])->middleware('permission:api_keys,revoke');
+        Route::delete('/api-keys/{id}', [ApiKeyController::class, 'destroy'])->middleware('permission:api_keys,revoke');
     });
 
     // License Management Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
-        Route::get('/licenses', [LicenseController::class, 'index']);
-        Route::get('/licenses/usage', [LicenseController::class, 'getLicenseUsage']);
-        Route::post('/licenses/check/integration', [LicenseController::class, 'checkIntegrationLicense']);
-        Route::post('/licenses/check/retention', [LicenseController::class, 'checkRetentionLicense']);
-        Route::post('/licenses/check/user', [LicenseController::class, 'checkUserLicense']);
+        Route::get('/licenses', [LicenseController::class, 'index'])->middleware('permission:licenses,view');
+        Route::get('/licenses/usage', [LicenseController::class, 'getLicenseUsage'])->middleware('permission:licenses,view');
+        Route::post('/licenses/check/integration', [LicenseController::class, 'checkIntegrationLicense'])->middleware('permission:licenses,manage');
+        Route::post('/licenses/check/retention', [LicenseController::class, 'checkRetentionLicense'])->middleware('permission:licenses,manage');
+        Route::post('/licenses/check/user', [LicenseController::class, 'checkUserLicense'])->middleware('permission:licenses,manage');
     });
 
     // Report Templates Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
-        Route::get('/report-templates/all-report-types', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAllReportTypes']);
-        Route::get('/report-templates/available-for-customer', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAvailableReportTypes']);
-        Route::post('/report-templates/{template}/preview', [\App\Http\Controllers\Api\ReportTemplateController::class, 'preview']);
+        Route::get('/report-templates/all-report-types', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAllReportTypes'])->middleware('permission:templates,view');
+        Route::get('/report-templates/available-for-customer', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAvailableReportTypes'])->middleware('permission:templates,view');
+        Route::post('/report-templates/{template}/preview', [\App\Http\Controllers\Api\ReportTemplateController::class, 'preview'])->middleware('permission:templates,view');
         Route::apiResource('report-templates', \App\Http\Controllers\Api\ReportTemplateController::class)->parameters([
             'report-templates' => 'template'
-        ]);
-        Route::post('/report-templates/{template}/apply-to-customer', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomer']);
-        Route::post('/report-templates/{template}/apply-to-customers', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomers']);
-        Route::get('/report-templates/{template}/applied-customers', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAppliedCustomers']);
+        ]); // Note: apiResource would need internal mapping, but usually restricted to manager+
+        Route::post('/report-templates/{template}/apply-to-customer', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomer'])->middleware('permission:templates,edit');
+        Route::post('/report-templates/{template}/apply-to-customers', [\App\Http\Controllers\Api\ReportTemplateController::class, 'applyToCustomers'])->middleware('permission:templates,edit');
+        Route::get('/report-templates/{template}/applied-customers', [\App\Http\Controllers\Api\ReportTemplateController::class, 'getAppliedCustomers'])->middleware('permission:templates,view');
     });
 
     // Notification Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
-        Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
-        Route::patch('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead']);
-        Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']);
-        Route::delete('/notifications/read', [\App\Http\Controllers\Api\NotificationController::class, 'deleteAllRead']);
-        Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\NotificationController::class, 'destroy']);
+        Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->middleware('permission:notifications,view');
+        Route::patch('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead'])->middleware('permission:notifications,view');
+        Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead'])->middleware('permission:notifications,view');
+        Route::delete('/notifications/read', [\App\Http\Controllers\Api\NotificationController::class, 'deleteAllRead'])->middleware('permission:notifications,view');
+        Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\NotificationController::class, 'destroy'])->middleware('permission:notifications,view');
     });
 
     // Monitoring & Health Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
-        Route::get('/monitoring/status', [HealthCheckController::class, 'status']);
-        Route::get('/monitoring/integrations', [HealthCheckController::class, 'integrationMetrics']);
-        Route::get('/monitoring/reports', [HealthCheckController::class, 'reportMetrics']);
-        Route::get('/monitoring/reports/monthly', [HealthCheckController::class, 'monthlyReportAnalytics']);
-        Route::get('/monitoring/queue', [HealthCheckController::class, 'queueMetrics']);
-        Route::get('/monitoring/activity-trends', [HealthCheckController::class, 'activityTrends']);
+        Route::get('/monitoring/status', [HealthCheckController::class, 'status'])->middleware('permission:monitoring,view');
+        Route::get('/monitoring/integrations', [HealthCheckController::class, 'integrationMetrics'])->middleware('permission:monitoring,view');
+        Route::get('/monitoring/reports', [HealthCheckController::class, 'reportMetrics'])->middleware('permission:monitoring,view');
+        Route::get('/monitoring/reports/monthly', [HealthCheckController::class, 'monthlyReportAnalytics'])->middleware('permission:monitoring,view');
+        Route::get('/monitoring/queue', [HealthCheckController::class, 'queueMetrics'])->middleware('permission:monitoring,view');
+        Route::get('/monitoring/activity-trends', [HealthCheckController::class, 'activityTrends'])->middleware('permission:monitoring,view');
         
         // Audit Log Routes
-        Route::get('/audit-logs', [AuditLogController::class, 'index']);
-        Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
-        Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->middleware('permission:security,view_logs');
+        Route::get('/audit-logs/stats', [AuditLogController::class, 'stats'])->middleware('permission:security,view_logs');
+        Route::get('/audit-logs/export', [AuditLogController::class, 'export'])->middleware('permission:security,view_logs');
     });
 });
