@@ -38,6 +38,8 @@ import type { GeneratedReport } from '../types/report'
 import { ReportPreviewModal } from '@/components/reports/ReportPreviewModal'
 import { ShareLinkModal } from '@/components/reports/ShareLinkModal'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/utils/permissions'
 
 interface ReportsTableProps {
     reports: GeneratedReport[]
@@ -60,6 +62,9 @@ export function ReportsTable({
     selectedIds = [],
     onToggleSelection,
 }: ReportsTableProps) {
+    const { user } = useAuth()
+    const canManageReports = hasPermission(user, 'reports', 'generate')
+    
     const [previewReport, setPreviewReport] = useState<GeneratedReport | null>(null)
     const [shareReport, setShareReport] = useState<GeneratedReport | null>(null)
 
@@ -141,9 +146,11 @@ export function ReportsTable({
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-muted/50 hover:bg-muted/50">
-                            <TableHead className="w-[40px]">
-                                <span className="sr-only">Select</span>
-                            </TableHead>
+                            {canManageReports && (
+                                <TableHead className="w-[40px]">
+                                    <span className="sr-only">Select</span>
+                                </TableHead>
+                            )}
                             <TableHead className="font-semibold">Customer</TableHead>
                             <TableHead className="font-semibold">Report Type</TableHead>
                             <TableHead className="font-semibold">Status</TableHead>
@@ -167,13 +174,15 @@ export function ReportsTable({
                                         isSelected && "bg-primary/5"
                                     )}
                                 >
-                                    <TableCell>
-                                        <Checkbox
-                                            checked={isSelected}
-                                            onCheckedChange={() => onToggleSelection?.(report.generated_report_id)}
-                                            className="h-4 w-4"
-                                        />
-                                    </TableCell>
+                                    {canManageReports && (
+                                        <TableCell>
+                                            <Checkbox
+                                                checked={isSelected}
+                                                onCheckedChange={() => onToggleSelection?.(report.generated_report_id)}
+                                                className="h-4 w-4"
+                                            />
+                                        </TableCell>
+                                    )}
                                     <TableCell>
                                         <div className="flex items-center gap-3">
                                             <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
@@ -255,15 +264,19 @@ export function ReportsTable({
                                                         <Send className="mr-2 h-4 w-4" />
                                                         Resend Report
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        className="text-destructive font-medium focus:text-destructive"
-                                                        onClick={() => onDelete?.(report.generated_report_id)}
-                                                        disabled={isDeleting}
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        {isDeleting ? 'Deleting...' : 'Delete Report'}
-                                                    </DropdownMenuItem>
+                                                    {canManageReports && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem
+                                                                className="text-destructive font-medium focus:text-destructive"
+                                                                onClick={() => onDelete?.(report.generated_report_id)}
+                                                                disabled={isDeleting}
+                                                            >
+                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                {isDeleting ? 'Deleting...' : 'Delete Report'}
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>

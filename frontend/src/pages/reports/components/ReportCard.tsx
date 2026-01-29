@@ -16,6 +16,8 @@ import { ReportPreviewModal } from '@/components/reports/ReportPreviewModal'
 import { ShareLinkModal } from '@/components/reports/ShareLinkModal'
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/utils/permissions'
 
 interface ReportCardProps {
   report: GeneratedReport
@@ -36,6 +38,9 @@ export function ReportCard({
   isSelected = false,
   onSelect
 }: ReportCardProps) {
+  const { user } = useAuth()
+  const canManageReports = hasPermission(user, 'reports', 'generate')
+  
   const [showPreview, setShowPreview] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
 
@@ -74,11 +79,13 @@ export function ReportCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="flex items-center gap-3">
-            <Checkbox 
-              checked={isSelected} 
-              onCheckedChange={onSelect}
-              className="h-5 w-5"
-            />
+            {canManageReports && (
+              <Checkbox 
+                checked={isSelected} 
+                onCheckedChange={onSelect}
+                className="h-5 w-5"
+              />
+            )}
             <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
               <FileText className="h-6 w-6 text-primary" />
             </div>
@@ -171,15 +178,19 @@ export function ReportCard({
                 <Send className="mr-2 h-4 w-4" />
                 Resend Report
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="text-destructive font-medium focus:text-destructive"
-                onClick={() => onDelete?.(report.generated_report_id)}
-                disabled={deleting}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {deleting ? 'Deleting...' : 'Delete Report'}
-              </DropdownMenuItem>
+              {canManageReports && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    className="text-destructive font-medium focus:text-destructive"
+                    onClick={() => onDelete?.(report.generated_report_id)}
+                    disabled={deleting}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {deleting ? 'Deleting...' : 'Delete Report'}
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

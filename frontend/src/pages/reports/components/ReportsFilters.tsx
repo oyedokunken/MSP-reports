@@ -11,6 +11,8 @@ import {
 import { Search, Filter, Trash2, Loader2, LayoutGrid, LayoutList, Users } from 'lucide-react'
 import { formatReportType } from '../utils/formatters'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/utils/permissions'
 
 export type ViewMode = 'grid' | 'table'
 
@@ -64,6 +66,9 @@ export function ReportsFilters({
       onReportTypeFiltersChange([...reportTypeFilters, type])
     }
   }
+
+  const { user } = useAuth()
+  const canManageReports = hasPermission(user, 'reports', 'generate')
 
   return (
     <div className="flex flex-col md:flex-row gap-3">
@@ -163,7 +168,7 @@ export function ReportsFilters({
         />
       </div>
 
-      {!customerId && onBulkGenerate && (
+      {!customerId && onBulkGenerate && canManageReports && (
         <Button 
           onClick={onBulkGenerate}
           className="w-full md:w-auto h-10"
@@ -173,7 +178,7 @@ export function ReportsFilters({
         </Button>
       )}
 
-      {selectedCount > 0 && (
+      {selectedCount > 0 && canManageReports && (
         <Button
           variant="destructive"
           className="w-full md:w-auto h-10 animate-in fade-in slide-in-from-right-2"
