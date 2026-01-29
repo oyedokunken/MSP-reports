@@ -249,7 +249,7 @@ class MonthlyComprehensive extends BaseReport
             'description' => 'Dynamic comprehensive report that includes all available monthly summaries from customer\'s integrations',
             'category' => 'executive',
             'data_types' => $this->getRequiredDataTypes(),
-
+            'frequencies' => ['monthly'],
             'formats' => ['pdf', 'html'],
         ];
     }

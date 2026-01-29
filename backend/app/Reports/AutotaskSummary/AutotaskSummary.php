@@ -244,6 +244,7 @@ class AutotaskSummary extends BaseReport
             'description' => 'Comprehensive service report combining tickets, time entries, technician performance, and contracts from Autotask PSA',
             'category' => 'service_desk',
             'data_types' => $this->getRequiredDataTypes(),
+            'frequencies' => ['monthly', 'weekly', 'on-demand'],
             'formats' => ['pdf', 'html'],
             'supports_scheduling' => true,
             'supports_email_delivery' => true,

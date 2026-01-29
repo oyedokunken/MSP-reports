@@ -218,6 +218,7 @@ class LibreNMSSummary extends BaseReport
             'description' => 'High-level overview of network availability and device health',
             'category' => 'infrastructure',
             'data_types' => $this->getRequiredDataTypes(),
+            'frequencies' => ['monthly', 'weekly', 'on-demand'],
             'formats' => ['pdf', 'html'],
             'supports_scheduling' => true,
             'supports_email_delivery' => true,

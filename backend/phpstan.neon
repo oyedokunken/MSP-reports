@@ -5,8 +5,8 @@ parameters:
     paths:
         - app/
     
-    # Level 2 - stricter type checking
-    level: 2
+    # Level 3 - even stricter type checking
+    level: 3
     
     # Report unmatched ignores as warnings, not errors
     reportUnmatchedIgnoredErrors: false

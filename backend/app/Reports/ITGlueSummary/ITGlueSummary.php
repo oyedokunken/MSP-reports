@@ -160,6 +160,13 @@ class ITGlueSummary extends BaseReport
     public function getMetadata(): array
     {
         return [
+            'id' => 'itglue_summary',
+            'name' => 'ITGlue Asset Summary',
+            'description' => 'Review of managed licenses, SSL certificates, and domain registrations from ITGlue documentation',
+            'category' => 'documentation',
+            'data_types' => $this->getRequiredDataTypes(),
+            'frequencies' => ['monthly', 'weekly', 'on-demand'],
+            'formats' => ['pdf', 'html'],
             'supports_scheduling' => true,
             'supports_email_delivery' => true,
             'supports_api_delivery' => true,

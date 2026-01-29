@@ -204,7 +204,7 @@ abstract class BaseReport implements ReportInterface
             'description' => 'No description provided',
             'category' => 'general',
             'data_types' => $this->getRequiredDataTypes(),
-
+            'frequencies' => ['monthly', 'weekly', 'on-demand'],
             'formats' => ['pdf'],
         ];
     }

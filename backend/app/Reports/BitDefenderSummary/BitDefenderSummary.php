@@ -147,6 +147,13 @@ class BitDefenderSummary extends BaseReport
     public function getMetadata(): array
     {
         return [
+            'id' => 'bitdefender_summary',
+            'name' => 'BitDefender Executive Summary',
+            'description' => 'Comprehensive endpoint security posture combining managed status, policy compliance, and threat detection trends',
+            'category' => 'security',
+            'data_types' => $this->getRequiredDataTypes(),
+            'frequencies' => ['monthly', 'weekly', 'on-demand'],
+            'formats' => ['pdf', 'html'],
             'supports_scheduling' => true,
             'supports_email_delivery' => true,
             'supports_api_delivery' => true,

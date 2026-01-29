@@ -90,7 +90,7 @@ class VeeamOneClient
     /**
      * Get server information
      *
-     * @return array{name: string, version: string, machine: string, logPath: string}
+     * @return array{name: string, version: string, machine: string, logPath: string}|array{}
      */
     public function getAbout(): array
     {

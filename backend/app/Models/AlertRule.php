@@ -82,6 +82,6 @@ class AlertRule extends Model
         }
 
         $cooldownEnds = $this->last_triggered_at->addMinutes($this->cooldown_minutes);
-        return now()->diffInMinutes($cooldownEnds);
+        return (int) now()->diffInMinutes($cooldownEnds);
     }
 }

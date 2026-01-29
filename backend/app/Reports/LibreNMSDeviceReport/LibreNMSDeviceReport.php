@@ -241,7 +241,7 @@ class LibreNMSDeviceReport extends BaseReport
             'description' => 'Device availability report showing 24h, 7d, 30d, and 365d uptime metrics',
             'category' => 'infrastructure',
             'data_types' => $this->getRequiredDataTypes(),
-
+            'frequencies' => ['monthly', 'weekly', 'on-demand'],
             'formats' => ['pdf', 'html'],
             'supports_scheduling' => true,
             'supports_email_delivery' => true,

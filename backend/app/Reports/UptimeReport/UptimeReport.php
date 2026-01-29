@@ -80,7 +80,7 @@ class UptimeReport extends BaseReport
             'description' => 'Device uptime metrics and availability tracking across all monitoring systems',
             'category' => 'infrastructure',
             'data_types' => $this->getRequiredDataTypes(),
-
+            'frequencies' => ['monthly', 'weekly', 'on-demand'],
             'formats' => ['pdf', 'html'],
         ];
     }

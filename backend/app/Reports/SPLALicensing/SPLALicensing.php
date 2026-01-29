@@ -122,6 +122,13 @@ class SPLALicensing extends BaseReport
     public function getMetadata(): array
     {
         return [
+            'id' => 'spla_licensing',
+            'name' => 'SPLA Licensing Report',
+            'description' => 'Detailed report of Microsoft SPLA license assignments detected from Active Directory security groups',
+            'category' => 'licensing',
+            'data_types' => $this->getRequiredDataTypes(),
+            'frequencies' => ['monthly', 'on-demand'],
+            'formats' => ['pdf', 'html'],
             'supports_scheduling' => true,
             'supports_email_delivery' => true,
             'supports_api_delivery' => true,

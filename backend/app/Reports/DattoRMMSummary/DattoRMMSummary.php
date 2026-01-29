@@ -159,7 +159,7 @@ class DattoRMMSummary extends BaseReport
             'description' => 'Comprehensive monthly report covering device health, alerts, compliance, security, and uptime metrics from Datto RMM',
             'category' => 'infrastructure',
             'data_types' => $this->getRequiredDataTypes(),
-
+            'frequencies' => ['monthly', 'weekly', 'on-demand'],
             'formats' => ['pdf', 'html'],
             'supports_scheduling' => true,
             'supports_email_delivery' => true,

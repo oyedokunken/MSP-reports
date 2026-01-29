@@ -181,7 +181,7 @@ class VeeamOneMapper
         try {
             $start = Carbon::parse($startTime);
             $end = Carbon::parse($endTime);
-            return $end->diffInSeconds($start);
+            return (int) $end->diffInSeconds($start);
         } catch (\Throwable) {
             return null;
         }

@@ -170,6 +170,13 @@ class SendmarcSummary extends BaseReport
     public function getMetadata(): array
     {
         return [
+            'id' => 'sendmarc_summary',
+            'name' => 'Sendmarc DMARC Summary',
+            'description' => 'Email authentication and DMARC compliance analysis identifying authorized vs unauthorized senders',
+            'category' => 'security',
+            'data_types' => $this->getRequiredDataTypes(),
+            'frequencies' => ['monthly', 'weekly', 'on-demand'],
+            'formats' => ['pdf', 'html'],
             'supports_scheduling' => true,
             'supports_email_delivery' => true,
             'supports_api_delivery' => true,
