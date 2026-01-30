@@ -155,7 +155,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
           setLicenseModalData({
             customerName,
             customerId,
-            licenses: response.data?.licenses || []
+            licenses: response.licenses || []
           })
         } catch (error) {
           logger.error('Failed to fetch licenses:', error)

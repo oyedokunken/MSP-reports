@@ -90,7 +90,7 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
       try {
         const reportTypes = await templateApi.getAllReportTypes()
         const reportTypeDef = reportTypes.report_types.find(
-          (rt) => rt.type === template.report_type
+          (rt: { type: string }) => rt.type === template.report_type
         )
         if (reportTypeDef) {
           setAvailableSections(reportTypeDef.available_sections || [])

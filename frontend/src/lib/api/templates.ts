@@ -10,64 +10,53 @@ import type {
 
 export const templateApi = {
   list: async (params?: { report_type?: string; active?: boolean }) => {
-    const response = await api.get<ReportTemplate[]>('/report-templates', { params })
-    return response.data
+    return api.get<ReportTemplate[]>('/report-templates', { params })
   },
 
   get: async (id: number) => {
-    const response = await api.get<ReportTemplate>(`/report-templates/${id}`)
-    return response.data
+    return api.get<ReportTemplate>(`/report-templates/${id}`)
   },
 
   create: async (data: CreateTemplateRequest) => {
-    const response = await api.post<ReportTemplate>('/report-templates', data)
-    return response.data
+    return api.post<ReportTemplate>('/report-templates', data)
   },
 
   update: async (id: number, data: UpdateTemplateRequest) => {
-    const response = await api.put<ReportTemplate>(`/report-templates/${id}`, data)
-    return response.data
+    return api.put<ReportTemplate>(`/report-templates/${id}`, data)
   },
 
   delete: async (id: number) => {
-    const response = await api.delete<{ message: string; schedules_deleted: number }>(`/report-templates/${id}`)
-    return response.data
+    return api.delete<{ message: string; schedules_deleted: number }>(`/report-templates/${id}`)
   },
 
   applyToCustomer: async (id: number, data: ApplyTemplateRequest) => {
-    const response = await api.post(`/report-templates/${id}/apply-to-customer`, data)
-    return response.data
+    return api.post(`/report-templates/${id}/apply-to-customer`, data)
   },
 
   applyToCustomers: async (id: number, data: ApplyTemplateBulkRequest) => {
-    const response = await api.post(`/report-templates/${id}/apply-to-customers`, data)
-    return response.data
+    return api.post(`/report-templates/${id}/apply-to-customers`, data)
   },
 
   getAvailableReportTypes: async (customerId: number) => {
-    const response = await api.get<AvailableReportTypesResponse>(
+    return api.get<AvailableReportTypesResponse>(
       '/report-templates/available-for-customer',
       { customer_id: customerId }
     )
-    return response.data
   },
 
   getAllReportTypes: async () => {
-    const response = await api.get<{ report_types: import('@/pages/templates/types/template').ReportTypeDefinition[] }>(
+    return api.get<{ report_types: import('@/pages/templates/types/template').ReportTypeDefinition[] }>(
       '/report-templates/all-report-types'
     )
-    return response.data
   },
 
   preview: async (id: number) => {
-    const response = await api.post<{ generated_report_id: number; status: string }>(
+    return api.post<{ generated_report_id: number; status: string }>(
       `/report-templates/${id}/preview`
     )
-    return response.data
   },
 
   getAppliedCustomers: async (id: number) => {
-    const response = await api.get<Array<{ customer_id: number; canonical_name: string; report_schedule_id: number }>>(`/report-templates/${id}/applied-customers`)
-    return response.data
+    return api.get<Array<{ customer_id: number; canonical_name: string; report_schedule_id: number }>>(`/report-templates/${id}/applied-customers`)
   },
 }

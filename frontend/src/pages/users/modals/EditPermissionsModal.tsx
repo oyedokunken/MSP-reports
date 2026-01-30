@@ -82,18 +82,16 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
     setIsSubmitting(true)
 
     try {
-      const response = await api.patch(`/users/${user.user_id}/permissions`, {
+      await api.patch(`/users/${user.user_id}/permissions`, {
         permissions
       })
 
-      if (response.data) {
-        setSuccess(true)
-        setTimeout(() => {
-          setSuccess(false)
-          onOpenChange(false)
-          onSuccess?.()
-        }, 2000)
-      }
+      setSuccess(true)
+      setTimeout(() => {
+        setSuccess(false)
+        onOpenChange(false)
+        onSuccess?.()
+      }, 2000)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update permissions'
       setError(errorMessage)

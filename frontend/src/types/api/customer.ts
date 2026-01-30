@@ -43,6 +43,7 @@ export interface SuggestedMatch {
 
 export interface UnmappedCustomer {
     integration_customer_id: number
+    integration_id: number
     integration_type: string
     display_name: string
     external_id: string

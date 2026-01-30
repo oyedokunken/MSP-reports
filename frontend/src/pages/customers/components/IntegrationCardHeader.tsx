@@ -34,34 +34,36 @@ export function IntegrationCardHeader({ integration }: IntegrationCardHeaderProp
                     </div>
                     <CardDescription>
                         External ID: {integration.external_id} • Last Seen:{' '}
-                        {new Date(integration.last_seen_at).toLocaleString('en-US', { timeZone: 'Australia/Darwin' })}
+                        {integration.last_seen_at ? new Date(integration.last_seen_at).toLocaleString('en-US', { timeZone: 'Australia/Darwin' }) : 'Never'}
                     </CardDescription>
                 </div>
             </div>
 
-            <div className="mt-4 p-3 bg-background/50 rounded-lg">
-                <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Mapping Type:</span>
-                        <Badge variant={integration.mapping.type === 'auto' ? 'default' : 'secondary'}>
-                            {integration.mapping.type}
-                        </Badge>
+            {integration.mapping && (
+                <div className="mt-4 p-3 bg-background/50 rounded-lg">
+                    <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">Mapping Type:</span>
+                            <Badge variant={integration.mapping.type === 'auto' ? 'default' : 'secondary'}>
+                                {integration.mapping.type}
+                            </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">Confidence:</span>
+                            <span className="font-medium">{integration.mapping.confidence_score}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">Mapped:</span>
+                            <span className="font-medium">
+                                {new Date(integration.mapping.mapped_at).toLocaleDateString('en-AU', { timeZone: 'Australia/Darwin' })}
+                            </span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Confidence:</span>
-                        <span className="font-medium">{integration.mapping.confidence_score}%</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">Mapped:</span>
-                        <span className="font-medium">
-                            {new Date(integration.mapping.mapped_at).toLocaleDateString('en-AU', { timeZone: 'Australia/Darwin' })}
-                        </span>
-                    </div>
+                    {integration.mapping.notes && (
+                        <p className="mt-2 text-sm text-muted-foreground">{integration.mapping.notes}</p>
+                    )}
                 </div>
-                {integration.mapping.notes && (
-                    <p className="mt-2 text-sm text-muted-foreground">{integration.mapping.notes}</p>
-                )}
-            </div>
+            )}
         </div>
     )
 }

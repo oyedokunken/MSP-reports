@@ -47,7 +47,7 @@ export function ApplyTemplateToCustomerModal({ open, onOpenChange, customer, onS
       setTemplates(data || [])
     } catch (error) {
       toast.error('Failed to load templates')
-      logger.error(error)
+      logger.error('Failed to load templates', error)
     } finally {
       setLoading(false)
     }

@@ -61,7 +61,7 @@ export interface CustomerIntegrationMapping {
   type: 'auto' | 'manual'
   confidence_score: number
   mapped_at: string
-  notes?: string
+  notes?: string | null
   mapped_by?: string
 }
 
@@ -75,7 +75,7 @@ export interface CustomerIntegrationDetail {
   active: boolean
   last_seen_at: string | number | null
   metadata?: Record<string, unknown>
-  mapping?: CustomerIntegrationMapping
+  mapping?: CustomerIntegrationMapping | null
 }
 
 export interface CustomerIntegrationsResponse {

@@ -11,10 +11,7 @@ export function useUsers() {
     try {
       setIsLoading(true)
       const response = await api.get<UserWithPermissions[]>('/users')
-
-      if (response.data) {
-        setUsers(response.data)
-      }
+      setUsers(response)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load users'
       setError(errorMessage)
