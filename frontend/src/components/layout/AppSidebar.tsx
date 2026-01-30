@@ -85,7 +85,7 @@ export default function AppSidebar() {
     { path: '/platform/reports', icon: FileText, label: 'Reports', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-reports' },
     { path: '/platform/schedules', icon: Calendar, label: 'Schedules', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-schedules' },
     { path: '/platform/templates', icon: FileText, label: 'Templates', show: hasPermission(user, 'reports', 'configure'), tourId: 'nav-templates' },
-    { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: true, tourId: 'nav-notifications' },
+    { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: hasPermission(user, 'notifications', 'view'), tourId: 'nav-notifications' },
   ].filter(item => item.show !== false)
 
   const customersSubItems = [

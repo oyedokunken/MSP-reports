@@ -37,6 +37,8 @@ import { useToast } from '@/components/ui/Toast'
 import { groupNotificationsByDate } from '@/utils/notificationUtils'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/contexts/AuthContext'
+import { hasPermission } from '@/utils/permissions'
 
 export default function NotificationsPage() {
   const toast = useToast()
@@ -63,6 +65,9 @@ export default function NotificationsPage() {
   const setSortConfig = useNotificationStore((state) => state.setSortConfig)
   const error = useNotificationStore((state) => state.error)
   const getFilteredNotifications = useNotificationStore((state) => state.getFilteredNotifications)
+
+  const { user } = useAuth()
+  const canManage = hasPermission(user, 'notifications', 'configure')
 
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
   const [showMarkAllConfirm, setShowMarkAllConfirm] = useState(false)
@@ -92,14 +97,16 @@ export default function NotificationsPage() {
 
       switch (e.key.toLowerCase()) {
         case 'r':
-          if (selectedNotification) markAsRead(selectedNotification.id)
+          if (canManage && selectedNotification) markAsRead(selectedNotification.id)
           break
         case 'a':
-          selectAll()
-          setSelectionMode(true)
+          if (canManage) {
+            selectAll()
+            setSelectionMode(true)
+          }
           break
         case 'delete':
-          if (selectedCount > 0) setShowDeleteSelectedConfirm(true)
+          if (canManage && selectedCount > 0) setShowDeleteSelectedConfirm(true)
           break
         case 'escape':
           if (selectedNotification) setSelectedNotification(null)
@@ -117,7 +124,7 @@ export default function NotificationsPage() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedNotification, selectionMode, selectedCount, selectAll, deselectAll, markAsRead])
+  }, [selectedNotification, selectionMode, selectedCount, selectAll, deselectAll, markAsRead, canManage])
 
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id)
@@ -181,7 +188,7 @@ export default function NotificationsPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {totalCount > 0 && (
+            {totalCount > 0 && canManage && (
               <Button
                 variant={selectionMode ? "default" : "outline"}
                 size="sm"
@@ -193,7 +200,7 @@ export default function NotificationsPage() {
               </Button>
             )}
 
-            {selectionMode && selectedCount > 0 && (
+            {selectionMode && selectedCount > 0 && canManage && (
               <Button
                 variant="outline"
                 size="sm"
@@ -205,7 +212,7 @@ export default function NotificationsPage() {
               </Button>
             )}
 
-            {!selectionMode && unreadCount > 0 && (
+            {!selectionMode && unreadCount > 0 && canManage && (
               <Button
                 variant="outline"
                 size="sm"
@@ -217,7 +224,7 @@ export default function NotificationsPage() {
               </Button>
             )}
 
-            {!selectionMode && totalCount > 0 && (
+            {!selectionMode && totalCount > 0 && canManage && (
               <Button
                 variant="outline"
                 size="sm"
@@ -465,7 +472,7 @@ export default function NotificationsPage() {
                                   </span>
                                 </div>
                               </div>
-                              {!selectionMode && (
+                              {!selectionMode && canManage && (
                                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <Button
                                     variant="ghost"
@@ -595,16 +602,18 @@ export default function NotificationsPage() {
                   Mark Read
                 </Button>
               )}
-              <Button
-                variant="outline"
-                className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
-                onClick={() => {
-                  setShowDeleteConfirm(selectedNotification.id)
-                  setSelectedNotification(null)
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {canManage && (
+                <Button
+                  variant="outline"
+                  className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50"
+                  onClick={() => {
+                    setShowDeleteConfirm(selectedNotification.id)
+                    setSelectedNotification(null)
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </AnimatedCard>
         </div>

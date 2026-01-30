@@ -35,6 +35,8 @@ export default function FloatingNav() {
     const userMenuRef = useRef<HTMLDivElement>(null);
     const notificationMenuRef = useRef<HTMLDivElement>(null);
 
+    const canViewNotifications = hasPermission(user, 'notifications', 'view');
+
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(new Date());
@@ -139,100 +141,102 @@ export default function FloatingNav() {
             </div>
 
             <div className="flex items-center gap-3">
-                <div className="relative" ref={notificationMenuRef}>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                            setIsNotificationMenuOpen(!isNotificationMenuOpen)
-                        }
-                        className="relative h-9 w-9 p-0"
-                    >
-                        <Bell className="h-5 w-5" />
-                        {hasUnread && (
-                            <span className="absolute top-1 right-1 flex h-2 w-2 rounded-full bg-red-500" />
-                        )}
-                    </Button>
+                {canViewNotifications && (
+                    <div className="relative" ref={notificationMenuRef}>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                                setIsNotificationMenuOpen(!isNotificationMenuOpen)
+                            }
+                            className="relative h-9 w-9 p-0"
+                        >
+                            <Bell className="h-5 w-5" />
+                            {hasUnread && (
+                                <span className="absolute top-1 right-1 flex h-2 w-2 rounded-full bg-red-500" />
+                            )}
+                        </Button>
 
-                    {isNotificationMenuOpen && (
-                        <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-gray-200 dark:border-gray-800 bg-background dark:bg-[hsl(var(--auth-card))] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 max-h-96 overflow-hidden z-50">
-                            <div className="p-4 border-b border-border">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="font-semibold text-foreground">
-                                        Notifications
-                                    </h3>
-                                    {unreadCount > 0 && (
-                                        <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">
-                                            {unreadCount} new
-                                        </span>
+                        {isNotificationMenuOpen && (
+                            <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-gray-200 dark:border-gray-800 bg-background dark:bg-[hsl(var(--auth-card))] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 max-h-96 overflow-hidden z-50">
+                                <div className="p-4 border-b border-border">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-semibold text-foreground">
+                                            Notifications
+                                        </h3>
+                                        {unreadCount > 0 && (
+                                            <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">
+                                                {unreadCount} new
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="max-h-80 overflow-y-auto">
+                                    {notifications.length === 0 ? (
+                                        <div className="p-8 text-center text-sm text-muted-foreground">
+                                            No notifications
+                                        </div>
+                                    ) : (
+                                        notifications
+                                            .slice(0, 5)
+                                            .map((notification) => (
+                                                <div
+                                                    key={notification.id}
+                                                    onClick={() =>
+                                                        handleNotificationClick(
+                                                            notification
+                                                        )
+                                                    }
+                                                    className={`p-3 hover:bg-muted/50 cursor-pointer border-b border-border last:border-b-0 transition-colors ${!notification.read
+                                                            ? "bg-primary/5"
+                                                            : ""
+                                                        }`}
+                                                >
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="flex-shrink-0 mt-1">
+                                                            <PulsingDot
+                                                                color={
+                                                                    notification.severity
+                                                                }
+                                                            />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-medium text-foreground truncate">
+                                                                {notification.title}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground mt-1">
+                                                                {notification.time}
+                                                            </p>
+                                                        </div>
+                                                        {!notification.read && (
+                                                            <span className="flex h-2 w-2 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))
                                     )}
                                 </div>
-                            </div>
 
-                            <div className="max-h-80 overflow-y-auto">
-                                {notifications.length === 0 ? (
-                                    <div className="p-8 text-center text-sm text-muted-foreground">
-                                        No notifications
+                                {notifications.length > 0 && (
+                                    <div className="p-2 border-t border-border">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="w-full text-xs"
+                                            onClick={() => {
+                                                setIsNotificationMenuOpen(false);
+                                                navigate("/platform/notifications");
+                                            }}
+                                        >
+                                            View all notifications
+                                        </Button>
                                     </div>
-                                ) : (
-                                    notifications
-                                        .slice(0, 5)
-                                        .map((notification) => (
-                                            <div
-                                                key={notification.id}
-                                                onClick={() =>
-                                                    handleNotificationClick(
-                                                        notification
-                                                    )
-                                                }
-                                                className={`p-3 hover:bg-muted/50 cursor-pointer border-b border-border last:border-b-0 transition-colors ${!notification.read
-                                                        ? "bg-primary/5"
-                                                        : ""
-                                                    }`}
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <div className="flex-shrink-0 mt-1">
-                                                        <PulsingDot
-                                                            color={
-                                                                notification.severity
-                                                            }
-                                                        />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-foreground truncate">
-                                                            {notification.title}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground mt-1">
-                                                            {notification.time}
-                                                        </p>
-                                                    </div>
-                                                    {!notification.read && (
-                                                        <span className="flex h-2 w-2 rounded-full bg-blue-500 flex-shrink-0 mt-2" />
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))
                                 )}
                             </div>
-
-                            {notifications.length > 0 && (
-                                <div className="p-2 border-t border-border">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full text-xs"
-                                        onClick={() => {
-                                            setIsNotificationMenuOpen(false);
-                                            navigate("/platform/notifications");
-                                        }}
-                                    >
-                                        View all notifications
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+                        )}
+                    </div>
+                )}
 
                 <ThemeToggle />
 
@@ -350,6 +354,8 @@ function NotificationDetailModal({
     onClose,
 }: NotificationDetailModalProps) {
     const markAsRead = useNotificationStore((state) => state.markAsRead);
+    const { user } = useAuth();
+    const canManage = hasPermission(user, 'notifications', 'configure');
 
     return (
         <div
@@ -416,7 +422,7 @@ function NotificationDetailModal({
                 </div>
 
                 <div className="p-6 border-t border-border flex justify-end gap-2">
-                    {!notification.read && (
+                    {!notification.read && canManage && (
                         <Button
                             variant="outline"
                             size="sm"
