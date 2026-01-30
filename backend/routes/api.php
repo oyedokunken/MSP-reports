@@ -25,6 +25,9 @@ Route::get('/health', [HealthCheckController::class, 'index']);
 // Public SAML Metadata (no auth required)
 Route::get('/saml/metadata', [AuthController::class, 'getSamlMetadata']);
 
+// Public auth config endpoint (tells frontend which auth methods are enabled)
+Route::get('/auth/config', [AuthController::class, 'getAuthConfig']);
+
 Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
 
     // Auth Routes - Stricter rate limiting for security-sensitive endpoints

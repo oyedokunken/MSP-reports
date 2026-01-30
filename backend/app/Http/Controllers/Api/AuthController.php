@@ -635,4 +635,28 @@ final class AuthController extends Controller
             return redirect(config('auth_methods.frontend_url') . '/sign-in?error=saml_sls_failed');
         }
     }
+
+    /**
+     * Get available authentication methods configuration
+     * This endpoint is public so the login page can show appropriate options
+     */
+    public function getAuthConfig(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'local' => true,
+                'oauth' => [
+                    'enabled' => (bool) config('auth_methods.oauth.enabled', false),
+                    'provider' => 'microsoft',
+                ],
+                'saml' => [
+                    'enabled' => (bool) config('auth_methods.saml.enabled', false),
+                ],
+                'ldap' => [
+                    'enabled' => (bool) config('auth_methods.ldap.enabled', false),
+                ],
+            ],
+        ]);
+    }
 }

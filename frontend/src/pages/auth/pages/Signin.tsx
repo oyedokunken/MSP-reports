@@ -9,7 +9,7 @@ import {
   ContactAdminLink,
   LdapLoginModal,
 } from "../components";
-import { useSignin } from "../hooks";
+import { useSignin, useAuthConfig } from "../hooks";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/Toast";
@@ -31,13 +31,17 @@ const Signin = () => {
     setShowPassword
   } = useSignin();
 
+  const { config: authConfig } = useAuthConfig();
+
   const [showLdapModal, setShowLdapModal] = useState(false);
-  const [ldapConfigured] = useState(false);
-  const [oauthConfigured] = useState(true);
-  const [samlConfigured] = useState(true);
   const { login } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+
+  const ldapConfigured = authConfig?.ldap.enabled ?? false;
+  const oauthConfigured = authConfig?.oauth.enabled ?? false;
+  const samlConfigured = authConfig?.saml.enabled ?? false;
+  const hasEnterpriseAuth = ldapConfigured || oauthConfigured || samlConfigured;
 
   const handleLdapLogin = async (username: string, password: string) => {
     try {
@@ -107,22 +111,26 @@ const Signin = () => {
               <ContactAdminLink />
             </div>
 
-            <AuthDivider
-              showAuthOptions={showAuthOptions}
-              onToggle={() => setShowAuthOptions(!showAuthOptions)}
-            />
+            {hasEnterpriseAuth && (
+              <>
+                <AuthDivider
+                  showAuthOptions={showAuthOptions}
+                  onToggle={() => setShowAuthOptions(!showAuthOptions)}
+                />
 
-            <EnterpriseAuthOptions
-              isOpen={showAuthOptions}
-              onLdapClick={() => setShowLdapModal(true)}
-              onOAuthClick={handleOAuthLogin}
-              onSamlClick={handleSamlLogin}
-              ldapConfigured={ldapConfigured}
-              oauthConfigured={oauthConfigured}
-              samlConfigured={samlConfigured}
-            />
+                <EnterpriseAuthOptions
+                  isOpen={showAuthOptions}
+                  onLdapClick={() => setShowLdapModal(true)}
+                  onOAuthClick={handleOAuthLogin}
+                  onSamlClick={handleSamlLogin}
+                  ldapConfigured={ldapConfigured}
+                  oauthConfigured={oauthConfigured}
+                  samlConfigured={samlConfigured}
+                />
 
-            {showAuthOptions && <ContactAdminLink />}
+                {showAuthOptions && <ContactAdminLink />}
+              </>
+            )}
 
             <AuthFooter />
           </div>
