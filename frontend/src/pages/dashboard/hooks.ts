@@ -123,15 +123,15 @@ export const useDashboard = () => {
         }
 
         setIsLoading(true);
-        const promises: Promise<any>[] = [];
-        
+        const promises: Promise<unknown>[] = [];
+
         // Always fetch customers if authenticated (base permission)
         promises.push(fetchCustomers());
 
         if (canViewIntegrations) {
             promises.push(refetchIntegrations());
         }
-        
+
         if (canViewMonitoring) {
             promises.push(fetchSystemStatus());
             promises.push(fetchReportMetrics());

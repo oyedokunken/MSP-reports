@@ -3,10 +3,12 @@ import { Spinner } from '@/components/ui/spinner'
 import { Search } from 'lucide-react'
 import type { RefObject } from 'react'
 
+import type { IntegrationCustomer } from '../types'
+
 interface CustomerCandidate {
     customer_id: number | null
     canonical_name: string | null
-    integrations?: unknown[]
+    integrations?: IntegrationCustomer[]
 }
 
 interface CustomerSearchPanelProps {

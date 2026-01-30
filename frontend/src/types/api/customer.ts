@@ -14,13 +14,16 @@ export interface CustomerMapping {
 
 export interface IntegrationCustomer {
     integration_customer_id: number
+    integration_id: number
     integration_type: string
     display_name: string
     external_id: string
     name: string
     active: boolean
-    last_seen_at: number | null // Unix timestamp in milliseconds
+    last_seen_at: string | number | null
+    metadata?: Record<string, unknown>
     mapping?: CustomerMapping | null
+    suggested_matches?: SuggestedMatch[]
 }
 
 export interface Customer {
@@ -94,3 +97,26 @@ export interface SplitCustomerRequest {
     new_customer_name: string
     integration_customer_ids: number[]
 }
+
+export interface IntegrationStats {
+    tickets?: {
+        total: number
+        open: number
+        completed: number
+        top_technicians?: Array<{
+            name: string
+            ticket_count: number
+        }>
+    }
+    time_entries?: {
+        total: number
+        total_hours: number
+        billable_hours: number
+    }
+    contracts?: {
+        total: number
+        active: number
+    }
+}
+
+export type IntegrationStatsResponse = ApiSuccessResponse<IntegrationStats>

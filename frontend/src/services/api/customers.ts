@@ -14,6 +14,7 @@ import type {
     UpdateCustomerRequest,
     MergeCustomersRequest,
     SplitCustomerRequest,
+    IntegrationStatsResponse,
 } from '@/types/api/customer'
 import type { ApiResponse } from '@/types/api'
 
@@ -128,5 +129,13 @@ export const customerApi = {
      */
     async getAllCustomerIds(): Promise<ApiResponse<number[]>> {
         return api.get<ApiResponse<number[]>>('/customers/all-ids')
+    },
+
+    /**
+     * Get integration stats for a customer
+     * GET /api/customers/{id}/integrations/{integration_id}/stats
+     */
+    async getCustomerIntegrationStats(customerId: number, integrationCustomerId: number): Promise<IntegrationStatsResponse> {
+        return api.get<IntegrationStatsResponse>(`/customers/${customerId}/integrations/${integrationCustomerId}/stats`)
     },
 }

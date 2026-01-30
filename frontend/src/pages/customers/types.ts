@@ -1,3 +1,11 @@
+import type {
+  IntegrationStats,
+  IntegrationCustomer,
+  SuggestedMatch as ApiSuggestedMatch
+} from '@/types/api/customer'
+
+export type { IntegrationStats, IntegrationCustomer }
+
 export type CanonicalCustomer = {
   id: string
   name: string
@@ -18,28 +26,15 @@ export type Stat = {
   color: string
 }
 
-export interface IntegrationCustomer {
-  integration_customer_id: number
-  integration_type: string
-  display_name: string
-  external_id: string
-  name: string
-  active: boolean
-  last_seen_at: number | null
-}
-
 export interface ExistingCustomer {
   customer_id: number | null
   canonical_name: string | null
   status: string | null
-  integrations: unknown[]
+  integrations: IntegrationCustomer[]
 }
 
-export interface SuggestedMatch {
-  customer_id: number
-  canonical_name: string
-  confidence_score: number
-  integrations?: unknown[]
+export interface SuggestedMatch extends ApiSuggestedMatch {
+  integrations?: Array<{ id: number }>
 }
 
 export interface MapCustomerModalProps {
@@ -78,9 +73,9 @@ export interface CustomerIntegrationDetail {
   external_id: string
   name: string
   active: boolean
-  last_seen_at: string
-  metadata: Record<string, unknown>
-  mapping: CustomerIntegrationMapping
+  last_seen_at: string | number | null
+  metadata?: Record<string, unknown>
+  mapping?: CustomerIntegrationMapping
 }
 
 export interface CustomerIntegrationsResponse {
@@ -88,23 +83,3 @@ export interface CustomerIntegrationsResponse {
   data: CustomerIntegrationDetail[]
 }
 
-export interface IntegrationStats {
-  tickets?: {
-    total: number
-    open: number
-    completed: number
-    top_technicians?: Array<{
-      name: string
-      ticket_count: number
-    }>
-  }
-  time_entries?: {
-    total: number
-    total_hours: number
-    billable_hours: number
-  }
-  contracts?: {
-    total: number
-    active: number
-  }
-}

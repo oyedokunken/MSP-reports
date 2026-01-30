@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { logger } from '@/lib/logger'
+import useDebounce from '@/hooks/use-debounce'
 import type { CanonicalCustomer, MappingRow, IntegrationCustomer, ExistingCustomer, SuggestedMatch } from './types'
+import { customerApi } from '@/services/api/customers'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
 import { useCustomersStore } from '@/stores/useCustomersStore'
@@ -74,11 +76,11 @@ export const useMapCustomerModal = (
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearch = useDebounce(searchTerm, 300)
+
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null)
   const [createNew, setCreateNew] = useState(false)
-  const [newCustomerName, setNewCustomerName] = useState('')
   const [suggestedMatches, setSuggestedMatches] = useState<SuggestedMatch[]>([])
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
   const [mappedCount, setMappedCount] = useState(0)
 
   const [candidates, setCandidates] = useState<ExistingCustomer[]>([])
@@ -89,95 +91,55 @@ export const useMapCustomerModal = (
 
   const [currentIndex, setCurrentIndex] = useState(0)
 
-  const customers = integrationCustomers || []
+  const customers = useMemo(() => integrationCustomers || [], [integrationCustomers])
   const currentCustomer = customers[currentIndex] || null
   const totalCount = customers.length
-  // Flag indicating if we're processing multiple integration customers sequentially
   const isBulk = totalCount > 1
 
+  // Handle modal open/reset
   useEffect(() => {
     if (open) {
       setMappedCount(0)
       setCurrentIndex(0)
       setSuccess(false)
       setError('')
+      setSearchTerm('')
+      setSelectedCustomerId(null)
+      setCreateNew(false)
+      setSearchPage(1)
+      setCandidates([])
     }
   }, [open])
 
+  // Get suggested matches from current customer if available
   useEffect(() => {
-    const fetchSuggestedMatches = async () => {
-      if (!currentCustomer) return
-
-      try {
-        setIsLoadingSuggestions(true)
-        const response = await api.get(`/customers/unmapped`)
-        const rawData = (response as { data?: unknown }).data || response
-        const data: unknown[] = Array.isArray(rawData) ? rawData : []
-
-        const foundCustomer = data.find(
-          (c: unknown) => {
-            if (typeof c === 'object' && c !== null && 'integration_customer_id' in c) {
-              return (c as { integration_customer_id: number }).integration_customer_id === currentCustomer.integration_customer_id
-            }
-            return false
-          }
-        ) as { suggested_matches?: SuggestedMatch[] } | undefined
-
-        if (foundCustomer && foundCustomer.suggested_matches) {
-          setSuggestedMatches(foundCustomer.suggested_matches)
-        } else {
-          setSuggestedMatches([])
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load suggested matches';
-        setError(errorMessage);
-        logger.error('Suggested matches fetch error:', err);
-      } finally {
-        setIsLoadingSuggestions(false)
-      }
+    if (open && currentCustomer) {
+      setSuggestedMatches(currentCustomer.suggested_matches || [])
     }
+  }, [open, currentCustomer])
 
-    if (open && customers.length > 0) {
-      setSearchTerm('')
-      setSelectedCustomerId(null)
-      setError('')
-      setCreateNew(false)
-      setNewCustomerName(currentCustomer?.name || '')
-      setSuggestedMatches([])
-
-      setCandidates([])
-      setSearchPage(1)
-      setHasMoreCandidates(true)
-      fetchCandidates(1, '')
-
-      if (!isBulk) {
-        fetchSuggestedMatches()
-      }
-    }
-  }, [customers.length, open, isBulk, currentCustomer])
-
-  const fetchCandidates = async (page: number, search: string, append: boolean = false) => {
-    if (append) {
-      setIsLoadingMoreCandidates(true)
-    } else {
-      setIsLoadingCandidates(true)
-    }
-
+  // Fetch candidates logic
+  const fetchCandidates = useCallback(async (page: number, search: string, append: boolean = false) => {
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        per_page: '20'
+      if (append) {
+        setIsLoadingMoreCandidates(true)
+      } else {
+        setIsLoadingCandidates(true)
+        setSearchPage(1)
+      }
+
+      const response = await customerApi.getCustomers({
+        page,
+        search: search.trim() || undefined,
+        statuses: ['active']
       })
 
-      if (search.trim()) {
-        params.append('search', search)
-      }
-
-      const response = await api.get(`/customers?${params.toString()}`)
-      const rawData = response as { data?: ExistingCustomer[]; pagination?: { current_page?: number; last_page?: number } }
-      const data = (rawData.data || rawData) as ExistingCustomer[]
-
-      const pagination = rawData.pagination || { current_page: 1, last_page: 1 }
+      const data: ExistingCustomer[] = response.data.map(c => ({
+        customer_id: c.customer_id,
+        canonical_name: c.canonical_name || '',
+        status: c.status,
+        integrations: c.integrations || []
+      }))
 
       if (append) {
         setCandidates(prev => [...prev, ...data])
@@ -185,11 +147,8 @@ export const useMapCustomerModal = (
         setCandidates(data)
       }
 
-      const currentPageNum = pagination.current_page || page
-      const lastPage = pagination.last_page || 1
-
-      setHasMoreCandidates(currentPageNum < lastPage)
-      setSearchPage(currentPageNum)
+      setHasMoreCandidates(response.pagination.current_page < response.pagination.last_page)
+      setSearchPage(response.pagination.current_page)
     } catch (err) {
       logger.error("Failed to fetch candidates", err)
       if (!append) setCandidates([])
@@ -198,81 +157,59 @@ export const useMapCustomerModal = (
       setIsLoadingCandidates(false)
       setIsLoadingMoreCandidates(false)
     }
-  }
+  }, [])
 
+  // Refetch candidates when debounced search term changes
   useEffect(() => {
-    if (!open) return
-
-    const timer = setTimeout(() => {
-      fetchCandidates(1, searchTerm, false)
-    }, 300)
-
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm])
+    if (open) {
+      fetchCandidates(1, debouncedSearch, false)
+    }
+  }, [open, debouncedSearch, fetchCandidates])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!createNew) {
-      // Validate that a target customer is selected when mapping to an existing record
-      if (!selectedCustomerId || !currentCustomer) {
-        setError('Please select a customer to map to')
-        return
-      }
+    if (!createNew && !selectedCustomerId) {
+      setError('Please select a customer to map to')
+      return
     }
 
     setError('')
     setIsSubmitting(true)
 
     try {
-      if (createNew) {
-        const promises = customers.map(customer =>
-          api.post('/customers/map', {
+      // Use concurrent mapping for better performance
+      const results = await Promise.allSettled(
+        customers.map(customer =>
+          customerApi.mapCustomer({
             integration_customer_id: customer.integration_customer_id,
-            mapping_type: 'manual',
-            create_new: true,
-            canonical_name: customer.name
+            create_new: createNew,
+            customer_id: createNew ? undefined : selectedCustomerId!,
+            canonical_name: createNew ? customer.name : undefined
           })
         )
-
-        await Promise.all(promises)
-        setMappedCount(customers.length)
-
-        setSuccess(true)
-        setTimeout(() => {
-          setSuccess(false)
-          onSuccess?.()
-        }, 2000)
-        return
-      }
-
-      const promises = customers.map(customer =>
-        api.post('/customers/map', {
-          integration_customer_id: customer.integration_customer_id,
-          mapping_type: 'manual',
-          customer_id: selectedCustomerId
-        })
       )
 
-      await Promise.all(promises)
+      const failures = results.filter(r => r.status === 'rejected')
+      if (failures.length > 0) {
+        throw new Error(`Failed to map ${failures.length} customers`)
+      }
+
       setMappedCount(customers.length)
-
       setSuccess(true)
-      setTimeout(() => {
-        setSuccess(false)
-        onSuccess?.()
-      }, 2000)
 
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to map customer'
+      // Automatically trigger success callback after a short delay
+      setTimeout(() => {
+        onSuccess?.()
+      }, 1500)
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to map customer'
       setError(errorMessage)
     } finally {
       setIsSubmitting(false)
     }
   }
-
-  const filteredCustomers = candidates
 
   return {
     isSubmitting,
@@ -284,11 +221,8 @@ export const useMapCustomerModal = (
     setSelectedCustomerId,
     createNew,
     setCreateNew,
-    newCustomerName,
-    setNewCustomerName,
     suggestedMatches,
-    isLoadingSuggestions,
-    filteredCustomers,
+    filteredCustomers: candidates,
     handleSubmit,
     currentCustomer,
     totalCount,
@@ -296,16 +230,15 @@ export const useMapCustomerModal = (
     mappedCount,
     customers,
     currentIndex,
-    isSearching: isLoadingCandidates && searchPage === 1,
-    candidates,
+    isSearching: isLoadingCandidates,
     hasMoreCandidates,
     isLoadingMoreCandidates,
-    loadMoreCandidates: () => fetchCandidates(searchPage + 1, searchTerm, true),
+    loadMoreCandidates: () => fetchCandidates(searchPage + 1, debouncedSearch, true),
   }
 }
 
 export const useCustomerIntegrationDetails = (customerId: string | undefined) => {
-  const [integrations, setIntegrations] = useState<import('./types').CustomerIntegrationDetail[]>([])
+  const [integrations, setIntegrations] = useState<IntegrationCustomer[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [customerName, setCustomerName] = useState<string>('')
@@ -320,60 +253,43 @@ export const useCustomerIntegrationDetails = (customerId: string | undefined) =>
         setIsLoading(true)
         setError(null)
 
-        const response = await api.get(`/customers/${customerId}/integrations`)
+        const numericId = parseInt(customerId, 10)
+        if (isNaN(numericId)) throw new Error('Invalid customer ID')
 
-        let integrationData: import('./types').CustomerIntegrationDetail[] = []
+        // Use the type-safe API service
+        const response = await customerApi.getCustomerIntegrations(numericId)
 
-        interface ApiResponse {
-          status?: string;
-          success?: boolean;
-          data?: unknown;
-        }
-
-        const apiResponse = response as ApiResponse
-
-        if (apiResponse && apiResponse.status === 'success' && Array.isArray(apiResponse.data)) {
-          integrationData = apiResponse.data as import('./types').CustomerIntegrationDetail[]
-        }
-        else if (apiResponse && apiResponse.success && Array.isArray(apiResponse.data)) {
-          integrationData = apiResponse.data as import('./types').CustomerIntegrationDetail[]
-        }
-        else if (apiResponse && Array.isArray(apiResponse.data)) {
-          integrationData = apiResponse.data as import('./types').CustomerIntegrationDetail[]
-        }
-        else if (Array.isArray(response)) {
-          integrationData = response as import('./types').CustomerIntegrationDetail[]
-        }
-        else {
-          setError('Failed to load integration details - unexpected response format')
-          return
-        }
-
+        // Response data is already unwrapped by our apiRequest helper
+        const integrationData = response.data || []
         setIntegrations(integrationData)
 
         if (integrationData.length > 0) {
           setCustomerName(integrationData[0].name)
 
-          integrationData.forEach(async (integration) => {
-            const integrationCustomerId = integration.integration_customer_id
-            setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: true }))
+          // Fetch stats for each integration
+          // Using for...of for sequential or Promise.all for parallel
+          // Parallel is better here
+          await Promise.all(
+            integrationData.map(async (integration) => {
+              const integrationCustomerId = integration.integration_customer_id
+              setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: true }))
 
-            try {
-              const statsResponse = await api.get(
-                `/customers/${customerId}/integrations/${integrationCustomerId}/stats`
-              )
-              const data = (statsResponse as { data?: unknown }).data || statsResponse
-              setStats(prev => ({ ...prev, [integrationCustomerId]: data as import('./types').IntegrationStats }))
-            } catch {
-              void 0;
-            } finally {
-              setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: false }))
-            }
-          })
+              try {
+                const statsResponse = await customerApi.getCustomerIntegrationStats(numericId, integrationCustomerId)
+                const data = statsResponse.data
+                setStats(prev => ({ ...prev, [integrationCustomerId]: data }))
+              } catch (err) {
+                logger.error(`Failed to fetch stats for integration ${integrationCustomerId}`, err)
+              } finally {
+                setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: false }))
+              }
+            })
+          )
         }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to load integration details'
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load integration details'
         setError(errorMessage)
+        logger.error('fetchIntegrationDetails error:', err)
       } finally {
         setIsLoading(false)
       }
@@ -432,7 +348,7 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
     fetchCustomers(...fetchArgs).catch((err) => {
       // Don't toast 403s if it's just the unmapped check failing
       if (err.response?.status === 403 && !canMap) return;
-      
+
       toast.error(
         "Failed to load customers",
         err.response?.data?.message || err.message
@@ -449,6 +365,7 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
       const firstUnmapped = unmappedCustomers[0]
       setSelectedUnmappedCustomer({
         integration_customer_id: firstUnmapped.integration_customer_id,
+        integration_id: 0, // Placeholder
         integration_type: firstUnmapped.integration_type,
         display_name: firstUnmapped.display_name,
         external_id: firstUnmapped.external_id,
@@ -468,6 +385,7 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
       const nextUnmapped = updatedUnmapped[0]
       setSelectedUnmappedCustomer({
         integration_customer_id: nextUnmapped.integration_customer_id,
+        integration_id: 0, // Placeholder
         integration_type: nextUnmapped.integration_type,
         display_name: nextUnmapped.display_name,
         external_id: nextUnmapped.external_id,
@@ -479,7 +397,7 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
       closeModal("map")
       toast.success("All Done!", "All customers have been mapped")
     }
-  }, [fetchCustomers, currentPage, sotFilter, getUnmappedCustomers, setSelectedUnmappedCustomer, closeModal, toast])
+  }, [fetchCustomers, currentPage, sotFilter, getUnmappedCustomers, setSelectedUnmappedCustomer, closeModal, toast, canMap])
 
   const handleCustomerAction = useCallback((customer: ExistingCustomer, action: CustomerAction) => {
     setSelectedCustomer({
@@ -495,7 +413,7 @@ const useBaseCustomerList = (sotFilter: boolean | null) => {
     fetchCustomers(currentPage, true, sotFilter, !canMap)
     closeModal(modalType)
     toast.success(message, description)
-  }, [fetchCustomers, currentPage, sotFilter, closeModal, toast])
+  }, [fetchCustomers, currentPage, sotFilter, closeModal, toast, canMap])
 
   const handlePageChange = useCallback((page: number) => {
     fetchCustomers(page, false, sotFilter, !canMap)
@@ -576,7 +494,7 @@ export const useCustomerList = () => {
     setStatusFilters,
     setReportFilters,
     setIntegrationFilters,
-    fetchCustomers: (page?: number, silent?: boolean, sot?: boolean | null, skipUnmapped?: boolean) => 
+    fetchCustomers: (page?: number, silent?: boolean, sot?: boolean | null, skipUnmapped?: boolean) =>
       storeFetchCustomers(page, silent, sot, skipUnmapped ?? !base.canMap),
   }
 }

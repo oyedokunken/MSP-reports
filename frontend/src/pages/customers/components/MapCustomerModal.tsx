@@ -12,6 +12,7 @@ import { CheckCircle2, MapPin } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { MapCustomerModalProps } from '../types'
 import { useMapCustomerModal } from '../hooks'
+import { useIntersectionObserver } from '@/hooks/use-intersection-observer'
 import { CustomerSearchPanel } from './CustomerSearchPanel'
 import { SuggestedMatchesList } from './SuggestedMatchesList'
 import { IntegrationCustomersList } from './IntegrationCustomersList'
@@ -52,26 +53,18 @@ export function MapCustomerModal({
 
   const observerTarget = useRef<HTMLDivElement>(null)
   const [viewMode, setViewMode] = useState<'suggested' | 'search'>('suggested')
+  const entry = useIntersectionObserver(observerTarget)
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      if (
-        entries[0].isIntersecting &&
-        hasMoreCandidates &&
-        !isLoadingMoreCandidates &&
-        !isSearching
-      ) {
-        loadMoreCandidates()
-      }
-    })
-
-    const target = observerTarget.current
-    if (target) observer.observe(target)
-
-    return () => {
-      if (target) observer.unobserve(target)
+    if (
+      entry?.isIntersecting &&
+      hasMoreCandidates &&
+      !isLoadingMoreCandidates &&
+      !isSearching
+    ) {
+      loadMoreCandidates()
     }
-  }, [hasMoreCandidates, isLoadingMoreCandidates, isSearching, loadMoreCandidates])
+  }, [entry?.isIntersecting, hasMoreCandidates, isLoadingMoreCandidates, isSearching, loadMoreCandidates])
 
   const handleClose = () => {
     if (!isSubmitting) {

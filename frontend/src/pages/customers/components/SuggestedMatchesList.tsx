@@ -1,11 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 
-interface SuggestedMatch {
-    customer_id: number
-    canonical_name: string
-    confidence_score: number
-    integrations?: unknown[]
-}
+import type { SuggestedMatch } from '../types'
 
 interface SuggestedMatchesListProps {
     matches: SuggestedMatch[]
@@ -28,8 +23,8 @@ export function SuggestedMatchesList({
                     type="button"
                     onClick={() => onSelectCustomer(match.customer_id)}
                     className={`w-full text-left rounded-lg border p-3 ${selectedCustomerId === match.customer_id
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border hover:bg-accent/50'
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:bg-accent/50'
                         }`}
                 >
                     <div className="flex items-center justify-between">
