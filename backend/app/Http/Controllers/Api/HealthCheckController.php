@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\Integration;
 use App\Models\GeneratedReport;
 use App\Models\SyncLog;
+use App\Models\AuditLog;
+use App\Models\User;
+use App\Models\ReportTemplate;
 use Carbon\Carbon;
 
 final class HealthCheckController extends Controller
@@ -52,6 +55,14 @@ final class HealthCheckController extends Controller
                 'system' => $this->getSystemStatus(),
                 'integrations' => $this->getIntegrationStatus($authUser->company_id),
                 'reports' => $this->getReportStatus($authUser->company_id),
+                'users' => [
+                    'total' => User::where('company_id', $authUser->company_id)->count(),
+                    'active' => User::where('company_id', $authUser->company_id)->where('status', 'active')->count(),
+                ],
+                'templates' => [
+                    'total' => ReportTemplate::where('company_id', $authUser->company_id)->count(),
+                    'customized' => ReportTemplate::where('company_id', $authUser->company_id)->whereNotNull('customer_id')->count(),
+                ],
                 'queue' => $this->getQueueStatus(),
                 'redis' => $this->getRedisMemoryUsage(),
             ]
@@ -254,77 +265,116 @@ final class HealthCheckController extends Controller
 
     public function activityTrends(Request $request): \Illuminate\Http\JsonResponse
     {
-        $authUser = $request->user();
-        $days = $request->input('days', 7);
+        try {
+            $authUser = $request->user();
+            $days = $request->input('days', 7);
 
-        $startDate = now()->subDays($days)->startOfDay();
-        $endDate = now()->endOfDay();
+            $startDate = now()->subDays($days)->startOfDay();
+            $endDate = now()->endOfDay();
 
-        // Generate array of dates for the period
-        $dateRange = [];
-        $currentDate = $startDate->copy();
-        while ($currentDate <= $endDate) {
-            $dateRange[] = $currentDate->format('Y-m-d');
-            $currentDate->addDay();
+            // Generate array of dates for the period
+            $dateRange = [];
+            $currentDate = $startDate->copy();
+            while ($currentDate <= $endDate) {
+                $dateRange[] = $currentDate->format('Y-m-d');
+                $currentDate->addDay();
+            }
+
+            // Get sync counts per day
+            $syncCounts = SyncLog::whereHas('integration', function($q) use ($authUser) {
+                    $q->where('company_id', $authUser->company_id);
+                })
+                ->whereBetween('started_at', [$startDate, $endDate])
+                ->select(
+                    DB::raw("started_at::date as date"),
+                    DB::raw('COUNT(*) as total'),
+                    DB::raw("SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed"),
+                    DB::raw('SUM(rate_limit_hits) as rate_limits')
+                )
+                ->groupBy(DB::raw("started_at::date"))
+                ->orderBy('date', 'asc')
+                ->get()
+                ->keyBy('date');
+
+            // Get report counts per day
+            $reportCounts = GeneratedReport::where('company_id', $authUser->company_id)
+                ->whereBetween('generated_at', [$startDate, $endDate])
+                ->select(
+                    DB::raw("generated_at::date as date"),
+                    DB::raw('COUNT(*) as total'),
+                    DB::raw("SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed")
+                )
+                ->groupBy(DB::raw("generated_at::date"))
+                ->orderBy('date', 'asc')
+                ->get()
+                ->keyBy('date');
+
+            // Get job counts per day (only if jobs table exists)
+            $jobCounts = collect();
+            if (\Illuminate\Support\Facades\Schema::hasTable('jobs')) {
+                $jobCounts = DB::table('jobs')
+                    ->whereBetween('created_at', [
+                        $startDate->timestamp,
+                        $endDate->timestamp
+                    ])
+                    ->select(
+                        DB::raw("TO_TIMESTAMP(created_at)::date as date"),
+                        DB::raw('COUNT(*) as count')
+                    )
+                    ->groupBy(DB::raw("TO_TIMESTAMP(created_at)::date"))
+                    ->orderBy('date', 'asc')
+                    ->get()
+                    ->keyBy('date');
+            }
+
+            // Get user login counts per day
+            $userLogins = AuditLog::where('company_id', $authUser->company_id)
+                ->where('event_type', 'user_login')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->select(
+                    DB::raw("created_at::date as date"),
+                    DB::raw('COUNT(*) as count')
+                )
+                ->groupBy(DB::raw("created_at::date"))
+                ->orderBy('date', 'asc')
+                ->get()
+                ->keyBy('date');
+
+            // Build activity data array with all dates (fill gaps with 0)
+            $activityData = [];
+            foreach ($dateRange as $date) {
+                $dateObj = Carbon::parse($date);
+                $syncData = $syncCounts->get($date);
+                $reportData = $reportCounts->get($date);
+                $jobData = $jobCounts->get($date);
+                $loginData = $userLogins->get($date);
+                
+                $activityData[] = [
+                    'date' => $dateObj->format('M j'), // e.g., "Dec 16"
+                    'syncs' => $syncData ? $syncData->total : 0,
+                    'failed_syncs' => $syncData ? $syncData->failed : 0,
+                    'rate_limits' => $syncData ? (int) $syncData->rate_limits : 0,
+                    'reports' => $reportData ? $reportData->total : 0,
+                    'failed_reports' => $reportData ? $reportData->failed : 0,
+                    'jobs' => $jobData ? $jobData->count : 0,
+                    'logins' => $loginData ? $loginData->count : 0,
+                ];
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'period_days' => $days,
+                    'activity_data' => $activityData,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Activity Trends Error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch activity trends: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Get sync counts per day
-        $syncCounts = SyncLog::where('company_id', $authUser->company_id)
-            ->whereBetween('started_at', [$startDate, $endDate])
-            ->select(
-                DB::raw("DATE(started_at) as date"),
-                DB::raw('COUNT(*) as count')
-            )
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
-            ->get()
-            ->keyBy('date');
-
-        // Get report counts per day
-        $reportCounts = GeneratedReport::where('company_id', $authUser->company_id)
-            ->whereBetween('generated_at', [$startDate, $endDate])
-            ->select(
-                DB::raw("DATE(generated_at) as date"),
-                DB::raw('COUNT(*) as count')
-            )
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
-            ->get()
-            ->keyBy('date');
-
-        // Get job counts per day (from jobs table - completed jobs)
-        // Note: This tracks jobs that were processed, not currently pending
-        $jobCounts = DB::table('jobs')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->select(
-                DB::raw("DATE(created_at) as date"),
-                DB::raw('COUNT(*) as count')
-            )
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
-            ->get()
-            ->keyBy('date');
-
-        // Build activity data array with all dates (fill gaps with 0)
-        $activityData = [];
-        foreach ($dateRange as $date) {
-            $dateObj = Carbon::parse($date);
-            
-            $activityData[] = [
-                'date' => $dateObj->format('M j'), // e.g., "Dec 16"
-                'syncs' => $syncCounts->get($date)->count ?? 0,
-                'reports' => $reportCounts->get($date)->count ?? 0,
-                'jobs' => $jobCounts->get($date)->count ?? 0,
-            ];
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'period_days' => $days,
-                'activity_data' => $activityData,
-            ]
-        ]);
     }
 
     // Private helper methods
@@ -458,10 +508,20 @@ final class HealthCheckController extends Controller
         $activeIntegrations = $integrations->where('status', 'active')->count();
         $errorIntegrations = $integrations->where('status', 'error')->count();
 
+        // Get metrics for the last 24 hours across all integrations
+        $recentLogs = SyncLog::whereIn('integration_id', $integrations->pluck('integration_id'))
+            ->where('started_at', '>=', now()->subHours(24))
+            ->get();
+
+        $rateLimitHits = $recentLogs->sum('rate_limit_hits');
+        $failedSyncs = $recentLogs->where('status', 'failed')->count();
+
         return [
             'total' => $totalIntegrations,
             'active' => $activeIntegrations,
             'error' => $errorIntegrations,
+            'failed_syncs' => $failedSyncs,
+            'rate_limit_hits' => (int) $rateLimitHits,
             'health' => $errorIntegrations === 0 ? 'healthy' : ($errorIntegrations === $totalIntegrations ? 'critical' : 'warning'),
         ];
     }
