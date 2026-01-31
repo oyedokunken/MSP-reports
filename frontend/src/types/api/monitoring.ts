@@ -33,6 +33,8 @@ export interface SystemStatus {
         total: number
         active: number
         error: number
+        failed_syncs: number
+        rate_limit_hits: number
         health: string
     }
     reports: {
@@ -51,6 +53,14 @@ export interface SystemStatus {
         pending_jobs?: number
         failed_jobs: number
         health: string
+    }
+    users: {
+        total: number
+        active: number
+    }
+    templates: {
+        total: number
+        customized: number
     }
 }
 
@@ -109,8 +119,12 @@ export interface QueueMetrics {
 export interface ActivityTrendData {
     date: string
     syncs: number
+    failed_syncs: number
     reports: number
+    failed_reports: number
     jobs: number
+    rate_limits: number
+    logins: number
 }
 
 export interface ActivityTrends {
