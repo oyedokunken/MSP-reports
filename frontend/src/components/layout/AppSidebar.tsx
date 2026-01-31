@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from "@/lib/utils";
 import {
-  Home,
+  LayoutDashboard,
   Cable,
   Users,
   FileText,
@@ -79,7 +79,7 @@ export default function AppSidebar() {
   }, [customersExpanded])
 
   const navItems = [
-    { path: '/platform/dashboard', icon: Home, label: 'Dashboard', show: true, tourId: 'nav-dashboard' },
+    { path: '/platform/dashboard', icon: LayoutDashboard, label: 'Dashboard', show: true, tourId: 'nav-dashboard' },
     { path: '/platform/integrations', icon: Cable, label: 'Integrations', show: hasPermission(user, 'integrations', 'view'), tourId: 'nav-integrations' },
     { path: '/platform/customers', icon: Users, label: 'Customers', show: hasPermission(user, 'customers', 'view'), tourId: 'nav-customers', isCustomers: true },
     { path: '/platform/reports', icon: FileText, label: 'Reports', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-reports' },

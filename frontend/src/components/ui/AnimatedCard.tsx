@@ -20,7 +20,7 @@ export function AnimatedCard({
     ...props
 }: AnimatedCardProps) {
     const baseClasses =
-        "rounded-lg border border-border bg-card dark:bg-[hsl(var(--auth-card))] text-card-foreground shadow-sm transition-all duration-300";
+        "rounded-lg border border-border/50 bg-card dark:bg-[hsl(var(--auth-card))] text-card-foreground shadow-sm transition-all duration-300";
 
     const interactionClasses = onClick ? "cursor-pointer" : "";
 
