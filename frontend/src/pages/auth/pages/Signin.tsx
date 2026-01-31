@@ -38,9 +38,9 @@ const Signin = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const ldapConfigured = authConfig?.ldap.enabled ?? false;
-  const oauthConfigured = authConfig?.oauth.enabled ?? false;
-  const samlConfigured = authConfig?.saml.enabled ?? false;
+  const ldapConfigured = authConfig?.ldap?.enabled ?? false;
+  const oauthConfigured = authConfig?.oauth?.enabled ?? false;
+  const samlConfigured = authConfig?.saml?.enabled ?? false;
   const hasEnterpriseAuth = ldapConfigured || oauthConfigured || samlConfigured;
 
   const handleLdapLogin = async (username: string, password: string) => {

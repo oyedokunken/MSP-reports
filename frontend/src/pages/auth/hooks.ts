@@ -26,8 +26,8 @@ export function useAuthConfig() {
     useEffect(() => {
         const fetchConfig = async () => {
             try {
-                const response = await api.get<AuthConfig>('/auth/config');
-                setConfig(response);
+                const response = await api.get<{ status: string; data: AuthConfig }>('/auth/config');
+                setConfig(response.data);
             } catch (error) {
                 logger.error('Failed to fetch auth config:', error);
                 setConfig({
