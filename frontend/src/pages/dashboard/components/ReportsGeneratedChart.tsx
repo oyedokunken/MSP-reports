@@ -157,18 +157,27 @@ export function ReportsGeneratedChart({ isLoading, data }: ReportsGeneratedChart
 
   if (isLoading) {
     return (
-      <Card className="h-full border-border/50">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <Skeleton className="h-6 w-48 mb-2" />
-              <Skeleton className="h-4 w-64" />
+      <Card className="h-full border-border/50 flex flex-col">
+        <CardHeader className="pb-3 sm:pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5 rounded" />
+                <Skeleton className="h-5 w-48 sm:w-64" />
+              </div>
+              <Skeleton className="h-3 w-40 sm:w-56 mt-2" />
             </div>
-            <Skeleton className="h-10 w-10 rounded-lg" />
+            <div className="sm:text-right">
+              <Skeleton className="h-8 w-12 sm:ml-auto" />
+              <div className="flex items-center gap-1 mt-1 sm:justify-end">
+                <Skeleton className="h-3 w-3 rounded-full" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <Skeleton className="h-[400px] w-full" />
+        <CardContent className="flex-1 flex items-center justify-center px-6">
+          <Skeleton className="h-full w-full min-h-[150px]" />
         </CardContent>
       </Card>
     )
@@ -211,7 +220,7 @@ export function ReportsGeneratedChart({ isLoading, data }: ReportsGeneratedChart
             </p>
           </div>
         ) : (
-          <div ref={chartRef} className="w-full h-full min-h-[250px] sm:min-h-[400px]" />
+          <div ref={chartRef} className="w-full h-full min-h-[150px] sm:min-h-[180px]" />
         )}
       </CardContent>
     </Card>

@@ -64,7 +64,7 @@ export function QuickActionsCard({ onInfo }: QuickActionsCardProps) {
                         <button
                             key={action.label}
                             onClick={() => handleAction(action)}
-                            className="rounded-lg border border-border bg-background p-4 text-left hover:bg-muted transition-colors"
+                            className="rounded-lg border border-border/50 bg-background p-4 text-left hover:bg-muted transition-colors"
                         >
                             <div className={`inline-flex rounded-lg p-2 ${action.color} mb-3`}>
                                 <Icon className="h-5 w-5" />

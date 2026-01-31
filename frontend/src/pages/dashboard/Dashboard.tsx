@@ -1,75 +1,68 @@
 import FloatingLayout from "@/components/layout/FloatingLayout";
-import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// import { RefreshCw } from "lucide-react";
+// import { Button } from "@/components/ui/button";
 import {
     getIntegrationStatusBadge,
     getIntegrationStatusIcon,
     getIntegrationStatusText,
 } from "./utils";
 import { useDashboard } from "./hooks";
-import { DashboardHeaderActions } from "./components/DashboardHeaderActions";
+// import { DashboardHeaderActions } from "./components/DashboardHeaderActions";
 import { ReportsGeneratedChart } from "./components/ReportsGeneratedChart";
+import { HealthRateLimitChart } from "./components/HealthRateLimitChart";
 import { IntegrationsSummary } from "./components/IntegrationsSummary";
+import { SchedulesSummaryCard } from "./components/SchedulesSummaryCard";
 import { StatsGrid } from "./components/StatsGrid";
 
 export default function Dashboard() {
     const {
-        user,
+        // user,
         isLoading,
-        isRefreshing,
+        // isRefreshing,
         dashboardIntegrations,
         reportsChartData,
+        activityTrends,
         stats,
-        handleRefresh,
+        systemStatus,
+        allSchedules,
+        // handleRefresh,
     } = useDashboard();
 
     return (
         <FloatingLayout>
-            <div className="h-full flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-foreground">
-                            {user?.name ? `Welcome back, ${user.name.split(' ')[0]}` : 'Dashboard'}
-                        </h1>
-                        <p className="mt-2 text-muted-foreground">
-                            Overview of your environment, reports and integrations
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleRefresh}
-                            disabled={isRefreshing || isLoading}
-                            className="gap-2"
-                        >
-                            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                            Refresh
-                        </Button>
-                        <DashboardHeaderActions />
-                    </div>
-                </div>
-
+            <div className="flex flex-col gap-6 pb-8 font-athletics">
                 <StatsGrid isLoading={isLoading} stats={stats} />
 
-                <div className="grid gap-4 lg:grid-cols-2 flex-1 min-h-0">
-                    <div className="flex flex-col gap-4 min-h-0">
-                        <div className="h-[580px]">
-                            <IntegrationsSummary
-                                isLoading={isLoading}
-                                integrations={dashboardIntegrations}
-                                getStatusBadge={getIntegrationStatusBadge}
-                                getStatusText={getIntegrationStatusText}
-                                getStatusIcon={getIntegrationStatusIcon}
-                            />
-                        </div>
+                <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="flex flex-col gap-6 h-full">
+                        <SchedulesSummaryCard
+                            isLoading={isLoading}
+                            totalSchedules={allSchedules.length}
+                            activeSchedules={allSchedules.filter((s: any) => s.active).length}
+                            className="h-[134px]"
+                        />
+                        <IntegrationsSummary
+                            isLoading={isLoading}
+                            integrations={dashboardIntegrations}
+                            getStatusBadge={getIntegrationStatusBadge}
+                            getStatusText={getIntegrationStatusText}
+                            getStatusIcon={getIntegrationStatusIcon}
+                            className="h-[626px]"
+                        />
                     </div>
 
-                    <div className="flex flex-col gap-4 min-h-0">
-                        <div className="h-[580px]">
+                    <div className="flex flex-col gap-6">
+                        <div className="h-[380px]">
                             <ReportsGeneratedChart
                                 isLoading={isLoading}
                                 data={reportsChartData}
+                            />
+                        </div>
+                        <div className="h-[380px]">
+                            <HealthRateLimitChart
+                                isLoading={isLoading}
+                                data={activityTrends}
+                                systemStatus={systemStatus}
                             />
                         </div>
                     </div>

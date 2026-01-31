@@ -67,7 +67,7 @@ export function RecentActivityCard({ isLoading, items, onInfo }: RecentActivityC
                         <button
                             key={action.label}
                             onClick={() => handleAction(action)}
-                            className="rounded-lg border border-border bg-background p-3 text-left hover:bg-muted transition-colors"
+                            className="rounded-lg border border-border/50 bg-background p-3 text-left hover:bg-muted transition-colors"
                         >
                             <div className={`inline-flex rounded-lg p-2 ${action.color} mb-2`}>
                                 <Icon className="h-4 w-4" />
@@ -80,7 +80,7 @@ export function RecentActivityCard({ isLoading, items, onInfo }: RecentActivityC
                 })}
             </div>
 
-            <div className="border-t border-border mb-4 flex-shrink-0"></div>
+            <div className="border-t border-border/50 mb-4 flex-shrink-0"></div>
 
             <div className="flex items-center justify-between mb-4 flex-shrink-0">
                 <h2 className="text-lg font-semibold text-foreground">
@@ -104,7 +104,7 @@ export function RecentActivityCard({ isLoading, items, onInfo }: RecentActivityC
                         description="Once you start syncing data and generating reports, activity will show up here."
                     />
                 ) : (
-                    <div className="divide-y divide-border">
+                    <div className="divide-y divide-border/50">
                         {items.map((item) => (
                             <div
                                 key={item.id}

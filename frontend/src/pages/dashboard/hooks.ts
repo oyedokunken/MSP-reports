@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { logger } from '@/lib/logger'
 import { useToast } from "@/components/ui/Toast";
-import { FileText, Cable, Users, Activity } from "lucide-react";
+import { Users, UserMinus, LayoutTemplate, ShieldCheck } from "lucide-react";
 import { hasPermission } from "@/utils/permissions";
 import { useCustomersStore } from "@/stores/useCustomersStore";
 import { useMonitoringStore } from "@/stores/useMonitoringStore";
@@ -11,6 +11,7 @@ import { monitoringApi } from "@/services/api/monitoring";
 import { useNotificationStore } from "@/stores/useNotificationStore";
 import { useIntegrationsQuery } from "../integrations/hooks/useIntegrations";
 import type { Integration, UpcomingReport, RecentActivity, Stat } from "./types";
+import type { ActivityTrendData } from "@/types/api/monitoring";
 
 export const useQuickSync = (
     onSuccess: (title: string, description?: string) => void,
@@ -65,9 +66,11 @@ export const useDashboard = () => {
     const totalCustomers = useCustomersStore((state) => state.totalCustomersCount);
     const systemStatus = useMonitoringStore((state) => state.systemStatus);
     const reportMetrics = useMonitoringStore((state) => state.reportMetrics);
-    const schedules = useSchedulesStore((state) => state.schedules);
+    const allSchedules = useSchedulesStore((state) => state.allSchedules);
 
     const fetchCustomers = useCustomersStore((state) => state.fetchTotalCustomersCount);
+    const unmappedCount = useCustomersStore((state) => state.unmappedCount);
+    const fetchUnmappedCustomers = useCustomersStore((state) => state.fetchUnmappedCustomers);
     const fetchSystemStatus = useMonitoringStore((state) => state.fetchSystemStatus);
     const fetchReportMetrics = useMonitoringStore((state) => state.fetchReportMetrics);
     const fetchSchedules = useSchedulesStore((state) => state.fetchSchedules);
@@ -127,6 +130,7 @@ export const useDashboard = () => {
 
         // Always fetch customers if authenticated (base permission)
         promises.push(fetchCustomers());
+        promises.push(fetchUnmappedCustomers());
 
         if (canViewIntegrations) {
             promises.push(refetchIntegrations());
@@ -183,10 +187,10 @@ export const useDashboard = () => {
             return 0;
         });
 
-    const upcomingReports: UpcomingReport[] = schedules
-        .filter((s) => s.active)
+    const upcomingReports: UpcomingReport[] = allSchedules
+        .filter((s: any) => s.active)
         .slice(0, 5)
-        .map((schedule) => ({
+        .map((schedule: any) => ({
             id: schedule.report_schedule_id,
             name: schedule.report_type,
             customer: schedule.customer_name || "Unknown Customer",
@@ -196,13 +200,8 @@ export const useDashboard = () => {
             status: "scheduled" as const,
         }));
 
-    const activeIntegrations = integrations.filter((i) => i.status === "active").length;
-    const errorIntegrations = integrations.filter((i) => i.status === "error").length;
-    const totalReports = reportMetrics?.metrics.total_reports || 0;
-    const successRate = reportMetrics?.metrics.success_rate || 0;
-    const queueHealth = systemStatus?.queue.health || "unknown";
-
     const [reportsChartData, setReportsChartData] = useState<Array<{ date: string; count: number }>>([])
+    const [activityTrends, setActivityTrends] = useState<ActivityTrendData[]>([])
 
     useEffect(() => {
         const fetchMonthlyReports = async () => {
@@ -217,12 +216,25 @@ export const useDashboard = () => {
             }
         }
 
+        const fetchActivityTrends = async () => {
+            if (!isAuthenticated || !canViewMonitoring) return
+
+            try {
+                const response = await monitoringApi.getActivityTrends(7)
+                setActivityTrends(response.data.activity_data)
+            } catch (error) {
+                logger.apiError('/monitoring/activity-trends', error, { days: 7 });
+                setActivityTrends([])
+            }
+        }
+
         fetchMonthlyReports()
+        fetchActivityTrends()
     }, [isAuthenticated, canViewMonitoring, reportMetrics])
 
     const stats: Stat[] = [
         {
-            label: "Customers",
+            label: "Mapped Customers",
             value: totalCustomers.toString(),
             icon: Users,
             trend: {
@@ -231,34 +243,30 @@ export const useDashboard = () => {
             },
         },
         {
-            label: "Integrations",
-            value: activeIntegrations.toString(),
-            icon: Cable,
+            label: "Unmapped Customers",
+            value: unmappedCount.toString(),
+            icon: UserMinus,
             trend: {
-                value: errorIntegrations > 0
-                    ? `${errorIntegrations} error${errorIntegrations > 1 ? "s" : ""}`
-                    : "All healthy",
-                isPositive: errorIntegrations === 0,
+                value: unmappedCount > 0 ? `${unmappedCount} pending` : "All mapped",
+                isPositive: unmappedCount === 0,
             },
         },
         {
-            label: `Reports (${reportMetrics?.period_days || 7}d)`,
-            value: totalReports.toString(),
-            icon: FileText,
+            label: "Customized Templates",
+            value: (systemStatus?.templates.customized || 0).toString(),
+            icon: LayoutTemplate,
             trend: {
-                value: `${successRate.toFixed(1)}% success`,
-                isPositive: successRate >= 95,
+                value: `${systemStatus?.templates.total || 0} total templates`,
+                isPositive: true,
             },
         },
         {
-            label: "System Health",
-            value: queueHealth === "healthy" ? "Healthy" : "Issues",
-            icon: Activity,
+            label: "System Users",
+            value: (systemStatus?.users.total || 0).toString(),
+            icon: ShieldCheck,
             trend: {
-                value: systemStatus?.queue.pending_jobs
-                    ? `${systemStatus.queue.pending_jobs} pending`
-                    : "No jobs",
-                isPositive: (systemStatus?.queue.pending_jobs || 0) < 10,
+                value: `${systemStatus?.users.active || 0} active users`,
+                isPositive: true,
             },
         },
     ];
@@ -271,7 +279,10 @@ export const useDashboard = () => {
         dashboardIntegrations,
         upcomingReports,
         reportsChartData,
+        activityTrends,
         stats,
+        systemStatus,
+        allSchedules,
         handleRefresh,
         toast,
     };
