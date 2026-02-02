@@ -30,13 +30,11 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
   const [formData, setFormData] = useState<{
     integration_type: string
     display_name: string
-    status: string
     credentials: Record<string, unknown>
     configuration: Record<string, unknown>
   }>({
     integration_type: '',
     display_name: '',
-    status: 'disconnected', // Start as disconnected until credentials are verified
     credentials: {},
     configuration: {},
   })
@@ -67,7 +65,10 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
     setIsSubmitting(true)
 
     try {
-      const response = await api.post<{ data: Integration }>('/integrations', formData)
+      const response = await api.post<{ data: Integration }>('/integrations', {
+        ...formData,
+        status: 'active', // Always create as active
+      })
 
       if (response.data) {
 
@@ -78,7 +79,6 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
           setFormData({
             integration_type: '',
             display_name: '',
-            status: 'disconnected',
             credentials: {},
             configuration: {},
           })
@@ -113,7 +113,6 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
       setFormData({
         integration_type: '',
         display_name: '',
-        status: 'disconnected',
         credentials: {},
         configuration: {},
       })
@@ -178,24 +177,7 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status *</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value: string) => handleInputChange('status', value)}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger id="status">
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="disconnected">Disconnected</SelectItem>
-                <SelectItem value="error">Error</SelectItem>
-                <SelectItem value="importing_historical">Importing Historical</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
 
           {loadingConfig && (
             <div className="flex items-center justify-center py-4">

@@ -107,11 +107,14 @@ final class IntegrationController extends Controller
         $validated = $request->validate([
             'integration_type' => ['required', 'string', Rule::in($availableTypes)],
             'display_name' => 'required|string|min:2|max:255|regex:/^[A-Za-z0-9\s\-\_\.]+$/',
-            'status' => ['required', 'string', Rule::in(['active', 'disconnected', 'error', 'importing_historical'])],
+            'status' => ['sometimes', 'string', Rule::in(['active', 'disconnected', 'error', 'importing_historical'])],
             'credentials' => 'nullable|array',
             'configuration' => 'nullable|array',
             'is_source_of_truth' => 'nullable|boolean',
         ]);
+
+        // Default status to active if not provided
+        $validated['status'] = $validated['status'] ?? 'active';
 
         try {
             // Use the Lifecycle service to Onboard (Kick-starts automation)
