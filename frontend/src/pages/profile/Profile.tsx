@@ -105,10 +105,10 @@ export default function Profile() {
                         <h1 className="text-3xl font-bold tracking-tight text-foreground">My Profile</h1>
                         <p className="text-muted-foreground mt-1">Manage your account settings and preferences.</p>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 w-fit">
+                    {/* <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 w-fit">
                         <Shield className="w-4 h-4" />
                         <span className="text-sm font-medium">{role}</span>
-                    </div>
+                    </div> */}
                 </div>
 
                 <div className="bg-card border rounded-xl shadow-sm p-6 md:p-10">

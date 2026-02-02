@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, ChevronDown, Bell, LogOut, Calendar, Shield, User } from "lucide-react";
+import { Settings, Bell, LogOut, Calendar, Shield, User } from "lucide-react";
 import { logger } from '@/lib/logger'
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
@@ -243,9 +243,9 @@ export default function FloatingNav() {
                 <div className="relative" ref={userMenuRef}>
                     <button
                         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                        className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+                        className="flex items-center gap-3 rounded-xl px-2 py-1.5 text-sm font-medium transition-all bg-muted/40 hover:bg-muted/80 border border-border/50 shadow-sm"
                     >
-                        <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground overflow-hidden">
+                        <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800">
                             {user?.profile_picture_url ? (
                                 <img 
                                     src={user.profile_picture_url} 
@@ -253,18 +253,22 @@ export default function FloatingNav() {
                                     className="h-full w-full object-cover"
                                 />
                             ) : (
-                                <span>{user?.name?.charAt(0).toUpperCase() || "U"}</span>
+                                <span className="text-sm font-bold">{user?.name?.charAt(0).toUpperCase() || "U"}</span>
                             )}
                         </div>
-                        <span className="hidden sm:inline-block text-foreground">
-                            {user?.name || "User"}
-                        </span>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        <div className="hidden sm:flex flex-col items-start text-left mr-1">
+                            <span className="text-sm font-semibold text-foreground leading-tight">
+                                {user?.name || "User"}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground leading-tight font-normal">
+                                {user?.email || "user@example.com"}
+                            </span>
+                        </div>
                     </button>
 
                     {isUserMenuOpen && (
-                        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-gray-200 dark:border-gray-800 bg-background dark:bg-[hsl(var(--auth-card))] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 z-50">
-                            <div className="p-4 border-b border-border">
+                        <div className="absolute right-0 top-full mt-2 w-full min-w-[160px] rounded-xl border border-gray-200 dark:border-gray-800 bg-background dark:bg-[hsl(var(--auth-card))] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+                            {/* <div className="p-4 border-b border-border">
                                 <Link 
                                     to="/platform/profile"
                                     className="block group"
@@ -277,7 +281,7 @@ export default function FloatingNav() {
                                         {user?.email || "user@example.com"}
                                     </p>
                                 </Link>
-                            </div>
+                            </div> */}
                             <div className="p-2">
                                 <Link
                                     to="/platform/profile"
@@ -294,7 +298,7 @@ export default function FloatingNav() {
                                         onClick={() => setIsUserMenuOpen(false)}
                                     >
                                         <Settings className="h-4 w-4" />
-                                        <span>Company Settings</span>
+                                        <span>Settings</span>
                                     </Link>
                                 )}
                                 {hasPermission(user, 'security', 'configure') && (
@@ -312,7 +316,7 @@ export default function FloatingNav() {
                                         setShowLogoutConfirm(true);
                                         setIsUserMenuOpen(false);
                                     }}
-                                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-600 dark:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-950/20"
+                                    className="flex w-full items-center border-t gap-3 rounded-lg px-3 py-2 text-sm text-red-600 dark:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-950/20"
                                 >
                                     <LogOut className="h-4 w-4" />
                                     <span>Logout</span>
