@@ -6,18 +6,18 @@ const DISPLAY_TIMEZONE = 'Australia/Darwin'
 const ApiIntegrationSchema = z.object({
   integration_id: z.number(),
   display_name: z.string(),
-  integration_type: z.string().optional(),
+  integration_type: z.string().nullable().optional(),
   status: z.string(),
-  last_sync_at: z.string().optional(),
-  last_sync_status: z.string().optional(),
-  unmapped_customers_count: z.number().optional(),
-  total_customers_count: z.number().optional(),
-  is_source_of_truth: z.boolean().optional(),
+  last_sync_at: z.string().nullable().optional(),
+  last_sync_status: z.string().nullable().optional(),
+  unmapped_customers_count: z.number().nullable().optional(),
+  total_customers_count: z.number().nullable().optional(),
+  is_source_of_truth: z.boolean().nullable().optional(),
   next_sync_at: z.string().nullable().optional(),
-  records_synced: z.number().optional(),
+  records_synced: z.number().nullable().optional(),
   last_error: z.string().nullable().optional(),
   historical_import_status: z.string().nullable().optional(),
-  historical_import_progress: z.number().optional(),
+  historical_import_progress: z.number().nullable().optional(),
 })
 
 const IntegrationsResponseSchema = z.object({
