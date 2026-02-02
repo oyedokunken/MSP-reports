@@ -17,7 +17,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
  * - At least one number
  * - At least one special character
  */
-class StrongPassword implements ValidationRule
+final class StrongPassword implements ValidationRule
 {
     protected int $minLength;
     protected bool $requireUppercase;

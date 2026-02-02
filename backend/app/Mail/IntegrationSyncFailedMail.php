@@ -11,7 +11,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class IntegrationSyncFailedMail extends Mailable
+final class IntegrationSyncFailedMail extends Mailable
 {
     use Queueable, SerializesModels;
 

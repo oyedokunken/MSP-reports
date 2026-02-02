@@ -7,7 +7,7 @@ namespace App\Events;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class AuditEvent
+final class AuditEvent
 {
     use Dispatchable, SerializesModels;
 

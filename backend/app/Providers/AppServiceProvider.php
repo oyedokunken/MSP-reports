@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Event;
 use App\Http\Middleware\SecureHeaders;
 
-class AppServiceProvider extends ServiceProvider
+final class AppServiceProvider extends ServiceProvider
 {
 
     public function register(): void

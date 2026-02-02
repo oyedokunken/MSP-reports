@@ -7,7 +7,7 @@ namespace App\Providers;
 use App\Services\ReportRegistry;
 use Illuminate\Support\ServiceProvider;
 
-class ReportServiceProvider extends ServiceProvider
+final class ReportServiceProvider extends ServiceProvider
 {
     /**
      * Register services.

@@ -12,7 +12,7 @@ use Illuminate\Queue\SerializesModels;
 use App\Models\User;
 use App\Models\Company; // Added Company import
 
-class PasswordResetMail extends Mailable
+final class PasswordResetMail extends Mailable
 {
     use Queueable, SerializesModels;
 

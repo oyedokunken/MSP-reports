@@ -7,7 +7,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use App\Services\Delivery\DeliveryManager;
 
-class DeliveryServiceProvider extends ServiceProvider
+final class DeliveryServiceProvider extends ServiceProvider
 {
     public function register(): void
     {

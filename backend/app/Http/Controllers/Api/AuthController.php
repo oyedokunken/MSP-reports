@@ -8,19 +8,15 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\AuditLog;
-use App\Models\PasswordResetToken;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use App\Http\Requests\LoginRequest;
-use App\Mail\PasswordResetMail;
 use App\Rules\StrongPassword;
 use App\Services\OAuthAuthenticationService;
 use App\Services\SamlAuthenticationService;
 use App\Services\AuthService;
+use App\Actions\Auth\RequestPasswordResetAction;
+use App\Actions\Auth\ResetPasswordAction;
+use App\Actions\Auth\ChangePasswordAction;
 
 final class AuthController extends Controller
 {
@@ -80,68 +76,23 @@ final class AuthController extends Controller
         ]);
     }
 
-    public function requestPasswordReset(Request $request): \Illuminate\Http\JsonResponse
+    public function requestPasswordReset(Request $request, RequestPasswordResetAction $action): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'email' => 'required|email',
         ]);
 
-        $email = trim(strtolower($validated['email']));
-        
-        $user = User::where('email', $email)
-                    ->where('auth_method', 'local')
-                    ->first();
-        
-        if (!$user) {
-            return response()->json([
-                'status' => 'success',
-                'message' => 'If an account exists with this email, a password reset link has been sent.',
-            ]);
-        }
-        
-        PasswordResetToken::where('email', $email)->delete();
-        
-        $token = Str::random(64);
-        $hashedToken = hash('sha256', $token);
-        
-        PasswordResetToken::create([
-            'email' => $email,
-            'token' => $hashedToken,
-            'created_at' => now(),
-            'expires_at' => now()->addHour(),
-        ]);
-
-        try {
-            Mail::to($user->email)->send(new PasswordResetMail($user, $token));
-        } catch (\Exception $e) {
-            \Log::error('Password reset email failed', [
-                'email' => $user->email,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        AuditLog::create([
-            'company_id' => $user->company_id,
-            'event_type' => 'password_reset_requested',
-            'actor_type' => 'User',
-            'actor_id' => $user->user_id,
-            'event_data' => json_encode([
-                'email' => $user->email,
-                'timestamp' => now()->toDateTimeString(),
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
+        /** @var array{email: string} $validated */
+        $result = $action->execute($validated, $request->ip(), $request->userAgent());
 
         return response()->json([
             'status' => 'success',
-            'message' => 'If an account exists with this email, a password reset link has been sent.',
-            
-            'debug_token' => config('app.debug') ? $token : null,
+            'message' => $result['message'],
+            'debug_token' => $result['debug_token'] ?? null,
         ]);
     }
 
-    public function resetPassword(Request $request): \Illuminate\Http\JsonResponse
+    public function resetPassword(Request $request, ResetPasswordAction $action): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'email' => 'required|email',
@@ -149,49 +100,8 @@ final class AuthController extends Controller
             'password' => ['required', 'string', 'confirmed', new StrongPassword()],
         ]);
 
-        $email = trim(strtolower($validated['email']));
-        $hashedToken = hash('sha256', $validated['token']);
-
-        $resetToken = PasswordResetToken::where('email', $email)
-                                        ->where('token', $hashedToken)
-                                        ->valid()
-                                        ->first();
-
-        if (!$resetToken) {
-            throw ValidationException::withMessages([
-                'token' => ['Invalid or expired password reset token.'],
-            ]);
-        }
-
-        $user = User::where('email', $email)
-                    ->where('auth_method', 'local')
-                    ->first();
-
-        if (!$user) {
-            throw ValidationException::withMessages([
-                'email' => ['User not found.'],
-            ]);
-        }
-        
-        $user->password = Hash::make($validated['password']);
-        $user->save();
-        
-        $resetToken->delete();
-
-        $user->tokens()->delete();
-        
-        AuditLog::create([
-            'company_id' => $user->company_id,
-            'event_type' => 'password_reset_completed',
-            'actor_type' => 'User',
-            'actor_id' => $user->user_id,
-            'event_data' => json_encode([
-                'email' => $user->email,
-                'timestamp' => now()->toDateTimeString(),
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),  
-        ]);
+        /** @var array{email: string, token: string, password: string} $validated */
+        $action->execute($validated, $request->ip(), $request->userAgent());
 
         return response()->json([
             'status' => 'success',
@@ -199,42 +109,15 @@ final class AuthController extends Controller
         ]);
     }
 
-    public function changePassword(Request $request): \Illuminate\Http\JsonResponse
+    public function changePassword(Request $request, ChangePasswordAction $action): \Illuminate\Http\JsonResponse
     {
-        $user = $request->user();
-        
-        if ($user->auth_method !== 'local') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Password changes are not available for ' . $user->auth_method . ' authentication.',
-            ], 400);
-        }
-
         $validated = $request->validate([
             'current_password' => 'required|string',
             'new_password' => ['required', 'string', 'confirmed', new StrongPassword()],
         ]);
-        
-        if (!Hash::check($validated['current_password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'current_password' => ['Current password is incorrect.'],
-            ]);
-        }
-        
-        $user->password = Hash::make($validated['new_password']);
-        $user->save();
-        
-        AuditLog::create([
-            'company_id' => $user->company_id,
-            'event_type' => 'password_changed',
-            'actor_type' => 'User',
-            'actor_id' => $user->user_id,
-            'event_data' => json_encode([
-                'timestamp' => now()->toDateTimeString(),
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
+
+        /** @var array{current_password: string, new_password: string} $validated */
+        $action->execute($request->user(), $validated, $request->ip(), $request->userAgent());
 
         return response()->json([
             'status' => 'success',

@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
-class ReportDelivered extends Notification implements ShouldBroadcastNow
+final class ReportDelivered extends Notification implements ShouldBroadcastNow
 {
     use Queueable;
 

@@ -16,7 +16,7 @@ use App\Services\ReportNamingService;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
-class ReportDeliveryMail extends Mailable
+final class ReportDeliveryMail extends Mailable
 {
     use Queueable, SerializesModels;
 
