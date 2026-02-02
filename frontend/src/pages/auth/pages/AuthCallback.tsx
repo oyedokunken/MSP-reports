@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { logger } from '@/lib/logger'
 import { Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -53,7 +52,7 @@ export default function AuthCallback() {
 
             } catch (err: unknown) {
                 const error = err as { response?: { data?: { message?: string } }; message?: string }
-                logger.error('Auth callback error:', err);
+                console.error('Auth callback error:', err);
                 setError(error.response?.data?.message || 'Failed to complete authentication');
                 localStorage.removeItem('auth_token');
                 setTimeout(() => navigate('/sign-in?error=auth_failed'), 2000);
@@ -65,17 +64,31 @@ export default function AuthCallback() {
 
     if (error) {
         return (
-            <div className="flex min-h-screen items-center justify-center flex-col gap-4">
-                <p className="text-red-500">Authentication Error: {error}</p>
-                <p className="text-gray-500">Redirecting...</p>
+            <div className="min-h-screen flex items-center justify-center relative bg-blue-950 overflow-hidden">
+                {/* Background Decoration */}
+                <div className="absolute inset-0 z-0 pointer-events-none">
+                    <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
+                </div>
+                <div className="relative z-10 flex flex-col items-center gap-4 text-center">
+                    <p className="text-red-400 font-medium text-lg">Authentication Error: {error}</p>
+                    <p className="text-blue-200">Redirecting...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center flex-col gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-gray-600">{status}</p>
+        <div className="min-h-screen flex items-center justify-center relative bg-blue-950 overflow-hidden">
+            {/* Background Decoration */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
+            </div>
+            <div className="relative z-10 flex flex-col items-center gap-4 text-center">
+                <Loader2 className="h-10 w-10 animate-spin text-blue-400" />
+                <p className="text-blue-100 font-medium">{status}</p>
+            </div>
         </div>
     );
 }

@@ -1,10 +1,10 @@
 export function MobileLogo() {
   return (
-    <div className="lg:hidden text-center mb-8">
+    <div className="text-center mb-8">
       <img
         src="/logo.png"
         alt="MSP Logo"
-        className="h-12 w-auto mx-auto"
+        className="h-12 w-auto mx-auto brightness-0 invert"
       />
     </div>
   );

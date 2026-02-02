@@ -1,14 +1,21 @@
-import { BrandingPanel, MobileLogo, ContactInfo } from "../components";
+import { MobileLogo, ContactInfo } from "../components";
 
 const ContactAdmin = () => {
   return (
-    <div className="min-h-screen flex">
-      <BrandingPanel />
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-12 bg-gray-50">
-        <div className="max-w-md w-full">
-          <MobileLogo />
-          <ContactInfo />
-        </div>
+    <div className="min-h-screen flex items-center justify-center relative bg-blue-950 overflow-hidden">
+      {/* Background Decoration */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="absolute top-8 left-8 z-20">
+        <MobileLogo />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md px-4 py-12">
+        {/* Form Container */}
+        <ContactInfo />
       </div>
     </div>
   );

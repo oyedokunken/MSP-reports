@@ -98,7 +98,7 @@ export function SigninForm({
   return (
     <form className="space-y-6" onSubmit={handleFormSubmit} noValidate>
       <div>
-        <label htmlFor="email" className="block text-sm text-left font-medium text-gray-700 mb-2 font-athletics">
+        <label htmlFor="email" className="block text-sm text-left font-medium text-gray-900 mb-2">
           Email address
         </label>
         <input
@@ -112,11 +112,11 @@ export function SigninForm({
           disabled={isSubmitting}
           aria-invalid={!!emailError}
           aria-describedby={emailError ? "email-error" : undefined}
-          className={`appearance-none relative block w-full px-4 py-3 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out ${emailError && touched.email
+          className={`appearance-none relative block w-full px-4 py-3 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out ${emailError && touched.email
               ? 'border-red-500 focus:ring-red-500'
               : 'border-gray-300'
             }`}
-          placeholder="admin@example.com"
+          placeholder="youremail@example.com"
         />
         {emailError && touched.email && (
           <p id="email-error" className="mt-1 text-sm text-red-600">{emailError}</p>
@@ -124,7 +124,7 @@ export function SigninForm({
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm text-left font-medium text-gray-700 mb-2 font-athletics">
+        <label htmlFor="password" className="block text-sm text-left font-medium text-gray-900 mb-2">
           Password
         </label>
         <div className="relative">
@@ -139,7 +139,7 @@ export function SigninForm({
             disabled={isSubmitting}
             aria-invalid={!!passwordError}
             aria-describedby={passwordError ? "password-error" : undefined}
-            className={`appearance-none relative block w-full px-4 py-3 pr-12 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-150 ease-in-out ${passwordError && touched.password
+            className={`appearance-none relative block w-full px-4 py-3 pr-12 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out ${passwordError && touched.password
                 ? 'border-red-500 focus:ring-red-500'
                 : 'border-gray-300'
               }`}
@@ -171,15 +171,15 @@ export function SigninForm({
             type="checkbox"
             checked={rememberMe}
             onChange={(e) => onRememberMeChange(e.target.checked)}
-            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
           />
-          <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 cursor-pointer font-athletics">
+          <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 cursor-pointer">
             Remember me
           </label>
         </div>
 
         <div className="text-sm">
-          <Link to="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500 transition duration-150 font-athletics">
+          <Link to="/forgot-password" className="font-semibold text-blue-600 hover:text-blue-800 transition duration-150">
             Forgot password?
           </Link>
         </div>
@@ -195,7 +195,7 @@ export function SigninForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out shadow-md hover:shadow-lg font-athletics disabled:opacity-50 disabled:cursor-not-allowed"
+          className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? (
             <>

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 export function ContactInfo() {
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+    <div className="bg-white rounded-xl shadow-xl p-8 border border-gray-100">
       <div className="text-center space-y-1 mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">
           Need an Account?

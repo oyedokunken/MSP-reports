@@ -22,154 +22,163 @@ const ResetPassword = () => {
     handleSubmit
   } = useResetPassword();
 
-  if (success) {
-    return (
-      <Card className="w-full max-w-[400px] border-border bg-[hsl(var(--auth-card))] shadow-2xl">
-        <div className="flex justify-center pt-8 pb-4">
-          <img src="/logo.png" alt="Logo" className="h-8 w-auto opacity-90" />
-        </div>
-
-        <CardContent className="pt-2">
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="mb-4 rounded-full bg-green-500/10 p-3">
-              <CheckCircle2 className="h-12 w-12 text-green-500" />
-            </div>
-            <h2 className="text-2xl font-bold text-green-600 mb-2">Password Reset!</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Your password has been reset successfully.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Redirecting to sign in...
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="w-full max-w-[400px] border-border bg-[hsl(var(--auth-card))] shadow-2xl">
-      <div className="flex justify-center pt-8 pb-6">
-        <img src="/logo.png" alt="Logo" className="h-8 w-auto opacity-90" />
+    <div className="min-h-screen flex items-center justify-center relative bg-blue-950 overflow-hidden">
+      {/* Background Decoration */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
       </div>
 
-      <CardHeader className="space-y-0.5 text-center pt-0">
-        <CardTitle className="text-lg font-bold">
-          Reset Your Password
-        </CardTitle>
-        <CardDescription className="text-sm">
-          Enter your new password below
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent className="space-y-3">
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-1">
-            <Label htmlFor="password" className="text-xs">New Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter new password (min 8 characters)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-9 pr-10"
-                required
-                disabled={isSubmitting}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
-                tabIndex={-1}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="confirmPassword" className="text-xs">Confirm Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-              <Input
-                id="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="pl-9 pr-10"
-                required
-                disabled={isSubmitting}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
-                tabIndex={-1}
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-border bg-accent/50 p-3">
-            <p className="text-xs font-medium mb-2">Password Requirements:</p>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li className="flex items-center gap-2">
-                <span className={password.length >= 8 ? 'text-green-600' : ''}>
-                  {password.length >= 8 ? '✓' : '•'}
-                </span>
-                At least 8 characters
-              </li>
-              <li className="flex items-center gap-2">
-                <span className={password === confirmPassword && password.length > 0 ? 'text-green-600' : ''}>
-                  {password === confirmPassword && password.length > 0 ? '✓' : '•'}
-                </span>
-                Passwords match
-              </li>
-            </ul>
-          </div>
-
-          {error && (
-            <div className="text-sm text-destructive">{error}</div>
-          )}
-
-          <Button
-            type="submit"
-            className="w-full text-white"
-            disabled={isSubmitting || password.length < 8 || password !== confirmPassword}
-          >
-            {isSubmitting ? (
-              <>
-                <Spinner className="mr-2 h-4 w-4" />
-                Resetting...
-              </>
-            ) : (
-              "Reset Password"
-            )}
-          </Button>
-        </form>
-      </CardContent>
-
-      <div className="relative">
-        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-60"></div>
-        <div className="flex justify-center py-3">
-          <p className="text-xs text-muted-foreground/70 font-medium tracking-wide">
-            Secured by <span className="text-primary font-semibold">{import.meta.env.VITE_COMPANY_NAME || 'Athena Networks'}</span>
-          </p>
+      <div className="absolute top-8 left-8 z-20">
+        <div className="text-center">
+          <img src="/logo.png" alt="Logo" className="h-12 w-auto brightness-0 invert" />
         </div>
       </div>
-    </Card>
+
+      <div className="relative z-10 w-full max-w-[400px] px-4 py-12">
+
+        {success ? (
+          <Card className="border-border bg-white shadow-2xl">
+            <CardContent className="pt-8">
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="mb-4 rounded-full bg-green-500/10 p-3">
+                  <CheckCircle2 className="h-12 w-12 text-green-500" />
+                </div>
+                <h2 className="text-2xl font-bold text-green-600 mb-2">Password Reset!</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Your password has been reset successfully.
+                </p>
+                <p className="text-xs text-gray-400">
+                  Redirecting to sign in...
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-border bg-white shadow-2xl">
+            <CardHeader className="space-y-0.5 text-center pt-8">
+              <CardTitle className="text-lg font-bold text-gray-900">
+                Reset Your Password
+              </CardTitle>
+              <CardDescription className="text-sm text-gray-600">
+                Enter your new password below
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-3 pb-8">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-1">
+                  <Label htmlFor="password" className="text-xs text-gray-700">New Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter new password (min 8 characters)"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-9 pr-10 border-gray-300 focus:ring-blue-500"
+                      required
+                      disabled={isSubmitting}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="confirmPassword" className="text-xs text-gray-700">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pl-9 pr-10 border-gray-300 focus:ring-blue-500"
+                      required
+                      disabled={isSubmitting}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Password Requirements */}
+                <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                  <p className="text-xs font-medium mb-2 text-gray-700">Password Requirements:</p>
+                  <ul className="text-xs text-gray-500 space-y-1">
+                    <li className="flex items-center gap-2">
+                      <span className={password.length >= 8 ? 'text-green-600' : ''}>
+                        {password.length >= 8 ? '✓' : '•'}
+                      </span>
+                      At least 8 characters
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className={password === confirmPassword && password.length > 0 ? 'text-green-600' : ''}>
+                        {password === confirmPassword && password.length > 0 ? '✓' : '•'}
+                      </span>
+                      Passwords match
+                    </li>
+                  </ul>
+                </div>
+
+                {error && (
+                  <div className="text-sm text-red-600">{error}</div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full text-white bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all"
+                  disabled={isSubmitting || password.length < 8 || password !== confirmPassword}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Spinner className="mr-2 h-4 w-4" />
+                      Resetting...
+                    </>
+                  ) : (
+                    "Reset Password"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+
+            {/* Secured by Footer */}
+            <div className="relative">
+              <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-60"></div>
+              <div className="flex justify-center py-4">
+                <p className="text-xs text-gray-500 font-medium tracking-wide">
+                  Secured by <span className="text-blue-600 font-semibold">{import.meta.env.VITE_COMPANY_NAME || 'Athena Networks'}</span>
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+      </div>
+    </div>
   );
 };
 

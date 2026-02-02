@@ -14,7 +14,7 @@ export function AuthDivider({ showAuthOptions, onToggle }: AuthDividerProps) {
           <button
             type="button"
             onClick={onToggle}
-            className="px-4 py-1.5 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-150 ease-in-out flex items-center gap-2 font-athletics"
+            className="px-4 py-1.5 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-150 ease-in-out flex items-center gap-2"
           >
             <span>Others</span>
             <svg

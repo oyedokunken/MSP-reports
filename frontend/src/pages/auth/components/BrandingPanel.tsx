@@ -27,10 +27,10 @@ export function BrandingPanel() {
         </div>
 
         <div className="flex-shrink-0 mb-3">
-          <h1 className="text-xl xl:text-2xl font-bold font-athletics mb-1 leading-tight">
+          <h1 className="text-xl xl:text-2xl font-bold mb-1 leading-tight">
             Welcome to MSP Reports Platform
           </h1>
-          <p className="text-xs xl:text-sm text-indigo-100 font-athletics">
+          <p className="text-xs xl:text-sm text-indigo-100">
             Centralized insights, automated reports, and seamless integration management.
           </p>
         </div>
@@ -42,7 +42,7 @@ export function BrandingPanel() {
                 <BarChart3 className="w-3 h-3" />
               </div>
             </div>
-            <h3 className="font-semibold font-athletics text-[10px] xl:text-xs">Real-Time Analytics</h3>
+            <h3 className="font-semibold text-[10px] xl:text-xs">Real-Time Analytics</h3>
           </div>
 
           <div className="text-center">
@@ -51,7 +51,7 @@ export function BrandingPanel() {
                 <Shield className="w-3 h-3" />
               </div>
             </div>
-            <h3 className="font-semibold font-athletics text-[10px] xl:text-xs">Enterprise Security</h3>
+            <h3 className="font-semibold text-[10px] xl:text-xs">Enterprise Security</h3>
           </div>
 
           <div className="text-center">
@@ -60,11 +60,11 @@ export function BrandingPanel() {
                 <Zap className="w-3 h-3" />
               </div>
             </div>
-            <h3 className="font-semibold font-athletics text-[10px] xl:text-xs">Automated Workflows</h3>
+            <h3 className="font-semibold text-[10px] xl:text-xs">Automated Workflows</h3>
           </div>
         </div>
           
-        <div className="flex-shrink-0 text-indigo-200 text-[10px] font-athletics text-center pt-2 mt-2 border-t border-white/10">
+        <div className="flex-shrink-0 text-indigo-200 text-[10px] text-center pt-2 mt-2 border-t border-white/10">
           © 2025 {import.meta.env.VITE_COMPANY_NAME || 'MSP'}. All rights reserved.
         </div>
       </div>

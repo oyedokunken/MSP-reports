@@ -1,17 +1,15 @@
 import { useState } from "react";
 import {
-  BrandingPanel,
   MobileLogo,
   SigninForm,
   EnterpriseAuthOptions,
   AuthDivider,
-  AuthFooter,
   ContactAdminLink,
   LdapLoginModal,
 } from "../components";
-import { useSignin, useAuthConfig } from "../hooks";
+import { useSignin } from "../hooks";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/components/ui/Toast";
 
 const Signin = () => {
@@ -31,17 +29,12 @@ const Signin = () => {
     setShowPassword
   } = useSignin();
 
-  const { config: authConfig } = useAuthConfig();
 
   const [showLdapModal, setShowLdapModal] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
-  const ldapConfigured = authConfig?.ldap?.enabled ?? false;
-  const oauthConfigured = authConfig?.oauth?.enabled ?? false;
-  const samlConfigured = authConfig?.saml?.enabled ?? false;
-  const hasEnterpriseAuth = ldapConfigured || oauthConfigured || samlConfigured;
 
   const handleLdapLogin = async (username: string, password: string) => {
     try {
@@ -73,74 +66,87 @@ const Signin = () => {
   };
 
   return (
-    <div className="min-h-screen flex">
-      <BrandingPanel />
+    <div className="min-h-screen flex items-center justify-center relative bg-blue-950 overflow-hidden">
+      {/* Background Decoration */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
+      </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-12 bg-gray-50">
-        <div className="max-w-md w-full">
-          <MobileLogo />
+      <div className="absolute top-8 left-8 z-20">
+        <MobileLogo />
+      </div>
 
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 font-athletics">Sign In</h2>
-              <p className="mt-2 text-sm text-gray-600 font-athletics">
-                Access your reporting dashboard
-              </p>
-            </div>
+      <div className="absolute top-8 right-8 z-20 flex gap-6">
+        <Link to="/privacy-policy" className="text-sm font-medium text-blue-200 hover:text-white transition-colors">
+          Privacy Policy
+        </Link>
+        <Link to="/terms-of-service" className="text-sm font-medium text-blue-200 hover:text-white transition-colors">
+          Terms of Service
+        </Link>
+      </div>
 
-            <div
-              aria-hidden={showAuthOptions}
-              className={`transform transition-all duration-300 ease-in-out ${showAuthOptions
-                ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none overflow-hidden'
-                : 'max-h-[1000px] opacity-100 translate-y-0'
-                }`}
-            >
-              <SigninForm
-                email={email}
-                password={password}
-                error={error}
-                isSubmitting={isSubmitting}
-                rememberMe={rememberMe}
-                showPassword={showPassword}
-                onEmailChange={setEmail}
-                onPasswordChange={setPassword}
-                onRememberMeChange={setRememberMe}
-                onShowPasswordToggle={() => setShowPassword(!showPassword)}
-                onSubmit={handleSubmit}
-              />
-              <ContactAdminLink />
-            </div>
+      <div className="relative z-10 w-full max-w-md px-4 py-12">
 
-            {hasEnterpriseAuth && (
-              <>
-                <AuthDivider
-                  showAuthOptions={showAuthOptions}
-                  onToggle={() => setShowAuthOptions(!showAuthOptions)}
-                />
-
-                <EnterpriseAuthOptions
-                  isOpen={showAuthOptions}
-                  onLdapClick={() => setShowLdapModal(true)}
-                  onOAuthClick={handleOAuthLogin}
-                  onSamlClick={handleSamlLogin}
-                  ldapConfigured={ldapConfigured}
-                  oauthConfigured={oauthConfigured}
-                  samlConfigured={samlConfigured}
-                />
-
-                {showAuthOptions && <ContactAdminLink />}
-              </>
-            )}
-
-            <AuthFooter />
+        {/* Form Container */}
+        <div className="bg-white rounded-2xl shadow-2xl p-8 border border-white/10 backdrop-blur-sm">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900">Sign In</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Access your reporting dashboard
+            </p>
           </div>
 
-          <LdapLoginModal
-            isOpen={showLdapModal}
-            onClose={() => setShowLdapModal(false)}
-            onSubmit={handleLdapLogin}
+          {/* Sign In Form */}
+          <div
+            aria-hidden={showAuthOptions}
+            className={`transform transition-all duration-300 ease-in-out ${
+              showAuthOptions
+                ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none overflow-hidden'
+                : 'max-h-[1000px] opacity-100 translate-y-0'
+            }`}
+          >
+            <SigninForm
+              email={email}
+              password={password}
+              error={error}
+              isSubmitting={isSubmitting}
+              rememberMe={rememberMe}
+              showPassword={showPassword}
+              onEmailChange={setEmail}
+              onPasswordChange={setPassword}
+              onRememberMeChange={setRememberMe}
+              onShowPasswordToggle={() => setShowPassword(!showPassword)}
+              onSubmit={handleSubmit}
+            />
+          </div>
+
+          <AuthDivider
+            showAuthOptions={showAuthOptions}
+            onToggle={() => setShowAuthOptions(!showAuthOptions)}
           />
+
+          <EnterpriseAuthOptions
+            isOpen={showAuthOptions}
+            onLdapClick={() => setShowLdapModal(true)}
+            onOAuthClick={handleOAuthLogin}
+            onSamlClick={handleSamlLogin}
+          />
+
+
+          <div className="mt-8 pt-6 border-t border-gray-100">
+            <ContactAdminLink />
+          </div>
         </div>
+
+
+        {/* LDAP Login Modal */}
+        <LdapLoginModal
+          isOpen={showLdapModal}
+          onClose={() => setShowLdapModal(false)}
+          onSubmit={handleLdapLogin}
+        />
       </div>
     </div>
   );

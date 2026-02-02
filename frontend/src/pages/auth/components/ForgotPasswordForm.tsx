@@ -20,7 +20,8 @@ export function ForgotPasswordForm({
   onSubmit,
 }: ForgotPasswordFormProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+    <div className="bg-white rounded-xl shadow-xl p-8 border border-gray-100">
+      {/* Heading */}
       <div className="text-center space-y-2 mb-10">
         <h1 className="text-3xl font-bold text-gray-900">
           Forgot Password?
@@ -32,7 +33,7 @@ export function ForgotPasswordForm({
 
       <form onSubmit={onSubmit} className="space-y-5">
         <div className="space-y-2">
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="email" className="block text-sm font-medium text-gray-900">
             Email Address
           </label>
           <Input

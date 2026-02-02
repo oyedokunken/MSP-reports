@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { logger } from '@/lib/logger'
 import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
@@ -23,7 +22,7 @@ const Signin = () => {
         onSuccess: () => {
         },
         onError: (err) => {
-            logger.error("Login failed:", err);
+            console.error("Login failed:", err);
         },
     });
 

@@ -2,10 +2,10 @@ import { Link } from "react-router-dom";
 
 export function ContactAdminLink() {
   return (
-    <div className="mt-6 text-center">
-      <p className="text-sm text-gray-600 font-athletics">
+    <div className="text-center">
+      <p className="text-sm text-gray-700">
         Don't have an account?{' '}
-        <Link to="/contact-admin" className="font-medium text-indigo-600 hover:text-indigo-500 transition duration-150 font-athletics">
+        <Link to="/contact-admin" className="font-semibold text-blue-600 hover:text-blue-800 transition duration-150">
           Contact your administrator
         </Link>
       </p>
