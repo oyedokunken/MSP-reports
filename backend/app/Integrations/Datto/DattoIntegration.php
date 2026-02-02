@@ -247,13 +247,14 @@ final class DattoIntegration implements IntegrationInterface
 
         if ($type === 'devices_alerts') {
             foreach ($items as $site) {
+                $this->sendHeartbeat(); // Heartbeat at start of site processing
                 try {
                     $siteUid = $site['uid'] ?? $site['organizationId'] ?? null;
                     if ($siteUid) {
                         $this->syncSiteDevices($siteUid, $site);
                         $this->syncSiteAlerts($siteUid, $site);
                     }
-                    $this->sendHeartbeat();
+                    $this->sendHeartbeat(); // Heartbeat after site processing
                 } catch (\Exception $e) {
                     Log::error('Datto Batch: Failed to sync site', [
                         'site_id' => $site['id'] ?? 'unknown',
@@ -298,6 +299,7 @@ final class DattoIntegration implements IntegrationInterface
             collect($devices)->chunk(500)->each(function ($chunk) use ($site) {
                 $this->bulkStoreDevices($chunk->toArray(), $site);
                 $this->lastBatchProcessedCount += count($chunk);
+                $this->sendHeartbeat(); // Keep alive during large device lists
             });
 
             // Update timestamp
@@ -359,6 +361,7 @@ final class DattoIntegration implements IntegrationInterface
             collect($allAlerts)->chunk(500)->each(function ($chunk) use ($site) {
                 $this->bulkStoreAlerts($chunk->toArray(), $site);
                 $this->lastBatchProcessedCount += count($chunk);
+                $this->sendHeartbeat(); // Keep alive during large alert lists
             });
 
             // Update timestamp
