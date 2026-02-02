@@ -23,23 +23,27 @@ export default function Licenses() {
 
     return (
         <FloatingLayout>
-            <div className="space-y-8">
+            <div className="flex flex-col gap-6 pb-8">
                 <LicensesHeader />
 
                 <LicenseUsageCard usage={usage} />
 
-                <LicenseCheckCard />
-
-                <LicensesGrid
-                    licenses={licenseData?.active_licenses || []}
-                    expiringSoon={licenseData?.expiring_soon || []}
-                    userLicenseStatus={licenseData?.user_license_status || null}
-                    licenseEnforcementEnabled={
-                        licenseData?.license_enforcement_enabled || false
-                    }
-                    isLoading={isLoading}
-                    error={error}
-                />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                        <LicensesGrid
+                            licenses={licenseData?.active_licenses || []}
+                            expiringSoon={licenseData?.expiring_soon || []}
+                            licenseEnforcementEnabled={
+                                licenseData?.license_enforcement_enabled || false
+                            }
+                            isLoading={isLoading}
+                            error={error}
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <LicenseCheckCard />
+                    </div>
+                </div>
             </div>
         </FloatingLayout>
     );

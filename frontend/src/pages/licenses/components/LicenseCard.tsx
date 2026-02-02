@@ -1,6 +1,6 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Key, Calendar, Package } from 'lucide-react'
+import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import type { License } from '@/stores/useLicensesStore'
 
 interface LicenseCardProps {
@@ -15,7 +15,7 @@ export function LicenseCard({ license }: LicenseCardProps) {
       suspended: { variant: 'secondary', label: 'Suspended' },
     }
     const config = variants[status] || { variant: 'secondary', label: status }
-    return <Badge variant={config.variant}>{config.label}</Badge>
+    return <Badge variant={config.variant} className="text-[10px] h-4 px-1.5 uppercase tracking-wider">{config.label}</Badge>
   }
 
   const formatDate = (dateString: string | null) => {
@@ -52,79 +52,81 @@ export function LicenseCard({ license }: LicenseCardProps) {
   }
 
   return (
-    <Card className="border-border/50 hover:border-border transition-colors">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between gap-3">
+    <AnimatedCard 
+      className="p-0 overflow-hidden flex flex-col group"
+      hoverScale={true}
+    >
+      <div className="p-5 flex-1">
+        <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <CardTitle className="text-lg font-medium">{getLicenseTypeLabel(license.license_type)}</CardTitle>
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <h3 className="text-base font-bold text-foreground">{getLicenseTypeLabel(license.license_type)}</h3>
               {getStatusBadge(license.status)}
             </div>
-            <CardDescription className="flex items-center gap-1.5 text-sm">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
               <Key className="h-3 w-3" />
               {license.product_sku}
-            </CardDescription>
+            </div>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="pt-0">
+
         {license.metadata?.description && (
           <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-border/50">
-            <p className="text-sm text-muted-foreground leading-relaxed">{license.metadata.description}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{license.metadata.description}</p>
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <p className="text-sm text-muted-foreground mb-1.5 flex items-center gap-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
               <Calendar className="h-3 w-3" />
-              Expiry Date
+              Expiry
             </p>
-            <p className="font-medium">{formatDate(license.expiry_date)}</p>
+            <p className="text-sm font-medium text-foreground">{formatDate(license.expiry_date)}</p>
           </div>
           {license.quantity !== null && (
             <div>
-              <p className="text-sm text-muted-foreground mb-1.5 flex items-center gap-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
                 <Package className="h-3 w-3" />
-                Quantity
+                Quota
               </p>
-              <p className="font-medium">{license.quantity === -1 ? 'Unlimited' : license.quantity}</p>
+              <p className="text-sm font-medium text-foreground">{license.quantity === -1 ? 'Unlimited' : license.quantity}</p>
             </div>
           )}
         </div>
 
         {license.metadata?.includes && license.metadata.includes.length > 0 && (
-          <div className="mb-4">
-            <p className="text-sm text-muted-foreground mb-2">Includes</p>
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Includes</p>
             <div className="flex flex-wrap gap-1.5">
               {formatIncludes(license.metadata.includes)?.map((item, idx) => (
-                <Badge key={idx} variant="outline" className="text-sm border-primary/30 text-primary">
+                <Badge key={idx} variant="outline" className="text-[10px] border-primary/20 bg-primary/5 text-primary">
                   {item}
                 </Badge>
               ))}
             </div>
           </div>
         )}
+      </div>
 
-        {license.metadata && (license.metadata.deployment_type || license.metadata.customer) && (
-          <div className="pt-4 border-t border-border/50">
-            <div className="grid grid-cols-2 gap-4">
-              {license.metadata.deployment_type && (
-                <div>
-                  <span className="text-sm text-muted-foreground">Deployment</span>
-                  <p className="font-medium capitalize mt-1">{license.metadata.deployment_type.replace(/_/g, ' ')}</p>
-                </div>
-              )}
-              {license.metadata.customer && (
-                <div>
-                  <span className="text-sm text-muted-foreground">Customer</span>
-                  <p className="font-medium mt-1">{license.metadata.customer}</p>
-                </div>
-              )}
-            </div>
+      {(license.metadata?.deployment_type || license.metadata?.customer) && (
+        <div className="px-5 py-3 bg-muted/20 border-t border-border/50 mt-auto">
+          <div className="grid grid-cols-2 gap-4">
+            {license.metadata.deployment_type && (
+              <div>
+                <span className="text-[10px] font-medium uppercase text-muted-foreground">Deployment</span>
+                <p className="text-xs font-semibold text-foreground capitalize mt-0.5">{license.metadata.deployment_type.replace(/_/g, ' ')}</p>
+              </div>
+            )}
+            {license.metadata.customer && (
+              <div>
+                <span className="text-[10px] font-medium uppercase text-muted-foreground">Customer</span>
+                <p className="text-xs font-semibold text-foreground mt-0.5">{license.metadata.customer}</p>
+              </div>
+            )}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </AnimatedCard>
   )
 }

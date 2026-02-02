@@ -1,13 +1,19 @@
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { logger } from '@/lib/logger'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { CheckCircle, XCircle, Package, Database, Users, Loader2 } from 'lucide-react'
+import { CheckCircle, XCircle, Package, Database, Users, Loader2, ShieldCheck } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
+import { useIntegrationsQuery } from '@/pages/integrations/hooks/useIntegrations'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface CheckResult {
   allowed: boolean
@@ -16,6 +22,7 @@ interface CheckResult {
 
 export function LicenseCheckCard() {
   const toast = useToast()
+  const { data: integrationsData, isLoading: loadingIntegrations } = useIntegrationsQuery()
   const [integrationType, setIntegrationType] = useState('datto')
   const [retentionMonths, setRetentionMonths] = useState('36')
 
@@ -27,6 +34,9 @@ export function LicenseCheckCard() {
   const [checkingRetention, setCheckingRetention] = useState(false)
   const [checkingUser, setCheckingUser] = useState(false)
 
+  // Get unique configured integration types or fall back to available types
+  const integrationTypes = integrationsData?.availableTypes || ['datto', 'autotask', 'kaseya', 'n-able', 'itglue']
+
   const checkIntegrationLicense = async () => {
     setCheckingIntegration(true)
     try {
@@ -35,22 +45,11 @@ export function LicenseCheckCard() {
       })
       const data = response as { data?: CheckResult } | CheckResult
       const result = (data as { data?: CheckResult }).data || data as CheckResult
-
-      if (!result || typeof result.allowed === 'undefined') {
-        throw new Error('Invalid response from server')
-      }
-
       setIntegrationResult(result)
-
-      if (result.allowed) {
-        toast.success('License Check', `${integrationType} integration can be activated`)
-      } else {
-        toast.error('License Check Failed', result.reason || 'Cannot activate integration')
-      }
-    } catch (err: unknown) {
-      logger.error('Integration license check error:', err)
-      const error = err as { response?: { data?: { message?: string } }; message?: string }
-      toast.error('Check Failed', error.response?.data?.message || error.message)
+      if (result.allowed) toast.success('Allowed', `${integrationType} integration is within license limits.`)
+      else toast.error('Denied', result.reason || 'License limit exceeded.')
+    } catch (err) {
+      toast.error('Check Failed', 'Unable to verify integration license.')
     } finally {
       setCheckingIntegration(false)
     }
@@ -64,22 +63,11 @@ export function LicenseCheckCard() {
       })
       const data = response as { data?: CheckResult } | CheckResult
       const result = (data as { data?: CheckResult }).data || data as CheckResult
-
-      if (!result || typeof result.allowed === 'undefined') {
-        throw new Error('Invalid response from server')
-      }
-
       setRetentionResult(result)
-
-      if (result.allowed) {
-        toast.success('License Check', `${retentionMonths} months retention is allowed`)
-      } else {
-        toast.error('License Check Failed', result.reason || 'Cannot extend retention')
-      }
-    } catch (err: unknown) {
-      logger.error('Retention license check error:', err)
-      const error = err as { response?: { data?: { message?: string } }; message?: string }
-      toast.error('Check Failed', error.response?.data?.message || error.message)
+      if (result.allowed) toast.success('Allowed', `${retentionMonths} months retention is licensed.`)
+      else toast.error('Denied', result.reason || 'Retention limit exceeded.')
+    } catch (err) {
+      toast.error('Check Failed', 'Unable to verify retention license.')
     } finally {
       setCheckingRetention(false)
     }
@@ -91,184 +79,122 @@ export function LicenseCheckCard() {
       const response = await api.post('/licenses/check/user', {})
       const data = response as { data?: { can_create: CheckResult } } | { can_create: CheckResult }
       const result = (data as { data?: { can_create: CheckResult } }).data || data as { can_create: CheckResult }
-
-      if (!result || !result.can_create) {
-        throw new Error('Invalid response from server')
-      }
-
       setUserResult(result)
-
-      if (result.can_create.allowed) {
-        toast.success('License Check', 'New user can be created')
-      } else {
-        toast.error('License Check Failed', result.can_create.reason || 'Cannot create user')
-      }
-    } catch (err: unknown) {
-      logger.error('User license check error:', err)
-      const error = err as { response?: { data?: { message?: string } }; message?: string }
-      toast.error('Check Failed', error.response?.data?.message || error.message)
+      if (result.can_create.allowed) toast.success('Allowed', 'User creation is within license limits.')
+      else toast.error('Denied', result.can_create.reason || 'User limit reached.')
+    } catch (err) {
+      toast.error('Check Failed', 'Unable to verify user license.')
     } finally {
       setCheckingUser(false)
     }
   }
 
-  const ResultBadge = ({ result }: { result: CheckResult | null }) => {
+  const ResultIndicator = ({ result, label }: { result: CheckResult | null; label: string }) => {
     if (!result) return null
-
     return (
-      <div className="flex items-start gap-2 mt-2 p-2 rounded-md bg-muted/30">
-        {result.allowed ? (
-          <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-        ) : (
-          <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-        )}
-        <div className="flex-1 min-w-0">
-          <Badge 
-            variant={result.allowed ? "outline" : "destructive"} 
-            className={result.allowed ? "text-sm border-green-500/50 text-green-600 dark:text-green-400" : "text-sm"}
-          >
-            {result.allowed ? 'Allowed' : 'Not Allowed'}
-          </Badge>
-          {result.reason && (
-            <p className="text-sm text-muted-foreground mt-1">{result.reason}</p>
-          )}
-        </div>
+      <div className={`mt-3 flex items-center gap-2 p-2 rounded-lg border ${
+        result.allowed 
+          ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
+          : 'bg-destructive/5 border-destructive/20 text-destructive'
+      }`}>
+        {result.allowed ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+        <span className="text-xs font-semibold uppercase tracking-wider">{label}: {result.allowed ? 'Allowed' : 'Denied'}</span>
       </div>
     )
   }
 
   return (
-    <Card className="border-border/50">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-medium">License Checks</CardTitle>
-        <CardDescription className="text-sm">
-          Test license permissions for integrations, retention, and users
-        </CardDescription>
+    <Card className="border-border/50 bg-card overflow-hidden">
+      <CardHeader className="bg-muted/30 border-b border-border/50 py-3 px-5">
+        <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+          License Validator
+        </CardTitle>
       </CardHeader>
-      <CardContent className="pt-0">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-primary/10">
-                <Package className="h-4 w-4 text-primary" />
+      <CardContent className="p-4">
+        <div className="flex flex-col gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-foreground font-semibold">
+              <Package className="h-4 w-4 text-primary" />
+              <span>Integration</span>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase text-muted-foreground font-bold">Package Name</Label>
+              <div className="flex gap-2">
+                <Select 
+                  value={integrationType} 
+                  onValueChange={setIntegrationType}
+                  disabled={loadingIntegrations}
+                >
+                  <SelectTrigger className="h-9 text-sm bg-muted/20 border-border/50 focus:ring-primary">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {integrationTypes.map((type) => (
+                      <SelectItem key={type} value={type} className="capitalize">
+                        {type.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={checkIntegrationLicense}
+                  disabled={checkingIntegration || !integrationType}
+                  className="h-9 px-4 bg-primary hover:bg-primary/90"
+                  size="sm"
+                >
+                  {checkingIntegration ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Check'}
+                </Button>
               </div>
-              <h3 className="text-base font-medium">Integration</h3>
+              <ResultIndicator result={integrationResult} label="Tier" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="integration-type" className="text-sm text-muted-foreground">Integration Type</Label>
-              <Input
-                id="integration-type"
-                value={integrationType}
-                onChange={(e) => setIntegrationType(e.target.value)}
-                placeholder="e.g., datto, autotask"
-                className="h-9 text-sm"
-              />
-            </div>
-            <Button
-              onClick={checkIntegrationLicense}
-              disabled={checkingIntegration || !integrationType}
-              className="w-full h-9"
-              size="sm"
-            >
-              {checkingIntegration ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Checking...
-                </>
-              ) : (
-                'Check License'
-              )}
-            </Button>
-            <ResultBadge result={integrationResult} />
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-primary/10">
-                <Database className="h-4 w-4 text-primary" />
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-foreground font-semibold">
+              <Database className="h-4 w-4 text-primary" />
+              <span>Retention</span>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase text-muted-foreground font-bold">Months Required</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  value={retentionMonths}
+                  onChange={(e) => setRetentionMonths(e.target.value)}
+                  placeholder="36"
+                  className="h-9 text-sm bg-muted/20 border-border/50 focus-visible:ring-primary"
+                />
+                <Button
+                  onClick={checkRetentionLicense}
+                  disabled={checkingRetention || !retentionMonths}
+                  className="h-9 px-4 bg-primary hover:bg-primary/90"
+                  size="sm"
+                >
+                  {checkingRetention ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Check'}
+                </Button>
               </div>
-              <h3 className="text-base font-medium">Retention</h3>
+              <ResultIndicator result={retentionResult} label="Policy" />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="retention-months" className="text-sm text-muted-foreground">Months</Label>
-              <Input
-                id="retention-months"
-                type="number"
-                value={retentionMonths}
-                onChange={(e) => setRetentionMonths(e.target.value)}
-                placeholder="e.g., 36"
-                min="1"
-                className="h-9 text-sm"
-              />
-            </div>
-            <Button
-              onClick={checkRetentionLicense}
-              disabled={checkingRetention || !retentionMonths}
-              className="w-full h-9"
-              size="sm"
-            >
-              {checkingRetention ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Checking...
-                </>
-              ) : (
-                'Check License'
-              )}
-            </Button>
-            <ResultBadge result={retentionResult} />
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-primary/10">
-                <Users className="h-4 w-4 text-primary" />
-              </div>
-              <h3 className="text-base font-medium">User Creation</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-foreground font-semibold">
+              <Users className="h-4 w-4 text-primary" />
+              <span>Scale Capacity</span>
             </div>
-            <div className="space-y-1">
-              <Label className="text-sm text-muted-foreground">Check user creation permission</Label>
-              <p className="text-sm text-muted-foreground/70">
-                Validates against current license quota
-              </p>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] uppercase text-muted-foreground font-bold">User Seating</Label>
+              <Button
+                onClick={checkUserLicense}
+                disabled={checkingUser}
+                className="w-full h-9 bg-primary hover:bg-primary/90"
+                size="sm"
+              >
+                {checkingUser ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Validate Quota'}
+              </Button>
+              {userResult && <ResultIndicator result={userResult.can_create} label="Quota" />}
             </div>
-            <Button
-              onClick={checkUserLicense}
-              disabled={checkingUser}
-              className="w-full h-9"
-              size="sm"
-            >
-              {checkingUser ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Checking...
-                </>
-              ) : (
-                'Check License'
-              )}
-            </Button>
-            {userResult && (
-              <div className="flex items-start gap-2 mt-2 p-2 rounded-md bg-muted/30">
-                {userResult.can_create.allowed ? (
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                ) : (
-                  <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <Badge 
-                    variant={userResult.can_create.allowed ? "outline" : "destructive"}
-                    className={userResult.can_create.allowed ? "text-sm border-green-500/50 text-green-600 dark:text-green-400" : "text-sm"}
-                  >
-                    {userResult.can_create.allowed ? 'Can Create' : 'Cannot Create'}
-                  </Badge>
-                  {userResult.can_create.reason && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {userResult.can_create.reason}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </CardContent>
