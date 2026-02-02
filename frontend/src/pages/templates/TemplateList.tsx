@@ -3,9 +3,6 @@ import FloatingLayout from '@/components/layout/FloatingLayout'
 import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,18 +12,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  FileText,
   Plus,
   Search,
-  Settings,
-  Trash2,
-  Eye,
-  Clock,
-  Calendar,
-  User,
   Filter,
-  Globe,
-  Users
+  LayoutGrid,
+  List
 } from 'lucide-react'
 import { templateApi } from '@/lib/api/templates'
 import type { ReportTemplate } from './types/template'
@@ -37,19 +27,21 @@ import { ApplyTemplateModal } from '@/pages/templates/modals/ApplyTemplateModal'
 import { AppliedCustomersModal } from '@/pages/templates/modals/AppliedCustomersModal'
 import { TemplatePreviewModal } from './modals/TemplatePreviewModal'
 import { useToast } from '@/components/ui/Toast'
-import { useNavigate } from 'react-router-dom'
 import { Pagination } from '@/pages/customers/components/Pagination'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TemplateGrid } from './components/TemplateGrid'
+import { TemplateTable } from './components/TemplateTable'
 
 export default function TemplateList() {
   const toast = useToast()
-  const navigate = useNavigate()
   const [templates, setTemplates] = useState<ReportTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [reportTypeFilter, setReportTypeFilter] = useState<string>('all')
+  const [view, setView] = useState<'grid' | 'table'>('grid')
   const [currentPage, setCurrentPage] = useState(1)
-  const [perPage] = useState(9)
+  const [perPage, setPerPage] = useState(9)
   const [createModalOpen, setCreateModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<ReportTemplate | null>(null)
@@ -105,18 +97,7 @@ export default function TemplateList() {
     }
   }
 
-  const handleViewReports = (template: ReportTemplate) => {
-    if (template.customer_id) {
-      navigate(`/platform/customers/${template.customer_id}/configure-reports`)
-    } else {
-      setApplyingTemplate(template)
-    }
-  }
 
-  const handleViewSchedule = (template: ReportTemplate) => {
-    setEditingTemplate(template)
-    setEditModalOpen(true)
-  }
 
   const handleModalClose = () => {
     setCreateModalOpen(false)
@@ -153,12 +134,11 @@ export default function TemplateList() {
   const paginatedTemplates = filteredTemplates.slice(startIndex, endIndex)
 
   useEffect(() => {
+    setPerPage(view === 'grid' ? 9 : 10)
     setCurrentPage(1)
-  }, [searchQuery, statusFilter, reportTypeFilter])
+  }, [view])
 
-  const getFrequencyLabel = (frequency: string) => {
-    return frequency.charAt(0).toUpperCase() + frequency.slice(1).replace('-', ' ')
-  }
+
 
 
   return (
@@ -173,7 +153,7 @@ export default function TemplateList() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="hidden sm:flex items-center text-sm text-muted-foreground whitespace-nowrap px-3 h-10 border rounded-md">
+            <div className="hidden lg:flex items-center text-sm text-muted-foreground whitespace-nowrap px-3 h-10 border rounded-md bg-white dark:bg-slate-900">
               {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''}
             </div>
 
@@ -222,6 +202,19 @@ export default function TemplateList() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            <Tabs value={view} onValueChange={(v) => setView(v as 'grid' | 'table')} className="w-full sm:w-auto">
+              <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 h-10 w-full justify-start">
+                <TabsTrigger value="grid" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md flex-1 sm:flex-initial">
+                  <LayoutGrid className="h-4 w-4" />
+                  <span className="ml-2">Grid</span>
+                </TabsTrigger>
+                <TabsTrigger value="table" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md flex-1 sm:flex-initial">
+                  <List className="h-4 w-4" />
+                  <span className="ml-2">Table</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -240,209 +233,32 @@ export default function TemplateList() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <Card key={i} className="relative overflow-hidden flex flex-col p-0">
-                <div className="pt-3 px-4 pb-2 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-5 w-16" />
-                  </div>
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-2/3" />
-                </div>
-
-                <CardContent className="px-4 pb-4 pt-0 space-y-3 flex-1 flex flex-col">
-                  <div className="space-y-2 text-sm flex-1">
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-3.5 w-3.5 rounded" />
-                      <Skeleton className="h-3 w-32" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-3.5 w-3.5 rounded" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-3.5 w-3.5 rounded" />
-                      <Skeleton className="h-3 w-28" />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-1.5 pt-3">
-                    <Skeleton className="flex-1 h-8" />
-                    <Skeleton className="h-8 w-8" />
-                    <Skeleton className="h-8 w-8" />
-                    <Skeleton className="h-8 w-8" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : paginatedTemplates.length === 0 && filteredTemplates.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No templates found</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {searchQuery ? 'Try adjusting your search' : 'Get started by creating your first template'}
-              </p>
-              {/* {!searchQuery && (
-              <Button onClick={() => setCreateModalOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Template
-              </Button>
-            )} */}
-            </CardContent>
-          </Card>
-        ) : paginatedTemplates.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No templates on this page</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Try going to a different page or adjusting your filters
-              </p>
-            </CardContent>
-          </Card>
+        {view === 'grid' ? (
+          <TemplateGrid
+            templates={paginatedTemplates}
+            isLoading={loading}
+            onEdit={(t) => {
+              setEditingTemplate(t)
+              setEditModalOpen(true)
+            }}
+            onDelete={handleDeleteClick}
+            onApply={setApplyingTemplate}
+            onPreview={setPreviewingTemplate}
+            onViewApplied={setViewingAppliedTemplate}
+          />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {paginatedTemplates.map((template) => (
-              <Card
-                key={template.template_id}
-                className="group relative overflow-hidden hover:shadow-lg hover:scale-[1.02] hover:border-primary/50 transition-all duration-200 border-border/50 flex flex-col p-0 cursor-pointer"
-                onClick={() => setPreviewingTemplate(template)}
-              >
-                <div className={`absolute top-0 left-0 right-0 h-1 ${template.active ? 'bg-primary' : 'bg-muted'}`} />
-
-                <div className="pt-3 px-4 pb-2 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-base line-clamp-1 flex-1">
-                      {template.template_name}
-                    </h3>
-                    <div className="flex gap-1 flex-shrink-0">
-                      {!template.customer_id && (
-                        <Badge variant="default" className="bg-primary/10 text-primary border-primary/20 text-xs px-1.5 py-0.5">
-                          <Globe className="h-3 w-3 mr-0.5" />
-                          Global
-                        </Badge>
-                      )}
-                      {!template.active && (
-                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5">Inactive</Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  {template.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {template.description}
-                    </p>
-                  )}
-                </div>
-
-                <CardContent className="px-4 pb-4 pt-0 space-y-3 flex-1 flex flex-col">
-                  <div className="space-y-2 text-sm flex-1">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <FileText className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="truncate text-xs">
-                        {template.report_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-                      <span className="text-xs">{getFrequencyLabel(template.frequency)}</span>
-                    </div>
-
-                    {template.customer && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <User className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="truncate text-xs">{template.customer.canonical_name}</span>
-                      </div>
-                    )}
-
-                    {template.time_of_day && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="text-xs">{template.time_of_day}</span>
-                      </div>
-                    )}
-
-                    {template.included_sections && template.included_sections.length > 0 && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <FileText className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="text-xs">{template.included_sections.length} sections</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-1.5 pt-3 border-t border-border/50" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      size="sm"
-                      className="flex-1 h-8 text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleViewReports(template)
-                      }}
-                    >
-                      {template.customer_id ? (
-                        <>
-                          <Eye className="h-3.5 w-3.5 sm:mr-1.5" />
-                          <span className="hidden sm:inline">Configure Reports</span>
-                        </>
-                      ) : (
-                        <>
-                          <Users className="h-3.5 w-3.5 sm:mr-1.5" />
-                          <span className="hidden sm:inline">Apply</span>
-                        </>
-                      )}
-                    </Button>
-
-                    <div className="flex gap-1">
-                      {!template.customer_id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setViewingAppliedTemplate(template)
-                          }}
-                          title="View Applied Customers"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleViewSchedule(template)
-                        }}
-                        title="Edit Template"
-                      >
-                        <Settings className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteClick(template)
-                        }}
-                        title="Delete Template"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <TemplateTable
+            templates={paginatedTemplates}
+            isLoading={loading}
+            onEdit={(t) => {
+              setEditingTemplate(t)
+              setEditModalOpen(true)
+            }}
+            onDelete={handleDeleteClick}
+            onApply={setApplyingTemplate}
+            onPreview={setPreviewingTemplate}
+            onViewApplied={setViewingAppliedTemplate}
+          />
         )}
 
         {!loading && filteredTemplates.length > perPage && (
