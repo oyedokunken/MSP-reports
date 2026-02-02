@@ -13,6 +13,7 @@ use App\Http\Requests\Auth\MeRequest;
 use App\Http\Requests\Auth\OAuthCallbackRequest;
 use App\Http\Requests\Auth\SamlAcsRequest;
 use App\Http\Requests\Auth\SamlSlsRequest;
+use App\Http\Resources\UserResource;
 use App\Http\Controllers\Controller;
 use App\Rules\StrongPassword;
 use App\Models\AuditLog;
@@ -76,12 +77,7 @@ final class AuthController extends Controller
     {
         $user = $request->user()->load('role', 'company');
         
-        $sanitisedUser = $user->makeHidden(['password', 'remember_token']);
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $sanitisedUser,
-        ]);
+        return $this->success(new UserResource($user));
     }
 
     public function requestPasswordReset(RequestPasswordResetRequest $request, RequestPasswordResetAction $action): \Illuminate\Http\JsonResponse

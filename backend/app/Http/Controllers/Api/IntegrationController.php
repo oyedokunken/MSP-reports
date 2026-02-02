@@ -14,6 +14,7 @@ use App\Http\Requests\Integration\CreateSharePointFolderRequest;
 use App\Http\Requests\Integration\SetSourceOfTruthRequest;
 use App\Http\Requests\Integration\StartHistoricalImportRequest;
 use App\Http\Requests\Integration\UpdateIntegrationRequest;
+use App\Http\Resources\IntegrationResource;
 use App\Http\Controllers\Controller;
 use App\Services\IntegrationService;
 use App\Services\LicenseChecker;
@@ -71,7 +72,7 @@ final class IntegrationController extends Controller
 
         return response()->json([
             'available_types' => $availableTypes,
-            'configured' => $configuredIntegrations,
+            'configured' => IntegrationResource::collection($configuredIntegrations),
         ]);
     }
 
@@ -97,7 +98,7 @@ final class IntegrationController extends Controller
             $integration = $action->execute($request->user()->company, $request->validated());
             return response()->json([
                 'status' => 'success',
-                'data' => $integration
+                'data' => new IntegrationResource($integration)
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -202,7 +203,7 @@ final class IntegrationController extends Controller
             $integration = $action->execute($request->user()->company, $id, $request->validated());
             return response()->json([
                 'status' => 'success',
-                'data' => $integration
+                'data' => new IntegrationResource($integration)
             ]);
         } catch (ValidationException $e) {
             return response()->json([

@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use App\Enums\AuthMethod;
 use Tests\TestCase;
 
 class ResetUserPasswordActionTest extends TestCase
@@ -34,7 +35,7 @@ class ResetUserPasswordActionTest extends TestCase
         $user = User::factory()->create([
             'company_id' => $company->company_id,
             'role_id' => $role->id,
-            'auth_method' => 'local',
+            'auth_method' => AuthMethod::LOCAL,
             'password' => Hash::make('old_password'),
         ]);
 
@@ -58,7 +59,7 @@ class ResetUserPasswordActionTest extends TestCase
         $user = User::factory()->create([
             'company_id' => $company->company_id,
             'role_id' => $role->id,
-            'auth_method' => 'saml',
+            'auth_method' => AuthMethod::SAML,
         ]);
 
         $this->expectException(ValidationException::class);

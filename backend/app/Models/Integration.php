@@ -7,13 +7,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 use App\Traits\AuditTrail;
+use App\Enums\IntegrationStatus;
 
 /**
  * @property int $integration_id
  * @property int $company_id
  * @property string $integration_type
  * @property string $display_name
- * @property string $status
+ * @property IntegrationStatus $status
  * @property \Carbon\Carbon|null $last_sync_at
  * @property string $last_sync_status
  * @property string|null $error_message
@@ -116,6 +117,7 @@ class Integration extends Model
         'credentials' => 'encrypted:array',
         'configuration' => 'array',
         'is_source_of_truth' => 'boolean',
+        'status' => IntegrationStatus::class,
     ];
 
     /**

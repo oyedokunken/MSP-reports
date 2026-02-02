@@ -13,6 +13,8 @@ use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\Scopes\CompanyScope;
 use App\Traits\AuditTrail;
+use App\Enums\UserStatus;
+use App\Enums\AuthMethod;
 
 /**
  * @property int $user_id
@@ -21,8 +23,8 @@ use App\Traits\AuditTrail;
  * @property string $name
  * @property string $email
  * @property string $password
- * @property string $status
- * @property string $auth_method
+ * @property UserStatus $status
+ * @property AuthMethod $auth_method
  * @property bool $force_password_change
  * @property string|null $profile_picture
  * @property array<string, mixed>|null $permissions
@@ -69,6 +71,8 @@ class User extends Authenticatable
 
     protected $casts = [
         'password' => 'hashed',
+        'status' => UserStatus::class,
+        'auth_method' => AuthMethod::class,
         'last_login_at' => 'datetime',
         'email_verified_at' => 'datetime',
         'permissions' => 'array',

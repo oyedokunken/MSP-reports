@@ -11,6 +11,7 @@ use App\Http\Requests\ApiKey\StoreApiKeyRequest;
 use App\Http\Requests\ApiKey\GetApiKeysRequest;
 use App\Http\Requests\ApiKey\RevokeApiKeyRequest;
 use App\Http\Requests\ApiKey\DeleteApiKeyRequest;
+use App\Http\Resources\ApiKeyResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
@@ -37,28 +38,9 @@ final class ApiKeyController extends Controller
             $query->where('customer_id', $validated['customer_id']);
         }
 
-        $apiKeys = $query->get()
-            ->map(function ($key) {
-                return [
-                    'api_key_id' => $key->api_key_id,
-                    'display_name' => $key->display_name,
-                    'customer_id' => $key->customer_id,
-                    'customer_name' => $key->customer?->canonical_name,
-                    'created_by' => $key->createdBy->name,
-                    'created_at' => $key->created_at->toIso8601String(),
-                    'last_used_at' => $key->last_used_at?->toIso8601String(),
-                    'permissions' => $key->permissions,
-                    'ip_whitelist' => $key->ip_whitelist,
-                    'allowed_endpoints' => $key->allowed_endpoints,
-                    'revoked' => $key->revoked,
-                    'revoked_at' => $key->revoked_at?->toIso8601String(),
-                ];
-            });
+        $apiKeys = $query->get();
 
-        return response()->json([
-            'status' => 'success',
-            'data' => $apiKeys,
-        ]);
+        return $this->success(ApiKeyResource::collection($apiKeys));
     }
 
     /**
@@ -102,16 +84,10 @@ final class ApiKeyController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'API key created successfully',
+        return $this->success([
             'api_key' => $plainKey,
-            'data' => [
-                'api_key_id' => $apiKey->api_key_id,
-                'display_name' => $apiKey->display_name,
-                'customer_id' => $apiKey->customer_id,
-            ],
-        ], 201);
+            'data' => new ApiKeyResource($apiKey),
+        ], 'API key created successfully', 201);
     }
 
     /**
@@ -155,10 +131,7 @@ final class ApiKeyController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'API key revoked successfully',
-        ]);
+        return $this->success(null, 'API key revoked successfully.');
     }
 
     /**
@@ -192,9 +165,6 @@ final class ApiKeyController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'API key deleted successfully',
-        ]);
+        return $this->success(null, 'API key deleted successfully.');
     }
 }

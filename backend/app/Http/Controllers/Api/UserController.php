@@ -22,6 +22,7 @@ use App\Http\Requests\User\ReactivateUserRequest;
 use App\Http\Requests\User\DeleteUserRequest;
 use App\Http\Requests\User\GetRolesRequest;
 use App\Http\Requests\User\DeleteProfilePictureRequest;
+use App\Http\Resources\UserResource;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Role;
@@ -60,9 +61,7 @@ final class UserController extends Controller
             return $user->makeHidden(['password']);
         });
 
-        return response()->json([
-            'status' => 'success',
-            'data' => $users->items(),
+        return $this->success(UserResource::collection($users->items()), null, 200, [
             'pagination' => [
                 'current_page' => $users->currentPage(),
                 'per_page' => $users->perPage(),
@@ -80,19 +79,13 @@ final class UserController extends Controller
 
         try {
             $user = $action->execute($authUser, $request->validated());
-            return response()->json([
-                'status' => 'success',
-                'data' => $user->makeHidden(['password'])->load('role')
-            ], 201);
+            return $this->success(new UserResource($user->load('role')), null, 201);
         } catch (ValidationException $e) {
             // Check if it's a license error
-            if (isset($e->validator->failed()['license'])) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $e->getMessage(),
-                ], 403);
+            if (str_contains($e->getMessage(), 'license')) {
+                return $this->error($e->getMessage(), 403);
             }
-            throw $e;
+            return $this->error($e->getMessage(), 422);
         }
     }
 
@@ -131,7 +124,7 @@ final class UserController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $user->makeHidden(['password'])->load('role')
+            'data' => new UserResource($user->load('role'))
         ]);
     }
 
@@ -143,7 +136,7 @@ final class UserController extends Controller
             $user = $action->execute($authUser, $id, $request->validated());
             return response()->json([
                 'status' => 'success',
-                'data' => $user->makeHidden(['password'])->load('role')
+                'data' => new UserResource($user->load('role'))
             ]);
         } catch (ValidationException $e) {
             return response()->json([
@@ -163,7 +156,7 @@ final class UserController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'User deactivated successfully.',
-                'data' => $user->makeHidden(['password'])->load('role')
+                'data' => new UserResource($user->load('role'))
             ]);
         } catch (ValidationException $e) {
             $statusCode = str_contains($e->getMessage(), 'not found') ? 404 : 400;
@@ -183,7 +176,7 @@ final class UserController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'User reactivated successfully.',
-                'data' => $user->makeHidden(['password'])->load('role')
+                'data' => new UserResource($user->load('role'))
             ]);
         } catch (ValidationException $e) {
             return response()->json([

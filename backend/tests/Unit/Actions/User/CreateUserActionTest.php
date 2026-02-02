@@ -12,6 +12,8 @@ use App\Services\LicenseChecker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use App\Enums\UserStatus;
+use App\Enums\AuthMethod;
 use Tests\TestCase;
 
 class CreateUserActionTest extends TestCase
@@ -44,8 +46,8 @@ class CreateUserActionTest extends TestCase
             'email' => 'john@example.com',
             'password' => 'password123',
             'role_id' => $role->id,
-            'status' => 'active',
-            'auth_method' => 'local',
+            'status' => UserStatus::ACTIVE->value,
+            'auth_method' => AuthMethod::LOCAL->value,
         ];
 
         $user = $this->action->execute($authUser, $data);

@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 use App\Models\Scopes\CustomerScope;
+use App\Enums\ReportFrequency;
 
 /**
  * @property int $report_schedule_id
@@ -14,7 +15,7 @@ use App\Models\Scopes\CustomerScope;
  * @property int $customer_id
  * @property int|null $template_id
  * @property string $report_type
- * @property string $frequency
+ * @property ReportFrequency $frequency
  * @property array<string, mixed>|null $schedule_config
  * @property string $time_of_day
  * @property bool $active
@@ -57,6 +58,7 @@ class ReportSchedule extends Model
         'schedule_config' => 'array',
         'last_generated_at' => 'datetime',
         'next_scheduled_at' => 'datetime',
+        'frequency' => ReportFrequency::class,
         'active' => 'boolean',
         'is_customized' => 'boolean',
     ];
@@ -160,13 +162,6 @@ class ReportSchedule extends Model
 
     public function getFrequencyLabel(): string
     {
-        return match($this->frequency) {
-            'daily' => 'Daily',
-            'weekly' => 'Weekly',
-            'monthly' => 'Monthly',
-            'yearly' => 'Yearly',
-            'on-demand' => 'On Demand',
-            default => ucfirst($this->frequency),
-        };
+        return $this->frequency->value;
     }
 }

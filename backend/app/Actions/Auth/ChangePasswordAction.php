@@ -19,9 +19,9 @@ final class ChangePasswordAction
      */
     public function execute(User $user, array $data, ?string $ipAddress, ?string $userAgent): void
     {
-        if ($user->auth_method !== 'local') {
+        if ($user->auth_method !== \App\Enums\AuthMethod::LOCAL) {
             throw ValidationException::withMessages([
-                'auth_method' => ['Password changes are not available for ' . $user->auth_method . ' authentication.'],
+                'auth_method' => ['Password changes are not available for ' . $user->auth_method->value . ' authentication.'],
             ]);
         }
 

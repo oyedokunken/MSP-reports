@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Http\Requests\AuditLog\GetAuditLogsRequest;
 use App\Http\Requests\AuditLog\GetAuditLogStatsRequest;
+use App\Http\Resources\AuditLogResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -64,7 +65,7 @@ final class AuditLogController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $logs->items(),
+            'data' => AuditLogResource::collection($logs->items()),
             'pagination' => [
                 'current_page' => $logs->currentPage(),
                 'per_page' => $logs->perPage(),
@@ -102,14 +103,11 @@ final class AuditLogController extends Controller
             ->where('created_at', '>=', Carbon::now()->subDays(7))
             ->count();
 
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'total_logs' => $totalLogs,
-                'logs_today' => $logsToday,
-                'unique_actors' => $uniqueActors,
-                'critical_events' => $criticalEvents,
-            ]
+        return $this->success([
+            'total_logs' => $totalLogs,
+            'logs_today' => $logsToday,
+            'unique_actors' => $uniqueActors,
+            'critical_events' => $criticalEvents,
         ]);
     }
 

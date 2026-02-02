@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\User;
 
+use App\Enums\AuthMethod;
+use App\Enums\UserStatus;
 use App\Mail\WelcomeUserMail;
 use App\Models\Customer;
 use App\Models\Role;
@@ -67,15 +69,16 @@ final class CreateUserAction
             'name' => trim(strip_tags($data['name'])),
             'email' => trim(strtolower($data['email'])),
             'password' => Hash::make($data['password']),
-            'status' => trim($data['status'] ?? 'active'),
-            'auth_method' => trim($data['auth_method'] ?? 'local'),
+            'status' => isset($data['status']) ? UserStatus::from($data['status']) : UserStatus::ACTIVE,
+            'auth_method' => isset($data['auth_method']) ? AuthMethod::from($data['auth_method']) : AuthMethod::LOCAL,
             'force_password_change' => $data['force_password_change'] ?? false,
             'permissions' => $permissions,
             'scoped_customers' => $data['scoped_customers'] ?? null,
         ]);
 
         // Send welcome email for local auth users
-        $this->sendWelcomeEmail($user, $plainPassword, $data['auth_method'] ?? 'local');
+        $authMethod = isset($data['auth_method']) ? AuthMethod::from($data['auth_method']) : AuthMethod::LOCAL;
+        $this->sendWelcomeEmail($user, $plainPassword, $authMethod);
 
         return $user;
     }
@@ -110,9 +113,9 @@ final class CreateUserAction
         }
     }
 
-    private function sendWelcomeEmail(User $user, string $plainPassword, string $authMethod): void
+    private function sendWelcomeEmail(User $user, string $plainPassword, AuthMethod $authMethod): void
     {
-        if ($authMethod !== 'local') {
+        if ($authMethod !== AuthMethod::LOCAL) {
             return;
         }
 

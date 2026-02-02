@@ -31,7 +31,7 @@ final class ResetUserPasswordAction
             ]);
         }
 
-        if ($user->auth_method !== 'local') {
+        if ($user->auth_method !== \App\Enums\AuthMethod::LOCAL) {
             throw ValidationException::withMessages([
                 'auth_method' => ['Password reset is only available for local authentication users.'],
             ]);
