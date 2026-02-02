@@ -34,7 +34,7 @@ export function AuditLogDetailDialog({ log, isOpen, onClose }: AuditLogDetailDia
             </Badge>
             <span className="text-xs text-gray-400 font-mono">#{log.audit_log_id}</span>
           </div>
-          <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+          <DialogTitle className="text-2xl font-bold text-foreground">
             Audit Event Details
           </DialogTitle>
           <DialogDescription>
@@ -50,9 +50,9 @@ export function AuditLogDetailDialog({ log, isOpen, onClose }: AuditLogDetailDia
                   <User className="h-4 w-4" />
                   Actor (Subject)
                 </h4>
-                <div className="p-3 border rounded-xl bg-gray-50/50 dark:bg-gray-800/50 dark:border-gray-700">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{log.actor_name || 'System'}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{log.actor_type} ID: {log.actor_id || 'N/A'}</p>
+                <div className="p-3 border border-border/50 rounded-xl bg-muted/30">
+                  <p className="text-sm font-semibold text-foreground">{log.actor_name || 'System'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{log.actor_type} ID: {log.actor_id || 'N/A'}</p>
                 </div>
               </section>
 
@@ -61,9 +61,9 @@ export function AuditLogDetailDialog({ log, isOpen, onClose }: AuditLogDetailDia
                   <Target className="h-4 w-4" />
                   Target (Object)
                 </h4>
-                <div className="p-3 border rounded-xl bg-gray-50/50 dark:bg-gray-800/50 dark:border-gray-700">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{log.target_name || '-'}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{log.target_type || 'N/A'} ID: {log.target_id || 'N/A'}</p>
+                <div className="p-3 border border-border/50 rounded-xl bg-muted/30">
+                  <p className="text-sm font-semibold text-foreground">{log.target_name || '-'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{log.target_type || 'N/A'} ID: {log.target_id || 'N/A'}</p>
                 </div>
               </section>
             </div>
@@ -76,12 +76,12 @@ export function AuditLogDetailDialog({ log, isOpen, onClose }: AuditLogDetailDia
                 </h4>
                 <div className="p-3 border rounded-xl bg-gray-50/50 dark:bg-gray-800/50 dark:border-gray-700 space-y-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-3.5 w-3.5 text-gray-400" />
-                    <span className="text-gray-900 dark:text-white">{new Date(log.created_at).toLocaleString()}</span>
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-foreground">{new Date(log.created_at).toLocaleString()}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                    <span className="text-gray-900 dark:text-white font-mono">{log.ip_address || 'Internal'}</span>
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-foreground font-mono">{log.ip_address || 'Internal'}</span>
                   </div>
                 </div>
               </section>
@@ -108,13 +108,13 @@ export function AuditLogDetailDialog({ log, isOpen, onClose }: AuditLogDetailDia
                 <Database className="h-4 w-4" />
                 Event Data Payload
               </h4>
-              <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-inner">
-                <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-2 border-b dark:border-gray-700 flex justify-between items-center">
-                  <span className="text-[10px] font-medium text-gray-500">JSON DATA</span>
+              <div className="rounded-xl border border-border/50 overflow-hidden shadow-inner bg-card">
+                <div className="bg-muted/50 px-4 py-2 border-b border-border/50 flex justify-between items-center">
+                  <span className="text-[10px] font-medium text-muted-foreground">JSON DATA</span>
                   <Badge variant="outline" className="text-[10px] h-4">Object</Badge>
                 </div>
-                <div className="p-4 bg-white dark:bg-gray-900 overflow-x-auto max-h-[400px]">
-                  <pre className="text-xs font-mono text-indigo-600 dark:text-indigo-400">
+                <div className="p-4 bg-card overflow-x-auto max-h-[400px]">
+                  <pre className="text-xs font-mono text-primary">
                     {JSON.stringify(log.event_data, null, 2)}
                   </pre>
                 </div>

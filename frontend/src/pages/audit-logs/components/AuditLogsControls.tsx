@@ -55,13 +55,13 @@ export function AuditLogsControls({
             <Filter className="h-4 w-4 text-gray-400" />
             Filters
             {activeFiltersCount > 0 && (
-              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white shadow-sm">
+              <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-sm">
                 {activeFiltersCount}
               </span>
             )}
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-64 p-2 shadow-xl border-gray-100">
+        <DropdownMenuContent align="start" className="w-64 p-2 shadow-xl border-border/50">
           <DropdownMenuLabel className="flex items-center justify-between">
             <span>Filter Events</span>
             {activeFiltersCount > 0 && (
@@ -135,7 +135,7 @@ export function AuditLogsControls({
           placeholder="Search activity, actors or targets..."
           value={filters.search}
           onChange={(e) => onFiltersChange({ search: e.target.value })}
-          className="pl-9 h-10 border rounded-lg shadow-sm focus-visible:ring-indigo-500 transition-all"
+          className="pl-9 h-10 border border-border/50 rounded-lg shadow-sm focus-visible:ring-primary transition-all"
         />
         {filters.search && (
           <button
@@ -177,7 +177,7 @@ export function AuditLogsControls({
       <Button
         variant="default"
         onClick={onExport}
-        className="h-10 px-4 gap-2 bg-indigo-600 hover:bg-indigo-700 shadow-md transform transition active:scale-95 w-full md:w-auto"
+        className="h-10 px-4 gap-2 bg-primary hover:bg-primary/90 shadow-md transform transition active:scale-95 w-full md:w-auto"
       >
         <Download className="h-4 w-4" />
         Export

@@ -69,7 +69,7 @@ export function AuditLogsTable({
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div className="rounded-xl border border-border/50 bg-card p-8 shadow-sm">
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="animate-pulse">
@@ -97,38 +97,38 @@ export function AuditLogsTable({
 
   if (logs.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-gray-200 bg-white p-12 text-center dark:border-gray-700 dark:bg-gray-800">
-        <Shield className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+      <div className="rounded-xl border border-dashed border-border p-12 text-center bg-card">
+        <Shield className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h3 className="mt-4 text-lg font-semibold text-foreground">
           No audit logs found
         </h3>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <p className="mt-2 text-sm text-muted-foreground">
           Try adjusting your filters to see more results
         </p>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-4">
-      <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div className="hidden md:block overflow-hidden rounded-xl border border-border/50 bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/50">
+            <thead className="border-b border-border/50 bg-muted/50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Event
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Actor
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Target
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Time
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   IP Address
                 </th>
                 <th className="w-10 px-4 py-3"></th>
@@ -150,10 +150,10 @@ export function AuditLogsTable({
                           <EventIcon className={`h-5 w-5 ${colors.text}`} />
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900 dark:text-white">
+                          <div className="text-sm font-medium text-foreground">
                             {EVENT_TYPES[log.event_type as keyof typeof EVENT_TYPES] || log.event_type}
                           </div>
-                          <Badge variant={colors.badge} className="mt-1">
+                          <Badge variant={colors.badge} className="mt-1 text-[10px] h-4 px-1.5">
                             {log.event_type}
                           </Badge>
                         </div>
@@ -162,7 +162,7 @@ export function AuditLogsTable({
 
                     <td className="px-4 py-4">
                       <div className="flex flex-col gap-1">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        <span className="text-sm font-medium text-foreground">
                           {log.actor_name || 'Unknown'}
                         </span>
                         <Badge variant={getActorBadgeColor(log.actor_type)}>
@@ -173,7 +173,7 @@ export function AuditLogsTable({
 
                     <td className="px-4 py-4">
                       <div className="flex flex-col gap-1">
-                        <span className="text-sm text-gray-900 dark:text-white">
+                        <span className="text-sm text-foreground">
                           {log.target_name || '-'}
                         </span>
                         {log.target_type && (
@@ -232,7 +232,7 @@ export function AuditLogsTable({
           return (
             <div
               key={log.audit_log_id}
-              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm active:bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
+              className="rounded-xl border border-border/50 bg-card p-4 shadow-sm active:bg-muted/50"
               onClick={() => setSelectedLog(log)}
             >
               <div className="flex items-start justify-between gap-4">
@@ -241,7 +241,7 @@ export function AuditLogsTable({
                     <EventIcon className={`h-5 w-5 ${colors.text}`} />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-semibold text-gray-900 truncate dark:text-white">
+                    <div className="text-sm font-semibold text-foreground truncate">
                       {EVENT_TYPES[log.event_type as keyof typeof EVENT_TYPES] || log.event_type}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-2">
@@ -259,7 +259,7 @@ export function AuditLogsTable({
               <div className="mt-4 grid grid-cols-2 gap-y-3 border-t pt-3 dark:border-gray-700">
                 <div>
                   <div className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Actor</div>
-                  <div className="mt-0.5 text-xs font-medium text-gray-900 dark:text-white truncate">
+                  <div className="mt-0.5 text-xs font-medium text-foreground truncate">
                     {log.actor_name || 'System'}
                   </div>
                   <Badge variant={getActorBadgeColor(log.actor_type)} className="mt-1 h-4 px-1.5 text-[9px]">
@@ -268,7 +268,7 @@ export function AuditLogsTable({
                 </div>
                 <div>
                   <div className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Target</div>
-                  <div className="mt-0.5 text-xs text-gray-900 dark:text-white truncate">
+                  <div className="mt-0.5 text-xs text-foreground truncate">
                     {log.target_name || '-'}
                   </div>
                   {log.target_type && (
