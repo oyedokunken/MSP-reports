@@ -88,8 +88,8 @@ export function EditTemplateModal({ open, onOpenChange, template, onSuccess }: E
       if (!template) return
 
       try {
-        const reportTypes = await templateApi.getAllReportTypes()
-        const reportTypeDef = reportTypes.report_types.find(
+        const response = await templateApi.getAllReportTypes()
+        const reportTypeDef = response.data.report_types.find(
           (rt: { type: string }) => rt.type === template.report_type
         )
         if (reportTypeDef) {

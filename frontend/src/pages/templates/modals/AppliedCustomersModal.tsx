@@ -37,8 +37,8 @@ export function AppliedCustomersModal({ open, onOpenChange, template }: AppliedC
         if (!template) return
         setIsLoading(true)
         try {
-            const data = await templateApi.getAppliedCustomers(template.template_id)
-            setCustomers(data)
+            const response = await templateApi.getAppliedCustomers(template.template_id)
+            setCustomers(response.data)
         } catch (err) {
             logger.error('Failed to fetch applied customers:', err)
             toast.error('Failed to load applied customers')

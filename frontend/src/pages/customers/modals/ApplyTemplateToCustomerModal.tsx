@@ -43,8 +43,8 @@ export function ApplyTemplateToCustomerModal({ open, onOpenChange, customer, onS
   const loadTemplates = async () => {
     try {
       setLoading(true)
-      const data = await templateApi.list({ active: true })
-      setTemplates(data || [])
+      const response = await templateApi.list({ active: true })
+      setTemplates(response.data || [])
     } catch (error) {
       toast.error('Failed to load templates')
       logger.error('Failed to load templates', error)

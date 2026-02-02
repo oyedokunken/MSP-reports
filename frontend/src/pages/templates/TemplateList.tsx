@@ -67,8 +67,8 @@ export default function TemplateList() {
   const loadTemplates = async () => {
     try {
       setLoading(true)
-      const data = await templateApi.list()
-      setTemplates(data)
+      const response = await templateApi.list()
+      setTemplates(response.data)
     } catch (error) {
       toast.error('Failed to load templates')
       logger.error('Failed to load templates', error as Error)
@@ -88,7 +88,7 @@ export default function TemplateList() {
       setIsDeleting(true)
       const response = await templateApi.delete(deletingTemplate.template_id)
 
-      const schedulesDeleted = response?.schedules_deleted || 0
+      const schedulesDeleted = response.data?.schedules_deleted || 0
       if (schedulesDeleted > 0) {
         toast.success(`Template deleted successfully. ${schedulesDeleted} schedule${schedulesDeleted !== 1 ? 's' : ''} also removed.`)
       } else {
