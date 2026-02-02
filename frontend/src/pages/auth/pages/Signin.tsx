@@ -73,23 +73,25 @@ const Signin = () => {
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
       </div>
 
-      <div className="absolute top-8 left-8 z-20">
+      {/* Header Content - Logo */}
+      <div className="absolute top-6 sm:top-8 left-0 right-0 sm:left-8 sm:right-auto z-20 flex justify-center sm:block">
         <MobileLogo />
       </div>
 
-      <div className="absolute top-8 right-8 z-20 flex gap-6">
-        <Link to="/privacy-policy" className="text-sm font-medium text-blue-200 hover:text-white transition-colors">
+      {/* Legal Links - Top right on desktop, Bottom on mobile */}
+      <div className="absolute bottom-6 sm:bottom-auto sm:top-8 left-0 right-0 sm:left-auto sm:right-8 z-20 flex justify-center gap-6 px-4">
+        <Link to="/privacy-policy" className="text-xs sm:text-sm font-medium text-blue-200 hover:text-white transition-colors">
           Privacy Policy
         </Link>
-        <Link to="/terms-of-service" className="text-sm font-medium text-blue-200 hover:text-white transition-colors">
+        <Link to="/terms-of-service" className="text-xs sm:text-sm font-medium text-blue-200 hover:text-white transition-colors">
           Terms of Service
         </Link>
       </div>
 
-      <div className="relative z-10 w-full max-w-md px-4 py-12">
+      <div className="relative z-10 w-full max-w-md px-4 py-20 sm:py-12">
 
         {/* Form Container */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8 border border-white/10 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 border border-white/10 backdrop-blur-sm">
           {/* Header */}
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900">Sign In</h2>

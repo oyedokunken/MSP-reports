@@ -30,7 +30,7 @@ const ResetPassword = () => {
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
       </div>
 
-      <div className="absolute top-8 left-8 z-20">
+      <div className="absolute top-6 sm:top-8 left-0 right-0 sm:left-8 sm:right-auto z-20 flex justify-center sm:block">
         <div className="text-center">
           <img src="/logo.png" alt="Logo" className="h-12 w-auto brightness-0 invert" />
         </div>
