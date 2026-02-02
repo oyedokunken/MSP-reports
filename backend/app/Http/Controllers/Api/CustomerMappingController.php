@@ -305,6 +305,7 @@ final class CustomerMappingController extends Controller
         $validated = $request->validated();
 
         try {
+            /** @var array{canonical_name: string, status?: string, report_destination?: string|null, metadata?: array<string, mixed>} $validated */
             $customer = $action->execute($company, $validated);
             return response()->json([
                 'status' => 'success',
@@ -330,7 +331,9 @@ final class CustomerMappingController extends Controller
         $company = $authUser->company;
 
         try {
-            $result = $action->execute($authUser, $company, $request->validated(), $request->ip());
+            /** @var array{integration_customer_id: int, customer_id?: int, create_new?: bool, canonical_name?: string, status?: string, report_destination?: string|null, metadata?: array<string, mixed>} $validated */
+            $validated = $request->validated();
+            $result = $action->execute($authUser, $company, $validated, $request->ip());
 
             return response()->json([
                 'status' => 'success',

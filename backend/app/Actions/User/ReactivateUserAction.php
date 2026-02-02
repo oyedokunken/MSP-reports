@@ -24,7 +24,7 @@ final class ReactivateUserAction
             ]);
         }
 
-        $user->status = 'active';
+        $user->status = \App\Enums\UserStatus::ACTIVE;
         $user->save();
 
         return $user;

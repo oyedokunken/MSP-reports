@@ -6,6 +6,7 @@ namespace App\Traits;
 
 use Illuminate\Http\JsonResponse;
 
+/** @phpstan-ignore trait.unused */
 trait HttpResponses
 {
     /**

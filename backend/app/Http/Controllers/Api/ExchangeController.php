@@ -23,7 +23,7 @@ final class ExchangeController extends Controller
     /**
      * Handle Exchange data push from agent
      * 
-     * @param Request $request
+     * @param ExchangePushRequest $request
      * @return JsonResponse
      */
     public function push(ExchangePushRequest $request): JsonResponse

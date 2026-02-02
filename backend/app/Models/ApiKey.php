@@ -63,6 +63,8 @@ class ApiKey extends Model
         'last_used_at' => 'datetime',
         'revoked' => 'boolean',
         'revoked_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     

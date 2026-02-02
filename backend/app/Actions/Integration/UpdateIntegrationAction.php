@@ -36,7 +36,7 @@ final class UpdateIntegrationAction
         }
 
         if (array_key_exists('status', $data)) {
-            $integration->status = $data['status'];
+            $integration->status = \App\Enums\IntegrationStatus::from($data['status']);
         }
 
         if (array_key_exists('credentials', $data)) {

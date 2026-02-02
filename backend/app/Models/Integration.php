@@ -114,6 +114,8 @@ class Integration extends Model
     protected $casts = [
         'last_sync_at' => 'datetime',
         'last_historical_sync_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
         'credentials' => 'encrypted:array',
         'configuration' => 'array',
         'is_source_of_truth' => 'boolean',

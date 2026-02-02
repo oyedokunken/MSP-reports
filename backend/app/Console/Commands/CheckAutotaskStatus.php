@@ -28,7 +28,7 @@ class CheckAutotaskStatus extends Command
         }
 
         $this->info("Integration ID: {$integration->integration_id}");
-        $this->info("Status: {$integration->status}");
+        $this->info("Status: {$integration->status->value}");
         $this->info("Is Source of Truth: " . ($integration->is_source_of_truth ? 'Yes' : 'No'));
         $this->newLine();
 

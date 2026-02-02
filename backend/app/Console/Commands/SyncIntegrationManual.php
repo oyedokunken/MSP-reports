@@ -49,14 +49,14 @@ class SyncIntegrationManual extends Command
             $this->newLine();
             $this->info("Available integrations:");
             Integration::all()->each(function ($i) {
-                $this->line("  [{$i->integration_id}] {$i->display_name} ({$i->integration_type}) - {$i->status}");
+                $this->line("  [{$i->integration_id}] {$i->display_name} ({$i->integration_type}) - {$i->status->value}");
             });
             return 1;
         }
 
         $this->info("Integration: {$integration->display_name} ({$integration->integration_type})");
         $this->info("Company: {$integration->company->name}");
-        $this->info("Status: {$integration->status}");
+        $this->info("Status: {$integration->status->value}");
         $this->info("Last sync: " . ($integration->last_sync_at ?? 'Never'));
         $this->newLine();
 

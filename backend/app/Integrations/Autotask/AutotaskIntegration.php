@@ -33,6 +33,14 @@ final class AutotaskIntegration implements IntegrationInterface
 
 
 
+
+    private const BATCH_SIZE_TICKETS = 50;
+    private const BATCH_SIZE_TIME_ENTRIES = 50;
+    private const CACHE_TTL_MINUTES = 10;
+    private const SYNC_LOOKBACK_MINUTES = 5;
+    private const SYNC_DEFAULT_LOOKBACK_MINUTES = 60;
+    private const HISTORICAL_BATCH_SIZE = 1000;
+
     public function __construct(Integration $integration)
     {
         $this->integration = $integration;
@@ -159,13 +167,13 @@ final class AutotaskIntegration implements IntegrationInterface
             'mapped' => $mappedCount,
             'unmapped' => $unmappedCount,
             'last_sync' => now(),
-        ], now()->addMinutes(10));
+        ], now()->addMinutes(self::CACHE_TTL_MINUTES));
 
         $ticketsProcessed = 0;
         $timeEntriesProcessed = 0;
         
         try {
-            $since = $this->integration->last_sync_at ? Carbon::parse($this->integration->last_sync_at)->subMinutes(5) : now()->subMinutes(60);
+            $since = $this->integration->last_sync_at ? Carbon::parse($this->integration->last_sync_at)->subMinutes(self::SYNC_LOOKBACK_MINUTES) : now()->subMinutes(self::SYNC_DEFAULT_LOOKBACK_MINUTES);
             $until = now();
             
             $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
@@ -184,10 +192,10 @@ final class AutotaskIntegration implements IntegrationInterface
             
             $ticketToCompanyMap = [];
             
-                if ($ticketsProcessed % 50 === 0) $this->sendHeartbeat();
+            if ($ticketsProcessed % self::BATCH_SIZE_TICKETS === 0) $this->sendHeartbeat();
             
             // Chunk manually since array_slice might have messed up keys/indexing
-            $ticketChunks = array_chunk($recentTickets, 50);
+            $ticketChunks = array_chunk($recentTickets, self::BATCH_SIZE_TICKETS);
             
             foreach ($ticketChunks as $chunk) {
                  \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, IntegrationDataType::TICKET, $chunk, $this->currentSyncLogId);
@@ -204,9 +212,9 @@ final class AutotaskIntegration implements IntegrationInterface
                 $timeEntriesProcessed = $resumeOffset;
             }
             
-            if ($timeEntriesProcessed % 50 === 0) $this->sendHeartbeat();
+            if ($timeEntriesProcessed % self::BATCH_SIZE_TIME_ENTRIES === 0) $this->sendHeartbeat();
             
-            $timeChunks = array_chunk($recentTimeEntries, 50);
+            $timeChunks = array_chunk($recentTimeEntries, self::BATCH_SIZE_TIME_ENTRIES);
              foreach ($timeChunks as $chunk) {
                  \App\Jobs\ProcessIntegrationBatchJob::dispatch($this->integration, IntegrationDataType::TIME_ENTRY, $chunk, $this->currentSyncLogId);
                  $timeEntriesProcessed += count($chunk);
@@ -313,7 +321,7 @@ final class AutotaskIntegration implements IntegrationInterface
                 $ticketToCompanyMap[$ticket['id']] = $ticket['companyID'] ?? null;
             }
             
-            foreach (array_chunk($tickets, 1000) as $chunk) {
+            foreach (array_chunk($tickets, self::HISTORICAL_BATCH_SIZE) as $chunk) {
                 $batchRecords = [];
 
                 foreach ($chunk as $ticket) {
@@ -361,7 +369,7 @@ final class AutotaskIntegration implements IntegrationInterface
             $timeEntriesProcessed = 0;
             $timeEntries = $this->client->getTimeEntries($startDate, $endDate);
             
-            foreach (array_chunk($timeEntries, 1000) as $chunk) {
+            foreach (array_chunk($timeEntries, self::HISTORICAL_BATCH_SIZE) as $chunk) {
                 $batchRecords = [];
 
                 foreach ($chunk as $entry) {
@@ -412,7 +420,7 @@ final class AutotaskIntegration implements IntegrationInterface
                 $resources = $this->client->getResources();
                 $resourcesProcessed = 0;
                 
-                foreach (array_chunk($resources, 1000) as $chunk) {
+                foreach (array_chunk($resources, self::HISTORICAL_BATCH_SIZE) as $chunk) {
                     $batchRecords = [];
                     
                     foreach ($chunk as $resource) {
@@ -451,7 +459,7 @@ final class AutotaskIntegration implements IntegrationInterface
                 $contracts = $this->client->getContracts(); 
                 $contractsProcessed = 0;
 
-                foreach (array_chunk($contracts, 1000) as $chunk) {
+                foreach (array_chunk($contracts, self::HISTORICAL_BATCH_SIZE) as $chunk) {
                     $batchRecords = [];
 
                     foreach ($chunk as $contract) {
@@ -485,7 +493,7 @@ final class AutotaskIntegration implements IntegrationInterface
                 $contacts = $this->client->getContacts($startDate, $endDate);
                 $contactsProcessed = 0;
 
-                foreach (array_chunk($contacts, 1000) as $chunk) {
+                foreach (array_chunk($contacts, self::HISTORICAL_BATCH_SIZE) as $chunk) {
                     $batchRecords = [];
                     foreach ($chunk as $contact) {
                         try {
@@ -521,7 +529,7 @@ final class AutotaskIntegration implements IntegrationInterface
                 $notes = $this->client->getTicketNotes($startDate, $endDate);
                 $notesProcessed = 0;
 
-                foreach (array_chunk($notes, 1000) as $chunk) {
+                foreach (array_chunk($notes, self::HISTORICAL_BATCH_SIZE) as $chunk) {
                     $batchRecords = [];
                     foreach ($chunk as $note) {
                         try {

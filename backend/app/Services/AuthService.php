@@ -112,9 +112,9 @@ final class AuthService
             ]);
         }
 
-        if (in_array($user->status, ['inactive', 'locked'])) {
+        if (in_array($user->status->value, ['inactive', 'locked'])) {
             throw ValidationException::withMessages([
-                'email' => ['Your account is currently ' . $user->status . '. Please contact your administrator.'],
+                'email' => ['Your account is currently ' . $user->status->value . '. Please contact your administrator.'],
             ]);
         }
     }

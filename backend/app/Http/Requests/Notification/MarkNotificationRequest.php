@@ -14,6 +14,9 @@ class MarkNotificationRequest extends FormRequest
         return $this->user()->notifications()->where('id', $id)->exists();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [];

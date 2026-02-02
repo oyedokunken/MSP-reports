@@ -75,6 +75,8 @@ class User extends Authenticatable
         'auth_method' => AuthMethod::class,
         'last_login_at' => 'datetime',
         'email_verified_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
         'permissions' => 'array',
         'scoped_customers' => 'array',
         'settings' => 'array',
@@ -91,15 +93,7 @@ class User extends Authenticatable
         return $this->last_login_at?->toIso8601String();
     }
 
-    /**
-     * Accessor for created_at (ensure it's always included)
-     * 
-     * @param string|null $value
-     */
-    public function getCreatedAtAttribute(?string $value): ?string
-    {
-        return $value ? \Carbon\Carbon::parse($value)->toIso8601String() : null;
-    }
+
 
     /**
      * Accessor for profile_picture_url

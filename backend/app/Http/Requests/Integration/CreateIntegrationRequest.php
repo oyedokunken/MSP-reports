@@ -15,6 +15,9 @@ class CreateIntegrationRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(IntegrationService $integrationService): array
     {
         $availableTypes = $integrationService->scanAvailableIntegrations();

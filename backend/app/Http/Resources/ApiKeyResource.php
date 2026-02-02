@@ -16,19 +16,22 @@ class ApiKeyResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        /** @var \App\Models\ApiKey $apiKey */
+        $apiKey = $this->resource;
+        
         return [
-            'api_key_id' => $this->api_key_id,
-            'display_name' => $this->display_name,
-            'customer_id' => $this->customer_id,
-            'customer_name' => $this->whenLoaded('customer', fn() => $this->customer->canonical_name),
-            'created_by' => $this->whenLoaded('createdBy', fn() => $this->createdBy->name),
-            'created_at' => $this->created_at->toIso8601String(),
-            'last_used_at' => $this->last_used_at?->toIso8601String(),
-            'permissions' => $this->permissions,
-            'ip_whitelist' => $this->ip_whitelist,
-            'allowed_endpoints' => $this->allowed_endpoints,
-            'revoked' => $this->revoked,
-            'revoked_at' => $this->revoked_at?->toIso8601String(),
+            'api_key_id' => $apiKey->api_key_id,
+            'display_name' => $apiKey->display_name,
+            'customer_id' => $apiKey->customer_id,
+            'customer_name' => $this->whenLoaded('customer', fn() => $apiKey->customer->canonical_name),
+            'created_by' => $this->whenLoaded('createdBy', fn() => $apiKey->createdBy->name),
+            'created_at' => $apiKey->created_at->toIso8601String(),
+            'last_used_at' => $apiKey->last_used_at?->toIso8601String(),
+            'permissions' => $apiKey->permissions,
+            'ip_whitelist' => $apiKey->ip_whitelist,
+            'allowed_endpoints' => $apiKey->allowed_endpoints,
+            'revoked' => $apiKey->revoked,
+            'revoked_at' => $apiKey->revoked_at?->toIso8601String(),
         ];
     }
 }

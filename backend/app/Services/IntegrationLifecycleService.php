@@ -52,7 +52,7 @@ class IntegrationLifecycleService
         $integration = $this->baseIntegrationService->createIntegration($company, $data);
 
         // 2. The "Kick-off" Phase (Automation)
-        if ($integration->status === 'active') {
+        if ($integration->status->value === 'active') {
             $this->kickstartAutomation($integration);
         }
 

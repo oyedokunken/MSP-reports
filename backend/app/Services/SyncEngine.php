@@ -129,8 +129,8 @@ final class SyncEngine
         } else {
             $integration->error_message = null;
             // Reset status to active when sync succeeds
-            if ($status === 'success' && $integration->status === 'error') {
-                $integration->status = 'active';
+            if ($status === 'success' && $integration->status->value === 'error') {
+                $integration->status = \App\Enums\IntegrationStatus::ACTIVE;
             }
         }
 

@@ -233,7 +233,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
             // (handles race conditions where another worker marked it complete)
             if ($freshJob->status === 'completed' || $allJobsComplete) {
                 // Only update if still in importing state
-                if ($integration->status === 'importing_historical') {
+                if ($integration->status->value === 'importing_historical') {
                     $integration->update([
                         'status' => 'active',
                         'historical_import_status' => 'completed',

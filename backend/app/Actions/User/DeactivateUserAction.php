@@ -30,7 +30,7 @@ final class DeactivateUserAction
             ]);
         }
 
-        $user->status = 'inactive';
+        $user->status = \App\Enums\UserStatus::INACTIVE;
         $user->save();
         $user->tokens()->delete();
 

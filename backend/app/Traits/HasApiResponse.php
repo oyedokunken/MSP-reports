@@ -16,6 +16,7 @@ trait HasApiResponse
      * @param mixed $data
      * @param string|null $message
      * @param int $code
+     * @param array<string, mixed> $additional
      * @return JsonResponse
      */
     protected function success(mixed $data = null, ?string $message = null, int $code = 200, array $additional = []): JsonResponse

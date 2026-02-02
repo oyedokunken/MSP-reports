@@ -7,29 +7,30 @@ namespace App\Http\Controllers\Api;
 use App\Actions\User\CreateUserAction;
 use App\Actions\User\DeactivateUserAction;
 use App\Actions\User\DeleteUserAction;
+use App\Actions\User\DeleteUserProfilePictureAction;
 use App\Actions\User\ReactivateUserAction;
 use App\Actions\User\ResetUserPasswordAction;
 use App\Actions\User\UpdateUserAction;
+use App\Actions\User\UpdateUserPermissionsAction;
+use App\Actions\User\UploadUserProfilePictureAction;
 use App\Http\Requests\User\ClearForcePasswordChangeRequest;
 use App\Http\Requests\User\CreateUserRequest;
+use App\Http\Requests\User\DeactivateUserRequest;
+use App\Http\Requests\User\DeleteProfilePictureRequest;
+use App\Http\Requests\User\DeleteUserRequest;
+use App\Http\Requests\User\GetRolesRequest;
+use App\Http\Requests\User\GetUsersRequest;
+use App\Http\Requests\User\ReactivateUserRequest;
 use App\Http\Requests\User\ResetUserPasswordRequest;
 use App\Http\Requests\User\UpdatePermissionsRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Requests\User\UploadProfilePictureRequest;
-use App\Http\Requests\User\GetUsersRequest;
-use App\Http\Requests\User\DeactivateUserRequest;
-use App\Http\Requests\User\ReactivateUserRequest;
-use App\Http\Requests\User\DeleteUserRequest;
-use App\Http\Requests\User\GetRolesRequest;
-use App\Http\Requests\User\DeleteProfilePictureRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
-use App\Rules\StrongPassword;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -78,7 +79,9 @@ final class UserController extends Controller
         $authUser = $request->user();
 
         try {
-            $user = $action->execute($authUser, $request->validated());
+            /** @var array{name: string, email: string, password: string, role_id: int, status?: string, auth_method?: string, permissions?: array<string, mixed>|null, scoped_customers?: array<int>|null} $validated */
+            $validated = $request->validated();
+            $user = $action->execute($authUser, $validated);
             return $this->success(new UserResource($user->load('role')), null, 201);
         } catch (ValidationException $e) {
             // Check if it's a license error
@@ -89,43 +92,19 @@ final class UserController extends Controller
         }
     }
 
-    public function updatePermissions(UpdatePermissionsRequest $request, int $id): JsonResponse
+    public function updatePermissions(UpdatePermissionsRequest $request, int $id, UpdateUserPermissionsAction $action): JsonResponse
     {
         $authUser = $request->user();
 
-        $user = User::where('user_id', $id)
-            ->where('company_id', $authUser->company_id)
-            ->first();
-
-        if (!$user) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'User not found in your company.'
-            ], 404);
+        try {
+            /** @var array{permissions: array<string, array<string, bool>>} $validated */
+            $validated = $request->validated();
+            $user = $action->execute($authUser, $id, $validated);
+            
+            return $this->success(new UserResource($user->load('role')));
+        } catch (ValidationException $e) {
+            return $this->error($e->getMessage(), 422);
         }
-
-        $validated = $request->validated();
-
-        $defaultPermissions = [
-            "integrations" => ["view" => true, "manage" => true, "sync" => true],
-            "customers" => ["view" => true, "edit" => true, "map" => true],
-            "reports" => ["view" => true, "configure" => true, "generate" => true, "download" => true],
-            "users" => ["view" => true, "manage" => true],
-            "company_settings" => ["view" => true, "edit" => true]
-        ];
-
-        $permissions = $validated['permissions'];
-        foreach ($defaultPermissions as $section => $actions) {
-            $permissions[$section] = array_merge($actions, $permissions[$section] ?? []);
-        }
-
-        $user->permissions = $permissions;
-        $user->save();
-
-        return response()->json([
-            'status' => 'success',
-            'data' => new UserResource($user->load('role'))
-        ]);
     }
 
     public function updateUser(UpdateUserRequest $request, int $id, UpdateUserAction $action): JsonResponse
@@ -134,16 +113,10 @@ final class UserController extends Controller
 
         try {
             $user = $action->execute($authUser, $id, $request->validated());
-            return response()->json([
-                'status' => 'success',
-                'data' => new UserResource($user->load('role'))
-            ]);
+            // Standardized response using success helper and Resource
+            return $this->success(new UserResource($user->load('role')));
         } catch (ValidationException $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-                'errors' => $e->errors(),
-            ], 422);
+            return $this->error($e->getMessage(), 422, $e->errors());
         }
     }
 
@@ -153,17 +126,10 @@ final class UserController extends Controller
 
         try {
             $user = $action->execute($authUser, $id);
-            return response()->json([
-                'status' => 'success',
-                'message' => 'User deactivated successfully.',
-                'data' => new UserResource($user->load('role'))
-            ]);
+            return $this->success(new UserResource($user->load('role')), 'User deactivated successfully.');
         } catch (ValidationException $e) {
             $statusCode = str_contains($e->getMessage(), 'not found') ? 404 : 400;
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-            ], $statusCode);
+            return $this->error($e->getMessage(), $statusCode);
         }
     }
 
@@ -173,16 +139,9 @@ final class UserController extends Controller
 
         try {
             $user = $action->execute($authUser, $id);
-            return response()->json([
-                'status' => 'success',
-                'message' => 'User reactivated successfully.',
-                'data' => new UserResource($user->load('role'))
-            ]);
+            return $this->success(new UserResource($user->load('role')), 'User reactivated successfully.');
         } catch (ValidationException $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-            ], 404);
+            return $this->error($e->getMessage(), 404);
         }
     }
 
@@ -192,16 +151,10 @@ final class UserController extends Controller
 
         try {
             $action->execute($authUser, $id);
-            return response()->json([
-                'status' => 'success',
-                'message' => 'User deleted successfully.'
-            ]);
+            return $this->success([], 'User deleted successfully.');
         } catch (ValidationException $e) {
             $statusCode = str_contains($e->getMessage(), 'not found') ? 404 : 400;
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-            ], $statusCode);
+            return $this->error($e->getMessage(), $statusCode);
         }
     }
 
@@ -211,16 +164,10 @@ final class UserController extends Controller
 
         try {
             $action->execute($authUser, $id, $request->validated()['new_password'], $request->ip(), $request->userAgent());
-            return response()->json([
-                'status' => 'success',
-                'message' => 'User password reset successfully.'
-            ]);
+            return $this->success([], 'User password reset successfully.');
         } catch (ValidationException $e) {
             $statusCode = str_contains($e->getMessage(), 'not found') ? 404 : 400;
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-            ], $statusCode);
+            return $this->error($e->getMessage(), $statusCode);
         }
     }
 
@@ -234,74 +181,32 @@ final class UserController extends Controller
         ]);
     }
 
-    public function uploadProfilePicture(UploadProfilePictureRequest $request, int $id): JsonResponse
+    public function uploadProfilePicture(UploadProfilePictureRequest $request, int $id, UploadUserProfilePictureAction $action): JsonResponse
     {
         $authUser = $request->user();
 
-        $user = User::where('user_id', $id)
-            ->where('company_id', $authUser->company_id)
-            ->first();
-
-        // No need for "if (!$user)" because authorize() handles it (if we updated UploadProfilePictureRequest)
-        // Let's check if UploadProfilePictureRequest has authorization. 
-        // If not, we should keep the check here or update it.
-
-        // Delete old profile picture if exists
-        if ($user->profile_picture) {
-            $oldPath = storage_path('app/public/' . $user->profile_picture);
-            if (file_exists($oldPath)) {
-                unlink($oldPath);
-            }
+        try {
+            $user = $action->execute($authUser, $id, $request->file('profile_picture'));
+            
+            return $this->success([
+                'profile_picture' => $user->profile_picture,
+                'profile_picture_url' => $user->profile_picture_url,
+            ], 'Profile picture uploaded successfully.');
+        } catch (ValidationException $e) {
+            return $this->error($e->getMessage(), 500);
         }
-
-        // Store new profile picture
-        $file = $request->file('profile_picture');
-        $filename = 'profile_' . $user->user_id . '_' . time() . '.' . $file->getClientOriginalExtension();
-        $path = $file->storeAs('profile-pictures', $filename, 'public');
-
-        if ($path === false) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to store profile picture.',
-            ], 500);
-        }
-
-        $user->profile_picture = $path;
-        $user->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Profile picture uploaded successfully.',
-            'data' => [
-                'profile_picture' => $path,
-                'profile_picture_url' => asset('storage/' . $path),
-            ]
-        ]);
     }
 
-    public function deleteProfilePicture(DeleteProfilePictureRequest $request, int $id): JsonResponse
+    public function deleteProfilePicture(DeleteProfilePictureRequest $request, int $id, DeleteUserProfilePictureAction $action): JsonResponse
     {
         $authUser = $request->user();
 
-        $user = User::where('user_id', $id)
-            ->where('company_id', $authUser->company_id)
-            ->first();
-
-        // No need for "if (!$user)" because authorize() handles it
-
-        if ($user->profile_picture) {
-            $oldPath = storage_path('app/public/' . $user->profile_picture);
-            if (file_exists($oldPath)) {
-                unlink($oldPath);
-            }
-            $user->profile_picture = null;
-            $user->save();
+        try {
+            $action->execute($authUser, $id);
+            return $this->success([], 'Profile picture deleted successfully.');
+        } catch (ValidationException $e) {
+            return $this->error($e->getMessage(), 422);
         }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Profile picture deleted successfully.'
-        ]);
     }
 
     public function clearForcePasswordChange(ClearForcePasswordChangeRequest $request): JsonResponse
@@ -310,10 +215,7 @@ final class UserController extends Controller
         $validated = $request->validated();
 
         if (!Hash::check($validated['current_password'], $user->password)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Current password is incorrect.'
-            ], 400);
+            return $this->error('Current password is incorrect.', 400);
         }
 
         $user->password = Hash::make($validated['new_password']);
@@ -337,12 +239,8 @@ final class UserController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Password changed successfully.',
-            'data' => [
-                'token' => $token,
-            ]
-        ]);
+        return $this->success([
+            'token' => $token,
+        ], 'Password changed successfully.');
     }
 }

@@ -16,16 +16,19 @@ class CustomerResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        /** @var \App\Models\Customer $customer */
+        $customer = $this->resource;
+        
         return [
-            'customer_id' => $this->customer_id,
-            'canonical_name' => $this->canonical_name,
-            'status' => $this->status,
-            'is_static' => $this->is_static,
-            'report_configuration' => $this->report_configuration,
-            'report_destination' => $this->report_destination,
-            'metadata' => $this->metadata,
-            'created_at' => $this->created_at?->toIso8601String(),
-            'updated_at' => $this->updated_at?->toIso8601String(),
+            'customer_id' => $customer->customer_id,
+            'canonical_name' => $customer->canonical_name,
+            'status' => $customer->status,
+            'is_static' => $customer->is_static,
+            'report_configuration' => $customer->report_configuration,
+            'report_destination' => $customer->report_destination,
+            'metadata' => $customer->metadata,
+            'created_at' => $customer->created_at?->toIso8601String(),
+            'updated_at' => $customer->updated_at?->toIso8601String(),
             'mappings_count' => $this->whenCounted('customerMappings'),
         ];
     }

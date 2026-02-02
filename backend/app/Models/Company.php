@@ -54,6 +54,8 @@ class Company extends Model
 
     protected $casts = [
         'settings' => 'array',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     

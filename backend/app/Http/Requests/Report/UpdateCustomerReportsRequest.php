@@ -26,6 +26,9 @@ class UpdateCustomerReportsRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

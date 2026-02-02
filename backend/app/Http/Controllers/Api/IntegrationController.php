@@ -48,27 +48,7 @@ final class IntegrationController extends Controller
             ->with(['syncLogs' => function ($query) {
                 $query->latest('started_at')->limit(1);
             }])
-            ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth', 'last_sync_at', 'last_sync_status', 'sync_schedule'])
-            ->map(function ($integration) {
-                $latestSync = $integration->syncLogs->first();
-                return [
-                    'integration_id' => $integration->integration_id,
-                    'integration_type' => $integration->integration_type,
-                    'display_name' => $integration->display_name,
-                    'status' => $integration->status,
-                    'is_source_of_truth' => $integration->is_source_of_truth,
-                    'source_label' => $integration->is_source_of_truth ? '✅ Source of Truth' : null,
-                    'last_sync_at' => $integration->last_sync_at,
-                    'last_sync_status' => $integration->last_sync_status,
-                    'unmapped_customers_count' => $integration->unmapped_customers_count ?? 0,
-                    'total_customers_count' => $integration->total_customers_count ?? 0,
-                    'next_sync_at' => $this->integrationService->calculateNextSyncAt($integration),
-                    'records_synced' => $latestSync ? $latestSync->records_synced : 0,
-                    'last_error' => $latestSync && $latestSync->status === 'failed' ? ($latestSync->error_messages[0] ?? null) : null,
-                    'historical_import_status' => $integration->historical_import_status,
-                    'historical_import_progress' => $integration->historical_import_progress,
-                ];
-            });
+            ->get();
 
         return response()->json([
             'available_types' => $availableTypes,
@@ -95,7 +75,9 @@ final class IntegrationController extends Controller
     public function createIntegration(CreateIntegrationRequest $request, CreateIntegrationAction $action): JsonResponse
     {
         try {
-            $integration = $action->execute($request->user()->company, $request->validated());
+            /** @var array{integration_type: string, display_name: string, status?: string, credentials?: array<string, mixed>|null, configuration?: array<string, mixed>|null, is_source_of_truth?: bool|null} $validated */
+            $validated = $request->validated();
+            $integration = $action->execute($request->user()->company, $validated);
             return response()->json([
                 'status' => 'success',
                 'data' => new IntegrationResource($integration)
@@ -290,7 +272,7 @@ final class IntegrationController extends Controller
             ], 404);
         }
 
-        $isHealthy = $integration->status === 'active';
+        $isHealthy = $integration->status->value === 'active';
         $lastSyncAge = $integration->last_sync_at
             ? now()->diffInMinutes($integration->last_sync_at)
             : null;

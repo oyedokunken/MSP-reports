@@ -246,7 +246,7 @@ class IntegrationService
 
     public function calculateNextSyncAt(Integration $integration): ?string
     {
-        if (!$integration->last_sync_at || $integration->status !== 'active') {
+        if (!$integration->last_sync_at || $integration->status->value !== 'active') {
             return null;
         }
 

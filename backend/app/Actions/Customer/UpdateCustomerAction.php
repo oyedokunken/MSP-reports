@@ -44,7 +44,7 @@ final class UpdateCustomerAction
         }
 
         if (array_key_exists('metadata', $data)) {
-            $customer->metadata = array_merge($customer->metadata ?? [], $data['metadata'] ?? []);
+            $customer->metadata = array_merge($customer->metadata ?? [], $data['metadata']);
         }
 
         $customer->save();

@@ -12,24 +12,28 @@ class UserResource extends JsonResource
     /**
      * Transform the resource into an array.
      *
+     * @param Request $request
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
     {
+        /** @var \App\Models\User $user */
+        $user = $this->resource;
+        
         return [
-            'user_id' => $this->user_id,
-            'name' => $this->name,
-            'email' => $this->email,
-            'company_id' => $this->company_id,
-            'role_id' => $this->role_id,
-            'role_name' => $this->whenLoaded('role', fn() => $this->role->name),
-            'auth_method' => $this->auth_method,
-            'status' => $this->status,
-            'permissions' => $this->permissions,
-            'profile_picture_url' => $this->profile_picture ? asset('storage/' . $this->profile_picture) : null,
-            'last_login_at' => $this->last_login_at?->toIso8601String(),
-            'created_at' => $this->created_at?->toIso8601String(),
-            'updated_at' => $this->updated_at?->toIso8601String(),
+            'user_id' => $user->user_id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'company_id' => $user->company_id,
+            'role_id' => $user->role_id,
+            'role_name' => $this->whenLoaded('role', fn() => $user->role->name),
+            'auth_method' => $user->auth_method,
+            'status' => $user->status,
+            'permissions' => $user->permissions,
+            'profile_picture_url' => $user->profile_picture ? asset('storage/' . $user->profile_picture) : null,
+            'last_login_at' => $user->last_login_at?->toIso8601String(),
+            'created_at' => $user->created_at?->toIso8601String(),
+            'updated_at' => $user->updated_at?->toIso8601String(),
         ];
     }
 }

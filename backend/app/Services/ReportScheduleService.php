@@ -111,7 +111,7 @@ final class ReportScheduleService
         $time = Carbon::parse($schedule->time_of_day ?? '09:00', $timezone);
         $now = Carbon::now($timezone);
 
-        return match ($schedule->frequency) {
+        return match ($schedule->frequency->value) {
             'daily' => $this->calculateDailyNext($schedule, $time, $now),
             'weekly' => $this->calculateWeeklyNext($schedule, $time, $now),
             'monthly' => $this->calculateMonthlyNext($schedule, $time, $now),

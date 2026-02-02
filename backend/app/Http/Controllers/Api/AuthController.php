@@ -199,8 +199,8 @@ final class AuthController extends Controller
                 return redirect(config('auth_methods.frontend_url') . '/sign-in?error=company_suspended');
             }
 
-            if (in_array($user->status, ['inactive', 'locked'])) {
-                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=account_' . $user->status);
+            if (in_array($user->status->value, ['inactive', 'locked'])) {
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=account_' . $user->status->value);
             }
 
             // Update last login
@@ -306,8 +306,8 @@ final class AuthController extends Controller
                 return redirect(config('auth_methods.frontend_url') . '/sign-in?error=company_suspended');
             }
 
-            if (in_array($user->status, ['inactive', 'locked'])) {
-                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=account_' . $user->status);
+            if (in_array($user->status->value, ['inactive', 'locked'])) {
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=account_' . $user->status->value);
             }
 
             // Update last login
@@ -452,8 +452,8 @@ final class AuthController extends Controller
                 return redirect(config('auth_methods.frontend_url') . '/sign-in?error=company_suspended');
             }
 
-            if (in_array($user->status, ['inactive', 'locked'])) {
-                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=account_' . $user->status);
+            if (in_array($user->status->value, ['inactive', 'locked'])) {
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=account_' . $user->status->value);
             }
 
             // Update last login

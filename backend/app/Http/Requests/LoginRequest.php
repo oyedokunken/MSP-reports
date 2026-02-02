@@ -16,6 +16,9 @@ final class LoginRequest extends FormRequest
     /**
      * @return array<string, string|array<int, string>>
      */
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [

@@ -54,13 +54,13 @@ class ListIntegrations extends Command
 
         $this->newLine();
 
-        $rows = $integrations->map(function ($integration) {
+        $rows = $integrations->map(function (Integration $integration) {
             return [
                 $integration->integration_id,
                 $integration->integration_type,
                 $integration->display_name,
                 $integration->company->name ?? 'N/A',
-                $this->getStatusEmoji($integration->status) . ' ' . $integration->status,
+                $this->getStatusEmoji($integration->status->value) . ' ' . $integration->status->value,
                 $integration->is_source_of_truth ? '✓' : '',
                 $integration->last_sync_at?->diffForHumans() ?? 'Never',
                 $integration->last_sync_status ?? 'N/A',

@@ -26,7 +26,7 @@ final class ActiveDirectoryController extends Controller
     /**
      * Receive Active Directory sync push from agent
      * 
-     * @param Request $request
+     * @param ActiveDirectoryPushRequest $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function push(ActiveDirectoryPushRequest $request)

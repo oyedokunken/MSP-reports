@@ -52,6 +52,8 @@ class Customer extends Model
         'report_configuration' => 'array',
         'metadata' => 'array',
         'is_static' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**
