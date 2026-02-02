@@ -12,6 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            return;
+        }
+
         // Drop the old CHECK constraint
         DB::statement("ALTER TABLE customer_mappings DROP CONSTRAINT IF EXISTS customer_mappings_mapping_type_check");
         

@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Company\UpdateBrandingAction;
+use App\Actions\Company\UpdateSettingsAction;
+use App\Actions\Company\UploadLogoAction;
+use App\Http\Requests\Company\UpdateBrandingRequest;
+use App\Http\Requests\Company\UpdateSettingsRequest;
+use App\Http\Requests\Company\UploadLogoRequest;
 use App\Http\Controllers\Controller;
 use App\Services\ReportNamingService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 final class CompanyController extends Controller
 {
@@ -63,31 +69,13 @@ final class CompanyController extends Controller
     /**
      * Update company settings
      */
-    public function updateSettings(Request $request): JsonResponse
+    public function updateSettings(UpdateSettingsRequest $request, UpdateSettingsAction $action): JsonResponse
     {
         try {
             $authUser = $request->user();
             $company = $authUser->company;
 
-            // Validate input
-            $validated = $request->validate([
-                'name' => 'sometimes|string|max:255',
-                'abn' => 'sometimes|nullable|string|max:50',
-                'contact_email' => 'sometimes|nullable|email|max:255',
-                'contact_phone' => 'sometimes|nullable|string|max:50',
-                'address' => 'sometimes|nullable|string|max:1000',
-                'settings' => 'sometimes|nullable|array',
-            ]);
-
-            // Update company
-            $company->update($validated);
-
-            // Log the update
-            Log::info('Company settings updated', [
-                'company_id' => $company->company_id,
-                'updated_fields' => array_keys($validated),
-                'user_id' => $authUser->user_id,
-            ]);
+            $company = $action->execute($company, $request->validated(), $authUser->user_id);
 
             return response()->json([
                 'status' => 'success',
@@ -105,7 +93,7 @@ final class CompanyController extends Controller
                 ]
             ]);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Validation failed',
@@ -127,121 +115,21 @@ final class CompanyController extends Controller
     /**
      * Update company branding (for white-label settings)
      */
-    public function updateBranding(Request $request): JsonResponse
+    public function updateBranding(UpdateBrandingRequest $request, UpdateBrandingAction $action): JsonResponse
     {
         try {
             $authUser = $request->user();
             $company = $authUser->company;
 
-            // Validate input
-            $validated = $request->validate([
-                'company_name' => 'sometimes|string|max:255',
-                'primary_color' => 'sometimes|string|regex:/^#[0-9a-f]{6}$/i',
-                'secondary_color' => 'sometimes|string|regex:/^#[0-9a-f]{6}$/i',
-                'logo_url' => 'sometimes|nullable|url|max:500',
-                'favicon_url' => 'sometimes|nullable|url|max:500',
-                'email_from_address' => 'sometimes|nullable|email|max:255',
-                'email_from_name' => 'sometimes|nullable|string|max:255',
-                'support_email' => 'sometimes|nullable|email|max:255',
-                'support_phone' => 'sometimes|nullable|string|max:50',
-                'footer_text' => 'sometimes|nullable|string|max:500',
-                'report_header_text' => 'sometimes|nullable|string|max:255',
-                'smtp_host' => 'sometimes|nullable|string|max:255',
-                'smtp_port' => 'sometimes|nullable|integer',
-                'smtp_encryption' => 'sometimes|nullable|string|in:tls,ssl,none',
-                'smtp_username' => 'sometimes|nullable|string|max:255',
-                'smtp_password' => 'sometimes|nullable|string|max:255',
-            ]);
-
-            // Get current settings or initialize empty array
-            $settings = $company->settings ?? [];
-            
-            // Update white_label section
-            if (!isset($settings['white_label'])) {
-                $settings['white_label'] = [];
-            }
-
-            // Update mail_settings section
-            if (!isset($settings['mail_settings'])) {
-                $settings['mail_settings'] = [];
-            }
-            if (!isset($settings['mail_settings']['smtp'])) {
-                $settings['mail_settings']['smtp'] = [];
-            }
-
-            // Map frontend field names to backend structure
-            // Use array_key_exists to allow null values
-            if (array_key_exists('company_name', $validated)) {
-                $settings['white_label']['company_name'] = $validated['company_name'];
-            }
-            if (array_key_exists('primary_color', $validated)) {
-                $settings['white_label']['primary_color'] = $validated['primary_color'];
-            }
-            if (array_key_exists('secondary_color', $validated)) {
-                $settings['white_label']['secondary_color'] = $validated['secondary_color'];
-            }
-            if (array_key_exists('logo_url', $validated)) {
-                $settings['white_label']['logo_url'] = $validated['logo_url'];
-            }
-            if (array_key_exists('favicon_url', $validated)) {
-                $settings['white_label']['favicon_url'] = $validated['favicon_url'];
-            }
-            if (array_key_exists('email_from_address', $validated)) {
-                $settings['white_label']['email_from_address'] = $validated['email_from_address'];
-            }
-            if (array_key_exists('email_from_name', $validated)) {
-                $settings['white_label']['email_from_name'] = $validated['email_from_name'];
-            }
-            if (array_key_exists('support_email', $validated)) {
-                $settings['white_label']['support_email'] = $validated['support_email'];
-            }
-            if (array_key_exists('support_phone', $validated)) {
-                $settings['white_label']['support_phone'] = $validated['support_phone'];
-            }
-            if (array_key_exists('footer_text', $validated)) {
-                $settings['white_label']['footer_text'] = $validated['footer_text'];
-            }
-            if (array_key_exists('report_header_text', $validated)) {
-                $settings['white_label']['report_header_text'] = $validated['report_header_text'];
-            }
-
-            // SMTP Mapping
-            if (array_key_exists('smtp_host', $validated)) {
-                $settings['mail_settings']['smtp']['host'] = $validated['smtp_host'];
-            }
-            if (array_key_exists('smtp_port', $validated)) {
-                $settings['mail_settings']['smtp']['port'] = $validated['smtp_port'];
-            }
-            if (array_key_exists('smtp_encryption', $validated)) {
-                $settings['mail_settings']['smtp']['encryption'] = $validated['smtp_encryption'];
-            }
-            if (array_key_exists('smtp_username', $validated)) {
-                $settings['mail_settings']['smtp']['username'] = $validated['smtp_username'];
-            }
-            if (array_key_exists('smtp_password', $validated)) {
-                // Only update password if provided and not empty (to avoid overwriting with null/empty)
-                if (!empty($validated['smtp_password'])) {
-                    $settings['mail_settings']['smtp']['password'] = $validated['smtp_password'];
-                }
-            }
-
-            // Update company settings
-            $company->settings = $settings;
-            $company->save();
-
-            // Log the update
-            Log::info('Company branding updated', [
-                'company_id' => $company->company_id,
-                'user_id' => $authUser->user_id,
-            ]);
+            $whiteLabelSettings = $action->execute($company, $request->validated(), $authUser->user_id);
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Company branding updated successfully',
-                'data' => $settings['white_label'] ?? []
+                'data' => $whiteLabelSettings
             ]);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Validation failed',
@@ -263,101 +151,24 @@ final class CompanyController extends Controller
     /**
      * Upload company logo
      */
-    public function uploadLogo(Request $request): JsonResponse
+    public function uploadLogo(UploadLogoRequest $request, UploadLogoAction $action): JsonResponse
     {
         try {
             $authUser = $request->user();
             $company = $authUser->company;
 
-            // Validate image
-            $request->validate([
-                'logo' => 'required|image|mimes:jpeg,jpg,png,svg|max:2048', // Max 2MB
-                'type' => 'required|in:company,profile',
-            ]);
-
             $type = $request->input('type');
             $file = $request->file('logo');
 
-            // Validate image dimensions
-            $image = getimagesize($file->getRealPath());
-            if ($image) {
-                $width = $image[0];
-                $height = $image[1];
-
-                // Recommended size: 400x400 for company logo, 200x200 for profile
-                if ($type === 'company' && ($width > 800 || $height > 800)) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Company logo dimensions should not exceed 800x800 pixels',
-                    ], 422);
-                }
-
-                if ($type === 'profile' && ($width > 400 || $height > 400)) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Profile logo dimensions should not exceed 400x400 pixels',
-                    ], 422);
-                }
-            }
-
-            // Get current settings
-            $settings = $company->settings ?? [];
-            if (!isset($settings['white_label'])) {
-                $settings['white_label'] = [];
-            }
-            
-            // Delete old logo if exists
-            $oldLogoPath = $type === 'company' 
-                ? ($settings['white_label']['logo_url'] ?? null)
-                : ($settings['white_label']['favicon_url'] ?? null);
-                
-            if ($oldLogoPath && Storage::disk('public')->exists($oldLogoPath)) {
-                Storage::disk('public')->delete($oldLogoPath);
-            }
-
-            // Generate unique filename
-            $extension = $file->getClientOriginalExtension();
-            $filename = 'company_' . $company->company_id . '_' . $type . '_' . Str::random(10) . '.' . $extension;
-            
-            // Store file in public/logos directory
-            $path = $file->storeAs('logos', $filename, 'public');
-
-            if ($path === false) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Failed to store logo.',
-                ], 500);
-            }
-
-            // Update company settings
-            if ($type === 'company') {
-                $settings['white_label']['logo_url'] = $path;
-            } else {
-                $settings['white_label']['favicon_url'] = $path;
-            }
-            
-            $company->settings = $settings;
-            $company->save();
-
-            // Log the upload
-            Log::info('Company logo uploaded', [
-                'company_id' => $company->company_id,
-                'type' => $type,
-                'filename' => $filename,
-                'user_id' => $authUser->user_id,
-            ]);
+            $result = $action->execute($company, $file, (string) $type, $authUser->user_id);
 
             return response()->json([
                 'status' => 'success',
-                'message' => ucfirst($type) . ' logo uploaded successfully',
-                'data' => [
-                    'logo_path' => $path,
-                    'logo_url' => Storage::disk('public')->url($path),
-                    'settings_key' => $type === 'company' ? 'white_label.logo_url' : 'white_label.favicon_url',
-                ]
+                'message' => ucfirst((string) $type) . ' logo uploaded successfully',
+                'data' => $result
             ]);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Validation failed',

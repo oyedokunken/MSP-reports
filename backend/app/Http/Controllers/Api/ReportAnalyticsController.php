@@ -4,18 +4,25 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Report\BatchDeleteReportsAction;
+use App\Actions\Report\DeliverReportAction;
+use App\Actions\Report\EmailReportAction;
+use App\Actions\Report\GenerateShareLinkAction;
+use App\Http\Requests\Report\BatchDeleteReportsRequest;
+use App\Http\Requests\Report\DiscardReportsRequest;
+use App\Http\Requests\Report\EmailReportRequest;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Symfony\Component\HttpFoundation\Response;
-use App\Models\ReportSchedule;
 use App\Models\GeneratedReport;
+use App\Models\ReportSchedule;
 use App\Models\ReportShareToken;
 use App\Services\ReportNamingService;
-use App\Jobs\DeliverReportJob;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class ReportAnalyticsController extends Controller
 {
@@ -171,14 +178,9 @@ final class ReportAnalyticsController extends Controller
         ]);
     }
 
-    public function emailReport(Request $request, int $id): \Illuminate\Http\JsonResponse
+    public function emailReport(EmailReportRequest $request, int $id, EmailReportAction $action): JsonResponse
     {
         $authUser = $request->user();
-
-        // Validate request
-        $validated = $request->validate([
-            'emails' => 'required|string',
-        ]);
 
         $report = GeneratedReport::where('generated_report_id', $id)
             ->where('company_id', $authUser->company_id)
@@ -192,70 +194,18 @@ final class ReportAnalyticsController extends Controller
             ], 404);
         }
 
-        if ($report->status !== 'completed') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Report is not ready for delivery.'
-            ], 400);
-        }
-
-        if (!$report->file_path || !Storage::disk('reports')->exists($report->file_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Report file not found.'
-            ], 404);
-        }
-
-        // Parse and validate email addresses
-        $emailString = $validated['emails'];
-        $emailAddresses = array_map('trim', explode(',', $emailString));
-        $emailAddresses = array_filter($emailAddresses); // Remove empty strings
-        
-        // Validate each email
-        $invalidEmails = [];
-        foreach ($emailAddresses as $email) {
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $invalidEmails[] = $email;
-            }
-        }
-
-        if (!empty($invalidEmails)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid email address(es): ' . implode(', ', $invalidEmails)
-            ], 400);
-        }
-
-        if (empty($emailAddresses)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Please provide at least one valid email address.'
-            ], 400);
-        }
-
-        $customer = $report->customer;
-
-        // Dispatch the email job with custom recipients
         try {
-            DeliverReportJob::dispatch($report, $emailAddresses);
-
-            Log::info('Report email queued', [
-                'report_id' => $report->generated_report_id,
-                'customer' => $customer->canonical_name,
-                'recipients' => $emailAddresses,
-                'user' => $authUser->email,
-            ]);
-
+            $result = $action->execute($report, $request->validated()['emails'], $authUser);
             return response()->json([
                 'status' => 'success',
                 'message' => 'Report has been queued for email delivery.',
-                'data' => [
-                    'report_id' => $report->generated_report_id,
-                    'customer_name' => $customer->canonical_name,
-                    'email_recipients' => $emailAddresses,
-                    'report_type' => $report->reportSchedule->report_type ?? 'Unknown',
-                ]
+                'data' => $result
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 400);
         } catch (\Exception $e) {
             Log::error('Failed to queue report email', [
                 'report_id' => $report->generated_report_id,
@@ -272,7 +222,7 @@ final class ReportAnalyticsController extends Controller
     /**
      * Deliver a previously generated report using configured delivery methods
      */
-    public function deliverReport(Request $request, int $id): \Illuminate\Http\JsonResponse
+    public function deliverReport(Request $request, int $id, DeliverReportAction $action): JsonResponse
     {
         $authUser = $request->user();
 
@@ -288,32 +238,19 @@ final class ReportAnalyticsController extends Controller
             ], 404);
         }
 
-        if ($report->status !== 'completed') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Report is not ready for delivery.'
-            ], 400);
-        }
-
         try {
-            // Dispatch the report delivery job (uses configured methods like email, sharepoint, etc)
-            DeliverReportJob::dispatch($report);
-
-            Log::info('Report delivery initiated via preview finalize', [
-                'report_id' => $report->generated_report_id,
-                'customer' => $report->customer->canonical_name,
-                'user' => $authUser->email,
-            ]);
+            $result = $action->execute($report, $authUser);
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Report has been queued for delivery.',
-                'data' => [
-                    'report_id' => $report->generated_report_id,
-                    'customer_name' => $report->customer->canonical_name,
-                    'status' => 'delivery_queued',
-                ]
+                'data' => $result
             ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 400);
         } catch (\Exception $e) {
             Log::error('Failed to initiate report delivery', [
                 'report_id' => $report->generated_report_id,
@@ -416,29 +353,11 @@ final class ReportAnalyticsController extends Controller
         ], 200);
     }
 
-    public function batchDelete(Request $request): \Illuminate\Http\JsonResponse
+    public function batchDelete(BatchDeleteReportsRequest $request, BatchDeleteReportsAction $action): JsonResponse
     {
-        $validated = $request->validate([
-            'report_ids' => 'required|array',
-            'report_ids.*' => 'exists:generated_reports,generated_report_id'
-        ]);
+        $validated = $request->validated();
 
-        $reportIds = $validated['report_ids'];
-        $authUser = $request->user();
-
-        $reports = GeneratedReport::whereIn('generated_report_id', $reportIds)
-            ->where('company_id', $authUser->company_id)
-            ->get();
-
-        $deletedCount = 0;
-        foreach ($reports as $report) {
-            // Delete the PDF file if it exists
-            if ($report->file_path && Storage::disk('reports')->exists($report->file_path)) {
-                Storage::disk('reports')->delete($report->file_path);
-            }
-            $report->delete();
-            $deletedCount++;
-        }
+        $deletedCount = $action->execute($request->user()->company_id, $validated['report_ids']);
 
         return response()->json([
             'status' => 'success',
@@ -449,11 +368,10 @@ final class ReportAnalyticsController extends Controller
         ], 200);
     }
 
-    public function discardReports(Request $request): \Illuminate\Http\JsonResponse
+    public function discardReports(DiscardReportsRequest $request, BatchDeleteReportsAction $action): JsonResponse
     {
-        $reportIds = $request->input('report_ids', []);
-        $authUser = $request->user();
-
+        $reportIds = $request->validated()['report_ids'] ?? [];
+        
         if (empty($reportIds)) {
             return response()->json([
                 'status' => 'success',
@@ -461,26 +379,13 @@ final class ReportAnalyticsController extends Controller
             ]);
         }
 
-        $reports = GeneratedReport::whereIn('generated_report_id', $reportIds)
-            ->where('company_id', $authUser->company_id)
-            ->get();
-
-        $count = 0;
-        foreach ($reports as $report) {
-            if (!$report->delivered) {
-                if ($report->file_path && Storage::disk('reports')->exists($report->file_path)) {
-                    Storage::disk('reports')->delete($report->file_path);
-                }
-                $report->forceDelete();
-                $count++;
-            }
-        }
+        $deletedCount = $action->execute($request->user()->company_id, $reportIds, true);
 
         return response()->json([
             'status' => 'success',
-            'message' => "Discarded {$count} reports successfully",
+            'message' => "Discarded {$deletedCount} reports successfully",
             'data' => [
-                'discarded_count' => $count
+                'discarded_count' => $deletedCount
             ]
         ]);
     }
@@ -488,7 +393,7 @@ final class ReportAnalyticsController extends Controller
     /**
      * Generate a quick share link for a report (valid for 1 hour)
      */
-    public function generateShareLink(Request $request, int $id): \Illuminate\Http\JsonResponse
+    public function generateShareLink(Request $request, int $id, GenerateShareLinkAction $action): JsonResponse
     {
         $authUser = $request->user();
 
@@ -503,52 +408,22 @@ final class ReportAnalyticsController extends Controller
             ], 404);
         }
 
-        if ($report->status !== 'completed') {
+        try {
+            $result = $action->execute($report, $authUser, $request->getSchemeAndHttpHost());
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Share link generated successfully.',
+                'share_url' => $result['share_url'],
+                'expires_at' => $result['expires_at'],
+                'expires_in_minutes' => $result['expires_in_minutes'],
+            ], 200);
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Report is not ready for sharing.'
+                'message' => $e->getMessage()
             ], 400);
         }
-
-        if (!$report->file_path || !Storage::disk('reports')->exists($report->file_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Report file not found.'
-            ], 404);
-        }
-
-        // Generate a secure token with HMAC signature for tamper detection
-        $secureToken = ReportShareToken::generateSecureToken(
-            $report->generated_report_id,
-            $authUser->company_id
-        );
-        
-        // Create share token with 1 hour expiry
-        $shareToken = ReportShareToken::create([
-            'generated_report_id' => $report->generated_report_id,
-            'company_id' => $authUser->company_id,
-            'token' => $secureToken['token'],
-            'signature' => $secureToken['signature'],
-            'expires_at' => $secureToken['expires_at'],
-        ]);
-
-        // Build the share URL using the request's base URL for reliable local development
-        $baseUrl = $request->getSchemeAndHttpHost();
-        $shareUrl = "{$baseUrl}/api/reports/shared/{$secureToken['token']}";
-
-        Log::info('Share link generated', [
-            'report_id' => $report->generated_report_id,
-            'expires_at' => $shareToken->expires_at,
-            'user' => $authUser->email,
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Share link generated successfully.',
-            'share_url' => $shareUrl,
-            'expires_at' => $shareToken->expires_at->toIso8601String(),
-            'expires_in_minutes' => 60,
-        ], 200);
     }
 
     /**

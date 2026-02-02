@@ -20,17 +20,43 @@ return new class extends Migration
             $indexName = 'idx_integration_customers_external';
             
             // Check if it exists before dropping
-            $exists = DB::selectOne(
-                "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = ?) as exists",
-                [$indexName]
-            )->exists;
+            $driver = DB::connection()->getDriverName();
+            $exists = false;
+            
+            if ($driver === 'pgsql') {
+                $exists = DB::selectOne(
+                    "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = ?) as exists",
+                    [$indexName]
+                )->exists;
+            } elseif ($driver === 'sqlite') {
+                $exists = DB::selectOne(
+                    "SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?",
+                    [$indexName]
+                ) !== null;
+            }
 
             if ($exists) {
                 $table->dropIndex($indexName);
             }
 
             // Add unique index required for upsert
-            $table->unique(['integration_id', 'external_id'], 'idx_integration_customers_external_unique');
+            $uniqueIndexName = 'idx_integration_customers_external_unique';
+            $uniqueExists = false;
+            if ($driver === 'pgsql') {
+                $uniqueExists = DB::selectOne(
+                    "SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = ?) as exists",
+                    [$uniqueIndexName]
+                )->exists;
+            } elseif ($driver === 'sqlite') {
+                $uniqueExists = DB::selectOne(
+                    "SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?",
+                    [$uniqueIndexName]
+                ) !== null;
+            }
+
+            if (!$uniqueExists) {
+                $table->unique(['integration_id', 'external_id'], $uniqueIndexName);
+            }
         });
     }
 

@@ -4,16 +4,33 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Customer\BatchAutoMatchAction;
+use App\Actions\Customer\CreateStaticCustomerAction;
+use App\Actions\Customer\DeleteMappingAction;
+use App\Actions\Customer\GetSmartMatchSuggestionsAction;
+use App\Actions\Customer\MapCustomerAction;
+use App\Actions\Customer\MergeCustomersAction;
+use App\Actions\Customer\SplitCustomerAction;
+use App\Actions\Customer\UpdateCustomerAction;
+use App\Http\Requests\Customer\BatchAutoMatchRequest;
+use App\Http\Requests\Customer\CreateStaticCustomerRequest;
+use App\Http\Requests\Customer\GetSmartMatchSuggestionsRequest;
+use App\Http\Requests\Customer\MapCustomerRequest;
+use App\Http\Requests\Customer\MergeCustomersRequest;
+use App\Http\Requests\Customer\SplitCustomerRequest;
+use App\Http\Requests\Customer\UpdateCustomerRequest;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Services\CustomerMappingService;
-use App\Models\Customer;
-use App\Models\IntegrationCustomer;
-use App\Models\CustomerMapping;
-use App\Models\IntegrationData;
 use App\Models\AuditLog;
-use Illuminate\Support\Facades\Validator;
+use App\Models\Customer;
+use App\Models\CustomerMapping;
+use App\Models\IntegrationCustomer;
+use App\Models\IntegrationData;
+use App\Services\CustomerMappingService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 final class CustomerMappingController extends Controller
 {
@@ -282,31 +299,13 @@ final class CustomerMappingController extends Controller
     /**
      * Create a static customer (not linked to any integration)
      */
-    public function createStaticCustomer(Request $request): \Illuminate\Http\JsonResponse
+    public function createStaticCustomer(CreateStaticCustomerRequest $request, CreateStaticCustomerAction $action): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
+        $company = $request->user()->company;
+        $validated = $request->validated();
 
-        $validated = $request->validate([
-            'canonical_name' => 'required|string|max:255',
-            'status' => 'sometimes|in:active,inactive',
-            'report_destination' => 'sometimes|email|nullable',
-            'metadata' => 'sometimes|array',
-        ]);
-
-        DB::beginTransaction();
         try {
-            $customer = Customer::create([
-                'company_id' => $company->company_id,
-                'canonical_name' => $validated['canonical_name'],
-                'status' => $validated['status'] ?? 'active',
-                'is_static' => true,
-                'report_destination' => $validated['report_destination'] ?? null,
-                'metadata' => $validated['metadata'] ?? [],
-            ]);
-
-            DB::commit();
-
+            $customer = $action->execute($company, $validated);
             return response()->json([
                 'status' => 'success',
                 'message' => 'Static customer created successfully.',
@@ -318,7 +317,6 @@ final class CustomerMappingController extends Controller
                 ],
             ], 201);
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to create static customer: ' . $e->getMessage(),
@@ -326,152 +324,38 @@ final class CustomerMappingController extends Controller
         }
     }
 
-    public function mapCustomer(Request $request): \Illuminate\Http\JsonResponse
+    public function mapCustomer(MapCustomerRequest $request, MapCustomerAction $action): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $rules = [
-            'integration_customer_id' => 'required|integer|exists:integration_customers,integration_customer_id',
-            'create_new' => 'sometimes|boolean',
-        ];
-
-        // If not creating new, customer_id is required
-        if (!$request->has('create_new') || !$request->create_new) {
-            $rules['customer_id'] = 'required|integer|exists:customers,customer_id';
-        } else {
-            // If creating new, canonical_name is required
-            $rules['canonical_name'] = 'required|string|max:255';
-            $rules['status'] = 'sometimes|in:active,inactive';
-            $rules['report_destination'] = 'sometimes|email';
-            $rules['metadata'] = 'sometimes|array';
-        }
-
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid input.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        // OPTIMIZED: Eager load integration to prevent N+1
-        /** @var \App\Models\IntegrationCustomer|null $integrationCustomer */
-        $integrationCustomer = IntegrationCustomer::with('integration')
-            ->find($request->integration_customer_id);
-
-        if (!$integrationCustomer) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Integration customer not found.',
-            ], 404);
-        }
-
-        // Verify tenant isolation
-        if ($integrationCustomer->integration->company_id !== $company->company_id) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Integration customer does not belong to your company.',
-            ], 403);
-        }
-
-        // Check if already mapped
-        if ($integrationCustomer->customer_id) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Integration customer is already mapped.',
-                'data' => [
-                    'current_customer_id' => $integrationCustomer->customer_id,
-                    'current_canonical_name' => $integrationCustomer->customer->canonical_name ?? null,
-                ],
-            ], 400);
-        }
-
-        DB::beginTransaction();
         try {
-            // Option 1: Create new unified customer
-            if ($request->create_new) {
-                $customer = Customer::create([
-                    'company_id' => $company->company_id,
-                    'canonical_name' => $request->canonical_name,
-                    'status' => $request->status ?? 'active',
-                    'is_static' => false,
-                    'report_destination' => $request->report_destination,
-                    'metadata' => $request->metadata ?? [],
-                ]);
-
-                $mappingType = 'manual';
-                $message = 'New customer created and integration customer mapped successfully.';
-            } 
-            // Option 2: Map to existing customer
-            else {
-                $customer = Customer::where('company_id', $company->company_id)
-                    ->where('customer_id', $request->customer_id)
-                    ->first();
-
-                if (!$customer) {
-                    DB::rollBack();
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'Customer not found in your company.',
-                    ], 404);
-                }
-
-                $mappingType = 'manual';
-                $message = 'Integration customer mapped successfully.';
-            }
-
-            // Map the integration customer to the unified customer
-            $integrationCustomer->customer_id = $customer->customer_id;
-            $integrationCustomer->save();
-
-            // Create customer mapping record for audit trail
-            CustomerMapping::create([
-                'customer_id' => $customer->customer_id,
-                'integration_customer_id' => $integrationCustomer->integration_customer_id,
-                'mapping_type' => $mappingType,
-                'confidence_score' => 100, // Manual mapping = 100% confidence
-                'mapped_by_user_id' => $authUser->user_id,
-                'mapped_at' => now(),
-                'notes' => $request->create_new ? 'New customer created via manual mapping' : 'Manually mapped to existing customer',
-            ]);
-
-            // Log to audit trail
-            AuditLog::create([
-                'company_id' => $company->company_id,
-                'event_type' => $request->create_new ? 'customer_created_and_mapped' : 'customer_mapped',
-                'actor_type' => 'User',
-                'actor_id' => $authUser->user_id,
-                'target_type' => 'Customer',
-                'target_id' => $customer->customer_id,
-                'event_data' => [
-                    'integration_customer_id' => $integrationCustomer->integration_customer_id,
-                    'integration_type' => $integrationCustomer->integration->integration_type,
-                    'external_id' => $integrationCustomer->external_id,
-                    'canonical_name' => $customer->canonical_name,
-                    'created_new' => $request->create_new ?? false,
-                ],
-                'ip_address' => $request->ip(),
-            ]);
-
-            DB::commit();
+            $result = $action->execute($authUser, $company, $request->validated(), $request->ip());
 
             return response()->json([
                 'status' => 'success',
-                'message' => $message,
+                'message' => $result['message'],
                 'data' => [
-                    'integration_customer_id' => $integrationCustomer->integration_customer_id,
-                    'customer_id' => $customer->customer_id,
-                    'canonical_name' => $customer->canonical_name,
-                    'is_static' => $customer->is_static,
-                    'created_new' => $request->create_new ?? false,
+                    'integration_customer_id' => $request->integration_customer_id,
+                    'customer_id' => $result['customer']->customer_id,
+                    'canonical_name' => $result['customer']->canonical_name,
+                    'is_static' => $result['customer']->is_static,
+                    'created_new' => $result['created_new'],
                 ],
             ]);
-
+        } catch (ValidationException $e) {
+            $statusCode = 400;
+            if (str_contains($e->getMessage(), 'not found')) {
+                $statusCode = 404;
+            } elseif (str_contains($e->getMessage(), 'does not belong')) {
+                $statusCode = 403;
+            }
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], $statusCode);
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to map customer: ' . $e->getMessage(),
@@ -647,157 +531,51 @@ final class CustomerMappingController extends Controller
         ]);
     }
 
-    public function updateCustomer(Request $request, int $id): \Illuminate\Http\JsonResponse
+    public function updateCustomer(UpdateCustomerRequest $request, int $id, UpdateCustomerAction $action): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
+        $company = $request->user()->company;
 
-        $customer = Customer::where('company_id', $company->company_id)
-            ->where('customer_id', $id)
-            ->first();
-
-        if (!$customer) {
+        try {
+            $customer = $action->execute($company, $id, $request->validated());
+            return response()->json([
+                'status' => 'success',
+                'data' => $customer,
+            ]);
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Customer not found in your company.',
+                'message' => $e->getMessage(),
             ], 404);
         }
-
-        $validated = $request->validate([
-            'canonical_name' => 'sometimes|string|max:255',
-            'status' => 'sometimes|in:active,inactive',
-            'report_destination' => 'sometimes|email|nullable',
-            'metadata' => 'sometimes|array',
-        ]);
-
-        $oldData = [
-            'canonical_name' => $customer->canonical_name,
-            'status' => $customer->status,
-            'report_destination' => $customer->report_destination,
-        ];
-
-        
-        if (isset($validated['canonical_name'])) {
-            $customer->canonical_name = trim(strip_tags($validated['canonical_name']));
-        }
-
-        if (isset($validated['status'])) {
-            $customer->status = $validated['status'];
-        }
-
-        if (isset($validated['report_destination'])) {
-            $customer->report_destination = $validated['report_destination'];
-        }
-
-        if (isset($validated['metadata'])) {
-            $customer->metadata = array_merge($customer->metadata ?? [], $validated['metadata']);
-        }
-
-        $customer->save();
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $customer,
-        ]);
     }
 
-    public function mergeCustomers(Request $request, int $id): \Illuminate\Http\JsonResponse
+    public function mergeCustomers(MergeCustomersRequest $request, int $id, MergeCustomersAction $action): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $primaryCustomer = Customer::where('company_id', $company->company_id)
-            ->where('customer_id', $id)
-            ->first();
-
-        if (!$primaryCustomer) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Primary customer not found in your company.',
-            ], 404);
-        }
-
-        $validated = $request->validate([
-            'merge_customer_id' => 'required|integer|exists:customers,customer_id',
-        ]);
-
-        $mergeCustomer = Customer::where('company_id', $company->company_id)
-            ->where('customer_id', $validated['merge_customer_id'])
-            ->first();
-
-        if (!$mergeCustomer) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Customer to merge not found in your company.',
-            ], 404);
-        }
-
-        if ($primaryCustomer->customer_id === $mergeCustomer->customer_id) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Cannot merge a customer with itself.',
-            ], 400);
-        }
-
-        DB::beginTransaction();
         try {
-            // Count records before moving them
-            $integrationCustomersMoved = IntegrationCustomer::where('customer_id', $mergeCustomer->customer_id)->count();
-            $reportSchedulesMoved = $mergeCustomer->reportSchedules()->count();
-            
-            // Move CustomerMapping records first (before updating IntegrationCustomer)
-            CustomerMapping::where('customer_id', $mergeCustomer->customer_id)
-                ->update(['customer_id' => $primaryCustomer->customer_id]);
-            
-            // Move IntegrationCustomer records
-            IntegrationCustomer::where('customer_id', $mergeCustomer->customer_id)
-                ->update(['customer_id' => $primaryCustomer->customer_id]);
-
-            // Move ReportSchedules
-            $mergeCustomer->reportSchedules()->update([
-                'customer_id' => $primaryCustomer->customer_id,
-            ]);
-
-            // Move GeneratedReports
-            $mergeCustomer->generatedReports()->update([
-                'customer_id' => $primaryCustomer->customer_id,
-            ]);
-            
-            AuditLog::create([
-                'company_id' => $company->company_id,
-                'event_type' => 'customers_merged',
-                'actor_type' => 'User',
-                'actor_id' => $authUser->user_id,
-                'target_type' => 'Customer',
-                'target_id' => $primaryCustomer->customer_id,
-                'event_data' => json_encode([
-                    'primary_customer' => [
-                        'id' => $primaryCustomer->customer_id,
-                        'name' => $primaryCustomer->canonical_name,
-                    ],
-                    'merged_customer' => [
-                        'id' => $mergeCustomer->customer_id,
-                        'name' => $mergeCustomer->canonical_name,
-                    ],
-                    'integration_customers_moved' => $integrationCustomersMoved,
-                    'report_schedules_moved' => $reportSchedulesMoved,
-                ]),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-
-            
-            $mergeCustomer->delete();
-
-            DB::commit();
+            $result = $action->execute(
+                $authUser,
+                $company,
+                $id,
+                $request->validated()['merge_customer_id'],
+                $request->ip(),
+                $request->userAgent()
+            );
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Customers merged successfully',
-                'data' => $primaryCustomer->load('integrationCustomers'),
+                'data' => $result
             ]);
+        } catch (ValidationException $e) {
+            $statusCode = str_contains($e->getMessage(), 'itself') ? 400 : 404;
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $statusCode);
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to merge customers: ' . $e->getMessage(),
@@ -805,91 +583,34 @@ final class CustomerMappingController extends Controller
         }
     }
 
-    public function splitCustomer(Request $request, int $id): \Illuminate\Http\JsonResponse
+    public function splitCustomer(SplitCustomerRequest $request, int $id, SplitCustomerAction $action): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
+        $validated = $request->validated();
 
-        $originalCustomer = Customer::where('company_id', $company->company_id)
-            ->where('customer_id', $id)
-            ->first();
-
-        if (!$originalCustomer) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Customer not found in your company.',
-            ], 404);
-        }
-
-        $validated = $request->validate([
-            'new_customer_name' => 'required|string|max:255',
-            'integration_customer_ids' => 'required|array|min:1',
-            'integration_customer_ids.*' => 'integer|exists:integration_customers,integration_customer_id',
-        ]);
-
-        DB::beginTransaction();
         try {
-            
-            $newCustomer = Customer::create([
-                'company_id' => $company->company_id,
-                'canonical_name' => trim(strip_tags($validated['new_customer_name'])),
-                'status' => 'active',
-                'report_destination' => $originalCustomer->report_destination,
-                'metadata' => $originalCustomer->metadata,
-            ]);
-
-            // FIXED: Update both customer_mappings AND integration_customers tables
-            $movedCount = CustomerMapping::whereIn('integration_customer_id', $validated['integration_customer_ids'])
-                ->where('customer_id', $originalCustomer->customer_id)
-                ->update(['customer_id' => $newCustomer->customer_id]);
-
-            if ($movedCount === 0) {
-                DB::rollBack();
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'No integration customers were moved. Check that they belong to the original customer.',
-                ], 400);
-            }
-            
-            // Also update the customer_id on integration_customers table
-            IntegrationCustomer::whereIn('integration_customer_id', $validated['integration_customer_ids'])
-                ->update(['customer_id' => $newCustomer->customer_id]);
-
-            
-            AuditLog::create([
-                'company_id' => $company->company_id,
-                'event_type' => 'customer_split',
-                'actor_type' => 'User',
-                'actor_id' => $authUser->user_id,
-                'target_type' => 'Customer',
-                'target_id' => $originalCustomer->customer_id,
-                'event_data' => json_encode([
-                    'original_customer' => [
-                        'id' => $originalCustomer->customer_id,
-                        'name' => $originalCustomer->canonical_name,
-                    ],
-                    'new_customer' => [
-                        'id' => $newCustomer->customer_id,
-                        'name' => $newCustomer->canonical_name,
-                    ],
-                    'integration_customers_moved' => $movedCount,
-                ]),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-
-            DB::commit();
+            $result = $action->execute(
+                $authUser,
+                $company,
+                $id,
+                $validated['new_customer_name'],
+                $validated['integration_customer_ids'],
+                $request->ip(),
+                $request->userAgent()
+            );
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Customer split successfully',
-                'data' => [
-                    'original_customer' => $originalCustomer->load('integrationCustomers'),
-                    'new_customer' => $newCustomer->load('integrationCustomers'),
-                ],
+                'data' => $result,
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 404);
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to split customer: ' . $e->getMessage(),
@@ -897,145 +618,55 @@ final class CustomerMappingController extends Controller
         }
     }
 
-    public function deleteMapping(Request $request, int $customerId, int $mappingId): \Illuminate\Http\JsonResponse
+    public function deleteMapping(Request $request, int $customerId, int $mappingId, DeleteMappingAction $action): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $customer = Customer::where('company_id', $company->company_id)
-            ->where('customer_id', $customerId)
-            ->first();
+        try {
+            $action->execute(
+                $authUser,
+                $company,
+                $customerId,
+                $mappingId,
+                $request->ip(),
+                $request->userAgent()
+            );
 
-        if (!$customer) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Customer not found in your company.',
-            ], 404);
-        }
-
-        // OPTIMIZED: Eager load nested relationships to prevent N+1
-        $mapping = CustomerMapping::where('customer_mapping_id', $mappingId)
-            ->where('customer_id', $customerId)
-            ->with('integrationCustomer.integration')
-            ->first();
-
-        if (!$mapping) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Mapping not found.',
-            ], 404);
-        }
-
-        
-        if ($mapping->integrationCustomer->integration->company_id !== $company->company_id) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unauthorized.',
-            ], 403);
-        }
-
-        
-        AuditLog::create([
-            'company_id' => $company->company_id,
-            'event_type' => 'customer_mapping_deleted',
-            'actor_type' => 'User',
-            'actor_id' => $authUser->user_id,
-            'target_type' => 'Customer',
-            'target_id' => $customer->customer_id,
-            'event_data' => json_encode([
-                'customer_name' => $customer->canonical_name,
-                'integration_customer_id' => $mapping->integration_customer_id,
-                'integration_customer_name' => $mapping->integrationCustomer->name,
-                'mapping_id' => $mapping->customer_mapping_id,
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
-        
-        $mapping->delete();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Mapping deleted successfully',
-        ]);
-    }
-
-    /**
-     * Get smart match suggestions using embedding service
-     * This provides more intelligent matching for difficult cases
-     */
-    public function getSmartMatchSuggestions(Request $request): \Illuminate\Http\JsonResponse
-    {
-        $authUser = $request->user();
-        $company = $authUser->company;
-
-        $validated = $request->validate([
-            'integration_customer_ids' => 'required|array|min:1|max:50',
-            'integration_customer_ids.*' => 'integer',
-            'use_agent' => 'sometimes|boolean',
-        ]);
-
-        $mappingService = app(CustomerMappingService::class);
-
-        // Get the integration customers
-        $integrationCustomers = IntegrationCustomer::whereIn('integration_customer_id', $validated['integration_customer_ids'])
-            ->whereHas('integration', function ($q) use ($company) {
-                $q->where('company_id', $company->company_id);
-            })
-            ->whereNull('customer_id')
-            ->with('integration')
-            ->get();
-
-        if ($integrationCustomers->isEmpty()) {
             return response()->json([
                 'status' => 'success',
-                'data' => [],
-                'message' => 'No unmapped customers found for the given IDs.',
+                'message' => 'Mapping deleted successfully'
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete mapping: ' . $e->getMessage()
+            ], 500);
         }
+    }
 
-        $results = [];
-        $useAgent = $validated['use_agent'] ?? false;
+    public function getSmartMatchSuggestions(GetSmartMatchSuggestionsRequest $request, GetSmartMatchSuggestionsAction $action): JsonResponse
+    {
+        $authUser = $request->user();
+        $company = $authUser->company;
+        $validated = $request->validated();
 
-        foreach ($integrationCustomers as $ic) {
-            // Try embedding-based matching (or agent if requested)
-            if ($useAgent) {
-                $match = $mappingService->autoMatchWithAgent($ic);
-            } else {
-                $match = $mappingService->autoMatchWithEmbeddings($ic, true);
-            }
-
-            $result = [
-                'integration_customer_id' => $ic->integration_customer_id,
-                'name' => $ic->name,
-                'integration_type' => $ic->integration->integration_type,
-                'match_found' => $match !== null,
-                'suggestion' => null,
-            ];
-
-            if ($match) {
-                $result['suggestion'] = [
-                    'customer_id' => $match['customer']->customer_id,
-                    'canonical_name' => $match['customer']->canonical_name,
-                    'confidence_score' => $match['confidence_score'],
-                    'mapping_type' => $match['mapping_type'],
-                    'reasoning' => $match['reasoning'] ?? null,
-                ];
-            }
-
-            $results[] = $result;
-        }
+        $result = $action->execute(
+            $company,
+            $validated['integration_customer_ids'],
+            $validated['use_agent'] ?? false
+        );
 
         return response()->json([
             'status' => 'success',
-            'data' => $results,
-            'meta' => [
-                'total_requested' => count($validated['integration_customer_ids']),
-                'total_processed' => count($results),
-                'matches_found' => count(array_filter($results, fn($r) => $r['match_found'])),
-                'method' => $useAgent ? 'agent' : 'embedding',
-            ],
+            'data' => $result['results'],
+            'meta' => $result['meta'] ?? [],
+            'message' => $result['message'] ?? null,
         ]);
     }
 
@@ -1066,110 +697,17 @@ final class CustomerMappingController extends Controller
     /**
      * Batch auto-match unmapped customers using embeddings
      */
-    public function batchAutoMatch(Request $request): \Illuminate\Http\JsonResponse
+    public function batchAutoMatch(BatchAutoMatchRequest $request, BatchAutoMatchAction $action): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
+        $validated = $request->validated();
 
-        $validated = $request->validate([
-            'integration_customer_ids' => 'sometimes|array|max:100',
-            'integration_customer_ids.*' => 'integer',
-            'auto_apply' => 'sometimes|boolean',
-            'min_confidence' => 'sometimes|integer|min:50|max:100',
-        ]);
-
-        $mappingService = app(CustomerMappingService::class);
-        $autoApply = $validated['auto_apply'] ?? false;
-        $minConfidence = $validated['min_confidence'] ?? 80;
-
-        // Get unmapped customers
-        $query = IntegrationCustomer::whereHas('integration', function ($q) use ($company) {
-            $q->where('company_id', $company->company_id);
-        })->whereNull('customer_id');
-
-        if (!empty($validated['integration_customer_ids'])) {
-            $query->whereIn('integration_customer_id', $validated['integration_customer_ids']);
-        }
-
-        $integrationCustomers = $query->with('integration')->limit(100)->get();
-
-        if ($integrationCustomers->isEmpty()) {
-            return response()->json([
-                'status' => 'success',
-                'data' => [
-                    'processed' => 0,
-                    'matched' => 0,
-                    'applied' => 0,
-                    'results' => [],
-                ],
-            ]);
-        }
-
-        // Batch process with embeddings
-        $matches = $mappingService->batchAutoMatchWithEmbeddings(
-            $integrationCustomers->all(),
-            $company->company_id
-        );
-
-        $results = [];
-        $appliedCount = 0;
-
-        foreach ($integrationCustomers as $ic) {
-            $match = $matches[$ic->integration_customer_id] ?? null;
-
-            $result = [
-                'integration_customer_id' => $ic->integration_customer_id,
-                'name' => $ic->name,
-                'match_found' => $match !== null,
-                'applied' => false,
-                'suggestion' => null,
-            ];
-
-            if ($match) {
-                $result['suggestion'] = [
-                    'customer_id' => $match['customer']->customer_id,
-                    'canonical_name' => $match['customer']->canonical_name,
-                    'confidence_score' => $match['confidence_score'],
-                    'mapping_type' => $match['mapping_type'],
-                ];
-
-                // Auto-apply if requested and confidence is high enough
-                if ($autoApply && $match['confidence_score'] >= $minConfidence) {
-                    try {
-                        $ic->customer_id = $match['customer']->customer_id;
-                        $ic->save();
-
-                        CustomerMapping::create([
-                            'customer_id' => $match['customer']->customer_id,
-                            'integration_customer_id' => $ic->integration_customer_id,
-                            'mapping_type' => $match['mapping_type'],
-                            'confidence_score' => $match['confidence_score'],
-                            'mapped_at' => now(),
-                            'notes' => 'Auto-matched via batch embedding process',
-                        ]);
-
-                        $result['applied'] = true;
-                        $appliedCount++;
-                    } catch (\Exception $e) {
-                        \Log::warning('Failed to auto-apply match', [
-                            'integration_customer_id' => $ic->integration_customer_id,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
-            }
-
-            $results[] = $result;
-        }
+        $result = $action->execute($company, $validated['integration_customer_ids'] ?? [], $validated);
 
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'processed' => count($results),
-                'matched' => count(array_filter($results, fn($r) => $r['match_found'])),
-                'applied' => $appliedCount,
-                'results' => $results,
-            ],
+            'data' => $result,
         ]);
     }
 }

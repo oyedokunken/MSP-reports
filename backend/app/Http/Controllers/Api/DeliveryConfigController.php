@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Customer;
+use App\Http\Requests\Delivery\UpdateDeliveryConfigRequest;
+use App\Http\Requests\Delivery\TestDeliveryConnectionRequest;
 use App\Services\Delivery\DeliveryManager;
 use Illuminate\Support\Facades\Log;
 
@@ -68,7 +70,7 @@ final class DeliveryConfigController extends Controller
     /**
      * Update delivery configuration for a customer
      */
-    public function updateCustomerDeliveryConfig(Request $request, int $customerId): \Illuminate\Http\JsonResponse
+    public function updateCustomerDeliveryConfig(UpdateDeliveryConfigRequest $request, int $customerId): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -84,21 +86,7 @@ final class DeliveryConfigController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
-            'enabled_methods' => 'required|array|min:1',
-            'enabled_methods.*' => 'string',
-            'email' => 'nullable|array',
-            'email.destination' => 'nullable|email',
-            'email.cc' => 'nullable|array',
-            'email.cc.*' => 'nullable|email',
-            'sharepoint' => 'nullable|array',
-            'sharepoint.tenant_id' => 'nullable|string',
-            'sharepoint.client_id' => 'nullable|string',
-            'sharepoint.client_secret' => 'nullable|string',
-            'sharepoint.site_id' => 'nullable|string',
-            'sharepoint.drive_id' => 'nullable|string',
-            'sharepoint.folder_path' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         // Validate each enabled method has proper config
         $validation = $this->deliveryManager->validateConfig($validated);
@@ -132,7 +120,7 @@ final class DeliveryConfigController extends Controller
     /**
      * Test a delivery method connection
      */
-    public function testConnection(Request $request, int $customerId): \Illuminate\Http\JsonResponse
+    public function testConnection(TestDeliveryConnectionRequest $request, int $customerId): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -148,10 +136,7 @@ final class DeliveryConfigController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
-            'method' => 'required|string',
-            'config' => 'required|array',
-        ]);
+        $validated = $request->validated();
 
         $result = $this->deliveryManager->testConnection(
             $validated['method'],

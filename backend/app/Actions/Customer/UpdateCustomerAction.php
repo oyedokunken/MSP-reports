@@ -35,16 +35,16 @@ final class UpdateCustomerAction
             $customer->canonical_name = trim(strip_tags($data['canonical_name']));
         }
 
-        if (isset($data['status'])) {
+        if (array_key_exists('status', $data)) {
             $customer->status = $data['status'];
         }
 
-        if (isset($data['report_destination'])) {
+        if (array_key_exists('report_destination', $data)) {
             $customer->report_destination = $data['report_destination'];
         }
 
-        if (isset($data['metadata'])) {
-            $customer->metadata = array_merge($customer->metadata ?? [], $data['metadata']);
+        if (array_key_exists('metadata', $data)) {
+            $customer->metadata = array_merge($customer->metadata ?? [], $data['metadata'] ?? []);
         }
 
         $customer->save();

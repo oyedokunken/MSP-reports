@@ -12,6 +12,14 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            // Basic index for non-postgres drivers (testing)
+            Schema::table('integration_data', function (Blueprint $table) {
+                $table->index(['integration_id', 'data_type', 'integration_customer_id'], 'idx_integration_data_type_customer');
+            });
+            return;
+        }
+
         // Add GIN index for general JSONB queries
         DB::statement('CREATE INDEX IF NOT EXISTS idx_integration_data_payload_gin ON integration_data USING GIN (data_payload)');
         
@@ -35,6 +43,13 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            Schema::table('integration_data', function (Blueprint $table) {
+                $table->dropIndex('idx_integration_data_type_customer');
+            });
+            return;
+        }
+
         DB::statement('DROP INDEX IF EXISTS idx_integration_data_payload_gin');
         DB::statement('DROP INDEX IF EXISTS idx_integration_data_device_uid');
         DB::statement('DROP INDEX IF EXISTS idx_integration_data_alert_uid');

@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\HealthCheck\GetMetricsRequest;
+use App\Http\Requests\HealthCheck\GetHealthStatusRequest;
+use App\Http\Requests\HealthCheck\GetQueueMetricsRequest;
 use App\Models\Integration;
 use App\Models\GeneratedReport;
 use App\Models\SyncLog;
@@ -45,7 +48,7 @@ final class HealthCheckController extends Controller
         ], $allHealthy ? 200 : 503);
     }
 
-    public function status(Request $request): \Illuminate\Http\JsonResponse
+    public function status(GetHealthStatusRequest $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
 
@@ -69,10 +72,10 @@ final class HealthCheckController extends Controller
         ]);
     }
 
-    public function integrationMetrics(Request $request): \Illuminate\Http\JsonResponse
+    public function integrationMetrics(GetMetricsRequest $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
-        $days = $request->input('days', 7);
+        $days = $request->validated()['days'] ?? $request->input('days', 7);
 
         $startDate = now()->subDays($days);
 
@@ -114,10 +117,10 @@ final class HealthCheckController extends Controller
         ]);
     }
 
-    public function reportMetrics(Request $request): \Illuminate\Http\JsonResponse
+    public function reportMetrics(GetMetricsRequest $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
-        $days = $request->input('days', 7);
+        $days = $request->validated()['days'] ?? $request->input('days', 7);
 
         $startDate = now()->subDays($days);
 
@@ -171,10 +174,10 @@ final class HealthCheckController extends Controller
         ]);
     }
 
-    public function monthlyReportAnalytics(Request $request): \Illuminate\Http\JsonResponse
+    public function monthlyReportAnalytics(GetMetricsRequest $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
-        $months = $request->input('months', 6);
+        $months = $request->validated()['months'] ?? $request->input('months', 6);
 
         $startDate = now()->subMonths($months)->startOfMonth();
 
@@ -217,7 +220,7 @@ final class HealthCheckController extends Controller
         ]);
     }
 
-    public function queueMetrics(Request $request): \Illuminate\Http\JsonResponse
+    public function queueMetrics(GetQueueMetricsRequest $request): \Illuminate\Http\JsonResponse
     {
         try {
             $failedJobs = DB::table('failed_jobs')->count();
@@ -263,11 +266,11 @@ final class HealthCheckController extends Controller
         }
     }
 
-    public function activityTrends(Request $request): \Illuminate\Http\JsonResponse
+    public function activityTrends(GetMetricsRequest $request): \Illuminate\Http\JsonResponse
     {
         try {
             $authUser = $request->user();
-            $days = $request->input('days', 7);
+            $days = $request->validated()['days'] ?? $request->input('days', 7);
 
             $startDate = now()->subDays($days)->startOfDay();
             $endDate = now()->endOfDay();

@@ -4,19 +4,27 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
-use App\Models\AuditLog;
-use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Auth\ChangePasswordRequest;
+use App\Http\Requests\Auth\RequestPasswordResetRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\Auth\LogoutRequest;
+use App\Http\Requests\Auth\MeRequest;
+use App\Http\Requests\Auth\OAuthCallbackRequest;
+use App\Http\Requests\Auth\SamlAcsRequest;
+use App\Http\Requests\Auth\SamlSlsRequest;
+use App\Http\Controllers\Controller;
 use App\Rules\StrongPassword;
+use App\Models\AuditLog;
+use App\Models\User;
+use App\Services\AuthService;
 use App\Services\OAuthAuthenticationService;
 use App\Services\SamlAuthenticationService;
-use App\Services\AuthService;
 use App\Actions\Auth\RequestPasswordResetAction;
 use App\Actions\Auth\ResetPasswordAction;
 use App\Actions\Auth\ChangePasswordAction;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 final class AuthController extends Controller
 {
@@ -50,7 +58,7 @@ final class AuthController extends Controller
         ]);
     }
 
-    public function authLogout(Request $request): \Illuminate\Http\JsonResponse
+    public function authLogout(LogoutRequest $request): \Illuminate\Http\JsonResponse
     {
         $this->authService->logout(
             $request->user(),
@@ -64,7 +72,7 @@ final class AuthController extends Controller
         ]);
     }
 
-    public function me(Request $request): \Illuminate\Http\JsonResponse
+    public function me(MeRequest $request): \Illuminate\Http\JsonResponse
     {
         $user = $request->user()->load('role', 'company');
         
@@ -76,11 +84,9 @@ final class AuthController extends Controller
         ]);
     }
 
-    public function requestPasswordReset(Request $request, RequestPasswordResetAction $action): \Illuminate\Http\JsonResponse
+    public function requestPasswordReset(RequestPasswordResetRequest $request, RequestPasswordResetAction $action): \Illuminate\Http\JsonResponse
     {
-        $validated = $request->validate([
-            'email' => 'required|email',
-        ]);
+        $validated = $request->validated();
 
         /** @var array{email: string} $validated */
         $result = $action->execute($validated, $request->ip(), $request->userAgent());
@@ -92,13 +98,9 @@ final class AuthController extends Controller
         ]);
     }
 
-    public function resetPassword(Request $request, ResetPasswordAction $action): \Illuminate\Http\JsonResponse
+    public function resetPassword(ResetPasswordRequest $request, ResetPasswordAction $action): \Illuminate\Http\JsonResponse
     {
-        $validated = $request->validate([
-            'email' => 'required|email',
-            'token' => 'required|string',
-            'password' => ['required', 'string', 'confirmed', new StrongPassword()],
-        ]);
+        $validated = $request->validated();
 
         /** @var array{email: string, token: string, password: string} $validated */
         $action->execute($validated, $request->ip(), $request->userAgent());
@@ -109,12 +111,9 @@ final class AuthController extends Controller
         ]);
     }
 
-    public function changePassword(Request $request, ChangePasswordAction $action): \Illuminate\Http\JsonResponse
+    public function changePassword(ChangePasswordRequest $request, ChangePasswordAction $action): \Illuminate\Http\JsonResponse
     {
-        $validated = $request->validate([
-            'current_password' => 'required|string',
-            'new_password' => ['required', 'string', 'confirmed', new StrongPassword()],
-        ]);
+        $validated = $request->validated();
 
         /** @var array{current_password: string, new_password: string} $validated */
         $action->execute($request->user(), $validated, $request->ip(), $request->userAgent());
@@ -165,7 +164,7 @@ final class AuthController extends Controller
     /**
      * Handle Microsoft OAuth callback
      */
-    public function handleMicrosoftCallback(Request $request): \Illuminate\Http\RedirectResponse
+    public function handleMicrosoftCallback(OAuthCallbackRequest $request): \Illuminate\Http\RedirectResponse
     {
         try {
             // Handle OAuth callback
@@ -281,7 +280,7 @@ final class AuthController extends Controller
     /**
      * Handle Keycloak OAuth callback
      */
-    public function handleKeycloakCallback(Request $request): \Illuminate\Http\RedirectResponse
+    public function handleKeycloakCallback(OAuthCallbackRequest $request): \Illuminate\Http\RedirectResponse
     {
         try {
             Log::info('Keycloak Callback Request:', $request->all());
@@ -423,7 +422,7 @@ final class AuthController extends Controller
     /**
      * Handle SAML Assertion Consumer Service (ACS)
      */
-    public function handleSamlAcs(Request $request): \Illuminate\Http\RedirectResponse
+    public function handleSamlAcs(SamlAcsRequest $request): \Illuminate\Http\RedirectResponse
     {
         try {
             $samlResponse = $request->input('SAMLResponse');
@@ -498,7 +497,7 @@ final class AuthController extends Controller
     /**
      * Handle SAML Single Logout Service (SLS)
      */
-    public function handleSamlSls(Request $request): \Illuminate\Http\RedirectResponse
+    public function handleSamlSls(SamlSlsRequest $request): \Illuminate\Http\RedirectResponse
     {
         try {
             // Handle logout request from IdP

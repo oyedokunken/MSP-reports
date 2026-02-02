@@ -16,7 +16,7 @@ use App\Jobs\ImportHistoricalDataJob;
  * Service dedicated to managing the lifecycle of an Integration:
  * Onboarding, Offboarding, and State Transitions.
  */
-final class IntegrationLifecycleService
+class IntegrationLifecycleService
 {
     protected SyncEngine $syncEngine;
     protected LicenseChecker $licenseChecker;

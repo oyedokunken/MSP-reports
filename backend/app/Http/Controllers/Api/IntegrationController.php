@@ -4,40 +4,39 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\Integration\CreateIntegrationAction;
+use App\Actions\Integration\DeleteIntegrationAction;
+use App\Actions\Integration\SetSourceOfTruthAction;
+use App\Actions\Integration\TriggerSyncAction;
+use App\Actions\Integration\UpdateIntegrationAction;
+use App\Http\Requests\Integration\CreateIntegrationRequest;
+use App\Http\Requests\Integration\CreateSharePointFolderRequest;
+use App\Http\Requests\Integration\SetSourceOfTruthRequest;
+use App\Http\Requests\Integration\StartHistoricalImportRequest;
+use App\Http\Requests\Integration\UpdateIntegrationRequest;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
-use App\Models\Integration;
-use App\Models\AuditLog;
-use App\Services\SyncEngine;
-use App\Services\LicenseChecker;
 use App\Services\IntegrationService;
+use App\Services\LicenseChecker;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 final class IntegrationController extends Controller
 {
-    protected IntegrationService $integrationService;
-    protected \App\Services\IntegrationLifecycleService $lifecycleService;
-
     public function __construct(
-        IntegrationService $integrationService,
-        \App\Services\IntegrationLifecycleService $lifecycleService
-    ) {
-        $this->integrationService = $integrationService;
-        $this->lifecycleService = $lifecycleService;
-    }
+        protected IntegrationService $integrationService,
+        protected \App\Services\IntegrationLifecycleService $lifecycleService
+    ) {}
 
-    /**
-     * Get all available integrations and configured integrations
-     */
     public function getIntegrations(Request $request): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
         $availableTypes = $this->integrationService->scanAvailableIntegrations();
-        
+
         $configuredIntegrations = $company->integrations()
             ->withCount([
                 'integrationCustomers as unmapped_customers_count' => function ($query) {
@@ -45,11 +44,11 @@ final class IntegrationController extends Controller
                 },
                 'integrationCustomers as total_customers_count'
             ])
-            ->with(['syncLogs' => function($query) {
+            ->with(['syncLogs' => function ($query) {
                 $query->latest('started_at')->limit(1);
             }])
             ->get(['integration_id', 'integration_type', 'display_name', 'status', 'is_source_of_truth', 'last_sync_at', 'last_sync_status', 'sync_schedule'])
-            ->map(function($integration) {
+            ->map(function ($integration) {
                 $latestSync = $integration->syncLogs->first();
                 return [
                     'integration_id' => $integration->integration_id,
@@ -76,15 +75,10 @@ final class IntegrationController extends Controller
         ]);
     }
 
-
-    /**
-     * Get configuration and credential fields for a specific integration type
-     */
     public function getIntegrationTypeConfig(string $integrationType): JsonResponse
     {
         try {
             $config = $this->integrationService->getIntegrationTypeConfig($integrationType);
-
             return response()->json([
                 'success' => true,
                 'config' => $config,
@@ -97,29 +91,10 @@ final class IntegrationController extends Controller
         }
     }
 
-    /**
-     * Create a new integration
-     */
-    public function createIntegration(Request $request): JsonResponse
+    public function createIntegration(CreateIntegrationRequest $request, CreateIntegrationAction $action): JsonResponse
     {
-        $availableTypes = $this->integrationService->scanAvailableIntegrations();
-        
-        $validated = $request->validate([
-            'integration_type' => ['required', 'string', Rule::in($availableTypes)],
-            'display_name' => 'required|string|min:2|max:255|regex:/^[A-Za-z0-9\s\-\_\.]+$/',
-            'status' => ['sometimes', 'string', Rule::in(['active', 'disconnected', 'error', 'importing_historical'])],
-            'credentials' => 'nullable|array',
-            'configuration' => 'nullable|array',
-            'is_source_of_truth' => 'nullable|boolean',
-        ]);
-
-        // Default status to active if not provided
-        $validated['status'] = $validated['status'] ?? 'active';
-
         try {
-            // Use the Lifecycle service to Onboard (Kick-starts automation)
-            $integration = $this->lifecycleService->onboardNewIntegration($request->user()->company, $validated);
-
+            $integration = $action->execute($request->user()->company, $request->validated());
             return response()->json([
                 'status' => 'success',
                 'data' => $integration
@@ -132,20 +107,13 @@ final class IntegrationController extends Controller
         }
     }
 
-    public function triggerSync(Request $request, int $id): JsonResponse
+    public function triggerSync(Request $request, int $id, TriggerSyncAction $action): JsonResponse
     {
         $company = $request->user()->company;
-        $integration = $company->integrations()->find($id);
-
-        if (!$integration) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Integration not found for this company.'
-            ], 404);
-        }
 
         try {
-            $syncLog = $this->integrationService->triggerSync($integration);
+            $syncLog = $action->execute($company, $id);
+            $integration = $company->integrations()->find($id);
 
             return response()->json([
                 'status' => 'success',
@@ -157,6 +125,11 @@ final class IntegrationController extends Controller
                     'integration_type' => $integration->integration_type,
                 ]
             ], 202);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
@@ -167,19 +140,13 @@ final class IntegrationController extends Controller
 
     public function getIntegrationCustomers(Request $request, int $id): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
-
-        $request->merge(['integration_id' => intval($id)]);
-        $validated = $request->validate([
-            'integration_id' => 'required|integer|exists:integrations,integration_id',
-        ]);
+        $company = $request->user()->company;
 
         $integration = $company->integrations()
-            ->where('integration_id', $validated['integration_id'])
+            ->where('integration_id', $id)
             ->first();
 
-        if (! $integration) {
+        if (!$integration) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Integration not found for this company.'
@@ -208,135 +175,63 @@ final class IntegrationController extends Controller
         ]);
     }
 
-    public function setSourceIntegration(Request $request): JsonResponse
+    public function setSourceIntegration(SetSourceOfTruthRequest $request, SetSourceOfTruthAction $action): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
-
-        $validated = $request->validate([
-            'integration_id' => 'required|integer|exists:integrations,integration_id',
-        ]);
-
-        $integration = $company->integrations()
-            ->where('integration_id', $validated['integration_id'])
-            ->first();
-
-        if (! $integration) {
+        try {
+            $result = $action->execute($request->user()->company, $request->validated()['integration_id']);
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'data' => [
+                    'integration_id' => $result['integration']->integration_id,
+                    'integration_type' => $result['integration']->integration_type,
+                    'display_name' => $result['integration']->display_name,
+                ]
+            ]);
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Integration not found for this company.'
+                'message' => $e->getMessage()
             ], 404);
         }
-
-        $company->integrations()->update(['is_source_of_truth' => false]);
-        $integration->update(['is_source_of_truth' => true]);
-
-        $settings = $company->settings ?? [];
-        if (!isset($settings['integrations'])) {
-            $settings['integrations'] = [];
-        }
-        $settings['integrations']['source_of_truth_integration_id'] = $integration->integration_id;
-        $company->settings = $settings;
-        $company->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Source of truth integration updated successfully.',
-            'data' => [
-                'integration_id' => $integration->integration_id,
-                'integration_type' => $integration->integration_type,
-                'display_name' => $integration->display_name,
-            ]
-        ], 200);
     }
 
-    public function updateIntegration(Request $request, int $id): JsonResponse
+    public function updateIntegration(UpdateIntegrationRequest $request, int $id, UpdateIntegrationAction $action): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
-
-        $integration = $company->integrations()
-            ->where('integration_id', $id)
-            ->first();
-
-        if (!$integration) {
+        try {
+            $integration = $action->execute($request->user()->company, $id, $request->validated());
+            return response()->json([
+                'status' => 'success',
+                'data' => $integration
+            ]);
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Integration not found for this company.'
+                'message' => $e->getMessage()
             ], 404);
         }
-
-        $validated = $request->validate([
-            'display_name' => 'sometimes|string|min:2|max:255|regex:/^[A-Za-z0-9\s\-\_\.]+$/',
-            'status' => ['sometimes', 'string', Rule::in(['active', 'disconnected', 'error', 'importing_historical'])],
-            'credentials' => 'sometimes|array',
-            'configuration' => 'sometimes|array',
-        ]);
-
-        $oldData = [
-            'display_name' => $integration->display_name,
-            'status' => $integration->status,
-        ];
-
-        if (isset($validated['display_name'])) {
-            $integration->display_name = trim(strip_tags($validated['display_name']));
-        }
-
-        if (isset($validated['status'])) {
-            $integration->status = $validated['status'];
-        }
-
-        if (isset($validated['credentials'])) {
-            $integration->credentials = $validated['credentials'];
-        }
-
-        if (isset($validated['configuration'])) {
-            $integration->configuration = $validated['configuration'];
-        }
-
-        $integration->save();
-
-        return response()->json([
-            'status' => 'success',
-            'data' => $integration
-        ]);
     }
 
-    public function deleteIntegration(Request $request, int $id): JsonResponse
+    public function deleteIntegration(Request $request, int $id, DeleteIntegrationAction $action): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
-
-        $integration = $company->integrations()
-            ->where('integration_id', $id)
-            ->first();
-
-        if (!$integration) {
+        try {
+            $action->execute($request->user()->company, $id);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Integration deleted successfully.'
+            ]);
+        } catch (ValidationException $e) {
+            $statusCode = str_contains($e->getMessage(), 'source of truth') ? 400 : 404;
             return response()->json([
                 'status' => 'error',
-                'message' => 'Integration not found for this company.'
-            ], 404);
+                'message' => $e->getMessage()
+            ], $statusCode);
         }
-
-        if ($integration->is_source_of_truth) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Cannot delete source of truth integration. Please designate another integration as source of truth first.'
-            ], 400);
-        }
-  
-        $integration->delete();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Integration deleted successfully.'
-        ]);
     }
 
     public function getSyncLogs(Request $request, int $id): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
+        $company = $request->user()->company;
 
         $integration = $company->integrations()
             ->where('integration_id', $id)
@@ -349,15 +244,13 @@ final class IntegrationController extends Controller
             ], 404);
         }
 
-        $limit = $request->input('limit', 50);
-        $limit = min($limit, 100); 
+        $limit = min($request->input('limit', 50), 100);
 
         $syncLogs = $integration->syncLogs()
             ->orderBy('started_at', 'desc')
             ->limit($limit)
             ->get();
 
-        // Get the most recent sync
         $latestSync = $syncLogs->first();
 
         return response()->json([
@@ -383,8 +276,7 @@ final class IntegrationController extends Controller
 
     public function healthCheck(Request $request, int $id): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
+        $company = $request->user()->company;
 
         $integration = $company->integrations()
             ->where('integration_id', $id)
@@ -396,9 +288,9 @@ final class IntegrationController extends Controller
                 'message' => 'Integration not found for this company.'
             ], 404);
         }
-        
+
         $isHealthy = $integration->status === 'active';
-        $lastSyncAge = $integration->last_sync_at 
+        $lastSyncAge = $integration->last_sync_at
             ? now()->diffInMinutes($integration->last_sync_at)
             : null;
 
@@ -411,7 +303,7 @@ final class IntegrationController extends Controller
             'error_message' => $integration->error_message,
             'checks' => [
                 'credentials_valid' => $integration->credentials !== null,
-                'recent_sync' => $lastSyncAge !== null && $lastSyncAge < 1440, 
+                'recent_sync' => $lastSyncAge !== null && $lastSyncAge < 1440,
                 'no_errors' => $integration->error_message === null,
             ],
         ];
@@ -424,8 +316,7 @@ final class IntegrationController extends Controller
 
     public function getRateLimitStatus(Request $request, int $id): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
+        $company = $request->user()->company;
 
         $integration = $company->integrations()
             ->where('integration_id', $id)
@@ -445,10 +336,9 @@ final class IntegrationController extends Controller
         $totalHits = $recentLogs->sum('rate_limit_hits');
         $requestsLastHour = $recentLogs->count();
 
-        // Get rate limits from integration config
         $integrationConfig = $this->getIntegrationConfig($integration->integration_type);
         $rateLimits = $integrationConfig['rate_limits'] ?? [];
-        
+
         $limit = [
             'per_minute' => $rateLimits['requests_per_minute'] ?? 60,
             'per_hour' => $rateLimits['requests_per_hour'] ?? 1000,
@@ -472,10 +362,9 @@ final class IntegrationController extends Controller
         ]);
     }
 
-    public function startHistoricalImport(Request $request, int $id, LicenseChecker $licenseChecker): JsonResponse
+    public function startHistoricalImport(StartHistoricalImportRequest $request, int $id, LicenseChecker $licenseChecker): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
+        $company = $request->user()->company;
 
         $integration = $company->integrations()
             ->where('integration_id', $id)
@@ -488,17 +377,14 @@ final class IntegrationController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
-            'start_date' => 'required|date|before:today',
-            'end_date' => 'required|date|after:start_date|before_or_equal:today',
-        ]);
+        $validated = $request->validated();
 
-        $startDate = \Carbon\Carbon::parse($validated['start_date'])->startOfDay();
-        $endDate = \Carbon\Carbon::parse($validated['end_date'])->endOfDay();
+        $startDate = Carbon::parse($validated['start_date'])->startOfDay();
+        $endDate = Carbon::parse($validated['end_date'])->endOfDay();
         $requestedMonths = $startDate->diffInMonths($endDate);
-        
-        $retentionCheck = $licenseChecker->canExtendRetention($company, (int)$requestedMonths);
-        
+
+        $retentionCheck = $licenseChecker->canExtendRetention($company, (int) $requestedMonths);
+
         if (!$retentionCheck['allowed']) {
             return response()->json([
                 'status' => 'error',
@@ -507,18 +393,17 @@ final class IntegrationController extends Controller
             ], 403);
         }
 
-        // Check if there's actually a running job (not just the status flag)
         $runningJob = $integration->historicalImportJobs()
             ->whereIn('status', ['queued', 'running'])
             ->exists();
-            
+
         if ($runningJob) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Historical import is already running for this integration. Please wait for it to complete or cancel it first.'
+                'message' => 'Historical import is already running for this integration.'
             ], 400);
         }
-        
+
         $job = $integration->historicalImportJobs()->create([
             'company_id' => $company->company_id,
             'import_start_date' => $startDate,
@@ -526,24 +411,21 @@ final class IntegrationController extends Controller
             'current_position' => $startDate,
             'status' => 'queued',
         ]);
-        
-        // Calculate 7-day chunks for parallel processing
+
         $chunks = [];
         $tempDate = $startDate->copy();
         while ($tempDate->lt($endDate)) {
             $chunks[] = $tempDate->copy();
             $tempDate->addDays(7);
         }
-        
-        // Save total jobs for progress tracking
+
         $totalJobs = count($chunks);
         $job->update(['total_jobs' => $totalJobs, 'jobs_completed' => 0]);
-        
-        // Dispatch all chunks in parallel
+
         foreach ($chunks as $chunkDate) {
             \App\Jobs\ImportHistoricalDataJob::dispatch($job, $chunkDate);
         }
-        
+
         $integration->update([
             'status' => 'importing_historical',
             'historical_import_status' => 'pending',
@@ -556,11 +438,10 @@ final class IntegrationController extends Controller
             'job_id' => $job->historical_import_job_id
         ]);
     }
-    
+
     public function browseSharePoint(Request $request, int $id): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
+        $company = $request->user()->company;
 
         $integration = $company->integrations()
             ->where('integration_id', $id)
@@ -592,11 +473,10 @@ final class IntegrationController extends Controller
             ], 500);
         }
     }
-    
-    public function createSharePointFolder(Request $request, int $id): JsonResponse
+
+    public function createSharePointFolder(CreateSharePointFolderRequest $request, int $id): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
+        $company = $request->user()->company;
 
         $integration = $company->integrations()
             ->where('integration_id', $id)
@@ -610,10 +490,7 @@ final class IntegrationController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
-            'path' => 'nullable|string',
-            'name' => 'required|string|min:1'
-        ]);
+        $validated = $request->validated();
 
         try {
             $sharepoint = new \App\Integrations\SharePoint\SharePointIntegration($integration);
@@ -633,8 +510,7 @@ final class IntegrationController extends Controller
 
     public function getHistoricalImportJobs(Request $request, int $id): JsonResponse
     {
-        $authUser = $request->user();
-        $company = $authUser->company;
+        $company = $request->user()->company;
 
         $integration = $company->integrations()
             ->where('integration_id', $id)
@@ -661,7 +537,6 @@ final class IntegrationController extends Controller
     }
 
     /**
-     * Helper to read an integration's config file
      * @return array<string, mixed>
      */
     private function getIntegrationConfig(string $integrationType): array

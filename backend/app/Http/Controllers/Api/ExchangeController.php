@@ -6,10 +6,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\ExchangeSyncService;
+use App\Http\Requests\Exchange\ExchangePushRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 final class ExchangeController extends Controller
 {
@@ -26,7 +26,7 @@ final class ExchangeController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function push(Request $request): JsonResponse
+    public function push(ExchangePushRequest $request): JsonResponse
     {
         // Get company and customer from API key middleware
         $companyId = $request->get('_company_id');
@@ -46,33 +46,7 @@ final class ExchangeController extends Controller
             ], 403);
         }
 
-        // Validate request payload
-        $validator = Validator::make($request->all(), [
-            'syncType' => 'required|in:full,delta',
-            'syncTimestamp' => 'required|date',
-            'exchangeOrganization' => 'nullable|string',
-            'exchangeVersion' => 'nullable|string',
-            'data' => 'required|array',
-            'data.mailboxes' => 'required|array',
-            'data.emailAliases' => 'nullable|array',
-            'data.permissions' => 'nullable|array',
-            'data.statistics' => 'nullable|array',
-            'statistics' => 'nullable|array',
-        ]);
-
-        if ($validator->fails()) {
-            Log::warning('Exchange push validation failed', [
-                'company_id' => $companyId,
-                'customer_id' => $customerId,
-                'errors' => $validator->errors()->toArray(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'error' => 'Validation failed',
-                'details' => $validator->errors(),
-            ], 422);
-        }
+        $validated = $request->validated();
 
         try {
             // Get or create Exchange integration for this company
@@ -82,13 +56,13 @@ final class ExchangeController extends Controller
             $result = $this->syncService->processSyncData(
                 integration: $integration,
                 customerId: $customerId,
-                syncType: $request->input('syncType'),
-                data: $request->input('data'),
+                syncType: $validated['syncType'],
+                data: $validated['data'],
                 metadata: [
-                    'sync_timestamp' => $request->input('syncTimestamp'),
-                    'exchange_organization' => $request->input('exchangeOrganization'),
-                    'exchange_version' => $request->input('exchangeVersion'),
-                    'agent_statistics' => $request->input('statistics', []),
+                    'sync_timestamp' => $validated['syncTimestamp'],
+                    'exchange_organization' => $validated['exchangeOrganization'] ?? null,
+                    'exchange_version' => $validated['exchangeVersion'] ?? null,
+                    'agent_statistics' => $validated['statistics'] ?? [],
                 ]
             );
 

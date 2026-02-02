@@ -7,24 +7,37 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ApiKey;
 use App\Models\AuditLog;
+use App\Http\Requests\ApiKey\StoreApiKeyRequest;
+use App\Http\Requests\ApiKey\GetApiKeysRequest;
+use App\Http\Requests\ApiKey\RevokeApiKeyRequest;
+use App\Http\Requests\ApiKey\DeleteApiKeyRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Hash;
 
 final class ApiKeyController extends Controller
 {
     /**
      * List all API keys for the authenticated user's company
      */
-    public function index(Request $request): JsonResponse
+    public function index(GetApiKeysRequest $request): JsonResponse
     {
         $user = $request->user();
+        $validated = $request->validated();
         
-        $apiKeys = ApiKey::where('company_id', $user->company_id)
+        $query = ApiKey::where('company_id', $user->company_id)
             ->with(['customer:customer_id,canonical_name', 'createdBy:user_id,name'])
-            ->orderBy('created_at', 'desc')
-            ->get()
+            ->orderBy('created_at', 'desc');
+
+        if (!empty($validated['search'])) {
+            $query->where('display_name', 'like', '%' . $validated['search'] . '%');
+        }
+
+        if (!empty($validated['customer_id'])) {
+            $query->where('customer_id', $validated['customer_id']);
+        }
+
+        $apiKeys = $query->get()
             ->map(function ($key) {
                 return [
                     'api_key_id' => $key->api_key_id,
@@ -51,19 +64,10 @@ final class ApiKeyController extends Controller
     /**
      * Create a new API key
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreApiKeyRequest $request): JsonResponse
     {
         $user = $request->user();
-
-        $validated = $request->validate([
-            'display_name' => 'required|string|max:255',
-            'customer_id' => 'nullable|integer|exists:customers,customer_id',
-            'permissions' => 'nullable|array',
-            'ip_whitelist' => 'nullable|array',
-            'ip_whitelist.*' => 'ip',
-            'allowed_endpoints' => 'nullable|array',
-            'allowed_endpoints.*' => 'string',
-        ]);
+        $validated = $request->validated();
 
         // Generate a secure random API key
         $plainKey = 'msp_' . Str::random(48);
@@ -113,7 +117,7 @@ final class ApiKeyController extends Controller
     /**
      * Revoke an API key
      */
-    public function revoke(Request $request, int $id): JsonResponse
+    public function revoke(RevokeApiKeyRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
 
@@ -121,12 +125,7 @@ final class ApiKeyController extends Controller
             ->where('api_key_id', $id)
             ->first();
 
-        if (!$apiKey) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'API key not found',
-            ], 404);
-        }
+        // No need for "if (!$apiKey)" because authorize() handles it
 
         if ($apiKey->revoked) {
             return response()->json([
@@ -165,7 +164,7 @@ final class ApiKeyController extends Controller
     /**
      * Delete an API key permanently
      */
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(DeleteApiKeyRequest $request, int $id): JsonResponse
     {
         $user = $request->user();
 
@@ -173,12 +172,7 @@ final class ApiKeyController extends Controller
             ->where('api_key_id', $id)
             ->first();
 
-        if (!$apiKey) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'API key not found',
-            ], 404);
-        }
+        // No need for "if (!$apiKey)" because authorize() handles it
 
         $displayName = $apiKey->display_name;
         $apiKey->delete();

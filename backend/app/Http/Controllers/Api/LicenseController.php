@@ -8,10 +8,15 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Services\LicenseChecker;
 use App\Models\License;
+use App\Http\Requests\License\CheckIntegrationLicenseRequest;
+use App\Http\Requests\License\CheckRetentionLicenseRequest;
+use App\Http\Requests\License\GetLicensesRequest;
+use App\Http\Requests\License\CheckUserLicenseRequest;
+use App\Http\Requests\License\GetLicenseUsageRequest;
 
 final class LicenseController extends Controller
 {
-    public function index(Request $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
+    public function index(GetLicensesRequest $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -31,14 +36,12 @@ final class LicenseController extends Controller
         ]);
     }
 
-    public function checkIntegrationLicense(Request $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
+    public function checkIntegrationLicense(CheckIntegrationLicenseRequest $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $validated = $request->validate([
-            'integration_type' => 'required|string',
-        ]);
+        $validated = $request->validated();
 
         $check = $licenseChecker->canActivateIntegration($company, $validated['integration_type']);
 
@@ -48,14 +51,12 @@ final class LicenseController extends Controller
         ]);
     }
 
-    public function checkRetentionLicense(Request $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
+    public function checkRetentionLicense(CheckRetentionLicenseRequest $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
-        $validated = $request->validate([
-            'requested_months' => 'required|integer|min:1',
-        ]);
+        $validated = $request->validated();
 
         $check = $licenseChecker->canExtendRetention($company, $validated['requested_months']);
 
@@ -65,7 +66,7 @@ final class LicenseController extends Controller
         ]);
     }
 
-    public function checkUserLicense(Request $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
+    public function checkUserLicense(CheckUserLicenseRequest $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -82,7 +83,7 @@ final class LicenseController extends Controller
         ]);
     }
 
-    public function getLicenseUsage(Request $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
+    public function getLicenseUsage(GetLicenseUsageRequest $request, LicenseChecker $licenseChecker): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;

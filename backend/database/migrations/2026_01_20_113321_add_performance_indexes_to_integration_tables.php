@@ -16,13 +16,28 @@ return new class extends Migration
      */
     private function indexExists(string $indexName): bool
     {
-        $result = DB::selectOne(
-            "SELECT EXISTS (
-                SELECT 1 FROM pg_indexes WHERE indexname = ?
-            ) as exists",
-            [$indexName]
-        );
-        return $result->exists ?? false;
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            $result = DB::selectOne(
+                "SELECT EXISTS (
+                    SELECT 1 FROM pg_indexes WHERE indexname = ?
+                ) as exists",
+                [$indexName]
+            );
+            return (bool) ($result->exists ?? false);
+        }
+
+        if ($driver === 'sqlite') {
+            $result = DB::selectOne(
+                "SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?",
+                [$indexName]
+            );
+            return $result !== null;
+        }
+
+        // Default to checking schema (slower but more compatible)
+        return false;
     }
 
     /**

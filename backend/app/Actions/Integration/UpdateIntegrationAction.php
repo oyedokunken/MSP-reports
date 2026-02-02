@@ -35,15 +35,15 @@ final class UpdateIntegrationAction
             $integration->display_name = trim(strip_tags($data['display_name']));
         }
 
-        if (isset($data['status'])) {
+        if (array_key_exists('status', $data)) {
             $integration->status = $data['status'];
         }
 
-        if (isset($data['credentials'])) {
+        if (array_key_exists('credentials', $data)) {
             $integration->credentials = $data['credentials'];
         }
 
-        if (isset($data['configuration'])) {
+        if (array_key_exists('configuration', $data)) {
             $integration->configuration = $data['configuration'];
         }
 

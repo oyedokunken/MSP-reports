@@ -7,7 +7,7 @@ namespace App\Services;
 use App\Models\Company;
 use App\Models\License;
 
-final class LicenseChecker
+class LicenseChecker
 {
     public function hasLicense(Company $company, string $productSku): bool
     {

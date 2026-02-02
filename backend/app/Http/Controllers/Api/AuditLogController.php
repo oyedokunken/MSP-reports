@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Http\Requests\AuditLog\GetAuditLogsRequest;
+use App\Http\Requests\AuditLog\GetAuditLogStatsRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -15,10 +17,11 @@ final class AuditLogController extends Controller
     /**
      * Display a listing of audit logs with filtering and pagination.
      */
-    public function index(Request $request): \Illuminate\Http\JsonResponse
+    public function index(GetAuditLogsRequest $request): \Illuminate\Http\JsonResponse
     {
         $companyId = $request->user()->company_id;
-        $perPage = $request->input('per_page', 10);
+        $validated = $request->validated();
+        $perPage = $validated['per_page'] ?? $request->input('per_page', 10);
 
         $query = AuditLog::where('company_id', $companyId)
             ->orderBy('created_at', 'desc');
@@ -74,7 +77,7 @@ final class AuditLogController extends Controller
     /**
      * Get aggregate statistics for audit logs.
      */
-    public function stats(Request $request): \Illuminate\Http\JsonResponse
+    public function stats(GetAuditLogStatsRequest $request): \Illuminate\Http\JsonResponse
     {
         $companyId = $request->user()->company_id;
         $today = Carbon::today();
@@ -113,9 +116,10 @@ final class AuditLogController extends Controller
     /**
      * Export audit logs to CSV.
      */
-    public function export(Request $request): \Illuminate\Http\Response
+    public function export(GetAuditLogsRequest $request): \Illuminate\Http\Response
     {
         $companyId = $request->user()->company_id;
+        $validated = $request->validated();
         
         $query = AuditLog::where('company_id', $companyId)
             ->orderBy('created_at', 'desc');

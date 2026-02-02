@@ -9,6 +9,12 @@ use App\Models\ReportTemplate;
 use App\Models\Customer;
 use App\Services\ReportTemplateService;
 use App\Services\ReportRegistry;
+use App\Http\Requests\ReportTemplate\StoreReportTemplateRequest;
+use App\Http\Requests\ReportTemplate\UpdateReportTemplateRequest;
+use App\Http\Requests\ReportTemplate\ApplyTemplateRequest;
+use App\Http\Requests\ReportTemplate\ApplyToCustomersRequest;
+use App\Http\Requests\ReportTemplate\GetAvailableReportTypesRequest;
+use App\Http\Requests\ReportTemplate\GetReportTemplatesRequest;
 use Illuminate\Http\Request;
 
 final class ReportTemplateController extends Controller
@@ -25,14 +31,15 @@ final class ReportTemplateController extends Controller
      * - active: Filter by active status (true/false)
      * - global: Filter for global templates only (true) or customer-specific only (false)
      */
-    public function index(Request $request): \Illuminate\Http\JsonResponse
+    public function index(GetReportTemplatesRequest $request): \Illuminate\Http\JsonResponse
     {
+        $validated = $request->validated();
         $templates = ReportTemplate::query()
             ->with('customer')
             ->withCount('schedules')
-            ->when($request->report_type, fn($q, $type) => $q->where('report_type', $type))
-            ->when($request->active !== null, fn($q) => $q->where('active', $request->boolean('active')))
-            ->when($request->has('global'), function($q) use ($request) {
+            ->when($validated['report_type'] ?? null, fn($q, $type) => $q->where('report_type', $type))
+            ->when(isset($validated['active']), fn($q) => $q->where('active', $request->boolean('active')))
+            ->when(isset($validated['global']), function($q) use ($request) {
                 if ($request->boolean('global')) {
                     return $q->whereNull('customer_id');
                 } else {
@@ -69,22 +76,9 @@ final class ReportTemplateController extends Controller
      * If customer_id is provided, creates a customer-specific template and auto-creates a schedule.
      * If customer_id is null, creates a global template that can be applied to any customer later.
      */
-    public function store(Request $request): \Illuminate\Http\JsonResponse
+    public function store(StoreReportTemplateRequest $request): \Illuminate\Http\JsonResponse
     {
-        $validated = $request->validate([
-            'customer_id' => 'nullable|integer|exists:customers,customer_id',
-            'template_name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'report_type' => 'required|string',
-            'frequency' => 'required|in:daily,weekly,monthly,yearly,on-demand',
-            'schedule_config' => 'nullable|array',
-            'time_of_day' => 'nullable|string|date_format:H:i',
-            'timezone' => 'nullable|string',
-            'included_sections' => 'nullable|array',
-            'delivery_settings' => 'nullable|array',
-            'report_options' => 'nullable|array',
-            'active' => 'boolean',
-        ]);
+        $validated = $request->validated();
         
         $template = ReportTemplate::create([
             'company_id' => auth()->user()->company_id,
@@ -134,27 +128,14 @@ final class ReportTemplateController extends Controller
     /**
      * Update template
      */
-    public function update(Request $request, ReportTemplate $template): \Illuminate\Http\JsonResponse
+    public function update(UpdateReportTemplateRequest $request, ReportTemplate $template): \Illuminate\Http\JsonResponse
     {
         \Log::info('Template update request', [
             'template_id' => $template->template_id,
             'request_data' => $request->all(),
         ]);
 
-        $validated = $request->validate([
-            'template_name' => 'string|max:255',
-            'description' => 'nullable|string',
-            'report_type' => 'string',
-            'frequency' => 'in:daily,weekly,monthly,yearly,on-demand',
-            'schedule_config' => 'nullable|array',
-            'time_of_day' => 'nullable|string|date_format:H:i',
-            'timezone' => 'nullable|string',
-            'included_sections' => 'nullable|array',
-            'delivery_settings' => 'nullable|array',
-            'report_options' => 'nullable|array',
-            'active' => 'boolean',
-            'customer_id' => 'sometimes|integer|exists:customers,customer_id',
-        ]);
+        $validated = $request->validated();
         
         $template->update($validated);
         
@@ -208,11 +189,9 @@ final class ReportTemplateController extends Controller
     /**
      * Apply template to single customer
      */
-    public function applyToCustomer(Request $request, ReportTemplate $template): \Illuminate\Http\JsonResponse
+    public function applyToCustomer(ApplyTemplateRequest $request, ReportTemplate $template): \Illuminate\Http\JsonResponse
     {
-        $validated = $request->validate([
-            'customer_id' => 'required|exists:customers,customer_id',
-        ]);
+        $validated = $request->validated();
         
         /** @var \App\Models\Customer $customer */
         $customer = Customer::findOrFail($validated['customer_id']);
@@ -228,12 +207,9 @@ final class ReportTemplateController extends Controller
     /**
      * Apply template to multiple customers
      */
-    public function applyToCustomers(Request $request, ReportTemplate $template): \Illuminate\Http\JsonResponse
+    public function applyToCustomers(ApplyToCustomersRequest $request, ReportTemplate $template): \Illuminate\Http\JsonResponse
     {
-        $validated = $request->validate([
-            'customer_ids' => 'required|array',
-            'customer_ids.*' => 'exists:customers,customer_id',
-        ]);
+        $validated = $request->validated();
         
         $schedules = $this->templateService->applyTemplateToCustomers(
             $template,
@@ -297,7 +273,7 @@ final class ReportTemplateController extends Controller
     /**
      * Get available report types for a specific customer
      */
-    public function getAvailableReportTypes(Request $request, ReportRegistry $reportRegistry): \Illuminate\Http\JsonResponse
+    public function getAvailableReportTypes(GetAvailableReportTypesRequest $request, ReportRegistry $reportRegistry): \Illuminate\Http\JsonResponse
     {
         \Log::info('getAvailableReportTypes called', [
             'all_input' => $request->all(),
@@ -305,9 +281,7 @@ final class ReportTemplateController extends Controller
             'customer_id' => $request->input('customer_id'),
         ]);
 
-        $validated = $request->validate([
-            'customer_id' => 'required|integer|exists:customers,customer_id',
-        ]);
+        $validated = $request->validated();
 
         $customerId = (int) $validated['customer_id'];
         $customer = Customer::with('integrationCustomers.integration')->find($customerId);

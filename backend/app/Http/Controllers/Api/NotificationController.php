@@ -6,6 +6,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Http\Requests\Notification\GetNotificationsRequest;
+use App\Http\Requests\Notification\MarkNotificationRequest;
+use App\Http\Requests\Notification\MarkAllNotificationsRequest;
+use App\Http\Requests\Notification\DeleteNotificationRequest;
+use App\Http\Requests\Notification\DeleteAllReadNotificationsRequest;
 use Illuminate\Support\Facades\Auth;
 
 final class NotificationController extends Controller
@@ -13,10 +18,11 @@ final class NotificationController extends Controller
     /**
      * Get paginated notifications for the authenticated user
      */
-    public function index(Request $request): \Illuminate\Http\JsonResponse
+    public function index(GetNotificationsRequest $request): \Illuminate\Http\JsonResponse
     {
         $user = $request->user();
-        $perPage = $request->input('per_page', 20);
+        $validated = $request->validated();
+        $perPage = $validated['per_page'] ?? $request->input('per_page', 20);
         
         $notifications = $user->notifications()->paginate($perPage);
 
@@ -47,10 +53,14 @@ final class NotificationController extends Controller
     /**
      * Mark a specific notification as read
      */
-    public function markAsRead(Request $request, string $id): \Illuminate\Http\JsonResponse
+    public function markAsRead(MarkNotificationRequest $request, string $id): \Illuminate\Http\JsonResponse
     {
-        $notification = $request->user()->notifications()->findOrFail($id);
-        $notification->markAsRead();
+        $notification = $request->user()->notifications()->find($id);
+        
+        // No need for "if (!$notification)" because authorize() handles it (if it existed)
+        if ($notification) {
+            $notification->markAsRead();
+        }
 
         return response()->json([
             'status' => 'success',
@@ -61,7 +71,7 @@ final class NotificationController extends Controller
     /**
      * Mark all notifications as read
      */
-    public function markAllAsRead(Request $request): \Illuminate\Http\JsonResponse
+    public function markAllAsRead(MarkAllNotificationsRequest $request): \Illuminate\Http\JsonResponse
     {
         $request->user()->unreadNotifications->markAsRead();
 
@@ -74,10 +84,13 @@ final class NotificationController extends Controller
     /**
      * Delete a notification
      */
-    public function destroy(Request $request, string $id): \Illuminate\Http\JsonResponse
+    public function destroy(DeleteNotificationRequest $request, string $id): \Illuminate\Http\JsonResponse
     {
-        $notification = $request->user()->notifications()->findOrFail($id);
-        $notification->delete();
+        $notification = $request->user()->notifications()->find($id);
+
+        if ($notification) {
+            $notification->delete();
+        }
 
         return response()->json([
             'status' => 'success',
@@ -88,7 +101,7 @@ final class NotificationController extends Controller
     /**
      * Delete all read notifications
      */
-    public function deleteAllRead(Request $request): \Illuminate\Http\JsonResponse
+    public function deleteAllRead(DeleteAllReadNotificationsRequest $request): \Illuminate\Http\JsonResponse
     {
         $request->user()->readNotifications()->delete();
 

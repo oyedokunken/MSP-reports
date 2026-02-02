@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Services\ActiveDirectorySyncService;
 use App\Models\SyncLog;
 use App\Models\AuditLog;
+use App\Http\Requests\ActiveDirectory\ActiveDirectoryPushRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -28,7 +29,7 @@ final class ActiveDirectoryController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function push(Request $request)
+    public function push(ActiveDirectoryPushRequest $request)
     {
         $startTime = microtime(true);
         
@@ -53,19 +54,7 @@ final class ActiveDirectoryController extends Controller
             }
             
             // Validate request payload
-            $validated = $request->validate([
-                'syncType' => 'required|in:full,delta',
-                'syncTimestamp' => 'required|date',
-                'domain' => 'required|string|max:255',
-                'data' => 'required|array',
-                'data.users' => 'required|array',
-                'data.securityGroups' => 'required|array',
-                'data.groupMemberships' => 'required|array',
-                'statistics' => 'required|array',
-                'statistics.userCount' => 'required|integer',
-                'statistics.groupCount' => 'required|integer',
-                'statistics.membershipCount' => 'required|integer',
-            ]);
+            $validated = $request->validated();
 
             DB::beginTransaction();
             

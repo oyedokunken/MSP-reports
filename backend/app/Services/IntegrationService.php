@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-final class IntegrationService
+class IntegrationService
 {
     protected SyncEngine $syncEngine;
     protected LicenseChecker $licenseChecker;

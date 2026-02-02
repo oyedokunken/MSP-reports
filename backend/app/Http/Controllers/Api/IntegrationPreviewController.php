@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Integration;
+use App\Http\Requests\Integration\GetIntegrationPreviewRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -60,7 +61,7 @@ final class IntegrationPreviewController extends Controller
     /**
      * Get preview data for an integration
      */
-    public function getPreviewData(Integration $integration, Request $request): JsonResponse
+    public function getPreviewData(Integration $integration, GetIntegrationPreviewRequest $request): JsonResponse
     {
         try {
             // Ensure user has access to this integration
@@ -77,7 +78,7 @@ final class IntegrationPreviewController extends Controller
             $integrationInstance = new $integrationClass($integration);
 
             // Get optional customer filter
-            $integrationCustomerId = $request->query('customer_id');
+            $integrationCustomerId = $request->validated()['customer_id'] ?? null;
 
             // Get preview data
             $previewData = $integrationInstance->getPreviewData($integrationCustomerId);
@@ -100,7 +101,7 @@ final class IntegrationPreviewController extends Controller
     /**
      * Get both template and data in a single request
      */
-    public function getPreview(Integration $integration, Request $request): JsonResponse
+    public function getPreview(Integration $integration, GetIntegrationPreviewRequest $request): JsonResponse
     {
         try {
             // Ensure user has access to this integration
@@ -123,7 +124,7 @@ final class IntegrationPreviewController extends Controller
             $integrationInstance = new $integrationClass($integration);
 
             // Get optional customer filter
-            $integrationCustomerId = $request->query('customer_id');
+            $integrationCustomerId = $request->validated()['customer_id'] ?? null;
 
             // Get both template and data
             Log::info('Getting template');
@@ -166,7 +167,7 @@ final class IntegrationPreviewController extends Controller
     /**
      * Get licenses for a specific customer (ITGlue only)
      */
-    public function getCustomerLicenses(Integration $integration, Request $request): JsonResponse
+    public function getCustomerLicenses(Integration $integration, GetIntegrationPreviewRequest $request): JsonResponse
     {
         try {
             // Ensure user has access to this integration
@@ -177,7 +178,9 @@ final class IntegrationPreviewController extends Controller
                 ], 403);
             }
 
-            $integrationCustomerId = $request->query('customer_id');
+            $validated = $request->validated();
+            $integrationCustomerId = $validated['customer_id'] ?? null;
+            
             if (!$integrationCustomerId) {
                 return response()->json([
                     'success' => false,

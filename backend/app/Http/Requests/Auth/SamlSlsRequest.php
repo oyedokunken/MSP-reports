@@ -1,0 +1,26 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests\Auth;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class SamlSlsRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'SAMLRequest' => 'sometimes|string',
+            'SAMLResponse' => 'sometimes|string',
+            'RelayState' => 'sometimes|string',
+            'SigAlg' => 'sometimes|string',
+            'Signature' => 'sometimes|string',
+        ];
+    }
+}
