@@ -82,7 +82,7 @@ final class BitDefenderIntegration implements IntegrationInterface
         $errors = [];
 
         try {
-            $state = json_decode($this->integration->sync_state, true) ?? [];
+            $state = json_decode($this->integration->sync_state ?? '{}', true) ?? [];
             $phase = $state['phase'] ?? 'customers';
             $offset = $state['offset'] ?? 0;
 

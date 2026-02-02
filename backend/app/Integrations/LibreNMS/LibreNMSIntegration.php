@@ -177,7 +177,7 @@ final class LibreNMSIntegration implements IntegrationInterface
 
         try {
             // Load state
-            $state = json_decode($this->integration->sync_state, true);
+            $state = json_decode($this->integration->sync_state ?? '{}', true);
             $phase = $state['phase'] ?? 'groups';
 
             // PHASE 1: DEVICE GROUPS (Customers)

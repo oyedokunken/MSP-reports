@@ -70,7 +70,7 @@ final class SendmarcIntegration implements IntegrationInterface
 
         try {
              // 1. Checkpoint: Resume
-            $state = json_decode($this->integration->sync_state, true);
+            $state = json_decode($this->integration->sync_state ?? '{}', true);
             $phase = $state['phase'] ?? 'domains';
             $resumeOffset = $state['offset'] ?? 0;
             

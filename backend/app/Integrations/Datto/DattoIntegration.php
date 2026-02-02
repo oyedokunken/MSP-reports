@@ -93,7 +93,7 @@ final class DattoIntegration implements IntegrationInterface
         $totalProcessed = 0;
 
         try {
-            $state = json_decode($this->integration->sync_state, true) ?? [];
+            $state = json_decode($this->integration->sync_state ?? '{}', true) ?? [];
             $phase = $state['phase'] ?? 'customers';
             $resumeOffset = $state['offset'] ?? 0;
 
