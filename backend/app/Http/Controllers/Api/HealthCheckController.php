@@ -349,15 +349,19 @@ final class HealthCheckController extends Controller
                 $jobData = $jobCounts->get($date);
                 $loginData = $userLogins->get($date);
                 
+                /** @var object{total: int, failed: int, rate_limits: int}|null $syncData */
+                /** @var object{total: int, failed: int}|null $reportData */
+                /** @var object{count: int}|null $jobData */
+                /** @var object{count: int}|null $loginData */
                 $activityData[] = [
                     'date' => $dateObj->format('M j'), // e.g., "Dec 16"
-                    'syncs' => $syncData ? $syncData->total : 0,
-                    'failed_syncs' => $syncData ? $syncData->failed : 0,
+                    'syncs' => $syncData ? (int) $syncData->total : 0,
+                    'failed_syncs' => $syncData ? (int) $syncData->failed : 0,
                     'rate_limits' => $syncData ? (int) $syncData->rate_limits : 0,
-                    'reports' => $reportData ? $reportData->total : 0,
-                    'failed_reports' => $reportData ? $reportData->failed : 0,
-                    'jobs' => $jobData ? $jobData->count : 0,
-                    'logins' => $loginData ? $loginData->count : 0,
+                    'reports' => $reportData ? (int) $reportData->total : 0,
+                    'failed_reports' => $reportData ? (int) $reportData->failed : 0,
+                    'jobs' => $jobData ? (int) $jobData->count : 0,
+                    'logins' => $loginData ? (int) $loginData->count : 0,
                 ];
             }
 
