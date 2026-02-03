@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
-import { Cable, ArrowLeft, Info, CheckCircle2 } from 'lucide-react'
+import { Cable, ArrowLeft, Info, CheckCircle2, ClipboardPaste } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { api } from '@/lib/api'
 import { DynamicCredentialForm } from '@/components/integrations/DynamicCredentialForm'
 import { useIntegrationConfig } from '@/hooks/useIntegrationConfig'
@@ -192,16 +193,42 @@ export default function AddIntegrationPage() {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="display_name">Display Name *</Label>
-                  <Input
-                    id="display_name"
-                    type="text"
-                    placeholder={`e.g., Production ${formData.integration_type}`}
-                    value={formData.display_name}
-                    onChange={(e) => handleInputChange('display_name', e.target.value)}
-                    required
-                    disabled={isSubmitting}
-                    className="max-w-md"
-                  />
+                  <div className="flex gap-1 max-w-md">
+                    <Input
+                      id="display_name"
+                      type="text"
+                      placeholder={`e.g., Production ${formData.integration_type}`}
+                      value={formData.display_name}
+                      onChange={(e) => handleInputChange('display_name', e.target.value)}
+                      required
+                      disabled={isSubmitting}
+                    />
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0"
+                            onClick={async () => {
+                              try {
+                                const text = await navigator.clipboard.readText()
+                                handleInputChange('display_name', text)
+                              } catch (err) {
+                                console.error('Failed to read clipboard:', err)
+                              }
+                            }}
+                          >
+                            <ClipboardPaste className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Paste from clipboard</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     A friendly name to identify this integration
                   </p>

@@ -1,4 +1,3 @@
-export { AddIntegrationModal } from './AddIntegrationModal'
 export { EditIntegrationModal } from './EditIntegrationModal'
 export { DeleteIntegrationModal } from './DeleteIntegrationModal'
 export { ViewSyncLogsModal } from './ViewSyncLogsModal'
