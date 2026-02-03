@@ -90,6 +90,7 @@ final class DattoClient
             $response = Http::retry(3, 1000)
               ->timeout(30)
               ->connectTimeout(10)
+              ->withOptions(['verify' => config('app.env') === 'production'])
               ->withHeaders([
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/x-www-form-urlencoded',
@@ -422,6 +423,7 @@ final class DattoClient
 
                 $response = Http::timeout(120)
                     ->connectTimeout(30)
+                    ->withOptions(['verify' => config('app.env') === 'production'])
                     ->withHeaders([
                         'Authorization' => 'Bearer ' . $this->accessToken,
                         'Accept'        => 'application/json',
@@ -525,6 +527,7 @@ final class DattoClient
         try {
             $response = Http::timeout(120)
                 ->connectTimeout(30)
+                ->withOptions(['verify' => config('app.env') === 'production'])
                 ->withHeaders([
                     'Authorization' => 'Basic ' . $credentials,
                     'Accept' => 'application/json',
