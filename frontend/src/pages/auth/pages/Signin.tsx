@@ -103,11 +103,10 @@ const Signin = () => {
           {/* Sign In Form */}
           <div
             aria-hidden={showAuthOptions}
-            className={`transform transition-all duration-300 ease-in-out ${
-              showAuthOptions
-                ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none overflow-hidden'
-                : 'max-h-[1000px] opacity-100 translate-y-0'
-            }`}
+            className={`transform transition-all duration-300 ease-in-out ${showAuthOptions
+              ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none overflow-hidden'
+              : 'max-h-[1000px] opacity-100 translate-y-0'
+              }`}
           >
             <SigninForm
               email={email}

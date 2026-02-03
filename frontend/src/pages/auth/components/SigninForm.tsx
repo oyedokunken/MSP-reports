@@ -113,8 +113,8 @@ export function SigninForm({
           aria-invalid={!!emailError}
           aria-describedby={emailError ? "email-error" : undefined}
           className={`appearance-none relative block w-full px-4 py-3 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out ${emailError && touched.email
-              ? 'border-red-500 focus:ring-red-500'
-              : 'border-gray-300'
+            ? 'border-red-500 focus:ring-red-500'
+            : 'border-gray-300'
             }`}
           placeholder="youremail@example.com"
         />
@@ -140,8 +140,8 @@ export function SigninForm({
             aria-invalid={!!passwordError}
             aria-describedby={passwordError ? "password-error" : undefined}
             className={`appearance-none relative block w-full px-4 py-3 pr-12 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out ${passwordError && touched.password
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-gray-300'
+              ? 'border-red-500 focus:ring-red-500'
+              : 'border-gray-300'
               }`}
             placeholder="*******"
           />
