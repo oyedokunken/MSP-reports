@@ -240,7 +240,7 @@ export function UsersTable({
               const isCurrentUser = user.user_id === currentUserId
               const statusConfig = getStatusConfig(user.status)
               const StatusIcon = statusConfig.icon
-              const isAdmin = user.role.name.toLowerCase() === 'admin'
+              const isAdmin = user.role?.name?.toLowerCase() === 'admin'
 
               return (
                 <TableRow 
@@ -301,7 +301,7 @@ export function UsersTable({
                       )}
                     >
                       {isAdmin && <Shield className="mr-1 h-3 w-3" />}
-                      {user.role.name}
+                      {user.role?.name ?? 'No Role'}
                     </Badge>
                   </TableCell>
 
