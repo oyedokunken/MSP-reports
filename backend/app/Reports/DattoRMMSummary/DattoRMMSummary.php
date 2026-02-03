@@ -142,7 +142,7 @@ class DattoRMMSummary extends BaseReport
                 'data' => $uptimeMetrics->toArray(),
             ],
             'options' => $options,
-            'cover_title' => 'Datto RMM ' . ucfirst($options['frequency'] instanceof \UnitEnum ? $options['frequency']->value : ($options['frequency'] ?? 'Monthly')) . ' Summary',
+            'cover_title' => 'Datto RMM ' . ucfirst($options['frequency'] instanceof \BackedEnum ? $options['frequency']->value : ($options['frequency'] ?? 'Monthly')) . ' Summary',
             'cover_subtitle' => 'Comprehensive analysis of device health, security compliance, and infrastructure alerts.',
             'recommendations' => $recommendations,
         ];

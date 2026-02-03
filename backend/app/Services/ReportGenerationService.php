@@ -75,7 +75,7 @@ final class ReportGenerationService
 
             // Add frequency to options so report can adjust title dynamically
             $frequency = $schedule->frequency;
-            $options['frequency'] = $frequency instanceof \UnitEnum ? $frequency->value : ($frequency ?? 'monthly');
+            $options['frequency'] = $frequency instanceof \BackedEnum ? (string) $frequency->value : 'monthly';
 
             // Generate report with Carbon dates and options
             $reportData = $reportClass->generate($schedule->customer, $startDate, $endDate, $options);
@@ -227,7 +227,7 @@ final class ReportGenerationService
         }
 
         $frequency = $reportData['options']['frequency'] ?? 'monthly';
-        $frequencyLabel = ucfirst($frequency instanceof \UnitEnum ? $frequency->value : (string) $frequency);
+        $frequencyLabel = ucfirst($frequency instanceof \BackedEnum ? (string) $frequency->value : (string) $frequency);
         
         // Load Chart.js library for inline embedding in PDF
         $chartJsPath = public_path('js/chart.min.js');

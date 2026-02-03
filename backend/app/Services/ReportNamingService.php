@@ -79,13 +79,17 @@ final class ReportNamingService
         $now = $date ?: Carbon::now();
         $customer = $customer ?: $schedule->customer;
         
+        // Convert frequency enum to string for token replacement
+        $frequency = $schedule->frequency;
+        $frequencyString = $frequency instanceof \BackedEnum ? (string) $frequency->value : 'monthly';
+        
         return [
             '{customer_name}' => $customer->canonical_name ?? 'Unknown',
             '{report_type}' => $schedule->report_type,
             '{date}' => $now->format('Y-m-d'),
             '{month}' => $now->format('F'),
             '{year}' => $now->format('Y'),
-            '{frequency}' => is_object($schedule->frequency ?? null) ? $schedule->frequency->value : ($schedule->frequency ?? 'monthly'),
+            '{frequency}' => $frequencyString,
             '{timestamp}' => $now->format('Y-m-d_His'),
         ];
     }

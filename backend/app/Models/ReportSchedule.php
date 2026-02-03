@@ -33,6 +33,16 @@ class ReportSchedule extends Model
 
     protected $primaryKey = 'report_schedule_id';
 
+    /**
+     * Default attribute values to prevent null enum issues at runtime.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'frequency' => 'monthly',
+        'active' => true,
+    ];
+
     protected static function booted(): void
     {
         static::addGlobalScope(new CompanyScope);
