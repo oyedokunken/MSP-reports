@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { BrandingProvider } from '@/contexts/BrandingContext'
@@ -8,33 +9,40 @@ import { QueryProvider } from '@/providers/QueryProvider'
 import Login from '@/pages/auth/pages/Signin'
 import AuthCallback from '@/pages/auth/pages/AuthCallback'
 import Dashboard from '@/pages/dashboard/Dashboard'
-import IntegrationList from '@/pages/integrations/IntegrationList'
-import AddIntegrationPage from '@/pages/integrations/AddIntegrationPage'
-import { IntegrationPreview } from '@/pages/integrations/IntegrationPreview'
-import MasterCustomerList from '@/pages/customers/MasterCustomerList'
-import SecondaryCustomerList from '@/pages/customers/SecondaryCustomerList'
-import MapCustomersPage from '@/pages/customers/MapCustomersPage'
-import CustomerIntegrationDetails from '@/pages/customers/CustomerIntegrationDetails'
-import ScheduleList from '@/pages/schedules/ScheduleList'
-import Settings from '@/pages/settings/Settings'
-import Security from '@/pages/security/Security'
-import ForgotPassword from '@/pages/auth/pages/ForgotPassword'
-import ResetPassword from '@/pages/auth/pages/ResetPassword'
-import ContactAdmin from '@/pages/auth/pages/ContactAdmin'
-import AuthLayout from '@/pages/auth/Layout'
-import { UsersList, CreateUser } from '@/pages/users'
-import { ReportsList, CustomerReports, ConfigureReports } from '@/pages/reports'
-import { ApiKeysList } from '@/pages/api-keys'
-import TemplateList from '@/pages/templates/TemplateList'
-import Profile from '@/pages/profile/Profile'
-// TODO: Create these pages when needed
-import Licenses from '@/pages/licenses/Licenses'
-import Monitoring from '@/pages/monitoring/Monitoring'
-import { AuditLogs } from '@/pages/audit-logs'
-import NotificationsPage from '@/pages/notifications/NotificationsPage'
-import { PrivacyPolicy, TermsOfService } from '@/pages/legal'
-import { DocsIndex, DocPage } from '@/pages/docs'
-import { NotFound } from '@/pages/errors'
+
+// Lazy Load Pages
+const IntegrationList = lazy(() => import('@/pages/integrations/IntegrationList'))
+const AddIntegrationPage = lazy(() => import('@/pages/integrations/AddIntegrationPage'))
+const IntegrationPreview = lazy(() => import('@/pages/integrations/IntegrationPreview').then(m => ({ default: m.IntegrationPreview })))
+const MasterCustomerList = lazy(() => import('@/pages/customers/MasterCustomerList'))
+const SecondaryCustomerList = lazy(() => import('@/pages/customers/SecondaryCustomerList'))
+const MapCustomersPage = lazy(() => import('@/pages/customers/MapCustomersPage'))
+const CustomerIntegrationDetails = lazy(() => import('@/pages/customers/CustomerIntegrationDetails'))
+const ScheduleList = lazy(() => import('@/pages/schedules/ScheduleList'))
+const Settings = lazy(() => import('@/pages/settings/Settings'))
+const Security = lazy(() => import('@/pages/security/Security'))
+const ForgotPassword = lazy(() => import('@/pages/auth/pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('@/pages/auth/pages/ResetPassword'))
+const ContactAdmin = lazy(() => import('@/pages/auth/pages/ContactAdmin'))
+const AuthLayout = lazy(() => import('@/pages/auth/Layout'))
+const UsersList = lazy(() => import('@/pages/users').then(m => ({ default: m.UsersList })))
+const CreateUser = lazy(() => import('@/pages/users').then(m => ({ default: m.CreateUser })))
+const ReportsList = lazy(() => import('@/pages/reports').then(m => ({ default: m.ReportsList })))
+const CustomerReports = lazy(() => import('@/pages/reports').then(m => ({ default: m.CustomerReports })))
+const ConfigureReports = lazy(() => import('@/pages/reports').then(m => ({ default: m.ConfigureReports })))
+const ApiKeysList = lazy(() => import('@/pages/api-keys').then(m => ({ default: m.ApiKeysList })))
+const TemplateList = lazy(() => import('@/pages/templates/TemplateList'))
+const Profile = lazy(() => import('@/pages/profile/Profile'))
+const Licenses = lazy(() => import('@/pages/licenses/Licenses'))
+const Monitoring = lazy(() => import('@/pages/monitoring/Monitoring'))
+const AuditLogs = lazy(() => import('@/pages/audit-logs').then(m => ({ default: m.AuditLogs })))
+const NotificationsPage = lazy(() => import('@/pages/notifications/NotificationsPage'))
+const PrivacyPolicy = lazy(() => import('@/pages/legal').then(m => ({ default: m.PrivacyPolicy })))
+const TermsOfService = lazy(() => import('@/pages/legal').then(m => ({ default: m.TermsOfService })))
+const DocsIndex = lazy(() => import('@/pages/docs').then(m => ({ default: m.DocsIndex })))
+const DocPage = lazy(() => import('@/pages/docs').then(m => ({ default: m.DocPage })))
+const NotFound = lazy(() => import('@/pages/errors').then(m => ({ default: m.NotFound })))
+
 import { WelcomeModal, TourOverlay } from '@/components/onboarding'
 import { Loader2 } from 'lucide-react'
 
@@ -350,7 +358,13 @@ function App() {
             <BrandingProvider>
               <AuthProvider>
                 <ErrorBoundary>
-                  <AppRoutes />
+                  <Suspense fallback={
+                    <div className="flex min-h-screen items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  }>
+                    <AppRoutes />
+                  </Suspense>
                 </ErrorBoundary>
                 <WelcomeModal />
                 <TourOverlay />

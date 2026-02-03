@@ -14,17 +14,12 @@ import { useToast } from "@/components/ui/Toast";
 
 const Signin = () => {
   const {
-    email,
-    password,
+    form,
     error,
     isSubmitting,
-    rememberMe,
     showAuthOptions,
     showPassword,
-    setEmail,
-    setPassword,
     handleSubmit,
-    setRememberMe,
     setShowAuthOptions,
     setShowPassword
   } = useSignin();
@@ -109,15 +104,10 @@ const Signin = () => {
               }`}
           >
             <SigninForm
-              email={email}
-              password={password}
+              form={form}
               error={error}
               isSubmitting={isSubmitting}
-              rememberMe={rememberMe}
               showPassword={showPassword}
-              onEmailChange={setEmail}
-              onPasswordChange={setPassword}
-              onRememberMeChange={setRememberMe}
               onShowPasswordToggle={() => setShowPassword(!showPassword)}
               onSubmit={handleSubmit}
             />

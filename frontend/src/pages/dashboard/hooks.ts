@@ -12,6 +12,7 @@ import { useNotificationStore } from "@/stores/useNotificationStore";
 import { useIntegrationsQuery } from "../integrations/hooks/useIntegrations";
 import type { Integration, UpcomingReport, RecentActivity, Stat } from "./types";
 import type { ActivityTrendData } from "@/types/api/monitoring";
+import type { ReportSchedule } from "@/stores/useSchedulesStore";
 
 export const useQuickSync = (
     onSuccess: (title: string, description?: string) => void,
@@ -188,9 +189,9 @@ export const useDashboard = () => {
         });
 
     const upcomingReports: UpcomingReport[] = allSchedules
-        .filter((s: any) => s.active)
+        .filter((s: ReportSchedule) => s.active)
         .slice(0, 5)
-        .map((schedule: any) => ({
+        .map((schedule: ReportSchedule) => ({
             id: schedule.report_schedule_id,
             name: schedule.report_type,
             customer: schedule.customer_name || "Unknown Customer",

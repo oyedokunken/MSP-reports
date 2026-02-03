@@ -8,19 +8,20 @@ import { useResetPassword } from "../hooks";
 
 const ResetPassword = () => {
   const {
-    password,
-    confirmPassword,
+    form,
     showPassword,
     showConfirmPassword,
     error,
     isSubmitting,
     success,
-    setPassword,
-    setConfirmPassword,
     setShowPassword,
     setShowConfirmPassword,
     handleSubmit
   } = useResetPassword();
+
+  const { register, formState: { errors }, watch } = form;
+  const passwordValue = watch("password");
+  const confirmPasswordValue = watch("confirmPassword");
 
   return (
     <div className="min-h-screen flex items-center justify-center relative bg-blue-950 overflow-hidden">
@@ -76,10 +77,8 @@ const ResetPassword = () => {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter new password (min 8 characters)"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-9 pr-10 border-gray-300 focus:ring-blue-500"
-                      required
+                      {...register("password")}
+                      className={`pl-9 pr-10 border-gray-300 focus:ring-blue-500 ${errors.password ? 'border-red-500' : ''}`}
                       disabled={isSubmitting}
                     />
                     <button
@@ -95,6 +94,9 @@ const ResetPassword = () => {
                       )}
                     </button>
                   </div>
+                  {errors.password && (
+                    <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -105,10 +107,8 @@ const ResetPassword = () => {
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       placeholder="Confirm new password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pl-9 pr-10 border-gray-300 focus:ring-blue-500"
-                      required
+                      {...register("confirmPassword")}
+                      className={`pl-9 pr-10 border-gray-300 focus:ring-blue-500 ${errors.confirmPassword ? 'border-red-500' : ''}`}
                       disabled={isSubmitting}
                     />
                     <button
@@ -124,6 +124,9 @@ const ResetPassword = () => {
                       )}
                     </button>
                   </div>
+                  {errors.confirmPassword && (
+                    <p className="mt-1 text-xs text-red-600">{errors.confirmPassword.message}</p>
+                  )}
                 </div>
 
                 {/* Password Requirements */}
@@ -131,14 +134,14 @@ const ResetPassword = () => {
                   <p className="text-xs font-medium mb-2 text-gray-700">Password Requirements:</p>
                   <ul className="text-xs text-gray-500 space-y-1">
                     <li className="flex items-center gap-2">
-                      <span className={password.length >= 8 ? 'text-green-600' : ''}>
-                        {password.length >= 8 ? '✓' : '•'}
+                      <span className={passwordValue.length >= 8 ? 'text-green-600' : ''}>
+                        {passwordValue.length >= 8 ? '✓' : '•'}
                       </span>
                       At least 8 characters
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className={password === confirmPassword && password.length > 0 ? 'text-green-600' : ''}>
-                        {password === confirmPassword && password.length > 0 ? '✓' : '•'}
+                      <span className={passwordValue === confirmPasswordValue && passwordValue.length > 0 ? 'text-green-600' : ''}>
+                        {passwordValue === confirmPasswordValue && passwordValue.length > 0 ? '✓' : '•'}
                       </span>
                       Passwords match
                     </li>
@@ -152,7 +155,7 @@ const ResetPassword = () => {
                 <Button
                   type="submit"
                   className="w-full text-white bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all"
-                  disabled={isSubmitting || password.length < 8 || password !== confirmPassword}
+                  disabled={isSubmitting || !form.formState.isValid}
                 >
                   {isSubmitting ? (
                     <>

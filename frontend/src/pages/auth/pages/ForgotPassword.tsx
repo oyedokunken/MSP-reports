@@ -3,11 +3,11 @@ import { useForgotPassword } from "../hooks";
 
 const ForgotPassword = () => {
   const {
+    form,
     email,
     error,
     isSubmitting,
     success,
-    setEmail,
     handleSubmit
   } = useForgotPassword();
 
@@ -30,10 +30,9 @@ const ForgotPassword = () => {
           <SuccessMessage email={email} />
         ) : (
           <ForgotPasswordForm
-            email={email}
+            form={form}
             error={error}
             isSubmitting={isSubmitting}
-            onEmailChange={setEmail}
             onSubmit={handleSubmit}
           />
         )}

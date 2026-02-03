@@ -3,22 +3,24 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft } from "lucide-react";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Link } from "react-router-dom";
+import type { UseFormReturn } from 'react-hook-form';
+import type { ForgotPasswordFormData } from '../hooks';
 
 interface ForgotPasswordFormProps {
-  email: string;
+  form: UseFormReturn<ForgotPasswordFormData>;
   error: string;
   isSubmitting: boolean;
-  onEmailChange: (email: string) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
 export function ForgotPasswordForm({
-  email,
+  form,
   error,
   isSubmitting,
-  onEmailChange,
   onSubmit,
 }: ForgotPasswordFormProps) {
+  const { register, formState: { errors } } = form;
+
   return (
     <div className="bg-white rounded-xl shadow-xl p-8 border border-gray-100">
       {/* Heading */}
@@ -31,7 +33,7 @@ export function ForgotPasswordForm({
         </p>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-5">
+      <form onSubmit={onSubmit} className="space-y-5" noValidate>
         <div className="space-y-2">
           <label htmlFor="email" className="block text-sm font-medium text-gray-900">
             Email Address
@@ -40,12 +42,13 @@ export function ForgotPasswordForm({
             id="email"
             type="email"
             placeholder="your.email@company.com"
-            value={email}
-            onChange={(e) => onEmailChange(e.target.value)}
-            className="h-11 bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-            required
+            {...register("email")}
+            className={`h-11 bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : ''}`}
             disabled={isSubmitting}
           />
+          {errors.email && (
+            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+          )}
         </div>
 
         {error && (

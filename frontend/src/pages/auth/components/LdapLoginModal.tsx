@@ -6,6 +6,16 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MdStorage, MdVisibility, MdVisibilityOff, MdInfo } from 'react-icons/md'
 import { Loader2 } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+const ldapSchema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
+})
+
+type LdapFormData = z.infer<typeof ldapSchema>
 
 interface LdapLoginModalProps {
   isOpen: boolean
@@ -14,38 +24,37 @@ interface LdapLoginModalProps {
 }
 
 export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProps) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const [authError, setAuthError] = useState('')
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-
-    if (!username || !password) {
-      setError('Please enter both username and password')
-      return
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset
+  } = useForm<LdapFormData>({
+    resolver: zodResolver(ldapSchema),
+    defaultValues: {
+      username: '',
+      password: '',
     }
+  })
 
+  const onFormSubmit = async (data: LdapFormData) => {
+    setAuthError('')
     try {
-      setIsSubmitting(true)
-      await onSubmit(username, password)
+      await onSubmit(data.username, data.password)
     } catch (err: unknown) {
       const error = err as { message?: string }
-      setError(error.message || 'Authentication failed. Please check your credentials.')
-    } finally {
-      setIsSubmitting(false)
+      setAuthError(error.message || 'Authentication failed. Please check your credentials.')
     }
   }
 
   const handleClose = () => {
     if (!isSubmitting) {
-      setUsername('')
-      setPassword('')
-      setError('')
+      setAuthError('')
       setShowPassword(false)
+      reset()
       onClose()
     }
   }
@@ -67,7 +76,7 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4 mt-4" noValidate>
           <Alert className="bg-blue-50 border-blue-200">
             <MdInfo className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-sm text-blue-800">
@@ -81,15 +90,19 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
               id="ldap-username"
               type="text"
               placeholder="john.doe"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              {...register('username')}
               disabled={isSubmitting}
               autoComplete="username"
+              className={errors.username ? 'border-red-500' : ''}
               autoFocus
             />
-            <p className="text-xs text-muted-foreground">
-              Enter your username without the @domain.com part
-            </p>
+            {errors.username ? (
+              <p className="text-xs text-red-500">{errors.username.message}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Enter your username without the @domain.com part
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -99,11 +112,10 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
                 id="ldap-password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your AD password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register('password')}
                 disabled={isSubmitting}
                 autoComplete="current-password"
-                className="pr-10"
+                className={`pr-10 ${errors.password ? 'border-red-500' : ''}`}
               />
               <button
                 type="button"
@@ -118,11 +130,14 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
                 )}
               </button>
             </div>
+            {errors.password && (
+              <p className="text-xs text-red-500">{errors.password.message}</p>
+            )}
           </div>
 
-          {error && (
+          {authError && (
             <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{authError}</AlertDescription>
             </Alert>
           )}
 

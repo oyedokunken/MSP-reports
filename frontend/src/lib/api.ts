@@ -96,12 +96,19 @@ export async function apiRequest<T>(
         return response.data;
     } catch (error) {
         const axiosError = error as AxiosError<ApiError>;
-        throw (
-            axiosError.response?.data || {
-                success: false,
-                message: "An unexpected error occurred",
-            }
-        );
+
+        // Extract the error data from the response if available
+        const apiError: ApiError = axiosError.response?.data || {
+            success: false,
+            message: axiosError.message || "An unexpected error occurred",
+        };
+
+        // Ensure we always have a message
+        if (!apiError.message && axiosError.message) {
+            apiError.message = axiosError.message;
+        }
+
+        throw apiError;
     }
 }
 

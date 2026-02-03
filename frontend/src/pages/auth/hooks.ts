@@ -1,9 +1,20 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { logger } from '@/lib/logger';
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
+
+export const loginSchema = z.object({
+    email: z.string().min(1, "Email is required").email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    rememberMe: z.boolean(),
+});
+
+export type LoginFormData = z.infer<typeof loginSchema>;
 
 export interface AuthConfig {
     local: boolean;
@@ -51,79 +62,55 @@ interface UseAuthFormOptions {
     redirectTo?: string;
     onSuccess?: () => void;
     onError?: (error: Error) => void;
-    getRememberMe?: () => boolean;
 }
 
 export function useAuthForm(options: UseAuthFormOptions = {}) {
-    const { redirectTo = "/dashboard", onSuccess, onError, getRememberMe } = options;
-
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { redirectTo = "/dashboard", onSuccess, onError } = options;
+    const [authError, setAuthError] = useState("");
 
     const navigate = useNavigate();
     const { login } = useAuth();
 
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
+    const form = useForm<LoginFormData>({
+        resolver: zodResolver(loginSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+            rememberMe: false,
+        },
+    });
 
-        if (!email || !password) {
-            setError("Email and password are required");
-            return;
-        }
-
-        setError("");
-        setIsSubmitting(true);
+    const handleFormSubmit = async (data: LoginFormData) => {
+        setAuthError("");
 
         try {
             await login({
-                email,
-                password,
+                email: data.email,
+                password: data.password,
                 auth_method: "local",
-                rememberMe: getRememberMe?.() ?? false,
+                rememberMe: data.rememberMe,
             });
 
             onSuccess?.();
-
             navigate(redirectTo);
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } }; message?: string };
-            const errorMessage =
-                error.response?.data?.message ||
-                error.message ||
-                "Failed to sign in";
-            setError(errorMessage);
-
+            const error = err as { message?: string };
+            const errorMessage = error.message || "Failed to sign in";
+            setAuthError(errorMessage);
             onError?.(error as Error);
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
-    const resetForm = () => {
-        setEmail("");
-        setPassword("");
-        setError("");
-        setIsSubmitting(false);
-    };
-
     return {
-        email,
-        password,
-        error,
-        isSubmitting,
-        setEmail,
-        setPassword,
-        setError,
-        handleSubmit,
-        resetForm,
+        form,
+        error: authError,
+        isSubmitting: form.formState.isSubmitting,
+        handleSubmit: form.handleSubmit(handleFormSubmit),
     };
 }
 
 export const useSignin = () => {
     const toast = useToast();
-    const [rememberMe, setRememberMe] = useState(false);
     const [showAuthOptions, setShowAuthOptions] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -134,8 +121,7 @@ export const useSignin = () => {
         },
         onError: (err) => {
             console.error('Login failed:', err)
-        },
-        getRememberMe: () => rememberMe,
+        }
     });
 
     useEffect(() => {
@@ -149,47 +135,58 @@ export const useSignin = () => {
 
     return {
         ...authForm,
-        rememberMe,
         showAuthOptions,
         showPassword,
-        setRememberMe,
         setShowAuthOptions,
         setShowPassword
     };
 }
 
+export const forgotPasswordSchema = z.object({
+    email: z.string().min(1, "Email is required").email("Invalid email address"),
+});
+
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
 export const useForgotPassword = () => {
-    const [email, setEmail] = useState("");
-    const [error, setError] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [authError, setAuthError] = useState("");
     const [success, setSuccess] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError("");
-        setIsSubmitting(true);
+    const form = useForm<ForgotPasswordFormData>({
+        resolver: zodResolver(forgotPasswordSchema),
+        defaultValues: { email: "" },
+    });
 
+    const handleFormSubmit = async (data: ForgotPasswordFormData) => {
+        setAuthError("");
         try {
-            await api.post("/auth/password/request", { email });
+            await api.post("/auth/password/request", { email: data.email });
             setSuccess(true);
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } }; message?: string };
-            const errorMessage = error.response?.data?.message || error.message || "Failed to send reset email";
-            setError(errorMessage);
-        } finally {
-            setIsSubmitting(false);
+            const error = err as { message?: string };
+            setAuthError(error.message || "Failed to send reset email");
         }
     };
 
     return {
-        email,
-        error,
-        isSubmitting,
+        form,
+        email: form.watch("email"),
+        error: authError,
+        isSubmitting: form.formState.isSubmitting,
         success,
-        setEmail,
-        handleSubmit
+        handleSubmit: form.handleSubmit(handleFormSubmit)
     };
 }
+
+export const resetPasswordSchema = z.object({
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+});
+
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 export const useResetPassword = () => {
     const [searchParams] = useSearchParams();
@@ -197,67 +194,53 @@ export const useResetPassword = () => {
     const token = searchParams.get("token");
     const email = searchParams.get("email");
 
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [error, setError] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [authError, setAuthError] = useState("");
     const [success, setSuccess] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError("");
+    const form = useForm<ResetPasswordFormData>({
+        resolver: zodResolver(resetPasswordSchema),
+        defaultValues: {
+            password: "",
+            confirmPassword: "",
+        },
+    });
 
-        if (password.length < 8) {
-            setError("Password must be at least 8 characters");
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            setError("Passwords do not match");
-            return;
-        }
+    const handleFormSubmit = async (data: ResetPasswordFormData) => {
+        setAuthError("");
 
         if (!token || !email) {
-            setError("Invalid reset link");
+            setAuthError("Invalid reset link");
             return;
         }
-
-        setIsSubmitting(true);
 
         try {
             await api.post("/auth/password/reset", {
                 token,
                 email,
-                password,
-                password_confirmation: confirmPassword,
+                password: data.password,
+                password_confirmation: data.confirmPassword,
             });
             setSuccess(true);
             setTimeout(() => {
                 navigate("/sign-in");
             }, 3000);
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } }; message?: string };
-            const errorMessage = error.response?.data?.message || error.message || "Failed to reset password";
-            setError(errorMessage);
-        } finally {
-            setIsSubmitting(false);
+            const error = err as { message?: string };
+            setAuthError(error.message || "Failed to reset password");
         }
     };
 
     return {
-        password,
-        confirmPassword,
+        form,
         showPassword,
         showConfirmPassword,
-        error,
-        isSubmitting,
+        error: authError,
+        isSubmitting: form.formState.isSubmitting,
         success,
-        setPassword,
-        setConfirmPassword,
         setShowPassword,
         setShowConfirmPassword,
-        handleSubmit
+        handleSubmit: form.handleSubmit(handleFormSubmit)
     };
 }

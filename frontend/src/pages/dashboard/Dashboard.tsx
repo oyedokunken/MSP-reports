@@ -1,6 +1,7 @@
 import FloatingLayout from "@/components/layout/FloatingLayout";
 // import { RefreshCw } from "lucide-react";
 // import { Button } from "@/components/ui/button";
+import type { ReportSchedule } from "@/stores/useSchedulesStore";
 import {
     getIntegrationStatusBadge,
     getIntegrationStatusIcon,
@@ -38,7 +39,7 @@ export default function Dashboard() {
                         <SchedulesSummaryCard
                             isLoading={isLoading}
                             totalSchedules={allSchedules.length}
-                            activeSchedules={allSchedules.filter((s: any) => s.active).length}
+                            activeSchedules={allSchedules.filter((s: ReportSchedule) => s.active).length}
                             className="h-[134px]"
                         />
                         <IntegrationsSummary
