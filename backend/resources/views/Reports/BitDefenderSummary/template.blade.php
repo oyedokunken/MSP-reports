@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Bitdefender {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary - {{ $customer->canonical_name }}</title>
+    <title>Bitdefender {{ ucfirst(is_object($options['frequency'] ?? null) ? $options['frequency']->value : ($options['frequency'] ?? 'Monthly')) }} Summary - {{ $customer->canonical_name }}</title>
     @if(isset($branding['chart_js_inline']) && $branding['chart_js_inline'])
     <script>
         {!! $branding['chart_js_inline'] !!}
@@ -203,7 +203,7 @@
     <div class="report-bg-shape-2"></div>
 
     <div class="header">
-        <h1>Bitdefender {{ ucfirst($options['frequency'] ?? 'Service') }} Review</h1>
+        <h1>Bitdefender {{ ucfirst(is_object($options['frequency'] ?? null) ? $options['frequency']->value : ($options['frequency'] ?? 'Service')) }} Review</h1>
         <div class="meta">
             {{ is_object($customer) ? $customer->canonical_name : (is_array($customer) ? ($customer['canonical_name'] ?? 'Customer') : 'Customer') }} 
             • 

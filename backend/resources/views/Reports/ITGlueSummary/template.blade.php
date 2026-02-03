@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>ITGlue {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary</title>
+    <title>ITGlue {{ ucfirst(is_object($options['frequency'] ?? null) ? $options['frequency']->value : ($options['frequency'] ?? 'Monthly')) }} Summary</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -130,7 +130,7 @@
     <div class="report-bg-shape-2"></div>
 
     <div class="header">
-        <h1>ITGlue {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary</h1>
+        <h1>ITGlue {{ ucfirst(is_object($options['frequency'] ?? null) ? $options['frequency']->value : ($options['frequency'] ?? 'Monthly')) }} Summary</h1>
         <div class="meta">
             {{ is_object($customer) ? $customer->canonical_name : (is_array($customer) ? ($customer['canonical_name'] ?? 'Customer') : 'Customer') }} 
             • 

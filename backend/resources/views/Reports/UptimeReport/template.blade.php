@@ -137,7 +137,7 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 9pt; color: #666;">
                 <div>
                     <div style="font-weight: 600; color: #999; text-transform: uppercase; font-size: 7pt; letter-spacing: 0.5px; margin-bottom: 3px;">Report Type</div>
-                    <div style="color: #1a1a1a; font-weight: 500;">{{ ucfirst($options['frequency'] ?? 'Monthly') }} Uptime Monitoring</div>
+                    <div style="color: #1a1a1a; font-weight: 500;">{{ ucfirst(is_object($options['frequency'] ?? null) ? $options['frequency']->value : ($options['frequency'] ?? 'Monthly')) }} Uptime Monitoring</div>
                 </div>
                 @if(isset($period))
                 <div>

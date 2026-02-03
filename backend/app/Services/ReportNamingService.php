@@ -85,7 +85,7 @@ final class ReportNamingService
             '{date}' => $now->format('Y-m-d'),
             '{month}' => $now->format('F'),
             '{year}' => $now->format('Y'),
-            '{frequency}' => $schedule->frequency->value,
+            '{frequency}' => is_object($schedule->frequency ?? null) ? $schedule->frequency->value : ($schedule->frequency ?? 'monthly'),
             '{timestamp}' => $now->format('Y-m-d_His'),
         ];
     }

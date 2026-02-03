@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Autotask {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary - {{ $customer->canonical_name }}</title>
+    <title>Autotask {{ ucfirst(is_object($options['frequency'] ?? null) ? $options['frequency']->value : ($options['frequency'] ?? 'Monthly')) }} Summary - {{ $customer->canonical_name }}</title>
     @if(isset($branding['chart_js_inline']) && $branding['chart_js_inline'])
     <script>
         {!! $branding['chart_js_inline'] !!}
@@ -182,7 +182,7 @@
     <div class="report-bg-shape-2"></div>
     
     <div class="header">
-        <h1>Autotask {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary</h1>
+        <h1>Autotask {{ ucfirst(is_object($options['frequency'] ?? null) ? $options['frequency']->value : ($options['frequency'] ?? 'Monthly')) }} Summary</h1>
         {{-- <div class="company-name">{{ is_array($branding) ? ($branding['company_name'] ?? 'Territory Technology Solutions') : 'Territory Technology Solutions' }}</div> --}}
         <div class="meta">
             {{ is_object($customer) ? $customer->canonical_name : (is_array($customer) ? ($customer['canonical_name'] ?? 'Customer') : 'Customer') }} 
@@ -612,7 +612,7 @@
     @endif
 
     <div class="footer">
-        Autotask {{ ucfirst($options['frequency'] ?? 'Monthly') }} Summary • Data sourced from Autotask
+        Autotask {{ ucfirst(is_object($options['frequency'] ?? null) ? $options['frequency']->value : ($options['frequency'] ?? 'Monthly')) }} Summary • Data sourced from Autotask
     </div>
     @endif
 </body>

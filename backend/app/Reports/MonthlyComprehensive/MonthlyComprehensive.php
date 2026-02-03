@@ -128,7 +128,7 @@ class MonthlyComprehensive extends BaseReport
                         $reportInfo = [
                             'id' => $reportId,
                             'type' => strtolower($integrationType),
-                            'title' => $config['name'] ?? ucfirst($integrationType) . ' Monthly Summary',
+                            'title' => $config['name'] ?? ucfirst(is_object($integrationType) ? $integrationType->value : (string)$integrationType) . ' Monthly Summary',
                         ];
                         
                         $reportData['included_reports'][] = $this->generateSubReport(
@@ -181,7 +181,7 @@ class MonthlyComprehensive extends BaseReport
             'sendmarc_summary' => 'Reports/SendmarcSummary/template',
         ];
         
-        $template = $templateMap[$reportId] ?? 'Reports/' . ucfirst($reportInfo['type']) . '/template';
+        $template = $templateMap[$reportId] ?? 'Reports/' . ucfirst(is_object($reportInfo['type']) ? $reportInfo['type']->value : (string)$reportInfo['type']) . '/template';
         
         return [
             'type' => $reportInfo['type'],

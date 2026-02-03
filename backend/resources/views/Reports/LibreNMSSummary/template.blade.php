@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>LibreNMS {{ ucfirst($options['frequency'] ?? 'Executive') }} Summary - {{ $customer->canonical_name }}</title>
+    <title>LibreNMS {{ ucfirst(is_object($options['frequency'] ?? null) ? $options['frequency']->value : ($options['frequency'] ?? 'Executive')) }} Summary - {{ $customer->canonical_name }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -86,7 +86,7 @@
     <div class="report-bg-shape-2"></div>
     
     <div class="header">
-        <h1>LibreNMS {{ ucfirst($options['frequency'] ?? 'Executive') }} Summary</h1>
+        <h1>LibreNMS {{ ucfirst(is_object($options['frequency'] ?? null) ? $options['frequency']->value : ($options['frequency'] ?? 'Executive')) }} Summary</h1>
         <div class="meta">{{ $customer->canonical_name }} • Period: {{ $period['formatted'] }}</div>
     </div>
 
