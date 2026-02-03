@@ -8,6 +8,7 @@ enum IntegrationStatus: string
 {
     case ACTIVE = 'active';
     case INACTIVE = 'inactive';
+    case DISCONNECTED = 'disconnected';
     case ERROR = 'error';
     case SYNCING = 'syncing';
     case IMPORTING_HISTORICAL = 'importing_historical';

@@ -25,7 +25,7 @@ class CreateIntegrationRequest extends FormRequest
         return [
             'integration_type' => ['required', 'string', Rule::in($availableTypes)],
             'display_name' => 'required|string|min:2|max:255|regex:/^[A-Za-z0-9\s\-\_\.]+$/',
-            'status' => ['sometimes', 'string', Rule::in(['active', 'disconnected', 'error', 'importing_historical'])],
+            'status' => ['sometimes', 'string', Rule::in(['active', 'inactive', 'disconnected', 'error', 'syncing', 'importing_historical'])],
             'credentials' => 'nullable|array',
             'configuration' => 'nullable|array',
             'is_source_of_truth' => 'nullable|boolean',

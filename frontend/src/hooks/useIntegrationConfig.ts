@@ -7,6 +7,9 @@ interface IntegrationConfig {
   name: string;
   description: string;
   credential_fields: CredentialField[];
+  data_types?: string[];
+  supports_historical?: boolean;
+  historical_range_days?: number;
 }
 
 interface ApiResponse {

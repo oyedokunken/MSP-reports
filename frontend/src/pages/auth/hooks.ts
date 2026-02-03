@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { logger } from '@/lib/logger';
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
@@ -27,8 +28,8 @@ export function useAuthConfig() {
             try {
                 const response = await api.get<{ status: string; data: AuthConfig }>('/auth/config');
                 setConfig(response.data);
-            } catch (error) {
-                logger.error('Failed to fetch auth config:', error);
+            } catch (err) {
+                logger.error('Failed to fetch auth config:', err);
                 setConfig({
                     local: true,
                     oauth: { enabled: false, provider: 'microsoft' },

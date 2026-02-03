@@ -5,11 +5,12 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
-import { Cable } from 'lucide-react'
+import { Cable, Info } from 'lucide-react'
 import { api } from '@/lib/api'
 import { SuccessDialog } from '@/components/modals/SuccessDialog'
 import { DynamicCredentialForm } from '@/components/integrations/DynamicCredentialForm'
 import { useIntegrationConfig } from '@/hooks/useIntegrationConfig'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import type { Integration } from '../types/integration'
 
 interface AddIntegrationModalProps {
@@ -133,8 +134,8 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <div className="flex items-center gap-2">
             <Cable className="h-5 w-5 text-primary" />
             <DialogTitle>Add Integration</DialogTitle>
@@ -142,87 +143,108 @@ export function AddIntegrationModal({ open, onOpenChange, availableTypes, onSucc
           <DialogDescription>Connect a new integration to your platform</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="integration_type">Integration Type *</Label>
-            <Select
-              value={formData.integration_type}
-              onValueChange={(value: string) => handleInputChange('integration_type', value)}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger id="integration_type">
-                <SelectValue placeholder="Select integration type" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Choose the type of integration to add</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="display_name">Display Name *</Label>
-            <Input
-              id="display_name"
-              type="text"
-              placeholder="e.g., Production Datto RMM"
-              value={formData.display_name}
-              onChange={(e) => handleInputChange('display_name', e.target.value)}
-              required
-              disabled={isSubmitting}
-            />
-          </div>
-
-
-
-          {loadingConfig && (
-            <div className="flex items-center justify-center py-4">
-              <Spinner className="h-6 w-6" />
-              <span className="ml-2 text-sm text-muted-foreground">Loading configuration...</span>
+        <ScrollArea className="flex-1 -mx-6 px-6">
+          <form id="add-integration-form" onSubmit={handleSubmit} className="space-y-4 pb-4">
+            <div className="space-y-2">
+              <Label htmlFor="integration_type">Integration Type *</Label>
+              <Select
+                value={formData.integration_type}
+                onValueChange={(value: string) => handleInputChange('integration_type', value)}
+                disabled={isSubmitting}
+              >
+                <SelectTrigger id="integration_type">
+                  <SelectValue placeholder="Select integration type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Choose the type of integration to add</p>
             </div>
-          )}
 
-          {config && config.credential_fields && config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden).length > 0 && (
-            <div className="space-y-4 pt-4 border-t">
-              <div>
-                <h4 className="text-sm font-semibold mb-1">Credentials</h4>
-                <p className="text-xs text-muted-foreground">{config.description}</p>
+            {config && config.description && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3">
+                <div className="flex gap-2">
+                  <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-medium text-primary mb-1">{config.name}</h4>
+                    <p className="text-xs text-muted-foreground">{config.description}</p>
+                    {config.data_types && config.data_types.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className="font-medium">Syncs:</span> {config.data_types.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
+            )}
 
-              <DynamicCredentialForm
-                fields={config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden)}
-                values={formData.credentials as Record<string, string>}
-                onChange={handleCredentialChange}
+            <div className="space-y-2">
+              <Label htmlFor="display_name">Display Name *</Label>
+              <Input
+                id="display_name"
+                type="text"
+                placeholder="e.g., Production Datto RMM"
+                value={formData.display_name}
+                onChange={(e) => handleInputChange('display_name', e.target.value)}
+                required
+                disabled={isSubmitting}
               />
             </div>
-          )}
 
-          {error && (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
-              <p className="text-sm text-destructive font-medium">{error}</p>
-            </div>
-          )}
+            {loadingConfig && (
+              <div className="flex items-center justify-center py-4">
+                <Spinner className="h-6 w-6" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading configuration...</span>
+              </div>
+            )}
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting || !formData.integration_type || !formData.display_name}>
-              {isSubmitting ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4" />
-                  Adding...
-                </>
-              ) : (
-                'Add Integration'
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
+            {config && config.credential_fields && config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden).length > 0 && (
+              <div className="space-y-4 pt-4 border-t">
+                <div>
+                  <h4 className="text-sm font-semibold mb-1">Credentials</h4>
+                  <p className="text-xs text-muted-foreground">Enter your API credentials to connect</p>
+                </div>
+
+                <DynamicCredentialForm
+                  fields={config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden)}
+                  values={formData.credentials as Record<string, string>}
+                  onChange={handleCredentialChange}
+                />
+              </div>
+            )}
+
+            {error && (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
+                <p className="text-sm text-destructive font-medium">{error}</p>
+              </div>
+            )}
+          </form>
+        </ScrollArea>
+
+        <DialogFooter className="flex-shrink-0 border-t pt-4">
+          <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            form="add-integration-form"
+            disabled={isSubmitting || !formData.integration_type || !formData.display_name}
+          >
+            {isSubmitting ? (
+              <>
+                <Spinner className="mr-2 h-4 w-4" />
+                Adding...
+              </>
+            ) : (
+              'Add Integration'
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
