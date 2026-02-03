@@ -86,10 +86,10 @@ export const useConfigureReportsPage = () => {
 
     const fetchAvailableReports = useCallback(async () => {
         try {
-            const response = await api.get<{ data?: { available_reports: ReportType[] }; available_reports?: ReportType[] }>(`/customers/${id}/available-reports`)
-            const reportData = response.data || response
+            const response = await api.get<{ data?: ReportType[]; status?: string }>(`/customers/${id}/available-reports`)
+            const reportData = response.data || []
 
-            const reports = (reportData.available_reports || []).map((r: ReportType) => ({
+            const reports = reportData.map((r: ReportType) => ({
                 id: r.id,
                 name: r.name,
                 description: r.description,
@@ -133,12 +133,12 @@ export const useConfigureReportsPage = () => {
             const schedulesWithDataCheck = await Promise.all(
                 mappedSchedules.map(async (schedule) => {
                     try {
-                        const checkResponse = await api.get<{ data?: { available_reports: ReportType[] }; available_reports?: ReportType[] }>(
+                        const checkResponse = await api.get<{ data?: ReportType[]; status?: string }>(
                             `/customers/${id}/available-reports?frequency=${schedule.frequency}`
                         )
-                        const reportCheckData = checkResponse.data || checkResponse
+                        const reportCheckData = checkResponse.data || []
 
-                        const reportType = reportCheckData.available_reports?.find(r => r.id === schedule.report_type)
+                        const reportType = reportCheckData.find(r => r.id === schedule.report_type)
                         return { ...schedule, has_data: reportType?.has_data ?? true }
                     } catch {
                         return { ...schedule, has_data: true }
