@@ -9,6 +9,7 @@ import Login from '@/pages/auth/pages/Signin'
 import AuthCallback from '@/pages/auth/pages/AuthCallback'
 import Dashboard from '@/pages/dashboard/Dashboard'
 import IntegrationList from '@/pages/integrations/IntegrationList'
+import AddIntegrationPage from '@/pages/integrations/AddIntegrationPage'
 import { IntegrationPreview } from '@/pages/integrations/IntegrationPreview'
 import MasterCustomerList from '@/pages/customers/MasterCustomerList'
 import SecondaryCustomerList from '@/pages/customers/SecondaryCustomerList'
@@ -116,6 +117,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute permission={{ section: 'integrations', action: 'view' }}>
             <IntegrationList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/platform/integrations/add"
+        element={
+          <ProtectedRoute permission={{ section: 'integrations', action: 'manage' }}>
+            <AddIntegrationPage />
           </ProtectedRoute>
         }
       />

@@ -6,7 +6,6 @@ import { useIntegrationStore } from "@/stores/useIntegrationStore";
 import { IntegrationHeader, IntegrationGrid, IntegrationTable, type ViewMode } from "./components";
 import { Pagination } from "@/pages/customers/components/Pagination";
 import {
-    AddIntegrationModal,
     EditIntegrationModal,
     DeleteIntegrationModal,
     ViewSyncLogsModal,
@@ -25,7 +24,6 @@ export default function IntegrationList() {
 
     const { data, isLoading } = useIntegrationsQuery();
     const allIntegrations = data?.integrations || [];
-    const availableTypesFromApi = data?.availableTypes || [];
     const syncMutation = useSyncIntegrationMutation();
     const setSourceOfTruthMutation = useSetSourceOfTruthMutation();
     const modals = useIntegrationStore((state) => state.modals);
@@ -124,7 +122,7 @@ export default function IntegrationList() {
                             toast.error('Permission Denied', 'You don\'t have permission to add integrations');
                             return;
                         }
-                        openModal("add");
+                        navigate('/platform/integrations/add');
                     }}
                     searchQuery={searchQuery}
                     statusFilters={statusFilters}
@@ -149,7 +147,7 @@ export default function IntegrationList() {
                                 toast.error('Permission Denied', 'You don\'t have permission to add integrations');
                                 return;
                             }
-                            openModal("add");
+                            navigate('/platform/integrations/add');
                         }}
                         onViewCustomers={(id) => {
                             const int = allIntegrations.find((i) => i.id === id);
@@ -199,7 +197,7 @@ export default function IntegrationList() {
                                 toast.error('Permission Denied', 'You don\'t have permission to add integrations');
                                 return;
                             }
-                            openModal("add");
+                            navigate('/platform/integrations/add');
                         }}
                         onSetSourceOfTruth={handleSetSourceOfTruth}
                         onEdit={(int) => {
@@ -243,17 +241,6 @@ export default function IntegrationList() {
                         perPage={perPage}
                     />
                 )}
-                <AddIntegrationModal
-                    open={modals.add}
-                    onOpenChange={(open) =>
-                        open ? openModal("add") : closeModal("add")
-                    }
-                    availableTypes={availableTypesFromApi}
-                    onSuccess={() => {
-                        closeModal("add");
-                        toast.success("Integration added successfully");
-                    }}
-                />
                 <EditIntegrationModal
                     open={modals.edit}
                     onOpenChange={(open) =>
