@@ -198,6 +198,7 @@ final class RocketCyberClient
 
             $response = Http::timeout(60)
                 ->connectTimeout(15)
+                ->withOptions(['verify' => config('app.env') === 'production'])
                 ->withHeaders([
                     'Authorization' => 'Bearer ' . $apiKey,
                     'Accept' => 'application/json',

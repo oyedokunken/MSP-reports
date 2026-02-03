@@ -336,7 +336,8 @@ final class SaaSClient
 
         $request = Http::withHeaders($headers)
             ->timeout(120)
-            ->retry(2, 800);
+            ->retry(2, 800)
+            ->withOptions(['verify' => config('app.env') === 'production']);
 
         $response = match (strtoupper($method)) {
             'GET'  => $request->get($url, $query),

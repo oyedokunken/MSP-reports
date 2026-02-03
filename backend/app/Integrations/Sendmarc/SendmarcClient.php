@@ -300,7 +300,8 @@ final class SendmarcClient
 
         $request = Http::withHeaders($headers)
             ->timeout(30)
-            ->retry(2, 1000);
+            ->retry(2, 1000)
+            ->withOptions(['verify' => config('app.env') === 'production']);
 
         $response = match (strtoupper($method)) {
             'GET'  => $request->get($url, $params),

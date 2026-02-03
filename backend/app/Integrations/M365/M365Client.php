@@ -54,7 +54,9 @@ final class M365Client
 
         $tokenUrl = "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token";
 
-        $response = \Illuminate\Support\Facades\Http::asForm()->post($tokenUrl, [
+        $response = \Illuminate\Support\Facades\Http::asForm()
+            ->withOptions(['verify' => config('app.env') === 'production'])
+            ->post($tokenUrl, [
             'client_id' => $clientId,
             'client_secret' => $clientSecret,
             'scope' => 'https://graph.microsoft.com/.default',
@@ -79,6 +81,7 @@ final class M365Client
         try {
             $token = $this->getAccessToken();
             $response = \Illuminate\Support\Facades\Http::withToken($token)
+                ->withOptions(['verify' => config('app.env') === 'production'])
                 ->get("{$this->baseUrl}/organization");
 
             return $response->successful();
@@ -103,6 +106,7 @@ final class M365Client
         // Fetch user object with assignedLicenses and licenseAssignmentStates
         // @see https://learn.microsoft.com/en-us/graph/api/user-get?view=graph-rest-1.0
         $userResponse = \Illuminate\Support\Facades\Http::withToken($token)
+            ->withOptions(['verify' => config('app.env') === 'production'])
             ->get("{$this->baseUrl}/users/{$upn}", [
                 '$select' => 'userPrincipalName,displayName,assignedLicenses,licenseAssignmentStates'
             ]);
@@ -118,6 +122,7 @@ final class M365Client
 
         // Fetch Subscribed SKUs to get Part Numbers
         $skusResponse = \Illuminate\Support\Facades\Http::withToken($token)
+            ->withOptions(['verify' => config('app.env') === 'production'])
             ->get("{$this->baseUrl}/subscribedSkus");
         
         /** @var array<int, array<string, mixed>> $skus */
@@ -144,6 +149,7 @@ final class M365Client
                 // Optionally fetch group name
                 try {
                     $groupResponse = \Illuminate\Support\Facades\Http::withToken($token)
+                        ->withOptions(['verify' => config('app.env') === 'production'])
                         ->get("{$this->baseUrl}/groups/{$groupId}", [
                             '$select' => 'displayName'
                         ]);

@@ -213,7 +213,7 @@ export function IntegrationCard({
                                         onClick={() =>
                                             onSync(integration.id, integration.name)
                                         }
-                                        disabled={isSyncing}
+                                        disabled={isSyncing || integration.status === 'importing_historical'}
                                         className={`w-full flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${isSyncing
                                             ? "bg-primary text-primary-foreground border-primary"
                                             : "border-border bg-background text-foreground hover:bg-muted"
@@ -224,11 +224,13 @@ export function IntegrationCard({
                                         ) : (
                                             <RefreshCw className="h-4 w-4" />
                                         )}
-                                        {isSyncing ? "Syncing..." : "Sync Now"}
+                                        {isSyncing ? "Syncing..." : integration.status === 'importing_historical' ? "Importing..." : "Sync Now"}
                                     </button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    Sync Now
+                                    {integration.status === 'importing_historical' 
+                                        ? "Cannot sync while importing historical data" 
+                                        : "Sync Now"}
                                 </TooltipContent>
                             </Tooltip>
                         )}
@@ -284,10 +286,10 @@ export function IntegrationCard({
                                                     onClick={() =>
                                                         onSync(integration.id, integration.name)
                                                     }
-                                                    disabled={isSyncing}
+                                                    disabled={isSyncing || integration.status === 'importing_historical'}
                                                 >
                                                     <RefreshCw className="mr-2 h-4 w-4" />
-                                                    Manual Sync
+                                                    {integration.status === 'importing_historical' ? "Importing..." : "Manual Sync"}
                                                 </DropdownMenuItem>
                                             )}
                                             {canManageSlice && (

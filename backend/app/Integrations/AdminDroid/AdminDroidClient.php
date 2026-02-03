@@ -91,6 +91,7 @@ final class AdminDroidClient
             $tokenUrl = "https://login.microsoftonline.com/{$tenantId}/oauth2/v2.0/token";
             
             $response = Http::timeout(30)
+                ->withOptions(['verify' => config('app.env') === 'production'])
                 ->asForm()
                 ->post($tokenUrl, [
                     'grant_type' => 'client_credentials',
@@ -265,6 +266,7 @@ final class AdminDroidClient
 
             $response = Http::timeout(60)
                 ->connectTimeout(15)
+                ->withOptions(['verify' => config('app.env') === 'production'])
                 ->withHeaders([
                     'Authorization' => 'Bearer ' . $this->accessToken,
                     'Accept' => 'application/json',
@@ -277,6 +279,7 @@ final class AdminDroidClient
                 
                 $response = Http::timeout(60)
                     ->connectTimeout(15)
+                    ->withOptions(['verify' => config('app.env') === 'production'])
                     ->withHeaders([
                         'Authorization' => 'Bearer ' . $this->accessToken,
                         'Accept' => 'application/json',

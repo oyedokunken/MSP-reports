@@ -90,6 +90,7 @@ final class WatchguardAuthPointClient
             $tokenUrl = $this->baseUrl . '/oauth/token';
             
             $response = Http::timeout(30)
+                ->withOptions(['verify' => config('app.env') === 'production'])
                 ->withHeaders([
                     'Content-Type' => 'application/x-www-form-urlencoded',
                 ])
@@ -223,6 +224,7 @@ final class WatchguardAuthPointClient
 
             $response = Http::timeout(60)
                 ->connectTimeout(15)
+                ->withOptions(['verify' => config('app.env') === 'production'])
                 ->withHeaders([
                     'Authorization' => 'Bearer ' . $this->accessToken,
                     'WatchGuard-API-Key' => $apiKey,
@@ -238,6 +240,7 @@ final class WatchguardAuthPointClient
                 
                 $response = Http::timeout(60)
                     ->connectTimeout(15)
+                    ->withOptions(['verify' => config('app.env') === 'production'])
                     ->withHeaders([
                         'Authorization' => 'Bearer ' . $this->accessToken,
                         'WatchGuard-API-Key' => $apiKey,

@@ -67,7 +67,9 @@ final class BarracudaClient
         }
 
         try {
-            $response = Http::asJson()->post($this->baseUrl . '/v1/authorization/token', [
+            $response = Http::asJson()
+                ->withOptions(['verify' => config('app.env') === 'production'])
+                ->post($this->baseUrl . '/v1/authorization/token', [
                 'ClientId' => $this->credentials['client_id'],
                 'ClientSecret' => $this->credentials['client_secret'],
             ]);
@@ -343,7 +345,7 @@ final class BarracudaClient
             $request = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $token,
                 'Accept'        => 'application/json',
-            ]);
+            ])->withOptions(['verify' => config('app.env') === 'production']);
 
             // Make request based on method
             $response = match(strtoupper($method)) {

@@ -237,6 +237,7 @@ final class ITGlueClient
         ])
             ->timeout(60)
             ->retry(2, 1000)
+            ->withOptions(['verify' => config('app.env') === 'production'])
             ->get($url, $params);
 
         $this->rateLimiter->recordRequest($this->integration);

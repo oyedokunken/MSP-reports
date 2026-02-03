@@ -237,6 +237,11 @@ class IntegrationService
 
     public function triggerSync(Integration $integration, string $priority = 'high'): SyncLog
     {
+        // Check if integration is currently importing historical data
+        if ($integration->status->value === 'importing_historical') {
+            throw new \Exception("Cannot sync while historical data import is in progress. Please wait for the import to complete.");
+        }
+
         if ($integration->syncLogs()->whereIn('status', ['queued', 'running'])->exists()) {
              throw new \Exception("A sync is already in progress for this integration.");
         }

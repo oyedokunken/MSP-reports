@@ -64,7 +64,9 @@ final class SharePointIntegration
         $cacheKey = 'sharepoint_token_' . ($this->integration->integration_id ?? 'temp');
 
         return \Illuminate\Support\Facades\Cache::remember($cacheKey, 3300, function () use ($credentials) {
-            $response = Http::asForm()->post("https://login.microsoftonline.com/{$credentials['tenant_id']}/oauth2/v2.0/token", [
+            $response = Http::asForm()
+                ->withOptions(['verify' => config('app.env') === 'production'])
+                ->post("https://login.microsoftonline.com/{$credentials['tenant_id']}/oauth2/v2.0/token", [
                 'client_id' => $credentials['client_id'],
                 'client_secret' => $credentials['client_secret'],
                 'scope' => 'https://graph.microsoft.com/.default',
@@ -105,6 +107,7 @@ final class SharePointIntegration
         
         // Lookup site to get ID
         $response = Http::withToken($token)
+            ->withOptions(['verify' => config('app.env') === 'production'])
             ->get("{$this->baseUrl}/sites/{$hostname}:/{$path}");
 
         if ($response->failed()) {
@@ -115,6 +118,7 @@ final class SharePointIntegration
 
         // Get default drive (Documents library) for the site
         $driveResponse = Http::withToken($token)
+            ->withOptions(['verify' => config('app.env') === 'production'])
             ->get("{$this->baseUrl}/sites/{$siteId}/drive");
 
         if ($driveResponse->failed()) {
@@ -144,7 +148,9 @@ final class SharePointIntegration
             ? "{$this->baseUrl}/drives/{$driveId}/root:/{$cleanPath}:/children"
             : "{$this->baseUrl}/drives/{$driveId}/root/children";
 
-        $response = Http::withToken($token)->get($endpoint);
+        $response = Http::withToken($token)
+            ->withOptions(['verify' => config('app.env') === 'production'])
+            ->get($endpoint);
 
         if ($response->failed()) {
              throw new \Exception('Failed to browse folder: ' . $response->body());
@@ -185,7 +191,9 @@ final class SharePointIntegration
             ? "{$this->baseUrl}/drives/{$driveId}/root:/{$cleanPath}:/children"
             : "{$this->baseUrl}/drives/{$driveId}/root/children";
 
-        $response = Http::withToken($token)->post($endpoint, [
+        $response = Http::withToken($token)
+            ->withOptions(['verify' => config('app.env') === 'production'])
+            ->post($endpoint, [
             'name' => $name,
             'folder' => (object)[], // Empty object denotes a folder
             '@microsoft.graph.conflictBehavior' => 'rename'
@@ -233,6 +241,7 @@ final class SharePointIntegration
         // Regular upload (suitable for files < 4MB)
         // For larger files, we would need to create an upload session
         $response = Http::withToken($token)
+            ->withOptions(['verify' => config('app.env') === 'production'])
             ->withBody($content, 'application/pdf') // Assuming PDF for reports, or generic application/octet-stream
             ->put($endpoint);
 
