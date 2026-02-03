@@ -12,7 +12,7 @@ class GetAvailableReportsForCustomerRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
-        $customerId = $this->route('customerId');
+        $customerId = $this->route('id');
 
         return Customer::where('company_id', $user->company_id)
             ->where('customer_id', $customerId)
