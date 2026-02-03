@@ -15,7 +15,7 @@ use App\Enums\ReportFrequency;
  * @property int $customer_id
  * @property int|null $template_id
  * @property string $report_type
- * @property ReportFrequency $frequency
+ * @property ReportFrequency|null $frequency
  * @property array<string, mixed>|null $schedule_config
  * @property string $time_of_day
  * @property bool $active
