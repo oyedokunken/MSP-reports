@@ -37,7 +37,7 @@ return [
 
     'gotenberg' => [
         'url' => env('GOTENBERG_URL', 'http://gotenberg:3000'),
-        'timeout' => env('GOTENBERG_TIMEOUT', 30),
+        'timeout' => (int) env('GOTENBERG_TIMEOUT', 30),
         'enabled' => env('GOTENBERG_ENABLED', true),
     ],
 
