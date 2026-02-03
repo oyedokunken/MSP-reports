@@ -205,7 +205,7 @@ export function IntegrationCard({
                     )}
                 </div>
                 <div className="mt-4 space-y-2 border-t border-border pt-4">
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2">
                         {isSourceOfTruth && canSyncSlice && (
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -214,7 +214,7 @@ export function IntegrationCard({
                                             onSync(integration.id, integration.name)
                                         }
                                         disabled={isSyncing}
-                                        className={`flex-1 flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${isSyncing
+                                        className={`w-full flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${isSyncing
                                             ? "bg-primary text-primary-foreground border-primary"
                                             : "border-border bg-background text-foreground hover:bg-muted"
                                             } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -236,7 +236,7 @@ export function IntegrationCard({
                             <TooltipTrigger asChild>
                                 <button
                                     onClick={() => onPreviewData(integration)}
-                                    className="flex-1 flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-all"
+                                    className="w-full flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-all"
                                 >
                                     <Users className="h-4 w-4" />
                                     View Customers

@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
     Select,
     SelectContent,
@@ -8,7 +9,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Eye, EyeOff, ClipboardPaste } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
@@ -41,6 +42,32 @@ export const DynamicCredentialForm: React.FC<DynamicCredentialFormProps> = ({
     onChange,
     errors = {},
 }) => {
+    const [visibleFields, setVisibleFields] = useState<Record<string, boolean>>({});
+
+    const toggleVisibility = (fieldName: string) => {
+        setVisibleFields(prev => ({
+            ...prev,
+            [fieldName]: !prev[fieldName]
+        }));
+    };
+
+    const handlePaste = async (fieldName: string) => {
+        try {
+            const text = await navigator.clipboard.readText();
+            onChange(fieldName, text);
+        } catch (err) {
+            console.error('Failed to read clipboard:', err);
+        }
+    };
+
+    const isSecretField = (field: CredentialField) => {
+        return field.type === "password" || 
+               field.name.toLowerCase().includes('secret') ||
+               field.name.toLowerCase().includes('key') ||
+               field.name.toLowerCase().includes('password') ||
+               field.name.toLowerCase().includes('token');
+    };
+
     return (
         <div className="space-y-4">
             {fields.map((field) => (
@@ -94,20 +121,55 @@ export const DynamicCredentialForm: React.FC<DynamicCredentialFormProps> = ({
                             </SelectContent>
                         </Select>
                     ) : (
-                        <Input
-                            id={field.name}
-                            name={field.name}
-                            type={field.type}
-                            placeholder={field.placeholder}
-                            value={values[field.name] || field.default || ""}
-                            onChange={(e) =>
-                                onChange(field.name, e.target.value)
-                            }
-                            required={field.required}
-                            className={
-                                errors[field.name] ? "border-red-500" : ""
-                            }
-                        />
+                        <div className="flex gap-1">
+                            <div className="relative flex-1">
+                                <Input
+                                    id={field.name}
+                                    name={field.name}
+                                    type={isSecretField(field) && !visibleFields[field.name] ? "password" : "text"}
+                                    placeholder={field.placeholder}
+                                    value={values[field.name] || field.default || ""}
+                                    onChange={(e) =>
+                                        onChange(field.name, e.target.value)
+                                    }
+                                    required={field.required}
+                                    className={`pr-10 ${errors[field.name] ? "border-red-500" : ""}`}
+                                />
+                                {isSecretField(field) && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                        onClick={() => toggleVisibility(field.name)}
+                                    >
+                                        {visibleFields[field.name] ? (
+                                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                        ) : (
+                                            <Eye className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                    </Button>
+                                )}
+                            </div>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            className="shrink-0"
+                                            onClick={() => handlePaste(field.name)}
+                                        >
+                                            <ClipboardPaste className="h-4 w-4" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Paste from clipboard</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
                     )}
                     {errors[field.name] && (
                         <p className="text-sm text-red-500">
