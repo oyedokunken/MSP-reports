@@ -5,62 +5,29 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog;
 use App\Http\Requests\AuditLog\GetAuditLogsRequest;
 use App\Http\Requests\AuditLog\GetAuditLogStatsRequest;
 use App\Http\Resources\AuditLogResource;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+use App\Actions\AuditLog\GetAuditLogsAction;
+use App\Actions\AuditLog\GetAuditLogStatsAction;
+use App\Actions\AuditLog\ExportAuditLogsAction;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 final class AuditLogController extends Controller
 {
     /**
      * Display a listing of audit logs with filtering and pagination.
      */
-    public function index(GetAuditLogsRequest $request): \Illuminate\Http\JsonResponse
+    public function index(GetAuditLogsRequest $request, GetAuditLogsAction $action): JsonResponse
     {
-        $companyId = $request->user()->company_id;
+        $user = $request->user();
+        /** @var array{per_page?: int, search?: string, event_type?: string, actor_type?: string, target_type?: string, date_from?: string, date_to?: string} $validated */
         $validated = $request->validated();
+        
         $perPage = $validated['per_page'] ?? $request->input('per_page', 10);
 
-        $query = AuditLog::where('company_id', $companyId)
-            ->orderBy('created_at', 'desc');
-
-        // Search Filter
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('event_type', 'like', "%{$search}%")
-                  ->orWhere('actor_type', 'like', "%{$search}%")
-                  ->orWhere('target_type', 'like', "%{$search}%")
-                  ->orWhere('event_data', 'like', "%{$search}%");
-            });
-        }
-
-        // Event Type Filter
-        if ($request->filled('event_type')) {
-            $query->where('event_type', $request->input('event_type'));
-        }
-
-        // Actor Type Filter
-        if ($request->filled('actor_type')) {
-            $query->where('actor_type', $request->input('actor_type'));
-        }
-
-        // Target Type Filter
-        if ($request->filled('target_type')) {
-            $query->where('target_type', $request->input('target_type'));
-        }
-
-        // Date Range Filter
-        if ($request->filled('date_from')) {
-            $query->where('created_at', '>=', Carbon::parse($request->input('date_from'))->startOfDay());
-        }
-        if ($request->filled('date_to')) {
-            $query->where('created_at', '<=', Carbon::parse($request->input('date_to'))->endOfDay());
-        }
-
+        $query = $action->execute($user->company_id, $validated);
         $logs = $query->paginate($perPage);
 
         return response()->json([
@@ -78,92 +45,28 @@ final class AuditLogController extends Controller
     /**
      * Get aggregate statistics for audit logs.
      */
-    public function stats(GetAuditLogStatsRequest $request): \Illuminate\Http\JsonResponse
+    public function stats(GetAuditLogStatsRequest $request, GetAuditLogStatsAction $action): JsonResponse
     {
-        $companyId = $request->user()->company_id;
-        $today = Carbon::today();
+        $stats = $action->execute($request->user()->company_id);
 
-        $totalLogs = AuditLog::where('company_id', $companyId)->count();
-        $logsToday = AuditLog::where('company_id', $companyId)
-            ->where('created_at', '>=', $today)
-            ->count();
-        
-        $uniqueActors = AuditLog::where('company_id', $companyId)
-            ->distinct('actor_id')
-            ->count('actor_id');
-
-        // Critical events - example heuristic
-        $criticalEvents = AuditLog::where('company_id', $companyId)
-            ->whereIn('event_type', [
-                'user_deleted', 
-                'api_key_created', 
-                'failed_login_attempt',
-                'security_settings_updated'
-            ])
-            ->where('created_at', '>=', Carbon::now()->subDays(7))
-            ->count();
-
-        return $this->success([
-            'total_logs' => $totalLogs,
-            'logs_today' => $logsToday,
-            'unique_actors' => $uniqueActors,
-            'critical_events' => $criticalEvents,
-        ]);
+        return $this->success($stats);
     }
 
     /**
      * Export audit logs to CSV.
      */
-    public function export(GetAuditLogsRequest $request): \Illuminate\Http\Response
+    public function export(GetAuditLogsRequest $request, GetAuditLogsAction $getLogsAction, ExportAuditLogsAction $exportAction): Response
     {
-        $companyId = $request->user()->company_id;
+        $user = $request->user();
+        /** @var array{search?: string, event_type?: string, actor_type?: string, target_type?: string, date_from?: string, date_to?: string} $validated */
         $validated = $request->validated();
         
-        $query = AuditLog::where('company_id', $companyId)
-            ->orderBy('created_at', 'desc');
-
-        // Apply same filters as index
-        if ($request->filled('event_type')) {
-            $query->where('event_type', $request->input('event_type'));
-        }
-        if ($request->filled('date_from')) {
-            $query->where('created_at', '>=', Carbon::parse($request->input('date_from'))->startOfDay());
-        }
-        if ($request->filled('date_to')) {
-            $query->where('created_at', '<=', Carbon::parse($request->input('date_to'))->endOfDay());
-        }
-
-        $logs = $query->get();
+        $logs = $getLogsAction->execute($user->company_id, $validated)->get();
+        $csvContent = $exportAction->execute($logs);
 
         $filename = "audit_logs_" . now()->format('Y-m-d_His') . ".csv";
-        $handle = fopen('php://temp', 'w+');
-        
-        if ($handle === false) {
-            return response('Failed to generate CSV', 500);
-        }
-        
-        // CSV Header
-        fputcsv($handle, ['ID', 'Event Type', 'Actor Type', 'Actor ID', 'Target Type', 'Target ID', 'Data', 'IP Address', 'Created At']);
 
-        foreach ($logs as $log) {
-            fputcsv($handle, [
-                $log->audit_log_id,
-                $log->event_type,
-                $log->actor_type,
-                $log->actor_id,
-                $log->target_type,
-                $log->target_id,
-                json_encode($log->event_data),
-                $log->ip_address,
-                $log->created_at->toDateTimeString(),
-            ]);
-        }
-
-        rewind($handle);
-        $content = stream_get_contents($handle);
-        fclose($handle);
-
-        return response($content, 200, [
+        return response($csvContent, 200, [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);

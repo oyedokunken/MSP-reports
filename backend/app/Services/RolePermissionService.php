@@ -401,14 +401,21 @@ final class RolePermissionService
      * Custom permissions override role defaults
      *
      * @param string $roleName
-     * @param array<string, array<string, bool>>|null $customPermissions
+     * @param array<string, array<string, bool>>|string|null $customPermissions
      * @return array<string, array<string, bool>>
      */
-    public static function mergePermissions(string $roleName, ?array $customPermissions): array
+    public static function mergePermissions(string $roleName, mixed $customPermissions): array
     {
         $rolePermissions = self::getDefaultPermissions($roleName);
 
-        if (!$customPermissions) {
+        if (is_string($customPermissions)) {
+            $decoded = json_decode($customPermissions, true);
+            if (is_array($decoded)) {
+                $customPermissions = $decoded;
+            }
+        }
+
+        if (!is_array($customPermissions)) {
             return $rolePermissions;
         }
 

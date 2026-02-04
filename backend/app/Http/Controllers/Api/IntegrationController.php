@@ -9,6 +9,7 @@ use App\Actions\Integration\DeleteIntegrationAction;
 use App\Actions\Integration\SetSourceOfTruthAction;
 use App\Actions\Integration\TriggerSyncAction;
 use App\Actions\Integration\UpdateIntegrationAction;
+use App\Actions\Integration\StartHistoricalImportAction;
 use App\Http\Requests\Integration\CreateIntegrationRequest;
 use App\Http\Requests\Integration\CreateSharePointFolderRequest;
 use App\Http\Requests\Integration\SetSourceOfTruthRequest;
@@ -345,81 +346,26 @@ final class IntegrationController extends Controller
         ]);
     }
 
-    public function startHistoricalImport(StartHistoricalImportRequest $request, int $id, LicenseChecker $licenseChecker): JsonResponse
+    public function startHistoricalImport(StartHistoricalImportRequest $request, int $id, StartHistoricalImportAction $action): JsonResponse
     {
-        $company = $request->user()->company;
-
-        $integration = $company->integrations()
-            ->where('integration_id', $id)
-            ->first();
-
-        if (!$integration) {
+        try {
+            /** @var array{start_date: string, end_date: string} $validated */
+            $validated = $request->validated();
+            $result = $action->execute($request->user()->company, $id, $validated);
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => $result['message'],
+                'job_id' => $result['job_id']
+            ]);
+        } catch (ValidationException $e) {
+            $status = isset($e->errors()['license']) ? 403 : (isset($e->errors()['integration_id']) ? 404 : 400);
             return response()->json([
                 'status' => 'error',
-                'message' => 'Integration not found for this company.'
-            ], 404);
+                'message' => $e->getMessage(),
+                // preserve specific structure if needed by frontend, but usually message is enough
+            ], $status);
         }
-
-        $validated = $request->validated();
-
-        $startDate = Carbon::parse($validated['start_date'])->startOfDay();
-        $endDate = Carbon::parse($validated['end_date'])->endOfDay();
-        $requestedMonths = $startDate->diffInMonths($endDate);
-
-        $retentionCheck = $licenseChecker->canExtendRetention($company, (int) $requestedMonths);
-
-        if (!$retentionCheck['allowed']) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $retentionCheck['reason'],
-                'requested_months' => $requestedMonths
-            ], 403);
-        }
-
-        $runningJob = $integration->historicalImportJobs()
-            ->whereIn('status', ['queued', 'running'])
-            ->exists();
-
-        if ($runningJob) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Historical import is already running for this integration.'
-            ], 400);
-        }
-
-        $job = $integration->historicalImportJobs()->create([
-            'company_id' => $company->company_id,
-            'import_start_date' => $startDate,
-            'import_end_date' => $endDate,
-            'current_position' => $startDate,
-            'status' => 'queued',
-        ]);
-
-        $chunks = [];
-        $tempDate = $startDate->copy();
-        while ($tempDate->lt($endDate)) {
-            $chunks[] = $tempDate->copy();
-            $tempDate->addDays(7);
-        }
-
-        $totalJobs = count($chunks);
-        $job->update(['total_jobs' => $totalJobs, 'jobs_completed' => 0]);
-
-        foreach ($chunks as $chunkDate) {
-            \App\Jobs\ImportHistoricalDataJob::dispatch($job, $chunkDate);
-        }
-
-        $integration->update([
-            'status' => 'importing_historical',
-            'historical_import_status' => 'pending',
-            'historical_import_progress' => 0
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "Historical import started with {$totalJobs} parallel chunks.",
-            'job_id' => $job->historical_import_job_id
-        ]);
     }
 
     public function browseSharePoint(Request $request, int $id): JsonResponse

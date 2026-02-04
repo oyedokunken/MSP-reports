@@ -8,63 +8,59 @@ use App\Actions\Report\BatchDeleteReportsAction;
 use App\Actions\Report\DeliverReportAction;
 use App\Actions\Report\EmailReportAction;
 use App\Actions\Report\GenerateShareLinkAction;
+use App\Actions\Report\GetScheduledReportsAction;
+use App\Actions\Report\GetReportHistoryAction;
+use App\Actions\Report\DownloadReportAction;
+use App\Actions\Report\DeleteReportScheduleAction;
+use App\Actions\Report\DeleteReportAction;
 use App\Http\Requests\Report\BatchDeleteReportsRequest;
 use App\Http\Requests\Report\DiscardReportsRequest;
 use App\Http\Requests\Report\EmailReportRequest;
 use App\Http\Controllers\Controller;
 use App\Models\GeneratedReport;
 use App\Models\ReportSchedule;
-use App\Models\ReportShareToken;
-use App\Services\ReportNamingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class ReportAnalyticsController extends Controller
 {
-    public function getScheduledReports(Request $request): \Illuminate\Http\JsonResponse
+    public function getScheduledReports(Request $request, GetScheduledReportsAction $action): JsonResponse
     {
         $authUser = $request->user();
         $includeInactive = $request->boolean('include_inactive', false);
         
-        $query = ReportSchedule::where('company_id', $authUser->company_id);
-        
-        if (!$includeInactive) {
-            $query->where('active', true);
-        }
+        $schedules = $action->execute($authUser, $includeInactive);
 
-        $schedules = $query->with('customer:customer_id,canonical_name,report_destination,report_configuration')
-            ->orderBy('next_scheduled_at', 'asc')
-            ->get()
-            ->map(function (\App\Models\ReportSchedule $schedule) {
-                $customer = $schedule->customer;
-                
-                $emailDestination = $customer->report_destination 
-                    ?? $customer->report_configuration['delivery']['destination'] ?? null;
-                
-                $ccEmails = $customer->report_configuration['delivery']['cc'] ?? [];
-                
-                return [
-                    'report_schedule_id' => $schedule->report_schedule_id,
-                    'customer_id' => $schedule->customer_id,
-                    'customer_name' => $customer->canonical_name ?? 'Unknown',
-                    'report_type' => $schedule->report_type,
-                    'frequency' => $schedule->frequency,
-                    'next_scheduled_at' => $schedule->next_scheduled_at,
-                    'last_generated_at' => $schedule->last_generated_at,
-                    'active' => $schedule->active,
-                    'email_destination' => $emailDestination,
-                    'cc_emails' => $ccEmails,
-                ];
-            });
+        $formattedSchedules = $schedules->map(function (ReportSchedule $schedule) {
+            /** @var \App\Models\Customer $customer */
+            $customer = $schedule->customer;
+            
+            $emailDestination = $customer->report_destination 
+                ?? $customer->report_configuration['delivery']['destination'] ?? null;
+            
+            $ccEmails = $customer->report_configuration['delivery']['cc'] ?? [];
+            
+            return [
+                'report_schedule_id' => $schedule->report_schedule_id,
+                'customer_id' => $schedule->customer_id,
+                'customer_name' => $customer->canonical_name ?? 'Unknown',
+                'report_type' => $schedule->report_type,
+                'frequency' => $schedule->frequency,
+                'next_scheduled_at' => $schedule->next_scheduled_at,
+                'last_generated_at' => $schedule->last_generated_at,
+                'active' => $schedule->active,
+                'email_destination' => $emailDestination,
+                'cc_emails' => $ccEmails,
+            ];
+        });
 
         return response()->json([
             'status' => 'success',
-            'data' => $schedules,
+            'data' => $formattedSchedules,
             'meta' => [
                 'total_count' => $schedules->count(),
                 'scoped_to_customers' => $authUser->scoped_customers,
@@ -73,44 +69,18 @@ final class ReportAnalyticsController extends Controller
         ], 200);
     }
     
-    public function getReportHistory(Request $request): \Illuminate\Http\JsonResponse
+    public function getReportHistory(Request $request, GetReportHistoryAction $action): JsonResponse
     {
         $authUser = $request->user();
 
-        $perPage = $request->input('per_page', 50);
-        $customerId = $request->input('customer_id');
-        
-        $query = GeneratedReport::where('company_id', $authUser->company_id);
-        
-        if ($customerId) {
-            $query->where('customer_id', $customerId);
-        }
-        
-        $reports = $query->with([
-                'customer:customer_id,canonical_name',
-                'reportSchedule:report_schedule_id,report_type',
-            ])
-            ->orderBy('generated_at', 'desc')
-            ->paginate($perPage);
+        $filters = [
+            'per_page' => (int) $request->input('per_page', 50),
+            'customer_id' => $request->input('customer_id') ? (int) $request->input('customer_id') : null,
+        ];
 
-        $formattedReports = $reports->map(function (\App\Models\GeneratedReport $report) {
-            // Check if file exists for completed reports
-            if ($report->status === 'completed' && $report->file_path) {
-                if (!Storage::disk('reports')->exists($report->file_path)) {
-                    // Mark report as failed if file is missing
-                    $report->update([
-                        'status' => 'failed',
-                        'error_message' => 'Report file not found on disk',
-                    ]);
-                    
-                    Log::warning('Report file missing, marked as failed', [
-                        'report_id' => $report->generated_report_id,
-                        'file_path' => $report->file_path,
-                        'customer' => $report->customer->canonical_name ?? 'Unknown',
-                    ]);
-                }
-            }
-            
+        $reports = $action->execute($authUser->company_id, $filters);
+
+        $formattedReports = $reports->map(function (GeneratedReport $report) {
             return [
                 'generated_report_id' => $report->generated_report_id,
                 'customer_id' => $report->customer_id,
@@ -140,48 +110,16 @@ final class ReportAnalyticsController extends Controller
         ], 200);
     }
 
-    public function downloadReport(Request $request, int $id): \Symfony\Component\HttpFoundation\StreamedResponse|\Illuminate\Http\JsonResponse
+    public function downloadReport(Request $request, int $id, DownloadReportAction $action): StreamedResponse|JsonResponse
     {
-        $authUser = $request->user();
-
-        $report = GeneratedReport::withTrashed()
-            ->where('generated_report_id', $id)
-            ->where('company_id', $authUser->company_id)
-            ->with(['customer:customer_id,canonical_name', 'reportSchedule:report_schedule_id,report_type,frequency'])
-            ->first();
-
-        if (!$report) {
+        try {
+            return $action->execute($request->user()->company_id, $id);
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Report not found or access denied.'
+                'message' => $e->getMessage()
             ], 404);
         }
-
-        if (!$report->file_path || !Storage::disk('reports')->exists($report->file_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Report file not found.'
-            ], 404);
-        }
-
-        // Use ReportNamingService for consistent filename generation
-        $namingService = app(ReportNamingService::class);
-        $downloadFilename = 'Report.pdf';
-        
-        if ($report->reportSchedule) {
-            $downloadFilename = $namingService->getDownloadName($report->reportSchedule, $report->company, $report->customer, $report->generated_at) . '.pdf';
-        } else {
-            // Fallback for reports without schedules (unlikely in current system)
-            $filename = basename($report->file_path);
-            $downloadFilename = $filename;
-        }
-
-        return Storage::disk('reports')->download($report->file_path, $downloadFilename, [
-            'Content-Type' => 'application/pdf',
-            'X-Report-Name' => $downloadFilename,
-            'X-Customer' => $report->customer->canonical_name ?? 'N/A',
-            'X-Generated-At' => $report->generated_at->toDateTimeString(),
-        ]);
     }
 
     public function emailReport(EmailReportRequest $request, int $id, EmailReportAction $action): JsonResponse
@@ -271,92 +209,43 @@ final class ReportAnalyticsController extends Controller
     }
 
 
-    public function deleteSchedule(Request $request, int $id): \Illuminate\Http\JsonResponse
+    public function deleteSchedule(Request $request, int $id, DeleteReportScheduleAction $action): JsonResponse
     {
-        $authUser = $request->user();
+        try {
+            $result = $action->execute($request->user()->company_id, $id);
 
-        $schedule = ReportSchedule::where('report_schedule_id', $id)
-            ->where('company_id', $authUser->company_id)
-            ->with('customer:customer_id,canonical_name')
-            ->first();
-
-        if (!$schedule) {
+            return response()->json([
+                'status' => 'success',
+                'message' => "Schedule deleted successfully: {$result['report_type']} for {$result['customer_name']}" . 
+                            ($result['template_deleted'] ? " (template also deleted)" : ""),
+                'data' => $result
+            ], 200);
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Schedule not found or access denied.'
+                'message' => $e->getMessage()
             ], 404);
         }
-
-        $customerName = $schedule->customer->canonical_name ?? 'Unknown';
-        $reportType = $schedule->report_type;
-        $templateId = $schedule->template_id;
-
-        // Delete the schedule
-        $schedule->delete();
-
-        // If schedule has a template_id, also delete the template
-        $templateDeleted = false;
-        if ($templateId) {
-            try {
-                $template = \App\Models\ReportTemplate::where('template_id', $templateId)
-                    ->where('company_id', $authUser->company_id)
-                    ->first();
-                
-                if ($template) {
-                    $template->delete();
-                    $templateDeleted = true;
-                }
-            } catch (\Exception $e) {
-                \Log::warning('Failed to delete associated template', [
-                    'template_id' => $templateId,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        }
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "Schedule deleted successfully: {$reportType} for {$customerName}" . 
-                        ($templateDeleted ? " (template also deleted)" : ""),
-            'data' => [
-                'deleted_schedule_id' => $id,
-                'customer_name' => $customerName,
-                'report_type' => $reportType,
-                'template_deleted' => $templateDeleted,
-            ]
-        ], 200);
     }
 
-    public function deleteReport(Request $request, int $id): \Illuminate\Http\JsonResponse
+    public function deleteReport(Request $request, int $id, DeleteReportAction $action): JsonResponse
     {
-        $authUser = $request->user();
+        try {
+            $deletedId = $action->execute($request->user()->company_id, $id);
 
-        $report = GeneratedReport::where('generated_report_id', $id)
-            ->where('company_id', $authUser->company_id)
-            ->first();
-
-        if (!$report) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Report deleted successfully',
+                'data' => [
+                    'deleted_report_id' => $deletedId
+                ]
+            ], 200);
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Report not found or access denied.'
+                'message' => $e->getMessage()
             ], 404);
         }
-
-        // Delete the PDF file if it exists
-        if ($report->file_path && Storage::disk('reports')->exists($report->file_path)) {
-            Storage::disk('reports')->delete($report->file_path);
-        }
-
-        $reportId = $report->generated_report_id;
-        $report->delete();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Report deleted successfully',
-            'data' => [
-                'deleted_report_id' => $reportId
-            ]
-        ], 200);
     }
 
     public function batchDelete(BatchDeleteReportsRequest $request, BatchDeleteReportsAction $action): JsonResponse
@@ -435,71 +324,25 @@ final class ReportAnalyticsController extends Controller
     /**
      * Download a shared report using a token (no authentication required)
      */
-    public function downloadSharedReport(Request $request, string $token): \Symfony\Component\HttpFoundation\StreamedResponse|\Illuminate\Http\JsonResponse
+    public function downloadSharedReport(Request $request, string $token, DownloadReportAction $action): StreamedResponse|JsonResponse
     {
-        $shareToken = ReportShareToken::where('token', $token)
-            ->with(['generatedReport.customer', 'generatedReport.reportSchedule'])
-            ->first();
-
-        if (!$shareToken) {
+        try {
+            return $action->executeShared($token);
+        } catch (ValidationException $e) {
+            $status = $e->getMessage() === 'This share link has expired.' ? 410 : 
+                     ($e->getMessage() === 'Invalid share link signature.' ? 403 : 404);
+            
             return response()->json([
                 'status' => 'error',
-                'message' => 'Invalid share link.'
-            ], 404);
+                'message' => $e->getMessage()
+            ], $status);
         }
-
-        if ($shareToken->isExpired()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'This share link has expired.'
-            ], 410);
-        }
-
-        // Verify HMAC signature to detect tampering
-        if ($shareToken->signature && !$shareToken->verifySignature()) {
-            Log::warning('Share link signature verification failed', [
-                'token' => $token,
-                'report_id' => $shareToken->generated_report_id,
-            ]);
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid share link.'
-            ], 403);
-        }
-
-        $report = $shareToken->generatedReport;
-
-        if (!$report->file_path || !Storage::disk('reports')->exists($report->file_path)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Report file not found.'
-            ], 404);
-        }
-
-        // Use ReportNamingService for consistent filename generation
-        $namingService = app(ReportNamingService::class);
-        $downloadFilename = 'Report.pdf';
-        
-        if ($report->reportSchedule) {
-            $downloadFilename = $namingService->getDownloadName($report->reportSchedule, $report->company, $report->customer, $report->generated_at) . '.pdf';
-        } else {
-            $downloadFilename = basename($report->file_path);
-        }
-
-        Log::info('Shared report downloaded', [
-            'report_id' => $report->generated_report_id,
-            'token' => $token,
-        ]);
-
-        return Storage::disk('reports')->download($report->file_path, $downloadFilename, [
-            'Content-Type' => 'application/pdf',
-        ]);
     }
 
     /**
      * Preview the email that will be sent with a report
      */
-    public function previewEmail(Request $request, int $id): \Illuminate\Http\JsonResponse
+    public function previewEmail(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
 

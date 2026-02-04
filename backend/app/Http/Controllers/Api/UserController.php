@@ -209,38 +209,28 @@ final class UserController extends Controller
         }
     }
 
-    public function clearForcePasswordChange(ClearForcePasswordChangeRequest $request): JsonResponse
+    public function clearForcePasswordChange(ClearForcePasswordChangeRequest $request, \App\Actions\User\ChangePasswordAction $action): JsonResponse
     {
         $user = $request->user();
         $validated = $request->validated();
 
-        if (!Hash::check($validated['current_password'], $user->password)) {
-            return $this->error('Current password is incorrect.', 400);
+        try {
+            $action->execute(
+                $user,
+                $validated['current_password'],
+                $validated['new_password'],
+                $request->ip() ?? '',
+                $request->userAgent() ?? ''
+            );
+
+            $user->tokens()->delete();
+            $token = $user->createToken('api-token')->plainTextToken;
+
+            return $this->success([
+                'token' => $token,
+            ], 'Password changed successfully.');
+        } catch (ValidationException $e) {
+            return $this->error($e->getMessage(), 400);
         }
-
-        $user->password = Hash::make($validated['new_password']);
-        $user->force_password_change = false;
-        $user->save();
-
-        $user->tokens()->delete();
-        $token = $user->createToken('api-token')->plainTextToken;
-
-        AuditLog::create([
-            'company_id' => $user->company_id,
-            'event_type' => 'user_password_changed_first_login',
-            'actor_type' => 'User',
-            'actor_id' => $user->user_id,
-            'target_type' => 'User',
-            'target_id' => $user->user_id,
-            'event_data' => json_encode([
-                'user_email' => $user->email,
-            ]),
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
-        return $this->success([
-            'token' => $token,
-        ], 'Password changed successfully.');
     }
 }

@@ -27,6 +27,8 @@ class AuditLogResource extends JsonResource
             'target_type' => $this->target_type,
             'target_id' => $this->target_id,
             'event_data' => $this->event_data,
+            'actor_name' => $this->actor_name,
+            'target_name' => $this->target_name,
             'ip_address' => $this->ip_address,
             'user_agent' => $this->user_agent,
             'created_at' => $this->created_at->toIso8601String(),

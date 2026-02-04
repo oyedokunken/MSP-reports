@@ -23,13 +23,13 @@ class UserFactory extends Factory
             'role_id' => Role::where('name', 'Admin')->value('id') ?? Role::factory(),
             'status' => 'active',
             'auth_method' => 'local',
-            'permissions' => json_encode([
+            'permissions' => [
                 'integrations' => ['view' => true, 'manage' => false, 'sync' => false],
                 'customers' => ['view' => true, 'edit' => false, 'map' => false],
                 'reports' => ['view' => true, 'configure' => false, 'generate' => false, 'download' => true],
                 'users' => ['view' => false, 'manage' => false],
                 'company_settings' => ['view' => false, 'edit' => false]
-            ]),
+            ],
             'last_login_at' => null,
         ];
     }
