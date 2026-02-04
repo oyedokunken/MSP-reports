@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -207,69 +206,67 @@ export default function StatusPage() {
   const OverallIcon = overallConfig.icon
 
   return (
-    <FloatingLayout>
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Activity className="h-8 w-8 text-primary" />
-              System Status
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Real-time health monitoring for all platform services
-            </p>
-          </div>
-          <Button
-            onClick={runHealthChecks}
-            disabled={isRefreshing}
-            size="lg"
-            className="gap-2"
-          >
-            <RefreshCw className={cn("h-5 w-5", isRefreshing && "animate-spin")} />
-            {isRefreshing ? 'Checking...' : 'Refresh Status'}
-          </Button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Activity className="h-6 w-6 text-primary" />
+            System Status
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Real-time health monitoring for all platform services
+          </p>
         </div>
+        <Button
+          onClick={runHealthChecks}
+          disabled={isRefreshing}
+          className="gap-2"
+        >
+          <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+          {isRefreshing ? 'Checking...' : 'Refresh'}
+        </Button>
+      </div>
 
-        {/* Overall Status Banner */}
-        <Card className={cn("border-2", overallConfig.borderColor, overallConfig.bgColor)}>
-          <CardContent className="py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={cn("h-16 w-16 rounded-full flex items-center justify-center", overallConfig.bgColor)}>
-                  <OverallIcon className={cn("h-8 w-8", overallConfig.color)} />
-                </div>
-                <div>
-                  <h2 className={cn("text-2xl font-bold", overallConfig.color)}>
-                    {allOperational ? 'All Systems Operational' : overallConfig.label}
-                  </h2>
-                  <p className="text-muted-foreground">
-                    {lastFullCheck 
-                      ? `Last checked: ${lastFullCheck.toLocaleTimeString()}`
-                      : 'Checking services...'}
-                  </p>
-                </div>
+      {/* Overall Status Banner */}
+      <Card className={cn("border-l-4", overallConfig.borderColor)}>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn("h-12 w-12 rounded-full flex items-center justify-center", overallConfig.bgColor)}>
+                <OverallIcon className={cn("h-6 w-6", overallConfig.color)} />
               </div>
-              <div className="flex gap-6 text-center">
-                <div>
-                  <div className="text-3xl font-bold text-green-600">{operationalCount}</div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Operational</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-yellow-600">{degradedCount}</div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Degraded</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-red-600">{outageCount}</div>
-                  <div className="text-xs text-muted-foreground uppercase tracking-wide">Outage</div>
-                </div>
+              <div>
+                <h2 className={cn("text-lg font-semibold", overallConfig.color)}>
+                  {allOperational ? 'All Systems Operational' : overallConfig.label}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {lastFullCheck 
+                    ? `Last checked: ${lastFullCheck.toLocaleTimeString()}`
+                    : 'Checking services...'}
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex gap-4 text-center">
+              <div>
+                <div className="text-2xl font-bold text-green-600">{operationalCount}</div>
+                <div className="text-[10px] text-muted-foreground uppercase">Operational</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-yellow-600">{degradedCount}</div>
+                <div className="text-[10px] text-muted-foreground uppercase">Degraded</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-red-600">{outageCount}</div>
+                <div className="text-[10px] text-muted-foreground uppercase">Outage</div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      {/* Services Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {services.map((service) => {
             const config = statusConfig[service.status]
             const StatusIcon = config.icon
@@ -316,24 +313,19 @@ export default function StatusPage() {
               </Card>
             )
           })}
-        </div>
+      </div>
 
-        {/* Legend */}
-        <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center justify-center gap-8">
-              {Object.entries(statusConfig).filter(([key]) => key !== 'checking').map(([key, config]) => {
-                const Icon = config.icon
-                return (
-                  <div key={key} className="flex items-center gap-2">
-                    <Icon className={cn("h-4 w-4", config.color)} />
-                    <span className="text-sm font-medium">{config.label}</span>
-                  </div>
-                )
-              })}
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-6 py-2">
+        {Object.entries(statusConfig).filter(([key]) => key !== 'checking').map(([key, config]) => {
+          const Icon = config.icon
+          return (
+            <div key={key} className="flex items-center gap-1.5">
+              <Icon className={cn("h-3.5 w-3.5", config.color)} />
+              <span className="text-xs font-medium text-muted-foreground">{config.label}</span>
             </div>
-          </CardContent>
-        </Card>
+          )
+        })}
       </div>
 
       {/* Result Modal */}
@@ -381,6 +373,6 @@ export default function StatusPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </FloatingLayout>
+    </div>
   )
 }
