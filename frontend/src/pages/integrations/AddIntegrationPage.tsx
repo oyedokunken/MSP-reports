@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
-import { Cable, ArrowLeft, Info, CheckCircle2, ClipboardPaste } from 'lucide-react'
+import { Cable, ArrowLeft, Info, CheckCircle2, ClipboardPaste, X } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { api } from '@/lib/api'
 import { DynamicCredentialForm } from '@/components/integrations/DynamicCredentialForm'
@@ -18,8 +19,17 @@ import type { Integration } from './types/integration'
 export default function AddIntegrationPage() {
   const navigate = useNavigate()
   const toast = useToast()
+  const queryClient = useQueryClient()
   const { data } = useIntegrationsQuery()
   const availableTypes = data?.availableTypes || []
+  const existingIntegrations = data?.integrations || []
+  
+  // Create a set of added types, but exclude types that allow multiples (like SharePoint)
+  const addedTypes = new Set(
+    existingIntegrations
+      .filter(i => i.type.toLowerCase() !== 'sharepoint')
+      .map(i => i.type.toLowerCase())
+  )
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -68,6 +78,7 @@ export default function AddIntegrationPage() {
       })
 
       toast.success('Integration Added', 'The integration has been added successfully.')
+      queryClient.invalidateQueries({ queryKey: ['integrations'] })
       navigate('/platform/integrations')
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
@@ -99,202 +110,272 @@ export default function AddIntegrationPage() {
   }
 
     return (
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="space-y-6 w-full">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/platform/integrations')}
-            className="shrink-0"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Cable className="h-6 w-6 text-primary" />
-              Add Integration
-            </h1>
-            <p className="text-muted-foreground">Connect a new integration to your platform</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/platform/integrations')}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <Cable className="h-8 w-8 text-primary" />
+                Add Integration
+              </h1>
+              <p className="text-muted-foreground">Connect a new integration to your platform</p>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Step 1: Select Integration Type */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Step 1: Select Integration Type</CardTitle>
-              <CardDescription>Choose the type of integration you want to add</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {availableTypes.map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => handleSelectType(type)}
-                    className={cn(
-                      "relative p-4 rounded-lg border-2 text-left transition-all hover:border-primary/50",
-                      formData.integration_type === type
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:bg-muted/50"
-                    )}
-                  >
-                    <div className="font-medium">{type}</div>
-                    {formData.integration_type === type && (
-                      <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-primary" />
-                    )}
-                  </button>
-                ))}
-              </div>
-              {availableTypes.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Spinner className="h-6 w-6 mx-auto mb-2" />
-                  Loading available integrations...
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Integration Info */}
-          {config && config.description && (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="pt-6">
-                <div className="flex gap-3">
-                  <Info className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-primary mb-1">{config.name}</h3>
-                    <p className="text-sm text-muted-foreground">{config.description}</p>
-                    {config.data_types && config.data_types.length > 0 && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        <span className="font-medium">Data synced:</span> {config.data_types.join(', ')}
-                      </p>
-                    )}
-                    {config.supports_historical && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        <span className="font-medium">Historical data:</span> Up to {config.historical_range_days} days
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Step 2: Configuration */}
-          {formData.integration_type && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Step 2: Configuration</CardTitle>
-                <CardDescription>Enter the details for your {formData.integration_type} integration</CardDescription>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Selection */}
+          <div className="lg:col-span-3 space-y-4">
+            <Card className="sticky top-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Integrations</CardTitle>
+                <CardDescription className="text-xs">Select provider</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="display_name">Display Name *</Label>
-                  <div className="flex gap-1 max-w-md">
-                    <Input
-                      id="display_name"
-                      type="text"
-                      placeholder={`e.g., Production ${formData.integration_type}`}
-                      value={formData.display_name}
-                      onChange={(e) => handleInputChange('display_name', e.target.value)}
-                      required
-                      disabled={isSubmitting}
-                    />
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="shrink-0"
-                            onClick={async () => {
-                              try {
-                                const text = await navigator.clipboard.readText()
-                                handleInputChange('display_name', text)
-                              } catch (err) {
-                                console.error('Failed to read clipboard:', err)
-                              }
-                            }}
-                          >
-                            <ClipboardPaste className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Paste from clipboard</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+              <CardContent>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                  {availableTypes.map((type) => {
+                    const typeLower = type.toLowerCase();
+                    const isAdded = addedTypes.has(typeLower);
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        disabled={isAdded}
+                        onClick={() => handleSelectType(type)}
+                        className={cn(
+                          "relative flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all h-12",
+                          formData.integration_type === type
+                            ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
+                            : isAdded
+                              ? "bg-muted/10 border-dashed opacity-40 cursor-not-allowed grayscale"
+                              : "border-border hover:bg-muted/50 hover:border-primary/50 group"
+                        )}
+                      >
+                        <div className={cn(
+                          "font-bold text-[10px] uppercase tracking-tight truncate w-full px-0.5",
+                          !isAdded && "group-hover:text-primary transition-colors"
+                        )}>
+                          {type}
+                        </div>
+
+                        {isAdded ? (
+                          <div className="text-[7px] font-black text-muted-foreground/60 leading-none mt-1">
+                            ADDED
+                          </div>
+                        ) : formData.integration_type === type && (
+                          <div className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full flex items-center justify-center">
+                            <CheckCircle2 className="h-2 w-2 text-white" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {availableTypes.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground font-athletics">
+                    <Spinner className="h-6 w-6 mx-auto mb-2" />
+                    Loading available integrations...
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    A friendly name to identify this integration
+                )}
+                <div className="mt-4 p-2 bg-muted/20 rounded border border-dashed text-center">
+                  <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-widest">
+                    Note: Active integrations are disabled
                   </p>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
 
-                {loadingConfig && (
-                  <div className="flex items-center justify-center py-8">
-                    <Spinner className="h-6 w-6" />
-                    <span className="ml-2 text-sm text-muted-foreground">Loading configuration...</span>
-                  </div>
+          {/* Right Column: Info & Configuration */}
+          <div className="lg:col-span-9 space-y-6">
+            {!formData.integration_type ? (
+              <Card className="h-[500px] flex flex-col items-center justify-center border-dashed text-center p-8 bg-muted/5">
+                <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-6">
+                  <Cable className="h-10 w-10 text-muted-foreground opacity-40" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">No Integration Selected</h3>
+                <p className="text-muted-foreground max-w-sm">
+                  Please select an integration from the list on the left to begin the configuration process.
+                </p>
+              </Card>
+            ) : (
+              <>
+                {/* Integration Description Card */}
+                {config && config.description && (
+                  <Card className="border-primary/20 bg-primary/5 shadow-none">
+                    <CardContent className="pt-0">
+                      <div className="flex gap-4">
+                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Info className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="font-bold text-lg text-primary">{config.name}</h3>
+                          <p className="text-muted-foreground leading-relaxed">{config.description}</p>
+                          {((config.data_types?.length ?? 0) > 0 || config.supports_historical) && (
+                            <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-primary/10">
+                              {(config.data_types?.length ?? 0) > 0 && (
+                                <div className="space-y-1">
+                                  <p className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">Capabilities</p>
+                                  <p className="text-xs font-medium">{config.data_types?.join(', ')}</p>
+                                </div>
+                              )}
+                              {config.supports_historical && (
+                                <div className="space-y-1">
+                                  <p className="text-[10px] uppercase font-bold text-primary/60 tracking-wider">Historical Sync</p>
+                                  <p className="text-xs font-medium">Up to {config.historical_range_days} days</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
 
-                {config && config.credential_fields && config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden).length > 0 && (
-                  <div className="space-y-4 pt-4 border-t">
-                    <div>
-                      <h4 className="text-sm font-semibold mb-1">API Credentials</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Enter your API credentials to connect to {formData.integration_type}
+                {/* Configuration Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Configuration</CardTitle>
+                    <CardDescription>Enter the connection details for this integration</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-8">
+                    {/* Display Name Section */}
+                    <div className="space-y-3">
+                      <Label htmlFor="display_name" className="text-sm font-semibold">Display Name *</Label>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Input
+                            id="display_name"
+                            className={cn(
+                              "h-11",
+                              existingIntegrations.some(i => i.name.toLowerCase() === formData.display_name.toLowerCase()) && "border-warning ring-warning/20"
+                            )}
+                            placeholder={`e.g., Production ${formData.integration_type}`}
+                            value={formData.display_name}
+                            onChange={(e) => handleInputChange('display_name', e.target.value)}
+                            required
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-11 w-11 shrink-0"
+                                onClick={async () => {
+                                  try {
+                                    const text = await navigator.clipboard.readText()
+                                    handleInputChange('display_name', text)
+                                  } catch (err) {
+                                    console.error('Failed to read clipboard:', err)
+                                  }
+                                }}
+                              >
+                                <ClipboardPaste className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Paste from clipboard</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      {existingIntegrations.some(i => i.name.toLowerCase() === formData.display_name.toLowerCase()) && (
+                        <p className="text-[10px] text-warning font-semibold flex items-center gap-1 mt-1">
+                          <Info className="h-3 w-3" />
+                          This name is already in use by another integration.
+                        </p>
+                      )}
+                      <p className="text-[11px] text-muted-foreground italic">
+                        A friendly name to help you identify this connection throughout the platform.
                       </p>
                     </div>
 
-                    <div className="max-w-md">
-                      <DynamicCredentialForm
-                        fields={config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden)}
-                        values={formData.credentials as Record<string, string>}
-                        onChange={handleCredentialChange}
-                      />
+                    {loadingConfig ? (
+                      <div className="flex flex-col items-center justify-center py-12 bg-muted/20 rounded-lg border border-dashed">
+                        <Spinner className="h-8 w-8 mb-4" />
+                        <span className="text-sm font-medium text-muted-foreground font-athletics">Loading security fields...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {config && config.credential_fields && config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden).length > 0 && (
+                          <div className="space-y-6 pt-6 border-t border-dashed">
+                            <div>
+                              <h4 className="text-sm font-bold flex items-center gap-2">
+                                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                API Credentials
+                              </h4>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Securely connect to the {formData.integration_type} API provider.
+                              </p>
+                            </div>
+
+                            <div className="grid gap-4">
+                              <DynamicCredentialForm
+                                fields={config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden)}
+                                values={formData.credentials as Record<string, string>}
+                                onChange={handleCredentialChange}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Error Message */}
+                    {error && (
+                      <div className="p-4 bg-destructive/5 border border-destructive/20 rounded-lg flex items-start gap-3">
+                        <div className="h-5 w-5 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <X className="h-3 w-3 text-destructive" />
+                        </div>
+                        <p className="text-sm text-destructive font-medium leading-tight">{error}</p>
+                      </div>
+                    )}
+
+                    {/* Form Actions */}
+                    <div className="flex items-center justify-end gap-3 pt-6 border-t">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => navigate('/platform/integrations')}
+                        disabled={isSubmitting}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="min-w-[140px]"
+                        disabled={isSubmitting || !formData.integration_type || !formData.display_name}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Spinner className="mr-2 h-4 w-4" />
+                            Connecting...
+                          </>
+                        ) : (
+                          'Add Integration'
+                        )}
+                      </Button>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Error Display */}
-          {error && (
-            <Card className="border-destructive/50 bg-destructive/10">
-              <CardContent className="pt-6">
-                <p className="text-sm text-destructive font-medium">{error}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/platform/integrations')}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || !formData.integration_type || !formData.display_name}
-            >
-              {isSubmitting ? (
-                <>
-                  <Spinner className="mr-2 h-4 w-4" />
-                  Adding Integration...
-                </>
-              ) : (
-                'Add Integration'
-              )}
-            </Button>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
         </form>
       </div>
-  )
+    )
 }

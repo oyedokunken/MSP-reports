@@ -205,7 +205,7 @@ export default function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Platform</SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2 border-l border-sidebar-border ml-3.5 pl-2.5 pr-3 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:pr-0">
+            <SidebarMenu className="border-l border-sidebar-border ml-3.5 pl-2.5 pr-3 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:pr-0">
               {navItems.map((item) => {
                 const Icon = item.icon
                 const active = item.isCustomers
@@ -360,7 +360,7 @@ export default function AppSidebar() {
           <SidebarGroup className="mt-4 group-data-[collapsible=icon]:mt-2">
             <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Admin</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-1 group-data-[collapsible=icon]:space-y-2 border-l border-sidebar-border ml-3.5 pl-2.5 pr-2 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:pr-0">
+              <SidebarMenu className="border-l border-sidebar-border ml-3.5 pl-2.5 pr-2 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:pr-0">
                 {adminNavItems.map((item) => {
                   const Icon = item.icon
                   const active = isActive(item.path)
