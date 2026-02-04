@@ -132,9 +132,9 @@ export default function AddIntegrationPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Left Column: Selection */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="space-y-4">
             <Card className="sticky top-6">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Integrations</CardTitle>
@@ -196,7 +196,7 @@ export default function AddIntegrationPage() {
           </div>
 
           {/* Right Column: Info & Configuration */}
-          <div className="lg:col-span-9 space-y-6">
+          <div className="space-y-6">
             {!formData.integration_type ? (
               <Card className="h-[500px] flex flex-col items-center justify-center border-dashed text-center p-8 bg-muted/5">
                 <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-6">

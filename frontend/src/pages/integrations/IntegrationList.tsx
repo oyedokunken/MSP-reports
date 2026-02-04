@@ -42,7 +42,7 @@ export default function IntegrationList() {
 
     const [syncingId, setSyncingId] = useState<number | null>(null);
     const [syncProgress, setSyncProgress] = useState(0);
-    const [viewMode, setViewMode] = useState<ViewMode>('grid');
+    const [viewMode, setViewMode] = useState<ViewMode>('table');
 
     const filteredIntegrations = allIntegrations.filter((int) => {
         const matchesSearch = !searchQuery.trim() ||
@@ -92,9 +92,15 @@ export default function IntegrationList() {
             setSyncProgress(100);
             setTimeout(() => setSyncingId(null), 500);
             toast.success("Sync Started", `${name} sync has been initiated.`);
-        } catch (error) {
+        } catch (error: unknown) {
             setSyncingId(null);
-            const message = error instanceof Error ? error.message : 'Unknown error';
+            let message = 'Unknown error';
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError = error as { response?: { data?: { message?: string } } };
+                message = axiosError.response?.data?.message || 'Unknown error';
+            } else if (error instanceof Error) {
+                message = error.message;
+            }
             toast.error("Sync Failed", `${name}: ${message}`);
         }
     };

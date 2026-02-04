@@ -10,12 +10,9 @@ const Signin = () => {
     const [showPassword, setShowPassword] = useState(false);
 
     const {
-        email,
-        password,
+        form,
         error,
         isSubmitting,
-        setEmail,
-        setPassword,
         handleSubmit,
     } = useAuthForm({
         redirectTo: "/dashboard",
@@ -59,8 +56,7 @@ const Signin = () => {
                                 id="email"
                                 type="email"
                                 placeholder="your.email@company.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                {...form.register("email")}
                                 className="h-11 bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 required
                                 disabled={isSubmitting}
@@ -79,10 +75,7 @@ const Signin = () => {
                                     id="password"
                                     type={showPassword ? "text" : "password"}
                                     placeholder="Enter your password"
-                                    value={password}
-                                    onChange={(e) =>
-                                        setPassword(e.target.value)
-                                    }
+                                    {...form.register("password")}
                                     className="h-11 pr-10 bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                     required
                                     disabled={isSubmitting}
