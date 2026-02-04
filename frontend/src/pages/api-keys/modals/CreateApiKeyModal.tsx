@@ -9,6 +9,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CheckCircle2, Copy, AlertCircle } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useToast } from '@/components/ui/Toast'
 
 interface CreateApiKeyModalProps {
   open: boolean
@@ -22,6 +23,7 @@ interface Customer {
 }
 
 export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKeyModalProps) {
+  const toast = useToast()
   const [step, setStep] = useState<'form' | 'success'>('form')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [displayName, setDisplayName] = useState('')
@@ -61,15 +63,15 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
     setIsSubmitting(true)
 
     try {
-      const response = await api.post<{ status: string; api_key: string }>('/api-keys', {
+      const response = await api.post<{ status: string; data: { api_key: string } }>('/api-keys', {
         display_name: displayName,
         customer_id: (customerId && customerId !== 'none') ? parseInt(customerId) : null,
         permissions,
         ip_whitelist: ipWhitelist ? ipWhitelist.split(',').map(ip => ip.trim()) : null,
       })
 
-      if (response?.api_key) {
-        setGeneratedKey(response.api_key)
+      if (response?.data?.api_key) {
+        setGeneratedKey(response.data.api_key)
         setStep('success')
       }
     } catch (error) {
@@ -79,8 +81,27 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
     }
   }
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(generatedKey)
+  const handleCopy = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(generatedKey)
+      } else {
+        const textArea = document.createElement("textarea")
+        textArea.value = generatedKey
+        textArea.style.position = "fixed"
+        textArea.style.left = "-999999px"
+        textArea.style.top = "-999999px"
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        document.execCommand('copy')
+        textArea.remove()
+      }
+      toast.success('Copied', 'API Key copied to clipboard')
+    } catch (err) {
+      console.error('Failed to copy:', err)
+      toast.error('Copy Failed', 'Please try selecting the text and copying manually')
+    }
   }
 
   const handleClose = () => {
@@ -173,66 +194,68 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
               <div className="space-y-4">
                 <Label>Permissions *</Label>
 
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Integrations</p>
-                  <div className="space-y-2 pl-4">
-                    {['view', 'manage', 'sync'].map(action => (
-                      <div key={action} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`integrations-${action}`}
-                          checked={permissions.integrations[action as keyof typeof permissions.integrations]}
-                          onCheckedChange={() => togglePermission('integrations', action)}
-                        />
-                        <label
-                          htmlFor={`integrations-${action}`}
-                          className="text-sm cursor-pointer"
-                        >
-                          {action.charAt(0).toUpperCase() + action.slice(1)}
-                        </label>
-                      </div>
-                    ))}
+                <div className="grid grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-primary tracking-tight">Integrations</p>
+                    <div className="space-y-1.5 pt-1">
+                      {['view', 'manage', 'sync'].map(action => (
+                        <div key={action} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`integrations-${action}`}
+                            checked={permissions.integrations[action as keyof typeof permissions.integrations]}
+                            onCheckedChange={() => togglePermission('integrations', action)}
+                          />
+                          <label
+                            htmlFor={`integrations-${action}`}
+                            className="text-sm cursor-pointer hover:text-primary transition-colors"
+                          >
+                            {action.charAt(0).toUpperCase() + action.slice(1)}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Customers</p>
-                  <div className="space-y-2 pl-4">
-                    {['view', 'edit', 'map'].map(action => (
-                      <div key={action} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`customers-${action}`}
-                          checked={permissions.customers[action as keyof typeof permissions.customers]}
-                          onCheckedChange={() => togglePermission('customers', action)}
-                        />
-                        <label
-                          htmlFor={`customers-${action}`}
-                          className="text-sm cursor-pointer"
-                        >
-                          {action.charAt(0).toUpperCase() + action.slice(1)}
-                        </label>
-                      </div>
-                    ))}
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-primary tracking-tight">Customers</p>
+                    <div className="space-y-1.5 pt-1">
+                      {['view', 'edit', 'map'].map(action => (
+                        <div key={action} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`customers-${action}`}
+                            checked={permissions.customers[action as keyof typeof permissions.customers]}
+                            onCheckedChange={() => togglePermission('customers', action)}
+                          />
+                          <label
+                            htmlFor={`customers-${action}`}
+                            className="text-sm cursor-pointer hover:text-primary transition-colors"
+                          >
+                            {action.charAt(0).toUpperCase() + action.slice(1)}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Reports</p>
-                  <div className="space-y-2 pl-4">
-                    {['view', 'configure', 'generate', 'download'].map(action => (
-                      <div key={action} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`reports-${action}`}
-                          checked={permissions.reports[action as keyof typeof permissions.reports]}
-                          onCheckedChange={() => togglePermission('reports', action)}
-                        />
-                        <label
-                          htmlFor={`reports-${action}`}
-                          className="text-sm cursor-pointer"
-                        >
-                          {action.charAt(0).toUpperCase() + action.slice(1)}
-                        </label>
-                      </div>
-                    ))}
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-primary tracking-tight">Reports</p>
+                    <div className="space-y-1.5 pt-1">
+                      {['view', 'configure', 'generate', 'download'].map(action => (
+                        <div key={action} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`reports-${action}`}
+                            checked={permissions.reports[action as keyof typeof permissions.reports]}
+                            onCheckedChange={() => togglePermission('reports', action)}
+                          />
+                          <label
+                            htmlFor={`reports-${action}`}
+                            className="text-sm cursor-pointer hover:text-primary transition-colors"
+                          >
+                            {action.charAt(0).toUpperCase() + action.slice(1)}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

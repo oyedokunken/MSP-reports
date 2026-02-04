@@ -46,6 +46,7 @@ class ApiKey extends Model
         'customer_id',
         'created_by_user_id',
         'display_name',
+        'key_preview',
         'key_hash',
         'last_used_at',
         'permissions',

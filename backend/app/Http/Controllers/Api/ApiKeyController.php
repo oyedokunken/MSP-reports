@@ -54,12 +54,16 @@ final class ApiKeyController extends Controller
         // Generate a secure random API key
         $plainKey = 'msp_' . Str::random(48);
         $keyHash = hash('sha256', $plainKey);
+        
+        // Save a preview (first 8 and last 4 characters)
+        $keyPreview = substr($plainKey, 0, 8) . '...' . substr($plainKey, -4);
 
         $apiKey = ApiKey::create([
             'company_id' => $user->company_id,
             'customer_id' => $validated['customer_id'] ?? null,
             'created_by_user_id' => $user->user_id,
             'display_name' => $validated['display_name'],
+            'key_preview' => $keyPreview,
             'key_hash' => $keyHash,
             'permissions' => $validated['permissions'] ?? null,
             'ip_whitelist' => $validated['ip_whitelist'] ?? null,

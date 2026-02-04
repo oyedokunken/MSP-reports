@@ -22,6 +22,7 @@ class ApiKeyResource extends JsonResource
         return [
             'api_key_id' => $apiKey->api_key_id,
             'display_name' => $apiKey->display_name,
+            'key_preview' => $apiKey->key_preview,
             'customer_id' => $apiKey->customer_id,
             'customer_name' => $this->whenLoaded('customer', fn() => $apiKey->customer->canonical_name),
             'created_by' => $this->whenLoaded('createdBy', fn() => $apiKey->createdBy->name),

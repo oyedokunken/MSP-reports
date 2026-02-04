@@ -97,6 +97,37 @@ class ApiKeyAuthentication
         $apiKeyModel->save();
 
         
+        // Check granular permissions if defined
+        if (!empty($apiKeyModel->permissions)) {
+            $currentPath = $request->path();
+            $method = $request->method();
+            
+            // Map paths to categories and actions
+            $permissionMap = [
+                'api/integrations/active-directory/*' => ['category' => 'integrations', 'action' => 'sync'],
+                'api/integrations/exchange/*' => ['category' => 'integrations', 'action' => 'sync'],
+                'api/reports/generate/*' => ['category' => 'reports', 'action' => 'generate'],
+                'api/reports/*/download' => ['category' => 'reports', 'action' => 'download'],
+                'api/customers' => ['category' => 'customers', 'action' => 'view'],
+            ];
+
+            foreach ($permissionMap as $pattern => $req) {
+                if (fnmatch($pattern, $currentPath)) {
+                    $category = $req['category'];
+                    $action = $req['action'];
+                    
+                    if (!isset($apiKeyModel->permissions[$category][$action]) || $apiKeyModel->permissions[$category][$action] !== true) {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => "This API key does not have the required permission: {$category}:{$action}",
+                        ], 403);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Merge attributes into request
         $request->merge([
             '_api_key' => $apiKeyModel,
             '_company_id' => $apiKeyModel->company_id,
