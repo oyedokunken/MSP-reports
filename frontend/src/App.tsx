@@ -36,6 +36,7 @@ const TemplateList = lazy(() => import('@/pages/templates/TemplateList'))
 const Profile = lazy(() => import('@/pages/profile/Profile'))
 const Licenses = lazy(() => import('@/pages/licenses/Licenses'))
 const Monitoring = lazy(() => import('@/pages/monitoring/Monitoring'))
+const StatusPage = lazy(() => import('@/pages/status/StatusPage'))
 const AuditLogs = lazy(() => import('@/pages/audit-logs').then(m => ({ default: m.AuditLogs })))
 const NotificationsPage = lazy(() => import('@/pages/notifications/NotificationsPage'))
 const PrivacyPolicy = lazy(() => import('@/pages/legal').then(m => ({ default: m.PrivacyPolicy })))
@@ -299,6 +300,15 @@ function AppRoutes() {
           element={
             <ProtectedRoute permission={{ section: 'monitoring', action: 'view' }}>
               <Monitoring />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/status"
+          element={
+            <ProtectedRoute permission={{ section: 'monitoring', action: 'view' }}>
+              <StatusPage />
             </ProtectedRoute>
           }
         />
