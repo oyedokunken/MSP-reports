@@ -17,7 +17,6 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { documentationData } from './data'
 import type { DocArticle } from './types'
 import { useOnboardingStore } from '@/stores/useOnboardingStore'
@@ -90,8 +89,7 @@ export default function DocsIndex() {
   }
 
   return (
-    <FloatingLayout>
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto px-4 py-12 md:py-16">
             <div className="max-w-3xl mx-auto text-center">
@@ -214,7 +212,6 @@ export default function DocsIndex() {
           </div>
         </div>
       </div>
-    </FloatingLayout>
   )
 }
 

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -46,20 +45,19 @@ export default function ApiKeysList() {
   }
 
   return (
-    <FloatingLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">API Keys</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage API keys for programmatic access to the platform
-            </p>
-          </div>
-          <Button onClick={() => setCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create API Key
-          </Button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">API Keys</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage API keys for programmatic access to the platform
+          </p>
         </div>
+        <Button onClick={() => setCreateModalOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create API Key
+        </Button>
+      </div>
 
         <Card className="border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20">
           <CardContent className="pt-6">
@@ -213,28 +211,27 @@ export default function ApiKeysList() {
             ))
           )}
         </div>
-      </div>
 
-      <CreateApiKeyModal
-        open={createModalOpen}
-        onOpenChange={setCreateModalOpen}
-        onSuccess={() => {
-          fetchApiKeys()
-          toast.success('API Key Created', 'Your new API key has been created successfully')
-        }}
-      />
-
-      {selectedKey && (
-        <RevokeApiKeyModal
-          open={revokeModalOpen}
-          onOpenChange={setRevokeModalOpen}
-          apiKey={selectedKey}
+        <CreateApiKeyModal
+          open={createModalOpen}
+          onOpenChange={setCreateModalOpen}
           onSuccess={() => {
             fetchApiKeys()
-            toast.success('API Key Revoked', 'The API key has been revoked successfully')
+            toast.success('API Key Created', 'Your new API key has been created successfully')
           }}
         />
-      )}
-    </FloatingLayout>
-  )
+
+        {selectedKey && (
+          <RevokeApiKeyModal
+            open={revokeModalOpen}
+            onOpenChange={setRevokeModalOpen}
+            apiKey={selectedKey}
+            onSuccess={() => {
+              fetchApiKeys()
+              toast.success('API Key Revoked', 'The API key has been revoked successfully')
+            }}
+          />
+        )}
+      </div>
+    )
 }

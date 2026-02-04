@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { useUsersStore } from '@/stores/useUsersStore'
@@ -94,7 +93,7 @@ export default function UsersList() {
   }
 
   return (
-    <FloatingLayout>
+    <>
       <div className="space-y-6">
         <UsersHeader
           onCreateUser={() => {
@@ -242,6 +241,6 @@ export default function UsersList() {
           isLoading={isProcessing}
         />
       </div>
-    </FloatingLayout>
+    </>
   )
 }

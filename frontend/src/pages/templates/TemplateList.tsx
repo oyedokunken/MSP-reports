@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -142,7 +141,7 @@ export default function TemplateList() {
 
 
   return (
-    <FloatingLayout>
+    <>
       <div className="space-y-6">
         <div className="space-y-4">
           <div>
@@ -320,6 +319,6 @@ export default function TemplateList() {
           }}
         />
       </div>
-    </FloatingLayout>
+    </>
   )
 }

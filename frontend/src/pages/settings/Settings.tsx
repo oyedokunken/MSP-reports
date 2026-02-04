@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { logger } from '@/lib/logger'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { useBranding } from '@/contexts/BrandingContext'
@@ -289,16 +288,14 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <FloatingLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-muted-foreground">Loading settings...</div>
-        </div>
-      </FloatingLayout>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-muted-foreground">Loading settings...</div>
+      </div>
     )
   }
 
   return (
-    <FloatingLayout>
+    <>
       <div className="space-y-8">
         <SettingsHeader />
 
@@ -390,6 +387,6 @@ export default function Settings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </FloatingLayout>
+    </>
   )
 }

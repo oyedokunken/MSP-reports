@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/contexts/AuthContext'
 import { api } from '@/lib/api'
@@ -88,17 +87,14 @@ export default function Profile() {
 
     if (loading) {
         return (
-            <FloatingLayout>
-                <div className="flex h-[50vh] items-center justify-center text-muted-foreground">
-                    Loading Profile...
-                </div>
-            </FloatingLayout>
+            <div className="flex h-[50vh] items-center justify-center text-muted-foreground">
+                Loading Profile...
+            </div>
         )
     }
 
     return (
-        <FloatingLayout>
-            <div className="space-y-8">
+        <div className="space-y-8">
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
@@ -210,6 +206,5 @@ export default function Profile() {
                     </div>
                 </div>
             </div>
-        </FloatingLayout>
     )
 }

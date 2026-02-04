@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -110,32 +109,27 @@ export default function MailboxDetail() {
 
   if (isLoading) {
     return (
-      <FloatingLayout>
-        <MailboxDetailSkeleton />
-      </FloatingLayout>
+      <MailboxDetailSkeleton />
     )
   }
 
   if (!mailbox) {
     return (
-      <FloatingLayout>
-        <div className="text-center py-12">
-          <Mail className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Mailbox not found</p>
-          <Link to="/exchange/mailboxes">
-            <Button className="mt-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Mailboxes
-            </Button>
-          </Link>
-        </div>
-      </FloatingLayout>
+      <div className="text-center py-12">
+        <Mail className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+        <p className="text-muted-foreground">Mailbox not found</p>
+        <Link to="/exchange/mailboxes">
+          <Button className="mt-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Mailboxes
+          </Button>
+        </Link>
+      </div>
     )
   }
 
   return (
-    <FloatingLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center space-between">
           <div className="flex items-center space-x-4">
             <Link to="/exchange/mailboxes">
@@ -364,6 +358,5 @@ export default function MailboxDetail() {
           </CardContent>
         </Card>
       </div>
-    </FloatingLayout>
-  )
-}
+    )
+  }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -118,15 +117,12 @@ export default function MailboxesList() {
 
   if (isLoading) {
     return (
-      <FloatingLayout>
-        <MailboxesListSkeleton />
-      </FloatingLayout>
+      <MailboxesListSkeleton />
     )
   }
 
   return (
-    <FloatingLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Exchange Mailboxes</h1>
@@ -271,6 +267,5 @@ export default function MailboxesList() {
           </CardContent>
         </Card>
       </div>
-    </FloatingLayout>
   )
 }

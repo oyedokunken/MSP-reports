@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { AnimatedCard, PulsingDot } from '@/components/ui/AnimatedCard'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -177,7 +176,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <FloatingLayout>
+    <>
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -662,6 +661,6 @@ export default function NotificationsPage() {
         confirmText="Delete Selected"
         type="danger"
       />
-    </FloatingLayout>
+    </>
   )
 }

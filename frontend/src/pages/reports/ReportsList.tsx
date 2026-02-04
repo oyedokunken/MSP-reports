@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
 import { ReportsHeader, ReportsFilters, ReportsGrid, ReportsTable, BulkGenerateModal, type ViewMode } from './components'
 import { Pagination } from '@/pages/customers/components/Pagination'
@@ -39,7 +38,7 @@ export default function ReportsList() {
   const { current_page: currentPage, last_page: totalPages, total, per_page: perPage } = pagination
 
   return (
-    <FloatingLayout>
+    <>
       <div className="space-y-6">
         <ReportsHeader
           customerId={customerId}
@@ -134,7 +133,7 @@ export default function ReportsList() {
         open={showBulkGenerateModal}
         onOpenChange={setShowBulkGenerateModal}
       />
-    </FloatingLayout>
+    </>
   )
 }
 

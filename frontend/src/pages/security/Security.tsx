@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { ChangePasswordModal } from '@/components/modals/ChangePasswordModal'
 import { ApiKeyModal } from '@/components/modals/ApiKeyModal'
 import { useToast } from '@/components/ui/Toast'
@@ -27,7 +26,7 @@ export default function Security() {
   }
 
   return (
-    <FloatingLayout>
+    <>
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -105,6 +104,6 @@ export default function Security() {
         }}
         apiKey={newApiKey}
       />
-    </FloatingLayout>
+    </>
   )
 }

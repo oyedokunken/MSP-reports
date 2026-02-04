@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import FloatingLayout from "@/components/layout/FloatingLayout";
 import { useLicensesStore } from "@/stores/useLicensesStore";
 import {
     LicensesHeader,
@@ -22,8 +21,7 @@ export default function Licenses() {
     }, [fetchLicenses, fetchUsage]);
 
     return (
-        <FloatingLayout>
-            <div className="flex flex-col gap-6 pb-8">
+        <div className="flex flex-col gap-6 pb-8">
                 <LicensesHeader />
 
                 <LicenseUsageCard usage={usage} />
@@ -45,6 +43,5 @@ export default function Licenses() {
                     </div>
                 </div>
             </div>
-        </FloatingLayout>
     );
 }

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import {
   AuditLogsHeader,
   AuditLogsTable,
@@ -41,8 +40,7 @@ export default function AuditLogs() {
   }
 
   return (
-    <FloatingLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <AuditLogsHeader
           onRefresh={handleRefresh}
           isRefreshing={isRefreshing || isLoading}
@@ -72,6 +70,5 @@ export default function AuditLogs() {
           />
         </div>
       </div>
-    </FloatingLayout>
-  )
+    )
 }

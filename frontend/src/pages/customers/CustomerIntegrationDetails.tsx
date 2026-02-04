@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ArrowLeft } from 'lucide-react'
@@ -17,8 +16,7 @@ export default function CustomerIntegrationDetails() {
   const { integrations, isLoading, error, customerName, stats } = useCustomerIntegrationDetails(customerId)
 
   return (
-    <FloatingLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" onClick={() => navigate('/platform/customers')}>
@@ -65,6 +63,5 @@ export default function CustomerIntegrationDetails() {
             </Card>
           ))}
       </div>
-    </FloatingLayout>
-  )
-}
+    )
+  }

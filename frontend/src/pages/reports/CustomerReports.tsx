@@ -1,4 +1,3 @@
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -35,22 +34,18 @@ export default function CustomerReports() {
 
   if (isLoading) {
     return (
-      <FloatingLayout>
-        <CustomerReportsLoading />
-      </FloatingLayout>
+      <CustomerReportsLoading />
     )
   }
 
   if (!config) {
     return (
-      <FloatingLayout>
-        <CustomerReportsNotFound onBack={() => navigate('/customers')} />
-      </FloatingLayout>
+      <CustomerReportsNotFound onBack={() => navigate('/customers')} />
     )
   }
 
   return (
-    <FloatingLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate('/customers')}>
@@ -234,6 +229,6 @@ export default function CustomerReports() {
           onDiscard={handleDiscardReports}
         />
       )}
-    </FloatingLayout>
+    </>
   )
 }

@@ -9,6 +9,7 @@ import { QueryProvider } from '@/providers/QueryProvider'
 import Login from '@/pages/auth/pages/Signin'
 import AuthCallback from '@/pages/auth/pages/AuthCallback'
 import Dashboard from '@/pages/dashboard/Dashboard'
+import FloatingLayout from '@/components/layout/FloatingLayout'
 
 // Lazy Load Pages
 const IntegrationList = lazy(() => import('@/pages/integrations/IntegrationList'))
@@ -111,238 +112,218 @@ function AppRoutes() {
         <Route path="auth/callback" element={<AuthCallback />} />
       </Route>
 
+      {/* Main Platform Layout */}
       <Route
-        path="/platform/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <FloatingLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route path="/platform/dashboard" element={<Dashboard />} />
+        
+        <Route
+          path="/platform/integrations"
+          element={
+            <ProtectedRoute permission={{ section: 'integrations', action: 'view' }}>
+              <IntegrationList />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/integrations"
-        element={
-          <ProtectedRoute permission={{ section: 'integrations', action: 'view' }}>
-            <IntegrationList />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/integrations/add"
+          element={
+            <ProtectedRoute permission={{ section: 'integrations', action: 'manage' }}>
+              <AddIntegrationPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/integrations/add"
-        element={
-          <ProtectedRoute permission={{ section: 'integrations', action: 'manage' }}>
-            <AddIntegrationPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/integrations/:integrationId/preview"
+          element={
+            <ProtectedRoute permission={{ section: 'integrations', action: 'view' }}>
+              <IntegrationPreview />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/integrations/:integrationId/preview"
-        element={
-          <ProtectedRoute permission={{ section: 'integrations', action: 'view' }}>
-            <IntegrationPreview />
-          </ProtectedRoute>
-        }
-      />
+        <Route path="/platform/profile" element={<Profile />} />
 
-      <Route
-        path="/platform/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* TODO: Add Active Directory and Exchange routes when features are implemented */}
+        {/* TODO: Add Active Directory and Exchange routes when features are implemented */}
 
 
-      <Route
-        path="/platform/customers"
-        element={<Navigate to="/platform/customers/master" replace />}
-      />
+        <Route
+          path="/platform/customers"
+          element={<Navigate to="/platform/customers/master" replace />}
+        />
 
-      <Route
-        path="/platform/customers/master"
-        element={
-          <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
-            <MasterCustomerList />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/customers/master"
+          element={
+            <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
+              <MasterCustomerList />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/customers/secondary"
-        element={
-          <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
-            <SecondaryCustomerList />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/customers/secondary"
+          element={
+            <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
+              <SecondaryCustomerList />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/customers/map"
-        element={
-          <ProtectedRoute permission={{ section: 'customers', action: 'map' }}>
-            <MapCustomersPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/customers/map"
+          element={
+            <ProtectedRoute permission={{ section: 'customers', action: 'map' }}>
+              <MapCustomersPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/customers/:customerId/integrations"
-        element={
-          <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
-            <CustomerIntegrationDetails />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/customers/:customerId/integrations"
+          element={
+            <ProtectedRoute permission={{ section: 'customers', action: 'view' }}>
+              <CustomerIntegrationDetails />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/customers/:id/configure-reports"
-        element={
-          <ProtectedRoute permission={{ section: 'reports', action: 'configure' }}>
-            <ConfigureReports />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/customers/:id/configure-reports"
+          element={
+            <ProtectedRoute permission={{ section: 'reports', action: 'configure' }}>
+              <ConfigureReports />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/customers/:id/reports"
-        element={
-          <ProtectedRoute permission={{ section: 'reports', action: 'view' }}>
-            <CustomerReports />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/customers/:id/reports"
+          element={
+            <ProtectedRoute permission={{ section: 'reports', action: 'view' }}>
+              <CustomerReports />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/reports"
-        element={
-          <ProtectedRoute permission={{ section: 'reports', action: 'view' }}>
-            <ReportsList />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/reports"
+          element={
+            <ProtectedRoute permission={{ section: 'reports', action: 'view' }}>
+              <ReportsList />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/schedules"
-        element={
-          <ProtectedRoute permission={{ section: 'reports', action: 'view' }}>
-            <ScheduleList />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/schedules"
+          element={
+            <ProtectedRoute permission={{ section: 'reports', action: 'view' }}>
+              <ScheduleList />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/templates"
-        element={
-          <ProtectedRoute permission={{ section: 'reports', action: 'configure' }}>
-            <TemplateList />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/templates"
+          element={
+            <ProtectedRoute permission={{ section: 'reports', action: 'configure' }}>
+              <TemplateList />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/admin/settings"
-        element={
-          <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
-            <Settings />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/settings"
+          element={
+            <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/admin/security"
-        element={
-          <ProtectedRoute permission={{ section: 'security', action: 'view_logs' }}>
-            <Security />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/security"
+          element={
+            <ProtectedRoute permission={{ section: 'security', action: 'view_logs' }}>
+              <Security />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/admin/users"
-        element={
-          <ProtectedRoute permission={{ section: 'users', action: 'view' }}>
-            <UsersList />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute permission={{ section: 'users', action: 'view' }}>
+              <UsersList />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/admin/users/create"
-        element={
-          <ProtectedRoute permission={{ section: 'users', action: 'manage' }}>
-            <CreateUser />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/users/create"
+          element={
+            <ProtectedRoute permission={{ section: 'users', action: 'manage' }}>
+              <CreateUser />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/admin/licenses"
-        element={
-          <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
-            <Licenses />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/licenses"
+          element={
+            <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
+              <Licenses />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/admin/api-keys"
-        element={
-          <ProtectedRoute permission={{ section: 'api_keys', action: 'view' }}>
-            <ApiKeysList />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/api-keys"
+          element={
+            <ProtectedRoute permission={{ section: 'api_keys', action: 'view' }}>
+              <ApiKeysList />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/admin/monitoring"
-        element={
-          <ProtectedRoute permission={{ section: 'monitoring', action: 'view' }}>
-            <Monitoring />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/monitoring"
+          element={
+            <ProtectedRoute permission={{ section: 'monitoring', action: 'view' }}>
+              <Monitoring />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/admin/audit-logs"
-        element={
-          <ProtectedRoute permission={{ section: 'security', action: 'view_logs' }}>
-            <AuditLogs />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/admin/audit-logs"
+          element={
+            <ProtectedRoute permission={{ section: 'security', action: 'view_logs' }}>
+              <AuditLogs />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/platform/notifications"
-        element={
-          <ProtectedRoute permission={{ section: 'notifications', action: 'view' }}>
-            <NotificationsPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/platform/notifications"
+          element={
+            <ProtectedRoute permission={{ section: 'notifications', action: 'view' }}>
+              <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/docs"
-        element={
-          <ProtectedRoute>
-            <DocsIndex />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/docs/:categoryId/:articleId"
-        element={
-          <ProtectedRoute>
-            <DocPage />
-          </ProtectedRoute>
-        }
-      />
+        <Route path="/docs" element={<DocsIndex />} />
+        <Route path="/docs/:categoryId/:articleId" element={<DocPage />} />
+      </Route>
 
       <Route path="*" element={<NotFound />} />
     </Routes>

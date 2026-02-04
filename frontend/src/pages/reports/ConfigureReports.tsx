@@ -1,5 +1,4 @@
 import { api } from '@/lib/api'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { logger } from '@/lib/logger'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -83,22 +82,18 @@ export default function ConfigureReports() {
 
   if (isLoading) {
     return (
-      <FloatingLayout>
-        <ConfigureReportsLoading />
-      </FloatingLayout>
+      <ConfigureReportsLoading />
     )
   }
 
   if (!config) {
     return (
-      <FloatingLayout>
-        <ConfigureReportsNotFound onBack={() => navigate(-1)} />
-      </FloatingLayout>
+      <ConfigureReportsNotFound onBack={() => navigate(-1)} />
     )
   }
 
   return (
-    <FloatingLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -531,6 +526,6 @@ export default function ConfigureReports() {
         initialPath={sharepointPath}
       />
 
-    </FloatingLayout>
+    </>
   )
 }

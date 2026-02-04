@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import FloatingLayout from "@/components/layout/FloatingLayout";
 import { MapCustomerModal, Pagination } from "./components";
 import { MapPin, Search, ChevronUp, ChevronDown, ArrowUpDown, X, LayoutGrid, List, Building2, CheckCircle2, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,8 +62,7 @@ export default function MapCustomersPage() {
     } = useMapCustomersPage();
 
     return (
-        <FloatingLayout>
-            <div className="space-y-6 max-w-full overflow-hidden">
+        <div className="space-y-6 max-w-full overflow-hidden">
                 <div>
                     <div className="flex items-center gap-4">
                         {/* <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 flex-shrink-0">
@@ -473,6 +471,5 @@ export default function MapCustomersPage() {
                     onSuccess={handleMapSuccess}
                 />
             </div>
-        </FloatingLayout>
     );
 }

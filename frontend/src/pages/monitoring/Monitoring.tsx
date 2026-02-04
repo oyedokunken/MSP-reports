@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import FloatingLayout from "@/components/layout/FloatingLayout";
 import { useMonitoringStore } from "@/stores/useMonitoringStore";
 import { MonitoringHeader, MetricsCards, ActivityTrendChart } from "./components";
 
@@ -38,8 +37,7 @@ export default function Monitoring() {
     };
 
     return (
-        <FloatingLayout>
-            <div className="space-y-6">
+        <div className="space-y-6">
                 <MonitoringHeader
                     lastUpdated={lastUpdated}
                     onRefresh={handleRefresh}
@@ -55,6 +53,5 @@ export default function Monitoring() {
 
                 <ActivityTrendChart data={activityTrends?.activity_data} />
             </div>
-        </FloatingLayout>
     );
 }

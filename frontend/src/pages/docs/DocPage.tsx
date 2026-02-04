@@ -14,7 +14,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { documentationData } from './data'
 import type { DocArticle } from './types'
 
@@ -54,22 +53,20 @@ export default function DocPage() {
 
   if (!category || !article) {
     return (
-      <FloatingLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Article Not Found</h1>
-            <p className="text-muted-foreground mb-6">
-              The documentation article you're looking for doesn't exist.
-            </p>
-            <Button asChild>
-              <Link to="/docs">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Documentation
-              </Link>
-            </Button>
-          </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Article Not Found</h1>
+          <p className="text-muted-foreground mb-6">
+            The documentation article you're looking for doesn't exist.
+          </p>
+          <Button asChild>
+            <Link to="/docs">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Documentation
+            </Link>
+          </Button>
         </div>
-      </FloatingLayout>
+      </div>
     )
   }
 
@@ -117,8 +114,7 @@ export default function DocPage() {
   )
 
   return (
-    <FloatingLayout>
-      <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
         <div className="sticky top-0 z-40 lg:hidden border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center justify-between px-4 py-3">
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -247,6 +243,5 @@ export default function DocPage() {
           </main>
         </div>
       </div>
-    </FloatingLayout>
   )
 }

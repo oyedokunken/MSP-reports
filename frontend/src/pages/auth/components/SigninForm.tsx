@@ -27,7 +27,7 @@ export function SigninForm({
     <form className="space-y-6" onSubmit={onSubmit} noValidate>
       <div>
         <label htmlFor="email" className="block text-sm text-left font-medium text-gray-900 mb-2">
-          Email address
+          Email address <span className="text-red-500">*</span>
         </label>
         <input
           id="email"
@@ -50,7 +50,7 @@ export function SigninForm({
 
       <div>
         <label htmlFor="password" className="block text-sm text-left font-medium text-gray-900 mb-2">
-          Password
+          Password <span className="text-red-500">*</span>
         </label>
         <div className="relative">
           <input

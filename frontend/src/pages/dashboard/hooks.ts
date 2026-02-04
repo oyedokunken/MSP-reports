@@ -52,17 +52,24 @@ export const useQuickSync = (
 export const useDashboard = () => {
     const toast = useToast();
     const { isAuthenticated, user } = useAuth();
-    const [isLoading, setIsLoading] = useState(true);
+    
+    // Granular loading states
+    const [loadingStats, setLoadingStats] = useState(true);
+    const [loadingIntegrations, setLoadingIntegrations] = useState(true);
+    const [loadingSchedules, setLoadingSchedules] = useState(true);
+    const [loadingCharts, setLoadingCharts] = useState(true);
+    
+    // Keep isRefreshing for the button
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const canViewIntegrations = hasPermission(user, 'integrations', 'view');
     const canViewMonitoring = hasPermission(user, 'monitoring', 'view');
     const canViewSchedules = hasPermission(user, 'reports', 'view');
 
-    const { data, refetch: refetchIntegrations } = useIntegrationsQuery({
+    const { data: integrationsData, refetch: refetchIntegrations } = useIntegrationsQuery({
         enabled: isAuthenticated && canViewIntegrations
     });
-    const integrations = useMemo(() => data?.integrations || [], [data?.integrations]);
+    const integrations = useMemo(() => integrationsData?.integrations || [], [integrationsData?.integrations]);
 
     const totalCustomers = useCustomersStore((state) => state.totalCustomersCount);
     const systemStatus = useMonitoringStore((state) => state.systemStatus);
@@ -76,6 +83,7 @@ export const useDashboard = () => {
     const fetchReportMetrics = useMonitoringStore((state) => state.fetchReportMetrics);
     const fetchSchedules = useSchedulesStore((state) => state.fetchSchedules);
     const notifications = useNotificationStore((state) => state.notifications);
+    
     const recentActivity: RecentActivity[] = useMemo(() => {
         const activities: RecentActivity[] = [];
 
@@ -122,40 +130,75 @@ export const useDashboard = () => {
     }, [isAuthenticated, canViewIntegrations, canViewMonitoring, canViewSchedules]);
 
     const loadDashboardData = async () => {
-        if (!isAuthenticated) {
-            return;
-        }
+        if (!isAuthenticated) return;
 
-        setIsLoading(true);
-        const promises: Promise<unknown>[] = [];
+        // Reset individual loading states
+        setLoadingStats(true);
+        setLoadingIntegrations(true);
+        setLoadingSchedules(true);
+        setLoadingCharts(true);
 
-        // Always fetch customers if authenticated (base permission)
-        promises.push(fetchCustomers());
-        promises.push(fetchUnmappedCustomers());
-
-        if (canViewIntegrations) {
-            promises.push(refetchIntegrations());
-        }
-
-        if (canViewMonitoring) {
-            promises.push(fetchSystemStatus());
-            promises.push(fetchReportMetrics());
-        }
-
-        if (canViewSchedules) {
-            promises.push(fetchSchedules());
-        }
-
-        try {
-            await Promise.all(promises);
-        } catch (err) {
-            if (isAuthenticated) {
-                logger.error('Dashboard data load error:', err);
-                toast.error("Failed to load dashboard data");
+        // Fetch Stats (Customers & System Overview)
+        const loadStats = async () => {
+            try {
+                await Promise.all([
+                    fetchCustomers(),
+                    fetchUnmappedCustomers(),
+                    canViewMonitoring ? fetchSystemStatus() : Promise.resolve()
+                ]);
+            } finally {
+                setLoadingStats(false);
             }
-        } finally {
-            setIsLoading(false);
-        }
+        };
+
+        // Fetch Integrations
+        const loadIntegrations = async () => {
+            if (canViewIntegrations) {
+                try {
+                    await refetchIntegrations();
+                } finally {
+                    setLoadingIntegrations(false);
+                }
+            } else {
+                setLoadingIntegrations(false);
+            }
+        };
+
+        // Fetch Schedules
+        const loadSchedules = async () => {
+            if (canViewSchedules) {
+                try {
+                    await fetchSchedules();
+                } finally {
+                    setLoadingSchedules(false);
+                }
+            } else {
+                setLoadingSchedules(false);
+            }
+        };
+
+        // Fetch Chart Data
+        const loadCharts = async () => {
+            if (canViewMonitoring) {
+                try {
+                    await Promise.all([
+                        fetchReportMetrics(),
+                        fetchMonthlyReports(),
+                        fetchActivityTrends()
+                    ]);
+                } finally {
+                    setLoadingCharts(false);
+                }
+            } else {
+                setLoadingCharts(false);
+            }
+        };
+
+        // Fire all sub-loaders in parallel WITHOUT and-ing them with a global Promise.all
+        loadStats();
+        loadIntegrations();
+        loadSchedules();
+        loadCharts();
     };
 
     const handleRefresh = async () => {
@@ -204,34 +247,34 @@ export const useDashboard = () => {
     const [reportsChartData, setReportsChartData] = useState<Array<{ date: string; count: number }>>([])
     const [activityTrends, setActivityTrends] = useState<ActivityTrendData[]>([])
 
+    const fetchMonthlyReports = async () => {
+        if (!isAuthenticated || !canViewMonitoring) return;
+        try {
+            const response = await monitoringApi.getMonthlyReportAnalytics(6);
+            setReportsChartData(response.data.monthly_data);
+        } catch (error) {
+            logger.apiError('/monitoring/monthly-analytics', error, { months: 6 });
+            setReportsChartData([]);
+        }
+    };
+
+    const fetchActivityTrends = async () => {
+        if (!isAuthenticated || !canViewMonitoring) return;
+        try {
+            const response = await monitoringApi.getActivityTrends(7);
+            setActivityTrends(response.data.activity_data);
+        } catch (error) {
+            logger.apiError('/monitoring/activity-trends', error, { days: 7 });
+            setActivityTrends([]);
+        }
+    };
+
     useEffect(() => {
-        const fetchMonthlyReports = async () => {
-            if (!isAuthenticated || !canViewMonitoring) return
-
-            try {
-                const response = await monitoringApi.getMonthlyReportAnalytics(6)
-                setReportsChartData(response.data.monthly_data)
-            } catch (error) {
-                logger.apiError('/monitoring/monthly-analytics', error, { months: 6 });
-                setReportsChartData([])
-            }
+        if (isAuthenticated && canViewMonitoring && reportMetrics) {
+            fetchMonthlyReports();
+            fetchActivityTrends();
         }
-
-        const fetchActivityTrends = async () => {
-            if (!isAuthenticated || !canViewMonitoring) return
-
-            try {
-                const response = await monitoringApi.getActivityTrends(7)
-                setActivityTrends(response.data.activity_data)
-            } catch (error) {
-                logger.apiError('/monitoring/activity-trends', error, { days: 7 });
-                setActivityTrends([])
-            }
-        }
-
-        fetchMonthlyReports()
-        fetchActivityTrends()
-    }, [isAuthenticated, canViewMonitoring, reportMetrics])
+    }, [isAuthenticated, canViewMonitoring, reportMetrics]);
 
     const stats: Stat[] = [
         {
@@ -274,7 +317,10 @@ export const useDashboard = () => {
 
     return {
         user,
-        isLoading,
+        loadingStats,
+        loadingIntegrations,
+        loadingSchedules,
+        loadingCharts,
         isRefreshing,
         recentActivity,
         dashboardIntegrations,

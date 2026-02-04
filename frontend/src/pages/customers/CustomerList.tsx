@@ -1,4 +1,3 @@
-import FloatingLayout from "@/components/layout/FloatingLayout";
 import {
     CustomersHeader,
     CustomersFilters,
@@ -59,8 +58,7 @@ export default function CustomerList() {
     } = useCustomerList();
 
     return (
-        <FloatingLayout>
-            <div className="space-y-6 max-w-full overflow-hidden">
+        <div className="space-y-6 max-w-full overflow-hidden">
                 <CustomersHeader onCreateStatic={() => setShowCreateStatic(true)} />
 
                 <CustomersFilters
@@ -289,6 +287,5 @@ export default function CustomerList() {
                     onSuccess={() => handleModalSuccess('delivery', "Delivery Settings Updated", "Customer delivery settings saved successfully")}
                 />
             </div>
-        </FloatingLayout>
     );
 }

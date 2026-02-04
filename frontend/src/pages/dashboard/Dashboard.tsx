@@ -1,6 +1,3 @@
-import FloatingLayout from "@/components/layout/FloatingLayout";
-// import { RefreshCw } from "lucide-react";
-// import { Button } from "@/components/ui/button";
 import type { ReportSchedule } from "@/stores/useSchedulesStore";
 import {
     getIntegrationStatusBadge,
@@ -8,7 +5,6 @@ import {
     getIntegrationStatusText,
 } from "./utils";
 import { useDashboard } from "./hooks";
-// import { DashboardHeaderActions } from "./components/DashboardHeaderActions";
 import { ReportsGeneratedChart } from "./components/ReportsGeneratedChart";
 import { HealthRateLimitChart } from "./components/HealthRateLimitChart";
 import { IntegrationsSummary } from "./components/IntegrationsSummary";
@@ -17,58 +13,56 @@ import { StatsGrid } from "./components/StatsGrid";
 
 export default function Dashboard() {
     const {
-        // user,
-        isLoading,
-        // isRefreshing,
+        loadingStats,
+        loadingIntegrations,
+        loadingSchedules,
+        loadingCharts,
         dashboardIntegrations,
         reportsChartData,
         activityTrends,
         stats,
         systemStatus,
         allSchedules,
-        // handleRefresh,
     } = useDashboard();
 
     return (
-        <FloatingLayout>
-            <div className="flex flex-col gap-6 pb-8 font-athletics">
-                <StatsGrid isLoading={isLoading} stats={stats} />
+        <div className="flex flex-col gap-6 pb-8 font-athletics">
+            <StatsGrid isLoading={loadingStats} stats={stats} />
 
-                <div className="grid gap-6 lg:grid-cols-2">
-                    <div className="flex flex-col gap-6 h-full">
-                        <SchedulesSummaryCard
-                            isLoading={isLoading}
-                            totalSchedules={allSchedules.length}
-                            activeSchedules={allSchedules.filter((s: ReportSchedule) => s.active).length}
-                            className="h-[134px]"
-                        />
-                        <IntegrationsSummary
-                            isLoading={isLoading}
-                            integrations={dashboardIntegrations}
-                            getStatusBadge={getIntegrationStatusBadge}
-                            getStatusText={getIntegrationStatusText}
-                            getStatusIcon={getIntegrationStatusIcon}
-                            className="h-[626px]"
+            <div className="grid gap-6 lg:grid-cols-2">
+                <div className="flex flex-col gap-6 h-full">
+                    <SchedulesSummaryCard
+                        isLoading={loadingSchedules}
+                        totalSchedules={allSchedules.length}
+                        activeSchedules={allSchedules.filter((s: ReportSchedule) => s.active).length}
+                        className="h-[134px]"
+                    />
+                    <IntegrationsSummary
+                        isLoading={loadingIntegrations}
+                        integrations={dashboardIntegrations}
+                        getStatusBadge={getIntegrationStatusBadge}
+                        getStatusText={getIntegrationStatusText}
+                        getStatusIcon={getIntegrationStatusIcon}
+                        className="h-[626px]"
+                    />
+                </div>
+
+                <div className="flex flex-col gap-6">
+                    <div className="h-[380px]">
+                        <ReportsGeneratedChart
+                            isLoading={loadingCharts}
+                            data={reportsChartData}
                         />
                     </div>
-
-                    <div className="flex flex-col gap-6">
-                        <div className="h-[380px]">
-                            <ReportsGeneratedChart
-                                isLoading={isLoading}
-                                data={reportsChartData}
-                            />
-                        </div>
-                        <div className="h-[380px]">
-                            <HealthRateLimitChart
-                                isLoading={isLoading}
-                                data={activityTrends}
-                                systemStatus={systemStatus}
-                            />
-                        </div>
+                    <div className="h-[380px]">
+                        <HealthRateLimitChart
+                            isLoading={loadingCharts}
+                            data={activityTrends}
+                            systemStatus={systemStatus}
+                        />
                     </div>
                 </div>
             </div>
-        </FloatingLayout>
+        </div>
     );
 }

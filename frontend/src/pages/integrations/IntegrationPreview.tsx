@@ -1,4 +1,3 @@
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import {
   PreviewHeader,
   PreviewLoadingState,
@@ -48,7 +47,6 @@ export const IntegrationPreview = () => {
 
   return (
     <>
-      <FloatingLayout>
         <div className="space-y-6">
           <PreviewHeader
             integrationName={preview.template?.metadata?.display_name || preview.integration.name}
@@ -84,7 +82,6 @@ export const IntegrationPreview = () => {
             </div>
           </div>
         </div>
-      </FloatingLayout>
 
       {showDownloadConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

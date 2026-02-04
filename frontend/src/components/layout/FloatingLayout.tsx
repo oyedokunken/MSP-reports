@@ -4,6 +4,7 @@ import FloatingNav from "./FloatingNav";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { SupportChatbot } from "@/components/chatbot";
 import { SkipLink } from "@/components/ui/SkipLink";
+import { Outlet } from "react-router-dom";
 
 /**
  * Floating Layout
@@ -11,7 +12,7 @@ import { SkipLink } from "@/components/ui/SkipLink";
  */
 
 interface FloatingLayoutProps {
-    children: ReactNode;
+    children?: ReactNode;
 }
 
 export default function FloatingLayout({ children }: FloatingLayoutProps) {
@@ -23,7 +24,9 @@ export default function FloatingLayout({ children }: FloatingLayoutProps) {
                 <SidebarInset className="flex flex-col flex-1 overflow-hidden">
                     <FloatingNav />
                     <main id="main-content" className="flex-1 overflow-y-auto">
-                        <div className="p-7 md:p-8 max-w-full">{children}</div>
+                        <div className="p-7 md:p-8 max-w-full">
+                            {children || <Outlet />}
+                        </div>
                     </main>
                 </SidebarInset>
                 <SupportChatbot />

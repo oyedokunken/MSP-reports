@@ -178,8 +178,8 @@ export default function AppSidebar() {
 
                   <div className={cn(
                     "flex items-center justify-center w-full",
-                    branding?.logo_url && branding.logo_url !== 'null' ? "hidden" : ""
-                  )}>
+                      branding?.logo_url && branding.logo_url !== 'null' ? "hidden" : ""
+                    )}>
                     <img
                       src="/msp-logo-icon.png"
                       alt="Logo Icon"

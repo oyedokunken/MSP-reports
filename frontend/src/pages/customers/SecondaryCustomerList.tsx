@@ -1,4 +1,3 @@
-import FloatingLayout from "@/components/layout/FloatingLayout";
 import {
     CustomersHeader,
     CustomersFilters,
@@ -58,8 +57,7 @@ export default function SecondaryCustomerList() {
     const canEditCustomers = hasPermission(user, 'customers', 'edit');
 
     return (
-        <FloatingLayout>
-            <div className="space-y-6 max-w-full overflow-hidden">
+        <div className="space-y-6 max-w-full overflow-hidden">
                 <CustomersHeader
                     title="Secondary Customers"
                     subtitle="Customers from non-source of truth integrations"
@@ -282,7 +280,6 @@ export default function SecondaryCustomerList() {
                     customer={selectedCustomer}
                     onSuccess={() => handleModalSuccess('applyTemplate', "Template Applied", "Report template successfully applied")}
                 />
-            </div>
-        </FloatingLayout>
+        </div>
     );
 }

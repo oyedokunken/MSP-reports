@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import FloatingLayout from '@/components/layout/FloatingLayout'
 import { useToast } from '@/components/ui/Toast'
 import { useSchedulesStore } from '@/stores/useSchedulesStore'
 import { SchedulesHeader, SchedulesGrid, SchedulesTable, type ViewMode } from './components'
@@ -62,7 +61,7 @@ export default function ScheduleList() {
   }
 
   return (
-    <FloatingLayout>
+    <>
       <div className="space-y-6">
         <SchedulesHeader
           onCreateSchedule={handleCreateSchedule}
@@ -118,6 +117,6 @@ export default function ScheduleList() {
         schedule={scheduleToDelete}
         onConfirm={handleDeleteConfirm}
       />
-    </FloatingLayout>
+    </>
   )
 }
