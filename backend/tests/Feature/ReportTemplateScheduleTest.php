@@ -28,6 +28,7 @@ class ReportTemplateScheduleTest extends TestCase
             'permissions' => [
                 'templates' => ['view' => true, 'create' => true, 'edit' => true, 'delete' => true],
                 'schedules' => ['view' => true, 'create' => true, 'edit' => true, 'delete' => true],
+                'reports' => ['view' => true, 'configure' => true],
             ],
         ]);
         $this->customer = Customer::factory()->create([
@@ -39,7 +40,7 @@ class ReportTemplateScheduleTest extends TestCase
     {
         $template = ReportTemplate::factory()->create([
             'company_id' => $this->company->company_id,
-            'name' => 'Monthly Report',
+            'template_name' => 'Monthly Report',
             'report_type' => 'monthly_summary',
             'frequency' => 'monthly',
             'time_of_day' => '09:00',
@@ -49,7 +50,7 @@ class ReportTemplateScheduleTest extends TestCase
         $schedule = ReportSchedule::factory()->create([
             'company_id' => $this->company->company_id,
             'customer_id' => $this->customer->customer_id,
-            'template_id' => $template->report_template_id,
+            'template_id' => $template->template_id,
             'report_type' => 'monthly_summary',
             'frequency' => 'monthly',
             'time_of_day' => '09:00',
@@ -58,8 +59,8 @@ class ReportTemplateScheduleTest extends TestCase
 
         // Update template
         $response = $this->actingAs($this->user)
-            ->putJson("/api/report-templates/{$template->report_template_id}", [
-                'name' => 'Monthly Report Updated',
+            ->putJson("/api/report-templates/{$template->template_id}", [
+                'template_name' => 'Monthly Report Updated',
                 'time_of_day' => '10:00',
             ]);
 
@@ -74,7 +75,7 @@ class ReportTemplateScheduleTest extends TestCase
     {
         $template = ReportTemplate::factory()->create([
             'company_id' => $this->company->company_id,
-            'name' => 'Monthly Report',
+            'template_name' => 'Monthly Report',
             'report_type' => 'monthly_summary',
             'frequency' => 'monthly',
             'time_of_day' => '09:00',
@@ -84,7 +85,7 @@ class ReportTemplateScheduleTest extends TestCase
         $schedule = ReportSchedule::factory()->create([
             'company_id' => $this->company->company_id,
             'customer_id' => $this->customer->customer_id,
-            'template_id' => $template->report_template_id,
+            'template_id' => $template->template_id,
             'report_type' => 'monthly_summary',
             'frequency' => 'monthly',
             'time_of_day' => '08:00', // Different from template
@@ -93,8 +94,8 @@ class ReportTemplateScheduleTest extends TestCase
 
         // Update template
         $response = $this->actingAs($this->user)
-            ->putJson("/api/report-templates/{$template->report_template_id}", [
-                'name' => 'Monthly Report Updated',
+            ->putJson("/api/report-templates/{$template->template_id}", [
+                'template_name' => 'Monthly Report Updated',
                 'time_of_day' => '10:00',
             ]);
 
@@ -114,13 +115,13 @@ class ReportTemplateScheduleTest extends TestCase
         $schedule = ReportSchedule::factory()->create([
             'company_id' => $this->company->company_id,
             'customer_id' => $this->customer->customer_id,
-            'template_id' => $template->report_template_id,
+            'template_id' => $template->template_id,
             'is_customized' => false,
         ]);
 
         // Edit the schedule directly
         $response = $this->actingAs($this->user)
-            ->putJson("/api/schedules/{$schedule->report_schedule_id}", [
+            ->patchJson("/api/reports/schedules/{$schedule->report_schedule_id}", [
                 'time_of_day' => '14:00',
             ]);
 
@@ -129,4 +130,5 @@ class ReportTemplateScheduleTest extends TestCase
         $schedule->refresh();
         $this->assertTrue($schedule->is_customized);
     }
+
 }

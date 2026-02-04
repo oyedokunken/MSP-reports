@@ -24,7 +24,7 @@ class RolePermissionServiceTest extends TestCase
     {
         $permissions = RolePermissionService::getDefaultPermissions('viewer');
 
-        $this->assertFalse($permissions['integrations']['view']);
+        $this->assertTrue($permissions['integrations']['view']);
         $this->assertFalse($permissions['integrations']['manage']);
         $this->assertTrue($permissions['reports']['view']);
         $this->assertTrue($permissions['reports']['download']);
@@ -103,7 +103,7 @@ class RolePermissionServiceTest extends TestCase
         // Custom permission overrides
         $this->assertTrue($merged['integrations']['manage']);
         // Other permissions from viewer role remain
-        $this->assertFalse($merged['integrations']['view']);
+        $this->assertTrue($merged['integrations']['view']);
         $this->assertTrue($merged['reports']['view']);
     }
 

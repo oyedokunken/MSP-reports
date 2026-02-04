@@ -39,8 +39,8 @@ class AutotaskDataGatherer
         $openTickets = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'ticket')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->whereRaw("data_payload->>'status' != '5'")
-            ->whereRaw("(data_payload->>'created_date')::timestamp <= ?", [$endUtc->toDateTimeString()])
+            ->where('data_payload->status', '!=', '5')
+            ->where('data_payload->created_date', '<=', $endUtc->toDateTimeString())
             ->orderBy('data_timestamp', 'desc')
             ->get();
 
@@ -295,8 +295,9 @@ class AutotaskDataGatherer
     /**
      * Get human-readable status label from status code
      */
-    private function getStatusLabel(?int $status): string
+    private function getStatusLabel(mixed $status): string
     {
+        $statusInt = $status !== null ? (int)$status : null;
         $statusLabels = [
             1 => 'New',
             2 => 'In Progress',
@@ -305,14 +306,15 @@ class AutotaskDataGatherer
             9 => 'Waiting Vendor',
         ];
         
-        return $statusLabels[$status] ?? 'Unknown';
+        return $statusLabels[$statusInt] ?? 'Unknown';
     }
 
     /**
      * Get human-readable priority label from priority code
      */
-    private function getPriorityLabel(?int $priority): string
+    private function getPriorityLabel(mixed $priority): string
     {
+        $priorityInt = $priority !== null ? (int)$priority : null;
         $priorityLabels = [
             1 => 'Critical',
             2 => 'High',
@@ -320,6 +322,6 @@ class AutotaskDataGatherer
             4 => 'Low',
         ];
         
-        return $priorityLabels[$priority] ?? 'Unknown';
+        return $priorityLabels[$priorityInt] ?? 'Unknown';
     }
 }

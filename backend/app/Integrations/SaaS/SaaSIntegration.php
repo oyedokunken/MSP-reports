@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Integrations\SaaS;
 
 use App\Integrations\Contracts\IntegrationInterface;
-use App\Integrations\Traits\HasDefaultPreview;
+use App\Integrations\Concerns\HasDefaultPreview;
 use App\Integrations\Concerns\HasHeartbeat;
 use App\Models\Integration;
 use App\Models\IntegrationCustomer;

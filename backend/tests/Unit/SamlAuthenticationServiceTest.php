@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Services\SamlAuthenticationService;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 use ReflectionClass;
 
 class SamlAuthenticationServiceTest extends TestCase
@@ -16,10 +16,24 @@ class SamlAuthenticationServiceTest extends TestCase
         $this->service = new SamlAuthenticationService();
     }
 
-    public function test_format_certificate_adds_headers(): void
+    public function test_format_certificate_removes_headers_for_metadata(): void
     {
         $reflection = new ReflectionClass($this->service);
         $method = $reflection->getMethod('formatCertificate');
+        $method->setAccessible(true);
+
+        $rawCert = "-----BEGIN CERTIFICATE-----\nMIICpDCCAYwCCQDU+pQ4P4gD8TANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAls\n-----END CERTIFICATE-----";
+        $formatted = $method->invoke($this->service, $rawCert);
+
+        $this->assertStringNotContainsString('-----BEGIN CERTIFICATE-----', $formatted);
+        $this->assertStringNotContainsString('-----END CERTIFICATE-----', $formatted);
+        $this->assertStringNotContainsString("\n", $formatted);
+    }
+
+    public function test_format_certificate_for_validation_adds_headers(): void
+    {
+        $reflection = new ReflectionClass($this->service);
+        $method = $reflection->getMethod('formatCertificateForValidation');
         $method->setAccessible(true);
 
         $rawCert = 'MIICpDCCAYwCCQDU+pQ4P4gD8TANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDDAls';
@@ -29,53 +43,37 @@ class SamlAuthenticationServiceTest extends TestCase
         $this->assertStringEndsWith('-----END CERTIFICATE-----', trim($formatted));
     }
 
-    public function test_format_certificate_preserves_existing_headers(): void
+    public function test_extract_attributes_from_saml_response(): void
     {
         $reflection = new ReflectionClass($this->service);
-        $method = $reflection->getMethod('formatCertificate');
-        $method->setAccessible(true);
-
-        $certWithHeaders = "-----BEGIN CERTIFICATE-----\nMIICpDCCAYw\n-----END CERTIFICATE-----";
-        $formatted = $method->invoke($this->service, $certWithHeaders);
-
-        // Should not double-wrap
-        $this->assertEquals(1, substr_count($formatted, '-----BEGIN CERTIFICATE-----'));
-        $this->assertEquals(1, substr_count($formatted, '-----END CERTIFICATE-----'));
-    }
-
-    public function test_extract_user_attributes_from_saml_response(): void
-    {
-        $reflection = new ReflectionClass($this->service);
-        $method = $reflection->getMethod('extractUserAttributes');
+        $method = $reflection->getMethod('extractAttributes');
         $method->setAccessible(true);
 
         // Create a mock SAML response XML
         $samlXml = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">
-    <saml:Assertion>
-        <saml:Subject>
-            <saml:NameID>user@example.com</saml:NameID>
-        </saml:Subject>
-        <saml:AttributeStatement>
-            <saml:Attribute Name="email">
-                <saml:AttributeValue>user@example.com</saml:AttributeValue>
-            </saml:Attribute>
-            <saml:Attribute Name="firstName">
-                <saml:AttributeValue>John</saml:AttributeValue>
-            </saml:Attribute>
-            <saml:Attribute Name="lastName">
-                <saml:AttributeValue>Doe</saml:AttributeValue>
-            </saml:Attribute>
-        </saml:AttributeStatement>
-    </saml:Assertion>
-</samlp:Response>
+<saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">
+    <saml:AttributeStatement>
+        <saml:Attribute Name="email">
+            <saml:AttributeValue>user@example.com</saml:AttributeValue>
+        </saml:Attribute>
+        <saml:Attribute Name="firstName">
+            <saml:AttributeValue>John</saml:AttributeValue>
+        </saml:Attribute>
+        <saml:Attribute Name="lastName">
+            <saml:AttributeValue>Doe</saml:AttributeValue>
+        </saml:Attribute>
+    </saml:AttributeStatement>
+</saml:Assertion>
 XML;
 
-        $doc = new \DOMDocument();
-        $doc->loadXML($samlXml);
+        $assertion = new \SimpleXMLElement($samlXml);
 
-        $attributes = $method->invoke($this->service, $doc);
+        // Mock config for attributes
+        config(['saml.attributes.email' => 'email']);
+        config(['saml.attributes.firstname' => 'firstName']);
+        config(['saml.attributes.lastname' => 'lastName']);
+
+        $attributes = $method->invoke($this->service, $assertion);
 
         $this->assertIsArray($attributes);
         $this->assertArrayHasKey('email', $attributes);

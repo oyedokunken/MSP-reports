@@ -88,10 +88,12 @@ final class ApiKeyController extends Controller
             'user_agent' => $request->userAgent(),
         ]);
 
-        return $this->success([
-            'api_key' => $plainKey,
-            'data' => new ApiKeyResource($apiKey),
-        ], 'API key created successfully', 201);
+        return $this->success(
+            new ApiKeyResource($apiKey),
+            'API key created successfully',
+            201,
+            ['api_key' => $plainKey]
+        );
     }
 
     /**

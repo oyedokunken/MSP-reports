@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 use App\Models\Scopes\CustomerScope;
@@ -29,6 +30,8 @@ use App\Models\Scopes\CustomerScope;
  */
 class IntegrationData extends Model
 {
+    /** @use HasFactory<\Database\Factories\IntegrationDataFactory> */
+    use HasFactory;
 
     protected $primaryKey = 'integration_data_id';
     public $incrementing = true;

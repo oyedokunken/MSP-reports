@@ -14,10 +14,10 @@ return new class extends Migration {
                 ->constrained('integrations', 'integration_id')
                 ->cascadeOnDelete();
 
-            $table->enum('sync_type', ['current_state', 'historical', 'backfill'])->default('current_state');
+            $table->string('sync_type')->default('current_state');
             $table->timestamp('started_at')->nullable();
             $table->timestamp('completed_at')->nullable();
-            $table->enum('status', ['running', 'success', 'failed', 'partial'])->default('running');
+            $table->string('status')->default('running');
             $table->integer('records_synced')->default(0);
             $table->integer('records_failed')->default(0);
             $table->json('error_messages')->nullable();

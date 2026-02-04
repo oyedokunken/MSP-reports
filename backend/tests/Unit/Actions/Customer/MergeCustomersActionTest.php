@@ -29,7 +29,7 @@ class MergeCustomersActionTest extends TestCase
 
     public function test_it_merges_two_customers_successfully(): void
     {
-        $role = Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $role = Role::firstOrCreate(['name' => 'Admin'], ['slug' => 'admin']);
         $company = Company::factory()->create();
         $authUser = User::factory()->create(['company_id' => $company->company_id, 'role_id' => $role->id]);
         
@@ -76,7 +76,7 @@ class MergeCustomersActionTest extends TestCase
 
     public function test_it_throws_exception_when_merging_with_itself(): void
     {
-        $role = Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $role = Role::firstOrCreate(['name' => 'Admin'], ['slug' => 'admin']);
         $company = Company::factory()->create();
         $authUser = User::factory()->create(['company_id' => $company->company_id, 'role_id' => $role->id]);
         $primary = Customer::factory()->create(['company_id' => $company->company_id]);

@@ -33,7 +33,7 @@ class CreateUserActionTest extends TestCase
 
     public function test_it_creates_a_user_successfully(): void
     {
-        $role = Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $role = Role::firstOrCreate(['name' => 'Admin'], ['slug' => 'admin']);
         $company = Company::factory()->create();
         $authUser = User::factory()->create(['company_id' => $company->company_id, 'role_id' => $role->id]);
 
@@ -61,7 +61,7 @@ class CreateUserActionTest extends TestCase
 
     public function test_it_throws_validation_exception_when_license_limit_reached(): void
     {
-        $role = Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $role = Role::firstOrCreate(['name' => 'Admin'], ['slug' => 'admin']);
         $company = Company::factory()->create();
         $authUser = User::factory()->create(['company_id' => $company->company_id, 'role_id' => $role->id]);
 

@@ -41,20 +41,22 @@ class SessionTimeout
         // Check if token has expired based on creation time
         $token = $user->currentAccessToken();
         
-        if ($token->created_at) {
-            $tokenAge = Carbon::parse($token->created_at);
-            $maxSessionDuration = self::MAX_SESSION_HOURS;
-            
+        if ($token && !($token instanceof \Laravel\Sanctum\TransientToken)) {
             // Check absolute session limit (8 hours by default)
-            if ($tokenAge->diffInHours(now()) >= $maxSessionDuration) {
-                // Revoke the token
-                $token->delete();
+            $createdAt = $token->created_at ?? null;
+            if ($createdAt) {
+                $tokenAge = Carbon::parse($createdAt);
+                $maxSessionDuration = self::MAX_SESSION_HOURS;
                 
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Session has expired due to maximum duration limit. Please log in again.',
-                    'code' => 'SESSION_EXPIRED',
-                ], 401);
+                if ($tokenAge->diffInHours(now()) >= $maxSessionDuration) {
+                    $token->delete();
+                    
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Session has expired due to maximum duration limit. Please log in again.',
+                        'code' => 'SESSION_EXPIRED',
+                    ], 401);
+                }
             }
         }
 
@@ -69,7 +71,7 @@ class SessionTimeout
         }
 
         // Check last activity (stored in token's last_used_at)
-        if ($token->last_used_at) {
+        if (!($token instanceof \Laravel\Sanctum\TransientToken) && isset($token->last_used_at)) {
             $lastActivity = Carbon::parse($token->last_used_at);
             
             if ($lastActivity->diffInMinutes(now()) >= $timeoutMinutes) {

@@ -33,6 +33,8 @@ use App\Models\Scopes\CompanyScope;
  */
 class ApiKey extends Model
 {
+    /** @use HasFactory<\Database\Factories\ApiKeyFactory> */
+    use HasFactory;
 
     protected $primaryKey = 'api_key_id';
 

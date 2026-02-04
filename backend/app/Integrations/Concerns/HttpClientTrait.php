@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Integrations\Traits;
+namespace App\Integrations\Concerns;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\PendingRequest;

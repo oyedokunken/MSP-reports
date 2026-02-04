@@ -28,7 +28,7 @@ class ResetPasswordActionTest extends TestCase
 
     public function test_it_resets_password_successfully(): void
     {
-        $role = \App\Models\Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $role = \App\Models\Role::firstOrCreate(['name' => 'Admin'], ['slug' => 'admin']);
         $company = Company::factory()->create();
         $user = User::factory()->create([
             'company_id' => $company->company_id,

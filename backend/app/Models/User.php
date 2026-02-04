@@ -61,6 +61,7 @@ class User extends Authenticatable
         'force_password_change',
         'profile_picture',
         'permissions',
+        'scoped_customers',
         'settings',
         'last_login_at',
         'email_verified_at',

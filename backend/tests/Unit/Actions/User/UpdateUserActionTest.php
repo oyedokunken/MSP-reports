@@ -26,7 +26,7 @@ class UpdateUserActionTest extends TestCase
 
     public function test_it_updates_a_user_successfully(): void
     {
-        $role = Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $role = Role::firstOrCreate(['name' => 'Admin'], ['slug' => 'admin']);
         $company = Company::factory()->create();
         $authUser = User::factory()->create(['company_id' => $company->company_id, 'role_id' => $role->id]);
         $user = User::factory()->create(['company_id' => $company->company_id, 'name' => 'Old Name', 'role_id' => $role->id]);
@@ -44,7 +44,7 @@ class UpdateUserActionTest extends TestCase
 
     public function test_it_throws_exception_if_user_not_found_in_company(): void
     {
-        $role = Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $role = Role::firstOrCreate(['name' => 'Admin'], ['slug' => 'admin']);
         $company1 = Company::factory()->create();
         $company2 = Company::factory()->create();
         $authUser = User::factory()->create(['company_id' => $company1->company_id, 'role_id' => $role->id]);

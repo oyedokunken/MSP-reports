@@ -44,8 +44,8 @@ class UserProvisioningServiceTest extends TestCase
         $this->assertInstanceOf(User::class, $user);
         $this->assertEquals($email, $user->email);
         $this->assertEquals($name, $user->name);
-        $this->assertEquals($authMethod, $user->auth_method);
-        $this->assertEquals('active', $user->status);
+        $this->assertEquals($authMethod, $user->auth_method->value);
+        $this->assertEquals('active', $user->status->value);
         $this->assertNotNull($user->email_verified_at);
         
         // Check that Viewer role was assigned

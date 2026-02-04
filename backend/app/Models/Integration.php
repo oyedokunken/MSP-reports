@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Scopes\CompanyScope;
 use App\Traits\AuditTrail;
@@ -33,7 +34,8 @@ use App\Enums\IntegrationStatus;
  */
 class Integration extends Model
 {
-    use AuditTrail;
+    /** @use HasFactory<\Database\Factories\IntegrationFactory> */
+    use AuditTrail, HasFactory;
 
     protected $primaryKey = 'integration_id';
 

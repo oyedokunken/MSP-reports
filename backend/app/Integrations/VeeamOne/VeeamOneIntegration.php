@@ -7,7 +7,7 @@ use App\Integrations\Concerns\HasHeartbeat;
 
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\Contracts\IntegrationDataType;
-use App\Integrations\Traits\HasDefaultPreview;
+use App\Integrations\Concerns\HasDefaultPreview;
 use App\Models\Integration;
 use App\Models\IntegrationData;
 use App\Services\RateLimiter;

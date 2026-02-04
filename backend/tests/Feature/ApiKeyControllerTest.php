@@ -62,7 +62,7 @@ class ApiKeyControllerTest extends TestCase
                 ],
             ]);
 
-        $response->assertStatus(200)
+        $response->assertStatus(201)
             ->assertJsonStructure([
                 'status',
                 'api_key',
@@ -97,7 +97,7 @@ class ApiKeyControllerTest extends TestCase
                 ],
             ]);
 
-        $response->assertStatus(200);
+        $response->assertStatus(201);
 
         $this->assertDatabaseHas('api_keys', [
             'display_name' => 'Customer Agent Key',
@@ -134,7 +134,7 @@ class ApiKeyControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->postJson("/api/api-keys/{$otherApiKey->api_key_id}/revoke");
 
-        $response->assertStatus(404);
+        $response->assertStatus(403);
     }
 
     public function test_api_key_requires_display_name(): void

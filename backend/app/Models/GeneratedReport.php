@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Scopes\CompanyScope;
@@ -31,7 +32,8 @@ use App\Models\Scopes\CustomerScope;
   */
 class GeneratedReport extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<\Database\Factories\GeneratedReportFactory> */
+    use SoftDeletes, HasFactory;
 
     protected $primaryKey = 'generated_report_id';
 

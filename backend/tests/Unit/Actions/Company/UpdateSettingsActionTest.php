@@ -24,7 +24,7 @@ class UpdateSettingsActionTest extends TestCase
 
     public function test_it_updates_company_settings(): void
     {
-        $role = \App\Models\Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $role = \App\Models\Role::firstOrCreate(['name' => 'Admin'], ['slug' => 'admin']);
         $company = Company::factory()->create([
             'name' => 'Old Name',
         ]);

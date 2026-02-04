@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Integrations\Traits;
+namespace App\Integrations\Concerns;
 
 use App\Integrations\DisplayTemplate\TemplateBuilder;
 use App\Models\IntegrationCustomer;

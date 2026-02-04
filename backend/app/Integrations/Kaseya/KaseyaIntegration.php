@@ -6,7 +6,7 @@ namespace App\Integrations\Kaseya;
 use App\Integrations\Concerns\HasHeartbeat;
 
 use App\Integrations\Contracts\IntegrationInterface;
-use App\Integrations\Traits\HasDefaultPreview;
+use App\Integrations\Concerns\HasDefaultPreview;
 use App\Models\Integration;
 use App\Services\RateLimiter;
 use Carbon\Carbon;

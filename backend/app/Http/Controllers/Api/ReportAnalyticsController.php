@@ -29,9 +29,15 @@ final class ReportAnalyticsController extends Controller
     public function getScheduledReports(Request $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
+        $includeInactive = $request->boolean('include_inactive', false);
+        
+        $query = ReportSchedule::where('company_id', $authUser->company_id);
+        
+        if (!$includeInactive) {
+            $query->where('active', true);
+        }
 
-        $schedules = ReportSchedule::where('company_id', $authUser->company_id)
-            ->with('customer:customer_id,canonical_name,report_destination,report_configuration')
+        $schedules = $query->with('customer:customer_id,canonical_name,report_destination,report_configuration')
             ->orderBy('next_scheduled_at', 'asc')
             ->get()
             ->map(function (\App\Models\ReportSchedule $schedule) {

@@ -245,7 +245,7 @@ final class RolePermissionService
     {
         return [
             'integrations' => [
-                'view' => false,
+                'view' => true,
                 'manage' => false,
                 'sync' => false,
             ],

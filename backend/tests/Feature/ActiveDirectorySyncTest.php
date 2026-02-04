@@ -31,7 +31,7 @@ class ActiveDirectorySyncTest extends TestCase
         ]);
         $this->integration = Integration::factory()->create([
             'company_id' => $this->company->company_id,
-            'integration_type' => 'active_directory',
+            'integration_type' => 'ActiveDirectory',
             'status' => 'active',
         ]);
 

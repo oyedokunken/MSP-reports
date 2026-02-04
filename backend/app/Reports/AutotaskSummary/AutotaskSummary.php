@@ -65,8 +65,8 @@ class AutotaskSummary extends BaseReport
         return IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'ticket')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->whereRaw("data_payload->>'status' != '5'")
-            ->whereRaw("(data_payload->>'created_date')::timestamp <= ?", [$endUtc->toDateTimeString()])
+            ->where('data_payload->status', '!=', '5')
+            ->where('data_payload->created_date', '<=', $endUtc->toDateTimeString())
             ->exists();
     }
 
@@ -119,8 +119,8 @@ class AutotaskSummary extends BaseReport
         $hasOpenTickets = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'ticket')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->whereRaw("data_payload->>'status' != '5'")
-            ->whereRaw("(data_payload->>'created_date')::timestamp <= ?", [$endUtc->toDateTimeString()])
+            ->where('data_payload->status', '!=', '5')
+            ->where('data_payload->created_date', '<=', $endUtc->toDateTimeString())
             ->exists();
 
         \Log::info("Autotask Summary validation", [

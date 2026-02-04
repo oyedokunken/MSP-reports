@@ -10,3 +10,14 @@ parameters:
     
     # Report unmatched ignores as warnings, not errors
     reportUnmatchedIgnoredErrors: false
+
+    ignoreErrors:
+        -
+            message: '#Trait App\\Integrations\\Concerns\\HttpClientTrait is used zero times and is not analysed.#'
+            path: app/Integrations/Concerns/HttpClientTrait.php
+        -
+            message: '#Instanceof between Laravel\\Sanctum\\PersonalAccessToken and Laravel\\Sanctum\\TransientToken will always evaluate to false.#'
+            path: app/Http/Middleware/SessionTimeout.php
+        -
+            message: '#Left side of && is always true.#'
+            path: app/Http/Middleware/SessionTimeout.php

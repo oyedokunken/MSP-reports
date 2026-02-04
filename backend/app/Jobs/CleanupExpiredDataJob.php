@@ -50,6 +50,107 @@ final class CleanupExpiredDataJob implements ShouldQueue
         $this->cleanupGeneratedReports($company, $retentionSettings);
 
         $this->cleanupSyncLogs($company, $retentionSettings);
+
+        $this->cleanupIntegrationData($company, $retentionSettings);
+
+        $this->hardDeleteExpiredRecords($company);
+
+        $this->cleanupOrphanedFiles($company);
+    }
+
+    /**
+     * Clean up old IntegrationData records (TimescaleDB hypertable)
+     * 
+     * @param array<string, mixed> $retentionSettings
+     */
+    private function cleanupIntegrationData(Company $company, array $retentionSettings): void
+    {
+        $rawEventsDays = $retentionSettings['historical_data']['raw_events_days'] ?? 90;
+        $cutoffDate = now()->subDays($rawEventsDays);
+
+        // Note: IntegrationData is a TimescaleDB hypertable
+        // TimescaleDB handles compression and retention automatically via policies
+        // This is a manual cleanup for additional control
+        $deletedCount = \Illuminate\Support\Facades\DB::table('integration_data')
+            ->where('company_id', $company->company_id)
+            ->where('data_timestamp', '<', $cutoffDate)
+            ->delete();
+
+        if ($deletedCount > 0) {
+            DataRetentionLog::create([
+                'company_id' => $company->company_id,
+                'record_type' => 'IntegrationData',
+                'records_purged' => $deletedCount,
+                'retention_policy' => [
+                    'raw_events_days' => $rawEventsDays,
+                    'cutoff_date' => $cutoffDate->toDateString(),
+                ],
+                'purged_at' => now(),
+            ]);
+
+            Log::info('IntegrationData cleaned up', [
+                'company_id' => $company->company_id,
+                'deleted_count' => $deletedCount,
+            ]);
+        }
+    }
+
+    /**
+     * Hard delete soft-deleted records beyond grace period (30 days)
+     */
+    private function hardDeleteExpiredRecords(Company $company): void
+    {
+        $gracePeriodDays = 30;
+        $cutoffDate = now()->subDays($gracePeriodDays);
+
+        $expiredReports = GeneratedReport::onlyTrashed()
+            ->where('company_id', $company->company_id)
+            ->where('deleted_at', '<', $cutoffDate)
+            ->get();
+
+        $deletedCount = 0;
+
+        foreach ($expiredReports as $report) {
+            if ($report->file_path && Storage::exists($report->file_path)) {
+                Storage::delete($report->file_path);
+            }
+            $report->forceDelete();
+            $deletedCount++;
+        }
+
+        if ($deletedCount > 0) {
+            Log::info('Hard deleted expired records', [
+                'company_id' => $company->company_id,
+                'deleted_count' => $deletedCount,
+            ]);
+        }
+    }
+
+    /**
+     * Clean up orphaned files without database records
+     */
+    private function cleanupOrphanedFiles(Company $company): void
+    {
+        $reportFiles = Storage::files("reports/company_{$company->company_id}");
+        $deletedCount = 0;
+
+        foreach ($reportFiles as $filePath) {
+            $exists = GeneratedReport::where('company_id', $company->company_id)
+                ->where('file_path', $filePath)
+                ->exists();
+
+            if (!$exists) {
+                Storage::delete($filePath);
+                $deletedCount++;
+            }
+        }
+
+        if ($deletedCount > 0) {
+            Log::info('Orphaned files cleaned up', [
+                'company_id' => $company->company_id,
+                'deleted_count' => $deletedCount,
+            ]);
+        }
     }
 
     /**

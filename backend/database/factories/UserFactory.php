@@ -19,8 +19,8 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'company_id' => null,
-            'role_id' => Role::inRandomOrder()->value('id') ?? 1,
+            'company_id' => \App\Models\Company::factory(),
+            'role_id' => Role::where('name', 'Admin')->value('id') ?? Role::factory(),
             'status' => 'active',
             'auth_method' => 'local',
             'permissions' => json_encode([

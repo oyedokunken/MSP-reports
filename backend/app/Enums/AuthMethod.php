@@ -11,4 +11,5 @@ enum AuthMethod: string
     case SAML = 'saml';
     case KEYCLOAK = 'keycloak';
     case OIDC = 'oidc';
+    case LDAP = 'ldap';
 }

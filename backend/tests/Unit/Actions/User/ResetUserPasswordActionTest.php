@@ -29,7 +29,7 @@ class ResetUserPasswordActionTest extends TestCase
 
     public function test_it_resets_password_successfully(): void
     {
-        $role = Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $role = Role::firstOrCreate(['name' => 'Admin'], ['slug' => 'admin']);
         $company = Company::factory()->create();
         $authUser = User::factory()->create(['company_id' => $company->company_id, 'role_id' => $role->id]);
         $user = User::factory()->create([
@@ -53,7 +53,7 @@ class ResetUserPasswordActionTest extends TestCase
 
     public function test_it_throws_exception_for_non_local_auth_users(): void
     {
-        $role = Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $role = Role::firstOrCreate(['name' => 'Admin'], ['slug' => 'admin']);
         $company = Company::factory()->create();
         $authUser = User::factory()->create(['company_id' => $company->company_id, 'role_id' => $role->id]);
         $user = User::factory()->create([
