@@ -9,7 +9,9 @@ import {
   Calendar,
   Bell,
   UserPlus,
-  Key,
+  KeyRound,
+  FileBadge,
+  LayoutTemplate,
   Activity,
   ChevronDown,
   Database,
@@ -84,7 +86,7 @@ export default function AppSidebar() {
     { path: '/platform/customers', icon: Users, label: 'Customers', show: hasPermission(user, 'customers', 'view'), tourId: 'nav-customers', isCustomers: true },
     { path: '/platform/reports', icon: FileText, label: 'Reports', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-reports' },
     { path: '/platform/schedules', icon: Calendar, label: 'Schedules', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-schedules' },
-    { path: '/platform/templates', icon: FileText, label: 'Templates', show: hasPermission(user, 'reports', 'configure'), tourId: 'nav-templates' },
+    { path: '/platform/templates', icon: LayoutTemplate, label: 'Templates', show: hasPermission(user, 'reports', 'configure'), tourId: 'nav-templates' },
     { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: hasPermission(user, 'notifications', 'view'), tourId: 'nav-notifications' },
   ].filter(item => item.show !== false)
 
@@ -96,8 +98,8 @@ export default function AppSidebar() {
 
   const adminNavItems = [
     { path: '/admin/users', icon: UserPlus, label: 'Users', show: hasPermission(user, 'users', 'view') },
-    { path: '/admin/api-keys', icon: Key, label: 'API Keys', show: hasPermission(user, 'api_keys', 'view') },
-    { path: '/admin/licenses', icon: Key, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view') },
+    { path: '/admin/api-keys', icon: KeyRound, label: 'API Keys', show: hasPermission(user, 'api_keys', 'view') },
+    { path: '/admin/licenses', icon: FileBadge, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view') },
     { path: '/admin/monitoring', icon: Activity, label: 'Monitoring', show: hasPermission(user, 'monitoring', 'view') },
     { path: '/admin/audit-logs', icon: Shield, label: 'Audit Logs', show: hasPermission(user, 'security', 'view_logs') },
   ].filter(item => item.show !== false)
