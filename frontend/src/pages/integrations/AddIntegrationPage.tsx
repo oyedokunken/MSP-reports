@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import { Cable, ArrowLeft, Info, CheckCircle2, ClipboardPaste, X } from 'lucide-react'
+import { getIntegrationIconConfig } from './utils/integrationIcons'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { api } from '@/lib/api'
 import { DynamicCredentialForm } from '@/components/integrations/DynamicCredentialForm'
@@ -141,10 +142,11 @@ export default function AddIntegrationPage() {
                 <CardDescription className="text-xs">Select provider</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {availableTypes.map((type) => {
                     const typeLower = type.toLowerCase();
                     const isAdded = addedTypes.has(typeLower);
+                    const iconConfig = getIntegrationIconConfig(type);
                     return (
                       <button
                         key={type}
@@ -152,28 +154,36 @@ export default function AddIntegrationPage() {
                         disabled={isAdded}
                         onClick={() => handleSelectType(type)}
                         className={cn(
-                          "relative flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all h-12",
+                          "relative flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all min-h-[100px]",
                           formData.integration_type === type
-                            ? "border-primary bg-primary/5 ring-1 ring-primary shadow-sm"
+                            ? "border-primary bg-primary/5 ring-2 ring-primary shadow-md"
                             : isAdded
                               ? "bg-muted/10 border-dashed opacity-40 cursor-not-allowed grayscale"
-                              : "border-border hover:bg-muted/50 hover:border-primary/50 group"
+                              : "border-border hover:bg-muted/50 hover:border-primary/50 hover:shadow-sm group"
                         )}
                       >
                         <div className={cn(
-                          "font-bold text-[10px] uppercase tracking-tight truncate w-full px-0.5",
+                          "rounded-lg p-2 mb-2 transition-all",
+                          iconConfig.bgColor,
+                          iconConfig.color,
+                          !isAdded && "group-hover:scale-110"
+                        )}>
+                          {iconConfig.icon}
+                        </div>
+                        <div className={cn(
+                          "font-semibold text-xs uppercase tracking-wide truncate w-full",
                           !isAdded && "group-hover:text-primary transition-colors"
                         )}>
                           {type}
                         </div>
 
                         {isAdded ? (
-                          <div className="text-[7px] font-black text-muted-foreground/60 leading-none mt-1">
+                          <div className="text-[8px] font-bold text-muted-foreground/60 leading-none mt-1 bg-muted/50 px-2 py-0.5 rounded">
                             ADDED
                           </div>
                         ) : formData.integration_type === type && (
-                          <div className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full flex items-center justify-center">
-                            <CheckCircle2 className="h-2 w-2 text-white" />
+                          <div className="absolute -top-2 -right-2 h-5 w-5 bg-primary rounded-full flex items-center justify-center shadow-sm">
+                            <CheckCircle2 className="h-3 w-3 text-white" />
                           </div>
                         )}
                       </button>
