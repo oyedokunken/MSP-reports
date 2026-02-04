@@ -31,11 +31,17 @@ final class CompanyController extends Controller
             
             // Get logo URLs from settings with full URLs
             $settings = $company->settings ?? [];
-            $logoPath = $settings['white_label']['logo_url'] ?? null;
-            $faviconPath = $settings['white_label']['favicon_url'] ?? null;
+            if (isset($settings['white_label'])) {
+                if (!empty($settings['white_label']['logo_url'])) {
+                    $settings['white_label']['logo_url'] = Storage::disk('public')->url($settings['white_label']['logo_url']);
+                }
+                if (!empty($settings['white_label']['favicon_url'])) {
+                    $settings['white_label']['favicon_url'] = Storage::disk('public')->url($settings['white_label']['favicon_url']);
+                }
+            }
             
-            $logoUrl = $logoPath ? Storage::disk('public')->url($logoPath) : null;
-            $faviconUrl = $faviconPath ? Storage::disk('public')->url($faviconPath) : null;
+            $logoUrl = $settings['white_label']['logo_url'] ?? null;
+            $faviconUrl = $settings['white_label']['favicon_url'] ?? null;
 
             return response()->json([
                 'status' => 'success',

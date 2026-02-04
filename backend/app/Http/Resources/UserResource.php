@@ -30,7 +30,7 @@ class UserResource extends JsonResource
             'auth_method' => $user->auth_method,
             'status' => $user->status,
             'permissions' => $user->permissions,
-            'profile_picture_url' => $user->profile_picture ? asset('storage/' . $user->profile_picture) : null,
+            'profile_picture_url' => $user->profile_picture ? \Illuminate\Support\Facades\Storage::disk('public')->url($user->profile_picture) : null,
             'last_login_at' => $user->last_login_at?->toIso8601String(),
             'created_at' => $user->created_at?->toIso8601String(),
             'updated_at' => $user->updated_at?->toIso8601String(),

@@ -66,9 +66,22 @@ final class AuthService
             'auth_method' => $user->auth_method,
         ], $ip, $userAgent);
 
+        // Transform company logos to absolute URLs
+        $company = $user->company;
+        if ($company && isset($company->settings['white_label'])) {
+            $settings = $company->settings;
+            if (!empty($settings['white_label']['logo_url'])) {
+                $settings['white_label']['logo_url'] = \Illuminate\Support\Facades\Storage::disk('public')->url($settings['white_label']['logo_url']);
+            }
+            if (!empty($settings['white_label']['favicon_url'])) {
+                $settings['white_label']['favicon_url'] = \Illuminate\Support\Facades\Storage::disk('public')->url($settings['white_label']['favicon_url']);
+            }
+            $company->settings = $settings;
+        }
+
         return [
             'user' => $user->makeHidden(['password', 'remember_token']),
-            'company' => $user->company,
+            'company' => $company,
             'token' => $token,
             'force_password_change' => (bool) $user->force_password_change,
         ];

@@ -67,6 +67,14 @@ final class UpdateBrandingAction
             'user_id' => $userId,
         ]);
 
-        return $settings['white_label'] ?? [];
+        $whiteLabel = $settings['white_label'] ?? [];
+        if (!empty($whiteLabel['logo_url'])) {
+            $whiteLabel['logo_url'] = \Illuminate\Support\Facades\Storage::disk('public')->url($whiteLabel['logo_url']);
+        }
+        if (!empty($whiteLabel['favicon_url'])) {
+            $whiteLabel['favicon_url'] = \Illuminate\Support\Facades\Storage::disk('public')->url($whiteLabel['favicon_url']);
+        }
+
+        return $whiteLabel;
     }
 }

@@ -43,6 +43,8 @@ export interface CompanyProfile {
     contact_email?: string
     contact_phone?: string
     address?: string
+    logo_url?: string | null
+    profile_logo_url?: string | null
     settings?: {
         white_label?: {
             primary_color?: string
