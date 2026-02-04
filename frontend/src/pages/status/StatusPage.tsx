@@ -95,45 +95,50 @@ export default function StatusPage() {
     const startTime = Date.now()
     
     try {
+      let response: { status?: string } = {}
+      
       switch (serviceId) {
         case 'api':
-          await api.get('/health')
+          response = await api.get('/health')
           break
         case 'database':
-          await api.get('/health/database')
+          response = await api.get('/health/database')
           break
         case 'redis':
-          await api.get('/health/redis')
+          response = await api.get('/health/redis')
           break
         case 'auth':
-          // Just check if we can reach auth endpoint
           await api.get('/auth/config')
-          break
+          return 'operational'
         case 'integrations':
           await api.get('/integrations')
-          break
+          return 'operational'
         case 'email':
-          await api.get('/health/email')
+          response = await api.get('/health/email')
           break
         case 'scheduler':
-          await api.get('/health/scheduler')
+          response = await api.get('/health/scheduler')
           break
         case 'storage':
-          await api.get('/health/storage')
+          response = await api.get('/health/storage')
           break
         case 'reports':
-          await api.get('/health/reports')
+          response = await api.get('/health/reports')
           break
         case 'external':
-          await api.get('/health/external')
+          response = await api.get('/health/external')
           break
         default:
-          await api.get('/health')
+          response = await api.get('/health')
       }
       
       const responseTime = Date.now() - startTime
-      // If response time > 2s, consider degraded
-      if (responseTime > 2000) {
+      
+      // Map backend status to frontend status
+      if (response.status === 'unhealthy') {
+        return 'outage'
+      }
+      if (response.status === 'degraded' || responseTime > 2000) {
         return 'degraded'
       }
       return 'operational'

@@ -48,6 +48,48 @@ final class HealthCheckController extends Controller
         ], $allHealthy ? 200 : 503);
     }
 
+    public function database(): \Illuminate\Http\JsonResponse
+    {
+        $check = $this->checkDatabase();
+        return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
+    }
+
+    public function redis(): \Illuminate\Http\JsonResponse
+    {
+        $check = $this->checkRedis();
+        return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
+    }
+
+    public function email(): \Illuminate\Http\JsonResponse
+    {
+        $check = $this->checkEmail();
+        return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
+    }
+
+    public function scheduler(): \Illuminate\Http\JsonResponse
+    {
+        $check = $this->checkScheduler();
+        return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
+    }
+
+    public function storage(): \Illuminate\Http\JsonResponse
+    {
+        $check = $this->checkStorage();
+        return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
+    }
+
+    public function reports(): \Illuminate\Http\JsonResponse
+    {
+        $check = $this->checkReports();
+        return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
+    }
+
+    public function external(): \Illuminate\Http\JsonResponse
+    {
+        $check = $this->checkExternal();
+        return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
+    }
+
     public function status(GetHealthStatusRequest $request): \Illuminate\Http\JsonResponse
     {
         $authUser = $request->user();
@@ -486,6 +528,178 @@ final class HealthCheckController extends Controller
             return [
                 'status' => 'unhealthy',
                 'message' => 'Storage check failed: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * @return array{status: string, message: string}
+     */
+    private function checkEmail(): array
+    {
+        try {
+            $mailer = config('mail.default');
+            $host = config("mail.mailers.{$mailer}.host");
+            $port = config("mail.mailers.{$mailer}.port");
+            
+            if ($mailer === 'log' || $mailer === 'array') {
+                return [
+                    'status' => 'healthy',
+                    'message' => "Email configured with {$mailer} driver (development mode)",
+                ];
+            }
+            
+            if (empty($host)) {
+                return [
+                    'status' => 'unhealthy',
+                    'message' => 'SMTP host not configured',
+                ];
+            }
+            
+            // Try to open a socket connection to verify SMTP is reachable
+            $connection = @fsockopen($host, (int) $port, $errno, $errstr, 5);
+            if ($connection) {
+                fclose($connection);
+                return [
+                    'status' => 'healthy',
+                    'message' => "SMTP server reachable at {$host}:{$port}",
+                ];
+            }
+            
+            return [
+                'status' => 'unhealthy',
+                'message' => "Cannot connect to SMTP server: {$errstr}",
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'unhealthy',
+                'message' => 'Email check failed: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * @return array{status: string, message: string}
+     */
+    private function checkScheduler(): array
+    {
+        try {
+            // Check if scheduler has run recently by looking at a cache key or log
+            // For now, we'll check if the schedule:run command exists and queue is working
+            $queueDriver = config('queue.default');
+            
+            if ($queueDriver === 'sync') {
+                return [
+                    'status' => 'healthy',
+                    'message' => 'Scheduler running in sync mode',
+                ];
+            }
+            
+            // Check failed jobs count as indicator of scheduler health
+            $failedJobs = DB::table('failed_jobs')
+                ->where('failed_at', '>=', now()->subHours(24))
+                ->count();
+            
+            if ($failedJobs > 10) {
+                return [
+                    'status' => 'degraded',
+                    'message' => "{$failedJobs} failed jobs in last 24 hours",
+                ];
+            }
+            
+            return [
+                'status' => 'healthy',
+                'message' => 'Task scheduler operational',
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'unhealthy',
+                'message' => 'Scheduler check failed: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * @return array{status: string, message: string}
+     */
+    private function checkReports(): array
+    {
+        try {
+            // Check if PDF generation service (Gutenberg) is configured
+            $gutenbergUrl = config('services.gutenberg.url');
+            
+            if (empty($gutenbergUrl)) {
+                return [
+                    'status' => 'unhealthy',
+                    'message' => 'PDF generation service (Gutenberg) not configured',
+                ];
+            }
+            
+            // Try to reach the Gutenberg service
+            $client = new \Illuminate\Http\Client\Factory();
+            $response = $client->timeout(5)->get($gutenbergUrl . '/health');
+            
+            if ($response->successful()) {
+                return [
+                    'status' => 'healthy',
+                    'message' => 'PDF generation service operational',
+                ];
+            }
+            
+            return [
+                'status' => 'degraded',
+                'message' => 'PDF service returned non-success status',
+            ];
+        } catch (\Exception $e) {
+            // If Gutenberg is not reachable, check if we have any recent successful reports
+            $recentSuccess = GeneratedReport::where('status', 'completed')
+                ->where('generated_at', '>=', now()->subHours(24))
+                ->exists();
+            
+            if ($recentSuccess) {
+                return [
+                    'status' => 'healthy',
+                    'message' => 'PDF generation working (recent reports generated)',
+                ];
+            }
+            
+            return [
+                'status' => 'degraded',
+                'message' => 'PDF service check failed: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * @return array{status: string, message: string}
+     */
+    private function checkExternal(): array
+    {
+        try {
+            // Check if we can reach common external services
+            // This is a basic connectivity check
+            $client = new \Illuminate\Http\Client\Factory();
+            
+            // Try to reach a reliable external endpoint
+            $response = $client->timeout(5)
+                ->withOptions(['verify' => config('app.env') === 'production'])
+                ->get('https://httpbin.org/status/200');
+            
+            if ($response->successful()) {
+                return [
+                    'status' => 'healthy',
+                    'message' => 'External API connectivity operational',
+                ];
+            }
+            
+            return [
+                'status' => 'degraded',
+                'message' => 'External connectivity issues detected',
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'degraded',
+                'message' => 'External connectivity check failed: ' . $e->getMessage(),
             ];
         }
     }

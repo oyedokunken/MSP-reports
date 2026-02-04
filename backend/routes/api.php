@@ -21,6 +21,13 @@ use App\Http\Controllers\Api\ApiKeyController;
 
 // Public Health Check (no auth required to implement)
 Route::get('/health', [HealthCheckController::class, 'index']);
+Route::get('/health/database', [HealthCheckController::class, 'database']);
+Route::get('/health/redis', [HealthCheckController::class, 'redis']);
+Route::get('/health/email', [HealthCheckController::class, 'email']);
+Route::get('/health/scheduler', [HealthCheckController::class, 'scheduler']);
+Route::get('/health/storage', [HealthCheckController::class, 'storage']);
+Route::get('/health/reports', [HealthCheckController::class, 'reports']);
+Route::get('/health/external', [HealthCheckController::class, 'external']);
 
 // Public SAML Metadata (no auth required)
 Route::get('/saml/metadata', [AuthController::class, 'getSamlMetadata']);
