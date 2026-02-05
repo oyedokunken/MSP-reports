@@ -11,7 +11,7 @@ import {
 import { CheckCircle2, MapPin } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { MapCustomerModalProps } from '../types'
-import { useMapCustomerModal } from '../hooks'
+import { useMapCustomerModal } from '../hooks/index'
 import { useIntersectionObserver } from '@/hooks/use-intersection-observer'
 import { CustomerSearchPanel } from './CustomerSearchPanel'
 import { SuggestedMatchesList } from './SuggestedMatchesList'

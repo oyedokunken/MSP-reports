@@ -9,7 +9,7 @@ import { ViewCustomerIntegrationsModal } from "./modals/ViewCustomerIntegrations
 import { MergeCustomersModal } from "./modals/MergeCustomersModal";
 import { SplitCustomerModal } from "./modals/SplitCustomerModal";
 import { CreateStaticCustomerModal } from "./modals/CreateStaticCustomerModal";
-import { useMasterCustomerList } from "./hooks";
+import { useMasterCustomerList } from "./hooks/index";
 import { useState } from "react";
 import { ApplyTemplateToCustomerModal } from "@/pages/customers/modals/ApplyTemplateToCustomerModal";
 import { GitMerge, GitBranch, Settings, MoreVertical, Edit, FileText, Cable, Send, CheckCircle, XCircle } from "lucide-react";
