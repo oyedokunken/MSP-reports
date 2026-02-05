@@ -158,16 +158,8 @@ export default function IntegrationList() {
                         navigate('/platform/integrations/add');
                     }}
                     onViewCustomers={(id) => {
-                        const int = allIntegrations.find((i) => i.id === id);
-                        if (int) {
-                            // Create clean slug: lowercase, replace spaces with dashes, remove special chars, trim dashes
-                            const slug = int.name.toLowerCase()
-                                .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-                                .replace(/\s+/g, '-') // Replace spaces with dashes
-                                .replace(/-+/g, '-') // Replace multiple dashes with single
-                                .replace(/^-|-$/g, ''); // Trim leading/trailing dashes
-                            navigate(`/platform/integrations/${encodeURIComponent(slug)}/view`);
-                        }
+                        // Use integration ID directly - more reliable than name-based routing
+                        navigate(`/platform/integrations/${id}/preview`);
                     }}
                     onSetSourceOfTruth={handleSetSourceOfTruth}
                     onEdit={(int) => {
