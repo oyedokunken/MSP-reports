@@ -57,6 +57,15 @@ export interface Customer {
   has_reports_configured?: boolean
 }
 
+export interface MappedCustomer {
+  customer_id: number
+  canonical_name: string
+  status: 'active' | 'inactive'
+  report_destination?: string | null
+  report_schedules_count: number
+  integrations: IntegrationCustomer[]
+}
+
 export interface CustomerIntegrationMapping {
   type: 'auto' | 'manual'
   confidence_score: number

@@ -11,7 +11,7 @@ import { FileText, Settings, MoreVertical, Edit, Cable, GitMerge, GitBranch, Inf
 import { AnimatedCard } from '@/components/ui/AnimatedCard'
 import { useAuth } from '@/contexts/AuthContext'
 import { hasPermission } from '@/utils/permissions'
-import type { MappedCustomer } from '@/stores/useCustomersStore'
+import type { MappedCustomer } from '../types'
 
 interface CustomerCardProps {
   customer: MappedCustomer

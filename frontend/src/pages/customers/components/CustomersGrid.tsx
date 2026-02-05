@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Users } from 'lucide-react'
 import { CustomerCard } from './CustomerCard'
-import type { MappedCustomer } from '@/stores/useCustomersStore'
+import type { MappedCustomer } from '../types'
 
 interface CustomersGridProps {
   customers: MappedCustomer[]
