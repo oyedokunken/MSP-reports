@@ -132,11 +132,11 @@ export function ViewHistoricalImportJobsModal({
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleString('en-US', { timeZone: 'Australia/Darwin' })
+    return new Date(dateString).toLocaleString()
   }
 
   const formatDateRange = (start: string, end: string) => {
-    return `${new Date(start).toLocaleDateString('en-AU', { timeZone: 'Australia/Darwin' })} - ${new Date(end).toLocaleDateString('en-AU', { timeZone: 'Australia/Darwin' })}`
+    return `${new Date(start).toLocaleDateString()} - ${new Date(end).toLocaleDateString()}`
   }
 
   const handleClose = () => {
@@ -214,7 +214,7 @@ export function ViewHistoricalImportJobsModal({
                         </div>
                         {job.current_position && (
                           <p className="text-xs text-muted-foreground">
-                            Current Position: {new Date(job.current_position).toLocaleDateString('en-AU', { timeZone: 'Australia/Darwin' })}
+                            Current Position: {new Date(job.current_position).toLocaleDateString()}
                           </p>
                         )}
                       </div>

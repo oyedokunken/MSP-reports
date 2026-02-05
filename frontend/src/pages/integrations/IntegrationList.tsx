@@ -159,7 +159,7 @@ export default function IntegrationList() {
                     }}
                     onViewCustomers={(id) => {
                         const int = allIntegrations.find((i) => i.id === id);
-                        if (int) navigate(`/platform/integrations/${encodeURIComponent(int.name.toLowerCase().replace(/\s+/g, '-'))}`);
+                        if (int) navigate(`/platform/integrations/${encodeURIComponent(int.name.toLowerCase().replace(/\s+/g, '-'))}/view`);
                     }}
                     onSetSourceOfTruth={handleSetSourceOfTruth}
                     onEdit={(int) => {

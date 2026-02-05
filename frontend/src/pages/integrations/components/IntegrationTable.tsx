@@ -174,7 +174,7 @@ export function IntegrationTable({
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-medium truncate max-w-[150px]">
+                                                    <span className="font-medium">
                                                         {integration.name}
                                                     </span>
                                                     {isSourceOfTruth && (

@@ -151,7 +151,7 @@ function AppRoutes() {
         />
 
         <Route
-          path="/platform/integrations/:integrationName"
+          path="/platform/integrations/:integrationName/view"
           element={
             <ProtectedRoute permission={{ section: 'integrations', action: 'view' }}>
               <IntegrationPreview />

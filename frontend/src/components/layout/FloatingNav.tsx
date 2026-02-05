@@ -49,11 +49,9 @@ export default function FloatingNav() {
             weekday: 'short',
             day: 'numeric',
             month: 'short',
-            timeZone: 'Australia/Darwin',
         }) + ' • ' + date.toLocaleTimeString('en-AU', {
             hour: '2-digit',
             minute: '2-digit',
-            timeZone: 'Australia/Darwin',
         });
     };
 

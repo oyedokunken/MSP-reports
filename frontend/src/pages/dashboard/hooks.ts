@@ -239,7 +239,7 @@ export const useDashboard = () => {
             name: schedule.report_type,
             customer: schedule.customer_name || "Unknown Customer",
             nextRun: schedule.next_scheduled_at
-                ? new Date(schedule.next_scheduled_at).toLocaleString('en-US', { timeZone: 'Australia/Darwin' })
+                ? new Date(schedule.next_scheduled_at).toLocaleString()
                 : "Not scheduled",
             status: "scheduled" as const,
         }));

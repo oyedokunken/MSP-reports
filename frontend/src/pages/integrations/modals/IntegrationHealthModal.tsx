@@ -161,7 +161,7 @@ export function IntegrationHealthModal({
                 </div>
 
                 <div className="text-xs text-muted-foreground pt-2 border-t border-border">
-                  Last sync: {new Date(healthData.last_sync_at).toLocaleString('en-US', { timeZone: 'Australia/Darwin' })}
+                  Last sync: {new Date(healthData.last_sync_at).toLocaleString()}
                 </div>
               </div>
 

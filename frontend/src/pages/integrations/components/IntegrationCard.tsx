@@ -106,8 +106,7 @@ export function IntegrationCard({
                         <div className="min-w-0 flex-1 overflow-hidden">
                             <div className="flex items-center gap-2">
                                 <h3
-                                    className="font-semibold text-foreground truncate"
-                                    style={{ maxWidth: "calc(100% - 120px)" }}
+                                    className="font-semibold text-foreground"
                                     title={integration.name}
                                 >
                                     {integration.name}

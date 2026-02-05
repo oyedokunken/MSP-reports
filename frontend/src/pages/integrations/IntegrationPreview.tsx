@@ -74,7 +74,7 @@ export const IntegrationPreview = () => {
           <div className="p-4 bg-card dark:bg-[hsl(var(--auth-card))] border border-border rounded-lg">
             <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
               <span>
-                Last updated: {new Date(preview.preview.timestamp).toLocaleString('en-US', { timeZone: 'Australia/Darwin' })}
+                Last updated: {new Date(preview.preview.timestamp).toLocaleString()}
               </span>
               <span>
                 Integration: {preview.integration.name} ({preview.integration.type})

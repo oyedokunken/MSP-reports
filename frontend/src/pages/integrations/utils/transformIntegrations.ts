@@ -1,7 +1,6 @@
 import { z } from 'zod'
 import type { Integration } from '../types/integration'
 
-const DISPLAY_TIMEZONE = 'Australia/Darwin'
 
 const ApiIntegrationSchema = z.object({
   integration_id: z.number(),
@@ -44,7 +43,6 @@ export const transformIntegrations = (responseData: unknown): Integration[] => {
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: DISPLAY_TIMEZONE,
       })
       : 'Never',
     syncStatus: (int.last_sync_status || 'pending') as Integration['syncStatus'],

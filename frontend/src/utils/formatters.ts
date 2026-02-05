@@ -120,7 +120,6 @@ export function formatDateTime(value: string | Date): string {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      timeZone: 'Australia/Darwin',
     }).format(date)
   } catch {
     return String(value)
@@ -137,7 +136,6 @@ export function formatDate(value: string | Date): string {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      timeZone: 'Australia/Darwin',
     }).format(date)
   } catch {
     return String(value)
@@ -153,7 +151,6 @@ export function formatTime(value: string | Date): string {
     return new Intl.DateTimeFormat('en-AU', {
       hour: '2-digit',
       minute: '2-digit',
-      timeZone: 'Australia/Darwin',
     }).format(date)
   } catch {
     return String(value)
