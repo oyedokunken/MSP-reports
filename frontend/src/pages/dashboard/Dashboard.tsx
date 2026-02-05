@@ -26,7 +26,7 @@ export default function Dashboard() {
     } = useDashboard();
 
     return (
-        <div className="flex flex-col gap-6 pb-8 font-athletics">
+        <div className="flex flex-col gap-6 pb-8">
             <StatsGrid isLoading={loadingStats} stats={stats} />
 
             <div className="grid gap-6 lg:grid-cols-2">

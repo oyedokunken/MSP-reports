@@ -7,10 +7,13 @@ import { useToast } from '@/components/ui/Toast'
 import { reportApi } from '@/services/api/reports'
 
 export function useIntegrationPreview() {
-  const { integrationId } = useParams<{ integrationId: string }>()
+  const params = useParams<{ integrationId?: string; integrationName?: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const toast = useToast()
+  
+  // Support both ID-based and name-based routes
+  const integrationId = params.integrationId || params.integrationName
 
   const [preview, setPreview] = useState<IntegrationPreviewType | null>(null)
   const [loading, setLoading] = useState(true)

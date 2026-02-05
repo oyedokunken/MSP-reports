@@ -191,7 +191,7 @@ export default function AddIntegrationPage() {
                   })}
                 </div>
                 {availableTypes.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground font-athletics">
+                  <div className="text-center py-8 text-muted-foreground">
                     <Spinner className="h-6 w-6 mx-auto mb-2" />
                     Loading available integrations...
                   </div>
@@ -317,7 +317,7 @@ export default function AddIntegrationPage() {
                     {loadingConfig ? (
                       <div className="flex flex-col items-center justify-center py-12 bg-muted/20 rounded-lg border border-dashed">
                         <Spinner className="h-8 w-8 mb-4" />
-                        <span className="text-sm font-medium text-muted-foreground font-athletics">Loading security fields...</span>
+                        <span className="text-sm font-medium text-muted-foreground">Loading security fields...</span>
                       </div>
                     ) : (
                       <>

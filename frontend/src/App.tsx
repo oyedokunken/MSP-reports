@@ -150,6 +150,15 @@ function AppRoutes() {
           }
         />
 
+        <Route
+          path="/platform/integrations/:integrationName"
+          element={
+            <ProtectedRoute permission={{ section: 'integrations', action: 'view' }}>
+              <IntegrationPreview />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="/platform/profile" element={<Profile />} />
 
         {/* TODO: Add Active Directory and Exchange routes when features are implemented */}

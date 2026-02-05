@@ -171,4 +171,27 @@ class Integration extends Model
             ->where('status', 'active')
             ->exists();
     }
+
+    /**
+     * Resolve the route binding for the model.
+     * Supports both ID and display_name (slug) lookup.
+     *
+     * @param  mixed  $value
+     * @param  string|null  $field
+     * @return \Illuminate\Database\Eloquent\Model|null
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        // If the value is numeric, look up by ID
+        if (is_numeric($value)) {
+            return $this->where('integration_id', $value)->first();
+        }
+        
+        // Otherwise, try to find by display_name (case-insensitive, slug-friendly)
+        $normalizedValue = str_replace(['-', '_'], ' ', strtolower($value));
+        
+        return $this->whereRaw('LOWER(display_name) = ?', [$normalizedValue])
+            ->orWhereRaw('LOWER(REPLACE(REPLACE(display_name, \'-\', \' \'), \'_\', \' \')) = ?', [$normalizedValue])
+            ->first();
+    }
 }

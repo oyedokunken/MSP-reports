@@ -1,22 +1,9 @@
-/* Import custom Athletics font */
-@import "./styles/fonts.css";
-
 /* Import Inter font from Google Fonts */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Athletics font utility class for branding/logo */
-.font-athletics {
-    font-family:
-        "Athletics",
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
-}
 
 @keyframes cubeMove {
     from {
