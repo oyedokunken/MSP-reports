@@ -42,7 +42,7 @@ export default function IntegrationList() {
 
     const [syncingId, setSyncingId] = useState<number | null>(null);
     const [syncProgress, setSyncProgress] = useState(0);
-    const [viewMode, setViewMode] = useState<ViewMode>('table');
+    const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
     const filteredIntegrations = allIntegrations.filter((int) => {
         const matchesSearch = !searchQuery.trim() ||
