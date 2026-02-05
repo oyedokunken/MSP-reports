@@ -104,6 +104,8 @@ final class CIPPIntegration implements IntegrationInterface
             'security_incidents' => 0,
             'conditional_access' => 0,
             'defender_states' => 0,
+            'mailbox_usage' => 0,
+            'exchange_protection' => 0,
             'errors' => [],
         ];
 
@@ -159,6 +161,15 @@ final class CIPPIntegration implements IntegrationInterface
                     if ($config['sync_defender'] ?? true) {
                         $defenderResult = $this->syncDefenderForTenant($tenantFilter);
                         $results['defender_states'] += $defenderResult['synced'];
+                    }
+
+                    // Sync Email & Exchange
+                    if ($config['sync_email'] ?? true) {
+                        $usageResult = $this->syncMailboxUsageForTenant($tenantFilter);
+                        $results['mailbox_usage'] += $usageResult['synced'];
+
+                        $protectionResult = $this->syncExchangeProtectionForTenant($tenantFilter);
+                        $results['exchange_protection'] += $protectionResult['synced'];
                     }
                 } catch (\Exception $e) {
                     $results['errors'][] = "Tenant {$tenantFilter}: {$e->getMessage()}";
@@ -465,6 +476,84 @@ final class CIPPIntegration implements IntegrationInterface
             }
         } catch (\Exception $e) {
             $errors[] = "Failed to list Defender state for {$tenantFilter}: {$e->getMessage()}";
+        }
+
+        return ['synced' => $synced, 'errors' => $errors];
+    }
+
+    /**
+     * Sync mailbox usage for a specific tenant
+     * 
+     * @return array{synced: int, errors: array<string>}
+     */
+    protected function syncMailboxUsageForTenant(string $tenantFilter): array
+    {
+        $synced = 0;
+        $errors = [];
+
+        try {
+            $usages = $this->client->listMailboxUsage($tenantFilter);
+
+            foreach ($usages as $usage) {
+                try {
+                    $mapped = CIPPMapper::mapMailboxUsage($usage, $tenantFilter);
+                    
+                    IntegrationData::create([
+                        'company_id' => $this->integration->company_id,
+                        'integration_id' => $this->integration->integration_id,
+                        'data_type' => IntegrationDataType::MAILBOX_USAGE,
+                        'external_id' => $mapped['external_id'],
+                        'data_timestamp' => now(),
+                        'data_payload' => $mapped,
+                        'imported_at' => now(),
+                    ]);
+
+                    $synced++;
+                } catch (\Exception $e) {
+                    $errors[] = "Mailbox usage sync error: {$e->getMessage()}";
+                }
+            }
+        } catch (\Exception $e) {
+            $errors[] = "Failed to list mailbox usage for {$tenantFilter}: {$e->getMessage()}";
+        }
+
+        return ['synced' => $synced, 'errors' => $errors];
+    }
+
+    /**
+     * Sync exchange protection for a specific tenant
+     * 
+     * @return array{synced: int, errors: array<string>}
+     */
+    protected function syncExchangeProtectionForTenant(string $tenantFilter): array
+    {
+        $synced = 0;
+        $errors = [];
+
+        try {
+            $protections = $this->client->listExchangeProtection($tenantFilter);
+
+            foreach ($protections as $protection) {
+                try {
+                    $mapped = CIPPMapper::mapExchangeProtection($protection, $tenantFilter);
+                    
+                    IntegrationData::create([
+                        'company_id' => $this->integration->company_id,
+                        'integration_id' => $this->integration->integration_id,
+                        'data_type' => IntegrationDataType::EXCHANGE_PROTECTION,
+                        'external_id' => $mapped['external_id'],
+                        'data_timestamp' => now(),
+                        'data_payload' => $mapped,
+                        'imported_at' => now(),
+                    ]);
+
+                    $synced++;
+                } catch (\Exception $e) {
+                    $errors[] = "Exchange protection sync error: {$e->getMessage()}";
+                }
+            }
+        } catch (\Exception $e) {
+            $errors[] = "Failed to list exchange protection for {$tenantFilter}: {$e->getMessage()}";
         }
 
         return ['synced' => $synced, 'errors' => $errors];

@@ -90,6 +90,12 @@ return [
             'default' => true,
             'help' => 'Sync Microsoft Defender state and vulnerabilities',
         ],
+        'sync_email' => [
+            'type' => 'checkbox',
+            'label' => 'Sync Email & Exchange Stats',
+            'default' => true,
+            'help' => 'Sync mailbox usage, sizes, and exchange protection settings',
+        ],
     ],
     
     'data_types' => [
@@ -102,6 +108,8 @@ return [
         'conditional_access' => 'Conditional Access Policies',
         'defender_state' => 'Defender Status',
         'defender_vulnerability' => 'Defender Vulnerabilities',
+        'mailbox_usage' => 'Mailbox Usage Stats',
+        'exchange_protection' => 'Exchange Protection Settings',
         'sign_in' => 'Sign-in Events',
         'audit_log' => 'Audit Logs',
     ],

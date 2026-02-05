@@ -120,7 +120,7 @@ final class CIPPClient
      */
     public function request(string $method, string $endpoint, array $params = []): array
     {
-        $this->rateLimiter->checkLimit($this->integration);
+        $this->rateLimiter->waitForSlot($this->integration);
         
         $token = $this->getAccessToken();
         $url = $this->baseUrl . $endpoint;
@@ -276,6 +276,17 @@ final class CIPPClient
         return is_array($response) ? $response : [];
     }
 
+    /**
+     * List CIPP system logs
+     * 
+     * @return array<int, array<string, mixed>>
+     */
+    public function listLogs(): array
+    {
+        $response = $this->request('GET', '/api/ListLogs');
+        return is_array($response) ? $response : [];
+    }
+
     // ==================== Identity Management ====================
 
     /**
@@ -366,6 +377,226 @@ final class CIPPClient
         return is_array($response) ? $response : [];
     }
 
+    /**
+     * List SharePoint/Teams sites
+     * 
+     * @param string $tenantFilter Tenant domain or ID
+     * @param string $type Type of sites to list (e.g., All, SPO, Group, Personal)
+     * @return array<int, array<string, mixed>>
+     */
+    public function listSites(string $tenantFilter, string $type = 'All'): array
+    {
+        $response = $this->request('GET', '/api/ListSites', [
+            'TenantFilter' => $tenantFilter,
+            'type' => $type,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Azure AD Connect sync status and errors
+     * 
+     * @param string $tenantFilter Tenant domain or ID
+     * @return array<int, array<string, mixed>>
+     */
+    public function listAzureADConnectStatus(string $tenantFilter): array
+    {
+        $response = $this->request('GET', '/api/ListAzureADConnectStatus', [
+            'TenantFilter' => $tenantFilter,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List recently deleted objects
+     * 
+     * @param string $tenantFilter Tenant domain or ID
+     * @return array<int, array<string, mixed>>
+     */
+    public function listDeletedItems(string $tenantFilter): array
+    {
+        $response = $this->request('GET', '/api/ListDeletedItems', [
+            'TenantFilter' => $tenantFilter,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Just-In-Time administrative elevations
+     * 
+     * @param string $tenantFilter Tenant domain or ID
+     * @return array<int, array<string, mixed>>
+     */
+    public function listJITAdmins(string $tenantFilter): array
+    {
+        $response = $this->request('GET', '/api/ExecJITAdmin', [
+            'TenantFilter' => $tenantFilter,
+            'Action' => 'List',
+        ]);
+        return $response['Results'] ?? [];
+    }
+
+    /**
+     * List group configuration templates
+     * 
+     * @return array<int, array<string, mixed>>
+     */
+    public function listGroupTemplates(): array
+    {
+        $response = $this->request('GET', '/api/ListGroupTemplates');
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List extensions configuration
+     * 
+     * @return array<string, mixed>
+     */
+    public function listExtensionsConfig(): array
+    {
+        $response = $this->request('GET', '/api/ListExtensionsConfig');
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List community repositories
+     * 
+     * @param bool $writeAccess Only show repos with write access
+     * @return array<int, array<string, mixed>>
+     */
+    public function listCommunityRepos(bool $writeAccess = false): array
+    {
+        $params = [];
+        if ($writeAccess) {
+            $params['WriteAccess'] = 'true';
+        }
+
+        $response = $this->request('GET', '/api/ListCommunityRepos', $params);
+        return $response['Results'] ?? [];
+    }
+
+    // ==================== Tenant Administration ====================
+
+    /**
+     * List alerts in the queue
+     * 
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listAlertsQueue(?string $tenantFilter = null): array
+    {
+        $params = [];
+        if ($tenantFilter) {
+            $params['TenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListAlertsQueue', $params);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List CSP licenses
+     * 
+     * @return array<int, array<string, mixed>>
+     */
+    public function listCSPLicenses(): array
+    {
+        $response = $this->request('GET', '/api/listCSPLicenses');
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List standards
+     * 
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listStandards(?string $tenantFilter = null): array
+    {
+        $params = [];
+        if ($tenantFilter) {
+            $params['TenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListStandards', $params);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List standard templates
+     * 
+     * @return array<int, array<string, mixed>>
+     */
+    public function listStandardTemplates(): array
+    {
+        $response = $this->request('GET', '/api/listStandardTemplates');
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List named locations
+     * 
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listNamedLocations(?string $tenantFilter = null): array
+    {
+        $params = [];
+        if ($tenantFilter) {
+            $params['TenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListNamedLocations', $params);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List backups for a tenant
+     * 
+     * @param string $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listBackups(string $tenantFilter): array
+    {
+        $response = $this->request('GET', '/api/ExecListBackup', [
+            'tenantFilter' => $tenantFilter,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List CSP SKUs
+     * 
+     * @return array<int, array<string, mixed>>
+     */
+    public function listCSPSKUs(): array
+    {
+        $response = $this->request('GET', '/api/ListCSPsku');
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List GDAP role templates
+     * 
+     * @return array<int, array<string, mixed>>
+     */
+    public function listGDAPRoleTemplates(): array
+    {
+        $response = $this->request('GET', '/api/ExecGDAPRoleTemplate');
+        return $response['Results'] ?? [];
+    }
+
+    /**
+     * List GDAP roles mapped in CIPP
+     * 
+     * @return array<int, array<string, mixed>>
+     */
+    public function listGDAPRoles(): array
+    {
+        $response = $this->request('GET', '/api/ListGDAPRoles');
+        return is_array($response) ? $response : [];
+    }
+
     // ==================== Security & Compliance ====================
 
     /**
@@ -376,10 +607,12 @@ final class CIPPClient
      */
     public function listSecurityAlerts(string $tenantFilter): array
     {
-        $response = $this->request('GET', '/api/ListSecurityAlerts', [
+        $response = $this->request('GET', '/api/ExecAlertsList', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        
+        // Handle nested Results -> MSResults structure
+        return $response['Results']['MSResults'] ?? [];
     }
 
     /**
@@ -390,9 +623,160 @@ final class CIPPClient
      */
     public function listSecurityIncidents(string $tenantFilter): array
     {
-        $response = $this->request('GET', '/api/ListSecurityIncidents', [
+        $response = $this->request('GET', '/api/ExecIncidentsList', [
             'TenantFilter' => $tenantFilter,
         ]);
+        
+        // Handle nested Results structure
+        return $response['Results'] ?? [];
+    }
+
+    // ==================== Intune & Endpoint Management ====================
+
+    /**
+     * List applications for a tenant
+     * 
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listApps(?string $tenantFilter = null): array
+    {
+        $params = [];
+        if ($tenantFilter) {
+            $params['tenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListApps', $params);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List applications in the queue
+     * 
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listApplicationQueue(?string $tenantFilter = null): array
+    {
+        $params = [];
+        if ($tenantFilter) {
+            $params['tenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListApplicationQueue', $params);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Autopilot devices
+     * 
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listAPDevices(?string $tenantFilter = null): array
+    {
+        $params = [];
+        if ($tenantFilter) {
+            $params['tenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListAPDevices', $params);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Autopilot configurations
+     * 
+     * @param string|null $type Configuration type (ESP, ApProfile)
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listAutopilotConfig(?string $type = null, ?string $tenantFilter = null): array
+    {
+        $params = [];
+        if ($type) {
+            $params['type'] = $type;
+        }
+        if ($tenantFilter) {
+            $params['tenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListAutopilotConfig', $params);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Intune managed devices
+     * 
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listDevices(?string $tenantFilter = null): array
+    {
+        $params = [];
+        if ($tenantFilter) {
+            $params['tenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListDevices', $params);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Intune policies
+     * 
+     * @param string|null $type Policy type (e.g., ESP)
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listIntunePolicies(?string $type = null, ?string $tenantFilter = null): array
+    {
+        $params = [];
+        if ($type) {
+            $params['type'] = $type;
+        }
+        if ($tenantFilter) {
+            $params['tenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListIntunePolicy', $params);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Intune templates
+     * 
+     * @param bool $view Whether to view templates
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listIntuneTemplates(bool $view = false, ?string $tenantFilter = null): array
+    {
+        $params = [
+            'View' => $view ? 'true' : 'false',
+        ];
+        if ($tenantFilter) {
+            $params['tenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListIntuneTemplates', $params);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Intune scripts
+     * 
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listIntuneScripts(?string $tenantFilter = null): array
+    {
+        $params = [];
+        if ($tenantFilter) {
+            $params['tenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListIntuneScript', $params);
         return is_array($response) ? $response : [];
     }
 
@@ -424,6 +808,48 @@ final class CIPPClient
         return is_array($response) ? $response : [];
     }
 
+    /**
+     * List Mailbox usage statistics for a tenant
+     * 
+     * @param string $tenantFilter Tenant domain or ID
+     * @return array<int, array<string, mixed>>
+     */
+    public function listMailboxUsage(string $tenantFilter): array
+    {
+        $response = $this->request('GET', '/api/ListMailboxUsage', [
+            'TenantFilter' => $tenantFilter,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Mailbox sizes for a tenant
+     * 
+     * @param string $tenantFilter Tenant domain or ID
+     * @return array<int, array<string, mixed>>
+     */
+    public function listMailboxSizes(string $tenantFilter): array
+    {
+        $response = $this->request('GET', '/api/ListMailboxSizes', [
+            'TenantFilter' => $tenantFilter,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Exchange protection settings (Anti-spam, anti-phish, etc.)
+     * 
+     * @param string $tenantFilter Tenant domain or ID
+     * @return array<int, array<string, mixed>>
+     */
+    public function listExchangeProtection(string $tenantFilter): array
+    {
+        $response = $this->request('GET', '/api/ListExchangeProtection', [
+            'TenantFilter' => $tenantFilter,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
     // ==================== Generic Graph Request ====================
 
     /**
@@ -449,6 +875,152 @@ final class CIPPClient
         }
         
         return $this->request('GET', '/api/ListGraphRequest', $params);
+    }
+
+    // ==================== Collaboration & Voice ====================
+
+    /**
+     * List Microsoft Teams for a tenant
+     * 
+     * @param string $tenantFilter Tenant filter
+     * @param string $type Type of Teams list (default 'list')
+     * @return array<int, array<string, mixed>>
+     */
+    public function listTeams(string $tenantFilter, string $type = 'list'): array
+    {
+        $response = $this->request('GET', '/api/ListTeams', [
+            'TenantFilter' => $tenantFilter,
+            'type' => $type,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Teams user activity metrics
+     * 
+     * @param string $tenantFilter Tenant filter
+     * @param string $type Activity report type (default 'TeamsUserActivityUser')
+     * @return array<int, array<string, mixed>>
+     */
+    public function listTeamsActivity(string $tenantFilter, string $type = 'TeamsUserActivityUser'): array
+    {
+        $response = $this->request('GET', '/api/ListTeamsActivity', [
+            'TenantFilter' => $tenantFilter,
+            'type' => $type,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Teams voice phone numbers
+     * 
+     * @param string $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listTeamsVoice(string $tenantFilter): array
+    {
+        $response = $this->request('GET', '/api/ListTeamsVoice', [
+            'TenantFilter' => $tenantFilter,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List Teams emergency locations (LIS)
+     * 
+     * @param string $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listTeamsEmergencyLocations(string $tenantFilter): array
+    {
+        $response = $this->request('GET', '/api/ListTeamsLisLocation', [
+            'TenantFilter' => $tenantFilter,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
+    // ==================== Security Tools & Breach Lookup ====================
+
+    /**
+     * List breaches for a specific account (email or domain)
+     * 
+     * @param string $account Email address or domain name
+     * @return array<int, array<string, mixed>>
+     */
+    public function listAccountBreaches(string $account): array
+    {
+        $response = $this->request('GET', '/api/ListBreachesAccount', [
+            'account' => $account,
+        ]);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * List breaches found for a specific tenant
+     * 
+     * @param string|null $tenantFilter Tenant filter
+     * @return array<int, array<string, mixed>>
+     */
+    public function listTenantBreaches(?string $tenantFilter = null): array
+    {
+        $params = [];
+        if ($tenantFilter) {
+            $params['tenantFilter'] = $tenantFilter;
+        }
+
+        $response = $this->request('GET', '/api/ListBreachesTenant', $params);
+        return is_array($response) ? $response : [];
+    }
+
+    /**
+     * Force a new breach search for a tenant
+     * 
+     * @param string $tenantFilter Tenant filter
+     * @return array<string, mixed>
+     */
+    public function executeBreachSearch(string $tenantFilter): array
+    {
+        return $this->request('GET', '/api/ExecBreachSearch', [
+            'tenantFilter' => $tenantFilter,
+        ]);
+    }
+
+    // ==================== Advanced PowerShell & Advanced Requests ====================
+
+    /**
+     * List available Exchange cmdlets or execute a specific cmdlet
+     * 
+     * @param string $tenantFilter Tenant filter
+     * @param string|null $cmdlet Cmdlet to execute (null to list available)
+     * @param array<string, mixed> $params Parameters for the cmdlet
+     * @param bool $compliance Whether to use compliance endpoints
+     * @param bool $asApp Whether to execute as app
+     * @return array<string, mixed>
+     */
+    public function listExoRequest(
+        string $tenantFilter,
+        ?string $cmdlet = null,
+        array $params = [],
+        bool $compliance = false,
+        bool $asApp = false
+    ): array {
+        $body = [
+            'tenantFilter' => $tenantFilter,
+            'compliance' => $compliance,
+        ];
+
+        if ($cmdlet === null) {
+            $body['availableCmdlets'] = true;
+            $body['asApp'] = $asApp;
+        } else {
+            $body['cmdlet'] = $cmdlet;
+            $body['cmdParams'] = $params;
+            // The API spec doesn't explicitly mention asApp for cmdlet execution in the provided oneOf,
+            // but it's often supported in CIPP's underlying logic.
+        }
+
+        $response = $this->request('POST', '/api/ListExoRequest', $body);
+        return $response['Results'] ?? [];
     }
 
     /**

@@ -165,20 +165,21 @@ final class CIPPMapper
         return [
             'external_id' => $incident['id'] ?? $incident['Id'] ?? '',
             'tenant_id' => $tenantId,
-            'title' => $incident['displayName'] ?? $incident['title'] ?? 'Unknown Incident',
-            'description' => $incident['description'] ?? null,
-            'severity' => strtolower($incident['severity'] ?? 'unknown'),
-            'status' => strtolower($incident['status'] ?? 'unknown'),
-            'classification' => $incident['classification'] ?? null,
-            'determination' => $incident['determination'] ?? null,
-            'created_at' => $incident['createdDateTime'] ?? null,
-            'last_updated_at' => $incident['lastUpdateDateTime'] ?? null,
+            'title' => $incident['displayName'] ?? $incident['DisplayName'] ?? $incident['title'] ?? 'Unknown Incident',
+            'description' => $incident['description'] ?? $incident['Description'] ?? null,
+            'severity' => strtolower($incident['severity'] ?? $incident['Severity'] ?? 'unknown'),
+            'status' => strtolower($incident['status'] ?? $incident['Status'] ?? 'unknown'),
+            'classification' => $incident['classification'] ?? $incident['Classification'] ?? null,
+            'determination' => $incident['determination'] ?? $incident['Determination'] ?? null,
+            'created_at' => $incident['createdDateTime'] ?? $incident['Created'] ?? null,
+            'last_updated_at' => $incident['lastUpdateDateTime'] ?? $incident['Updated'] ?? null,
             'metadata' => [
-                'incident_web_url' => $incident['incidentWebUrl'] ?? null,
-                'redirect_incident_id' => $incident['redirectIncidentId'] ?? null,
-                'assigned_to' => $incident['assignedTo'] ?? null,
+                'incident_web_url' => $incident['incidentWebUrl'] ?? $incident['IncidentUrl'] ?? null,
+                'redirect_incident_id' => $incident['redirectIncidentId'] ?? $incident['RedirectId'] ?? null,
+                'assigned_to' => $incident['assignedTo'] ?? $incident['AssignedTo'] ?? null,
                 'alerts' => $incident['alerts'] ?? [],
                 'comments' => $incident['comments'] ?? [],
+                'tags' => $incident['tags'] ?? $incident['Tags'] ?? [],
             ],
         ];
     }
@@ -216,16 +217,18 @@ final class CIPPMapper
      */
     public static function mapDefenderState(array $device, string $tenantId): array
     {
+        $protection = $device['windowsProtectionState'] ?? [];
+        
         return [
-            'external_id' => $device['id'] ?? $device['deviceId'] ?? '',
+            'external_id' => $device['id'] ?? $device['deviceId'] ?? $device['deviceName'] ?? '',
             'tenant_id' => $tenantId,
             'device_name' => $device['deviceName'] ?? $device['computerDnsName'] ?? 'Unknown Device',
-            'health_status' => $device['healthStatus'] ?? null,
+            'health_status' => $device['healthStatus'] ?? $protection['deviceState'] ?? null,
             'risk_score' => $device['riskScore'] ?? null,
             'exposure_level' => $device['exposureLevel'] ?? null,
             'os_platform' => $device['osPlatform'] ?? null,
             'os_version' => $device['osVersion'] ?? null,
-            'last_seen' => $device['lastSeen'] ?? null,
+            'last_seen' => $device['lastSeen'] ?? $protection['lastReportedDateTime'] ?? null,
             'metadata' => [
                 'onboarding_status' => $device['onboardingStatus'] ?? null,
                 'sensor_health_state' => $device['sensorHealthState'] ?? null,
@@ -233,6 +236,7 @@ final class CIPPMapper
                 'managed_by' => $device['managedBy'] ?? null,
                 'first_seen' => $device['firstSeen'] ?? null,
                 'machine_tags' => $device['machineTags'] ?? [],
+                'protection_state' => $protection,
             ],
         ];
     }
@@ -319,5 +323,52 @@ final class CIPPMapper
         ]);
         
         return !empty($parts) ? implode(', ', $parts) : null;
+    }
+    /**
+     * Map mailbox usage data to standardized format
+     * 
+     * @param array<string, mixed> $usage
+     * @param string $tenantId
+     * @return array<string, mixed>
+     */
+    public static function mapMailboxUsage(array $usage, string $tenantId): array
+    {
+        return [
+            'external_id' => $usage['id'] ?? $usage['userPrincipalName'] ?? '',
+            'tenant_id' => $tenantId,
+            'user_principal_name' => $usage['userPrincipalName'] ?? null,
+            'display_name' => $usage['displayName'] ?? null,
+            'item_count' => $usage['itemCount'] ?? 0,
+            'storage_used_bytes' => $usage['storageUsedInBytes'] ?? 0,
+            'last_activity_date' => $usage['lastActivityDate'] ?? null,
+            'metadata' => [
+                'is_deleted' => $usage['isDeleted'] ?? false,
+                'report_refresh_date' => $usage['reportRefreshDate'] ?? null,
+                'quota_bytes' => $usage['issueWarningQuotaInBytes'] ?? null,
+            ],
+        ];
+    }
+
+    /**
+     * Map exchange protection data (anti-spam, etc) to standardized format
+     * 
+     * @param array<string, mixed> $protection
+     * @param string $tenantId
+     * @return array<string, mixed>
+     */
+    public static function mapExchangeProtection(array $protection, string $tenantId): array
+    {
+        return [
+            'external_id' => $protection['id'] ?? $protection['Identity'] ?? '',
+            'tenant_id' => $tenantId,
+            'name' => $protection['displayName'] ?? $protection['Name'] ?? 'Unknown Protection',
+            'type' => $protection['type'] ?? $protection['PolicyType'] ?? 'unknown',
+            'state' => strtolower($protection['state'] ?? $protection['State'] ?? 'unknown'),
+            'metadata' => [
+                'is_default' => $protection['isDefault'] ?? false,
+                'priority' => $protection['priority'] ?? null,
+                'settings' => $protection['settings'] ?? $protection,
+            ],
+        ];
     }
 }

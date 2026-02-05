@@ -43,6 +43,14 @@ final class IntegrationDataType
     public const VEEAM_REPOSITORY = 'veeam_repository';
     public const VEEAM_PROTECTED_WORKLOAD = 'veeam_protected_workload';
 
+    // CIPP Types
+    public const SECURITY_ALERT = 'security_alert';
+    public const SECURITY_INCIDENT = 'security_incident';
+    public const CONDITIONAL_ACCESS = 'conditional_access';
+    public const DEFENDER_STATE = 'defender_state';
+    public const MAILBOX_USAGE = 'mailbox_usage';
+    public const EXCHANGE_PROTECTION = 'exchange_protection';
+
     // Generic Types
     public const LICENSE = 'license';
     public const USER = 'user';
@@ -81,6 +89,12 @@ final class IntegrationDataType
             self::LICENSE,
             self::USER,
             self::SECURITY_EVENT,
+            self::SECURITY_ALERT,
+            self::SECURITY_INCIDENT,
+            self::CONDITIONAL_ACCESS,
+            self::DEFENDER_STATE,
+            self::MAILBOX_USAGE,
+            self::EXCHANGE_PROTECTION,
         ];
     }
 
