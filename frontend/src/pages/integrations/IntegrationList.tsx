@@ -189,7 +189,7 @@ export default function IntegrationList() {
                         }
                         openModal("delete", int);
                     }}
-                    onPreviewData={(int) => navigate(`/platform/integrations/${int.id}/preview`)}
+                    onPreviewData={(int) => navigate(`/platform/integrations/${encodeURIComponent(int.name.toLowerCase().replace(/\s+/g, '-'))}`)}
                     sourceOfTruthId={sourceOfTruthId}
                 />
             ) : (
@@ -235,7 +235,7 @@ export default function IntegrationList() {
                         }
                         openModal("delete", int);
                     }}
-                    onPreviewData={(int) => navigate(`/platform/integrations/${int.id}/preview`)}
+                    onPreviewData={(int) => navigate(`/platform/integrations/${encodeURIComponent(int.name.toLowerCase().replace(/\s+/g, '-'))}`)}
                     sourceOfTruthId={sourceOfTruthId}
                 />
             )}
