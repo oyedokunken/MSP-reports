@@ -13,7 +13,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { CheckCircle2, GitMerge, AlertTriangle, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { api } from "@/lib/api";
+import { customerApi } from "@/services/api/customers";
+import { useMergeCustomersMutation } from "../hooks/useCustomersQueries";
 import type { Customer } from "../types";
 
 interface MergeCustomersModalProps {
@@ -24,12 +25,7 @@ interface MergeCustomersModalProps {
     onSuccess?: () => void;
 }
 
-interface Pagination {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-}
+
 
 export function MergeCustomersModal({
     open,
@@ -38,8 +34,7 @@ export function MergeCustomersModal({
     allCustomers,
     onSuccess,
 }: MergeCustomersModalProps) {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState("");
+    const [localError, setLocalError] = useState("");
     const [success, setSuccess] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(
@@ -52,58 +47,9 @@ export function MergeCustomersModal({
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const observerTarget = useRef<HTMLDivElement>(null);
 
-    const loadInitialCustomers = useCallback(async () => {
-        setIsSearching(true);
-        try {
-            const params = new URLSearchParams({
-                page: '1',
-                per_page: '20'
-            });
-            const response = await api.get(`/customers?${params.toString()}`);
-            const data = response as { data?: Customer[]; pagination?: Pagination } | Customer[];
-            const customers = Array.isArray(data) ? data : (data.data || []);
-            const pagination = Array.isArray(data) ? { current_page: 1, last_page: 1 } : (data.pagination || { current_page: 1, last_page: 1 });
-
-            const mapped = customers.map((c) => ({
-                ...c,
-                name: c.canonical_name || c.name,
-                integration_count: c.integrations?.length || 0
-            }));
-
-            const filtered = mapped.filter(
-                (c: Customer) => c.customer_id !== customer?.customer_id
-            );
-
-            setSearchResults(filtered);
-
-            const currentPageNum = (pagination as Pagination).current_page || 1;
-            const lastPage = (pagination as Pagination).last_page || 1;
-            setHasMore(currentPageNum < lastPage);
-            setCurrentPage(currentPageNum);
-        } catch (err) {
-            logger.error('Failed to load customers:', err);
-            setSearchResults([]);
-            setHasMore(false);
-        } finally {
-            setIsSearching(false);
-        }
-    }, [customer]);
-
-    useEffect(() => {
-        if (open) {
-            setSearchTerm("");
-            setSelectedCustomerId(null);
-            setError("");
-            setSuccess(false);
-            setSearchResults([]);
-            setCurrentPage(1);
-            setHasMore(true);
-            loadInitialCustomers();
-        }
-    }, [open, loadInitialCustomers]);
+    const mergeMutation = useMergeCustomersMutation();
 
     const loadMoreCustomers = useCallback(async (page: number, append: boolean = false) => {
-
         if (append) {
             setIsLoadingMore(true);
         } else {
@@ -111,24 +57,19 @@ export function MergeCustomersModal({
         }
 
         try {
-            const params = new URLSearchParams({
-                page: page.toString(),
-                per_page: '20'
+            const response = await customerApi.getCustomers({
+                page,
+                search: searchTerm.trim() || undefined,
             });
 
-            if (searchTerm.trim()) {
-                params.append('search', searchTerm);
-            }
-            const response = await api.get(`/customers?${params.toString()}`);
-            const data = response as { data?: Customer[]; pagination?: Pagination } | Customer[];
-            const customers = Array.isArray(data) ? data : (data.data || []);
-            const pagination = Array.isArray(data) ? { current_page: 1, last_page: 1 } : (data.pagination || { current_page: 1, last_page: 1 });
+            const customers = response.data || [];
+            const pagination = response.pagination;
 
             const mapped = customers.map((c) => ({
                 ...c,
-                name: c.canonical_name || c.name,
+                name: c.canonical_name,
                 integration_count: c.integrations?.length || 0
-            }));
+            })) as Customer[];
 
             const filtered = mapped.filter(
                 (c: Customer) => c.customer_id !== customer?.customer_id
@@ -140,10 +81,8 @@ export function MergeCustomersModal({
                 setSearchResults(filtered);
             }
 
-            const currentPageNum = pagination.current_page || page;
-            const lastPage = pagination.last_page || 1;
-            setHasMore(currentPageNum < lastPage);
-            setCurrentPage(currentPageNum);
+            setHasMore(pagination.current_page < pagination.last_page);
+            setCurrentPage(pagination.current_page);
         } catch (err) {
             logger.error('Failed to search customers:', err);
             if (!append) {
@@ -155,6 +94,19 @@ export function MergeCustomersModal({
             setIsLoadingMore(false);
         }
     }, [searchTerm, customer?.customer_id]);
+
+    useEffect(() => {
+        if (open) {
+            setSearchTerm("");
+            setSelectedCustomerId(null);
+            setLocalError("");
+            setSuccess(false);
+            setSearchResults([]);
+            setCurrentPage(1);
+            setHasMore(true);
+            loadMoreCustomers(1, false);
+        }
+    }, [open, loadMoreCustomers]);
 
     useEffect(() => {
         if (!open) return;
@@ -190,24 +142,26 @@ export function MergeCustomersModal({
 
     const filteredCustomers = searchResults;
 
-    const selectedCustomer = allCustomers.find(
+    const selectedCustomerData = allCustomers.find(
         (c) => c.customer_id === selectedCustomerId
-    );
+    ) || searchResults.find(c => c.customer_id === selectedCustomerId);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!selectedCustomerId) {
-            setError("Please select a customer to merge with");
+            setLocalError("Please select a customer to merge with");
             return;
         }
 
-        setError("");
-        setIsSubmitting(true);
+        if (!customer?.customer_id) return;
+
+        setLocalError("");
 
         try {
-            await api.post(`/customers/${customer?.customer_id}/merge`, {
-                merge_customer_id: selectedCustomerId,
+            await mergeMutation.mutateAsync({
+                primaryId: customer.customer_id,
+                data: { merge_customer_id: selectedCustomerId }
             });
 
             setSuccess(true);
@@ -216,23 +170,19 @@ export function MergeCustomersModal({
                 onOpenChange(false);
                 onSuccess?.();
             }, 2000);
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } }; message?: string };
-            const errorMessage =
-                error.response?.data?.message ||
-                error.message ||
-                "Failed to merge customers";
-            setError(errorMessage);
-        } finally {
-            setIsSubmitting(false);
+        } catch {
+            // Error handle by mutation observer
         }
     };
 
     const handleClose = () => {
-        if (!isSubmitting) {
+        if (!mergeMutation.isPending) {
             onOpenChange(false);
         }
     };
+
+    const mutationError = mergeMutation.error instanceof Error ? mergeMutation.error.message : "";
+    const displayError = localError || mutationError;
 
     if (success) {
         return (
@@ -305,7 +255,7 @@ export function MergeCustomersModal({
                                 placeholder="Search customers..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                disabled={isSubmitting}
+                                disabled={mergeMutation.isPending}
                                 className="pl-10"
                             />
                         </div>
@@ -359,21 +309,21 @@ export function MergeCustomersModal({
                         )}
                     </div>
 
-                    {selectedCustomer && (
+                    {selectedCustomerData && (
                         <div className="rounded-lg border border-border bg-accent/50 p-3">
                             <p className="text-sm font-medium mb-1">
                                 Merging into:
                             </p>
                             <p className="font-semibold">
-                                {selectedCustomer.name}
+                                {selectedCustomerData.name}
                             </p>
                         </div>
                     )}
 
-                    {error && (
+                    {displayError && (
                         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
                             <p className="text-sm text-destructive font-medium">
-                                {error}
+                                {displayError}
                             </p>
                         </div>
                     )}
@@ -383,16 +333,16 @@ export function MergeCustomersModal({
                             type="button"
                             variant="outline"
                             onClick={handleClose}
-                            disabled={isSubmitting}
+                            disabled={mergeMutation.isPending}
                         >
                             Cancel
                         </Button>
                         <Button
                             type="submit"
                             variant="destructive"
-                            disabled={isSubmitting || !selectedCustomerId}
+                            disabled={mergeMutation.isPending || !selectedCustomerId}
                         >
-                            {isSubmitting ? (
+                            {mergeMutation.isPending ? (
                                 <>
                                     <Spinner className="mr-2 h-4 w-4" />
                                     Merging...

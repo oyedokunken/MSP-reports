@@ -12,8 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { Edit, AlertCircle } from "lucide-react";
-import { api } from "@/lib/api";
-import { useCustomersStore } from "@/stores/useCustomersStore";
+import { useUpdateCustomerMutation } from "../hooks/useCustomersQueries";
 import type { Customer } from "../types";
 
 interface EditCustomerModalProps {
@@ -29,16 +28,15 @@ export function EditCustomerModal({
     customer,
     onSuccess,
 }: EditCustomerModalProps) {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState("");
     const [name, setName] = useState("");
+    const [localError, setLocalError] = useState("");
 
-    const updateCustomer = useCustomersStore((state) => state.updateCustomer);
+    const updateMutation = useUpdateCustomerMutation();
 
     useEffect(() => {
         if (open && customer) {
             setName(customer.canonical_name || customer.name || "");
-            setError("");
+            setLocalError("");
         }
     }, [open, customer]);
 
@@ -46,43 +44,36 @@ export function EditCustomerModal({
         e.preventDefault();
 
         if (!name.trim()) {
-            setError("Please enter a customer name");
+            setLocalError("Please enter a customer name");
             return;
         }
 
-        setError("");
-        setIsSubmitting(true);
+        if (!customer?.customer_id) return;
+
+        setLocalError("");
 
         try {
-            await api.patch(`/customers/${customer?.customer_id}`, {
-                canonical_name: name.trim(),
+            await updateMutation.mutateAsync({
+                customerId: customer.customer_id,
+                data: { canonical_name: name.trim() }
             });
-
-            if (customer?.customer_id) {
-                updateCustomer(customer.customer_id, {
-                    canonical_name: name.trim(),
-                });
-            }
 
             onOpenChange(false);
             onSuccess?.();
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } }; message?: string };
-            const errorMessage =
-                error.response?.data?.message ||
-                error.message ||
-                "Failed to update customer";
-            setError(errorMessage);
-        } finally {
-            setIsSubmitting(false);
+        } catch {
+            // Error is handled by mutation state, but we can catch to avoid unhandled rejection
         }
     };
 
     const handleClose = () => {
-        if (!isSubmitting) {
+        if (!updateMutation.isPending) {
             onOpenChange(false);
         }
     };
+
+    // Extract error message from mutation
+    const mutationError = updateMutation.error instanceof Error ? updateMutation.error.message : "";
+    const displayError = localError || mutationError;
 
     if (!customer) return null;
 
@@ -113,16 +104,16 @@ export function EditCustomerModal({
                             placeholder="Customer Name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            disabled={isSubmitting}
+                            disabled={updateMutation.isPending}
                             className="w-full"
                         />
                     </div>
 
-                    {error && (
+                    {displayError && (
                         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 flex items-start gap-2">
                             <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
                             <p className="text-sm text-destructive font-medium">
-                                {error}
+                                {displayError}
                             </p>
                         </div>
                     )}
@@ -132,12 +123,12 @@ export function EditCustomerModal({
                             type="button"
                             variant="outline"
                             onClick={handleClose}
-                            disabled={isSubmitting}
+                            disabled={updateMutation.isPending}
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? (
+                        <Button type="submit" disabled={updateMutation.isPending}>
+                            {updateMutation.isPending ? (
                                 <>
                                     <Spinner className="mr-2 h-4 w-4" />
                                     Updating...

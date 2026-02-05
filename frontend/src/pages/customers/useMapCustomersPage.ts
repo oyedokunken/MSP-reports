@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useCustomersStore } from "@/stores/useCustomersStore";
 import type { IntegrationCustomer } from "./types";
+import { useUnmappedCustomersQuery, useCustomersQuery } from "./hooks/useCustomersQueries";
 
 type SortField = 'name' | 'integration_type' | 'external_id' | 'last_seen_at';
 type SortDirection = 'asc' | 'desc';
@@ -8,37 +9,40 @@ type SortDirection = 'asc' | 'desc';
 export { type SortField, type SortDirection };
 
 export const useMapCustomersPage = () => {
-    const unmappedCustomers = useCustomersStore((state) => state.unmappedCustomers);
-    const unmappedCount = useCustomersStore((state) => state.unmappedCount);
+    // Store state for filters and UI
     const unmappedCurrentPage = useCustomersStore((state) => state.unmappedCurrentPage);
-    const unmappedTotalPages = useCustomersStore((state) => state.unmappedTotalPages);
-    const fetchUnmappedCustomers = useCustomersStore((state) => state.fetchUnmappedCustomers);
+    const unmappedSearchQuery = useCustomersStore((state) => state.unmappedSearchQuery);
+    const setUnmappedSearchQuery = useCustomersStore((state) => state.setUnmappedSearchQuery);
+    const setUnmappedPage = useCustomersStore((state) => state.setUnmappedPage);
+
     const modals = useCustomersStore((state) => state.modals);
     const selectedUnmappedCustomer = useCustomersStore((state) => state.selectedUnmappedCustomer);
     const setSelectedUnmappedCustomer = useCustomersStore((state) => state.setSelectedUnmappedCustomer);
     const openModal = useCustomersStore((state) => state.openModal);
     const closeModal = useCustomersStore((state) => state.closeModal);
-    const getMappedCustomers = useCustomersStore((state) => state.getMappedCustomers);
-    const unmappedSearchQuery = useCustomersStore((state) => state.unmappedSearchQuery);
-    const setUnmappedSearchQuery = useCustomersStore((state) => state.setUnmappedSearchQuery);
 
     const [searchQuery, setSearchQuery] = useState(unmappedSearchQuery);
-    const [isLoading, setIsLoading] = useState(true);
     const [sortField, setSortField] = useState<SortField>('name');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const [view, setView] = useState<'grid' | 'table'>('grid');
     const [integrationFilters, setIntegrationFilters] = useState<string[]>([]);
 
-    useEffect(() => {
-        const loadCustomers = async () => {
-            setIsLoading(true);
-            await fetchUnmappedCustomers(unmappedCurrentPage, unmappedSearchQuery);
-            setIsLoading(false);
-        };
-        loadCustomers();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    // React Query for Unmapped
+    const {
+        data: unmappedResponse,
+        isLoading,
+        refetch: refetchUnmapped,
+    } = useUnmappedCustomersQuery(unmappedCurrentPage, unmappedSearchQuery);
+
+    // React Query for existing customers (needed for the mapping modal)
+    const {
+        data: mappedResponse,
+    } = useCustomersQuery({ page: 1, statuses: ['active'] });
+
+    const unmappedCustomers = unmappedResponse?.data || [];
+    const unmappedCount = unmappedResponse?.summary?.total_unmapped || unmappedCustomers.length;
+    const unmappedTotalPages = unmappedResponse?.pagination?.last_page || 1;
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -92,16 +96,14 @@ export const useMapCustomersPage = () => {
 
     const handleMapSuccess = useCallback(async () => {
         setSelectedIds(new Set());
-        await fetchUnmappedCustomers(unmappedCurrentPage);
-    }, [fetchUnmappedCustomers, unmappedCurrentPage]);
+        await refetchUnmapped();
+    }, [refetchUnmapped]);
 
     const handlePageChange = useCallback(async (page: number) => {
-        setIsLoading(true);
         setSelectedIds(new Set());
-        await fetchUnmappedCustomers(page, unmappedSearchQuery);
-        setIsLoading(false);
+        setUnmappedPage(page);
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [fetchUnmappedCustomers, unmappedSearchQuery]);
+    }, [setUnmappedPage]);
 
     const handleSelectAll = useCallback(() => {
         if (selectedIds.size === filteredAndSortedCustomers.length) {
@@ -138,6 +140,10 @@ export const useMapCustomersPage = () => {
             openModal("map");
         }
     }, [filteredAndSortedCustomers, selectedIds, setSelectedUnmappedCustomer, openModal]);
+
+    const getMappedCustomers = useCallback(() => {
+        return mappedResponse?.data || [];
+    }, [mappedResponse]);
 
     return {
         isLoading,

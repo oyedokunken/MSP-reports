@@ -1,73 +1,48 @@
-import { useState, useEffect } from 'react'
-import { logger } from '@/lib/logger'
+import { useQueries } from '@tanstack/react-query'
 import { customerApi } from '@/services/api/customers'
-import type { IntegrationCustomer, IntegrationStats } from '../types'
+import { useCustomerIntegrationsQuery, customerKeys } from './useCustomersQueries'
+import type { IntegrationStats } from '../types'
 
 export const useCustomerIntegrationDetails = (customerId: string | undefined) => {
-    const [integrations, setIntegrations] = useState<IntegrationCustomer[]>([])
-    const [isLoading, setIsLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [customerName, setCustomerName] = useState<string>('')
-    const [stats, setStats] = useState<{ [key: number]: IntegrationStats }>({})
-    const [loadingStats, setLoadingStats] = useState<{ [key: number]: boolean }>({})
+    const numericId = customerId ? parseInt(customerId, 10) : undefined
 
-    useEffect(() => {
-        const fetchIntegrationDetails = async () => {
-            if (!customerId) return
+    const {
+        data: integrationsResponse,
+        isLoading: isLoadingIntegrations,
+        error: integrationsError
+    } = useCustomerIntegrationsQuery(numericId)
 
-            try {
-                setIsLoading(true)
-                setError(null)
+    const integrations = integrationsResponse?.data || []
 
-                const numericId = parseInt(customerId, 10)
-                if (isNaN(numericId)) throw new Error('Invalid customer ID')
+    // Fetch stats for all integrations in parallel using useQueries
+    const statsQueries = useQueries({
+        queries: integrations.map((integration) => ({
+            queryKey: customerKeys.stats(numericId!, integration.integration_customer_id),
+            queryFn: () => customerApi.getCustomerIntegrationStats(numericId!, integration.integration_customer_id),
+            enabled: !!numericId,
+        }))
+    })
 
-                // Use the type-safe API service
-                const response = await customerApi.getCustomerIntegrations(numericId)
+    const isLoadingStats = statsQueries.some(query => query.isLoading)
+    const statsError = statsQueries.find(query => query.error)?.error
 
-                // Response data is already unwrapped by our apiRequest helper
-                const integrationData = response.data || []
-                setIntegrations(integrationData)
+    const stats: { [key: number]: IntegrationStats } = {}
+    const loadingStats: { [key: number]: boolean } = {}
 
-                if (integrationData.length > 0) {
-                    setCustomerName(integrationData[0].name)
-
-                    // Fetch stats for each integration
-                    // Using for...of for sequential or Promise.all for parallel
-                    // Parallel is better here
-                    await Promise.all(
-                        integrationData.map(async (integration) => {
-                            const integrationCustomerId = integration.integration_customer_id
-                            setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: true }))
-
-                            try {
-                                const statsResponse = await customerApi.getCustomerIntegrationStats(numericId, integrationCustomerId)
-                                const data = statsResponse.data
-                                setStats(prev => ({ ...prev, [integrationCustomerId]: data }))
-                            } catch (err) {
-                                logger.error(`Failed to fetch stats for integration ${integrationCustomerId}`, err)
-                            } finally {
-                                setLoadingStats(prev => ({ ...prev, [integrationCustomerId]: false }))
-                            }
-                        })
-                    )
-                }
-            } catch (err) {
-                const errorMessage = err instanceof Error ? err.message : 'Failed to load integration details'
-                setError(errorMessage)
-                logger.error('fetchIntegrationDetails error:', err)
-            } finally {
-                setIsLoading(false)
-            }
+    integrations.forEach((integration, index) => {
+        const query = statsQueries[index]
+        if (query.data) {
+            stats[integration.integration_customer_id] = query.data.data
         }
+        loadingStats[integration.integration_customer_id] = query.isLoading
+    })
 
-        fetchIntegrationDetails()
-    }, [customerId])
+    const customerName = integrations.length > 0 ? integrations[0].name : ''
 
     return {
         integrations,
-        isLoading,
-        error,
+        isLoading: isLoadingIntegrations || isLoadingStats,
+        error: integrationsError || statsError ? ((integrationsError || statsError) as Error).message : null,
         customerName,
         stats,
         loadingStats,

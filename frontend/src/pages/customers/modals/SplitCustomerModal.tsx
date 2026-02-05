@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Spinner } from '@/components/ui/spinner'
 import { CheckCircle2, GitBranch, AlertCircle, History, Undo2 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
+import { customerApi } from '@/services/api/customers'
+import { useSplitCustomerMutation } from '../hooks/useCustomersQueries'
 import { api } from '@/lib/api'
 import type { Customer } from '../types'
 
@@ -39,33 +41,33 @@ export function SplitCustomerModal({
   customer,
   onSuccess
 }: SplitCustomerModalProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [localError, setLocalError] = useState('')
   const [success, setSuccess] = useState(false)
   const [newCustomerName, setNewCustomerName] = useState('')
   const [integrations, setIntegrations] = useState<IntegrationMapping[]>([])
   const [selectedIntegrations, setSelectedIntegrations] = useState<number[]>([])
   const [mergeHistory, setMergeHistory] = useState<MergeHistoryItem[]>([])
 
+  const splitMutation = useSplitCustomerMutation();
+
   const fetchIntegrations = useCallback(async () => {
-    if (!customer) return
+    if (!customer?.customer_id) return
 
     setIsLoading(true)
     try {
-      const response = await api.get(`/customers/${customer.customer_id}/integrations`)
-      const data = response as { data?: IntegrationMapping[] } | IntegrationMapping[]
-      const integrationsList = Array.isArray(data) ? data : (data.data || [])
+      const response = await customerApi.getCustomerIntegrations(customer.customer_id)
+      const integrationsList = (response.data || []) as unknown as IntegrationMapping[]
       setIntegrations(integrationsList)
     } catch {
-      setError('Failed to load integrations')
+      setLocalError('Failed to load integrations')
     } finally {
       setIsLoading(false)
     }
   }, [customer])
 
   const fetchMergeHistory = useCallback(async () => {
-    if (!customer) return
+    if (!customer?.customer_id) return
 
     try {
       const response = await api.get(`/customers/${customer.customer_id}/merge-history`)
@@ -81,7 +83,7 @@ export function SplitCustomerModal({
     if (open && customer) {
       setNewCustomerName('')
       setSelectedIntegrations([])
-      setError('')
+      setLocalError('')
       setSuccess(false)
       setMergeHistory([])
       fetchIntegrations()
@@ -101,23 +103,27 @@ export function SplitCustomerModal({
     e.preventDefault()
 
     if (!newCustomerName.trim()) {
-      setError('Please enter a name for the new customer')
+      setLocalError('Please enter a name for the new customer')
       return
     }
 
     if (selectedIntegrations.length === 0) {
-      setError('Please select at least one integration to move')
+      setLocalError('Please select at least one integration to move')
       return
     }
 
-    setError('')
-    setIsSubmitting(true)
+    if (!customer?.customer_id) return;
+
+    setLocalError('')
 
     try {
-      await api.post(`/customers/${customer?.customer_id}/split`, {
-        new_customer_name: newCustomerName.trim(),
-        integration_customer_ids: selectedIntegrations,
-      })
+      await splitMutation.mutateAsync({
+        customerId: customer.customer_id,
+        data: {
+          new_customer_name: newCustomerName.trim(),
+          integration_customer_ids: selectedIntegrations,
+        }
+      });
 
       setSuccess(true)
       setTimeout(() => {
@@ -125,20 +131,19 @@ export function SplitCustomerModal({
         onOpenChange(false)
         onSuccess?.()
       }, 2000)
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } }; message?: string }
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to split customer'
-      setError(errorMessage)
-    } finally {
-      setIsSubmitting(false)
+    } catch {
+      // Handled by mutation
     }
   }
 
   const handleClose = () => {
-    if (!isSubmitting) {
+    if (!splitMutation.isPending) {
       onOpenChange(false)
     }
   }
+
+  const mutationError = splitMutation.error instanceof Error ? splitMutation.error.message : "";
+  const displayError = localError || mutationError;
 
   if (success) {
     return (
@@ -219,7 +224,7 @@ export function SplitCustomerModal({
               placeholder="Enter new customer name"
               value={newCustomerName}
               onChange={(e) => setNewCustomerName(e.target.value)}
-              disabled={isSubmitting}
+              disabled={splitMutation.isPending}
               className="w-full"
             />
           </div>
@@ -247,7 +252,7 @@ export function SplitCustomerModal({
                       id={`integration-${integration.integration_customer_id}`}
                       checked={selectedIntegrations.includes(integration.integration_customer_id)}
                       onCheckedChange={() => toggleIntegration(integration.integration_customer_id)}
-                      disabled={isSubmitting}
+                      disabled={splitMutation.isPending}
                     />
                     <label
                       htmlFor={`integration-${integration.integration_customer_id}`}
@@ -273,10 +278,10 @@ export function SplitCustomerModal({
             </div>
           )}
 
-          {error && (
+          {displayError && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 flex items-start gap-2">
               <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-destructive font-medium">{error}</p>
+              <p className="text-sm text-destructive font-medium">{displayError}</p>
             </div>
           )}
 
@@ -285,12 +290,12 @@ export function SplitCustomerModal({
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={isSubmitting}
+              disabled={splitMutation.isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
+            <Button type="submit" disabled={splitMutation.isPending}>
+              {splitMutation.isPending ? (
                 <>
                   <Spinner className="mr-2 h-4 w-4" />
                   Splitting...

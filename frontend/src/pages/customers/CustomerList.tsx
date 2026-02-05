@@ -276,7 +276,7 @@ export default function CustomerList() {
                 onOpenChange={setShowCreateStatic}
                 onSuccess={() => {
                     setShowCreateStatic(false);
-                    fetchCustomers();
+                    fetchCustomers(1);
                 }}
             />
 

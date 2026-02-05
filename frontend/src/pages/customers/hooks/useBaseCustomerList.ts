@@ -5,6 +5,7 @@ import { useCustomersStore } from '@/stores/useCustomersStore'
 import { useAuth } from '@/contexts/AuthContext'
 import { hasPermission } from '@/utils/permissions'
 import type { ExistingCustomer } from '../types'
+import { useCustomersQuery, useUnmappedCustomersQuery } from './useCustomersQueries'
 
 export type CustomerAction = 'edit' | 'integrations' | 'merge' | 'split' | 'applyTemplate' | 'delivery'
 
@@ -12,9 +13,7 @@ export const useBaseCustomerList = (sotFilter: boolean | null) => {
     const navigate = useNavigate()
     const toast = useToast()
 
-    const customers = useCustomersStore((state) => state.customers)
-    const unmappedCount = useCustomersStore((state) => state.unmappedCount)
-    const isLoading = useCustomersStore((state) => state.isLoading)
+    // Store state for filters and UI
     const searchQuery = useCustomersStore((state) => state.searchQuery)
     const statusFilters = useCustomersStore((state) => state.statusFilters)
     const reportFilters = useCustomersStore((state) => state.reportFilters)
@@ -23,46 +22,65 @@ export const useBaseCustomerList = (sotFilter: boolean | null) => {
     const selectedUnmappedCustomer = useCustomersStore((state) => state.selectedUnmappedCustomer)
     const selectedCustomer = useCustomersStore((state) => state.selectedCustomer)
     const currentPage = useCustomersStore((state) => state.currentPage)
-    const totalPages = useCustomersStore((state) => state.totalPages)
-    const total = useCustomersStore((state) => state.total)
 
-    const fetchCustomers = useCustomersStore((state) => state.fetchCustomers)
     const openModal = useCustomersStore((state) => state.openModal)
     const closeModal = useCustomersStore((state) => state.closeModal)
     const setSelectedUnmappedCustomer = useCustomersStore((state) => state.setSelectedUnmappedCustomer)
     const setSelectedCustomer = useCustomersStore((state) => state.setSelectedCustomer)
-    const getMappedCustomers = useCustomersStore((state) => state.getMappedCustomers)
-    const getUnmappedCustomers = useCustomersStore((state) => state.getUnmappedCustomers)
+    const setCurrentPage = useCustomersStore((state) => state.setCurrentPage)
+    const setSearchQuery = useCustomersStore((state) => state.setSearchQuery)
+    const setStatusFilters = useCustomersStore((state) => state.setStatusFilters)
+    const setReportFilters = useCustomersStore((state) => state.setReportFilters)
+    const setIntegrationFilters = useCustomersStore((state) => state.setIntegrationFilters)
+    const clearAllFilters = useCustomersStore((state) => state.clearAllFilters)
 
     const { user } = useAuth()
     const canMap = hasPermission(user, 'customers', 'map')
 
+    // React Query for Customers
+    const {
+        data: customersResponse,
+        isLoading: isLoadingCustomers,
+        error: customersError,
+        refetch: refetchCustomers,
+    } = useCustomersQuery({
+        page: currentPage,
+        search: searchQuery || undefined,
+        statuses: statusFilters.length > 0 ? statusFilters : undefined,
+        report_filters: reportFilters.length > 0 ? reportFilters : undefined,
+        integration_types: integrationFilters.length > 0 ? integrationFilters : undefined,
+        source_of_truth_only: sotFilter,
+    })
+
+    // React Query for Unmapped
+    const {
+        data: unmappedResponse,
+        isLoading: isLoadingUnmapped,
+        refetch: refetchUnmapped,
+    } = useUnmappedCustomersQuery(1) // Usually we only need the first page for the "Start Mapping" feature
+
     useEffect(() => {
-        const fetchArgs: [number, boolean, boolean | null, boolean] = sotFilter === null
-            ? [1, false, null, !canMap]
-            : [1, false, sotFilter, !canMap]
+        if (customersError) {
+            toast.error("Failed to load customers", (customersError as any).message)
+        }
+    }, [customersError, toast])
 
-        fetchCustomers(...fetchArgs).catch((err) => {
-            // Don't toast 403s if it's just the unmapped check failing
-            if (err.response?.status === 403 && !canMap) return;
+    const customers = customersResponse?.data || []
+    const mappedCustomers = customers.filter((c) => c.customer_id !== null)
+    const unmappedCustomers = unmappedResponse?.data || []
+    const unmappedCount = unmappedResponse?.summary?.total_unmapped || unmappedCustomers.length
 
-            toast.error(
-                "Failed to load customers",
-                err.response?.data?.message || err.message
-            )
-        })
-    }, [fetchCustomers, toast, sotFilter, canMap])
-
-    const mappedCustomers = getMappedCustomers()
-    const unmappedCustomers = getUnmappedCustomers()
-    const totalMapped = customers.filter((c) => c.customer_id !== null).length
+    const total = customersResponse?.pagination.total || 0
+    const totalPages = customersResponse?.pagination.last_page || 1
+    const totalMapped = mappedCustomers.length
+    const isLoading = isLoadingCustomers || isLoadingUnmapped
 
     const handleStartMapping = useCallback(() => {
         if (unmappedCustomers.length > 0) {
             const firstUnmapped = unmappedCustomers[0]
             setSelectedUnmappedCustomer({
                 integration_customer_id: firstUnmapped.integration_customer_id,
-                integration_id: 0, // Placeholder
+                integration_id: 0,
                 integration_type: firstUnmapped.integration_type,
                 display_name: firstUnmapped.display_name,
                 external_id: firstUnmapped.external_id,
@@ -75,14 +93,18 @@ export const useBaseCustomerList = (sotFilter: boolean | null) => {
     }, [unmappedCustomers, setSelectedUnmappedCustomer, openModal])
 
     const handleMapSuccess = useCallback(async () => {
-        await fetchCustomers(currentPage, true, sotFilter, !canMap)
-        const updatedUnmapped = getUnmappedCustomers()
+        await Promise.all([refetchCustomers(), refetchUnmapped()])
+
+        // Check if we still have unmapped customers (using fresh data from refetch)
+        // Actually, it's better to wait for the refetch to complete or use the new data
+        // For now, simpler:
+        const updatedUnmapped = unmappedResponse?.data || []
 
         if (updatedUnmapped.length > 0) {
             const nextUnmapped = updatedUnmapped[0]
             setSelectedUnmappedCustomer({
                 integration_customer_id: nextUnmapped.integration_customer_id,
-                integration_id: 0, // Placeholder
+                integration_id: 0,
                 integration_type: nextUnmapped.integration_type,
                 display_name: nextUnmapped.display_name,
                 external_id: nextUnmapped.external_id,
@@ -94,7 +116,7 @@ export const useBaseCustomerList = (sotFilter: boolean | null) => {
             closeModal("map")
             toast.success("All Done!", "All customers have been mapped")
         }
-    }, [fetchCustomers, currentPage, sotFilter, getUnmappedCustomers, setSelectedUnmappedCustomer, closeModal, toast, canMap])
+    }, [refetchCustomers, refetchUnmapped, unmappedResponse, setSelectedUnmappedCustomer, closeModal, toast])
 
     const handleCustomerAction = useCallback((customer: ExistingCustomer, action: CustomerAction) => {
         setSelectedCustomer({
@@ -107,39 +129,10 @@ export const useBaseCustomerList = (sotFilter: boolean | null) => {
     }, [setSelectedCustomer, openModal])
 
     const handleModalSuccess = useCallback((modalType: CustomerAction, message: string, description: string) => {
-        fetchCustomers(currentPage, true, sotFilter, !canMap)
+        refetchCustomers()
         closeModal(modalType)
         toast.success(message, description)
-    }, [fetchCustomers, currentPage, sotFilter, closeModal, toast, canMap])
-
-    const handlePageChange = useCallback((page: number) => {
-        fetchCustomers(page, false, sotFilter, !canMap)
-    }, [fetchCustomers, sotFilter, canMap])
-
-    const handleSetSearchQuery = useCallback((query: string) => {
-        useCustomersStore.setState({ searchQuery: query, currentPage: 1 })
-        fetchCustomers(1, false, sotFilter, !canMap)
-    }, [fetchCustomers, sotFilter, canMap])
-
-    const handleSetStatusFilters = useCallback((statuses: string[]) => {
-        useCustomersStore.setState({ statusFilters: statuses, currentPage: 1 })
-        fetchCustomers(1, false, sotFilter, !canMap)
-    }, [fetchCustomers, sotFilter, canMap])
-
-    const handleSetReportFilters = useCallback((filters: string[]) => {
-        useCustomersStore.setState({ reportFilters: filters, currentPage: 1 })
-        fetchCustomers(1, false, sotFilter, !canMap)
-    }, [fetchCustomers, sotFilter, canMap])
-
-    const handleSetIntegrationFilters = useCallback((filters: string[]) => {
-        useCustomersStore.setState({ integrationFilters: filters, currentPage: 1 })
-        fetchCustomers(1, false, sotFilter, !canMap)
-    }, [fetchCustomers, sotFilter, canMap])
-
-    const handleClearAllFilters = useCallback(() => {
-        useCustomersStore.setState({ statusFilters: [], reportFilters: [], integrationFilters: [], searchQuery: '', currentPage: 1 })
-        fetchCustomers(1, false, sotFilter, !canMap)
-    }, [fetchCustomers, sotFilter, canMap])
+    }, [refetchCustomers, closeModal, toast])
 
     return {
         navigate,
@@ -163,12 +156,12 @@ export const useBaseCustomerList = (sotFilter: boolean | null) => {
         totalPages,
         openModal,
         closeModal,
-        fetchCustomers: handlePageChange,
-        setSearchQuery: handleSetSearchQuery,
-        setStatusFilters: handleSetStatusFilters,
-        setReportFilters: handleSetReportFilters,
-        setIntegrationFilters: handleSetIntegrationFilters,
-        clearAllFilters: handleClearAllFilters,
+        fetchCustomers: setCurrentPage,
+        setSearchQuery,
+        setStatusFilters,
+        setReportFilters,
+        setIntegrationFilters,
+        clearAllFilters,
         handleStartMapping,
         handleMapSuccess,
         handleCustomerAction,

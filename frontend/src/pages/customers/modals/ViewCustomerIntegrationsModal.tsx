@@ -1,4 +1,3 @@
-import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
@@ -18,9 +17,8 @@ import {
     Cable,
     Trash2,
     Info,
-
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { useCustomerIntegrationsQuery, useDeleteMappingMutation } from "../hooks/useCustomersQueries";
 import type { Customer } from "../types";
 
 interface IntegrationMapping {
@@ -51,62 +49,26 @@ export function ViewCustomerIntegrationsModal({
     const navigate = useNavigate();
     const { user } = useAuth();
     const canEdit = hasPermission(user, "customers", "edit");
-    const [isLoading, setIsLoading] = useState(false);
-    const [integrations, setIntegrations] = useState<IntegrationMapping[]>([]);
-    const [error, setError] = useState("");
-    const [deletingId, setDeletingId] = useState<number | null>(null);
 
-    const fetchIntegrations = useCallback(async () => {
-        if (!customer) return;
+    const {
+        data: integrationsResponse,
+        isLoading,
+        error: queryError
+    } = useCustomerIntegrationsQuery(open ? customer?.customer_id : undefined);
 
-        setIsLoading(true);
-        setError("");
+    const deleteMutation = useDeleteMappingMutation();
 
-        try {
-            const response = await api.get(
-                `/customers/${customer.customer_id}/integrations`
-            );
-            const data = response as { data?: IntegrationMapping[] } | IntegrationMapping[];
-            const integrationsList = Array.isArray(data) ? data : (data.data || []);
-            setIntegrations(integrationsList);
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } }; message?: string };
-            const errorMessage =
-                error.response?.data?.message ||
-                error.message ||
-                "Failed to load integrations";
-            setError(errorMessage);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [customer]);
-
-    useEffect(() => {
-        if (open && customer) {
-            fetchIntegrations();
-        }
-    }, [open, customer, fetchIntegrations]);
+    const integrations = (integrationsResponse?.data || []) as unknown as IntegrationMapping[];
 
     const handleDeleteMapping = async (
         customerId: number,
         mappingId: number
     ) => {
-        setDeletingId(mappingId);
         try {
-            await api.delete(`/customers/${customerId}/mappings/${mappingId}`);
-            await fetchIntegrations();
+            await deleteMutation.mutateAsync({ customerId, mappingId });
             onSuccess?.();
-            await fetchIntegrations();
-            onSuccess?.();
-        } catch (err: unknown) {
-            const error = err as { response?: { data?: { message?: string } }; message?: string };
-            const errorMessage =
-                error.response?.data?.message ||
-                error.message ||
-                "Failed to delete mapping";
-            setError(errorMessage);
-        } finally {
-            setDeletingId(null);
+        } catch {
+            // Error managed by mutation
         }
     };
 
@@ -120,6 +82,9 @@ export function ViewCustomerIntegrationsModal({
             handleClose();
         }
     };
+
+    const displayError = (queryError instanceof Error ? queryError.message : "") ||
+        (deleteMutation.error instanceof Error ? deleteMutation.error.message : "");
 
     if (!customer) return null;
 
@@ -141,10 +106,10 @@ export function ViewCustomerIntegrationsModal({
                         <div className="flex items-center justify-center py-8">
                             <Spinner className="h-8 w-8" />
                         </div>
-                    ) : error ? (
+                    ) : displayError ? (
                         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
                             <p className="text-sm text-destructive font-medium">
-                                {error}
+                                {displayError}
                             </p>
                         </div>
                     ) : integrations.length === 0 ? (
@@ -176,7 +141,7 @@ export function ViewCustomerIntegrationsModal({
                                                     Mapped: {new Date(integration.mapped_at).toLocaleDateString()}
                                                 </div>
                                             </div>
-                                             {canEdit && (
+                                            {canEdit && (
                                                 <div className="flex items-center gap-2 ml-4 flex-shrink-0">
                                                     <Button
                                                         variant="ghost"
@@ -187,10 +152,10 @@ export function ViewCustomerIntegrationsModal({
                                                                 integration.mapping_id
                                                             )
                                                         }
-                                                        disabled={deletingId === integration.mapping_id}
+                                                        disabled={deleteMutation.isPending && deleteMutation.variables?.mappingId === integration.mapping_id}
                                                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                     >
-                                                        {deletingId === integration.mapping_id ? (
+                                                        {deleteMutation.isPending && deleteMutation.variables?.mappingId === integration.mapping_id ? (
                                                             <Spinner className="h-4 w-4" />
                                                         ) : (
                                                             <Trash2 className="h-4 w-4" />
