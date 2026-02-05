@@ -14,7 +14,7 @@ export function BrandingPanel() {
           <img
             src="/logo.png"
             alt="MSP Logo"
-            className="h-8 w-auto brightness-0 invert"
+            className="h-8 w-auto"
           />
         </div>
 
@@ -63,7 +63,7 @@ export function BrandingPanel() {
             <h3 className="font-semibold text-[10px] xl:text-xs">Automated Workflows</h3>
           </div>
         </div>
-          
+
         <div className="flex-shrink-0 text-indigo-200 text-[10px] text-center pt-2 mt-2 border-t border-white/10">
           © 2025 {import.meta.env.VITE_COMPANY_NAME || 'MSP'}. All rights reserved.
         </div>

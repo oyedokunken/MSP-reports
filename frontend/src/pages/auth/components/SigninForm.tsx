@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 import { Link } from "react-router-dom";
 import type { UseFormReturn } from 'react-hook-form';
@@ -26,33 +26,41 @@ export function SigninForm({
   return (
     <form className="space-y-6" onSubmit={onSubmit} noValidate>
       <div>
-        <label htmlFor="email" className="block text-sm text-left font-medium text-gray-900 mb-2">
-          Email address <span className="text-red-500">*</span>
+        <label htmlFor="email" className="block text-sm text-left font-medium text-foreground mb-2">
+          Email <span className="text-destructive">*</span>
         </label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="email"
-          disabled={isSubmitting}
-          aria-invalid={!!errors.email}
-          aria-describedby={errors.email ? "email-error" : undefined}
-          {...register("email")}
-          className={`appearance-none relative block w-full px-4 py-3 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out ${errors.email
-            ? 'border-red-500 focus:ring-red-500'
-            : 'border-gray-300'
-            }`}
-          placeholder="youremail@example.com"
-        />
+        <div className="relative group">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center h-6 border-r border-border/50 px-3 transition-colors group-focus-within:border-primary/50">
+            <Mail className="h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+          </div>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            disabled={isSubmitting}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "email-error" : undefined}
+            {...register("email")}
+            className={`appearance-none relative block w-full pl-12 pr-4 py-3 border bg-background/50 placeholder-muted-foreground text-foreground rounded-lg focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary hover:border-primary/30 transition-all duration-200 ease-in-out ${errors.email
+              ? 'border-destructive focus:ring-destructive/20'
+              : 'border-border'
+              }`}
+            placeholder="Enter your email address"
+          />
+        </div>
         {errors.email && (
-          <p id="email-error" className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+          <p id="email-error" className="mt-1 text-sm text-destructive">{errors.email.message}</p>
         )}
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm text-left font-medium text-gray-900 mb-2">
-          Password <span className="text-red-500">*</span>
+        <label htmlFor="password" className="block text-sm text-left font-medium text-foreground mb-2">
+          Password <span className="text-destructive">*</span>
         </label>
-        <div className="relative">
+        <div className="relative group">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center h-6 border-r border-border/50 px-3 transition-colors group-focus-within:border-primary/50">
+            <Lock className="h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+          </div>
           <input
             id="password"
             type={showPassword ? "text" : "password"}
@@ -61,16 +69,16 @@ export function SigninForm({
             aria-invalid={!!errors.password}
             aria-describedby={errors.password ? "password-error" : undefined}
             {...register("password")}
-            className={`appearance-none relative block w-full px-4 py-3 pr-12 border placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-150 ease-in-out ${errors.password
-              ? 'border-red-500 focus:ring-red-500'
-              : 'border-gray-300'
+            className={`appearance-none relative block w-full pl-12 pr-12 py-3 border bg-background/50 placeholder-muted-foreground text-foreground rounded-lg focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary hover:border-primary/30 transition-all duration-200 ease-in-out ${errors.password
+              ? 'border-destructive focus:ring-destructive/20'
+              : 'border-border'
               }`}
-            placeholder="*******"
+            placeholder="·············"
           />
           <button
             type="button"
             onClick={onShowPasswordToggle}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             tabIndex={-1}
           >
             {showPassword ? (
@@ -81,7 +89,7 @@ export function SigninForm({
           </button>
         </div>
         {errors.password && (
-          <p id="password-error" className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+          <p id="password-error" className="mt-1 text-sm text-destructive">{errors.password.message}</p>
         )}
       </div>
 
@@ -91,23 +99,23 @@ export function SigninForm({
             id="remember-me"
             type="checkbox"
             {...register("rememberMe")}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+            className="h-4 w-4 text-primary focus:ring-ring border-border rounded cursor-pointer bg-background"
           />
-          <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 cursor-pointer">
+          <label htmlFor="remember-me" className="ml-2 block text-sm text-muted-foreground transition-colors hover:text-foreground cursor-pointer">
             Remember me
           </label>
         </div>
 
         <div className="text-sm">
-          <Link to="/forgot-password" className="font-semibold text-blue-600 hover:text-blue-800 transition duration-150">
+          <Link to="/forgot-password" title="Click to reset password" className="font-semibold text-primary hover:text-primary/80 transition duration-150">
             Forgot password?
           </Link>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 p-3">
-          <p className="text-sm text-red-800 text-center">{error}</p>
+        <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-4">
+          <p className="text-sm font-medium text-destructive text-center">{error}</p>
         </div>
       )}
 
@@ -115,7 +123,7 @@ export function SigninForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition duration-200 ease-in-out shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
         >
           {isSubmitting ? (
             <>

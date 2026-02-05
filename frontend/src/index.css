@@ -51,6 +51,33 @@
     animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
+@keyframes logo-periodic {
+    0%, 90%, 100% {
+        transform: scale(1);
+        filter: brightness(1) drop-shadow(0 0 0px transparent);
+    }
+    92% {
+        transform: scale(1.05);
+        filter: brightness(1.1) drop-shadow(0 0 8px hsl(var(--primary)/0.3));
+    }
+    94% {
+        transform: scale(1);
+        filter: brightness(1) drop-shadow(0 0 0px transparent);
+    }
+    96% {
+        transform: scale(1.05);
+        filter: brightness(1.1) drop-shadow(0 0 8px hsl(var(--primary)/0.3));
+    }
+    98% {
+        transform: scale(1);
+        filter: brightness(1) drop-shadow(0 0 0px transparent);
+    }
+}
+
+.animate-logo-periodic {
+    animation: logo-periodic 10s infinite ease-in-out;
+}
+
 @keyframes blob {
     0%,
     100% {

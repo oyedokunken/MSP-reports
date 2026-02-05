@@ -19,6 +19,7 @@ import {
   MapPin,
   HelpCircle,
   Shield,
+  ShieldCheck,
 } from 'lucide-react'
 import { hasPermission } from '@/utils/permissions'
 import { useAuth } from '@/contexts/AuthContext'
@@ -101,7 +102,7 @@ export default function AppSidebar() {
     { path: '/admin/api-keys', icon: KeyRound, label: 'API Keys', show: hasPermission(user, 'api_keys', 'view') },
     { path: '/admin/licenses', icon: FileBadge, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view') },
     { path: '/admin/monitoring', icon: Activity, label: 'Monitoring', show: hasPermission(user, 'monitoring', 'view') },
-    { path: '/admin/status', icon: Activity, label: 'System Status', show: hasPermission(user, 'monitoring', 'view') },
+    { path: '/admin/status', icon: ShieldCheck, label: 'System Status', show: hasPermission(user, 'monitoring', 'view') },
     { path: '/admin/audit-logs', icon: Shield, label: 'Audit Logs', show: hasPermission(user, 'security', 'view_logs') },
   ].filter(item => item.show !== false)
 
@@ -181,8 +182,8 @@ export default function AppSidebar() {
 
                   <div className={cn(
                     "flex items-center justify-center w-full",
-                      branding?.logo_url && branding.logo_url !== 'null' ? "hidden" : ""
-                    )}>
+                    branding?.logo_url && branding.logo_url !== 'null' ? "hidden" : ""
+                  )}>
                     <img
                       src="/msp-logo-icon.png"
                       alt="Logo Icon"

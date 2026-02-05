@@ -8,22 +8,22 @@ export function AuthDivider({ showAuthOptions, onToggle }: AuthDividerProps) {
     <div className="mt-6">
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300"></div>
+          <div className="w-full border-t border-border/60"></div>
         </div>
         <div className="relative flex justify-center">
           <button
             type="button"
             onClick={onToggle}
-            className="px-4 py-1.5 bg-white border border-gray-300 rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-150 ease-in-out flex items-center gap-2"
+            className="px-6 py-2 bg-[hsl(var(--auth-card))] border border-border/80 rounded-full text-xs font-bold text-muted-foreground hover:text-foreground hover:border-border transition duration-200 ease-in-out flex items-center gap-2 uppercase tracking-wide shadow-sm"
           >
-            <span>Others</span>
+            <span>Sign in with</span>
             <svg
-              className={`w-4 h-4 transition-transform duration-200 ${showAuthOptions ? 'rotate-180' : ''}`}
+              className={`w-3.5 h-3.5 transition-transform duration-300 ${showAuthOptions ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
         </div>

@@ -4,7 +4,7 @@ export function MobileLogo() {
       <img
         src="/logo.png"
         alt="MSP Logo"
-        className="h-12 w-auto mx-auto brightness-0 invert"
+        className="h-12 w-auto mx-auto animate-logo-periodic"
       />
     </div>
   );

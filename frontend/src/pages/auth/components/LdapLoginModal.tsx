@@ -64,12 +64,12 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <MdStorage className="w-6 h-6 text-indigo-600" />
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <MdStorage className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <DialogTitle className="text-xl">Active Directory Login</DialogTitle>
-              <DialogDescription className="text-sm">
+              <DialogTitle className="text-xl font-bold">Active Directory Login</DialogTitle>
+              <DialogDescription className="text-sm font-medium">
                 Sign in with your domain credentials
               </DialogDescription>
             </div>
@@ -77,9 +77,9 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4 mt-4" noValidate>
-          <Alert className="bg-blue-50 border-blue-200">
-            <MdInfo className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-sm text-blue-800">
+          <Alert className="bg-primary/5 border-primary/20 border-2">
+            <MdInfo className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm text-primary/90 font-medium">
               Use your domain username (e.g., <strong>john.doe</strong>) and Active Directory password
             </AlertDescription>
           </Alert>
@@ -93,11 +93,11 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
               {...register('username')}
               disabled={isSubmitting}
               autoComplete="username"
-              className={errors.username ? 'border-red-500' : ''}
+              className={errors.username ? 'border-destructive focus-visible:ring-destructive' : ''}
               autoFocus
             />
             {errors.username ? (
-              <p className="text-xs text-red-500">{errors.username.message}</p>
+              <p className="text-xs font-medium text-destructive">{errors.username.message}</p>
             ) : (
               <p className="text-xs text-muted-foreground">
                 Enter your username without the @domain.com part
@@ -115,12 +115,12 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
                 {...register('password')}
                 disabled={isSubmitting}
                 autoComplete="current-password"
-                className={`pr-10 ${errors.password ? 'border-red-500' : ''}`}
+                className={`pr-10 ${errors.password ? 'border-destructive focus-visible:ring-destructive' : ''}`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 disabled={isSubmitting}
               >
                 {showPassword ? (
@@ -131,7 +131,7 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
               </button>
             </div>
             {errors.password && (
-              <p className="text-xs text-red-500">{errors.password.message}</p>
+              <p className="text-xs font-medium text-destructive">{errors.password.message}</p>
             )}
           </div>
 
@@ -154,23 +154,23 @@ export function LdapLoginModal({ isOpen, onClose, onSubmit }: LdapLoginModalProp
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+              className="flex-1 bg-primary hover:bg-primary/90 font-bold uppercase tracking-wider shadow-lg shadow-primary/20"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Authenticating...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary-foreground" />
+                  <span className="text-primary-foreground">Authenticating...</span>
                 </>
               ) : (
-                'Sign In'
+                <span className="text-primary-foreground">Sign In</span>
               )}
             </Button>
           </div>
         </form>
 
-        <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-xs text-gray-600">
-            <strong>Need help?</strong> Contact your IT administrator if you're having trouble signing in with your domain credentials.
+        <div className="mt-4 p-4 bg-muted/40 rounded-xl border border-border/50">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            <strong className="text-foreground">Need help?</strong> Contact your IT administrator if you're having trouble signing in with your domain credentials.
           </p>
         </div>
       </DialogContent>
