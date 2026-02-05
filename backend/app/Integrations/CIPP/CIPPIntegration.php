@@ -17,6 +17,7 @@ use App\Jobs\BatchAutoMatchCustomersJob;
 use App\Services\RateLimiter;
 use App\Services\CustomerMappingService;
 use App\Integrations\Concerns\HasHeartbeat;
+use App\Integrations\Concerns\HasDefaultPreview;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -25,6 +26,7 @@ use Illuminate\Support\Facades\DB;
 final class CIPPIntegration implements IntegrationInterface
 {
     use HasHeartbeat;
+    use HasDefaultPreview;
 
     protected Integration $integration;
     protected CIPPClient $client;
@@ -637,15 +639,12 @@ final class CIPPIntegration implements IntegrationInterface
     }
 
     /**
-     * @return array{start: Carbon, end: Carbon}
+     * Get the earliest date for which historical data is available
      */
-    public function getAvailableHistoryRange(): array
+    public function getAvailableHistoryRange(): ?Carbon
     {
         // CIPP typically has 30 days of sign-in and audit log history
-        return [
-            'start' => now()->subDays(30),
-            'end' => now(),
-        ];
+        return now()->subDays(30);
     }
 
     /**
@@ -666,17 +665,15 @@ final class CIPPIntegration implements IntegrationInterface
         ];
     }
 
-    public function disconnect(): bool
+    public function disconnect(): void
     {
         try {
             $this->client->clearTokenCache();
-            return true;
         } catch (\Exception $e) {
             Log::error('CIPP: Disconnect failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
-            return false;
         }
     }
 
