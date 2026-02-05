@@ -122,6 +122,18 @@ const integrationConfigs: Record<string, IntegrationIconConfig> = {
     color: 'text-green-500',
     bgColor: 'bg-green-100 dark:bg-green-900/30',
   },
+  cipp: {
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-8 w-8">
+        <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
+        <rect x="13" y="1" width="10" height="10" fill="#7FBA00"/>
+        <rect x="1" y="13" width="10" height="10" fill="#00A4EF"/>
+        <rect x="13" y="13" width="10" height="10" fill="#FFB900"/>
+      </svg>
+    ),
+    color: 'text-blue-600',
+    bgColor: 'bg-gradient-to-br from-orange-50 to-blue-50 dark:from-orange-900/20 dark:to-blue-900/20',
+  },
 }
 
 export function getIntegrationIconConfig(type: string): IntegrationIconConfig {
