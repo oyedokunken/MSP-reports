@@ -47,6 +47,17 @@ const NotFound = lazy(() => import('@/pages/errors').then(m => ({ default: m.Not
 
 import { WelcomeModal, TourOverlay } from '@/components/onboarding'
 import { Loader2 } from 'lucide-react'
+import { useParams, Navigate as RouterNavigate } from 'react-router-dom'
+
+// Redirect component for integration name URLs without /view
+function IntegrationNameRedirect() {
+  const { integrationName } = useParams<{ integrationName: string }>()
+  // Skip redirect for known routes like 'add'
+  if (integrationName === 'add') {
+    return null
+  }
+  return <RouterNavigate to={`/platform/integrations/${integrationName}/view`} replace />
+}
 
 
 import { hasPermission } from '@/utils/permissions'
@@ -157,6 +168,12 @@ function AppRoutes() {
               <IntegrationPreview />
             </ProtectedRoute>
           }
+        />
+
+        {/* Redirect old URLs without /view to new format */}
+        <Route
+          path="/platform/integrations/:integrationName"
+          element={<IntegrationNameRedirect />}
         />
 
         <Route path="/platform/profile" element={<Profile />} />
