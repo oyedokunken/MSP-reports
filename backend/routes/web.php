@@ -20,6 +20,18 @@ Route::get('/', function () {
     \Illuminate\Session\Middleware\AuthenticateSession::class,
 ]);
 
+// Named login route for Sanctum - returns JSON for unauthenticated API requests
+Route::get('/login', function () {
+    return response()->json([
+        'status' => 'error',
+        'message' => 'Unauthenticated. Please login.',
+    ], 401);
+})->name('login')->withoutMiddleware([
+    \Illuminate\Session\Middleware\StartSession::class,
+    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+    \Illuminate\Session\Middleware\AuthenticateSession::class,
+]);
+
 // Temporary test route for branding partials (Phase 1)
 // TODO: Remove this route after Phase 1 testing is complete
 Route::get('/test-branding', function () {
