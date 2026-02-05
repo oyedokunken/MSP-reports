@@ -147,17 +147,19 @@ export function IntegrationCard({
                     </div>
                 </div>
                 <div className="mt-6 space-y-3 flex-1">
-                    <div className="flex items-center justify-between text-sm gap-2">
-                        <span className="text-muted-foreground flex-shrink-0">
-                            Last Sync
-                        </span>
-                        <span
-                            className="font-medium text-foreground truncate"
-                            title={integration.lastSync}
-                        >
-                            {integration.lastSync}
-                        </span>
-                    </div>
+                    {integration.status !== 'importing_historical' && (
+                        <div className="flex items-center justify-between text-sm gap-2">
+                            <span className="text-muted-foreground flex-shrink-0">
+                                Last Sync
+                            </span>
+                            <span
+                                className="font-medium text-foreground truncate"
+                                title={integration.lastSync}
+                            >
+                                {integration.lastSync}
+                            </span>
+                        </div>
+                    )}
                     {!!integration.unmappedCustomers && (
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">
@@ -182,17 +184,19 @@ export function IntegrationCard({
                     <div className="flex items-center gap-2 pt-2">
                         {getStatusIcon(integration.status, integration.syncStatus)}
                         <span className="text-sm text-muted-foreground flex-1 truncate">
-                            {integration.syncStatus === "success"
-                                ? isSourceOfTruth
-                                    ? `Synced ${integration.recordsSynced} records`
-                                    : "Auto-synced with master list"
-                                : integration.syncStatus === "failed"
-                                    ? `Failed: ${integration.lastError || "Check logs"}`
-                                    : integration.lastSync === "Never"
-                                        ? "Not synced yet"
-                                        : isSourceOfTruth
-                                            ? "Ready to sync"
-                                            : "Syncs automatically with master list"}
+                            {integration.status === 'importing_historical'
+                                ? "Importing historical data..."
+                                : integration.syncStatus === "success"
+                                    ? isSourceOfTruth
+                                        ? `Synced ${integration.recordsSynced} records`
+                                        : "Auto-synced with master list"
+                                    : integration.syncStatus === "failed"
+                                        ? `Failed: ${integration.lastError || "Check logs"}`
+                                        : integration.lastSync === "Never"
+                                            ? "Awaiting first sync"
+                                            : isSourceOfTruth
+                                                ? "Ready to sync"
+                                                : "Syncs automatically with master list"}
                         </span>
                     </div>
                     {(isSyncing || integration.status === 'importing_historical') && (
