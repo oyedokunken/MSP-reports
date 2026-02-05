@@ -18,8 +18,8 @@ export function SchedulesSummaryCard({
 
     if (isLoading) {
         return (
-            <AnimatedCard 
-                className={`p-6 h-full overflow-hidden relative ${className}`}
+            <AnimatedCard
+                className={`p-6 relative ${className}`}
                 hoverLift={false}
             >
                 <div className="flex flex-col h-full justify-between">
@@ -40,8 +40,8 @@ export function SchedulesSummaryCard({
     }
 
     return (
-        <AnimatedCard 
-            className={`p-6 h-full overflow-hidden relative group ${className}`}
+        <AnimatedCard
+            className={`p-6 relative group ${className}`}
             hoverLift={false}
         >
             <style>{`
@@ -79,23 +79,23 @@ export function SchedulesSummaryCard({
             <div className="absolute top-0 right-0 bottom-0 w-24 z-0 opacity-60 dark:opacity-40 pointer-events-none flex flex-col justify-around py-4">
                 {[...Array(8)].map((_, i) => (
                     <div key={i} className="relative h-4 w-full flex items-center justify-center">
-                        <div 
-                            className="dna-node bg-blue-950 dark:bg-blue-400" 
+                        <div
+                            className="dna-node bg-blue-950 dark:bg-blue-400"
                             style={{ animation: `dna-spin 2s ease-in-out infinite`, animationDelay: `${i * 0.2}s` }}
                         />
-                        <div 
-                            className="dna-node bg-blue-900/60 dark:bg-blue-300/60" 
+                        <div
+                            className="dna-node bg-blue-900/60 dark:bg-blue-300/60"
                             style={{ animation: `dna-spin-reverse 2s ease-in-out infinite`, animationDelay: `${i * 0.2}s` }}
                         />
-                        <div 
-                            className="dna-bar text-blue-950 dark:text-blue-400" 
+                        <div
+                            className="dna-bar text-blue-950 dark:text-blue-400"
                             style={{ animationDelay: `${i * 0.2}s`, top: '50%' }}
                         />
                     </div>
                 ))}
             </div>
 
-            <div className="relative z-10 flex flex-col h-full justify-between">
+            <div className="relative z-10 flex flex-col justify-between">
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <Calendar className="h-5 w-5 text-primary" />
@@ -107,7 +107,7 @@ export function SchedulesSummaryCard({
                         {isLoading ? "..." : activeSchedules}
                     </p>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                     <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>

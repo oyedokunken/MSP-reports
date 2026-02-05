@@ -35,7 +35,7 @@ export default function Dashboard() {
                         isLoading={loadingSchedules}
                         totalSchedules={allSchedules.length}
                         activeSchedules={allSchedules.filter((s: ReportSchedule) => s.active).length}
-                        className="h-[134px]"
+                        className=""
                     />
                     <IntegrationsSummary
                         isLoading={loadingIntegrations}
@@ -43,7 +43,7 @@ export default function Dashboard() {
                         getStatusBadge={getIntegrationStatusBadge}
                         getStatusText={getIntegrationStatusText}
                         getStatusIcon={getIntegrationStatusIcon}
-                        className="h-[626px]"
+                        className="flex-1"
                     />
                 </div>
 
