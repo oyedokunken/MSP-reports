@@ -60,9 +60,21 @@ export default function FloatingNav() {
         (state) => state.getUnreadCount
     );
     const markAsRead = useNotificationStore((state) => state.markAsRead);
+    const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
 
     const unreadCount = getUnreadCount();
     const hasUnread = unreadCount > 0;
+
+    // Fetch notifications on mount and periodically
+    useEffect(() => {
+        if (canViewNotifications) {
+            fetchNotifications();
+            const interval = setInterval(() => {
+                fetchNotifications();
+            }, 30000); // Refresh every 30 seconds
+            return () => clearInterval(interval);
+        }
+    }, [canViewNotifications, fetchNotifications]);
 
     const handleLogout = async () => {
         try {

@@ -85,6 +85,19 @@ export function IntegrationCard({
         integration.status,
         integration.syncStatus
     );
+
+    const calculateETA = (progressPercent: number): string => {
+        if (progressPercent <= 0 || progressPercent >= 100) return '';
+        // Estimate based on typical import speed - rough calculation
+        const remainingPercent = 100 - progressPercent;
+        const estimatedMinutes = Math.ceil(remainingPercent * 0.5); // ~30 seconds per percent
+        if (estimatedMinutes > 60) {
+            const hours = Math.floor(estimatedMinutes / 60);
+            const mins = estimatedMinutes % 60;
+            return `~${hours}h ${mins}m`;
+        }
+        return `~${estimatedMinutes}m`;
+    };
     const handleCountdownComplete = useCallback(() => {
     }, []);
     const countdown = useCountdown(
@@ -188,9 +201,16 @@ export function IntegrationCard({
                                 <span className="text-muted-foreground">
                                     {integration.status === 'importing_historical' ? 'Importing Historical Data...' : 'Syncing...'}
                                 </span>
-                                <span className="font-medium text-primary">
-                                    {Math.round(integration.status === 'importing_historical' ? (integration.historicalImportProgress || 0) : progress)}%
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    {integration.status === 'importing_historical' && (integration.historicalImportProgress || 0) > 0 && (
+                                        <span className="text-muted-foreground">
+                                            {calculateETA(integration.historicalImportProgress || 0)}
+                                        </span>
+                                    )}
+                                    <span className="font-medium text-primary">
+                                        {Math.round(integration.status === 'importing_historical' ? (integration.historicalImportProgress || 0) : progress)}%
+                                    </span>
+                                </div>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                 <div
