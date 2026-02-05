@@ -1,4 +1,4 @@
-import { Cable, Share2, Shield, Server, Database, Cloud, Lock, Activity, Cpu, Network } from 'lucide-react'
+import { Cable } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 type IntegrationIconConfig = {
@@ -10,129 +10,203 @@ type IntegrationIconConfig = {
 const integrationConfigs: Record<string, IntegrationIconConfig> = {
   activedirectory: {
     icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+      <svg viewBox="0 0 96 96" className="h-8 w-8">
+        <path fill="#00adef" d="M0 0h45.5v45.5H0z"/>
+        <path fill="#7fba00" d="M50.5 0H96v45.5H50.5z"/>
+        <path fill="#ffb900" d="M0 50.5h45.5V96H0z"/>
+        <path fill="#f25022" d="M50.5 50.5H96V96H50.5z"/>
       </svg>
     ),
-    color: 'text-blue-700',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+    color: 'text-blue-600',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   autotask: {
     icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <path fill="#007DC3" d="M50 5L5 30v40l45 25 45-25V30L50 5zm0 10l35 19.4v31.2L50 85 15 65.6V34.4L50 15z"/>
+        <path fill="#007DC3" d="M50 25L25 40v20l25 15 25-15V40L50 25z"/>
       </svg>
     ),
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+    color: 'text-[#007DC3]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   datto: {
     icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none"/>
-        <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <circle cx="50" cy="50" r="45" fill="#199ED9"/>
+        <path fill="#fff" d="M35 30h30c8.3 0 15 6.7 15 15v10c0 8.3-6.7 15-15 15H35V30zm10 10v20h20c2.8 0 5-2.2 5-5V45c0-2.8-2.2-5-5-5H45z"/>
       </svg>
     ),
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+    color: 'text-[#199ED9]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   sendmarc: {
-    icon: <Shield className="h-8 w-8" />,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <path fill="#00C389" d="M50 5C25.1 5 5 25.1 5 50s20.1 45 45 45 45-20.1 45-45S74.9 5 50 5zm20 60L50 50 30 65V35l20 15 20-15v30z"/>
+      </svg>
+    ),
+    color: 'text-[#00C389]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   bitdefender: {
-    icon: <Shield className="h-8 w-8" />,
-    color: 'text-red-600',
-    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <path fill="#ED1C24" d="M50 5L10 25v30c0 22.1 17.9 40 40 40s40-17.9 40-40V25L50 5zm0 10l30 15v25c0 16.6-13.4 30-30 30S20 71.6 20 55V30l30-15z"/>
+        <path fill="#ED1C24" d="M50 35l-15 7.5v12.5c0 8.3 6.7 15 15 15s15-6.7 15-15V42.5L50 35z"/>
+      </svg>
+    ),
+    color: 'text-[#ED1C24]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   itglue: {
-    icon: <Database className="h-8 w-8" />,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-100 dark:bg-purple-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <rect fill="#0078D4" x="10" y="10" width="80" height="80" rx="8"/>
+        <text x="50" y="68" textAnchor="middle" fill="#fff" fontSize="40" fontWeight="bold" fontFamily="Arial">IT</text>
+      </svg>
+    ),
+    color: 'text-[#0078D4]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   sharepoint: {
-    icon: <Share2 className="h-8 w-8" />,
-    color: 'text-teal-600',
-    bgColor: 'bg-teal-100 dark:bg-teal-900/30',
+    icon: (
+      <svg viewBox="0 0 96 96" className="h-8 w-8">
+        <circle cx="48" cy="28" r="24" fill="#036C70"/>
+        <circle cx="28" cy="60" r="20" fill="#1A9BA1"/>
+        <circle cx="60" cy="68" r="16" fill="#37C6D0"/>
+      </svg>
+    ),
+    color: 'text-[#036C70]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   librenms: {
-    icon: <Activity className="h-8 w-8" />,
-    color: 'text-emerald-600',
-    bgColor: 'bg-emerald-100 dark:bg-emerald-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <rect fill="#2D7D2D" x="10" y="10" width="80" height="80" rx="10"/>
+        <path fill="#fff" d="M25 70V30l15 20 10-15 10 15 15-20v40H25z"/>
+      </svg>
+    ),
+    color: 'text-[#2D7D2D]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   barracuda: {
-    icon: <Lock className="h-8 w-8" />,
-    color: 'text-cyan-600',
-    bgColor: 'bg-cyan-100 dark:bg-cyan-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <path fill="#00A3E0" d="M10 50c0-22.1 17.9-40 40-40s40 17.9 40 40-17.9 40-40 40-40-17.9-40-40z"/>
+        <path fill="#fff" d="M30 40h40l-20 30-20-30z"/>
+      </svg>
+    ),
+    color: 'text-[#00A3E0]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   kemp: {
-    icon: <Server className="h-8 w-8" />,
-    color: 'text-indigo-600',
-    bgColor: 'bg-indigo-100 dark:bg-indigo-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <rect fill="#5C2D91" x="10" y="10" width="80" height="80" rx="8"/>
+        <text x="50" y="65" textAnchor="middle" fill="#fff" fontSize="32" fontWeight="bold" fontFamily="Arial">K</text>
+      </svg>
+    ),
+    color: 'text-[#5C2D91]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   rocketcyber: {
     icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
-        <path d="M12 2L4 6v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V6l-8-4z" stroke="currentColor" strokeWidth="2" fill="none"/>
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <path fill="#E31937" d="M50 5L20 20v35c0 22.1 13.4 35 30 40 16.6-5 30-17.9 30-40V20L50 5z"/>
+        <path fill="#fff" d="M50 25l-15 10v20c0 11 6.7 17.5 15 20 8.3-2.5 15-9 15-20V35L50 25z"/>
+        <path fill="#E31937" d="M45 45l5 15 5-15 10 5-10 5 5 10-10-5-5 10-5-10-10 5 5-10-10-5 10-5z"/>
       </svg>
     ),
-    color: 'text-rose-600',
-    bgColor: 'bg-rose-100 dark:bg-rose-900/30',
+    color: 'text-[#E31937]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   threatlocker: {
-    icon: <Lock className="h-8 w-8" />,
-    color: 'text-amber-600',
-    bgColor: 'bg-amber-100 dark:bg-amber-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <path fill="#0098D6" d="M50 5L10 25v30c0 22.1 17.9 40 40 40s40-17.9 40-40V25L50 5z"/>
+        <path fill="#fff" d="M50 20L25 32.5v22.5c0 13.8 11.2 25 25 25s25-11.2 25-25V32.5L50 20z"/>
+        <rect fill="#0098D6" x="40" y="45" width="20" height="25" rx="3"/>
+        <circle fill="#0098D6" cx="50" cy="40" r="8"/>
+      </svg>
+    ),
+    color: 'text-[#0098D6]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   vonahi: {
-    icon: <Network className="h-8 w-8" />,
-    color: 'text-violet-600',
-    bgColor: 'bg-violet-100 dark:bg-violet-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <rect fill="#6366F1" x="10" y="10" width="80" height="80" rx="10"/>
+        <path fill="#fff" d="M25 30l25 40 25-40H65L50 55 35 30H25z"/>
+      </svg>
+    ),
+    color: 'text-[#6366F1]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   admindroid: {
-    icon: <Cpu className="h-8 w-8" />,
-    color: 'text-sky-600',
-    bgColor: 'bg-sky-100 dark:bg-sky-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <rect fill="#00BCD4" x="10" y="10" width="80" height="80" rx="15"/>
+        <circle fill="#fff" cx="50" cy="35" r="12"/>
+        <path fill="#fff" d="M30 75V60c0-11 9-20 20-20s20 9 20 20v15H30z"/>
+      </svg>
+    ),
+    color: 'text-[#00BCD4]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   watchguard: {
-    icon: <Shield className="h-8 w-8" />,
-    color: 'text-red-500',
-    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <path fill="#C8102E" d="M50 5L10 25v30c0 22.1 17.9 40 40 40s40-17.9 40-40V25L50 5z"/>
+        <path fill="#fff" d="M50 15L20 32v23c0 16.6 13.4 30 30 30s30-13.4 30-30V32L50 15z"/>
+        <path fill="#C8102E" d="M40 45h20v20H40z"/>
+      </svg>
+    ),
+    color: 'text-[#C8102E]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   m365: {
     icon: (
-      <svg viewBox="0 0 24 24" className="h-8 w-8">
-        <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
-        <rect x="13" y="1" width="10" height="10" fill="#7FBA00"/>
-        <rect x="1" y="13" width="10" height="10" fill="#00A4EF"/>
-        <rect x="13" y="13" width="10" height="10" fill="#FFB900"/>
+      <svg viewBox="0 0 96 96" className="h-8 w-8">
+        <path fill="#f25022" d="M1 1h45v45H1z"/>
+        <path fill="#7fba00" d="M50 1h45v45H50z"/>
+        <path fill="#00a4ef" d="M1 50h45v45H1z"/>
+        <path fill="#ffb900" d="M50 50h45v45H50z"/>
       </svg>
     ),
     color: 'text-blue-600',
-    bgColor: 'bg-gradient-to-br from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   saas: {
-    icon: <Cloud className="h-8 w-8" />,
-    color: 'text-slate-600',
-    bgColor: 'bg-slate-100 dark:bg-slate-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <path fill="#199ED9" d="M80 55c0-11-9-20-20-20-1.5 0-3 .2-4.4.5C53.5 26 45.3 20 35.5 20 23.1 20 13 30.1 13 42.5c0 1.2.1 2.4.3 3.5C6.5 48.5 2 54.8 2 62c0 9.9 8.1 18 18 18h55c8.3 0 15-6.7 15-15 0-7.7-5.8-14-13.3-14.9.2-1.7.3-3.4.3-5.1z"/>
+      </svg>
+    ),
+    color: 'text-[#199ED9]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   veeamone: {
-    icon: <Server className="h-8 w-8" />,
-    color: 'text-green-500',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    icon: (
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <rect fill="#00B336" x="10" y="10" width="80" height="80" rx="8"/>
+        <path fill="#fff" d="M25 30l25 40 25-40H65L50 55 35 30H25z"/>
+      </svg>
+    ),
+    color: 'text-[#00B336]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
   cipp: {
     icon: (
-      <svg viewBox="0 0 24 24" className="h-8 w-8">
-        <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
-        <rect x="13" y="1" width="10" height="10" fill="#7FBA00"/>
-        <rect x="1" y="13" width="10" height="10" fill="#00A4EF"/>
-        <rect x="13" y="13" width="10" height="10" fill="#FFB900"/>
+      <svg viewBox="0 0 100 100" className="h-8 w-8">
+        <rect fill="#0078D4" x="10" y="10" width="80" height="80" rx="10"/>
+        <path fill="#fff" d="M30 35c0-8.3 6.7-15 15-15h10c8.3 0 15 6.7 15 15v5H30v-5z"/>
+        <path fill="#fff" d="M30 45h40v20c0 8.3-6.7 15-15 15H45c-8.3 0-15-6.7-15-15V45z"/>
+        <circle fill="#0078D4" cx="50" cy="55" r="5"/>
       </svg>
     ),
-    color: 'text-blue-600',
-    bgColor: 'bg-gradient-to-br from-orange-50 to-blue-50 dark:from-orange-900/20 dark:to-blue-900/20',
+    color: 'text-[#0078D4]',
+    bgColor: 'bg-white dark:bg-slate-800',
   },
 }
 
