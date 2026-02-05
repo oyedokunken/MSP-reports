@@ -629,6 +629,13 @@ final class HealthCheckController extends Controller
             $gutenbergUrl = config('services.gutenberg.url');
             
             if (empty($gutenbergUrl)) {
+                // In development, Gutenberg may not be configured - check if we're in local env
+                if (config('app.env') === 'local' || config('app.env') === 'development') {
+                    return [
+                        'status' => 'degraded',
+                        'message' => 'PDF service not configured (development mode)',
+                    ];
+                }
                 return [
                     'status' => 'unhealthy',
                     'message' => 'PDF generation service (Gutenberg) not configured',
