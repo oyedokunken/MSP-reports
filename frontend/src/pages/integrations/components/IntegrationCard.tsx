@@ -98,42 +98,40 @@ export function IntegrationCard({
                 className={`p-6 h-full flex flex-col transition-all duration-300 ${isSyncing ? "ring-2 ring-primary/50 shadow-lg bg-primary/5" : ""
                     } ${isSourceOfTruth ? "border-2 border-primary" : ""}`}
             >
-                <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3">
                         <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
                             {getIntegrationIcon(integration.type)}
                         </div>
-                        <div className="min-w-0 flex-1 overflow-hidden">
-                            <div className="flex items-center gap-2">
-                                <h3
-                                    className="font-semibold text-foreground"
-                                    title={integration.name}
-                                >
-                                    {integration.name}
-                                </h3>
-                                {isSourceOfTruth && (
-                                    <Badge
-                                        variant="default"
-                                        className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap flex-shrink-0"
-                                    >
-                                        <Crown className="h-3 w-3 mr-1" />
-                                        Master List
-                                    </Badge>
-                                )}
-                            </div>
-                            <p
-                                className="text-xs text-muted-foreground truncate"
-                                title={integration.type}
+                        <span
+                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${statusInfo.color}`}
+                        >
+                            {statusInfo.text}
+                        </span>
+                        {isSourceOfTruth && (
+                            <Badge
+                                variant="default"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
                             >
-                                {integration.type}
-                            </p>
-                        </div>
+                                <Crown className="h-3 w-3 mr-1" />
+                                Master List
+                            </Badge>
+                        )}
                     </div>
-                    <span
-                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium flex-shrink-0 whitespace-nowrap ${statusInfo.color}`}
-                    >
-                        <span className="truncate">{statusInfo.text}</span>
-                    </span>
+                    <div className="space-y-1">
+                        <h3
+                            className="font-semibold text-foreground text-lg"
+                            title={integration.name}
+                        >
+                            {integration.name}
+                        </h3>
+                        <p
+                            className="text-xs text-muted-foreground"
+                            title={integration.type}
+                        >
+                            {integration.type}
+                        </p>
+                    </div>
                 </div>
                 <div className="mt-6 space-y-3 flex-1">
                     <div className="flex items-center justify-between text-sm gap-2">

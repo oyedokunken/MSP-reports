@@ -139,6 +139,36 @@ export function ViewHistoricalImportJobsModal({
     return `${new Date(start).toLocaleDateString()} - ${new Date(end).toLocaleDateString()}`
   }
 
+  const calculateETA = (job: HistoricalImportJob): string | null => {
+    if (job.status !== 'running' || !job.started_at) return null
+    
+    const progress = calculateProgress(job)
+    if (progress <= 0 || progress >= 100) return null
+    
+    const startedAt = new Date(job.started_at).getTime()
+    const now = Date.now()
+    const elapsedMs = now - startedAt
+    
+    if (elapsedMs < 60000) return 'Calculating...'
+    
+    const totalEstimatedMs = (elapsedMs / progress) * 100
+    const remainingMs = totalEstimatedMs - elapsedMs
+    
+    if (remainingMs <= 0) return 'Almost done...'
+    
+    const remainingSeconds = Math.floor(remainingMs / 1000)
+    const hours = Math.floor(remainingSeconds / 3600)
+    const minutes = Math.floor((remainingSeconds % 3600) / 60)
+    
+    if (hours > 0) {
+      return `~${hours}h ${minutes}m remaining`
+    } else if (minutes > 0) {
+      return `~${minutes}m remaining`
+    } else {
+      return 'Less than a minute'
+    }
+  }
+
   const handleClose = () => {
     onOpenChange(false)
   }
@@ -204,7 +234,14 @@ export function ViewHistoricalImportJobsModal({
                           <span className="text-muted-foreground">
                             {job.status === 'running' ? 'Progress' : 'Waiting to start...'}
                           </span>
-                          <span className="font-medium text-primary">{Math.round(progress)}%</span>
+                          <div className="flex items-center gap-3">
+                            {job.status === 'running' && calculateETA(job) && (
+                              <span className="text-muted-foreground font-medium">
+                                {calculateETA(job)}
+                              </span>
+                            )}
+                            <span className="font-medium text-primary">{Math.round(progress)}%</span>
+                          </div>
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                           <div
