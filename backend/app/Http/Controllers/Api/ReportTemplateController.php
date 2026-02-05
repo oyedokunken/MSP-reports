@@ -15,12 +15,14 @@ use App\Http\Requests\ReportTemplate\ApplyTemplateRequest;
 use App\Http\Requests\ReportTemplate\ApplyToCustomersRequest;
 use App\Http\Requests\ReportTemplate\GetAvailableReportTypesRequest;
 use App\Http\Requests\ReportTemplate\GetReportTemplatesRequest;
+use App\Services\InAppNotificationService;
 use Illuminate\Http\Request;
 
 final class ReportTemplateController extends Controller
 {
     public function __construct(
-        private ReportTemplateService $templateService
+        private ReportTemplateService $templateService,
+        private InAppNotificationService $notificationService,
     ) {}
     
     /**
@@ -116,6 +118,9 @@ final class ReportTemplateController extends Controller
             ? 'Global template created successfully. Apply it to customers to create schedules.'
             : 'Template created and schedule activated for customer';
         
+        // Send notification
+        $this->notificationService->templateCreated($template, auth()->user());
+
         return response()->json([
             'success' => true,
             'data' => $template->load('customer'),

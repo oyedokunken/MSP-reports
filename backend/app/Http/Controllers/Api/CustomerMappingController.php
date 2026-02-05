@@ -306,7 +306,7 @@ final class CustomerMappingController extends Controller
 
         try {
             /** @var array{canonical_name: string, status?: string, report_destination?: string|null, metadata?: array<string, mixed>} $validated */
-            $customer = $action->execute($company, $validated);
+            $customer = $action->execute($company, $validated, $request->user());
             return response()->json([
                 'status' => 'success',
                 'message' => 'Static customer created successfully.',

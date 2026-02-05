@@ -7,10 +7,14 @@ namespace App\Actions\ApiKey;
 use App\Models\ApiKey;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\InAppNotificationService;
 use Illuminate\Support\Str;
 
 final class CreateApiKeyAction
 {
+    public function __construct(
+        private readonly InAppNotificationService $notificationService,
+    ) {}
     /**
      * @param array{
      *     display_name: string,
@@ -59,6 +63,9 @@ final class CreateApiKeyAction
             'ip_address' => $ipAddress,
             'user_agent' => $userAgent,
         ]);
+
+        // Send in-app notification
+        $this->notificationService->apiKeyCreated($apiKey, $user);
 
         return [
             'apiKey' => $apiKey,

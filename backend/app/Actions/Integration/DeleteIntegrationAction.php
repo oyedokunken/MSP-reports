@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace App\Actions\Integration;
 
 use App\Models\Company;
+use App\Models\User;
+use App\Services\InAppNotificationService;
 use Illuminate\Validation\ValidationException;
 
 final class DeleteIntegrationAction
 {
+    public function __construct(
+        private readonly InAppNotificationService $notificationService,
+    ) {}
+
     /**
      * @throws ValidationException
      */
-    public function execute(Company $company, int $integrationId): void
+    public function execute(Company $company, int $integrationId, ?User $actor = null): void
     {
         $integration = $company->integrations()
             ->where('integration_id', $integrationId)
@@ -30,6 +36,11 @@ final class DeleteIntegrationAction
             ]);
         }
 
+        $integrationName = $integration->display_name;
         $integration->delete();
+
+        if ($actor) {
+            $this->notificationService->integrationDeleted($integrationName, $company, $actor);
+        }
     }
 }

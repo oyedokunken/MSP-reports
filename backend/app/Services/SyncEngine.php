@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Log;
 
 final class SyncEngine
 {
+    public function __construct(
+        private readonly InAppNotificationService $notificationService,
+    ) {}
     public function triggerSync(Integration $integration, string $syncType = 'current_state', string $priority = 'default'): SyncLog
     {
         $syncLog = SyncLog::create([
@@ -135,6 +138,9 @@ final class SyncEngine
         }
 
         $integration->save();
+
+        // Send in-app notification for sync completion
+        $this->notificationService->syncCompleted($integration, $recordsSynced, $status === 'success' || $status === 'partial');
 
         if ($status === 'failed') {
             $this->notifyFailure($integration, $syncLog);

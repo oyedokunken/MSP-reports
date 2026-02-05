@@ -78,7 +78,7 @@ final class IntegrationController extends Controller
         try {
             /** @var array{integration_type: string, display_name: string, status?: string, credentials?: array<string, mixed>|null, configuration?: array<string, mixed>|null, is_source_of_truth?: bool|null} $validated */
             $validated = $request->validated();
-            $integration = $action->execute($request->user()->company, $validated);
+            $integration = $action->execute($request->user()->company, $validated, $request->user());
             return response()->json([
                 'status' => 'success',
                 'data' => new IntegrationResource($integration)
@@ -96,7 +96,7 @@ final class IntegrationController extends Controller
         $company = $request->user()->company;
 
         try {
-            $syncLog = $action->execute($company, $id);
+            $syncLog = $action->execute($company, $id, $request->user());
             $integration = $company->integrations()->find($id);
 
             return response()->json([
@@ -199,7 +199,7 @@ final class IntegrationController extends Controller
     public function deleteIntegration(Request $request, int $id, DeleteIntegrationAction $action): JsonResponse
     {
         try {
-            $action->execute($request->user()->company, $id);
+            $action->execute($request->user()->company, $id, $request->user());
             return response()->json([
                 'status' => 'success',
                 'message' => 'Integration deleted successfully.'

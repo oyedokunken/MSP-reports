@@ -12,6 +12,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\LicenseChecker;
 use App\Services\RolePermissionService;
+use App\Services\InAppNotificationService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -21,6 +22,7 @@ final class CreateUserAction
 {
     public function __construct(
         private readonly LicenseChecker $licenseChecker,
+        private readonly InAppNotificationService $notificationService,
     ) {}
 
     /**
@@ -79,6 +81,9 @@ final class CreateUserAction
         // Send welcome email for local auth users
         $authMethod = isset($data['auth_method']) ? AuthMethod::from($data['auth_method']) : AuthMethod::LOCAL;
         $this->sendWelcomeEmail($user, $plainPassword, $authMethod);
+
+        // Send in-app notification
+        $this->notificationService->userCreated($user, $authUser);
 
         return $user;
     }

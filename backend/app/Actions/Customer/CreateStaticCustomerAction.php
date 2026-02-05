@@ -6,10 +6,16 @@ namespace App\Actions\Customer;
 
 use App\Models\Company;
 use App\Models\Customer;
+use App\Models\User;
+use App\Services\InAppNotificationService;
 use Illuminate\Support\Facades\DB;
 
 final class CreateStaticCustomerAction
 {
+    public function __construct(
+        private readonly InAppNotificationService $notificationService,
+    ) {}
+
     /**
      * @param array{
      *   canonical_name: string,
@@ -18,10 +24,10 @@ final class CreateStaticCustomerAction
      *   metadata?: array<string, mixed>
      * } $data
      */
-    public function execute(Company $company, array $data): Customer
+    public function execute(Company $company, array $data, ?User $actor = null): Customer
     {
-        return DB::transaction(function () use ($company, $data) {
-            return Customer::create([
+        return DB::transaction(function () use ($company, $data, $actor) {
+            $customer = Customer::create([
                 'company_id' => $company->company_id,
                 'canonical_name' => $data['canonical_name'],
                 'status' => $data['status'] ?? 'active',
@@ -29,6 +35,12 @@ final class CreateStaticCustomerAction
                 'report_destination' => $data['report_destination'] ?? null,
                 'metadata' => $data['metadata'] ?? [],
             ]);
+
+            if ($actor) {
+                $this->notificationService->customerCreated($customer, $actor);
+            }
+
+            return $customer;
         });
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\Integration;
 use App\Services\IntegrationLifecycleService;
 use App\Services\IntegrationService;
+use App\Services\InAppNotificationService;
 use Illuminate\Validation\ValidationException;
 
 final class CreateIntegrationAction
@@ -15,6 +16,7 @@ final class CreateIntegrationAction
     public function __construct(
         private readonly IntegrationService $integrationService,
         private readonly IntegrationLifecycleService $lifecycleService,
+        private readonly InAppNotificationService $notificationService,
     ) {}
 
     /**
@@ -28,7 +30,7 @@ final class CreateIntegrationAction
      * } $data
      * @throws ValidationException
      */
-    public function execute(Company $company, array $data): Integration
+    public function execute(Company $company, array $data, ?\App\Models\User $actor = null): Integration
     {
         $availableTypes = $this->integrationService->scanAvailableIntegrations();
 
@@ -40,6 +42,12 @@ final class CreateIntegrationAction
 
         $data['status'] = $data['status'] ?? 'active';
 
-        return $this->lifecycleService->onboardNewIntegration($company, $data);
+        $integration = $this->lifecycleService->onboardNewIntegration($company, $data);
+
+        if ($actor) {
+            $this->notificationService->integrationCreated($integration, $actor);
+        }
+
+        return $integration;
     }
 }
