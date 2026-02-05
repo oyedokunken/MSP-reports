@@ -187,11 +187,29 @@ class Integration extends Model
             return $this->where('integration_id', $value)->first();
         }
         
-        // Otherwise, try to find by display_name (case-insensitive, slug-friendly)
-        $normalizedValue = str_replace(['-', '_'], ' ', strtolower($value));
+        // Normalize the slug: trim dashes, replace with spaces
+        $normalizedValue = trim(str_replace(['-', '_'], ' ', strtolower($value)));
         
-        return $this->whereRaw('LOWER(display_name) = ?', [$normalizedValue])
-            ->orWhereRaw('LOWER(REPLACE(REPLACE(display_name, \'-\', \' \'), \'_\', \' \')) = ?', [$normalizedValue])
-            ->first();
+        // Try exact match first (after normalization)
+        $result = $this->whereRaw('LOWER(display_name) = ?', [$normalizedValue])->first();
+        if ($result) {
+            return $result;
+        }
+        
+        // Try matching by normalizing the database value too (remove special chars)
+        $result = $this->whereRaw(
+            'LOWER(REGEXP_REPLACE(display_name, \'[^a-zA-Z0-9 ]\', \'\', \'g\')) = ?', 
+            [$normalizedValue]
+        )->first();
+        if ($result) {
+            return $result;
+        }
+        
+        // Fallback: fuzzy match by removing all non-alphanumeric
+        $alphanumericValue = preg_replace('/[^a-z0-9]/', '', $normalizedValue);
+        return $this->whereRaw(
+            'LOWER(REGEXP_REPLACE(display_name, \'[^a-zA-Z0-9]\', \'\', \'g\')) = ?',
+            [$alphanumericValue]
+        )->first();
     }
 }

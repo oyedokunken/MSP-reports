@@ -159,7 +159,15 @@ export default function IntegrationList() {
                     }}
                     onViewCustomers={(id) => {
                         const int = allIntegrations.find((i) => i.id === id);
-                        if (int) navigate(`/platform/integrations/${encodeURIComponent(int.name.toLowerCase().replace(/\s+/g, '-'))}/view`);
+                        if (int) {
+                            // Create clean slug: lowercase, replace spaces with dashes, remove special chars, trim dashes
+                            const slug = int.name.toLowerCase()
+                                .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+                                .replace(/\s+/g, '-') // Replace spaces with dashes
+                                .replace(/-+/g, '-') // Replace multiple dashes with single
+                                .replace(/^-|-$/g, ''); // Trim leading/trailing dashes
+                            navigate(`/platform/integrations/${encodeURIComponent(slug)}/view`);
+                        }
                     }}
                     onSetSourceOfTruth={handleSetSourceOfTruth}
                     onEdit={(int) => {
