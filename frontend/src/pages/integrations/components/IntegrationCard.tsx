@@ -204,41 +204,41 @@ export function IntegrationCard({
                         </div>
                     )}
                 </div>
-                <div className="mt-4 border-t border-border pt-4">
+                <div className="mt-4 border-t border-border pt-4 space-y-2">
+                    {canSyncSlice && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    onClick={() =>
+                                        onSync(integration.id, integration.name)
+                                    }
+                                    disabled={isSyncing || integration.status === 'importing_historical'}
+                                    className={`w-full flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${isSyncing
+                                        ? "bg-primary text-primary-foreground border-primary"
+                                        : "border-border bg-background text-foreground hover:bg-muted"
+                                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                >
+                                    {isSyncing ? (
+                                        <LoadingSpinner size="sm" />
+                                    ) : (
+                                        <RefreshCw className="h-4 w-4" />
+                                    )}
+                                    {isSyncing ? "Syncing..." : integration.status === 'importing_historical' ? "Importing..." : "Sync Now"}
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {integration.status === 'importing_historical'
+                                    ? "Cannot sync while importing historical data"
+                                    : "Sync Now"}
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
                     <div className="flex items-center gap-2">
-                        {isSourceOfTruth && canSyncSlice && (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        onClick={() =>
-                                            onSync(integration.id, integration.name)
-                                        }
-                                        disabled={isSyncing || integration.status === 'importing_historical'}
-                                        className={`flex-1 flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-all ${isSyncing
-                                            ? "bg-primary text-primary-foreground border-primary"
-                                            : "border-border bg-background text-foreground hover:bg-muted"
-                                            } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                    >
-                                        {isSyncing ? (
-                                            <LoadingSpinner size="sm" />
-                                        ) : (
-                                            <RefreshCw className="h-4 w-4" />
-                                        )}
-                                        {isSyncing ? "Syncing..." : integration.status === 'importing_historical' ? "Importing..." : "Sync Now"}
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {integration.status === 'importing_historical'
-                                        ? "Cannot sync while importing historical data"
-                                        : "Sync Now"}
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <button
                                     onClick={() => onPreviewData(integration)}
-                                    className="flex-1 flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-all"
+                                    className="flex-[4] flex items-center justify-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-all"
                                 >
                                     <Users className="h-4 w-4" />
                                     View Customers
@@ -248,112 +248,92 @@ export function IntegrationCard({
                                 View Customers
                             </TooltipContent>
                         </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="px-2"
-                                            >
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            {!isSourceOfTruth && canManageSlice && (
-                                                <>
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            onSetSourceOfTruth(
-                                                                integration.id,
-                                                                integration.name
-                                                            )
-                                                        }
-                                                        disabled={isSettingSourceOfTruth}
-                                                    >
-                                                        <Crown className="mr-2 h-4 w-4" />
-                                                        {isSettingSourceOfTruth
-                                                            ? "Setting as Master..."
-                                                            : "Set as Master List"}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                </>
-                                            )}
-                                            {!isSourceOfTruth && canSyncSlice && (
-                                                <DropdownMenuItem
-                                                    onClick={() =>
-                                                        onSync(integration.id, integration.name)
-                                                    }
-                                                    disabled={isSyncing || integration.status === 'importing_historical'}
-                                                >
-                                                    <RefreshCw className="mr-2 h-4 w-4" />
-                                                    {integration.status === 'importing_historical' ? "Importing..." : "Manual Sync"}
-                                                </DropdownMenuItem>
-                                            )}
-                                            {canManageSlice && (
-                                                <DropdownMenuItem
-                                                    onClick={() => onEdit(integration)}
-                                                >
-                                                    <Settings className="mr-2 h-4 w-4" />
-                                                    Edit Settings
-                                                </DropdownMenuItem>
-                                            )}
-                                            <DropdownMenuItem
-                                                onClick={() => onViewLogs(integration)}
-                                            >
-                                                <FileText className="mr-2 h-4 w-4" />
-                                                View Sync Logs
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={() => onHealthCheck(integration)}
-                                            >
-                                                <Activity className="mr-2 h-4 w-4" />
-                                                Health Check
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={() => onRateLimit(integration)}
-                                            >
-                                                <Gauge className="mr-2 h-4 w-4" />
-                                                Rate Limit Status
-                                            </DropdownMenuItem>
-                                            {canSyncSlice && (
-                                                <DropdownMenuItem
-                                                    onClick={() => onHistoricalImport(integration)}
-                                                >
-                                                    <Database className="mr-2 h-4 w-4" />
-                                                    Import Historical Data
-                                                </DropdownMenuItem>
-                                            )}
-                                            <DropdownMenuItem
-                                                onClick={() =>
-                                                    onViewHistoricalJobs(integration)
-                                                }
-                                            >
-                                                <FileText className="mr-2 h-4 w-4" />
-                                                View Import Jobs
-                                            </DropdownMenuItem>
-                                            {canManageSlice && (
-                                                <>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem
-                                                        onClick={() => onDelete(integration)}
-                                                        className="text-destructive"
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Delete Integration
-                                                    </DropdownMenuItem>
-                                                </>
-                                            )}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                More Actions
-                            </TooltipContent>
-                        </Tooltip>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 px-2"
+                                >
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                                {!isSourceOfTruth && canManageSlice && (
+                                    <>
+                                        <DropdownMenuItem
+                                            onClick={() =>
+                                                onSetSourceOfTruth(
+                                                    integration.id,
+                                                    integration.name
+                                                )
+                                            }
+                                            disabled={isSettingSourceOfTruth}
+                                        >
+                                            <Crown className="mr-2 h-4 w-4" />
+                                            {isSettingSourceOfTruth
+                                                ? "Setting as Master..."
+                                                : "Set as Master List"}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
+                                {canManageSlice && (
+                                    <DropdownMenuItem
+                                        onClick={() => onEdit(integration)}
+                                    >
+                                        <Settings className="mr-2 h-4 w-4" />
+                                        Edit Settings
+                                    </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                    onClick={() => onViewLogs(integration)}
+                                >
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    View Sync Logs
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => onHealthCheck(integration)}
+                                >
+                                    <Activity className="mr-2 h-4 w-4" />
+                                    Health Check
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => onRateLimit(integration)}
+                                >
+                                    <Gauge className="mr-2 h-4 w-4" />
+                                    Rate Limit Status
+                                </DropdownMenuItem>
+                                {canSyncSlice && (
+                                    <DropdownMenuItem
+                                        onClick={() => onHistoricalImport(integration)}
+                                    >
+                                        <Database className="mr-2 h-4 w-4" />
+                                        Import Historical Data
+                                    </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                    onClick={() =>
+                                        onViewHistoricalJobs(integration)
+                                    }
+                                >
+                                    <FileText className="mr-2 h-4 w-4" />
+                                    View Import Jobs
+                                </DropdownMenuItem>
+                                {canManageSlice && (
+                                    <>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                            onClick={() => onDelete(integration)}
+                                            className="text-destructive"
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Delete Integration
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
             </AnimatedCard>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -196,10 +196,7 @@ export default function StatusPage() {
     setShowResultModal(true)
   }, [checkService])
 
-  // Initial check on mount
-  useEffect(() => {
-    runHealthChecks()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // No auto-check on mount - user must click the Refresh button
 
   const operationalCount = services.filter(s => s.status === 'operational').length
   const degradedCount = services.filter(s => s.status === 'degraded').length
