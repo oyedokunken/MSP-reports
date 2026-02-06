@@ -23,6 +23,7 @@ use App\Integrations\LibreNMS\LibreNMSIntegration;
 use App\Integrations\SaaS\SaaSIntegration;
 use App\Integrations\BitDefender\BitDefenderIntegration;
 use App\Integrations\VeeamOne\VeeamOneIntegration;
+use App\Integrations\CIPP\CIPPIntegration;
 use App\Integrations\Contracts\IntegrationInterface;
 
 
@@ -31,7 +32,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 5;
-    public int $timeout = 1800; 
+    public int $timeout = 1800;
     /** @var array<int, int> */
     public array $backoff = [120, 300, 600, 1200];
 
@@ -55,7 +56,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
             'chunk_date' => $this->chunkDate->toDateString(),
             'current_status' => $this->importJob->status,
         ]);
-        
+
         try {
             $integration = $this->importJob->integration;
 
@@ -70,7 +71,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
                     ]);
                 $this->importJob->refresh();
             }
-            
+
             $integrationClass = $this->loadIntegrationClass($integration);
 
             if (!$integrationClass) {
@@ -83,7 +84,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
             $daysToProcess = 7;
             $currentDate = $this->chunkDate->copy();
             $endDate = $this->chunkDate->copy()->addDays($daysToProcess - 1)->endOfDay();
-            
+
             // Cap at the import job's end date
             if ($endDate->gt($this->importJob->import_end_date)) {
                 $endDate = $this->importJob->import_end_date->copy()->endOfDay();
@@ -92,9 +93,9 @@ final class ImportHistoricalDataJob implements ShouldQueue
             // Process the chunk (up to 7 days)
             // Set progress callback if supported
             if (method_exists($integrationClass, 'setProgressCallback')) {
-                $integrationClass->setProgressCallback(function(int $count, ?float $subProgress = null) use ($integration) {
+                $integrationClass->setProgressCallback(function (int $count, ?float $subProgress = null) use ($integration) {
                     $this->importJob->increment('records_imported', $count);
-                    
+
                     if ($subProgress !== null && $this->importJob->total_jobs > 0) {
                         // Calculate total progress: (completed_chunks + this_chunk_fraction) / total_chunks
                         // We use fresh() to get the latest jobs_completed from other parallel workers
@@ -104,7 +105,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
                             $currentChunkContribution = ($subProgress / 100) * (1 / $job->total_jobs);
                             /** @var int $newProgress */
                             $newProgress = (int) min(99, round(($baseProgress + $currentChunkContribution) * 100));
-                            
+
                             $jobProgress = $job->progress_percent ?? 0;
                             if ($newProgress > $jobProgress) {
                                 $job->update(['progress_percent' => $newProgress]);
@@ -120,7 +121,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
                 'start_date' => $currentDate->toDateString(),
                 'end_date' => $endDate->toDateString(),
             ]);
-            
+
             /** @var IntegrationInterface $integrationClass */
             $result = $integrationClass->getHistoricalData(
                 $currentDate,
@@ -137,7 +138,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
 
             // Get records count from result (supports both old 'data' array and new 'total_processed' count)
             $recordsImported = $result['total_processed'] ?? count($result['data'] ?? []);
-            
+
             // Update position to the end of this chunk
             $this->importJob->current_position = $endDate;
 
@@ -153,16 +154,16 @@ final class ImportHistoricalDataJob implements ShouldQueue
                 // Column doesn't exist (old job) - fall back to non-atomic update
                 Log::info('jobs_completed column not found, using fallback');
             }
-            
+
             if ($recordsImported > 0) {
                 DB::table('historical_import_jobs')
                     ->where('historical_import_job_id', $this->importJob->historical_import_job_id)
                     ->increment('records_imported', $recordsImported);
             }
-            
+
             // Refresh to get updated counters
             $this->importJob->refresh();
-            
+
             // Calculate progress from completed jobs
             if (isset($this->importJob->total_jobs) && $this->importJob->total_jobs > 0) {
                 $this->importJob->progress_percent = (int) min(100, round(($this->importJob->jobs_completed / $this->importJob->total_jobs) * 100));
@@ -172,7 +173,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
                 $completedDays = $this->importJob->import_start_date->diffInDays($endDate);
                 $this->importJob->progress_percent = (int) min(100, round(($completedDays / $totalDays) * 100));
             }
-            
+
             $this->importJob->save();
 
             // Sync progress to the integration model for real-time frontend updates
@@ -183,7 +184,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
             // Check if ALL parallel jobs are complete
             // Use fresh() instead of refresh() to avoid ModelNotFoundException if record was deleted
             $freshJob = $this->importJob->fresh();
-            
+
             // If the job was deleted or doesn't exist anymore, another worker already handled completion
             if (!$freshJob) {
                 Log::info('Historical import job already completed by another worker', [
@@ -191,12 +192,12 @@ final class ImportHistoricalDataJob implements ShouldQueue
                 ]);
                 return;
             }
-            
+
             // Determine if import is complete
             // For parallel imports: jobs_completed >= total_jobs
             // For single-chunk/sequential: we've reached or passed the end date
             $allJobsComplete = false;
-            
+
             if (isset($freshJob->total_jobs) && $freshJob->total_jobs > 0) {
                 // Parallel job tracking
                 $allJobsComplete = $freshJob->jobs_completed >= $freshJob->total_jobs;
@@ -206,7 +207,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
                 $importEndDate = Carbon::parse($freshJob->import_end_date);
                 $chunkEndDate = Carbon::parse($endDate);
                 $allJobsComplete = $chunkEndDate->gte($importEndDate);
-                
+
                 Log::debug('Historical import completion check', [
                     'import_job_id' => $freshJob->historical_import_job_id,
                     'chunk_end' => $chunkEndDate->toDateString(),
@@ -214,7 +215,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
                     'is_complete' => $allJobsComplete,
                 ]);
             }
-            
+
             // Mark job as completed if all chunks are done
             if ($allJobsComplete && $freshJob->status !== 'completed') {
                 $freshJob->update([
@@ -278,7 +279,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
 
         // Check if any records were imported before marking as failed
         $hasImportedData = $this->importJob->records_imported > 0;
-        
+
         // Mark import job status based on whether data was imported
         $this->importJob->update([
             'status' => $hasImportedData ? 'completed' : 'failed',
@@ -287,7 +288,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
         // Update integration's historical import status but DON'T mark integration as error
         // The integration can still be active and syncing current data even if historical import failed
         $integration = $this->importJob->integration;
-        
+
         // If data was imported, mark as completed (partial), otherwise failed
         $integration->update([
             'historical_import_status' => $hasImportedData ? 'completed' : 'failed',
@@ -295,7 +296,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
         ]);
 
         $logLevel = $hasImportedData ? 'info' : 'warning';
-        $message = $hasImportedData 
+        $message = $hasImportedData
             ? 'Historical import completed partially with some data imported'
             : 'Historical import failed with no data imported';
 
@@ -330,6 +331,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
             'SaaS' => SaaSIntegration::class,
             'BitDefender' => BitDefenderIntegration::class,
             'VeeamOne' => VeeamOneIntegration::class,
+            'CIPP' => CIPPIntegration::class,
         ];
 
         $className = $integrationClasses[$integration->integration_type] ?? null;

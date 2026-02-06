@@ -22,6 +22,9 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 # Install Redis extension
 RUN pecl install redis && docker-php-ext-enable redis
 
+# Configure PHP memory limit
+RUN echo "memory_limit = 512M" > /usr/local/etc/php/conf.d/memory-limit.ini
+
 # Set working directory
 WORKDIR /var/www/html
 
