@@ -31,28 +31,11 @@ export const customerApi = {
         integration_types?: string[]
         source_of_truth_only?: boolean | null
     }): Promise<CustomerListResponse> {
-        const queryParams = new URLSearchParams()
-        if (params?.page) queryParams.append('page', params.page.toString())
-        if (params?.search) queryParams.append('search', params.search)
-
-        if (params?.statuses && params.statuses.length > 0) {
-            params.statuses.forEach(status => queryParams.append('statuses[]', status))
-        }
-
-        if (params?.report_filters && params.report_filters.length > 0) {
-            params.report_filters.forEach(filter => queryParams.append('report_filters[]', filter))
-        }
-
-        if (params?.integration_types && params.integration_types.length > 0) {
-            params.integration_types.forEach(type => queryParams.append('integration_types[]', type))
-        }
-
-        if (params?.source_of_truth_only !== null && params?.source_of_truth_only !== undefined) {
-            queryParams.append('source_of_truth_only', params.source_of_truth_only.toString())
-        }
-
-        const url = `/customers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
-        return api.get<CustomerListResponse>(url)
+        return api.get<CustomerListResponse>('/customers', {
+            ...params,
+            // Ensure array params are handled correctly by Axios if needed, 
+            // but standard Axios configuration usually handles arrays as statuses[]=...
+        })
     },
 
     /**
@@ -60,13 +43,12 @@ export const customerApi = {
      * GET /api/customers/unmapped
      */
     async getUnmappedCustomers(page?: number, search?: string): Promise<UnmappedCustomersResponse> {
-        const queryParams = new URLSearchParams()
-        if (page) queryParams.append('page', page.toString())
-        if (search) queryParams.append('search', search)
-
-        const url = `/customers/unmapped${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
-        return api.get<UnmappedCustomersResponse>(url)
+        return api.get<UnmappedCustomersResponse>('/customers/unmapped', {
+            page,
+            search: search?.trim() || undefined
+        })
     },
+
 
     /**
      * Get customer integrations

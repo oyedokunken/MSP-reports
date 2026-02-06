@@ -4,59 +4,14 @@
  */
 
 import type { ApiSuccessResponse, PaginatedResponse } from './common'
+import * as schemas from '@/schemas/customer'
 
-export interface CustomerMapping {
-    type: 'auto' | 'manual'
-    confidence_score: number
-    mapped_at: string
-    notes: string | null
-}
-
-export interface IntegrationCustomer {
-    integration_customer_id: number
-    integration_id: number
-    integration_type: string
-    display_name: string
-    external_id: string
-    name: string
-    active: boolean
-    last_seen_at: string | number | null
-    metadata?: Record<string, unknown>
-    mapping?: CustomerMapping | null
-    suggested_matches?: SuggestedMatch[]
-}
-
-export interface Customer {
-    customer_id: number
-    canonical_name: string
-    status: 'active' | 'inactive'
-    report_destination: string | null
-    report_schedules_count: number
-    integrations: IntegrationCustomer[]
-}
-
-export interface SuggestedMatch {
-    customer_id: number
-    canonical_name: string
-    confidence_score: number
-}
-
-export interface UnmappedCustomer {
-    integration_customer_id: number
-    integration_id: number
-    integration_type: string
-    display_name: string
-    external_id: string
-    name: string
-    active: boolean
-    last_seen_at: number | null
-    suggested_matches?: SuggestedMatch[]
-}
-
-export interface UnmappedSummary {
-    total_unmapped: number
-    by_integration_type: Record<string, number>
-}
+export type CustomerMapping = schemas.CustomerMapping
+export type IntegrationCustomer = schemas.IntegrationCustomer
+export type Customer = schemas.Customer
+export type SuggestedMatch = schemas.SuggestedMatch
+export type UnmappedCustomer = schemas.UnmappedCustomer
+export type UnmappedSummary = schemas.UnmappedSummary
 
 export type CustomerListResponse = PaginatedResponse<Customer>
 
@@ -66,15 +21,7 @@ export type UnmappedCustomersResponse = PaginatedResponse<UnmappedCustomer> & {
 
 export type CustomerIntegrationsResponse = ApiSuccessResponse<IntegrationCustomer[]>
 
-export interface MapCustomerRequest {
-    integration_customer_id: number
-    customer_id?: number
-    create_new?: boolean
-    canonical_name?: string
-    status?: 'active' | 'inactive'
-    report_destination?: string
-    metadata?: Record<string, unknown>
-}
+export type MapCustomerRequest = schemas.MapCustomerRequest
 
 export type MapCustomerResponse = ApiSuccessResponse<{
     integration_customer_id: number
@@ -83,41 +30,10 @@ export type MapCustomerResponse = ApiSuccessResponse<{
     created_new: boolean
 }>
 
-export interface UpdateCustomerRequest {
-    canonical_name?: string
-    status?: 'active' | 'inactive'
-    report_destination?: string | null
-    metadata?: Record<string, unknown>
-}
-
-export interface MergeCustomersRequest {
-    merge_customer_id: number
-}
-
-export interface SplitCustomerRequest {
-    new_customer_name: string
-    integration_customer_ids: number[]
-}
-
-export interface IntegrationStats {
-    tickets?: {
-        total: number
-        open: number
-        completed: number
-        top_technicians?: Array<{
-            name: string
-            ticket_count: number
-        }>
-    }
-    time_entries?: {
-        total: number
-        total_hours: number
-        billable_hours: number
-    }
-    contracts?: {
-        total: number
-        active: number
-    }
-}
+export type UpdateCustomerRequest = schemas.UpdateCustomerRequest
+export type MergeCustomersRequest = schemas.MergeCustomersRequest
+export type SplitCustomerRequest = schemas.SplitCustomerRequest
+export type IntegrationStats = schemas.IntegrationStats
 
 export type IntegrationStatsResponse = ApiSuccessResponse<IntegrationStats>
+

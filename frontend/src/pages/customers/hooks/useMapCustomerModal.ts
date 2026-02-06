@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { logger } from '@/lib/logger'
 import useDebounce from '@/hooks/use-debounce'
-import { customerApi } from '@/services/api/customers'
+import { useCustomerInfiniteQuery, useMapCustomerMutation } from './useCustomersQueries'
 import type { IntegrationCustomer, ExistingCustomer, SuggestedMatch } from '../types'
 
 export const useMapCustomerModal = (
@@ -10,99 +10,64 @@ export const useMapCustomerModal = (
     _existingCustomers: ExistingCustomer[],
     onSuccess?: () => void
 ) => {
-    const [isSubmitting, setIsSubmitting] = useState(false)
-    const [error, setError] = useState('')
-    const [success, setSuccess] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const debouncedSearch = useDebounce(searchTerm, 300)
 
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null)
     const [createNew, setCreateNew] = useState(false)
-    const [suggestedMatches, setSuggestedMatches] = useState<SuggestedMatch[]>([])
+    const [currentIndex, setCurrentIndex] = useState(0)
+    const [error, setError] = useState('')
+    const [success, setSuccess] = useState(false)
     const [mappedCount, setMappedCount] = useState(0)
 
-    const [candidates, setCandidates] = useState<ExistingCustomer[]>([])
-    const [searchPage, setSearchPage] = useState(1)
-    const [hasMoreCandidates, setHasMoreCandidates] = useState(true)
-    const [isLoadingCandidates, setIsLoadingCandidates] = useState(false)
-    const [isLoadingMoreCandidates, setIsLoadingMoreCandidates] = useState(false)
+    const mapMutation = useMapCustomerMutation()
 
-    const [currentIndex, setCurrentIndex] = useState(0)
+    // Candidates query using TanStack Query
+    const {
+        data: infiniteData,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading: isLoadingCandidates,
+    } = useCustomerInfiniteQuery({
+        search: debouncedSearch,
+        statuses: ['active']
+    })
+
+    const candidates = useMemo(() => {
+        if (!infiniteData) return []
+        return infiniteData.pages.flatMap(page =>
+            page.data.map(c => ({
+                customer_id: c.customer_id,
+                canonical_name: c.canonical_name || '',
+                status: c.status,
+                integrations: c.integrations || []
+            }))
+        )
+    }, [infiniteData])
 
     const customers = useMemo(() => integrationCustomers || [], [integrationCustomers])
     const currentCustomer = customers[currentIndex] || null
     const totalCount = customers.length
     const isBulk = totalCount > 1
 
-    // Handle modal open/reset
+    // Suggested matches logic
+    const suggestedMatches = useMemo((): SuggestedMatch[] => {
+        return currentCustomer?.suggested_matches || []
+    }, [currentCustomer])
+
+    // Reset state when modal opens
     useEffect(() => {
         if (open) {
-            setMappedCount(0)
-            setCurrentIndex(0)
-            setSuccess(false)
-            setError('')
             setSearchTerm('')
             setSelectedCustomerId(null)
             setCreateNew(false)
-            setSearchPage(1)
-            setCandidates([])
+            setCurrentIndex(0)
+            setError('')
+            setSuccess(false)
+            setMappedCount(0)
         }
     }, [open])
-
-    // Get suggested matches from current customer if available
-    useEffect(() => {
-        if (open && currentCustomer) {
-            setSuggestedMatches(currentCustomer.suggested_matches || [])
-        }
-    }, [open, currentCustomer])
-
-    // Fetch candidates logic
-    const fetchCandidates = useCallback(async (page: number, search: string, append: boolean = false) => {
-        try {
-            if (append) {
-                setIsLoadingMoreCandidates(true)
-            } else {
-                setIsLoadingCandidates(true)
-                setSearchPage(1)
-            }
-
-            const response = await customerApi.getCustomers({
-                page,
-                search: search.trim() || undefined,
-                statuses: ['active']
-            })
-
-            const data: ExistingCustomer[] = response.data.map(c => ({
-                customer_id: c.customer_id,
-                canonical_name: c.canonical_name || '',
-                status: c.status,
-                integrations: c.integrations || []
-            }))
-
-            if (append) {
-                setCandidates(prev => [...prev, ...data])
-            } else {
-                setCandidates(data)
-            }
-
-            setHasMoreCandidates(response.pagination.current_page < response.pagination.last_page)
-            setSearchPage(response.pagination.current_page)
-        } catch (err) {
-            logger.error("Failed to fetch candidates", err)
-            if (!append) setCandidates([])
-            setHasMoreCandidates(false)
-        } finally {
-            setIsLoadingCandidates(false)
-            setIsLoadingMoreCandidates(false)
-        }
-    }, [])
-
-    // Refetch candidates when debounced search term changes
-    useEffect(() => {
-        if (open) {
-            fetchCandidates(1, debouncedSearch, false)
-        }
-    }, [open, debouncedSearch, fetchCandidates])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -113,13 +78,12 @@ export const useMapCustomerModal = (
         }
 
         setError('')
-        setIsSubmitting(true)
 
         try {
-            // Use concurrent mapping for better performance
+            // Bulk mapping logic using the mutation
             const results = await Promise.allSettled(
                 customers.map(customer =>
-                    customerApi.mapCustomer({
+                    mapMutation.mutateAsync({
                         integration_customer_id: customer.integration_customer_id,
                         create_new: createNew,
                         customer_id: createNew ? undefined : selectedCustomerId!,
@@ -136,7 +100,6 @@ export const useMapCustomerModal = (
             setMappedCount(customers.length)
             setSuccess(true)
 
-            // Automatically trigger success callback after a short delay
             setTimeout(() => {
                 onSuccess?.()
             }, 1500)
@@ -144,15 +107,14 @@ export const useMapCustomerModal = (
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to map customer'
             setError(errorMessage)
-        } finally {
-            setIsSubmitting(false)
+            logger.error("Mapping failed", err)
         }
     }
 
     return {
-        isSubmitting,
+        isSubmitting: mapMutation.isPending,
         error,
-        success,
+        success: success || mapMutation.isSuccess,
         searchTerm,
         setSearchTerm,
         selectedCustomerId,
@@ -169,8 +131,9 @@ export const useMapCustomerModal = (
         customers,
         currentIndex,
         isSearching: isLoadingCandidates,
-        hasMoreCandidates,
-        isLoadingMoreCandidates,
-        loadMoreCandidates: () => fetchCandidates(searchPage + 1, debouncedSearch, true),
+        hasMoreCandidates: hasNextPage,
+        isLoadingMoreCandidates: isFetchingNextPage,
+        loadMoreCandidates: fetchNextPage,
     }
 }
+

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { customerApi } from '@/services/api/customers'
 import { api } from '@/lib/api'
 import type { MapCustomerRequest, UpdateCustomerRequest, MergeCustomersRequest, SplitCustomerRequest } from '@/types/api/customer'
@@ -6,7 +6,8 @@ import type { MapCustomerRequest, UpdateCustomerRequest, MergeCustomersRequest, 
 export const customerKeys = {
     all: ['customers'] as const,
     lists: () => [...customerKeys.all, 'list'] as const,
-    list: (params: any) => [...customerKeys.lists(), params] as const,
+    list: (params: Record<string, unknown>) => [...customerKeys.lists(), params] as const,
+    infinite: (params: Record<string, unknown>) => [...customerKeys.lists(), 'infinite', params] as const,
     unmapped: () => [...customerKeys.all, 'unmapped'] as const,
     unmappedList: (page?: number, search?: string) => [...customerKeys.unmapped(), { page, search }] as const,
     integrations: (customerId: number) => [...customerKeys.all, customerId, 'integrations'] as const,
@@ -27,6 +28,23 @@ export const useCustomersQuery = (params: {
         placeholderData: (previousData) => previousData,
     })
 }
+
+export const useCustomerInfiniteQuery = (params: {
+    search?: string
+    statuses?: string[]
+}) => {
+    return useInfiniteQuery({
+        queryKey: customerKeys.infinite(params),
+        queryFn: ({ pageParam }) =>
+            customerApi.getCustomers({ ...params, page: pageParam as number }),
+        initialPageParam: 1,
+        getNextPageParam: (lastPage) =>
+            lastPage.pagination.current_page < lastPage.pagination.last_page
+                ? lastPage.pagination.current_page + 1
+                : undefined,
+    })
+}
+
 
 export const useUnmappedCustomersQuery = (page?: number, search?: string) => {
     return useQuery({
