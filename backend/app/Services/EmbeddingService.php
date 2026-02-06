@@ -16,7 +16,7 @@ final class EmbeddingService
     public function __construct()
     {
         $this->baseUrl = config('services.embedding.url', 'http://127.0.0.1:5050');
-        $this->timeout = config('services.embedding.timeout', 30);
+        $this->timeout = (int) config('services.embedding.timeout', 30);
     }
 
     public function isAvailable(): bool
