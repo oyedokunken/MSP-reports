@@ -20,10 +20,10 @@ trait HasHeartbeat
         $this->currentSyncLogId = $id;
     }
 
-    public function sendHeartbeat(): void
+    public function sendHeartbeat(int $count = 0): void
     {
         if ($this->heartbeatCallback) {
-            call_user_func($this->heartbeatCallback);
+            call_user_func($this->heartbeatCallback, $count);
         }
     }
 }

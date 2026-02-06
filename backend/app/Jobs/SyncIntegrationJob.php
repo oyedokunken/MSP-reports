@@ -160,38 +160,38 @@ final class SyncIntegrationJob implements ShouldQueue
                 'customers_mapped' => $customersMapped,
                 'batches_dispatched' => $result['batches_dispatched'] ?? 0
             ]);
-                        // Release Master Lock
-             $redis = \Illuminate\Support\Facades\Redis::connection();
-             $masterKey = "sync_log:{$this->syncLog->sync_id}:master_running";
-             $redis->set($masterKey, 0);
-
-             // DEFER COMPLETION IF BATCHES ARE RUNNING
+            // DEFER COMPLETION IF BATCHES ARE RUNNING
             if (($result['batches_dispatched'] ?? 0) > 0) {
                  $batchCount = (int) $result['batches_dispatched'];
                  $key = "sync_log:{$this->syncLog->sync_id}:pending";
                  
-                 // ATOMIC INCREMENT
+                 // ATOMIC INCREMENT BEFORE releasing master lock to prevent race condition
                  $redis->incrBy($key, $batchCount);
                  $redis->expire($key, 86400); 
 
-                 if ($this->syncLog->fresh()->status === 'running') {
-                     $this->syncLog->update([
-                         'records_synced' => $recordsSynced
-                     ]);
-                 }
-                 
-                 Log::info('Integration sync deferred - background batches initialized', [
-                     'integration_id' => $this->integration->integration_id,
-                     'batches_dispatched' => $batchCount,
-                     'sync_id' => $this->syncLog->sync_id
-                 ]);
+                 // NOW safe to release master lock - workers can now finalize if they hit 0
+                 $redis->set($masterKey, 0);
 
-                 // Final check: Maybe all workers finished WHILE we were doing incrBy?
-                 $remaining = (int) $redis->get($key);
-                 if ($remaining <= 0) {
-                     $this->finalizeSync();
-                 }
+                if ($this->syncLog->fresh()->status === 'running') {
+                    $this->syncLog->update([
+                        'records_synced' => $recordsSynced
+                    ]);
+                }
+                 
+                Log::info('Integration sync deferred - background batches initialized', [
+                    'integration_id' => $this->integration->integration_id,
+                    'batches_dispatched' => $batchCount,
+                    'sync_id' => $this->syncLog->sync_id
+                ]);
+
+                // Final check: Maybe all workers finished WHILE we were doing incrBy?
+                $remaining = (int) $redis->get($key);
+                if ($remaining <= 0) {
+                    $this->finalizeSync();
+                }
             } else {
+                // If no batches, release lock and complete now
+                $redis->set($masterKey, 0);
                 $syncEngine->completeSyncLog(
                     $this->syncLog,
                     'success',
@@ -208,6 +208,11 @@ final class SyncIntegrationJob implements ShouldQueue
             }
 
         } catch (\Exception $e) {
+            // Ensure lock is released even on failure
+            if (isset($masterKey)) {
+                \Illuminate\Support\Facades\Redis::connection()->set($masterKey, 0);
+            }
+
             Log::error('Integration sync failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
@@ -368,8 +373,8 @@ final class SyncIntegrationJob implements ShouldQueue
         
         // Inject heartbeat callback if supported
         if (method_exists($instance, 'setHeartbeatCallback')) {
-            $instance->setHeartbeatCallback(function() {
-                $this->sendHeartbeat();
+            $instance->setHeartbeatCallback(function(int $incrementalRecords = 0) {
+                $this->sendHeartbeat($incrementalRecords);
             });
         }
 
@@ -387,11 +392,18 @@ final class SyncIntegrationJob implements ShouldQueue
         return $instance;
     }
 
-    public function sendHeartbeat(): void
+    public function sendHeartbeat(int $incrementalRecords = 0): void
     {
-        // Update timestamp directly in DB to avoid model event overhead/cache issues
-        \Illuminate\Support\Facades\DB::table('sync_logs')
-            ->where('sync_id', $this->syncLog->sync_id)
-            ->update(['last_heartbeat_at' => now()]);
+        $updateData = ['last_heartbeat_at' => now()];
+        
+        if ($incrementalRecords > 0) {
+            \Illuminate\Support\Facades\DB::table('sync_logs')
+                ->where('sync_id', $this->syncLog->sync_id)
+                ->increment('records_synced', $incrementalRecords, $updateData);
+        } else {
+            \Illuminate\Support\Facades\DB::table('sync_logs')
+                ->where('sync_id', $this->syncLog->sync_id)
+                ->update($updateData);
+        }
     }
 }
