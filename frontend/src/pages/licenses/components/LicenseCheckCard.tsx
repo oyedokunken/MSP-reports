@@ -48,7 +48,7 @@ export function LicenseCheckCard() {
       setIntegrationResult(result)
       if (result.allowed) toast.success('Allowed', `${integrationType} integration is within license limits.`)
       else toast.error('Denied', result.reason || 'License limit exceeded.')
-    } catch (err) {
+    } catch {
       toast.error('Check Failed', 'Unable to verify integration license.')
     } finally {
       setCheckingIntegration(false)
@@ -66,7 +66,7 @@ export function LicenseCheckCard() {
       setRetentionResult(result)
       if (result.allowed) toast.success('Allowed', `${retentionMonths} months retention is licensed.`)
       else toast.error('Denied', result.reason || 'Retention limit exceeded.')
-    } catch (err) {
+    } catch {
       toast.error('Check Failed', 'Unable to verify retention license.')
     } finally {
       setCheckingRetention(false)
@@ -82,7 +82,7 @@ export function LicenseCheckCard() {
       setUserResult(result)
       if (result.can_create.allowed) toast.success('Allowed', 'User creation is within license limits.')
       else toast.error('Denied', result.can_create.reason || 'User limit reached.')
-    } catch (err) {
+    } catch {
       toast.error('Check Failed', 'Unable to verify user license.')
     } finally {
       setCheckingUser(false)
@@ -92,11 +92,10 @@ export function LicenseCheckCard() {
   const ResultIndicator = ({ result, label }: { result: CheckResult | null; label: string }) => {
     if (!result) return null
     return (
-      <div className={`mt-3 flex items-center gap-2 p-2 rounded-lg border ${
-        result.allowed 
-          ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
-          : 'bg-destructive/5 border-destructive/20 text-destructive'
-      }`}>
+      <div className={`mt-3 flex items-center gap-2 p-2 rounded-lg border ${result.allowed
+        ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+        : 'bg-destructive/5 border-destructive/20 text-destructive'
+        }`}>
         {result.allowed ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
         <span className="text-xs font-semibold uppercase tracking-wider">{label}: {result.allowed ? 'Allowed' : 'Denied'}</span>
       </div>
@@ -121,8 +120,8 @@ export function LicenseCheckCard() {
             <div className="space-y-1.5">
               <Label className="text-[10px] uppercase text-muted-foreground font-bold">Package Name</Label>
               <div className="flex gap-2">
-                <Select 
-                  value={integrationType} 
+                <Select
+                  value={integrationType}
                   onValueChange={setIntegrationType}
                   disabled={loadingIntegrations}
                 >

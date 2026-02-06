@@ -1,21 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuCheckboxItem,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-    Calendar, 
-    Search, 
-    Filter, 
-    LayoutGrid, 
+import {
+    Calendar,
+    Search,
+    Filter,
+    LayoutGrid,
+    List,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { List } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
 
@@ -38,9 +38,9 @@ function formatFrequency(frequency: string): string {
     return frequency.charAt(0).toUpperCase() + frequency.slice(1).toLowerCase();
 }
 
-export function SchedulesHeader({ 
-    onCreateSchedule, 
-    searchQuery, 
+export function SchedulesHeader({
+    onCreateSchedule,
+    searchQuery,
     statusFilter,
     frequencyFilter,
     uniqueFrequencies,
@@ -52,7 +52,7 @@ export function SchedulesHeader({
 }: SchedulesHeaderProps) {
     const { user } = useAuth();
     const canCreateSchedule = hasPermission(user, 'schedules', 'create');
-    
+
     const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + (frequencyFilter !== 'all' ? 1 : 0);
 
     return (
@@ -65,7 +65,7 @@ export function SchedulesHeader({
                     View and manage automated report generation schedules
                 </p>
             </div>
-            
+
             <div className="flex flex-col md:flex-row gap-3">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

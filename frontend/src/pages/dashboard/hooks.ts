@@ -6,13 +6,12 @@ import { Users, UserMinus, LayoutTemplate, ShieldCheck } from "lucide-react";
 import { hasPermission } from "@/utils/permissions";
 import { useCustomersStore } from "@/stores/useCustomersStore";
 import { useMonitoringStore } from "@/stores/useMonitoringStore";
-import { useSchedulesStore } from "@/stores/useSchedulesStore";
+import { useSchedulesStore, type ReportSchedule } from "@/stores/useSchedulesStore";
 import { monitoringApi } from "@/services/api/monitoring";
 import { useNotificationStore } from "@/stores/useNotificationStore";
 import { useIntegrationsQuery } from "../integrations/hooks/useIntegrations";
 import type { Integration, UpcomingReport, RecentActivity, Stat } from "./types";
 import type { ActivityTrendData } from "@/types/api/monitoring";
-import type { ReportSchedule } from "@/stores/useSchedulesStore";
 
 export const useQuickSync = (
     onSuccess: (title: string, description?: string) => void,
@@ -52,13 +51,13 @@ export const useQuickSync = (
 export const useDashboard = () => {
     const toast = useToast();
     const { isAuthenticated, user } = useAuth();
-    
+
     // Granular loading states
     const [loadingStats, setLoadingStats] = useState(true);
     const [loadingIntegrations, setLoadingIntegrations] = useState(true);
     const [loadingSchedules, setLoadingSchedules] = useState(true);
     const [loadingCharts, setLoadingCharts] = useState(true);
-    
+
     // Keep isRefreshing for the button
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -83,7 +82,7 @@ export const useDashboard = () => {
     const fetchReportMetrics = useMonitoringStore((state) => state.fetchReportMetrics);
     const fetchSchedules = useSchedulesStore((state) => state.fetchSchedules);
     const notifications = useNotificationStore((state) => state.notifications);
-    
+
     const recentActivity: RecentActivity[] = useMemo(() => {
         const activities: RecentActivity[] = [];
 
@@ -247,7 +246,7 @@ export const useDashboard = () => {
     const [reportsChartData, setReportsChartData] = useState<Array<{ date: string; count: number }>>([])
     const [activityTrends, setActivityTrends] = useState<ActivityTrendData[]>([])
 
-    const fetchMonthlyReports = async () => {
+    const fetchMonthlyReports = useCallback(async () => {
         if (!isAuthenticated || !canViewMonitoring) return;
         try {
             const response = await monitoringApi.getMonthlyReportAnalytics(6);
@@ -256,9 +255,9 @@ export const useDashboard = () => {
             logger.apiError('/monitoring/monthly-analytics', error, { months: 6 });
             setReportsChartData([]);
         }
-    };
+    }, [isAuthenticated, canViewMonitoring]);
 
-    const fetchActivityTrends = async () => {
+    const fetchActivityTrends = useCallback(async () => {
         if (!isAuthenticated || !canViewMonitoring) return;
         try {
             const response = await monitoringApi.getActivityTrends(7);
@@ -267,14 +266,14 @@ export const useDashboard = () => {
             logger.apiError('/monitoring/activity-trends', error, { days: 7 });
             setActivityTrends([]);
         }
-    };
+    }, [isAuthenticated, canViewMonitoring]);
 
     useEffect(() => {
         if (isAuthenticated && canViewMonitoring && reportMetrics) {
             fetchMonthlyReports();
             fetchActivityTrends();
         }
-    }, [isAuthenticated, canViewMonitoring, reportMetrics]);
+    }, [isAuthenticated, canViewMonitoring, reportMetrics, fetchMonthlyReports, fetchActivityTrends]);
 
     const stats: Stat[] = [
         {

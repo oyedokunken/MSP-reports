@@ -13,7 +13,7 @@ export interface Integration {
 
 export interface IntegrationsResponse {
     configured: Integration[]
-    available: any[]
+    available: unknown[]
 }
 
 export const integrationsApi = {

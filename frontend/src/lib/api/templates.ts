@@ -31,11 +31,11 @@ export const templateApi = {
   },
 
   applyToCustomer: async (id: number, data: ApplyTemplateRequest) => {
-    return api.post<ApiResponse<any>>(`/report-templates/${id}/apply-to-customer`, data)
+    return api.post<ApiResponse<unknown>>(`/report-templates/${id}/apply-to-customer`, data)
   },
 
   applyToCustomers: async (id: number, data: ApplyTemplateBulkRequest) => {
-    return api.post<ApiResponse<any[]>>(`/report-templates/${id}/apply-to-customers`, data)
+    return api.post<ApiResponse<unknown[]>>(`/report-templates/${id}/apply-to-customers`, data)
   },
 
   getAvailableReportTypes: async (customerId: number) => {

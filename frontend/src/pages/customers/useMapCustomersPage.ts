@@ -40,7 +40,7 @@ export const useMapCustomersPage = () => {
         data: mappedResponse,
     } = useCustomersQuery({ page: 1, statuses: ['active'] });
 
-    const unmappedCustomers = unmappedResponse?.data || [];
+    const unmappedCustomers = useMemo(() => unmappedResponse?.data || [], [unmappedResponse]);
     const unmappedCount = unmappedResponse?.summary?.total_unmapped || unmappedCustomers.length;
     const unmappedTotalPages = unmappedResponse?.pagination?.last_page || 1;
 

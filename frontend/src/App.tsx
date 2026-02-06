@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams, Navigate as RouterNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { BrandingProvider } from '@/contexts/BrandingContext'
 import { ThemeProvider } from '@/components/ui/ThemeProvider'
@@ -47,7 +47,6 @@ const NotFound = lazy(() => import('@/pages/errors').then(m => ({ default: m.Not
 
 import { WelcomeModal, TourOverlay } from '@/components/onboarding'
 import { Loader2 } from 'lucide-react'
-import { useParams, Navigate as RouterNavigate } from 'react-router-dom'
 
 // Redirect component for integration name URLs without /view
 function IntegrationNameRedirect() {
@@ -133,7 +132,7 @@ function AppRoutes() {
         }
       >
         <Route path="/platform/dashboard" element={<Dashboard />} />
-        
+
         <Route
           path="/platform/integrations"
           element={

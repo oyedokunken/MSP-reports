@@ -16,7 +16,7 @@ export const useMasterCustomerList = () => {
         queryFn: () => integrationsApi.getIntegrations(),
         enabled: canViewIntegrations,
         meta: {
-            onError: (err: any) => logger.error('Failed to fetch SOT integration:', err)
+            onError: (err: Error) => logger.error('Failed to fetch SOT integration:', err)
         }
     })
 

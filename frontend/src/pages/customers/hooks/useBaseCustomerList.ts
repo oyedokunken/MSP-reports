@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/components/ui/Toast'
 import { useCustomersStore } from '@/stores/useCustomersStore'
@@ -61,14 +61,14 @@ export const useBaseCustomerList = (sotFilter: boolean | null) => {
 
     useEffect(() => {
         if (customersError) {
-            toast.error("Failed to load customers", (customersError as any).message)
+            toast.error("Failed to load customers", customersError instanceof Error ? customersError.message : "An unknown error occurred")
         }
     }, [customersError, toast])
 
-    const customers = customersResponse?.data || []
-    const mappedCustomers = customers.filter((c) => c.customer_id !== null)
-    const unmappedCustomers = unmappedResponse?.data || []
-    const unmappedCount = unmappedResponse?.summary?.total_unmapped || unmappedCustomers.length
+    const customers = useMemo(() => customersResponse?.data || [], [customersResponse])
+    const mappedCustomers = useMemo(() => customers.filter((c) => c.customer_id !== null), [customers])
+    const unmappedCustomers = useMemo(() => unmappedResponse?.data || [], [unmappedResponse])
+    const unmappedCount = useMemo(() => unmappedResponse?.summary?.total_unmapped || unmappedCustomers.length, [unmappedResponse, unmappedCustomers.length])
 
     const total = customersResponse?.pagination.total || 0
     const totalPages = customersResponse?.pagination.last_page || 1
