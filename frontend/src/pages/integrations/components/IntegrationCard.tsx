@@ -14,6 +14,10 @@ import {
     Clock,
     Share2,
     MoreVertical,
+    Zap,
+    AlertTriangle,
+    RotateCcw,
+    XCircle,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingStates";
 import type { Integration } from "../types/integration";
@@ -39,6 +43,7 @@ import {
 type IntegrationCardProps = {
     integration: Integration;
     isSyncing: boolean;
+    isTesting?: boolean;
     progress: number;
     isSettingSourceOfTruth: boolean;
     onSync: (id: number, name: string) => void;
@@ -51,11 +56,15 @@ type IntegrationCardProps = {
     onViewHistoricalJobs: (integration: Integration) => void;
     onDelete: (integration: Integration) => void;
     onPreviewData: (integration: Integration) => void;
+    onTestIntegration: (integration: Integration) => void;
+    onRetryHistoricalImport?: (integration: Integration) => void;
+    onCancelHistoricalImport?: (integration: Integration) => void;
     isSourceOfTruth?: boolean;
 };
 export function IntegrationCard({
     integration,
     isSyncing,
+    isTesting = false,
     progress,
     isSettingSourceOfTruth,
     onSync,
@@ -68,6 +77,9 @@ export function IntegrationCard({
     onViewHistoricalJobs,
     onDelete,
     onPreviewData,
+    onTestIntegration,
+    onRetryHistoricalImport,
+    onCancelHistoricalImport,
     isSourceOfTruth = false,
 }: IntegrationCardProps) {
     const { user } = useAuth();
@@ -226,7 +238,71 @@ export function IntegrationCard({
                             </div>
                         </div>
                     )}
+                    {/* Failed Historical Import Actions */}
+                    {integration.historicalImportStatus === 'failed' && (
+                        <div className="mt-3 p-3 rounded-lg border border-destructive/50 bg-destructive/10">
+                            <div className="flex items-center gap-2 text-destructive text-sm font-medium mb-2">
+                                <AlertTriangle className="h-4 w-4" />
+                                Historical Import Failed
+                            </div>
+                            <div className="flex gap-2">
+                                {onRetryHistoricalImport && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => onRetryHistoricalImport(integration)}
+                                        className="flex-1"
+                                    >
+                                        <RotateCcw className="h-3 w-3 mr-1" />
+                                        Retry
+                                    </Button>
+                                )}
+                                {onCancelHistoricalImport && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => onCancelHistoricalImport(integration)}
+                                        className="text-destructive hover:text-destructive"
+                                    >
+                                        <XCircle className="h-3 w-3 mr-1" />
+                                        Dismiss
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onViewHistoricalJobs(integration)}
+                                >
+                                    <FileText className="h-3 w-3 mr-1" />
+                                    View Logs
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
+
+                {/* Test Integration Button - Full Width */}
+                <div className="mt-4 border-t border-border pt-4">
+                    <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => onTestIntegration(integration)}
+                        disabled={isTesting || isSyncing}
+                    >
+                        {isTesting ? (
+                            <>
+                                <LoadingSpinner size="sm" />
+                                <span className="ml-2">Testing...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Zap className="h-4 w-4 mr-2" />
+                                Test Integration
+                            </>
+                        )}
+                    </Button>
+                </div>
+
                 <div className="mt-4 border-t border-border pt-4 flex items-center gap-2">
                     {canSyncSlice && (
                         <Tooltip>

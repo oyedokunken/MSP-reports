@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/Toast";
 import { useIntegrationStore } from "@/stores/useIntegrationStore";
 import { IntegrationHeader, IntegrationGrid, IntegrationTable, type ViewMode } from "./components";
+import type { Integration } from "./types/integration";
 import { Pagination } from "@/pages/customers/components/Pagination";
 import {
     EditIntegrationModal,
@@ -43,6 +44,7 @@ export default function IntegrationList() {
     const [syncingId, setSyncingId] = useState<number | null>(null);
     const [syncProgress, setSyncProgress] = useState(0);
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
+    const [testingId, setTestingId] = useState<number | null>(null);
 
     const filteredIntegrations = allIntegrations.filter((int) => {
         const matchesSearch = !searchQuery.trim() ||
@@ -122,6 +124,52 @@ export default function IntegrationList() {
         }
     };
 
+    const handleTestIntegration = async (integration: Integration) => {
+        setTestingId(integration.id);
+        try {
+            // Call health check endpoint which tests the integration connection
+            const response = await fetch(`/api/integrations/${integration.id}/health-check`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                credentials: 'include',
+            });
+            const data = await response.json();
+            
+            if (data.success || data.status === 'healthy') {
+                toast.success(
+                    "Integration Test Passed",
+                    `${integration.name} is connected and working correctly.`
+                );
+            } else {
+                toast.error(
+                    "Integration Test Failed",
+                    data.message || data.error || `${integration.name} connection test failed.`
+                );
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Connection test failed';
+            toast.error("Integration Test Failed", message);
+        } finally {
+            setTestingId(null);
+        }
+    };
+
+    const handleRetryHistoricalImport = async (integration: Integration) => {
+        if (!hasPermission(user, 'integrations', 'sync')) {
+            toast.error('Permission Denied', 'You don\'t have permission to retry imports');
+            return;
+        }
+        openModal("historicalImport", integration);
+    };
+
+    const handleCancelHistoricalImport = async (integration: Integration) => {
+        // Just dismiss the failed status - user can retry later if needed
+        toast.info("Import Dismissed", `You can retry the historical import for ${integration.name} anytime.`);
+    };
+
     return (
         <div className="space-y-6">
             <IntegrationHeader
@@ -190,6 +238,10 @@ export default function IntegrationList() {
                         openModal("delete", int);
                     }}
                     onPreviewData={(int) => navigate(`/platform/integrations/${encodeURIComponent(int.name.toLowerCase().replace(/\s+/g, '-'))}`)}
+                    onTestIntegration={handleTestIntegration}
+                    onRetryHistoricalImport={handleRetryHistoricalImport}
+                    onCancelHistoricalImport={handleCancelHistoricalImport}
+                    testingId={testingId}
                     sourceOfTruthId={sourceOfTruthId}
                 />
             ) : (

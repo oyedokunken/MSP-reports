@@ -7,6 +7,7 @@ type IntegrationGridProps = {
     isLoading: boolean;
     items: Integration[];
     syncingId: number | null;
+    testingId?: number | null;
     progress: number;
     settingSourceOfTruthId: number | null;
     onSync: (id: number, name: string) => void;
@@ -21,6 +22,9 @@ type IntegrationGridProps = {
     onViewHistoricalJobs: (integration: Integration) => void;
     onDelete: (integration: Integration) => void;
     onPreviewData: (integration: Integration) => void;
+    onTestIntegration: (integration: Integration) => void;
+    onRetryHistoricalImport?: (integration: Integration) => void;
+    onCancelHistoricalImport?: (integration: Integration) => void;
     sourceOfTruthId: number | null;
 };
 
@@ -28,6 +32,7 @@ export function IntegrationGrid({
     isLoading,
     items,
     syncingId,
+    testingId,
     progress,
     settingSourceOfTruthId,
     onSync,
@@ -41,6 +46,9 @@ export function IntegrationGrid({
     onViewHistoricalJobs,
     onDelete,
     onPreviewData,
+    onTestIntegration,
+    onRetryHistoricalImport,
+    onCancelHistoricalImport,
     sourceOfTruthId,
 }: IntegrationGridProps) {
     return (
@@ -75,6 +83,7 @@ export function IntegrationGrid({
                             key={integration.id}
                             integration={integration}
                             isSyncing={syncingId === integration.id}
+                            isTesting={testingId === integration.id}
                             progress={progress}
                             isSettingSourceOfTruth={settingSourceOfTruthId === integration.id}
                             onSync={onSync}
@@ -87,6 +96,9 @@ export function IntegrationGrid({
                             onViewHistoricalJobs={onViewHistoricalJobs}
                             onDelete={onDelete}
                             onPreviewData={onPreviewData}
+                            onTestIntegration={onTestIntegration}
+                            onRetryHistoricalImport={onRetryHistoricalImport}
+                            onCancelHistoricalImport={onCancelHistoricalImport}
                             isSourceOfTruth={sourceOfTruthId === integration.id}
                         />
                     ))
