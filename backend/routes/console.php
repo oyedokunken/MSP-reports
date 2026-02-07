@@ -52,6 +52,12 @@ Schedule::command('syncs:cleanup-stale')
     ->withoutOverlapping()
     ->runInBackground();
 
+// Check for stuck historical imports every 30 minutes and auto-fix them
+Schedule::command('imports:check-stuck --fix')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Sync Autotask resources (employees) monthly on the 1st at 4am
 // Resources change infrequently (hiring/firing), so monthly sync is sufficient
 // Uses historical import to refresh the 45 employee records
