@@ -78,49 +78,29 @@ export function TestIntegrationModal({
 
       setProgress(100)
 
-      // Process response
-      if (response.success || response.status === 'healthy') {
-        // Add success results
-        testResults.push({
-          name: 'Connection',
-          status: 'success',
-          message: 'Successfully connected to API'
-        })
-        testResults.push({
-          name: 'Authentication',
-          status: 'success',
-          message: 'Credentials are valid'
-        })
-        testResults.push({
-          name: 'Permissions',
-          status: 'success',
-          message: 'API permissions verified'
-        })
-        testResults.push({
-          name: 'Data Access',
-          status: 'success',
-          message: 'Can retrieve data from API'
-        })
-
-        // Add any specific checks from response
-        if (response.checks) {
-          response.checks.forEach(check => {
-            testResults.push({
-              name: check.name,
-              status: check.status === 'passed' ? 'success' : check.status === 'warning' ? 'warning' : 'failed',
-              message: check.message || ''
-            })
+      // Process response - use checks from backend if available
+      if (response.checks && response.checks.length > 0) {
+        // Use the actual checks from the backend
+        response.checks.forEach(check => {
+          testResults.push({
+            name: check.name,
+            status: check.status === 'passed' ? 'success' : check.status === 'warning' ? 'warning' : 'failed',
+            message: check.message || ''
           })
-        }
+        })
+      }
 
+      if (response.success || response.status === 'healthy') {
         setOverallStatus('success')
       } else {
-        // Add failure results
-        testResults.push({
-          name: 'Connection',
-          status: 'failed',
-          message: response.message || response.error || 'Connection test failed'
-        })
+        // If no checks were returned, add a generic failure
+        if (testResults.length === 0) {
+          testResults.push({
+            name: 'Connection',
+            status: 'failed',
+            message: response.message || response.error || 'Connection test failed'
+          })
+        }
         setOverallStatus('failed')
       }
 
