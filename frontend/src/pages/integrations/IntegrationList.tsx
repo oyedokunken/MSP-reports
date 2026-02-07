@@ -13,6 +13,7 @@ import {
     RateLimitStatusModal,
     HistoricalImportModal,
     ViewHistoricalImportJobsModal,
+    TestIntegrationModal,
 } from "./modals";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
@@ -45,6 +46,8 @@ export default function IntegrationList() {
     const [syncProgress, setSyncProgress] = useState(0);
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
     const [testingId, setTestingId] = useState<number | null>(null);
+    const [testModalOpen, setTestModalOpen] = useState(false);
+    const [testingIntegration, setTestingIntegration] = useState<Integration | null>(null);
 
     const filteredIntegrations = allIntegrations.filter((int) => {
         const matchesSearch = !searchQuery.trim() ||
@@ -124,37 +127,10 @@ export default function IntegrationList() {
         }
     };
 
-    const handleTestIntegration = async (integration: Integration) => {
+    const handleTestIntegration = (integration: Integration) => {
+        setTestingIntegration(integration);
+        setTestModalOpen(true);
         setTestingId(integration.id);
-        try {
-            // Call health check endpoint which tests the integration connection
-            const response = await fetch(`/api/integrations/${integration.id}/health-check`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-                credentials: 'include',
-            });
-            const data = await response.json();
-            
-            if (data.success || data.status === 'healthy') {
-                toast.success(
-                    "Integration Test Passed",
-                    `${integration.name} is connected and working correctly.`
-                );
-            } else {
-                toast.error(
-                    "Integration Test Failed",
-                    data.message || data.error || `${integration.name} connection test failed.`
-                );
-            }
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'Connection test failed';
-            toast.error("Integration Test Failed", message);
-        } finally {
-            setTestingId(null);
-        }
     };
 
     const handleRetryHistoricalImport = async (integration: Integration) => {
@@ -374,6 +350,17 @@ export default function IntegrationList() {
                         : closeModal("viewHistoricalJobs")
                 }
                 integration={selectedIntegration}
+            />
+            <TestIntegrationModal
+                open={testModalOpen}
+                onOpenChange={(open) => {
+                    setTestModalOpen(open);
+                    if (!open) {
+                        setTestingId(null);
+                        setTestingIntegration(null);
+                    }
+                }}
+                integration={testingIntegration}
             />
         </div>
     );
