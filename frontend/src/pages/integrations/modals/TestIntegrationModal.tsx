@@ -68,13 +68,13 @@ export function TestIntegrationModal({
 
       // Call actual health check endpoint
       setCurrentStep('Running health check...')
-      const response = await api.post<{
+      const response = await api.get<{
         success?: boolean
         status?: string
         message?: string
         error?: string
         checks?: Array<{ name: string; status: string; message?: string }>
-      }>(`/integrations/${integration.id}/health-check`)
+      }>(`/integrations/${integration.id}/health`)
 
       setProgress(100)
 

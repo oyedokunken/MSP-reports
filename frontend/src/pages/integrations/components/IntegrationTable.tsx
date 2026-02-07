@@ -48,6 +48,7 @@ type IntegrationTableProps = {
     isLoading: boolean;
     items: Integration[];
     syncingId: number | null;
+    testingId?: number | null;
     progress: number;
     settingSourceOfTruthId: number | null;
     onSync: (id: number, name: string) => void;
@@ -61,12 +62,16 @@ type IntegrationTableProps = {
     onViewHistoricalJobs: (integration: Integration) => void;
     onDelete: (integration: Integration) => void;
     onPreviewData: (integration: Integration) => void;
+    onTestIntegration: (integration: Integration) => void;
+    onRetryHistoricalImport?: (integration: Integration) => void;
+    onCancelHistoricalImport?: (integration: Integration) => void;
     sourceOfTruthId: number | null;
 };
 export function IntegrationTable({
     isLoading,
     items,
     syncingId,
+    testingId,
     progress,
     settingSourceOfTruthId,
     onSync,
@@ -80,6 +85,9 @@ export function IntegrationTable({
     onViewHistoricalJobs,
     onDelete,
     onPreviewData,
+    onTestIntegration,
+    onRetryHistoricalImport,
+    onCancelHistoricalImport,
     sourceOfTruthId,
 }: IntegrationTableProps) {
     const { user } = useAuth();

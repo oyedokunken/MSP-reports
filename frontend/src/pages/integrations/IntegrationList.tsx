@@ -264,6 +264,10 @@ export default function IntegrationList() {
                         openModal("delete", int);
                     }}
                     onPreviewData={(int) => navigate(`/platform/integrations/${encodeURIComponent(int.name.toLowerCase().replace(/\s+/g, '-'))}`)}
+                    onTestIntegration={handleTestIntegration}
+                    onRetryHistoricalImport={handleRetryHistoricalImport}
+                    onCancelHistoricalImport={handleCancelHistoricalImport}
+                    testingId={testingId}
                     sourceOfTruthId={sourceOfTruthId}
                 />
             )}
