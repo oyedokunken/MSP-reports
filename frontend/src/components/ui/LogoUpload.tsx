@@ -1,12 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { logger } from '@/lib/logger'
-import { Upload, Trash2, Image as ImageIcon, Crop, Check, X } from 'lucide-react'
+import { Upload, Trash2, Image as ImageIcon, Crop, Check, X, ZoomIn, ZoomOut, RotateCw } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import apiClient from '@/lib/api'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
-import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop'
-import 'react-image-crop/dist/ReactCrop.css'
+import Cropper from 'react-easy-crop'
+import type { Area, Point } from 'react-easy-crop'
 import {
   Dialog,
   DialogContent,
@@ -25,12 +25,48 @@ interface LogoUploadProps {
   fileKey?: string
 }
 
-function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
-  return centerCrop(
-    makeAspectCrop({ unit: '%', width: 90 }, aspect, mediaWidth, mediaHeight),
-    mediaWidth,
-    mediaHeight
-  )
+async function getCroppedImg(imageSrc: string, pixelCrop: Area, rotation = 0): Promise<Blob | null> {
+  const image = await createImage(imageSrc)
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+
+  const radians = (rotation * Math.PI) / 180
+
+  // Calculate bounding box of the rotated image
+  const sin = Math.abs(Math.sin(radians))
+  const cos = Math.abs(Math.cos(radians))
+  const bBoxWidth = image.width * cos + image.height * sin
+  const bBoxHeight = image.width * sin + image.height * cos
+
+  canvas.width = bBoxWidth
+  canvas.height = bBoxHeight
+
+  ctx.translate(bBoxWidth / 2, bBoxHeight / 2)
+  ctx.rotate(radians)
+  ctx.translate(-image.width / 2, -image.height / 2)
+  ctx.drawImage(image, 0, 0)
+
+  // Extract the cropped area
+  const data = ctx.getImageData(pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height)
+
+  canvas.width = pixelCrop.width
+  canvas.height = pixelCrop.height
+  ctx.putImageData(data, 0, 0)
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), 'image/png', 1)
+  })
+}
+
+function createImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.addEventListener('load', () => resolve(image))
+    image.addEventListener('error', (error) => reject(error))
+    image.setAttribute('crossOrigin', 'anonymous')
+    image.src = url
+  })
 }
 
 export function LogoUpload({ 
@@ -48,16 +84,17 @@ export function LogoUpload({
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showCropModal, setShowCropModal] = useState(false)
   const [imageSrc, setImageSrc] = useState<string | null>(null)
-  const [crop, setCrop] = useState<CropType>()
   const [originalFile, setOriginalFile] = useState<File | null>(null)
-  const imgRef = useRef<HTMLImageElement>(null)
+  const [cropPos, setCropPos] = useState<Point>({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [rotation, setRotation] = useState(0)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
 
-  const maxSize = type === 'company' ? '800x800' : '400x400'
-  const maxFileSizeMB = 2
+  const maxFileSizeMB = 5
   const title = type === 'company' ? 'Company Logo' : 'Profile Logo'
-  const aspect = type === 'profile' ? 1 : undefined
+  const aspect = type === 'profile' ? 1 : 4 / 3
 
   useEffect(() => {
     if (currentLogoUrl && preview) {
@@ -73,9 +110,9 @@ export function LogoUpload({
         return
       }
 
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml']
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml', 'image/webp']
       if (!validTypes.includes(file.type)) {
-        toast.error('Invalid format', 'Only JPEG, PNG, and SVG images are allowed')
+        toast.error('Invalid format', 'Only JPEG, PNG, WebP, and SVG images are allowed')
         resolve(false)
         return
       }
@@ -109,88 +146,46 @@ export function LogoUpload({
     const reader = new FileReader()
     reader.onloadend = () => {
       setImageSrc(reader.result as string)
+      setCropPos({ x: 0, y: 0 })
+      setZoom(1)
+      setRotation(0)
       setShowCropModal(true)
     }
     reader.readAsDataURL(file)
     e.target.value = ''
   }
 
-  const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    imgRef.current = e.currentTarget
-    const { width, height } = e.currentTarget
-    const newCrop = aspect
-      ? centerAspectCrop(width, height, aspect)
-      : centerCrop(
-          makeAspectCrop({ unit: '%', width: 90 }, width / height, width, height),
-          width,
-          height
-        )
-    setCrop(newCrop)
-  }, [aspect])
-
-  const getCroppedBlob = useCallback((): Promise<Blob | null> => {
-    return new Promise((resolve) => {
-      const image = imgRef.current
-      if (!image || !crop) {
-        resolve(null)
-        return
-      }
-
-      const canvas = document.createElement('canvas')
-      const scaleX = image.naturalWidth / image.width
-      const scaleY = image.naturalHeight / image.height
-
-      const pixelCrop = {
-        x: (crop.unit === '%' ? (crop.x / 100) * image.width : crop.x) * scaleX,
-        y: (crop.unit === '%' ? (crop.y / 100) * image.height : crop.y) * scaleY,
-        width: (crop.unit === '%' ? (crop.width / 100) * image.width : crop.width) * scaleX,
-        height: (crop.unit === '%' ? (crop.height / 100) * image.height : crop.height) * scaleY,
-      }
-
-      canvas.width = pixelCrop.width
-      canvas.height = pixelCrop.height
-
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        resolve(null)
-        return
-      }
-
-      ctx.drawImage(
-        image,
-        pixelCrop.x,
-        pixelCrop.y,
-        pixelCrop.width,
-        pixelCrop.height,
-        0,
-        0,
-        pixelCrop.width,
-        pixelCrop.height
-      )
-
-      canvas.toBlob((blob) => resolve(blob), 'image/png', 1)
-    })
-  }, [crop])
+  const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPx: Area) => {
+    setCroppedAreaPixels(croppedAreaPx)
+  }, [])
 
   const handleCropConfirm = async () => {
-    const blob = await getCroppedBlob()
-    if (!blob || !originalFile) {
+    if (!imageSrc || !croppedAreaPixels || !originalFile) {
       toast.error('Crop Failed', 'Could not crop image')
       return
     }
 
-    const croppedFile = new File([blob], originalFile.name.replace(/\.[^.]+$/, '.png'), {
-      type: 'image/png',
-    })
+    try {
+      const blob = await getCroppedImg(imageSrc, croppedAreaPixels, rotation)
+      if (!blob) {
+        toast.error('Crop Failed', 'Could not crop image')
+        return
+      }
 
-    // Show preview
-    const previewUrl = URL.createObjectURL(blob)
-    setPreview(previewUrl)
-    setShowCropModal(false)
-    setImageSrc(null)
-    setOriginalFile(null)
+      const croppedFile = new File([blob], originalFile.name.replace(/\.[^.]+$/, '.png'), {
+        type: 'image/png',
+      })
 
-    await handleUpload(croppedFile)
+      const previewUrl = URL.createObjectURL(blob)
+      setPreview(previewUrl)
+      setShowCropModal(false)
+      setImageSrc(null)
+      setOriginalFile(null)
+
+      await handleUpload(croppedFile)
+    } catch {
+      toast.error('Crop Failed', 'An error occurred while cropping')
+    }
   }
 
   const handleCropCancel = () => {
@@ -320,7 +315,7 @@ export function LogoUpload({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/jpg,image/png,image/svg+xml"
+              accept="image/jpeg,image/jpg,image/png,image/svg+xml,image/webp"
               onChange={handleFileSelect}
               className="hidden"
             />
@@ -339,43 +334,76 @@ export function LogoUpload({
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Max size: {maxSize} pixels, {maxFileSizeMB}MB<br />
-              Formats: JPEG, PNG, SVG
+              Max size: {maxFileSizeMB}MB &middot; JPEG, PNG, WebP, SVG
             </p>
           </div>
         </div>
       </div>
 
-      {/* Crop Modal */}
+      {/* Crop & Zoom Modal */}
       <Dialog open={showCropModal} onOpenChange={(open) => { if (!open) handleCropCancel() }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Crop className="h-5 w-5" />
-              Crop Image
+              Crop & Zoom Image
             </DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col gap-4">
             {imageSrc && (
-              <div className="max-h-[400px] overflow-auto rounded-lg border">
-                <ReactCrop
-                  crop={crop}
-                  onChange={(c) => setCrop(c)}
+              <div className="relative w-full rounded-lg overflow-hidden bg-black/90" style={{ height: '350px' }}>
+                <Cropper
+                  image={imageSrc}
+                  crop={cropPos}
+                  zoom={zoom}
+                  rotation={rotation}
                   aspect={aspect}
-                  className="max-w-full"
-                >
-                  <img
-                    src={imageSrc}
-                    onLoad={onImageLoad}
-                    alt="Crop preview"
-                    className="max-w-full"
-                    style={{ maxHeight: '380px' }}
-                  />
-                </ReactCrop>
+                  cropShape={type === 'profile' ? 'round' : 'rect'}
+                  showGrid={true}
+                  onCropChange={setCropPos}
+                  onZoomChange={setZoom}
+                  onRotationChange={setRotation}
+                  onCropComplete={onCropComplete}
+                  minZoom={0.5}
+                  maxZoom={5}
+                  zoomSpeed={0.2}
+                />
               </div>
             )}
+
+            {/* Zoom & Rotation Controls */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <ZoomOut className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <input
+                  type="range"
+                  min={0.5}
+                  max={5}
+                  step={0.1}
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="flex-1 h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                />
+                <ZoomIn className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs text-muted-foreground w-10 text-right">{zoom.toFixed(1)}x</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <RotateCw className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <input
+                  type="range"
+                  min={0}
+                  max={360}
+                  step={1}
+                  value={rotation}
+                  onChange={(e) => setRotation(Number(e.target.value))}
+                  className="flex-1 h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+                />
+                <span className="text-xs text-muted-foreground w-10 text-right">{rotation}&deg;</span>
+              </div>
+            </div>
+
             <p className="text-xs text-muted-foreground text-center">
-              Drag to adjust the crop area{type === 'profile' ? ' (1:1 ratio)' : ''}. Click "Apply Crop" to upload.
+              Scroll to zoom &middot; Drag to pan &middot; {type === 'profile' ? 'Circle crop (1:1)' : 'Rectangle crop'}
             </p>
           </div>
           <DialogFooter className="flex gap-2 sm:gap-0">
@@ -388,7 +416,7 @@ export function LogoUpload({
             </Button>
             <Button size="sm" onClick={handleCropConfirm}>
               <Check className="h-4 w-4 mr-1" />
-              Apply Crop
+              Apply & Upload
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -19,25 +19,6 @@ final class UploadLogoAction
      */
     public function execute(Company $company, UploadedFile $file, string $type, int $userId): array
     {
-        // Validate dimensions
-        $image = getimagesize($file->getRealPath());
-        if ($image) {
-            $width = $image[0];
-            $height = $image[1];
-
-            if ($type === 'company' && ($width > 800 || $height > 800)) {
-                throw ValidationException::withMessages([
-                    'logo' => ['Company logo dimensions should not exceed 800x800 pixels'],
-                ]);
-            }
-
-            if ($type === 'profile' && ($width > 400 || $height > 400)) {
-                throw ValidationException::withMessages([
-                    'logo' => ['Profile logo dimensions should not exceed 400x400 pixels'],
-                ]);
-            }
-        }
-
         $settings = $company->settings ?? [];
         if (!isset($settings['white_label'])) {
             $settings['white_label'] = [];
@@ -82,7 +63,7 @@ final class UploadLogoAction
 
         return [
             'logo_path' => $path,
-            'logo_url' => Storage::disk('public')->url($path),
+            'logo_url' => '/storage/' . $path,
             'settings_key' => $type === 'company' ? 'white_label.logo_url' : 'white_label.favicon_url',
         ];
     }

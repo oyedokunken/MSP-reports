@@ -104,7 +104,7 @@ class User extends Authenticatable
         if (!$this->profile_picture) {
             return null;
         }
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($this->profile_picture);
+        return '/storage/' . $this->profile_picture;
     }
 
 
