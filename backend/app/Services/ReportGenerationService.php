@@ -480,6 +480,13 @@ final class ReportGenerationService
                     'groups' => $reportData['groups'] ?? [],
                     'infrastructure' => $reportData['infrastructure'] ?? [],
                     'top_issues' => $reportData['top_issues'] ?? [],
+                    // CIPP M365 Summary specific variables
+                    'user_identity' => $reportData['user_identity'] ?? [],
+                    'license_utilization' => $reportData['license_utilization'] ?? [],
+                    'security_overview' => $reportData['security_overview'] ?? [],
+                    'defender_status' => $reportData['defender_status'] ?? [],
+                    'conditional_access' => $reportData['conditional_access'] ?? [],
+                    'email_protection' => $reportData['email_protection'] ?? [],
                     'render_part' => $renderPart,
                 ])->render();
             } catch (\Exception $e) {
@@ -545,6 +552,13 @@ final class ReportGenerationService
                         'groups' => $reportData['groups'] ?? [],
                         'infrastructure' => $reportData['infrastructure'] ?? [],
                         'top_issues' => $reportData['top_issues'] ?? [],
+                        // CIPP M365 Summary specific variables
+                        'user_identity' => $reportData['user_identity'] ?? [],
+                        'license_utilization' => $reportData['license_utilization'] ?? [],
+                        'security_overview' => $reportData['security_overview'] ?? [],
+                        'defender_status' => $reportData['defender_status'] ?? [],
+                        'conditional_access' => $reportData['conditional_access'] ?? [],
+                        'email_protection' => $reportData['email_protection'] ?? [],
                         'render_part' => $renderPart,
                     ])->render();
                 }

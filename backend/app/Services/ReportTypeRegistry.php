@@ -64,6 +64,22 @@ final class ReportTypeRegistry
                     ['id' => 'documentation', 'label' => 'Documentation', 'default' => false, 'requires' => 'itglue'],
                 ],
             ],
+            [
+                'type' => 'cipp_summary',
+                'name' => 'Microsoft 365 Summary Report',
+                'description' => 'Comprehensive M365 tenant report: users, MFA, licenses, security alerts, Defender, conditional access, and email protection',
+                'required_integrations' => ['CIPP'],
+                'available_sections' => [
+                    ['id' => 'executive_summary', 'label' => 'Executive Summary', 'default' => true],
+                    ['id' => 'user_identity', 'label' => 'Users & Identity (MFA)', 'default' => true],
+                    ['id' => 'license_utilization', 'label' => 'License Utilization', 'default' => true],
+                    ['id' => 'security_overview', 'label' => 'Security Alerts & Incidents', 'default' => true],
+                    ['id' => 'defender_status', 'label' => 'Defender Status', 'default' => true],
+                    ['id' => 'conditional_access', 'label' => 'Conditional Access Policies', 'default' => true],
+                    ['id' => 'email_protection', 'label' => 'Email & Exchange Protection', 'default' => true],
+                    ['id' => 'recommendations', 'label' => 'Recommendations', 'default' => true],
+                ],
+            ],
         ];
     }
 
