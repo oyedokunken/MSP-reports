@@ -64,6 +64,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'authLogout'])->middleware('auth:sanctum');
     Route::get('/auth/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
     Route::post('/auth/password/change', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');
+    Route::post('/auth/verify-password', [AuthController::class, 'verifyPassword'])->middleware('auth:sanctum');
 
     // Company Routes
     Route::middleware(['auth:sanctum', 'session.timeout', 'scope.customers'])->group(function () {

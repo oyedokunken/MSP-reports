@@ -16,6 +16,11 @@ export default defineConfig(({ mode }) => {
           secure: false,
           // Do not rewrite path; backend expects /api prefix via NGINX
         },
+        '/storage': {
+          target: env.VITE_BACKEND_URL || 'http://localhost:8000',
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     resolve: {

@@ -187,7 +187,7 @@ final class CIPPClient
             throw $e;
         }
     }
-
+    
     /**
      * Test connection to CIPP API
      */

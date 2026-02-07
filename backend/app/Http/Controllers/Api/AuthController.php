@@ -120,6 +120,33 @@ final class AuthController extends Controller
         ]);
     }
 
+    public function verifyPassword(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = $request->user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->input('password'), $user->password)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Incorrect password.',
+            ], 401);
+        }
+
+        // Return the user's API key (if any) from the company
+        $apiKey = $user->company->apiKeys()
+            ->where('revoked', false)
+            ->latest()
+            ->first();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Password verified.',
+            'api_key' => $apiKey?->plain_text_key ?? $apiKey?->display_name ?? 'No API key configured',
+        ]);
+    }
 
     /**
      * Redirect to Microsoft OAuth provider

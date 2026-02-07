@@ -6,15 +6,12 @@ namespace App\Listeners;
 
 use App\Events\AuditEvent;
 use App\Models\AuditLog;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Log;
 
-class RecordAuditLog implements ShouldQueue
+class RecordAuditLog
 {
-    use InteractsWithQueue;
-
     /**
-     * Handle the event.
+     * Handle the event synchronously to ensure audit logs are always written.
      */
     public function handle(AuditEvent $event): void
     {
