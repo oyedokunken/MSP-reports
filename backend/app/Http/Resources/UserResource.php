@@ -27,6 +27,10 @@ class UserResource extends JsonResource
             'company_id' => $user->company_id,
             'role_id' => $user->role_id,
             'role_name' => $this->whenLoaded('role', fn() => $user->role->name),
+            'role' => $this->whenLoaded('role', fn() => [
+                'name' => $user->role->name,
+                'role_id' => $user->role->role_id ?? $user->role_id,
+            ]),
             'auth_method' => $user->auth_method,
             'status' => $user->status,
             'permissions' => $user->permissions,

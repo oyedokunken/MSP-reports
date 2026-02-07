@@ -1,10 +1,19 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { logger } from '@/lib/logger'
-import { Upload, Trash2, Image as ImageIcon } from 'lucide-react'
+import { Upload, Trash2, Image as ImageIcon, Crop, Check, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import apiClient from '@/lib/api'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
+import ReactCrop, { type Crop as CropType, centerCrop, makeAspectCrop } from 'react-image-crop'
+import 'react-image-crop/dist/ReactCrop.css'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface LogoUploadProps {
   type: 'company' | 'profile'
@@ -14,6 +23,14 @@ interface LogoUploadProps {
   uploadUrl?: string
   deleteUrl?: string
   fileKey?: string
+}
+
+function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
+  return centerCrop(
+    makeAspectCrop({ unit: '%', width: 90 }, aspect, mediaWidth, mediaHeight),
+    mediaWidth,
+    mediaHeight
+  )
 }
 
 export function LogoUpload({ 
@@ -28,13 +45,19 @@ export function LogoUpload({
   const [uploading, setUploading] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
-  const [showDeleteModal, setShowDeleteModal] = useState(false) // State for dialog
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showCropModal, setShowCropModal] = useState(false)
+  const [imageSrc, setImageSrc] = useState<string | null>(null)
+  const [crop, setCrop] = useState<CropType>()
+  const [originalFile, setOriginalFile] = useState<File | null>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
 
   const maxSize = type === 'company' ? '800x800' : '400x400'
   const maxFileSizeMB = 2
   const title = type === 'company' ? 'Company Logo' : 'Profile Logo'
+  const aspect = type === 'profile' ? 1 : undefined
 
   useEffect(() => {
     if (currentLogoUrl && preview) {
@@ -44,14 +67,12 @@ export function LogoUpload({
 
   const validateImage = (file: File): Promise<boolean> => {
     return new Promise((resolve) => {
-      // Check file size (2MB max)
       if (file.size > maxFileSizeMB * 1024 * 1024) {
         toast.error('File too large', `Maximum file size is ${maxFileSizeMB}MB`)
         resolve(false)
         return
       }
 
-      // Check file type
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml']
       if (!validTypes.includes(file.type)) {
         toast.error('Invalid format', 'Only JPEG, PNG, and SVG images are allowed')
@@ -59,26 +80,7 @@ export function LogoUpload({
         return
       }
 
-      // Check dimensions (for non-SVG images)
-      if (file.type !== 'image/svg+xml') {
-        const img = new Image()
-        img.onload = () => {
-          const maxDimension = type === 'company' ? 800 : 400
-          if (img.width > maxDimension || img.height > maxDimension) {
-            toast.error('Image too large', `Maximum dimensions are ${maxSize} pixels`)
-            resolve(false)
-          } else {
-            resolve(true)
-          }
-        }
-        img.onerror = () => {
-          toast.error('Invalid image', 'Failed to load image')
-          resolve(false)
-        }
-        img.src = URL.createObjectURL(file)
-      } else {
-        resolve(true)
-      }
+      resolve(true)
     })
   }
 
@@ -88,18 +90,124 @@ export function LogoUpload({
 
     const isValid = await validateImage(file)
     if (!isValid) {
-      e.target.value = '' // Reset file input
+      e.target.value = ''
       return
     }
 
+    // SVGs don't need cropping
+    if (file.type === 'image/svg+xml') {
+      const reader = new FileReader()
+      reader.onloadend = () => setPreview(reader.result as string)
+      reader.readAsDataURL(file)
+      await handleUpload(file)
+      e.target.value = ''
+      return
+    }
+
+    // For raster images, open crop modal
+    setOriginalFile(file)
     const reader = new FileReader()
     reader.onloadend = () => {
-      setPreview(reader.result as string)
+      setImageSrc(reader.result as string)
+      setShowCropModal(true)
     }
     reader.readAsDataURL(file)
+    e.target.value = ''
+  }
 
-    await handleUpload(file)
-    e.target.value = '' // Reset file input
+  const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    imgRef.current = e.currentTarget
+    const { width, height } = e.currentTarget
+    const newCrop = aspect
+      ? centerAspectCrop(width, height, aspect)
+      : centerCrop(
+          makeAspectCrop({ unit: '%', width: 90 }, width / height, width, height),
+          width,
+          height
+        )
+    setCrop(newCrop)
+  }, [aspect])
+
+  const getCroppedBlob = useCallback((): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      const image = imgRef.current
+      if (!image || !crop) {
+        resolve(null)
+        return
+      }
+
+      const canvas = document.createElement('canvas')
+      const scaleX = image.naturalWidth / image.width
+      const scaleY = image.naturalHeight / image.height
+
+      const pixelCrop = {
+        x: (crop.unit === '%' ? (crop.x / 100) * image.width : crop.x) * scaleX,
+        y: (crop.unit === '%' ? (crop.y / 100) * image.height : crop.y) * scaleY,
+        width: (crop.unit === '%' ? (crop.width / 100) * image.width : crop.width) * scaleX,
+        height: (crop.unit === '%' ? (crop.height / 100) * image.height : crop.height) * scaleY,
+      }
+
+      canvas.width = pixelCrop.width
+      canvas.height = pixelCrop.height
+
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        resolve(null)
+        return
+      }
+
+      ctx.drawImage(
+        image,
+        pixelCrop.x,
+        pixelCrop.y,
+        pixelCrop.width,
+        pixelCrop.height,
+        0,
+        0,
+        pixelCrop.width,
+        pixelCrop.height
+      )
+
+      canvas.toBlob((blob) => resolve(blob), 'image/png', 1)
+    })
+  }, [crop])
+
+  const handleCropConfirm = async () => {
+    const blob = await getCroppedBlob()
+    if (!blob || !originalFile) {
+      toast.error('Crop Failed', 'Could not crop image')
+      return
+    }
+
+    const croppedFile = new File([blob], originalFile.name.replace(/\.[^.]+$/, '.png'), {
+      type: 'image/png',
+    })
+
+    // Show preview
+    const previewUrl = URL.createObjectURL(blob)
+    setPreview(previewUrl)
+    setShowCropModal(false)
+    setImageSrc(null)
+    setOriginalFile(null)
+
+    await handleUpload(croppedFile)
+  }
+
+  const handleCropCancel = () => {
+    setShowCropModal(false)
+    setImageSrc(null)
+    setOriginalFile(null)
+  }
+
+  const handleSkipCrop = async () => {
+    if (!originalFile) return
+    const reader = new FileReader()
+    reader.onloadend = () => setPreview(reader.result as string)
+    reader.readAsDataURL(originalFile)
+    setShowCropModal(false)
+    setImageSrc(null)
+    await handleUpload(originalFile)
+    setOriginalFile(null)
   }
 
   const handleUpload = async (file: File) => {
@@ -121,7 +229,6 @@ export function LogoUpload({
       if (data.status === 'success') {
         toast.success('Upload Successful', data.message || 'Logo uploaded successfully')
         
-        // Handle different response keys
         const url = data.data?.profile_picture_url || data.data?.logo_url;
         if (url) {
           onUploadSuccess(url)
@@ -238,6 +345,54 @@ export function LogoUpload({
           </div>
         </div>
       </div>
+
+      {/* Crop Modal */}
+      <Dialog open={showCropModal} onOpenChange={(open) => { if (!open) handleCropCancel() }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crop className="h-5 w-5" />
+              Crop Image
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
+            {imageSrc && (
+              <div className="max-h-[400px] overflow-auto rounded-lg border">
+                <ReactCrop
+                  crop={crop}
+                  onChange={(c) => setCrop(c)}
+                  aspect={aspect}
+                  className="max-w-full"
+                >
+                  <img
+                    src={imageSrc}
+                    onLoad={onImageLoad}
+                    alt="Crop preview"
+                    className="max-w-full"
+                    style={{ maxHeight: '380px' }}
+                  />
+                </ReactCrop>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground text-center">
+              Drag to adjust the crop area{type === 'profile' ? ' (1:1 ratio)' : ''}. Click "Apply Crop" to upload.
+            </p>
+          </div>
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button variant="ghost" size="sm" onClick={handleCropCancel}>
+              <X className="h-4 w-4 mr-1" />
+              Cancel
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleSkipCrop}>
+              Skip Crop
+            </Button>
+            <Button size="sm" onClick={handleCropConfirm}>
+              <Check className="h-4 w-4 mr-1" />
+              Apply Crop
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmationModal 
         isOpen={showDeleteModal}

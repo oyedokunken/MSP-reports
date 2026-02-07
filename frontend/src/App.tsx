@@ -175,7 +175,18 @@ function AppRoutes() {
           element={<IntegrationNameRedirect />}
         />
 
-        <Route path="/platform/profile" element={<Profile />} />
+        <Route path="/platform/profile" element={<Navigate to="/profile/me" replace />} />
+
+        <Route path="/profile/me" element={<Profile />} />
+        <Route
+          path="/profile/settings"
+          element={
+            <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/profile/security" element={<Security />} />
 
         {/* TODO: Add Active Directory and Exchange routes when features are implemented */}
 
@@ -266,23 +277,8 @@ function AppRoutes() {
           }
         />
 
-        <Route
-          path="/admin/settings"
-          element={
-            <ProtectedRoute permission={{ section: 'company_settings', action: 'view' }}>
-              <Settings />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/admin/security"
-          element={
-            <ProtectedRoute permission={{ section: 'security', action: 'view_logs' }}>
-              <Security />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/admin/settings" element={<Navigate to="/profile/settings" replace />} />
+        <Route path="/admin/security" element={<Navigate to="/profile/security" replace />} />
 
         <Route
           path="/admin/users"

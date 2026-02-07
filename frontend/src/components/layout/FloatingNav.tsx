@@ -294,7 +294,7 @@ export default function FloatingNav() {
                             </div> */}
                             <div className="p-2">
                                 <Link
-                                    to="/platform/profile"
+                                    to="/profile/me"
                                     className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
                                     onClick={() => setIsUserMenuOpen(false)}
                                 >
@@ -303,7 +303,7 @@ export default function FloatingNav() {
                                 </Link>
                                 {hasPermission(user, 'company_settings', 'view') && (
                                     <Link
-                                        to="/admin/settings"
+                                        to="/profile/settings"
                                         className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
                                         onClick={() => setIsUserMenuOpen(false)}
                                     >
@@ -313,7 +313,7 @@ export default function FloatingNav() {
                                 )}
                                 {hasPermission(user, 'security', 'configure') && (
                                     <Link
-                                        to="/admin/security"
+                                        to="/profile/security"
                                         className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
                                         onClick={() => setIsUserMenuOpen(false)}
                                     >

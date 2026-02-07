@@ -20,6 +20,8 @@ import {
   HelpCircle,
   Shield,
   ShieldCheck,
+  User,
+  Settings,
 } from 'lucide-react'
 import { hasPermission } from '@/utils/permissions'
 import { useAuth } from '@/contexts/AuthContext'
@@ -96,6 +98,12 @@ export default function AppSidebar() {
     { path: '/platform/customers/secondary', icon: Building2, label: 'Secondary List', show: hasPermission(user, 'customers', 'view') },
     { path: '/platform/customers/map', icon: MapPin, label: 'Map Customers', badge: unmappedCount, show: hasPermission(user, 'customers', 'map') },
   ].filter(item => item.show)
+
+  const profileNavItems = [
+    { path: '/profile/me', icon: User, label: 'My Profile', show: true },
+    { path: '/profile/settings', icon: Settings, label: 'Settings', show: hasPermission(user, 'company_settings', 'view') },
+    { path: '/profile/security', icon: Shield, label: 'Security', show: true },
+  ].filter(item => item.show !== false)
 
   const adminNavItems = [
     { path: '/admin/users', icon: UserPlus, label: 'Users', show: hasPermission(user, 'users', 'view') },
@@ -359,6 +367,37 @@ export default function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {profileNavItems.length > 0 && (
+          <SidebarGroup className="mt-4 group-data-[collapsible=icon]:mt-2">
+            <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Profile</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="border-l border-sidebar-border ml-3.5 pl-2.5 pr-2 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:pr-0">
+                {profileNavItems.map((item) => {
+                  const Icon = item.icon
+                  const active = isActive(item.path)
+                  return (
+                    <SidebarMenuItem key={item.path} className="relative group-data-[collapsible=icon]:static group">
+                      <span className={`absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full transition-colors group-data-[collapsible=icon]:hidden ${active ? 'bg-primary' : 'bg-sidebar-border'}`} />
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
+                        tooltip={item.label}
+                        className="rounded-lg group-data-[collapsible=icon]:!p-0"
+                        style={active ? { background: 'var(--brand-gradient)' } : undefined}
+                      >
+                        <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
+                          <Icon className="h-4 w-4 flex-shrink-0" />
+                          <span className="font-medium group-data-[collapsible=icon]:hidden">{item.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {adminNavItems.length > 0 && (
           <SidebarGroup className="mt-4 group-data-[collapsible=icon]:mt-2">
