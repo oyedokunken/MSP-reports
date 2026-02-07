@@ -268,34 +268,118 @@ final class IntegrationController extends Controller
 
         if (!$integration) {
             return response()->json([
+                'success' => false,
                 'status' => 'error',
                 'message' => 'Integration not found for this company.'
             ], 404);
         }
 
-        $isHealthy = $integration->status->value === 'active';
-        $lastSyncAge = $integration->last_sync_at
-            ? now()->diffInMinutes($integration->last_sync_at)
-            : null;
+        // Actually test the connection by calling the integration's healthCheck method
+        try {
+            $integrationClass = $this->getIntegrationClass($integration);
+            
+            if (!$integrationClass) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 'error',
+                    'message' => "Integration type {$integration->integration_type} not supported."
+                ], 400);
+            }
 
-        $health = [
-            'healthy' => $isHealthy,
-            'status' => $integration->status,
-            'last_sync_at' => $integration->last_sync_at,
-            'last_sync_status' => $integration->last_sync_status,
-            'last_sync_age_minutes' => $lastSyncAge,
-            'error_message' => $integration->error_message,
-            'checks' => [
-                'credentials_valid' => $integration->credentials !== null,
-                'recent_sync' => $lastSyncAge !== null && $lastSyncAge < 1440,
-                'no_errors' => $integration->error_message === null,
-            ],
+            $connectionHealthy = $integrationClass->healthCheck();
+            
+            $lastSyncAge = $integration->last_sync_at
+                ? now()->diffInMinutes($integration->last_sync_at)
+                : null;
+
+            $checks = [
+                [
+                    'name' => 'Connection',
+                    'status' => $connectionHealthy ? 'passed' : 'failed',
+                    'message' => $connectionHealthy ? 'Successfully connected to API' : 'Failed to connect to API'
+                ],
+                [
+                    'name' => 'Credentials',
+                    'status' => $integration->credentials !== null ? 'passed' : 'failed',
+                    'message' => $integration->credentials !== null ? 'Credentials are configured' : 'No credentials configured'
+                ],
+                [
+                    'name' => 'Recent Sync',
+                    'status' => ($lastSyncAge !== null && $lastSyncAge < 1440) ? 'passed' : 'warning',
+                    'message' => $lastSyncAge !== null 
+                        ? "Last sync was {$lastSyncAge} minutes ago" 
+                        : 'Never synced'
+                ],
+                [
+                    'name' => 'Error Status',
+                    'status' => $integration->error_message === null ? 'passed' : 'warning',
+                    'message' => $integration->error_message ?? 'No errors'
+                ],
+            ];
+
+            return response()->json([
+                'success' => $connectionHealthy,
+                'status' => $connectionHealthy ? 'healthy' : 'unhealthy',
+                'message' => $connectionHealthy ? 'Integration is healthy' : 'Connection test failed',
+                'checks' => $checks,
+                'data' => [
+                    'healthy' => $connectionHealthy,
+                    'status' => $integration->status,
+                    'last_sync_at' => $integration->last_sync_at,
+                    'last_sync_status' => $integration->last_sync_status,
+                    'last_sync_age_minutes' => $lastSyncAge,
+                    'error_message' => $integration->error_message,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Health check failed', [
+                'integration_id' => $integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'status' => 'error',
+                'message' => 'Connection test failed: ' . $e->getMessage(),
+                'checks' => [
+                    [
+                        'name' => 'Connection',
+                        'status' => 'failed',
+                        'message' => $e->getMessage()
+                    ]
+                ]
+            ]);
+        }
+    }
+
+    /**
+     * Get the integration class instance for a given integration
+     */
+    private function getIntegrationClass(Integration $integration): ?\App\Integrations\Contracts\IntegrationInterface
+    {
+        $integrationClasses = [
+            'Autotask' => \App\Integrations\Autotask\AutotaskIntegration::class,
+            'Datto' => \App\Integrations\Datto\DattoIntegration::class,
+            'Sendmarc' => \App\Integrations\Sendmarc\SendmarcIntegration::class,
+            'ITGlue' => \App\Integrations\ITGlue\ITGlueIntegration::class,
+            'LibreNMS' => \App\Integrations\LibreNMS\LibreNMSIntegration::class,
+            'SaaS' => \App\Integrations\SaaS\SaaSIntegration::class,
+            'BitDefender' => \App\Integrations\BitDefender\BitDefenderIntegration::class,
+            'VeeamOne' => \App\Integrations\VeeamOne\VeeamOneIntegration::class,
+            'CIPP' => \App\Integrations\CIPP\CIPPIntegration::class,
+            'Barracuda' => \App\Integrations\Barracuda\BarracudaIntegration::class,
+            'SharePoint' => \App\Integrations\SharePoint\SharePointIntegration::class,
+            'ActiveDirectory' => \App\Integrations\ActiveDirectory\ActiveDirectoryIntegration::class,
         ];
 
-        return response()->json([
-            'status' => 'success',
-            'data' => $health
-        ]);
+        $className = $integrationClasses[$integration->integration_type] ?? null;
+
+        if ($className && class_exists($className)) {
+            return new $className($integration);
+        }
+
+        return null;
     }
 
     public function getRateLimitStatus(Request $request, int $id): JsonResponse
