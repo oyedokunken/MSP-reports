@@ -96,7 +96,8 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
         search: get().searchQuery,
         statuses: get().statusFilters,
         report_filters: get().reportFilters,
-        integration_types: get().integrationFilters
+        integration_types: get().integrationFilters,
+        per_page: 1
       })
       set({ totalCustomersCount: response.pagination.total })
     } catch (error) {
@@ -108,7 +109,9 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
     try {
       const response = await customerApi.getUnmappedCustomers(
         get().unmappedCurrentPage,
-        get().unmappedSearchQuery
+        get().unmappedSearchQuery,
+        true, // skip suggestions for performance
+        1 // per_page=1 for performance
       )
       set({ unmappedCount: response.pagination.total })
     } catch (error) {

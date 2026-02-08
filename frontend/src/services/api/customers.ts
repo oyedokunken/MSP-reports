@@ -30,6 +30,7 @@ export const customerApi = {
         report_filters?: string[]
         integration_types?: string[]
         source_of_truth_only?: boolean | null
+        per_page?: number
     }): Promise<CustomerListResponse> {
         return api.get<CustomerListResponse>('/customers', {
             ...params,
@@ -42,10 +43,12 @@ export const customerApi = {
      * Get unmapped customers
      * GET /api/customers/unmapped
      */
-    async getUnmappedCustomers(page?: number, search?: string): Promise<UnmappedCustomersResponse> {
+    async getUnmappedCustomers(page?: number, search?: string, skip_suggestions?: boolean, per_page?: number): Promise<UnmappedCustomersResponse> {
         return api.get<UnmappedCustomersResponse>('/customers/unmapped', {
             page,
-            search: search?.trim() || undefined
+            search: search?.trim() || undefined,
+            skip_suggestions: skip_suggestions || undefined,
+            per_page
         })
     },
 

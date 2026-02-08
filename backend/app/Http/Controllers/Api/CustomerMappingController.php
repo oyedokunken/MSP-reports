@@ -26,6 +26,7 @@ use App\Models\CustomerMapping;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
 use App\Services\CustomerMappingService;
+use App\Services\EmbeddingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,13 +35,15 @@ use Illuminate\Validation\ValidationException;
 
 final class CustomerMappingController extends Controller
 {
-    public function getCustomers(Request $request): \Illuminate\Http\JsonResponse
+    public function getCustomers(Request $request): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
         // Get pagination and filter parameters
-        $perPage = 15;
+        $perPage = (int) $request->input('per_page', 15);
+        if ($perPage < 1 || $perPage > 100)
+            $perPage = 15; // Sanity check
         $search = $request->input('search');
         $statuses = $request->input('statuses');
         $reportFilters = $request->input('report_filters');
@@ -87,7 +90,7 @@ final class CustomerMappingController extends Controller
         // Apply source of truth filter
         if ($sourceOfTruthOnly !== null) {
             $isSourceOfTruth = filter_var($sourceOfTruthOnly, FILTER_VALIDATE_BOOLEAN);
-            
+
             if ($isSourceOfTruth) {
                 // Show customers that have at least one SOT integration OR are static customers
                 $query->where(function ($q) {
@@ -110,7 +113,7 @@ final class CustomerMappingController extends Controller
             ->paginate($perPage);
 
         // Map customers to response format
-        $data = $customers->map(function (\App\Models\Customer $customer) {
+        $data = $customers->map(function (Customer $customer) {
             return [
                 'customer_id' => $customer->customer_id,
                 'canonical_name' => $customer->canonical_name,
@@ -119,11 +122,11 @@ final class CustomerMappingController extends Controller
                 'report_destination' => e($customer->report_destination),
                 'report_schedules_count' => $customer->reportSchedules->count(),
                 'integrations' => $customer->integrationCustomers->map(function ($ic) {
-                    /** @var \App\Models\IntegrationCustomer $ic */
+                    /** @var IntegrationCustomer $ic */
                     // Use eager-loaded relationship instead of query
-                    /** @var \App\Models\CustomerMapping|null $mapping */
+                    /** @var CustomerMapping|null $mapping */
                     $mapping = $ic->customerMappings->first();
-                    
+
                     return [
                         'integration_customer_id' => $ic->integration_customer_id,
                         'integration_type' => e($ic->integration->integration_type ?? null),
@@ -131,13 +134,13 @@ final class CustomerMappingController extends Controller
                         'external_id' => e($ic->external_id),
                         'name' => html_entity_decode($ic->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                         'active' => (bool) $ic->active,
-                        'last_seen_at' => $ic->last_seen_at instanceof \Carbon\Carbon ? (int)$ic->last_seen_at->timestamp * 1000 : null,
+                        'last_seen_at' => $ic->last_seen_at instanceof \Carbon\Carbon ? (int) $ic->last_seen_at->timestamp * 1000 : null,
                         'mapping' => $mapping ? [
                             'type' => $mapping->mapping_type,
                             'confidence_score' => $mapping->confidence_score,
                             'mapped_at' => $mapping->mapped_at,
                             'notes' => $mapping->notes,
-                        ] : null,   
+                        ] : null,
                     ];
                 })->toArray(),
             ];
@@ -164,7 +167,7 @@ final class CustomerMappingController extends Controller
     /**
      * Get all customer IDs for bulk selection (e.g., user scoping)
      */
-    public function getAllCustomerIds(Request $request): \Illuminate\Http\JsonResponse
+    public function getAllCustomerIds(Request $request): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -179,13 +182,15 @@ final class CustomerMappingController extends Controller
         ]);
     }
 
-    public function getUnmappedCustomers(Request $request): \Illuminate\Http\JsonResponse
+    public function getUnmappedCustomers(Request $request): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
         // Get pagination and search parameters
-        $perPage = 15;
+        $perPage = (int) $request->input('per_page', 15);
+        if ($perPage < 1 || $perPage > 100)
+            $perPage = 15; // Sanity check
         $page = $request->input('page', 1);
         $search = $request->input('search');
 
@@ -197,12 +202,12 @@ final class CustomerMappingController extends Controller
 
         // Apply search filter if provided
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'ILIKE', '%' . $search . '%')
-                  ->orWhere('external_id', 'ILIKE', '%' . $search . '%')
-                  ->orWhereHas('integration', function($innerQ) use ($search) {
-                      $innerQ->where('integration_type', 'ILIKE', '%' . $search . '%');
-                  });
+                    ->orWhere('external_id', 'ILIKE', '%' . $search . '%')
+                    ->orWhereHas('integration', function ($innerQ) use ($search) {
+                        $innerQ->where('integration_type', 'ILIKE', '%' . $search . '%');
+                    });
             });
         }
 
@@ -215,7 +220,7 @@ final class CustomerMappingController extends Controller
 
         // OPTIMIZED: Get summary stats from the paginator (no extra queries needed)
         $totalUnmapped = $unmappedIntegrationCustomers->total();
-        
+
         // OPTIMIZED: Calculate integration type counts from paginated results only
         // This is approximate but much faster - if you need exact counts, consider caching
         $countsByIntegrationType = $unmappedIntegrationCustomers
@@ -223,38 +228,45 @@ final class CustomerMappingController extends Controller
             ->map(fn($group) => $group->count())
             ->toArray();
 
-        // OPTIMIZED: Load ALL active customers ONCE for the entire batch
-        $existingCustomers = Customer::with('integrationCustomers:integration_customer_id,customer_id,integration_id')
-            ->where('company_id', $company->company_id)
-            ->where('status', 'active')
-            ->get();
+        // Check if we should skip suggestions (for performance, e.g. dashboard stats)
+        $skipSuggestions = filter_var($request->input('skip_suggestions', false), FILTER_VALIDATE_BOOLEAN);
 
-        // OPTIMIZED: Create service once and reuse
-        $mappingService = app(CustomerMappingService::class);
-        
+        if (!$skipSuggestions) {
+            // OPTIMIZED: Load ALL active customers ONCE for the entire batch
+            $existingCustomers = Customer::with('integrationCustomers:integration_customer_id,customer_id,integration_id')
+                ->where('company_id', $company->company_id)
+                ->where('status', 'active')
+                ->get();
+
+            // OPTIMIZED: Create service once and reuse
+            $mappingService = app(CustomerMappingService::class);
+        }
+
         // OPTIMIZED: Batch process all suggestions
-        $data = $unmappedIntegrationCustomers->map(function ($ic) use ($mappingService, $existingCustomers) {
-            // Calculate suggestions using pre-loaded customers
+        $data = $unmappedIntegrationCustomers->map(function ($ic) use ($skipSuggestions, $existingCustomers, $mappingService) {
             $suggestions = [];
-            
-            foreach ($existingCustomers as $customer) {
-                $score = $mappingService->calculateSimilarity(
-                    $ic->name,
-                    $customer->canonical_name
-                );
 
-                if ($score > 30) {
-                    $suggestions[] = [
-                        'customer' => $customer,
-                        'confidence_score' => $score,
-                    ];
+            if (!$skipSuggestions) {
+                // Calculate suggestions using pre-loaded customers
+                foreach ($existingCustomers as $customer) {
+                    $score = $mappingService->calculateSimilarity(
+                        $ic->name,
+                        $customer->canonical_name
+                    );
+
+                    if ($score > 30) {
+                        $suggestions[] = [
+                            'customer' => $customer,
+                            'confidence_score' => $score,
+                        ];
+                    }
                 }
+
+                // Sort by confidence score and limit to top 3
+                usort($suggestions, fn($a, $b) => $b['confidence_score'] <=> $a['confidence_score']);
+                $suggestions = array_slice($suggestions, 0, 3);
             }
 
-            // Sort by confidence score and limit to top 3
-            usort($suggestions, fn($a, $b) => $b['confidence_score'] <=> $a['confidence_score']);
-            $suggestions = array_slice($suggestions, 0, 3);
-            
             return [
                 'integration_customer_id' => $ic->integration_customer_id,
                 'integration_type' => e($ic->integration->integration_type ?? null),
@@ -262,15 +274,15 @@ final class CustomerMappingController extends Controller
                 'external_id' => e($ic->external_id),
                 'name' => html_entity_decode($ic->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                 'active' => (bool) $ic->active,
-                'last_seen_at' => $ic->last_seen_at instanceof \Carbon\Carbon ? (int)$ic->last_seen_at->timestamp * 1000 : null,
-                'suggested_matches' => array_map(function($suggestion) {
+                'last_seen_at' => $ic->last_seen_at instanceof \Carbon\Carbon ? (int) $ic->last_seen_at->timestamp * 1000 : null,
+                'suggested_matches' => array_map(function ($suggestion) {
                     return [
                         'customer_id' => $suggestion['customer']->customer_id,
                         'canonical_name' => $suggestion['customer']->canonical_name,
                         'is_static' => $suggestion['customer']->is_static ?? false,
                         'confidence_score' => $suggestion['confidence_score'],
-                        'integrations' => $suggestion['customer']->integrationCustomers->map(function($ic) {
-                            /** @var \App\Models\IntegrationCustomer $ic */
+                        'integrations' => $suggestion['customer']->integrationCustomers->map(function ($ic) {
+                            /** @var IntegrationCustomer $ic */
                             return ['id' => $ic->integration_customer_id];
                         }),
                     ];
@@ -366,7 +378,7 @@ final class CustomerMappingController extends Controller
         }
     }
 
-    public function getCustomerIntegrations(Request $request, int $id): \Illuminate\Http\JsonResponse
+    public function getCustomerIntegrations(Request $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -390,11 +402,11 @@ final class CustomerMappingController extends Controller
         }
 
         $integrations = $customer->integrationCustomers->map(function ($ic) {
-            /** @var \App\Models\IntegrationCustomer $ic */
+            /** @var IntegrationCustomer $ic */
             // Use eager-loaded relationship
-            /** @var \App\Models\CustomerMapping|null $mapping */
+            /** @var CustomerMapping|null $mapping */
             $mapping = $ic->customerMappings->first();
-            
+
             return [
                 'integration_customer_id' => $ic->integration_customer_id,
                 'integration_id' => $ic->integration_id,
@@ -420,7 +432,7 @@ final class CustomerMappingController extends Controller
         ]);
     }
 
-    public function getCustomerIntegrationStats(Request $request, int $customerId, int $integrationCustomerId): \Illuminate\Http\JsonResponse
+    public function getCustomerIntegrationStats(Request $request, int $customerId, int $integrationCustomerId): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -449,13 +461,13 @@ final class CustomerMappingController extends Controller
 
         // Get stats from integration_data table
         $integrationId = $integrationCustomer->integration_id;
-        
+
         // Cache key for this specific customer integration stats
         $cacheKey = "customer_stats_{$customerId}_{$integrationCustomerId}";
 
         // Cache for 5 minutes (300 seconds)
         $stats = \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($integrationCustomerId, $integrationId) {
-            
+
             // Get all technicians from tickets
             $topTechnicians = IntegrationData::where('integration_customer_id', $integrationCustomerId)
                 ->where('data_type', 'ticket')
@@ -472,17 +484,17 @@ final class CustomerMappingController extends Controller
                 ->where('data_type', 'resource')
                 ->whereIn(\DB::raw("CAST(data_payload->>'resource_id' AS TEXT)"), $resourceIds)
                 ->get()
-                ->keyBy(function($item) {
-                    /** @var \App\Models\IntegrationData $item */
+                ->keyBy(function ($item) {
+                    /** @var IntegrationData $item */
                     return (string) ($item->data_payload['resource_id'] ?? '');
                 });
 
-            $technicianStats = $topTechnicians->map(function(\App\Models\IntegrationData $tech) use ($resources) {
+            $technicianStats = $topTechnicians->map(function (IntegrationData $tech) use ($resources) {
                 $resource = $resources->get($tech->resource_id);
                 $firstName = $resource ? ($resource->data_payload['first_name'] ?? '') : '';
                 $lastName = $resource ? ($resource->data_payload['last_name'] ?? '') : '';
                 $fullName = trim("$firstName $lastName") ?: "Resource #{$tech->resource_id}";
-                
+
                 return [
                     'name' => $fullName,
                     'ticket_count' => $tech->ticket_count,
@@ -676,9 +688,9 @@ final class CustomerMappingController extends Controller
     /**
      * Check embedding service status
      */
-    public function getEmbeddingStatus(Request $request): \Illuminate\Http\JsonResponse
+    public function getEmbeddingStatus(Request $request): JsonResponse
     {
-        $embeddingService = app(\App\Services\EmbeddingService::class);
+        $embeddingService = app(EmbeddingService::class);
 
         $embeddingAvailable = $embeddingService->isAvailable();
         $agentAvailable = $embeddingService->isAgentAvailable();

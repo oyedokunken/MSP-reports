@@ -20,10 +20,11 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Models\ReportTemplate;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 
 final class HealthCheckController extends Controller
 {
-    public function index(): \Illuminate\Http\JsonResponse
+    public function index(): JsonResponse
     {
         $checks = [
             'api' => $this->checkApi(),
@@ -48,49 +49,49 @@ final class HealthCheckController extends Controller
         ], $allHealthy ? 200 : 503);
     }
 
-    public function database(): \Illuminate\Http\JsonResponse
+    public function database(): JsonResponse
     {
         $check = $this->checkDatabase();
         return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
     }
 
-    public function redis(): \Illuminate\Http\JsonResponse
+    public function redis(): JsonResponse
     {
         $check = $this->checkRedis();
         return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
     }
 
-    public function email(): \Illuminate\Http\JsonResponse
+    public function email(): JsonResponse
     {
         $check = $this->checkEmail();
         return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
     }
 
-    public function scheduler(): \Illuminate\Http\JsonResponse
+    public function scheduler(): JsonResponse
     {
         $check = $this->checkScheduler();
         return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
     }
 
-    public function storage(): \Illuminate\Http\JsonResponse
+    public function storage(): JsonResponse
     {
         $check = $this->checkStorage();
         return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
     }
 
-    public function reports(): \Illuminate\Http\JsonResponse
+    public function reports(): JsonResponse
     {
         $check = $this->checkReports();
         return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
     }
 
-    public function external(): \Illuminate\Http\JsonResponse
+    public function external(): JsonResponse
     {
         $check = $this->checkExternal();
         return response()->json($check, $check['status'] === 'healthy' ? 200 : 503);
     }
 
-    public function status(GetHealthStatusRequest $request): \Illuminate\Http\JsonResponse
+    public function status(GetHealthStatusRequest $request): JsonResponse
     {
         $authUser = $request->user();
 
@@ -114,7 +115,7 @@ final class HealthCheckController extends Controller
         ]);
     }
 
-    public function integrationMetrics(GetMetricsRequest $request): \Illuminate\Http\JsonResponse
+    public function integrationMetrics(GetMetricsRequest $request): JsonResponse
     {
         $authUser = $request->user();
         $days = $request->validated()['days'] ?? $request->input('days', 7);
@@ -122,11 +123,13 @@ final class HealthCheckController extends Controller
         $startDate = now()->subDays($days);
 
         $integrations = Integration::where('company_id', $authUser->company_id)
-            ->with(['syncLogs' => function ($query) use ($startDate) {
-                $query->where('started_at', '>=', $startDate);
-            }])
+            ->with([
+                'syncLogs' => function ($query) use ($startDate) {
+                    $query->where('started_at', '>=', $startDate);
+                }
+            ])
             ->get()
-            ->map(function (\App\Models\Integration $integration) {
+            ->map(function (Integration $integration) {
                 $logs = $integration->syncLogs;
                 $totalSyncs = $logs->count();
                 $successfulSyncs = $logs->where('status', 'success')->count();
@@ -159,7 +162,7 @@ final class HealthCheckController extends Controller
         ]);
     }
 
-    public function reportMetrics(GetMetricsRequest $request): \Illuminate\Http\JsonResponse
+    public function reportMetrics(GetMetricsRequest $request): JsonResponse
     {
         $authUser = $request->user();
         $days = $request->validated()['days'] ?? $request->input('days', 7);
@@ -178,7 +181,7 @@ final class HealthCheckController extends Controller
 
         $avgGenerationTime = $reports
             ->filter(fn($r) => $r->status === 'completed')
-            ->map(function (\App\Models\GeneratedReport $report) {
+            ->map(function (GeneratedReport $report) {
                 if ($report->generated_at && $report->created_at) {
                     return $report->generated_at->diffInSeconds($report->created_at);
                 }
@@ -205,7 +208,7 @@ final class HealthCheckController extends Controller
                     ->where('status', 'failed')
                     ->sortByDesc('generated_at')
                     ->take(5)
-                    ->map(fn(\App\Models\GeneratedReport $r) => [
+                    ->map(fn(GeneratedReport $r) => [
                         'generated_report_id' => $r->generated_report_id,
                         'customer_id' => $r->customer_id,
                         'generated_at' => $r->generated_at,
@@ -216,7 +219,7 @@ final class HealthCheckController extends Controller
         ]);
     }
 
-    public function monthlyReportAnalytics(GetMetricsRequest $request): \Illuminate\Http\JsonResponse
+    public function monthlyReportAnalytics(GetMetricsRequest $request): JsonResponse
     {
         $authUser = $request->user();
         $months = $request->validated()['months'] ?? $request->input('months', 6);
@@ -242,14 +245,14 @@ final class HealthCheckController extends Controller
         while ($currentDate <= $endDate) {
             $monthKey = $currentDate->format('Y-m');
             $monthLabel = $currentDate->format('M Y');
-            
+
             $reportCount = $reports->firstWhere('month', $monthKey);
-            
+
             $monthlyData[] = [
                 'date' => $monthLabel,
                 'count' => $reportCount ? $reportCount->count : 0,
             ];
-            
+
             $currentDate->addMonth();
         }
 
@@ -262,11 +265,11 @@ final class HealthCheckController extends Controller
         ]);
     }
 
-    public function queueMetrics(GetQueueMetricsRequest $request): \Illuminate\Http\JsonResponse
+    public function queueMetrics(GetQueueMetricsRequest $request): JsonResponse
     {
         try {
             $failedJobs = DB::table('failed_jobs')->count();
-            
+
             // Check if using database queue driver
             if (config('queue.default') === 'database') {
                 $pendingJobs = DB::table('jobs')->count();
@@ -280,7 +283,7 @@ final class HealthCheckController extends Controller
                     ]
                 ]);
             }
-            
+
             // Redis queue driver
             $redis = Redis::connection();
             $queues = [
@@ -308,7 +311,7 @@ final class HealthCheckController extends Controller
         }
     }
 
-    public function activityTrends(GetMetricsRequest $request): \Illuminate\Http\JsonResponse
+    public function activityTrends(GetMetricsRequest $request): JsonResponse
     {
         try {
             $authUser = $request->user();
@@ -317,97 +320,33 @@ final class HealthCheckController extends Controller
             $startDate = now()->subDays($days)->startOfDay();
             $endDate = now()->endOfDay();
 
-            // Generate array of dates for the period
-            $dateRange = [];
-            $currentDate = $startDate->copy();
-            while ($currentDate <= $endDate) {
-                $dateRange[] = $currentDate->format('Y-m-d');
-                $currentDate->addDay();
-            }
-
-            // Get sync counts per day
-            $syncCounts = SyncLog::whereHas('integration', function($q) use ($authUser) {
-                    $q->where('company_id', $authUser->company_id);
-                })
-                ->whereBetween('started_at', [$startDate, $endDate])
-                ->select(
-                    DB::raw("started_at::date as date"),
-                    DB::raw('COUNT(*) as total'),
-                    DB::raw("SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed"),
-                    DB::raw('SUM(rate_limit_hits) as rate_limits')
-                )
-                ->groupBy(DB::raw("started_at::date"))
-                ->orderBy('date', 'asc')
-                ->get()
-                ->keyBy('date');
-
-            // Get report counts per day
-            $reportCounts = GeneratedReport::where('company_id', $authUser->company_id)
-                ->whereBetween('generated_at', [$startDate, $endDate])
-                ->select(
-                    DB::raw("generated_at::date as date"),
-                    DB::raw('COUNT(*) as total'),
-                    DB::raw("SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed")
-                )
-                ->groupBy(DB::raw("generated_at::date"))
-                ->orderBy('date', 'asc')
-                ->get()
-                ->keyBy('date');
-
-            // Get job counts per day (only if jobs table exists)
-            $jobCounts = collect();
-            if (\Illuminate\Support\Facades\Schema::hasTable('jobs')) {
-                $jobCounts = DB::table('jobs')
-                    ->whereBetween('created_at', [
-                        $startDate->timestamp,
-                        $endDate->timestamp
-                    ])
-                    ->select(
-                        DB::raw("TO_TIMESTAMP(created_at)::date as date"),
-                        DB::raw('COUNT(*) as count')
-                    )
-                    ->groupBy(DB::raw("TO_TIMESTAMP(created_at)::date"))
-                    ->orderBy('date', 'asc')
-                    ->get()
-                    ->keyBy('date');
-            }
-
-            // Get user login counts per day
-            $userLogins = AuditLog::where('company_id', $authUser->company_id)
-                ->where('event_type', 'user_login')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->select(
-                    DB::raw("created_at::date as date"),
-                    DB::raw('COUNT(*) as count')
-                )
-                ->groupBy(DB::raw("created_at::date"))
-                ->orderBy('date', 'asc')
-                ->get()
-                ->keyBy('date');
+            // Fetch data using helper methods
+            $syncCounts = $this->getSyncActivityData($authUser->company_id, $startDate, $endDate);
+            $reportCounts = $this->getReportActivityData($authUser->company_id, $startDate, $endDate);
+            $jobCounts = $this->getJobActivityData($startDate, $endDate);
+            $userLogins = $this->getLoginActivityData($authUser->company_id, $startDate, $endDate);
 
             // Build activity data array with all dates (fill gaps with 0)
             $activityData = [];
-            foreach ($dateRange as $date) {
-                $dateObj = Carbon::parse($date);
-                $syncData = $syncCounts->get($date);
-                $reportData = $reportCounts->get($date);
-                $jobData = $jobCounts->get($date);
-                $loginData = $userLogins->get($date);
-                
-                /** @var object{total: int, failed: int, rate_limits: int}|null $syncData */
-                /** @var object{total: int, failed: int}|null $reportData */
-                /** @var object{count: int}|null $jobData */
-                /** @var object{count: int}|null $loginData */
+            $currentDate = $startDate->copy();
+            while ($currentDate <= $endDate) {
+                $dateKey = $currentDate->format('Y-m-d');
+                $syncData = $syncCounts->get($dateKey);
+                $reportData = $reportCounts->get($dateKey);
+                $jobData = $jobCounts->get($dateKey);
+                $loginData = $userLogins->get($dateKey);
+
                 $activityData[] = [
-                    'date' => $dateObj->format('M j'), // e.g., "Dec 16"
-                    'syncs' => $syncData ? (int) $syncData->total : 0,
-                    'failed_syncs' => $syncData ? (int) $syncData->failed : 0,
-                    'rate_limits' => $syncData ? (int) $syncData->rate_limits : 0,
-                    'reports' => $reportData ? (int) $reportData->total : 0,
-                    'failed_reports' => $reportData ? (int) $reportData->failed : 0,
-                    'jobs' => $jobData ? (int) $jobData->count : 0,
-                    'logins' => $loginData ? (int) $loginData->count : 0,
+                    'date' => $currentDate->format('M j'),
+                    'syncs' => (int) ($syncData->total ?? 0),
+                    'failed_syncs' => (int) ($syncData->failed ?? 0),
+                    'rate_limits' => (int) ($syncData->rate_limits ?? 0),
+                    'reports' => (int) ($reportData->total ?? 0),
+                    'failed_reports' => (int) ($reportData->failed ?? 0),
+                    'jobs' => (int) ($jobData->count ?? 0),
+                    'logins' => (int) ($loginData->count ?? 0),
                 ];
+                $currentDate->addDay();
             }
 
             return response()->json([
@@ -424,6 +363,72 @@ final class HealthCheckController extends Controller
                 'message' => 'Failed to fetch activity trends: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function getSyncActivityData(int $companyId, Carbon $start, Carbon $end): \Illuminate\Support\Collection
+    {
+        return SyncLog::whereHas('integration', function ($q) use ($companyId) {
+            $q->where('company_id', $companyId);
+        })
+            ->whereBetween('started_at', [$start, $end])
+            ->select(
+                DB::raw("started_at::date as date"),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed"),
+                DB::raw('SUM(rate_limit_hits) as rate_limits')
+            )
+            ->groupBy(DB::raw("started_at::date"))
+            ->orderBy('date', 'asc')
+            ->get()
+            ->keyBy('date');
+    }
+
+    private function getReportActivityData(int $companyId, Carbon $start, Carbon $end): \Illuminate\Support\Collection
+    {
+        return GeneratedReport::where('company_id', $companyId)
+            ->whereBetween('generated_at', [$start, $end])
+            ->select(
+                DB::raw("generated_at::date as date"),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed")
+            )
+            ->groupBy(DB::raw("generated_at::date"))
+            ->orderBy('date', 'asc')
+            ->get()
+            ->keyBy('date');
+    }
+
+    private function getJobActivityData(Carbon $start, Carbon $end): \Illuminate\Support\Collection
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('jobs')) {
+            return collect();
+        }
+
+        return DB::table('jobs')
+            ->whereBetween('created_at', [$start->timestamp, $end->timestamp])
+            ->select(
+                DB::raw("TO_TIMESTAMP(created_at)::date as date"),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy(DB::raw("TO_TIMESTAMP(created_at)::date"))
+            ->orderBy('date', 'asc')
+            ->get()
+            ->keyBy('date');
+    }
+
+    private function getLoginActivityData(int $companyId, Carbon $start, Carbon $end): \Illuminate\Support\Collection
+    {
+        return AuditLog::where('company_id', $companyId)
+            ->where('event_type', 'user_login')
+            ->whereBetween('created_at', [$start, $end])
+            ->select(
+                DB::raw("created_at::date as date"),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy(DB::raw("created_at::date"))
+            ->orderBy('date', 'asc')
+            ->get()
+            ->keyBy('date');
     }
 
     // Private helper methods
@@ -447,7 +452,7 @@ final class HealthCheckController extends Controller
         try {
             DB::connection()->getPdo();
             DB::connection()->getDatabaseName();
-            
+
             return [
                 'status' => 'healthy',
                 'message' => 'Database connection successful',
@@ -474,7 +479,7 @@ final class HealthCheckController extends Controller
 
         try {
             Redis::ping();
-            
+
             return [
                 'status' => 'healthy',
                 'message' => 'Redis connection successful',
@@ -521,8 +526,8 @@ final class HealthCheckController extends Controller
             return [
                 'status' => $status,
                 'message' => sprintf('%.2f%% disk space available', $percentFree),
-                'free_bytes' => (float)$disk,
-                'total_bytes' => (float)$total,
+                'free_bytes' => (float) $disk,
+                'total_bytes' => (float) $total,
             ];
         } catch (\Exception $e) {
             return [
@@ -541,21 +546,21 @@ final class HealthCheckController extends Controller
             $mailer = config('mail.default');
             $host = config("mail.mailers.{$mailer}.host");
             $port = config("mail.mailers.{$mailer}.port");
-            
+
             if ($mailer === 'log' || $mailer === 'array') {
                 return [
                     'status' => 'healthy',
                     'message' => "Email configured with {$mailer} driver (development mode)",
                 ];
             }
-            
+
             if (empty($host)) {
                 return [
                     'status' => 'unhealthy',
                     'message' => 'SMTP host not configured',
                 ];
             }
-            
+
             // Try to open a socket connection to verify SMTP is reachable
             $connection = @fsockopen($host, (int) $port, $errno, $errstr, 5);
             if ($connection) {
@@ -565,7 +570,7 @@ final class HealthCheckController extends Controller
                     'message' => "SMTP server reachable at {$host}:{$port}",
                 ];
             }
-            
+
             return [
                 'status' => 'unhealthy',
                 'message' => "Cannot connect to SMTP server: {$errstr}",
@@ -587,26 +592,26 @@ final class HealthCheckController extends Controller
             // Check if scheduler has run recently by looking at a cache key or log
             // For now, we'll check if the schedule:run command exists and queue is working
             $queueDriver = config('queue.default');
-            
+
             if ($queueDriver === 'sync') {
                 return [
                     'status' => 'healthy',
                     'message' => 'Scheduler running in sync mode',
                 ];
             }
-            
+
             // Check failed jobs count as indicator of scheduler health
             $failedJobs = DB::table('failed_jobs')
                 ->where('failed_at', '>=', now()->subHours(24))
                 ->count();
-            
+
             if ($failedJobs > 10) {
                 return [
                     'status' => 'degraded',
                     'message' => "{$failedJobs} failed jobs in last 24 hours",
                 ];
             }
-            
+
             return [
                 'status' => 'healthy',
                 'message' => 'Task scheduler operational',
@@ -627,7 +632,7 @@ final class HealthCheckController extends Controller
         try {
             // Check if PDF generation service (Gutenberg) is configured
             $gutenbergUrl = config('services.gutenberg.url');
-            
+
             if (empty($gutenbergUrl)) {
                 // In development, Gutenberg may not be configured - check if we're in local env
                 if (config('app.env') === 'local' || config('app.env') === 'development') {
@@ -641,18 +646,18 @@ final class HealthCheckController extends Controller
                     'message' => 'PDF generation service (Gutenberg) not configured',
                 ];
             }
-            
+
             // Try to reach the Gutenberg service
             $client = new \Illuminate\Http\Client\Factory();
             $response = $client->timeout(5)->get($gutenbergUrl . '/health');
-            
+
             if ($response->successful()) {
                 return [
                     'status' => 'healthy',
                     'message' => 'PDF generation service operational',
                 ];
             }
-            
+
             return [
                 'status' => 'degraded',
                 'message' => 'PDF service returned non-success status',
@@ -662,14 +667,14 @@ final class HealthCheckController extends Controller
             $recentSuccess = GeneratedReport::where('status', 'completed')
                 ->where('generated_at', '>=', now()->subHours(24))
                 ->exists();
-            
+
             if ($recentSuccess) {
                 return [
                     'status' => 'healthy',
                     'message' => 'PDF generation working (recent reports generated)',
                 ];
             }
-            
+
             return [
                 'status' => 'degraded',
                 'message' => 'PDF service check failed: ' . $e->getMessage(),
@@ -686,19 +691,19 @@ final class HealthCheckController extends Controller
             // Check if we can reach common external services
             // This is a basic connectivity check
             $client = new \Illuminate\Http\Client\Factory();
-            
+
             // Try to reach a reliable external endpoint
             $response = $client->timeout(5)
                 ->withOptions(['verify' => config('app.env') === 'production'])
                 ->get('https://httpbin.org/status/200');
-            
+
             if ($response->successful()) {
                 return [
                     'status' => 'healthy',
                     'message' => 'External API connectivity operational',
                 ];
             }
-            
+
             return [
                 'status' => 'degraded',
                 'message' => 'External connectivity issues detected',
@@ -728,27 +733,40 @@ final class HealthCheckController extends Controller
     /**
      * @return array{total: int, active: int, error: int, health: string}
      */
+    /**
+     * @return array{total: int, active: int, error: int, health: string}
+     */
     private function getIntegrationStatus(int $companyId): array
     {
-        $integrations = Integration::where('company_id', $companyId)->get();
-        
-        $totalIntegrations = $integrations->count();
-        $activeIntegrations = $integrations->where('status', 'active')->count();
-        $errorIntegrations = $integrations->where('status', 'error')->count();
+        $statusCounts = Integration::where('company_id', $companyId)
+            ->selectRaw("COUNT(*) as total")
+            ->selectRaw("COUNT(CASE WHEN status = 'active' THEN 1 END) as active")
+            ->selectRaw("COUNT(CASE WHEN status = 'error' THEN 1 END) as error")
+            ->first();
 
-        // Get metrics for the last 24 hours across all integrations
-        $recentLogs = SyncLog::whereIn('integration_id', $integrations->pluck('integration_id'))
+        $totalIntegrations = $statusCounts->total ?? 0;
+        $activeIntegrations = $statusCounts->active ?? 0;
+        $errorIntegrations = $statusCounts->error ?? 0;
+
+        // Get metrics for the last 24 hours across all integrations - OPTIMIZED aggregation
+        // We need to join integrations to filter by company_id correctly or use specific integration IDs
+        // Using whereHas is cleaner but might be slower than whereIn with a subquery or list
+        $stats = SyncLog::whereHas('integration', function ($q) use ($companyId) {
+            $q->where('company_id', $companyId);
+        })
             ->where('started_at', '>=', now()->subHours(24))
-            ->get();
+            ->selectRaw('SUM(rate_limit_hits) as rate_limit_hits')
+            ->selectRaw("COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_syncs")
+            ->first();
 
-        $rateLimitHits = $recentLogs->sum('rate_limit_hits');
-        $failedSyncs = $recentLogs->where('status', 'failed')->count();
+        $rateLimitHits = $stats->rate_limit_hits ?? 0;
+        $failedSyncs = $stats->failed_syncs ?? 0;
 
         return [
             'total' => $totalIntegrations,
             'active' => $activeIntegrations,
             'error' => $errorIntegrations,
-            'failed_syncs' => $failedSyncs,
+            'failed_syncs' => (int) $failedSyncs,
             'rate_limit_hits' => (int) $rateLimitHits,
             'health' => $errorIntegrations === 0 ? 'healthy' : ($errorIntegrations === $totalIntegrations ? 'critical' : 'warning'),
         ];
@@ -760,20 +778,24 @@ final class HealthCheckController extends Controller
     private function getReportStatus(int $companyId): array
     {
         $last24Hours = now()->subHours(24);
-        
-        $recentReports = GeneratedReport::where('company_id', $companyId)
-            ->where('generated_at', '>=', $last24Hours)
-            ->get();
 
-        $total = $recentReports->count();
-        $completed = $recentReports->where('status', 'completed')->count();
-        $failed = $recentReports->where('status', 'failed')->count();
+        // OPTIMIZED: Aggregation directly in DB
+        $stats = GeneratedReport::where('company_id', $companyId)
+            ->where('generated_at', '>=', $last24Hours)
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed")
+            ->selectRaw("COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed")
+            ->first();
+
+        $total = $stats->total ?? 0;
+        $completed = $stats->completed ?? 0;
+        $failed = $stats->failed ?? 0;
 
         return [
             'last_24_hours' => [
-                'total' => $total,
-                'completed' => $completed,
-                'failed' => $failed,
+                'total' => (int) $total,
+                'completed' => (int) $completed,
+                'failed' => (int) $failed,
                 'success_rate' => $total > 0 ? round(($completed / $total) * 100, 2) : 0,
             ],
             'health' => $failed === 0 ? 'healthy' : ($failed > $completed ? 'critical' : 'warning'),
@@ -787,7 +809,7 @@ final class HealthCheckController extends Controller
     {
         try {
             $failedJobs = DB::table('failed_jobs')->count();
-            
+
             // Check if using database queue driver
             if (config('queue.default') === 'database') {
                 $pendingJobs = DB::table('jobs')->count();
@@ -798,7 +820,7 @@ final class HealthCheckController extends Controller
                     'health' => ($failedJobs > 10 || $pendingJobs > 500) ? 'warning' : 'healthy',
                 ];
             }
-            
+
             // Redis queue driver
             $redis = Redis::connection();
             $queues = [
@@ -837,10 +859,10 @@ final class HealthCheckController extends Controller
                 'message' => 'Redis not configured (using database driver)',
             ];
         }
-        
+
         try {
             $info = Redis::info('memory');
-            
+
             return [
                 'status' => 'healthy',
                 'used_memory_human' => $info['used_memory_human'] ?? 'unknown',
