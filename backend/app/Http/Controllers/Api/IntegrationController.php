@@ -24,13 +24,15 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use App\Models\Integration;
 
 final class IntegrationController extends Controller
 {
     public function __construct(
         protected IntegrationService $integrationService,
         protected \App\Services\IntegrationLifecycleService $lifecycleService
-    ) {}
+    ) {
+    }
 
     public function getIntegrations(Request $request): JsonResponse
     {
@@ -46,9 +48,11 @@ final class IntegrationController extends Controller
                 },
                 'integrationCustomers as total_customers_count'
             ])
-            ->with(['syncLogs' => function ($query) {
-                $query->latest('started_at')->limit(1);
-            }])
+            ->with([
+                'syncLogs' => function ($query) {
+                    $query->latest('started_at')->limit(1);
+                }
+            ])
             ->get();
 
         return response()->json([
@@ -277,7 +281,7 @@ final class IntegrationController extends Controller
         // Actually test the connection by calling the integration's healthCheck method
         try {
             $integrationClass = $this->getIntegrationClass($integration);
-            
+
             if (!$integrationClass) {
                 return response()->json([
                     'success' => false,
@@ -287,7 +291,7 @@ final class IntegrationController extends Controller
             }
 
             $connectionHealthy = $integrationClass->healthCheck();
-            
+
             $lastSyncAge = $integration->last_sync_at
                 ? now()->diffInMinutes($integration->last_sync_at)
                 : null;
@@ -306,8 +310,8 @@ final class IntegrationController extends Controller
                 [
                     'name' => 'Recent Sync',
                     'status' => ($lastSyncAge !== null && $lastSyncAge < 1440) ? 'passed' : 'warning',
-                    'message' => $lastSyncAge !== null 
-                        ? "Last sync was {$lastSyncAge} minutes ago" 
+                    'message' => $lastSyncAge !== null
+                        ? "Last sync was {$lastSyncAge} minutes ago"
                         : 'Never synced'
                 ],
                 [
@@ -329,6 +333,11 @@ final class IntegrationController extends Controller
                     'last_sync_status' => $integration->last_sync_status,
                     'last_sync_age_minutes' => $lastSyncAge,
                     'error_message' => $integration->error_message,
+                    'summary_checks' => [
+                        'credentials_valid' => $integration->credentials !== null && $connectionHealthy,
+                        'recent_sync' => ($lastSyncAge !== null && $lastSyncAge < 1440),
+                        'no_errors' => $integration->error_message === null,
+                    ],
                 ]
             ]);
 
@@ -436,7 +445,7 @@ final class IntegrationController extends Controller
             /** @var array{start_date: string, end_date: string} $validated */
             $validated = $request->validated();
             $result = $action->execute($request->user()->company, $id, $validated);
-            
+
             return response()->json([
                 'status' => 'success',
                 'message' => $result['message'],

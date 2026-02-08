@@ -14,7 +14,7 @@ interface HealthCheckResult {
   last_sync_status: string
   last_sync_age_minutes: number
   error_message: string | null
-  checks: {
+  summary_checks: {
     credentials_valid: boolean
     recent_sync: boolean
     no_errors: boolean
@@ -135,7 +135,7 @@ export function IntegrationHealthModal({
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Credentials Valid</span>
-                      {healthData.checks.credentials_valid ? (
+                      {healthData.summary_checks?.credentials_valid ? (
                         <CheckCircle className="h-4 w-4 text-green-600" />
                       ) : (
                         <XCircle className="h-4 w-4 text-destructive" />
@@ -143,7 +143,7 @@ export function IntegrationHealthModal({
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Recent Sync</span>
-                      {healthData.checks.recent_sync ? (
+                      {healthData.summary_checks?.recent_sync ? (
                         <CheckCircle className="h-4 w-4 text-green-600" />
                       ) : (
                         <XCircle className="h-4 w-4 text-destructive" />
@@ -151,7 +151,7 @@ export function IntegrationHealthModal({
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">No Errors</span>
-                      {healthData.checks.no_errors ? (
+                      {healthData.summary_checks?.no_errors ? (
                         <CheckCircle className="h-4 w-4 text-green-600" />
                       ) : (
                         <XCircle className="h-4 w-4 text-destructive" />

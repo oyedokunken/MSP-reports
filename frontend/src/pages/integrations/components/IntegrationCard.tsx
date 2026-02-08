@@ -332,26 +332,7 @@ export function IntegrationCard({
                         </TooltipContent>
                     </Tooltip>
 
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => onTestIntegration(integration)}
-                                disabled={isTesting || isSyncing}
-                                className="h-9 w-9 shrink-0"
-                            >
-                                {isTesting ? (
-                                    <LoadingSpinner size="sm" />
-                                ) : (
-                                    <Zap className="h-4 w-4" />
-                                )}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            Test Integration
-                        </TooltipContent>
-                    </Tooltip>
+
 
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
