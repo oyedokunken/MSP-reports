@@ -25,6 +25,7 @@ import {
   EmailDeliverySection,
   ReportNamingSection,
 } from './components'
+import { Skeleton } from '@/components/ui/skeleton'
 
 
 
@@ -281,8 +282,44 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-muted-foreground">Loading settings...</div>
+      <div className="space-y-8 animate-in fade-in duration-500">
+        {/* Settings Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-9 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </div>
+
+        {/* Section Skeleton (Mirrors CompanyInfoSection & EmailDeliverySection) */}
+        {[1, 2].map((i) => (
+          <section key={i} className="rounded-lg border border-gray-200 dark:border-0 bg-white dark:bg-[hsl(var(--auth-card))] p-5 shadow-sm">
+            <div className="flex items-start border-b pb-2 justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+              <Skeleton className="h-9 w-24 rounded-md" />
+            </div>
+
+            <div className="mt-8 relative">
+              <div className="absolute left-[33.333333%] top-0 bottom-0 w-px bg-border hidden md:block" />
+              <div className="space-y-0">
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="grid grid-cols-1 md:grid-cols-12 items-center">
+                    <div className="md:col-span-4 p-4 md:py-4 md:pr-6 space-y-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-32" />
+                    </div>
+                    <div className="md:col-span-8 p-4 md:p-4 md:pl-6">
+                      <Skeleton className="h-10 w-full rounded-md" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ))}
       </div>
     )
   }
