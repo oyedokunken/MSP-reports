@@ -17,6 +17,9 @@ interface EditIntegrationModalProps {
   onSuccess?: () => void
 }
 
+// Static cache to store integration configs and avoid multiple API calls
+const configCache: Record<string, any[]> = {}
+
 export function EditIntegrationModal({
   open,
   onOpenChange,
@@ -27,6 +30,8 @@ export function EditIntegrationModal({
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [displayName, setDisplayName] = useState('')
+  const [credentialFields, setCredentialFields] = useState<any[]>([])
+  const [loadingConfig, setLoadingConfig] = useState(false)
 
 
 
@@ -35,6 +40,35 @@ export function EditIntegrationModal({
       setDisplayName(integration.name || '')
       setError('')
       setSuccess(false)
+
+      // Fetch credential fields to display them as read-only/masked
+      const fetchConfig = async () => {
+        // Use cache if available
+        if (configCache[integration.type]) {
+          setCredentialFields(configCache[integration.type])
+          return
+        }
+
+        setLoadingConfig(true)
+        try {
+          const response = await api.get<{ config: { credential_fields: any[] } }>(`/integrations/config/${integration.type}`)
+          if (response?.config?.credential_fields) {
+            configCache[integration.type] = response.config.credential_fields
+            setCredentialFields(response.config.credential_fields)
+          }
+        } catch (err) {
+          logger.error('Failed to fetch integration credentials schema', err)
+        } finally {
+          setLoadingConfig(false)
+        }
+      }
+      fetchConfig()
+    } else if (!open) {
+      // Don't clear fields immediately on close to avoid flicker during exit animation
+      // but clear when the modal is fully closed/nullified
+      setTimeout(() => {
+        if (!open) setCredentialFields([])
+      }, 300)
     }
   }, [open, integration])
 
@@ -124,6 +158,43 @@ export function EditIntegrationModal({
               className="w-full"
             />
           </div>
+
+          {/* Credentials Schema Display (Read-only/Masked) */}
+          {(loadingConfig || credentialFields.length > 0) && (
+            <div className="space-y-4 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                  Credentials
+                </Label>
+                {loadingConfig && <Spinner className="h-3 w-3" />}
+              </div>
+
+              <div className="space-y-3">
+                {credentialFields.map((field) => (
+                  <div key={field.name}>
+                    <Label htmlFor={field.name} className="text-[13px] font-medium mb-1.5 block text-foreground/80">
+                      {field.label}
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id={field.name}
+                        type="text"
+                        value="••••••••••••••••"
+                        readOnly
+                        disabled
+                        className="bg-muted/30 border-dashed cursor-not-allowed font-mono text-xs h-9"
+                      />
+                    </div>
+                    {field.help && (
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                        {field.help}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 flex items-start gap-2">
