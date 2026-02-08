@@ -72,7 +72,7 @@ export interface WhiteLabelSettings {
   logo_url: string | null
   primary_color: string
   secondary_color: string
-  favicon_url: string | null
+  favicon_url?: string | null
   email_from_name: string
   email_from_address: string
   support_email: string

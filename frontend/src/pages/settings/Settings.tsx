@@ -45,7 +45,6 @@ export default function Settings() {
   const address = useSettingsStore(state => state.address)
   const websiteUrl = useSettingsStore(state => state.websiteUrl)
   const logoUrl = useSettingsStore(state => state.logoUrl)
-  const faviconUrl = useSettingsStore(state => state.faviconUrl)
   const fromEmail = useSettingsStore(state => state.fromEmail)
   const fromName = useSettingsStore(state => state.fromName)
   const supportEmail = useSettingsStore(state => state.supportEmail)
@@ -65,7 +64,6 @@ export default function Settings() {
   const setAddress = useSettingsStore(state => state.setAddress)
   const setWebsiteUrl = useSettingsStore(state => state.setWebsiteUrl)
   const setLogoUrl = useSettingsStore(state => state.setLogoUrl)
-  const setFaviconUrl = useSettingsStore(state => state.setFaviconUrl)
   const setFromEmail = useSettingsStore(state => state.setFromEmail)
   const setFromName = useSettingsStore(state => state.setFromName)
   const setSupportEmail = useSettingsStore(state => state.setSupportEmail)
@@ -99,7 +97,6 @@ export default function Settings() {
           setPrimaryHex(branding.primary_color || '#3b82f6')
           setSecondaryHex(branding.secondary_color || '#7c3aed')
           setLogoUrl(branding.logo_url || null)
-          setFaviconUrl(branding.favicon_url || null)
           setFromEmail(branding.email_from_address || '')
           setFromName(branding.email_from_name || '')
           setSupportEmail(branding.support_email || '')
@@ -130,7 +127,6 @@ export default function Settings() {
     setCompanyName,
     setContactEmail,
     setContactPhone,
-    setFaviconUrl,
     setFooterText,
     setFromEmail,
     setFromName,
@@ -177,7 +173,6 @@ export default function Settings() {
         primary_color: primaryHex,
         secondary_color: secondaryHex,
         logo_url: logoUrl || null,
-        favicon_url: faviconUrl || null,
         support_email: supportEmail || null,
         support_phone: supportPhone || null,
         footer_text: footerText || null,
@@ -195,7 +190,6 @@ export default function Settings() {
           logo_url?: string;
           primary_color?: string;
           secondary_color?: string;
-          favicon_url?: string;
           email_from_name?: string;
           email_from_address?: string;
           support_email?: string;
@@ -209,7 +203,6 @@ export default function Settings() {
           logo_url: brandingObj.logo_url || null,
           primary_color: brandingObj.primary_color || primaryHex,
           secondary_color: brandingObj.secondary_color || secondaryHex,
-          favicon_url: brandingObj.favicon_url || null,
           email_from_name: brandingObj.email_from_name || fromName,
           email_from_address: brandingObj.email_from_address || fromEmail,
           support_email: brandingObj.support_email || '',
@@ -308,7 +301,6 @@ export default function Settings() {
           address={address}
           websiteUrl={websiteUrl}
           logoUrl={logoUrl}
-          faviconUrl={faviconUrl}
           supportEmail={supportEmail}
           supportPhone={supportPhone}
           footerText={footerText}
@@ -324,7 +316,6 @@ export default function Settings() {
           onAddressChange={setAddress}
           onWebsiteUrlChange={setWebsiteUrl}
           onLogoUrlChange={setLogoUrl}
-          onFaviconUrlChange={setFaviconUrl}
           onSupportEmailChange={setSupportEmail}
           onSupportPhoneChange={setSupportPhone}
           onFooterTextChange={setFooterText}

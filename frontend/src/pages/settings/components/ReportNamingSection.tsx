@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { logger } from '@/lib/logger'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Save, Info } from 'lucide-react'
+import { Loader2, Info } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/contexts/AuthContext'
@@ -108,78 +107,81 @@ export default function ReportNamingSection() {
 
     if (loading) {
         return (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Report Naming</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    </div>
-                </CardContent>
-            </Card>
+            <section className="rounded-lg border border-gray-200 dark:border-0 bg-white dark:bg-[hsl(var(--auth-card))] p-5 shadow-sm">
+                <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+            </section>
         )
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Report Naming Convention</CardTitle>
-                <CardDescription>
-                    Customize how generated report files are named
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                <div className="space-y-2">
-                    <label className="text-sm font-medium">Naming Pattern</label>
-                    <Input
-                        ref={inputRef}
-                        value={pattern}
-                        onChange={(e) => setPattern(e.target.value)}
-                        placeholder="{customer_name}_{report_type}_{date}"
-                    />
+        <section className="rounded-lg border border-gray-200 dark:border-0 bg-white dark:bg-[hsl(var(--auth-card))] p-5 shadow-sm">
+            <div className="flex items-start border-b pb-2 justify-between">
+                <div>
+                    <h2 className="text-base font-semibold text-foreground">Report Naming Configuration</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">Customize how generated report files are named</p>
                 </div>
+                <Button onClick={handleSave} disabled={saving} size="sm">
+                    {saving ? 'Saving...' : 'Save Pattern'}
+                </Button>
+            </div>
 
-                <div className="space-y-2">
-                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                        <Info className="h-3.5 w-3.5" />
-                        Click to insert token
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                        {AVAILABLE_TOKENS.map((token) => (
-                            <Badge
-                                key={token.key}
-                                variant="secondary"
-                                className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                                onClick={() => insertToken(token.key)}
-                            >
-                                {token.key}
-                            </Badge>
-                        ))}
+            <div className="mt-8 relative">
+                {/* Continuous Vertical Divider (Desktop Only) */}
+                <div className="absolute left-[33.333333%] top-0 bottom-0 w-px bg-border hidden md:block" />
+
+                <div className="space-y-0">
+                    {/* Naming Pattern Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 items-start">
+                        <div className="md:col-span-4 p-4 md:py-4 md:pr-6">
+                            <label className="text-sm font-semibold text-foreground">Naming Pattern</label>
+                            <p className="text-xs text-muted-foreground mt-1">Define the structure of generated report filenames.</p>
+                        </div>
+                        <div className="md:col-span-8 p-4 md:p-4 md:pl-6 space-y-4">
+                            <Input
+                                ref={inputRef}
+                                value={pattern}
+                                onChange={(e) => setPattern(e.target.value)}
+                                placeholder="{customer_name}_{report_type}_{date}"
+                                className="w-full"
+                            />
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                                    <Info className="h-3 w-3" />
+                                    Click to insert dynamic tokens
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {AVAILABLE_TOKENS.map((token) => (
+                                        <Badge
+                                            key={token.key}
+                                            variant="secondary"
+                                            className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors text-[10px] py-0 px-2 h-5"
+                                            onClick={() => insertToken(token.key)}
+                                        >
+                                            {token.key}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Preview Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 items-start">
+                        <div className="md:col-span-4 p-4 md:py-4 md:pr-6">
+                            <label className="text-sm font-semibold text-foreground">Live Preview</label>
+                            <p className="text-xs text-muted-foreground mt-1">See how a sample filename would look with your current pattern.</p>
+                        </div>
+                        <div className="md:col-span-8 p-4 md:p-4 md:pl-6">
+                            <div className="rounded-md border bg-muted/30 p-3">
+                                <code className="text-xs font-mono break-all text-primary/80">{preview}</code>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <div className="rounded-lg border bg-muted/50 p-4">
-                    <div className="text-sm font-medium text-muted-foreground mb-1">Preview</div>
-                    <code className="text-sm font-mono break-all">{preview}</code>
-                </div>
-
-                <div className="flex justify-end">
-                    <Button onClick={handleSave} disabled={saving}>
-                        {saving ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Saving...
-                            </>
-                        ) : (
-                            <>
-                                <Save className="mr-2 h-4 w-4" />
-                                Save Pattern
-                            </>
-                        )}
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
+            </div>
+        </section>
     )
 }
