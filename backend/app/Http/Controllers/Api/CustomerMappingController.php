@@ -231,6 +231,9 @@ final class CustomerMappingController extends Controller
         // Check if we should skip suggestions (for performance, e.g. dashboard stats)
         $skipSuggestions = filter_var($request->input('skip_suggestions', false), FILTER_VALIDATE_BOOLEAN);
 
+        $existingCustomers = null;
+        $mappingService = null;
+
         if (!$skipSuggestions) {
             // OPTIMIZED: Load ALL active customers ONCE for the entire batch
             $existingCustomers = Customer::with('integrationCustomers:integration_customer_id,customer_id,integration_id')
