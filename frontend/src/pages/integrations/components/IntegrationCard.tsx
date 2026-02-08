@@ -123,45 +123,47 @@ export function IntegrationCard({
                 className={`p-6 h-full flex flex-col transition-all duration-300 ${isSyncing ? "ring-2 ring-primary/50 shadow-lg bg-primary/5" : ""
                     } ${isSourceOfTruth ? "border-2 border-primary" : ""}`}
             >
-                {/* Top row: Icon, Status Pill, Master Badge */}
+                {/* Top row: Icon, Name/Type, and Status Pill */}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
                         <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
                             {getIntegrationIcon(integration.type)}
                         </div>
-                        {isSourceOfTruth && (
-                            <Badge
-                                variant="default"
-                                className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap h-5 px-1.5"
+                        <div className="flex flex-col border-l pl-2 min-w-0">
+                            <div className="flex items-center gap-2">
+                                <h3
+                                    className="font-semibold text-foreground text-lg truncate leading-tight"
+                                    title={integration.name}
+                                >
+                                    {integration.name}
+                                </h3>
+                                {isSourceOfTruth && (
+                                    <Badge
+                                        variant="default"
+                                        className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap h-5 px-1.5 flex-shrink-0"
+                                    >
+                                        <Crown className="h-3 w-3 mr-1" />
+                                        Master List
+                                    </Badge>
+                                )}
+                            </div>
+                            <p
+                                className="text-xs text-muted-foreground truncate"
+                                title={integration.type}
                             >
-                                <Crown className="h-3 w-3 mr-1" />
-                                Master List
-                            </Badge>
-                        )}
+                                {integration.type}
+                            </p>
+                        </div>
                     </div>
                     <span
-                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap ${statusInfo.color}`}
+                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap shrink-0 ml-2 ${statusInfo.color}`}
                     >
                         {statusInfo.text}
                     </span>
                 </div>
 
-                {/* Integration Name - Full Width */}
-                <div className="mt-3">
-                    <h3
-                        className="font-semibold text-foreground text-lg"
-                        title={integration.name}
-                    >
-                        {integration.name}
-                    </h3>
-                    <p
-                        className="text-xs text-muted-foreground mt-0.5"
-                        title={integration.type}
-                    >
-                        {integration.type}
-                    </p>
-                </div>
-                <div className="mt-6 space-y-3 flex-1">
+
+                <div className="mt-4 space-y-3 flex-1">
                     {integration.status !== 'importing_historical' && (
                         <div className="flex items-center justify-between text-sm gap-2">
                             <span className="text-muted-foreground flex-shrink-0">
@@ -282,27 +284,7 @@ export function IntegrationCard({
                     )}
                 </div>
 
-                {/* Test Integration Button - Full Width */}
-                <div className="mt-4 border-t border-border pt-4">
-                    <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => onTestIntegration(integration)}
-                        disabled={isTesting || isSyncing}
-                    >
-                        {isTesting ? (
-                            <>
-                                <LoadingSpinner size="sm" />
-                                <span className="ml-2">Testing...</span>
-                            </>
-                        ) : (
-                            <>
-                                <Zap className="h-4 w-4 mr-2" />
-                                Test Integration
-                            </>
-                        )}
-                    </Button>
-                </div>
+
 
                 <div className="mt-4 border-t border-border pt-4 flex items-center gap-2">
                     {canSyncSlice && (
@@ -350,6 +332,27 @@ export function IntegrationCard({
                         </TooltipContent>
                     </Tooltip>
 
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => onTestIntegration(integration)}
+                                disabled={isTesting || isSyncing}
+                                className="h-9 w-9 shrink-0"
+                            >
+                                {isTesting ? (
+                                    <LoadingSpinner size="sm" />
+                                ) : (
+                                    <Zap className="h-4 w-4" />
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            Test Integration
+                        </TooltipContent>
+                    </Tooltip>
+
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
@@ -361,6 +364,23 @@ export function IntegrationCard({
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem
+                                onClick={() => onTestIntegration(integration)}
+                                disabled={isTesting || isSyncing}
+                            >
+                                {isTesting ? (
+                                    <>
+                                        <LoadingSpinner size="sm" className="mr-2" />
+                                        Testing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Zap className="mr-2 h-4 w-4" />
+                                        Test Integration
+                                    </>
+                                )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             {!isSourceOfTruth && canManageSlice && (
                                 <>
                                     <DropdownMenuItem

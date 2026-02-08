@@ -31,30 +31,32 @@ class IntegrationService
      */
     public function scanAvailableIntegrations(): array
     {
-        $integrationsPath = app_path('Integrations');
-        $integrations = [];
+        return \Illuminate\Support\Facades\Cache::remember('available_integration_types', 3600, function () {
+            $integrationsPath = app_path('Integrations');
+            $integrations = [];
 
-        if (!is_dir($integrationsPath)) {
-            return [];
-        }
-
-        $globResult = glob($integrationsPath . '/*');
-        $directories = array_filter(is_array($globResult) ? $globResult : [], 'is_dir');
-
-        foreach ($directories as $dir) {
-            $integrationName = basename($dir);
-            
-            if ($integrationName === 'Contracts') {
-                continue;
+            if (!is_dir($integrationsPath)) {
+                return [];
             }
 
-            $configFile = $dir . '/config.php';
-            if (file_exists($configFile)) {
-                $integrations[] = $integrationName;
-            }
-        }
+            $globResult = glob($integrationsPath . '/*');
+            $directories = array_filter(is_array($globResult) ? $globResult : [], 'is_dir');
 
-        return $integrations;
+            foreach ($directories as $dir) {
+                $integrationName = basename($dir);
+
+                if ($integrationName === 'Contracts') {
+                    continue;
+                }
+
+                $configFile = $dir . '/config.php';
+                if (file_exists($configFile)) {
+                    $integrations[] = $integrationName;
+                }
+            }
+
+            return $integrations;
+        });
     }
 
     /**
@@ -76,7 +78,7 @@ class IntegrationService
         ]);
         /** @var \App\Integrations\Contracts\IntegrationInterface $instance */
         $instance = new $className($tempIntegration);
-        
+
         $metadata = $instance->getMetadata();
         $credentialFields = $instance->getCredentialFields();
 
@@ -100,11 +102,11 @@ class IntegrationService
     public function createIntegration(Company $company, array $data): Integration
     {
         $integrationType = $data['integration_type'];
-        
+
         // 1. License Check
         $sku = 'integration_' . strtolower($integrationType);
         if (!$this->licenseChecker->hasLicense($company, $sku)) {
-             throw new \Exception("Company does not have an active license for this integration type.");
+            throw new \Exception("Company does not have an active license for this integration type.");
         }
 
         // 2. Prevent duplicates (except SharePoint)
@@ -221,14 +223,14 @@ class IntegrationService
         /** @var \App\Integrations\Contracts\IntegrationInterface $instance */
         $instance = new $className($tempIntegration);
         if (!$instance->authenticate()) {
-             throw new \Exception("Authentication failed. Please verify your credentials.");
+            throw new \Exception("Authentication failed. Please verify your credentials.");
         }
     }
 
     protected function updateCompanySourceOfTruth(Company $company, int $integrationId): void
     {
         $company->integrations()->where('integration_id', '!=', $integrationId)->update(['is_source_of_truth' => false]);
-        
+
         $settings = $company->settings ?? [];
         $settings['integrations']['source_of_truth_integration_id'] = $integrationId;
         $company->settings = $settings;
@@ -243,7 +245,7 @@ class IntegrationService
         }
 
         if ($integration->syncLogs()->whereIn('status', ['queued', 'running'])->exists()) {
-             throw new \Exception("A sync is already in progress for this integration.");
+            throw new \Exception("A sync is already in progress for this integration.");
         }
 
         return $this->syncEngine->triggerSync($integration, 'current_state', $priority);
@@ -261,7 +263,7 @@ class IntegrationService
 
         $syncSchedule = $integration->sync_schedule ?? $this->getDefaultSchedule($integration->integration_type);
         $intervalMinutes = $this->parseCronInterval($syncSchedule);
-        
+
         if ($intervalMinutes === null) {
             return null;
         }
@@ -272,11 +274,11 @@ class IntegrationService
     public function parseCronInterval(string $cronSchedule): ?int
     {
         if (preg_match('/^\*\/(\d+)\s+\*/', $cronSchedule, $matches)) {
-            return (int)$matches[1];
+            return (int) $matches[1];
         }
 
         if (preg_match('/^0\s+\*\/(\d+)/', $cronSchedule, $matches)) {
-            return (int)$matches[1] * 60;
+            return (int) $matches[1] * 60;
         }
 
         $patterns = [
@@ -293,7 +295,7 @@ class IntegrationService
 
     public function getDefaultSchedule(string $integrationType): string
     {
-        return match($integrationType) {
+        return match ($integrationType) {
             'Datto' => '*/5 * * * *',
             'LibreNMS', 'Autotask' => '*/10 * * * *',
             'ITGlue', 'SaaS', 'BitDefender', 'Sendmarc', 'Barracuda' => '0 */6 * * *',
