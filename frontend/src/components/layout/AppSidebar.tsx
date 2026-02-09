@@ -130,7 +130,7 @@ export default function AppSidebar() {
 
   return (
     <Sidebar variant="sidebar" collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="px-3 py-2 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-1.5">
+      <SidebarHeader className="px-3 py-1 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-2.5">
         <SidebarMenu>
           <SidebarMenuItem>
             <Link
