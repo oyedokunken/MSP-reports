@@ -8,6 +8,7 @@ import {
   LdapLoginModal,
 } from "../components";
 import { useSignin } from "../hooks";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/components/ui/Toast";
@@ -82,6 +83,11 @@ const Signin = () => {
       {/* Header Content - Logo */}
       <div className="absolute top-6 sm:top-8 left-0 right-0 sm:left-8 sm:right-auto z-20 flex justify-center sm:block">
         <MobileLogo />
+      </div>
+
+      {/* Theme Toggle - Positioned in bottom left corner */}
+      <div className="absolute bottom-6 left-6 z-20">
+        <ThemeToggle />
       </div>
 
       {/* Legal Links - Updated for system theme */}
