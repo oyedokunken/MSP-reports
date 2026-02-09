@@ -19,6 +19,9 @@ use Carbon\Carbon;
  */
 final class ActiveDirectoryIntegration implements IntegrationInterface
 {
+    use \App\Integrations\Concerns\HasHeartbeat;
+    use \App\Integrations\Concerns\HasDefaultPreview;
+
     protected Integration $integration;
     /** @var array<string, mixed> */
     protected array $config;
@@ -37,7 +40,7 @@ final class ActiveDirectoryIntegration implements IntegrationInterface
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return array<string, mixed>
      */
     public function sync(): array
     {
@@ -74,15 +77,9 @@ final class ActiveDirectoryIntegration implements IntegrationInterface
         ];
     }
 
-    /**
-     * @return array{start: Carbon|null, end: Carbon|null}
-     */
-    public function getAvailableHistoryRange(): array
+    public function getAvailableHistoryRange(): ?Carbon
     {
-        return [
-            'start' => null,
-            'end' => null,
-        ];
+        return null;
     }
 
     /**
@@ -102,10 +99,9 @@ final class ActiveDirectoryIntegration implements IntegrationInterface
         ];
     }
 
-    public function disconnect(): bool
+    public function disconnect(): void
     {
         // Nothing to disconnect - agent-based
-        return true;
     }
 
     public function healthCheck(): bool

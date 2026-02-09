@@ -101,6 +101,16 @@ final class CIPPClient
             return $token;
         } catch (AuthenticationException $e) {
             throw $e;
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error('CIPP: Network connection failed to Azure AD', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+                'hint' => 'Check firewall/proxy settings, DNS resolution, and outbound HTTPS access',
+            ]);
+            throw new AuthenticationException(
+                "CIPP authentication failed: Cannot connect to Azure AD (login.microsoftonline.com). " .
+                "Check network connectivity, firewall rules, and DNS resolution."
+            );
         } catch (\Exception $e) {
             Log::error('CIPP: Token request exception', [
                 'integration_id' => $this->integration->integration_id,
@@ -116,7 +126,7 @@ final class CIPPClient
      * @param string $method HTTP method
      * @param string $endpoint API endpoint (e.g., '/api/ListTenants')
      * @param array<string, mixed> $params Query parameters or body data
-     * @return array<string, mixed>
+     * @return array
      */
     public function request(string $method, string $endpoint, array $params = []): array
     {
@@ -223,7 +233,7 @@ final class CIPPClient
     public function listTenants(): array
     {
         $response = $this->request('GET', '/api/ListTenants');
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -237,7 +247,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListLicenses', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -251,7 +261,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListConditionalAccessPolicies', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -276,7 +286,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListAuditLogs', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -287,7 +297,7 @@ final class CIPPClient
     public function listLogs(): array
     {
         $response = $this->request('GET', '/api/ListLogs');
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     // ==================== Identity Management ====================
@@ -303,7 +313,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListMFAUsers', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -325,7 +335,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListSignIns', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -339,7 +349,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListInactiveAccounts', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -363,7 +373,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListGroups', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -377,7 +387,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListRoles', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -393,7 +403,7 @@ final class CIPPClient
             'TenantFilter' => $tenantFilter,
             'type' => $type,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -407,7 +417,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListAzureADConnectStatus', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -421,7 +431,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListDeletedItems', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -447,7 +457,7 @@ final class CIPPClient
     public function listGroupTemplates(): array
     {
         $response = $this->request('GET', '/api/ListGroupTemplates');
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -458,7 +468,7 @@ final class CIPPClient
     public function listExtensionsConfig(): array
     {
         $response = $this->request('GET', '/api/ListExtensionsConfig');
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -494,7 +504,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListAlertsQueue', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -505,7 +515,7 @@ final class CIPPClient
     public function listCSPLicenses(): array
     {
         $response = $this->request('GET', '/api/listCSPLicenses');
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -522,7 +532,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListStandards', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -533,7 +543,7 @@ final class CIPPClient
     public function listStandardTemplates(): array
     {
         $response = $this->request('GET', '/api/listStandardTemplates');
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -550,7 +560,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListNamedLocations', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -564,7 +574,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ExecListBackup', [
             'tenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -575,7 +585,7 @@ final class CIPPClient
     public function listCSPSKUs(): array
     {
         $response = $this->request('GET', '/api/ListCSPsku');
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -597,7 +607,7 @@ final class CIPPClient
     public function listGDAPRoles(): array
     {
         $response = $this->request('GET', '/api/ListGDAPRoles');
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     // ==================== Security & Compliance ====================
@@ -650,7 +660,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListApps', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -667,7 +677,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListApplicationQueue', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -684,7 +694,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListAPDevices', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -705,7 +715,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListAutopilotConfig', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -722,7 +732,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListDevices', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -743,7 +753,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListIntunePolicy', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -763,7 +773,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListIntuneTemplates', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -780,7 +790,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListIntuneScript', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -794,7 +804,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListDefenderState', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -808,7 +818,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListDefenderTVM', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -822,7 +832,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListMailboxUsage', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -836,7 +846,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListMailboxSizes', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -850,7 +860,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListExchangeProtection', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     // ==================== Generic Graph Request ====================
@@ -895,7 +905,7 @@ final class CIPPClient
             'TenantFilter' => $tenantFilter,
             'type' => $type,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -911,7 +921,7 @@ final class CIPPClient
             'TenantFilter' => $tenantFilter,
             'type' => $type,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -925,7 +935,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListTeamsVoice', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -939,7 +949,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListTeamsLisLocation', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     // ==================== Security Tools & Breach Lookup ====================
@@ -955,7 +965,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListBreachesAccount', [
             'account' => $account,
         ]);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**
@@ -972,7 +982,7 @@ final class CIPPClient
         }
 
         $response = $this->request('GET', '/api/ListBreachesTenant', $params);
-        return is_array($response) ? $response : [];
+        return $response;
     }
 
     /**

@@ -27,10 +27,15 @@ class CreateIntegrationActionTest extends TestCase
         
         $this->integrationService = $this->mock(IntegrationService::class);
         $this->lifecycleService = $this->mock(IntegrationLifecycleService::class);
+        $this->notificationService = $this->mock(\App\Services\InAppNotificationService::class);
         
+        // Allow notification calls
+        $this->notificationService->shouldReceive('integrationCreated')->byDefault();
+
         $this->action = new CreateIntegrationAction(
             $this->integrationService,
-            $this->lifecycleService
+            $this->lifecycleService,
+            $this->notificationService
         );
     }
 

@@ -28,7 +28,12 @@ class CreateUserActionTest extends TestCase
         parent::setUp();
 
         $this->licenseChecker = $this->mock(LicenseChecker::class);
-        $this->action = new CreateUserAction($this->licenseChecker);
+        $this->notificationService = $this->mock(\App\Services\InAppNotificationService::class);
+        
+        // Allow notification calls
+        $this->notificationService->shouldReceive('userCreated')->byDefault();
+
+        $this->action = new CreateUserAction($this->licenseChecker, $this->notificationService);
     }
 
     public function test_it_creates_a_user_successfully(): void

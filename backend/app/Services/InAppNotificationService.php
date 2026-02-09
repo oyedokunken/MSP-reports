@@ -16,7 +16,7 @@ use App\Notifications\SyncCompleted;
 use App\Notifications\ReportGenerated;
 use Illuminate\Support\Facades\Log;
 
-final class InAppNotificationService
+class InAppNotificationService
 {
     /**
      * Notify all users in a company
@@ -214,7 +214,7 @@ final class InAppNotificationService
                 'type' => 'report',
                 'severity' => 'green',
                 'title' => 'Report Schedule Created',
-                'description' => "{$actor->name} created a {$schedule->frequency} report schedule for {$customerName}",
+                'description' => "{$actor->name} created a " . ($schedule->frequency?->value ?? 'custom') . " report schedule for {$customerName}",
                 'metadata' => [
                     'schedule_id' => $schedule->report_schedule_id,
                     'customer_name' => $customerName,
@@ -442,6 +442,8 @@ final class InAppNotificationService
 
     /**
      * Health check notification
+     * 
+     * @param array<int, array<string, mixed>> $results
      */
     public function healthCheckCompleted(array $results, Company $company): void
     {
