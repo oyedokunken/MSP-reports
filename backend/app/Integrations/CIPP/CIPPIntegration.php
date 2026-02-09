@@ -122,7 +122,7 @@ final class CIPPIntegration implements IntegrationInterface
 
             // Get configuration to determine what to sync
             $config = $this->integration->configuration ?? [];
-            
+
             // Get all tenants for per-tenant syncing
             $tenants = $this->client->listTenants();
 
@@ -225,9 +225,12 @@ final class CIPPIntegration implements IntegrationInterface
             foreach ($chunk as $item) {
                 // Determine timestamp
                 $timestamp = now();
-                if (isset($item['created_at'])) $timestamp = Carbon::parse($item['created_at']);
-                else if (isset($item['last_seen'])) $timestamp = Carbon::parse($item['last_seen']);
-                else if (isset($item['data_timestamp'])) $timestamp = Carbon::parse($item['data_timestamp']);
+                if (isset($item['created_at']))
+                    $timestamp = Carbon::parse($item['created_at']);
+                else if (isset($item['last_seen']))
+                    $timestamp = Carbon::parse($item['last_seen']);
+                else if (isset($item['data_timestamp']))
+                    $timestamp = Carbon::parse($item['data_timestamp']);
 
                 $insertData[] = [
                     'company_id' => $this->integration->company_id,
@@ -270,7 +273,7 @@ final class CIPPIntegration implements IntegrationInterface
                 $this->sendHeartbeat();
                 try {
                     $mapped = CIPPMapper::mapTenant($tenant);
-                    
+
                     $integrationCustomer = IntegrationCustomer::updateOrCreate(
                         [
                             'integration_id' => $this->integration->integration_id,
@@ -319,7 +322,7 @@ final class CIPPIntegration implements IntegrationInterface
         try {
             $users = $this->client->listMFAUsers($tenantFilter);
             $mappedItems = [];
-            
+
             foreach ($users as $user) {
                 try {
                     $mappedItems[] = CIPPMapper::mapUser($user, $tenantFilter);
@@ -347,7 +350,7 @@ final class CIPPIntegration implements IntegrationInterface
         try {
             $licenses = $this->client->listLicenses($tenantFilter);
             $mappedItems = [];
-            
+
             foreach ($licenses as $license) {
                 try {
                     $mappedItems[] = CIPPMapper::mapLicense($license, $tenantFilter);
@@ -370,7 +373,8 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncSecurityAlertsForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['alerts']) && !$this->supportedEndpoints['alerts']) return ['synced' => 0, 'errors' => []];
+        if (isset($this->supportedEndpoints['alerts']) && !$this->supportedEndpoints['alerts'])
+            return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
             $alerts = $this->client->listSecurityAlerts($tenantFilter);
@@ -378,13 +382,16 @@ final class CIPPIntegration implements IntegrationInterface
             foreach ($alerts as $alert) {
                 try {
                     $mappedItems[] = CIPPMapper::mapSecurityAlert($alert, $tenantFilter);
-                } catch (\Exception $e) { $errors[] = "Alert mapping error: {$e->getMessage()}"; }
+                } catch (\Exception $e) {
+                    $errors[] = "Alert mapping error: {$e->getMessage()}";
+                }
             }
             $synced = $this->bulkSyncData('security_alert', $mappedItems);
             $this->supportedEndpoints['alerts'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403')) $this->supportedEndpoints['alerts'] = false;
+            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
+                $this->supportedEndpoints['alerts'] = false;
             return ['synced' => 0, 'errors' => ["Failed to list security alerts for {$tenantFilter}: {$e->getMessage()}"]];
         }
     }
@@ -396,7 +403,8 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncSecurityIncidentsForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['incidents']) && !$this->supportedEndpoints['incidents']) return ['synced' => 0, 'errors' => []];
+        if (isset($this->supportedEndpoints['incidents']) && !$this->supportedEndpoints['incidents'])
+            return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
             $incidents = $this->client->listSecurityIncidents($tenantFilter);
@@ -404,13 +412,16 @@ final class CIPPIntegration implements IntegrationInterface
             foreach ($incidents as $incident) {
                 try {
                     $mappedItems[] = CIPPMapper::mapSecurityIncident($incident, $tenantFilter);
-                } catch (\Exception $e) { $errors[] = "Incident mapping error: {$e->getMessage()}"; }
+                } catch (\Exception $e) {
+                    $errors[] = "Incident mapping error: {$e->getMessage()}";
+                }
             }
             $synced = $this->bulkSyncData('security_incident', $mappedItems);
             $this->supportedEndpoints['incidents'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403')) $this->supportedEndpoints['incidents'] = false;
+            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
+                $this->supportedEndpoints['incidents'] = false;
             return ['synced' => 0, 'errors' => ["Failed to list security incidents for {$tenantFilter}: {$e->getMessage()}"]];
         }
     }
@@ -422,7 +433,8 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncConditionalAccessForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['conditional_access']) && !$this->supportedEndpoints['conditional_access']) return ['synced' => 0, 'errors' => []];
+        if (isset($this->supportedEndpoints['conditional_access']) && !$this->supportedEndpoints['conditional_access'])
+            return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
             $policies = $this->client->listConditionalAccessPolicies($tenantFilter);
@@ -430,20 +442,24 @@ final class CIPPIntegration implements IntegrationInterface
             foreach ($policies as $policy) {
                 try {
                     $mappedItems[] = CIPPMapper::mapConditionalAccessPolicy($policy, $tenantFilter);
-                } catch (\Exception $e) { $errors[] = "CA mapping error: {$e->getMessage()}"; }
+                } catch (\Exception $e) {
+                    $errors[] = "CA mapping error: {$e->getMessage()}";
+                }
             }
             $synced = $this->bulkSyncData('conditional_access', $mappedItems);
             $this->supportedEndpoints['conditional_access'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403')) $this->supportedEndpoints['conditional_access'] = false;
+            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
+                $this->supportedEndpoints['conditional_access'] = false;
             return ['synced' => 0, 'errors' => ["Failed to list conditional access policies for {$tenantFilter}: {$e->getMessage()}"]];
         }
     }
 
     protected function syncDefenderForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['defender']) && !$this->supportedEndpoints['defender']) return ['synced' => 0, 'errors' => []];
+        if (isset($this->supportedEndpoints['defender']) && !$this->supportedEndpoints['defender'])
+            return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
             $devices = $this->client->listDefenderState($tenantFilter);
@@ -451,13 +467,16 @@ final class CIPPIntegration implements IntegrationInterface
             foreach ($devices as $device) {
                 try {
                     $mappedItems[] = CIPPMapper::mapDefenderState($device, $tenantFilter);
-                } catch (\Exception $e) { $errors[] = "Defender mapping error: {$e->getMessage()}"; }
+                } catch (\Exception $e) {
+                    $errors[] = "Defender mapping error: {$e->getMessage()}";
+                }
             }
             $synced = $this->bulkSyncData('defender_state', $mappedItems);
             $this->supportedEndpoints['defender'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403')) $this->supportedEndpoints['defender'] = false;
+            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
+                $this->supportedEndpoints['defender'] = false;
             return ['synced' => 0, 'errors' => ["Failed to list Defender state for {$tenantFilter}: {$e->getMessage()}"]];
         }
     }
@@ -469,7 +488,8 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncMailboxUsageForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['mailbox']) && !$this->supportedEndpoints['mailbox']) return ['synced' => 0, 'errors' => []];
+        if (isset($this->supportedEndpoints['mailbox']) && !$this->supportedEndpoints['mailbox'])
+            return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
             $usage = $this->client->listMailboxUsage($tenantFilter);
@@ -477,20 +497,24 @@ final class CIPPIntegration implements IntegrationInterface
             foreach ($usage as $item) {
                 try {
                     $mappedItems[] = CIPPMapper::mapMailboxUsage($item, $tenantFilter);
-                } catch (\Exception $e) { $errors[] = "Mailbox mapping error: {$e->getMessage()}"; }
+                } catch (\Exception $e) {
+                    $errors[] = "Mailbox mapping error: {$e->getMessage()}";
+                }
             }
             $synced = $this->bulkSyncData('mailbox_usage', $mappedItems);
             $this->supportedEndpoints['mailbox'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403')) $this->supportedEndpoints['mailbox'] = false;
+            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
+                $this->supportedEndpoints['mailbox'] = false;
             return ['synced' => 0, 'errors' => ["Failed to list mailbox usage for {$tenantFilter}: {$e->getMessage()}"]];
         }
     }
 
     protected function syncExchangeProtectionForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['exchange']) && !$this->supportedEndpoints['exchange']) return ['synced' => 0, 'errors' => []];
+        if (isset($this->supportedEndpoints['exchange']) && !$this->supportedEndpoints['exchange'])
+            return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
             $protection = $this->client->listExchangeProtection($tenantFilter);
@@ -498,13 +522,16 @@ final class CIPPIntegration implements IntegrationInterface
             foreach ($protection as $item) {
                 try {
                     $mappedItems[] = CIPPMapper::mapExchangeProtection($item, $tenantFilter);
-                } catch (\Exception $e) { $errors[] = "Exchange protection mapping error: {$e->getMessage()}"; }
+                } catch (\Exception $e) {
+                    $errors[] = "Exchange protection mapping error: {$e->getMessage()}";
+                }
             }
             $synced = $this->bulkSyncData('exchange_protection', $mappedItems);
             $this->supportedEndpoints['exchange'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403')) $this->supportedEndpoints['exchange'] = false;
+            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
+                $this->supportedEndpoints['exchange'] = false;
             return ['synced' => 0, 'errors' => ["Failed to list exchange protection for {$tenantFilter}: {$e->getMessage()}"]];
         }
     }
@@ -515,10 +542,10 @@ final class CIPPIntegration implements IntegrationInterface
     public function getCustomers(): array
     {
         $customers = [];
-        
+
         try {
             $tenants = $this->client->listTenants();
-            
+
             foreach ($tenants as $tenant) {
                 $customers[] = CIPPMapper::mapTenant($tenant);
             }
@@ -605,7 +632,7 @@ final class CIPPIntegration implements IntegrationInterface
     public function getMetadata(): array
     {
         $config = require __DIR__ . '/config.php';
-        
+
         return [
             'name' => $config['name'],
             'display_name' => $config['display_name'],
@@ -646,32 +673,64 @@ final class CIPPIntegration implements IntegrationInterface
     /**
      * @return array<string, mixed>
      */
-    public function getDisplayData(): array
+    public function getDisplayTemplate(): array
     {
-        $template = new TemplateBuilder();
-        
+        $builder = new TemplateBuilder('cipp', 'CIPP (Microsoft 365)');
+        $builder->description('Microsoft 365 Management via CIPP');
+
+        // Overview
+        $builder->addSection('overview', 'Overview', 'grid')
+            ->icon('Activity')
+            ->dataPath('metrics')
+            ->gridColumns(4)
+            ->addMetric('managed_tenants', 'Managed Tenants', 'tenant_count', 'number', 'Building', 'blue')
+            ->addMetric('total_users', 'Total Users (Sample)', 'total_users', 'number', 'Users', 'green')
+            ->addMetric('license_types', 'License Types', 'total_licenses', 'key', 'Key', 'purple')
+            ->addMetric('active_alerts', 'Active Alerts', 'active_alerts', 'number', 'AlertTriangle', 'orange')
+            ->end();
+
+        // Sample Tenants
+        $builder->addSection('tenants', 'Managed Tenants Sample', 'table')
+            ->icon('Building')
+            ->dataPath('tenants')
+            ->tableColumns([
+                ['key' => 'name', 'label' => 'Display Name', 'sortable' => true],
+                ['key' => 'domain', 'label' => 'Default Domain', 'sortable' => true],
+                ['key' => 'status', 'label' => 'Status', 'format' => 'status'],
+            ])
+            ->end();
+
+        return $builder->build();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getPreviewData(?int $integrationCustomerId = null): array
+    {
         try {
             $tenants = $this->client->listTenants();
             $tenantCount = count($tenants);
-            
+
             // Get summary stats
             $totalUsers = 0;
             $totalLicenses = 0;
             $activeAlerts = 0;
-            
+
             // Sample first few tenants for stats
             $sampleTenants = array_slice($tenants, 0, 5);
             foreach ($sampleTenants as $tenant) {
                 $tenantFilter = $tenant['defaultDomainName'] ?? null;
-                if (!$tenantFilter) continue;
-                
+                if (!$tenantFilter)
+                    continue;
+
                 try {
                     $users = $this->client->listMFAUsers($tenantFilter);
                     $totalUsers += count($users);
-                    
+
                     $licenses = $this->client->listLicenses($tenantFilter);
                     $totalLicenses += count($licenses);
-                    
+
                     $alerts = $this->client->listSecurityAlerts($tenantFilter);
                     $activeAlerts += count(array_filter($alerts, fn($a) => ($a['status'] ?? '') !== 'resolved'));
                 } catch (\Exception $e) {
@@ -679,27 +738,30 @@ final class CIPPIntegration implements IntegrationInterface
                 }
             }
 
-            $template->addSection('overview', 'Overview')
-                ->addStat('overview', 'Managed Tenants', (string) $tenantCount, 'building')
-                ->addStat('overview', 'Total Users (Sample)', (string) $totalUsers, 'users')
-                ->addStat('overview', 'License Types', (string) $totalLicenses, 'key')
-                ->addStat('overview', 'Active Alerts', (string) $activeAlerts, 'alert-triangle');
+            $tenantsData = array_map(fn($t) => [
+                'name' => $t['displayName'] ?? 'Unknown',
+                'domain' => $t['defaultDomainName'] ?? '',
+                'status' => 'active'
+            ], array_slice($tenants, 0, 10));
 
-            // Add tenant list
-            $template->addSection('tenants', 'Managed Tenants');
-            foreach (array_slice($tenants, 0, 10) as $tenant) {
-                $template->addListItem('tenants', [
-                    'title' => $tenant['displayName'] ?? 'Unknown',
-                    'subtitle' => $tenant['defaultDomainName'] ?? '',
-                    'status' => 'active',
-                ]);
-            }
-
+            return [
+                'success' => true,
+                'data' => [
+                    'metrics' => [
+                        'tenant_count' => $tenantCount,
+                        'total_users' => $totalUsers,
+                        'total_licenses' => $totalLicenses,
+                        'active_alerts' => $activeAlerts,
+                    ],
+                    'tenants' => $tenantsData
+                ],
+                'timestamp' => now()->toIso8601String()
+            ];
         } catch (\Exception $e) {
-            $template->addSection('error', 'Error')
-                ->addStat('error', 'Status', 'Connection Error', 'alert-circle');
+            return [
+                'success' => false,
+                'error' => 'Failed to fetch preview data: ' . $e->getMessage()
+            ];
         }
-
-        return $template->build();
     }
 }

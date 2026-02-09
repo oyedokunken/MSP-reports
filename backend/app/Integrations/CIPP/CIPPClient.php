@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
 use App\Integrations\Exceptions\AuthenticationException;
-use App\Integrations\Exceptions\RateLimitExceededException;
+use App\Exceptions\RateLimitExceededException;
 
 final class CIPPClient
 {
@@ -22,7 +22,7 @@ final class CIPPClient
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
     protected ?string $accessToken = null;
-    
+
     protected const TOKEN_CACHE_KEY_PREFIX = 'cipp_token_';
     protected const TOKEN_EXPIRY = 3500; // Slightly less than 1 hour
 
@@ -43,7 +43,7 @@ final class CIPPClient
     protected function getAccessToken(): string
     {
         $cacheKey = self::TOKEN_CACHE_KEY_PREFIX . $this->integration->integration_id;
-        
+
         if ($token = Cache::get($cacheKey)) {
             return $token;
         }
@@ -89,10 +89,10 @@ final class CIPPClient
 
             $token = $response->json('access_token');
             $expiresIn = $response->json('expires_in', self::TOKEN_EXPIRY);
-            
+
             // Cache token for slightly less than its expiry time
             Cache::put($cacheKey, $token, now()->addSeconds($expiresIn - 60));
-            
+
             Log::info('CIPP: Access token obtained successfully', [
                 'integration_id' => $this->integration->integration_id,
                 'expires_in' => $expiresIn,
@@ -121,7 +121,7 @@ final class CIPPClient
     public function request(string $method, string $endpoint, array $params = []): array
     {
         $this->rateLimiter->waitForSlot($this->integration);
-        
+
         $token = $this->getAccessToken();
         $url = $this->baseUrl . $endpoint;
 
@@ -154,7 +154,10 @@ final class CIPPClient
             $this->rateLimiter->recordRequest($this->integration);
 
             if ($response->status() === 429) {
-                $retryAfter = $response->header('Retry-After', '60');
+                $retryAfter = (string) $response->header('Retry-After');
+                if (empty($retryAfter)) {
+                    $retryAfter = '60';
+                }
                 throw new RateLimitExceededException("CIPP rate limit exceeded. Retry after {$retryAfter} seconds.");
             }
 
@@ -176,7 +179,7 @@ final class CIPPClient
             }
 
             return $response->json() ?? [];
-        } catch (AuthenticationException|RateLimitExceededException $e) {
+        } catch (AuthenticationException | RateLimitExceededException $e) {
             throw $e;
         } catch (\Exception $e) {
             Log::error('CIPP: API request exception', [
@@ -187,7 +190,7 @@ final class CIPPClient
             throw $e;
         }
     }
-    
+
     /**
      * Test connection to CIPP API
      */
@@ -196,10 +199,10 @@ final class CIPPClient
         try {
             // Try to get token first
             $this->getAccessToken();
-            
+
             // Then try a simple API call
             $this->request('GET', '/api/ListTenants');
-            
+
             return true;
         } catch (\Exception $e) {
             Log::warning('CIPP: Connection test failed', [
@@ -271,7 +274,7 @@ final class CIPPClient
         if ($endDate) {
             $params['EndDate'] = $endDate;
         }
-        
+
         $response = $this->request('GET', '/api/ListAuditLogs', $params);
         return is_array($response) ? $response : [];
     }
@@ -320,7 +323,7 @@ final class CIPPClient
         if ($failedOnly) {
             $params['failedLogonOnly'] = 'true';
         }
-        
+
         $response = $this->request('GET', '/api/ListSignIns', $params);
         return is_array($response) ? $response : [];
     }
@@ -358,7 +361,7 @@ final class CIPPClient
         if ($includeOwners) {
             $params['owners'] = 'true';
         }
-        
+
         $response = $this->request('GET', '/api/ListGroups', $params);
         return is_array($response) ? $response : [];
     }
@@ -610,7 +613,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ExecAlertsList', [
             'TenantFilter' => $tenantFilter,
         ]);
-        
+
         // Handle nested Results -> MSResults structure
         return $response['Results']['MSResults'] ?? [];
     }
@@ -626,7 +629,7 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ExecIncidentsList', [
             'TenantFilter' => $tenantFilter,
         ]);
-        
+
         // Handle nested Results structure
         return $response['Results'] ?? [];
     }
@@ -873,7 +876,7 @@ final class CIPPClient
         if ($top) {
             $params['$top'] = $top;
         }
-        
+
         return $this->request('GET', '/api/ListGraphRequest', $params);
     }
 
