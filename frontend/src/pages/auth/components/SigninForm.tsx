@@ -30,7 +30,7 @@ export function SigninForm({
           Email <span className="text-destructive">*</span>
         </label>
         <div className="relative group">
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center h-6 border-r border-border/50 px-3 transition-colors group-focus-within:border-primary/50">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center h-6 border-r border-border/50 px-3 transition-colors group-focus-within:border-primary/50 z-10 pointer-events-none">
             <Mail className="h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
           </div>
           <input
@@ -58,7 +58,7 @@ export function SigninForm({
           Password <span className="text-destructive">*</span>
         </label>
         <div className="relative group">
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center h-6 border-r border-border/50 px-3 transition-colors group-focus-within:border-primary/50">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center h-6 border-r border-border/50 px-3 transition-colors group-focus-within:border-primary/50 z-10 pointer-events-none">
             <Lock className="h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
           </div>
           <input
@@ -78,7 +78,7 @@ export function SigninForm({
           <button
             type="button"
             onClick={onShowPasswordToggle}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors z-10"
             tabIndex={-1}
           >
             {showPassword ? (
