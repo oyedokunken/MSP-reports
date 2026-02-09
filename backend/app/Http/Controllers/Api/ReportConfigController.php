@@ -39,14 +39,14 @@ final class ReportConfigController extends Controller
         $this->registry = $registry;
     }
 
-    public function getAvailableReports(GetAvailableReportsRequest $request): \Illuminate\Http\JsonResponse
+    public function getAvailableReports(GetAvailableReportsRequest $request): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
 
         // Use ReportRegistry instead of manual scanning
         $reports = $this->registry->getAvailable($company->company_id);
-        
+
         $availableReports = collect($reports)->map(function ($report) {
             return [
                 'report_type' => $report['id'],
@@ -68,7 +68,7 @@ final class ReportConfigController extends Controller
         ]);
     }
 
-    public function getAvailableReportsForCustomer(GetAvailableReportsForCustomerRequest $request, int $customerId): \Illuminate\Http\JsonResponse
+    public function getAvailableReportsForCustomer(GetAvailableReportsForCustomerRequest $request, int $customerId): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -97,17 +97,17 @@ final class ReportConfigController extends Controller
         // Filter reports based on customer's integrations
         $availableReports = array_filter($allReports, function (array $report) use ($customerIntegrations): bool {
             $requiredIntegrations = $report['required_integrations'] ?? [];
-            
+
             // If no required integrations specified, report is always available
             if (empty($requiredIntegrations)) {
                 return true;
             }
-            
+
             // Special case: 'multiple' means customer needs more than one integration
             if (in_array('multiple', $requiredIntegrations)) {
                 return count($customerIntegrations) > 1;
             }
-            
+
             // Check if customer has at least one of the required integrations
             return !empty(array_intersect($requiredIntegrations, $customerIntegrations));
         });
@@ -116,7 +116,7 @@ final class ReportConfigController extends Controller
         $data = array_map(function (array $report) use ($customerIntegrations, $customerId, $frequency): array {
             $requiredIntegrations = $report['required_integrations'] ?? [];
             $matchedIntegrations = array_intersect($requiredIntegrations, $customerIntegrations);
-            
+
             // Check if report has data for the given frequency
             $hasData = false;
             if (isset($report['class']) && method_exists($report['class'], 'hasDataForFrequency')) {
@@ -128,7 +128,7 @@ final class ReportConfigController extends Controller
                     ]);
                 }
             }
-            
+
             return [
                 'id' => $report['id'],
                 'name' => $report['name'],
@@ -148,7 +148,7 @@ final class ReportConfigController extends Controller
         ]);
     }
 
-    public function getCustomerReports(GetCustomerReportsRequest $request, int $id): \Illuminate\Http\JsonResponse
+    public function getCustomerReports(GetCustomerReportsRequest $request, int $id): JsonResponse
     {
         $authUser = $request->user();
         $company = $authUser->company;
@@ -159,11 +159,11 @@ final class ReportConfigController extends Controller
 
         // No need for "if (!$customer)" because authorize() handles it
 
-        $emailDestination = $customer->report_destination 
+        $emailDestination = $customer->report_destination
             ?? $customer->report_configuration['delivery']['destination'] ?? null;
-        
+
         $ccEmails = $customer->report_configuration['delivery']['cc'] ?? [];
-        
+
         $schedules = ReportSchedule::where('customer_id', $customer->customer_id)
             ->where('company_id', $company->company_id)
             ->get()
@@ -255,15 +255,15 @@ final class ReportConfigController extends Controller
             ->firstOrFail();
 
         $reportType = $request->input('report_type');
-        
+
         $schedulesQuery = ReportSchedule::where('customer_id', $customer->customer_id)
             ->where('company_id', $company->company_id)
             ->where('active', true);
-        
+
         if ($reportType) {
             $schedulesQuery->where('report_type', $reportType);
         }
-        
+
         $schedules = $schedulesQuery->get();
 
         if ($schedules->isEmpty()) {
@@ -276,6 +276,7 @@ final class ReportConfigController extends Controller
         $generatedReports = [];
         $errors = [];
 
+        /** @var ReportSchedule $schedule */
         foreach ($schedules as $schedule) {
             try {
                 $generatedReport = $action->execute($schedule, [
@@ -284,10 +285,10 @@ final class ReportConfigController extends Controller
                     'frequency' => $request->input('frequency'),
                     'preview_only' => $request->boolean('preview_only'),
                 ]);
-                
+
                 $customer = $generatedReport->customer;
-                $emailDestination = $customer->report_destination 
-                    ?? $customer->report_configuration['delivery']['destination'] 
+                $emailDestination = $customer->report_destination
+                    ?? $customer->report_configuration['delivery']['destination']
                     ?? null;
 
                 $reportName = $schedule->template ? $schedule->template->template_name : ucfirst(str_replace('_', ' ', (string) $schedule->report_type));
@@ -336,10 +337,10 @@ final class ReportConfigController extends Controller
                 'frequency' => $request->input('frequency'),
                 'preview_only' => $request->boolean('preview_only'),
             ]);
-            
+
             $customer = $generatedReport->customer;
-            $emailDestination = $customer->report_destination 
-                ?? $customer->report_configuration['delivery']['destination'] 
+            $emailDestination = $customer->report_destination
+                ?? $customer->report_configuration['delivery']['destination']
                 ?? null;
 
             return response()->json([
@@ -433,7 +434,7 @@ final class ReportConfigController extends Controller
         try {
             $results = $action->execute($company, $validated['customer_ids'], $validated);
 
-            $statusMessage = $results['successful'] > 0 
+            $statusMessage = $results['successful'] > 0
                 ? "Bulk report generation completed. {$results['successful']} customers processed successfully."
                 : "Bulk report generation failed. No reports were generated.";
 

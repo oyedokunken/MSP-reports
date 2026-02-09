@@ -28,18 +28,21 @@ final class CompanyController extends Controller
         try {
             $authUser = $request->user();
             $company = $authUser->company;
-            
+
             // Get logo URLs from settings with full URLs
             $settings = $company->settings ?? [];
             if (isset($settings['white_label'])) {
+                /** @var \Illuminate\Filesystem\FilesystemAdapter $publicDisk */
+                $publicDisk = Storage::disk('public');
+
                 if (!empty($settings['white_label']['logo_url'])) {
-                    $settings['white_label']['logo_url'] = Storage::disk('public')->url($settings['white_label']['logo_url']);
+                    $settings['white_label']['logo_url'] = $publicDisk->url($settings['white_label']['logo_url']);
                 }
                 if (!empty($settings['white_label']['favicon_url'])) {
-                    $settings['white_label']['favicon_url'] = Storage::disk('public')->url($settings['white_label']['favicon_url']);
+                    $settings['white_label']['favicon_url'] = $publicDisk->url($settings['white_label']['favicon_url']);
                 }
             }
-            
+
             $logoUrl = $settings['white_label']['logo_url'] ?? null;
             $faviconUrl = $settings['white_label']['favicon_url'] ?? null;
 
@@ -207,15 +210,15 @@ final class CompanyController extends Controller
             ]);
 
             $type = $request->input('type');
-            
+
             // Get current settings
             $settings = $company->settings ?? [];
             if (!isset($settings['white_label'])) {
                 $settings['white_label'] = [];
             }
-            
+
             // Get logo path from settings
-            $logoPath = $type === 'company' 
+            $logoPath = $type === 'company'
                 ? ($settings['white_label']['logo_url'] ?? null)
                 : ($settings['white_label']['favicon_url'] ?? null);
 
@@ -230,7 +233,7 @@ final class CompanyController extends Controller
             } else {
                 unset($settings['white_label']['favicon_url']);
             }
-            
+
             $company->settings = $settings;
             $company->save();
 
@@ -266,7 +269,7 @@ final class CompanyController extends Controller
         try {
             $authUser = $request->user();
             $company = $authUser->company;
-            
+
             $namingService = app(ReportNamingService::class);
             $settings = $company->settings ?? [];
             $pattern = $settings['report_settings']['naming_pattern'] ?? ReportNamingService::DEFAULT_PATTERN;
@@ -322,7 +325,7 @@ final class CompanyController extends Controller
                 $settings['report_settings'] = [];
             }
             $settings['report_settings']['naming_pattern'] = $pattern;
-            
+
             $company->settings = $settings;
             $company->save();
 
@@ -341,7 +344,7 @@ final class CompanyController extends Controller
                 ]
             ]);
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Validation failed',
