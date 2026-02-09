@@ -54,10 +54,18 @@ final class ProcessIntegrationBatchJob implements ShouldQueue
             
             // Inject Heartbeat Callback
             if (method_exists($instance, 'setHeartbeatCallback') && $this->syncLogId) {
-                $instance->setHeartbeatCallback(function() {
-                     \Illuminate\Support\Facades\DB::table('sync_logs')
-                        ->where('sync_id', $this->syncLogId)
-                        ->update(['last_heartbeat_at' => now()]);
+                $instance->setHeartbeatCallback(function(int $incrementalRecords = 0) {
+                     $updateData = ['last_heartbeat_at' => now()];
+                     
+                     if ($incrementalRecords > 0) {
+                        \Illuminate\Support\Facades\DB::table('sync_logs')
+                            ->where('sync_id', $this->syncLogId)
+                            ->increment('records_synced', $incrementalRecords, $updateData);
+                     } else {
+                        \Illuminate\Support\Facades\DB::table('sync_logs')
+                            ->where('sync_id', $this->syncLogId)
+                            ->update($updateData);
+                     }
                 });
             }
             

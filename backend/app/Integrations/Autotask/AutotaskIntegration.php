@@ -30,6 +30,7 @@ final class AutotaskIntegration implements IntegrationInterface
     protected Integration $integration;
     protected AutotaskClient $client;
     protected CustomerMappingService $mappingService;
+    protected int $lastBatchProcessedCount = 0;
 
 
 
@@ -848,17 +849,26 @@ final class AutotaskIntegration implements IntegrationInterface
             ]);
     }
 
+    public function getLastBatchProcessedCount(): int
+    {
+        return $this->lastBatchProcessedCount;
+    }
+
     /**
      * @param array<int, array<string, mixed>> $items
      */
     public function processBatch(string $type, array $items): void
     {
+        $this->lastBatchProcessedCount = 0;
+        $this->sendHeartbeat();
+
         switch ($type) {
             case 'companies':
                 foreach ($items as $company) {
                     try {
                         $standardized = AutotaskMapper::mapCompany($company);
                         $this->storeCustomer($standardized);
+                        $this->lastBatchProcessedCount++;
                     } catch (\Exception $e) {
                          Log::error('Autotask batch: Failed to process company', ['id' => $company['id'] ?? 'unknown', 'error' => $e->getMessage()]);
                     }
@@ -866,6 +876,7 @@ final class AutotaskIntegration implements IntegrationInterface
                 break;
                 
             case 'tickets':
+            case IntegrationDataType::TICKET:
                 $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
                     ->pluck('integration_customer_id', 'external_id')
                     ->toArray();
@@ -877,18 +888,25 @@ final class AutotaskIntegration implements IntegrationInterface
                         $integrationCustomerId = $companyId ? ($customerMap[(string)$companyId] ?? null) : null;
                         
                         $standardized = AutotaskMapper::mapTicket($ticket);
-                        $standardized['integration_customer_id'] = $integrationCustomerId;
-                        $standardized['external_id'] = (string)$ticket['id'];
                         
-                        $batch[] = $standardized;
+                        $batch[] = [
+                            'integration_customer_id' => $integrationCustomerId,
+                            'external_id' => (string)$ticket['id'],
+                            'timestamp' => $standardized['timestamp'],
+                            'payload' => $standardized['payload']
+                        ];
+                        $this->lastBatchProcessedCount++;
                     } catch (\Exception $e) {
                         Log::error('Autotask batch: Failed to map ticket', ['id' => $ticket['id'] ?? 'unknown', 'error' => $e->getMessage()]);
                     }
+
+                    if ($this->lastBatchProcessedCount % 10 === 0) $this->sendHeartbeat();
                 }
-                $this->bulkStoreHistoricalData('ticket', $batch);
+                $this->bulkStoreHistoricalData(IntegrationDataType::TICKET, $batch);
                 break;
 
             case 'time_entries':
+            case IntegrationDataType::TIME_ENTRY:
                 $customerMap = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
                     ->pluck('integration_customer_id', 'external_id')
                     ->toArray();
@@ -900,16 +918,24 @@ final class AutotaskIntegration implements IntegrationInterface
                         $integrationCustomerId = $companyId ? ($customerMap[(string)$companyId] ?? null) : null;
                         
                         $standardized = AutotaskMapper::mapTimeEntry($timeEntry);
-                        $standardized['integration_customer_id'] = $integrationCustomerId;
-                        $standardized['external_id'] = (string)$timeEntry['id'];
                         
-                        $batch[] = $standardized;
+                        $batch[] = [
+                            'integration_customer_id' => $integrationCustomerId,
+                            'external_id' => (string)$timeEntry['id'],
+                            'timestamp' => $standardized['timestamp'],
+                            'payload' => $standardized['payload']
+                        ];
+                        $this->lastBatchProcessedCount++;
                     } catch (\Exception $e) {
                         Log::error('Autotask batch: Failed to map time entry', ['id' => $timeEntry['id'] ?? 'unknown', 'error' => $e->getMessage()]);
                     }
+
+                    if ($this->lastBatchProcessedCount % 10 === 0) $this->sendHeartbeat();
                 }
-                $this->bulkStoreHistoricalData('time_entry', $batch);
+                $this->bulkStoreHistoricalData(IntegrationDataType::TIME_ENTRY, $batch);
                 break;
         }
+
+        $this->sendHeartbeat();
     }
 }

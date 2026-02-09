@@ -120,89 +120,110 @@ final class CIPPIntegration implements IntegrationInterface
                 $results['errors'] = array_merge($results['errors'], $tenantResult['errors']);
             }
 
-            // Get configuration to determine what to sync
-            $config = $this->integration->configuration ?? [];
-
             // Get all tenants for per-tenant syncing
             $tenants = $this->client->listTenants();
+            $totalTenants = count($tenants);
 
-            foreach ($tenants as $tenant) {
-                $this->sendHeartbeat();
-                $tenantFilter = $tenant['defaultDomainName'] ?? $tenant['customerId'] ?? null;
-                if (!$tenantFilter) {
-                    continue;
-                }
+            Log::info('CIPP: Dispatching tenant sync batches', [
+                'integration_id' => $this->integration->integration_id,
+                'tenant_count' => $totalTenants,
+            ]);
 
-                try {
-                    // Sync users & MFA
-                    if ($config['sync_users'] ?? true) {
-                        $userResult = $this->syncUsersForTenant($tenantFilter);
-                        $results['users'] += $userResult['synced'];
-                    }
+            // Dispatch tenant batches (e.g., 5 tenants per batch)
+            $batchesDispatched = 0;
+            $chunks = array_chunk($tenants, 3); // 3 tenants per batch for safe time limit
 
-                    // Sync licenses
-                    if ($config['sync_licenses'] ?? true) {
-                        $licenseResult = $this->syncLicensesForTenant($tenantFilter);
-                        $results['licenses'] += $licenseResult['synced'];
-                    }
-
-                    // Sync security alerts
-                    if ($config['sync_security'] ?? true) {
-                        $alertResult = $this->syncSecurityAlertsForTenant($tenantFilter);
-                        $results['security_alerts'] += $alertResult['synced'];
-
-                        $incidentResult = $this->syncSecurityIncidentsForTenant($tenantFilter);
-                        $results['security_incidents'] += $incidentResult['synced'];
-                    }
-
-                    // Sync conditional access policies
-                    if ($config['sync_conditional_access'] ?? true) {
-                        $caResult = $this->syncConditionalAccessForTenant($tenantFilter);
-                        $results['conditional_access'] += $caResult['synced'];
-                    }
-
-                    // Sync Defender status
-                    if ($config['sync_defender'] ?? true) {
-                        $defenderResult = $this->syncDefenderForTenant($tenantFilter);
-                        $results['defender_states'] += $defenderResult['synced'];
-                    }
-
-                    // Sync Email & Exchange
-                    if ($config['sync_email'] ?? true) {
-                        $usageResult = $this->syncMailboxUsageForTenant($tenantFilter);
-                        $results['mailbox_usage'] += $usageResult['synced'];
-
-                        $protectionResult = $this->syncExchangeProtectionForTenant($tenantFilter);
-                        $results['exchange_protection'] += $protectionResult['synced'];
-                    }
-                } catch (\Exception $e) {
-                    $results['errors'][] = "Tenant {$tenantFilter}: {$e->getMessage()}";
-                    Log::warning('CIPP: Error syncing tenant data', [
-                        'integration_id' => $this->integration->integration_id,
-                        'tenant' => $tenantFilter,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+            foreach ($chunks as $chunk) {
+                \App\Jobs\ProcessIntegrationBatchJob::dispatch(
+                    $this->integration,
+                    'tenant_data',
+                    $chunk,
+                    $this->currentSyncLogId
+                );
+                $batchesDispatched++;
             }
 
-            Log::info('CIPP: Sync completed', [
-                'integration_id' => $this->integration->integration_id,
-                'results' => $results,
+            Log::info('CIPP: Batches dispatched', [
+                'count' => $batchesDispatched,
             ]);
 
         } catch (\Exception $e) {
             $results['errors'][] = $e->getMessage();
-            Log::error('CIPP: Sync failed', [
+            Log::error('CIPP: Sync failed during initialization', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
         }
 
         // Map to standardized results for the platform
-        $results['records_synced'] = $results['tenants'] + $results['users'] + $results['licenses'] + $results['security_alerts'] + $results['security_incidents'] + $results['conditional_access'] + $results['defender_states'] + $results['mailbox_usage'] + $results['exchange_protection'];
+        $results['records_synced'] = $results['tenants'];
         $results['records_failed'] = count($results['errors']);
+        $results['batches_dispatched'] = $batchesDispatched ?? 0;
 
         return $results;
+    }
+
+    /**
+     * Process a batch of tenants
+     * 
+     * @param string $type
+     * @param array<int, array<string, mixed>> $tenants
+     */
+    public function processBatch(string $type, array $tenants): void
+    {
+        if ($type !== 'tenant_data') {
+            return;
+        }
+
+        $config = $this->integration->configuration ?? [];
+
+        foreach ($tenants as $tenant) {
+            $this->sendHeartbeat();
+            $tenantFilter = $tenant['defaultDomainName'] ?? $tenant['customerId'] ?? null;
+            if (!$tenantFilter) {
+                continue;
+            }
+
+            try {
+                // Sync users & MFA
+                if ($config['sync_users'] ?? true) {
+                    $this->syncUsersForTenant($tenantFilter);
+                }
+
+                // Sync licenses
+                if ($config['sync_licenses'] ?? true) {
+                    $this->syncLicensesForTenant($tenantFilter);
+                }
+
+                // Sync security alerts
+                if ($config['sync_security'] ?? true) {
+                    $this->syncSecurityAlertsForTenant($tenantFilter);
+                    $this->syncSecurityIncidentsForTenant($tenantFilter);
+                }
+
+                // Sync conditional access policies
+                if ($config['sync_conditional_access'] ?? true) {
+                    $this->syncConditionalAccessForTenant($tenantFilter);
+                }
+
+                // Sync Defender status
+                if ($config['sync_defender'] ?? true) {
+                    $this->syncDefenderForTenant($tenantFilter);
+                }
+
+                // Sync Email & Exchange
+                if ($config['sync_email'] ?? true) {
+                    $this->syncMailboxUsageForTenant($tenantFilter);
+                    $this->syncExchangeProtectionForTenant($tenantFilter);
+                }
+            } catch (\Exception $e) {
+                Log::warning('CIPP Batch: Error syncing tenant data', [
+                    'integration_id' => $this->integration->integration_id,
+                    'tenant' => $tenantFilter,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**

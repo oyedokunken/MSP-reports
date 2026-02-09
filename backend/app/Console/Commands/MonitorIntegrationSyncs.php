@@ -82,7 +82,7 @@ class MonitorIntegrationSyncs extends Command
         // These lock the integration and prevent new syncs.
         $staleSyncs = $integration->syncLogs()
             ->where('status', 'running')
-            ->where('started_at', '<', $now->copy()->subHours(2))
+            ->where('started_at', '<', $now->copy()->subHours(4))
             ->get();
 
         foreach ($staleSyncs as $sync) {
@@ -90,7 +90,7 @@ class MonitorIntegrationSyncs extends Command
             $sync->update([
                 'status' => 'failed',
                 'completed_at' => $now,
-                'error_messages' => ['Terminated by Monitor: Timed out (Running > 2hrs)']
+                'error_messages' => ['Terminated by Monitor: Timed out (Running > 4hrs)']
             ]);
             $counters['crashed']++;
             Log::warning("Terminated stale sync", ['sync_id' => $sync->sync_id]);
@@ -109,7 +109,7 @@ class MonitorIntegrationSyncs extends Command
             $heartbeatAt = $sync->last_heartbeat_at ?? $sync->updated_at ?? $sync->started_at;
             $ageInMinutes = abs($now->diffInMinutes($heartbeatAt, false));
 
-            if ($ageInMinutes < 10) {
+            if ($ageInMinutes < 20) {
                 continue; // Still active
             }
 
@@ -133,7 +133,7 @@ class MonitorIntegrationSyncs extends Command
             $pendingValue = ($pending === null) ? 0 : (int)$pending;
             
             // If key doesn't exist, is <= 0, OR we are stalled and at least 10 min old
-            if ($pendingValue <= 0 || ($isStalled && $ageInMinutes >= 10)) {
+            if ($pendingValue <= 0 || ($isStalled && $ageInMinutes >= 20)) {
                 // No pending batches OR stalled - mark as complete
                 $failedKey = "sync_log:{$sync->sync_id}:failed";
                 $failedCount = (int) \Illuminate\Support\Facades\Redis::get($failedKey);

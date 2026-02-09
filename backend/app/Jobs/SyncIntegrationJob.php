@@ -192,9 +192,11 @@ final class SyncIntegrationJob implements ShouldQueue
             } else {
                 // If no batches, release lock and complete now
                 $redis->set($masterKey, 0);
+                $status = ($recordsFailed > 0 || !empty($result['errors'])) ? 'partial' : 'success';
+                
                 $syncEngine->completeSyncLog(
                     $this->syncLog,
-                    'success',
+                    $status,
                     $recordsSynced,
                     $recordsFailed,
                     $result['errors'] ?? [],
