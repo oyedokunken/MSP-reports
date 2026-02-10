@@ -37,6 +37,7 @@ final class CustomerMappingController extends Controller
 {
     public function getCustomers(Request $request): JsonResponse
     {
+        $startTime = microtime(true);
         $authUser = $request->user();
         $company = $authUser->company;
 
@@ -146,6 +147,15 @@ final class CustomerMappingController extends Controller
             ];
         });
 
+        $duration = round((microtime(true) - $startTime) * 1000, 2);
+        if ($duration > 1000) {
+            \Log::warning('Slow getCustomers fetch', [
+                'duration_ms' => $duration,
+                'user_id' => $authUser->user_id,
+                'params' => $request->all()
+            ]);
+        }
+
         return response()->json([
             'status' => 'success',
             'data' => $data,
@@ -160,6 +170,7 @@ final class CustomerMappingController extends Controller
             'meta' => [
                 'scoped_to_customers' => $authUser->scoped_customers,
                 'is_scoped_user' => !empty($authUser->scoped_customers),
+                'duration_ms' => $duration
             ],
         ]);
     }
@@ -184,6 +195,7 @@ final class CustomerMappingController extends Controller
 
     public function getUnmappedCustomers(Request $request): JsonResponse
     {
+        $startTime = microtime(true);
         $authUser = $request->user();
         $company = $authUser->company;
 
@@ -293,6 +305,15 @@ final class CustomerMappingController extends Controller
             ];
         });
 
+        $duration = round((microtime(true) - $startTime) * 1000, 2);
+        if ($duration > 500) {
+            \Log::warning('Slow getUnmappedCustomers fetch', [
+                'duration_ms' => $duration,
+                'user_id' => $authUser->user_id,
+                'unmapped_count' => $data->count()
+            ]);
+        }
+
         return response()->json([
             'status' => 'success',
             'data' => $data,
@@ -308,6 +329,9 @@ final class CustomerMappingController extends Controller
                 'total_unmapped' => $totalUnmapped,
                 'by_integration_type' => $countsByIntegrationType,
             ],
+            'meta' => [
+                'duration_ms' => $duration
+            ]
         ]);
     }
 
@@ -383,15 +407,20 @@ final class CustomerMappingController extends Controller
 
     public function getCustomerIntegrations(Request $request, int $id): JsonResponse
     {
+        $startTime = microtime(true);
         $authUser = $request->user();
         $company = $authUser->company;
 
-
-
-        // OPTIMIZED: Eager load relationships to prevent N+1
+        // OPTIMIZED: Eager load relationships with column selection and specific mapping filters
         $customer = Customer::with([
-            'integrationCustomers.integration',
-            'integrationCustomers.customerMappings'
+            'integrationCustomers' => function ($query) use ($id) {
+                $query->with([
+                    'integration:integration_id,display_name,integration_type,is_source_of_truth,status,last_sync_at',
+                    'customerMappings' => function ($subQuery) use ($id) {
+                        $subQuery->where('customer_id', $id);
+                    }
+                ]);
+            }
         ])
             ->where('company_id', $company->company_id)
             ->where('customer_id', $id)
@@ -400,13 +429,12 @@ final class CustomerMappingController extends Controller
         if (!$customer) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Customer not found in your company.',
+                'message' => 'Customer not found.',
             ], 404);
         }
 
         $integrations = $customer->integrationCustomers->map(function ($ic) {
             /** @var IntegrationCustomer $ic */
-            // Use eager-loaded relationship
             /** @var CustomerMapping|null $mapping */
             $mapping = $ic->customerMappings->first();
 
@@ -416,22 +444,37 @@ final class CustomerMappingController extends Controller
                 'integration_type' => e($ic->integration->integration_type ?? null),
                 'display_name' => e($ic->integration->display_name ?? null),
                 'external_id' => e($ic->external_id),
-                'name' => e($ic->name),
+                'name' => html_entity_decode($ic->name, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
                 'active' => (bool) $ic->active,
-                'last_seen_at' => $ic->last_seen_at,
+                'last_seen_at' => $ic->last_seen_at?->toIso8601String(),
                 'metadata' => $ic->metadata,
                 'mapping' => $mapping ? [
+                    'mapping_id' => $mapping->customer_mapping_id,
                     'type' => $mapping->mapping_type,
                     'confidence_score' => $mapping->confidence_score,
-                    'mapped_at' => $mapping->mapped_at,
+                    'mapped_at' => $mapping->mapped_at?->toIso8601String(),
                     'notes' => $mapping->notes,
                 ] : null,
             ];
         });
 
+        $duration = round((microtime(true) - $startTime) * 1000, 2);
+        
+        if ($duration > 500) {
+            \Log::warning('Slow customer integrations fetch', [
+                'customer_id' => $id,
+                'integration_count' => $integrations->count(),
+                'duration_ms' => $duration,
+                'user_id' => $authUser->user_id
+            ]);
+        }
+
         return response()->json([
             'status' => 'success',
             'data' => $integrations,
+            'meta' => [
+                'duration_ms' => $duration
+            ]
         ]);
     }
 
