@@ -258,12 +258,12 @@ Configure security policies to protect your platform and data.
 
 ### Single Sign-On (SSO)
 The platform supports multiple SSO providers:
-- **Microsoft 365** - Azure AD integration
+- **Microsoft 365** - Azure AD / Entra ID integration
 - **Keycloak** - OpenID Connect with PKCE
 - **SAML 2.0** - Enterprise identity providers
-- **LDAP** - Active Directory authentication
+- **LDAP / Active Directory** - On-premise directory authentication
 
-Contact your administrator to configure SSO for your organisation.
+Each method can be enabled or disabled per company in **Admin > Settings > Authentication**. Users will see the available login options on the sign-in page.
 
 ### Two-Factor Authentication (2FA)
 - **Available** - Users can enable 2FA
@@ -414,6 +414,72 @@ Export logs for compliance or analysis.
 - Track trends over time
       `,
       relatedArticles: ['security-settings', 'integration-troubleshooting', 'company-settings']
+    },
+    {
+      id: 'profile-management',
+      title: 'Profile Management',
+      description: 'Managing your profile picture, name, and personal settings',
+      icon: 'User',
+      content: `
+# Profile Management
+
+Manage your personal profile settings including your profile picture, display name, and security preferences.
+
+## Accessing Your Profile
+
+1. Click **My Profile** in the **Profile** section at the bottom of the sidebar
+2. Or navigate directly to \`/profile/me\`
+
+## Profile Picture
+
+### Uploading a Profile Picture
+1. Click **Upload Logo** next to the profile image placeholder
+2. Select an image file (JPEG, PNG, WebP, or SVG — up to **5MB**)
+3. The **Crop & Zoom** modal will open
+
+### Crop & Zoom Modal
+The crop modal gives you full control over your profile picture:
+
+- **Scroll to zoom** — Use your mouse wheel to zoom in and out (0.5x to 5x)
+- **Drag to pan** — Click and drag the image to reposition it within the crop area
+- **Zoom slider** — Fine-tune zoom level with the slider control
+- **Rotation slider** — Rotate the image from 0° to 360°
+- **Circle crop** — Profile pictures use a circular crop area (1:1 ratio)
+
+### Crop Actions
+- **Apply & Upload** — Crop the image and upload it immediately
+- **Skip Crop** — Upload the original image without cropping
+- **Cancel** — Discard and go back
+
+### Removing a Profile Picture
+1. Hover over your current profile picture
+2. Click the **trash icon** overlay
+3. Confirm deletion in the modal
+
+## Editing Your Name
+
+1. Update the **Name** field on the profile page
+2. Click **Save Changes**
+3. Your display name updates across the platform immediately
+
+## Profile Information
+
+Your profile page also displays read-only information:
+- **Role** — Your assigned role (e.g. Administrator, Report Manager)
+- **Status** — Your account status (Active)
+- **Email** — Your login email address
+- **Authentication Method** — How you sign in (Local, Microsoft 365, LDAP, etc.)
+- **Last Login** — When you last accessed the platform
+- **Account Created** — When your account was created
+
+## Security Settings
+
+From your profile, you can also access:
+- **Change Password** — Update your login password
+- **Two-Factor Authentication** — Enable or manage 2FA
+- **Active Sessions** — View and manage your login sessions
+      `,
+      relatedArticles: ['user-management', 'security-settings', 'first-login']
     }
   ]
 }

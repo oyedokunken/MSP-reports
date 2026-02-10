@@ -23,6 +23,8 @@ Reports are formatted documents presenting data from your integrations:
 - **System health** - Uptime, alerts, performance metrics
 - **Backup status** - Success rates, protected data
 - **Security summaries** - Threats detected, patches applied
+- **Microsoft 365 Summary** - Users, MFA, licenses, Defender, conditional access, email protection (via CIPP)
+- **Network & Infrastructure** - Device health, uptime, interface statistics (via LibreNMS)
 
 ## Report Lifecycle
 
@@ -312,16 +314,20 @@ Configure which reports to generate and how they should be formatted.
 ## Report Types
 
 ### Available Reports
-- **Service Summary** - Overview of service delivery
-- **Ticket Analysis** - Detailed ticket metrics
-- **Backup Status** - Backup health and success rates
-- **Security Report** - Security events and status
+
+| Report Type | Required Integration | Description |
+|-------------|---------------------|-------------|
+| **Autotask Monthly Summary** | Autotask | Tickets, time entries, billing, and contracts |
+| **Microsoft 365 Summary** | CIPP | Users, MFA, licenses, security, Defender, conditional access, email |
+| **Datto Backup Report** | Datto | Backup status, success rates, storage usage |
+| **IT Glue Documentation** | ITGlue | Configuration items, password updates, document changes |
+| **Combined Monthly Report** | Autotask + optional others | All-in-one report from multiple integrations |
 
 ### Report Requirements
 Each report type requires:
-- Specific integrations connected
-- Relevant data synced
-- Customer properly mapped
+- The **required integration** connected and actively syncing
+- Relevant data synced for the reporting period
+- Customer properly mapped to integration customers
 
 ## Configuring Customer Reports
 

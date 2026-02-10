@@ -46,18 +46,21 @@ Provide timely, accurate reports that demonstrate the value of your services.
 Your central hub showing system health, recent activity, and key metrics at a glance.
 
 ### 2. Integrations
-Connect to your business systems like Autotask, Datto RMM, ITGlue, Sendmarc, BitDefender and more. Each integration syncs data automatically with preview capabilities.
+Connect to your business systems like Autotask, Datto RMM, ITGlue, CIPP (Microsoft 365), LibreNMS, Sendmarc, BitDefender and more. Each integration syncs data automatically with live data preview capabilities.
 
 ### 3. Customer Management
-Manage your customer list and map customers across different integrations for unified reporting.
+Manage your master customer list and map customers across different integrations for unified reporting. The auto-matching engine suggests mappings with confidence scores.
 
 ### 4. Reports
-Generate and manage reports for your customers with customisable templates and scheduling.
+Generate and manage reports for your customers with customisable templates, section selection, and white-label branding. Available report types include Autotask Summary, Microsoft 365 Summary (CIPP), Datto Backup, IT Glue Documentation, and Combined Monthly.
 
 ### 5. Schedules
-Set up automated report generation on daily, weekly, monthly, or yearly schedules.
+Set up automated report generation on daily, weekly, monthly, or yearly schedules with flexible timing options.
 
-### 6. AI Assistant
+### 6. Profile & Settings
+Manage your profile picture (with crop and zoom), change your password, and configure security settings from the Profile section in the sidebar.
+
+### 7. AI Assistant
 Click the chat bubble in the bottom-right corner to get instant help. The AI Assistant can answer questions about any feature and guide you step-by-step.
 
 ## Getting Help
@@ -188,6 +191,10 @@ The left sidebar provides access to all platform sections:
 - API Keys
 - Licenses
 - Monitoring
+- Settings
+
+**Profile Section:**
+- My Profile (profile picture, name, security settings)
 
 ### Main Content Area
 The central area displays:

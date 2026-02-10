@@ -23,8 +23,9 @@ Integrations are connections to external systems like:
 - **RMM Platforms** - Datto RMM, Kaseya, etc.
 - **Documentation** - ITGlue, Hudu, etc.
 - **Security** - BitDefender, Sendmarc, etc.
+- **Cloud & Identity** - CIPP (Microsoft 365), Azure AD, etc.
+- **Monitoring** - LibreNMS, PRTG, etc.
 - **Backup Solutions** - Veeam, Acronis, etc.
-- **Monitoring Systems** - Various alerting and monitoring tools
 
 ## How Integrations Work
 
@@ -269,6 +270,85 @@ Contact support if:
 - You suspect a platform bug
       `,
       relatedArticles: ['integration-sync', 'adding-integration', 'monitoring']
+    },
+    {
+      id: 'cipp-integration',
+      title: 'CIPP (Microsoft 365) Integration',
+      description: 'Connect and sync Microsoft 365 tenant data via CIPP',
+      icon: 'Cloud',
+      content: `
+# CIPP (Microsoft 365) Integration
+
+The CIPP integration connects to your Microsoft 365 tenants via the [CIPP API](https://cipp.app), pulling comprehensive tenant data for reporting and monitoring.
+
+## What Data Does CIPP Sync?
+
+CIPP syncs the following data types from your M365 tenants:
+
+| Data Type | Description |
+|-----------|-------------|
+| **Users** | All M365 users including MFA status, admin roles, account status, and sign-in activity |
+| **Licenses** | License assignments, utilisation rates, and available SKUs |
+| **Security Alerts** | Microsoft 365 Defender security alerts with severity and status |
+| **Security Incidents** | Correlated security incidents across the tenant |
+| **Defender Status** | Endpoint protection status, definition versions, and compliance |
+| **Conditional Access** | Conditional Access policies, their state (enabled/disabled/report-only), and conditions |
+| **Mailbox Usage** | Exchange Online mailbox storage, item counts, and activity |
+| **Exchange Protection** | Email protection rules, anti-spam, and anti-phishing policies |
+
+## Setting Up CIPP
+
+### Prerequisites
+- A working **CIPP instance** with API access enabled
+- **CIPP API credentials** (Client ID, Client Secret, Tenant ID)
+- The CIPP instance must have access to the target M365 tenants
+
+### Step 1: Add the Integration
+1. Go to **Integrations** in the sidebar
+2. Click **Add Integration**
+3. Select **CIPP** from the list
+
+### Step 2: Enter Credentials
+- **CIPP API URL** — The base URL of your CIPP instance (e.g. \`https://cipp.yourdomain.com\`)
+- **Client ID** — Your CIPP application client ID
+- **Client Secret** — Your CIPP application client secret
+- **Tenant ID** — Your Azure AD tenant ID
+
+### Step 3: Test & Activate
+1. Click **Test Connection** to verify credentials
+2. If successful, click **Save Integration**
+3. The initial sync will begin automatically
+
+## CIPP Reports
+
+Once CIPP data is synced, you can generate the **Microsoft 365 Summary Report** which includes:
+
+- **Executive Summary** — MFA coverage, user counts, security alert totals, Defender coverage
+- **Users & Identity** — Full user table with MFA status, admin flags, account state
+- **License Utilisation** — License breakdown with usage percentages
+- **Security Overview** — Alerts and incidents by severity
+- **Defender Status** — Endpoint protection rates and device compliance
+- **Conditional Access** — Policy inventory with enabled/disabled/report-only states
+- **Email Protection** — Mailbox storage stats and top mailboxes
+- **Recommendations** — Auto-generated based on MFA gaps, security alerts, and policy coverage
+
+> **Tip:** You can select which sections to include when creating a report schedule for a customer.
+
+## Troubleshooting
+
+### Common Issues
+
+- **"Unauthorised" errors** — Verify your Client ID, Secret, and Tenant ID are correct
+- **Missing tenants** — Ensure CIPP has delegated access to the target tenants
+- **Partial data** — Some data types require specific Microsoft Graph permissions; check CIPP's permission configuration
+- **Rate limiting** — CIPP respects Microsoft's API throttling; large tenants may take longer to sync
+
+### Checking Sync Status
+1. Go to **Integrations**
+2. Click on your CIPP integration
+3. Review the **Sync History** for errors or partial syncs
+      `,
+      relatedArticles: ['integrations-overview', 'adding-integration', 'report-configuration']
     }
   ]
 }
