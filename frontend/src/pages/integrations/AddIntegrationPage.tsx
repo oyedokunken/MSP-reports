@@ -50,22 +50,46 @@ export default function AddIntegrationPage() {
   const { config, loading: loadingConfig } = useIntegrationConfig(formData.integration_type || null)
 
   useEffect(() => {
-    if (config && config.credential_fields) {
-      const defaultCredentials: Record<string, string> = {}
-      config.credential_fields.forEach((field: { name: string; default?: string }) => {
-        if (field.default && !formData.credentials[field.name]) {
-          defaultCredentials[field.name] = field.default
-        }
-      })
+    if (config) {
+      const updates: { credentials?: Record<string, unknown>; configuration?: Record<string, unknown> } = {};
+      let hasUpdates = false;
 
-      if (Object.keys(defaultCredentials).length > 0) {
+      if (config.credential_fields) {
+        const defaultCredentials: Record<string, string> = {}
+        config.credential_fields.forEach((field: { name: string; default?: string }) => {
+          if (field.default && !formData.credentials[field.name]) {
+            defaultCredentials[field.name] = field.default
+          }
+        })
+
+        if (Object.keys(defaultCredentials).length > 0) {
+          updates.credentials = { ...formData.credentials, ...defaultCredentials };
+          hasUpdates = true;
+        }
+      }
+
+      if (config.configuration_fields) {
+        const defaultConfig: Record<string, string> = {}
+        config.configuration_fields.forEach((field: { name: string; default?: string | number | boolean }) => {
+          if (field.default !== undefined && !formData.configuration[field.name]) {
+            defaultConfig[field.name] = String(field.default)
+          }
+        })
+
+        if (Object.keys(defaultConfig).length > 0) {
+          updates.configuration = { ...formData.configuration, ...defaultConfig };
+          hasUpdates = true;
+        }
+      }
+
+      if (hasUpdates) {
         setFormData(prev => ({
           ...prev,
-          credentials: { ...prev.credentials, ...defaultCredentials }
+          ...updates
         }))
       }
     }
-  }, [config, formData.credentials])
+  }, [config, formData.credentials, formData.configuration])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -98,6 +122,13 @@ export default function AddIntegrationPage() {
     setFormData(prev => ({
       ...prev,
       credentials: { ...prev.credentials, [field]: value }
+    }))
+  }
+
+  const handleConfigChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      configuration: { ...prev.configuration, [field]: value }
     }))
   }
 
@@ -338,6 +369,28 @@ export default function AddIntegrationPage() {
                                 fields={config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden)}
                                 values={formData.credentials as Record<string, string>}
                                 onChange={handleCredentialChange}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {config && config.configuration_fields && config.configuration_fields.filter((field: { hidden?: boolean }) => !field.hidden).length > 0 && (
+                          <div className="space-y-6 pt-6 border-t border-dashed">
+                            <div>
+                              <h4 className="text-sm font-bold flex items-center gap-2">
+                                <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                Configuration
+                              </h4>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Configure integration settings.
+                              </p>
+                            </div>
+
+                            <div className="grid gap-4">
+                              <DynamicCredentialForm
+                                fields={config.configuration_fields.filter((field: { hidden?: boolean }) => !field.hidden)}
+                                values={formData.configuration as Record<string, string>}
+                                onChange={handleConfigChange}
                               />
                             </div>
                           </div>

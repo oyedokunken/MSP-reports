@@ -25,7 +25,7 @@ export interface CredentialField {
     placeholder?: string;
     help?: string;
     default?: string;
-    options?: Record<string, string>;
+    options?: Record<string, string> | Array<{ label: string; value: string; disabled?: boolean }>;
     hidden?: boolean;
 }
 
@@ -111,11 +111,23 @@ export const DynamicCredentialForm: React.FC<DynamicCredentialFormProps> = ({
                                 />
                             </SelectTrigger>
                             <SelectContent>
-                                {Object.entries(field.options).map(
-                                    ([value, label]) => (
-                                        <SelectItem key={value} value={value}>
-                                            {label}
+                                {Array.isArray(field.options) ? (
+                                    field.options.map((option) => (
+                                        <SelectItem 
+                                            key={option.value} 
+                                            value={option.value}
+                                            disabled={option.disabled}
+                                        >
+                                            {option.label}
                                         </SelectItem>
+                                    ))
+                                ) : (
+                                    Object.entries(field.options).map(
+                                        ([value, label]) => (
+                                            <SelectItem key={value} value={value}>
+                                                {label}
+                                            </SelectItem>
+                                        )
                                     )
                                 )}
                             </SelectContent>
