@@ -74,10 +74,10 @@ return [
             'required' => true,
             'default' => 1,
             'options' => [
-                1 => 'Option 1',
-                2 => 'Option 2'
+                ['value' => 1, 'label' => 'Computer Name'],
+                ['value' => 2, 'label' => 'Organization'],
             ],
-            'help' => 'Select the search criteria (1 or 2).',
+            'help' => 'Select the search criteria for fetching computers.',
         ],
     ],
 

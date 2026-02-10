@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Services\RateLimiter;
 use App\Models\Integration;
+use App\Integrations\Concerns\HttpClientTrait;
 use App\Integrations\Exceptions\AuthenticationException;
 use App\Integrations\Exceptions\ApiResponseException;
 use App\Integrations\Exceptions\RateLimitExceededException;
@@ -17,6 +18,7 @@ use Exception;
 
 final class BitDefenderClient
 {
+    use HttpClientTrait;
     /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
@@ -281,13 +283,13 @@ final class BitDefenderClient
             ]);
 
             try {
-                $response = Http::withHeaders([
+                $response = $this->createHttpClient()
+                ->withHeaders([
                     'Content-Type'  => 'application/json',
                     'Authorization' => 'Basic ' . base64_encode($this->credentials['api_key'] . ':'),
                 ])
                 ->connectTimeout(min(30, $timeout))
                 ->timeout($timeout)
-                ->withoutVerifying()
                 ->post($url, $payload);
 
                 if (!$response->successful()) {

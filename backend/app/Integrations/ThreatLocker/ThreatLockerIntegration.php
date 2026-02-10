@@ -274,8 +274,11 @@ final class ThreatLockerIntegration implements IntegrationInterface
                                 'external_id' => $mapped['external_id'],
                             ],
                             [
-                                'data' => $mapped['data'],
-                                'last_seen_at' => now(),
+                                'company_id' => $this->integration->company_id,
+                                'data_payload' => $mapped['data'],
+                                'data_timestamp' => now(),
+                                'imported_at' => now(),
+                                'data_version' => 1,
                             ]
                         );
 
@@ -340,8 +343,11 @@ final class ThreatLockerIntegration implements IntegrationInterface
                                 'external_id' => $mapped['external_id'],
                             ],
                             [
-                                'data' => $mapped['data'],
-                                'last_seen_at' => now(),
+                                'company_id' => $this->integration->company_id,
+                                'data_payload' => $mapped['data'],
+                                'data_timestamp' => now(),
+                                'imported_at' => now(),
+                                'data_version' => 1,
                             ]
                         );
 
@@ -406,8 +412,11 @@ final class ThreatLockerIntegration implements IntegrationInterface
                                 'external_id' => $mapped['external_id'],
                             ],
                             [
-                                'data' => $mapped['data'],
-                                'last_seen_at' => now(),
+                                'company_id' => $this->integration->company_id,
+                                'data_payload' => $mapped['data'],
+                                'data_timestamp' => now(),
+                                'imported_at' => now(),
+                                'data_version' => 1,
                             ]
                         );
 
@@ -484,8 +493,11 @@ final class ThreatLockerIntegration implements IntegrationInterface
                                         'external_id' => $mapped['external_id'],
                                     ],
                                     [
-                                        'data' => $mapped['data'],
-                                        'last_seen_at' => now(),
+                                        'company_id' => $this->integration->company_id,
+                                        'data_payload' => $mapped['data'],
+                                        'data_timestamp' => now(),
+                                        'imported_at' => now(),
+                                        'data_version' => 1,
                                     ]
                                 );
 
@@ -555,8 +567,11 @@ final class ThreatLockerIntegration implements IntegrationInterface
                                 'external_id' => $mapped['external_id'],
                             ],
                             [
-                                'data' => $mapped['data'],
-                                'last_seen_at' => now(),
+                                'company_id' => $this->integration->company_id,
+                                'data_payload' => $mapped['data'],
+                                'data_timestamp' => now(),
+                                'imported_at' => now(),
+                                'data_version' => 1,
                             ]
                         );
 
@@ -680,8 +695,11 @@ final class ThreatLockerIntegration implements IntegrationInterface
                                 'external_id' => $mapped['external_id'],
                             ],
                             [
-                                'data' => $mapped['data'],
-                                'last_seen_at' => now(),
+                                'company_id' => $this->integration->company_id,
+                                'data_payload' => $mapped['data'],
+                                'data_timestamp' => now(),
+                                'imported_at' => now(),
+                                'data_version' => 1,
                             ]
                         );
 

@@ -28,12 +28,6 @@ return [
     ],
 
     'configuration' => [
-        'api_url' => [
-            'type' => 'text',
-            'label' => 'API URL',
-            'default' => 'https://cloud.gravityzone.bitdefender.com/api/v1.0/jsonrpc',
-            'required' => false,
-        ],
         'sync_interval' => [
             'type' => 'number',
             'label' => 'Sync Interval (seconds)',
