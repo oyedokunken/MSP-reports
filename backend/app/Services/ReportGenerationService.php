@@ -487,6 +487,16 @@ final class ReportGenerationService
                     'defender_status' => $reportData['defender_status'] ?? [],
                     'conditional_access' => $reportData['conditional_access'] ?? [],
                     'email_protection' => $reportData['email_protection'] ?? [],
+                    // ThreatLocker Summary specific variables
+                    'computer_summary' => $reportData['computer_summary'] ?? [],
+                    'policy_summary' => $reportData['policy_summary'] ?? [],
+                    'application_summary' => $reportData['application_summary'] ?? [],
+                    'storage_summary' => $reportData['storage_summary'] ?? [],
+                    'audit_summary' => $reportData['audit_summary'] ?? [],
+                    'computers_list' => $reportData['computers_list'] ?? [],
+                    'policies_list' => $reportData['policies_list'] ?? [],
+                    'applications_list' => $reportData['applications_list'] ?? [],
+                    'audit_events' => $reportData['audit_events'] ?? [],
                     'render_part' => $renderPart,
                 ])->render();
             } catch (\Exception $e) {
@@ -559,6 +569,16 @@ final class ReportGenerationService
                         'defender_status' => $reportData['defender_status'] ?? [],
                         'conditional_access' => $reportData['conditional_access'] ?? [],
                         'email_protection' => $reportData['email_protection'] ?? [],
+                        // ThreatLocker Summary specific variables
+                        'computer_summary' => $reportData['computer_summary'] ?? [],
+                        'policy_summary' => $reportData['policy_summary'] ?? [],
+                        'application_summary' => $reportData['application_summary'] ?? [],
+                        'storage_summary' => $reportData['storage_summary'] ?? [],
+                        'audit_summary' => $reportData['audit_summary'] ?? [],
+                        'computers_list' => $reportData['computers_list'] ?? [],
+                        'policies_list' => $reportData['policies_list'] ?? [],
+                        'applications_list' => $reportData['applications_list'] ?? [],
+                        'audit_events' => $reportData['audit_events'] ?? [],
                         'render_part' => $renderPart,
                     ])->render();
                 }

@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Actions\Integration;
 
 use App\Jobs\ImportHistoricalDataJob;
+use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\Integration;
+use App\Models\SyncLog;
 use App\Services\LicenseChecker;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 final class StartHistoricalImportAction
@@ -81,6 +84,45 @@ final class StartHistoricalImportAction
             'status' => 'importing_historical',
             'historical_import_status' => 'pending',
             'historical_import_progress' => 0
+        ]);
+
+        // Log to SyncLog
+        SyncLog::create([
+            'integration_id' => $integration->integration_id,
+            'sync_type' => 'historical',
+            'started_at' => now(),
+            'status' => 'running',
+            'records_synced' => 0,
+            'records_failed' => 0,
+            'rate_limit_hits' => 0,
+            'error_messages' => null,
+        ]);
+
+        // Log to AuditLog
+        $user = auth()->user();
+        AuditLog::create([
+            'company_id' => $company->company_id,
+            'event_type' => 'historical_import_queued',
+            'actor_type' => $user ? 'User' : 'System',
+            'actor_id' => $user?->user_id,
+            'target_type' => Integration::class,
+            'target_id' => $integration->integration_id,
+            'event_data' => [
+                'integration_name' => $integration->display_name,
+                'import_start_date' => $startDate->toDateString(),
+                'import_end_date' => $endDate->toDateString(),
+                'total_chunks' => $totalJobs,
+                'job_id' => $job->historical_import_job_id,
+            ],
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'created_at' => now(),
+        ]);
+
+        Log::info('Historical import queued and logged', [
+            'integration_id' => $integration->integration_id,
+            'job_id' => $job->historical_import_job_id,
+            'total_chunks' => $totalJobs,
         ]);
 
         return [

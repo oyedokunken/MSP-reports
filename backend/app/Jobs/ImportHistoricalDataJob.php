@@ -15,6 +15,8 @@ use App\Services\RateLimiter;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Models\AuditLog;
+use App\Models\SyncLog;
 use App\Integrations\Autotask\AutotaskIntegration;
 use App\Integrations\Datto\DattoIntegration;
 use App\Integrations\Sendmarc\SendmarcIntegration;
@@ -70,6 +72,24 @@ final class ImportHistoricalDataJob implements ShouldQueue
                         'updated_at' => now(),
                     ]);
                 $this->importJob->refresh();
+
+                // Log import started
+                AuditLog::create([
+                    'company_id' => $integration->company_id,
+                    'event_type' => 'historical_import_started',
+                    'actor_type' => 'System',
+                    'actor_id' => null,
+                    'target_type' => Integration::class,
+                    'target_id' => $integration->integration_id,
+                    'event_data' => [
+                        'integration_name' => $integration->display_name,
+                        'job_id' => $this->importJob->historical_import_job_id,
+                        'chunk_date' => $this->chunkDate->toDateString(),
+                    ],
+                    'ip_address' => null,
+                    'user_agent' => null,
+                    'created_at' => now(),
+                ]);
             }
 
             $integrationClass = $this->loadIntegrationClass($integration);
@@ -228,6 +248,38 @@ final class ImportHistoricalDataJob implements ShouldQueue
                     'import_job_id' => $freshJob->historical_import_job_id,
                     'records_imported' => $freshJob->records_imported,
                 ]);
+
+                // Log completion to AuditLog
+                AuditLog::create([
+                    'company_id' => $integration->company_id,
+                    'event_type' => 'historical_import_completed',
+                    'actor_type' => 'System',
+                    'actor_id' => null,
+                    'target_type' => Integration::class,
+                    'target_id' => $integration->integration_id,
+                    'event_data' => [
+                        'integration_name' => $integration->display_name,
+                        'job_id' => $freshJob->historical_import_job_id,
+                        'records_imported' => $freshJob->records_imported,
+                        'import_start_date' => $freshJob->import_start_date?->toDateString(),
+                        'import_end_date' => $freshJob->import_end_date?->toDateString(),
+                    ],
+                    'ip_address' => null,
+                    'user_agent' => null,
+                    'created_at' => now(),
+                ]);
+
+                // Update SyncLog for this historical import
+                SyncLog::where('integration_id', $integration->integration_id)
+                    ->where('sync_type', 'historical')
+                    ->where('status', 'running')
+                    ->latest('started_at')
+                    ->first()
+                    ?->update([
+                        'status' => 'success',
+                        'completed_at' => now(),
+                        'records_synced' => $freshJob->records_imported,
+                    ]);
             }
 
             // ALWAYS update integration status when job is complete 
@@ -307,6 +359,48 @@ final class ImportHistoricalDataJob implements ShouldQueue
             'progress_percent' => $this->importJob->progress_percent,
             'error' => $exception->getMessage(),
         ]);
+
+        // Log failure to AuditLog
+        try {
+            AuditLog::create([
+                'company_id' => $integration->company_id,
+                'event_type' => 'historical_import_failed',
+                'actor_type' => 'System',
+                'actor_id' => null,
+                'target_type' => Integration::class,
+                'target_id' => $integration->integration_id,
+                'event_data' => [
+                    'integration_name' => $integration->display_name,
+                    'job_id' => $this->importJob->historical_import_job_id,
+                    'records_imported' => $this->importJob->records_imported,
+                    'error' => substr($exception->getMessage(), 0, 500),
+                    'attempts' => $this->attempts(),
+                    'partial_success' => $hasImportedData,
+                ],
+                'ip_address' => null,
+                'user_agent' => null,
+                'created_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to create audit log for import failure', ['error' => $e->getMessage()]);
+        }
+
+        // Update SyncLog for this historical import
+        try {
+            SyncLog::where('integration_id', $integration->integration_id)
+                ->where('sync_type', 'historical')
+                ->where('status', 'running')
+                ->latest('started_at')
+                ->first()
+                ?->update([
+                    'status' => 'failed',
+                    'completed_at' => now(),
+                    'records_synced' => $this->importJob->records_imported,
+                    'error_messages' => [substr($exception->getMessage(), 0, 500)],
+                ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to update sync log for import failure', ['error' => $e->getMessage()]);
+        }
 
         // Send failure notification
         try {
