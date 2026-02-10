@@ -608,6 +608,68 @@ final class ThreatLockerClient
     }
 
     /**
+     * Get audit logs for an organization within a date range
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAuditLogs(string $organizationId, Carbon $startDate, Carbon $endDate): array
+    {
+        $allAudits = [];
+        $page = 1;
+        $hasMore = true;
+
+        while ($hasMore) {
+            $response = $this->makeRequest(
+                'POST',
+                'Audit/AuditGetByAllParameters',
+                [
+                    'startDate' => $startDate->toIso8601String(),
+                    'endDate' => $endDate->toIso8601String(),
+                    'searchText' => '',
+                    'pageSize' => self::DEFAULT_PAGE_SIZE,
+                    'pageNumber' => $page,
+                    'orderBy' => 'date',
+                    'isAscending' => false,
+                    'action' => '',
+                    'kindOfAction' => '',
+                    'policyId' => '00000000-0000-0000-0000-000000000000',
+                    'computerId' => '00000000-0000-0000-0000-000000000000',
+                    'computerGroupId' => '00000000-0000-0000-0000-000000000000',
+                ],
+                [],
+                $organizationId
+            );
+
+            $audits = $this->extractResponseData($response);
+
+            if (empty($audits)) {
+                break;
+            }
+
+            $allAudits = array_merge($allAudits, $audits);
+
+            $totalPages = $this->extractTotalPages($response);
+            $hasMore = $page < $totalPages;
+            $page++;
+
+            // Increase MAX_PAGES for audit as it can be large
+            if ($page > 500) {
+                break;
+            }
+        }
+
+        Log::info('ThreatLocker: Fetched audit logs', [
+            'integration_id' => $this->integration->integration_id,
+            'organization_id' => $organizationId,
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $endDate->toDateString(),
+            'count' => count($allAudits),
+        ]);
+
+        return $allAudits;
+    }
+
+    /**
      * Clear any cached tokens or data
      */
     public function clearCache(): void

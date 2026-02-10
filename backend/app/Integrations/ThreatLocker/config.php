@@ -89,6 +89,7 @@ return [
         'threatlocker_application_file' => 'ThreatLocker Application Files',
         'threatlocker_storage_policy' => 'ThreatLocker Storage Control Policies',
         'threatlocker_storage_device' => 'ThreatLocker Storage Devices',
+        'threatlocker_audit' => 'ThreatLocker Audit Logs (Historical)',
     ],
 
     'rate_limits' => [
@@ -107,14 +108,14 @@ return [
     ],
 
     'historical_data' => [
-        'supports_historical' => false,
-        'max_range_days' => 0,
-        'recommended_range_days' => 0,
+        'supports_historical' => true,
+        'max_range_days' => 90,
+        'recommended_range_days' => 30,
     ],
 
     'features' => [
         'customer_mapping' => true,
-        'historical_import' => false,
+        'historical_import' => true,
         'real_time_sync' => false,
         'webhooks' => false,
     ],

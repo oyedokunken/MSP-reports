@@ -608,8 +608,8 @@ final class ThreatLockerIntegration implements IntegrationInterface
             'description' => $this->config['description'] ?? '',
             'version' => $this->config['version'] ?? '2.0.0',
             'data_types' => array_keys($this->config['data_types'] ?? []),
-            'supports_historical' => false,
-            'historical_range_days' => 0,
+            'supports_historical' => true,
+            'historical_range_days' => 90,
             'rate_limits' => $this->config['rate_limits'] ?? [],
         ];
     }
@@ -652,17 +652,61 @@ final class ThreatLockerIntegration implements IntegrationInterface
      */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        // ThreatLocker Portal API doesn't support date-range historical queries
+        $processed = 0;
+        $errors = [];
+        
+        $customers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($customers as $customer) {
+            try {
+                $orgId = $customer->external_id;
+                $audits = $this->client->getAuditLogs($orgId, $startDate, $endDate);
+
+                foreach ($audits as $audit) {
+                    try {
+                        $mapped = ThreatLockerMapper::mapAudit($audit, $orgId);
+
+                        if (empty($mapped['external_id'])) {
+                            continue;
+                        }
+
+                        IntegrationData::updateOrCreate(
+                            [
+                                'integration_id' => $this->integration->integration_id,
+                                'integration_customer_id' => $customer->integration_customer_id,
+                                'data_type' => $mapped['data_type'],
+                                'external_id' => $mapped['external_id'],
+                            ],
+                            [
+                                'data' => $mapped['data'],
+                                'last_seen_at' => now(),
+                            ]
+                        );
+
+                        $processed++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Audit map error for org {$customer->name}: " . $e->getMessage();
+                    }
+                }
+
+                $this->sendHeartbeat($processed);
+            } catch (\Exception $e) {
+                $errors[] = "Audit fetch failed for org {$customer->name}: " . $e->getMessage();
+            }
+        }
+
         return [
-            'data' => [],
-            'total_processed' => 0,
-            'errors' => [],
+            'data' => [], // Result is stored in DB
+            'total_processed' => $processed,
+            'errors' => $errors,
         ];
     }
 
     public function getAvailableHistoryRange(): ?Carbon
     {
-        return null;
+        return now()->subDays(90);
     }
 
     public function disconnect(): void

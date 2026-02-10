@@ -63,18 +63,46 @@ final class ThreatLockerMapper
                 'computer_id' => $computerId,
                 'computer_name' => $computerName,
                 'organization_id' => $organizationId,
-                'os_name' => $computer['osName'] ?? $computer['OsName'] ?? null,
-                'os_version' => $computer['osVersion'] ?? $computer['OsVersion'] ?? null,
+                'os_name' => $computer['operatingSystem'] ?? $computer['osName'] ?? null,
+                'os_version' => $computer['osVersion'] ?? null,
                 'last_check_in' => $lastCheckInDate,
-                'ip_address' => $computer['ipAddress'] ?? $computer['IpAddress'] ?? null,
-                'agent_version' => $computer['agentVersion'] ?? $computer['AgentVersion'] ?? null,
-                'is_online' => $computer['isOnline'] ?? $computer['IsOnline'] ?? null,
-                'computer_group_id' => $computer['computerGroupId'] ?? $computer['ComputerGroupId'] ?? null,
-                'computer_group_name' => $computer['computerGroupName'] ?? $computer['ComputerGroupName'] ?? null,
-                'is_server' => $computer['isServer'] ?? $computer['IsServer'] ?? null,
-                'domain' => $computer['domain'] ?? $computer['Domain'] ?? null,
-                'logged_on_user' => $computer['loggedOnUser'] ?? $computer['LoggedOnUser'] ?? null,
+                'last_check_in_ip' => $computer['lastCheckinIPAddress'] ?? $computer['ipAddress'] ?? null,
+                'agent_version' => $computer['threatLockerVersion'] ?? $computer['agentVersion'] ?? null,
+                'is_online' => $computer['isOnline'] ?? null,
+                'computer_group_id' => $computer['computerGroupId'] ?? null,
+                'computer_group_name' => $computer['group'] ?? $computer['computerGroupName'] ?? null,
+                'is_server' => $computer['isServer'] ?? null,
+                'domain' => $computer['domain'] ?? null,
+                'logged_on_user' => $computer['username'] ?? $computer['loggedOnUser'] ?? null,
                 'has_computer_password' => $computer['hasComputerPassword'] ?? false,
+                
+                // Mapped from user provided JSON
+                'threat_locker_version' => $computer['threatLockerVersion'] ?? null,
+                'service_version' => $computer['serviceVersion'] ?? null,
+                'target_threat_locker_version' => $computer['targetThreatLockerVersion'] ?? null,
+                'driver_status' => $computer['driverStatusString'] ?? null,
+                'mode' => $computer['mode'] ?? null,
+                'action' => $computer['action'] ?? null,
+                'is_tamper_protection_disabled' => $computer['isTamperProtectionDisabled'] ?? false,
+                'is_isolation_mode' => $computer['isIsolationMode'] ?? false,
+                'is_lock_down_mode' => $computer['isLockDownMode'] ?? false,
+                'is_ops_alerts_disabled' => $computer['isOpsAlertsDisabled'] ?? false,
+                'maintenance_type_id' => $computer['maintenanceTypeId'] ?? null,
+                'maintenance_end_date' => $computer['maintenanceEndDate'] ?? null,
+                'start_date_time' => $computer['startDateTime'] ?? null,
+                'os_type' => $computer['osType'] ?? null,
+                'version_major' => $computer['versionMajor'] ?? null,
+                'version_minor' => $computer['versionMinor'] ?? null,
+                'deny_count_1d' => $computer['denyCountOneDay'] ?? 0,
+                'deny_count_7d' => $computer['denyCountSevenDays'] ?? 0,
+                'total_rows' => $computer['totalRows'] ?? null,
+                'is_deleted' => $computer['isDeleted'] ?? false,
+                'has_zero_denies_4d' => $computer['hasZeroDeniesFourDays'] ?? false,
+                'ip_os' => $computer['ipOperatingSystem'] ?? null,
+                'restart_needed' => $computer['restartComputerNeeded'] ?? false,
+                'should_restart' => $computer['shouldRestart'] ?? false,
+                'date_added' => $computer['dateAdded'] ?? null,
+                'date_created' => $computer['dateCreated'] ?? null,
             ],
         ];
     }
@@ -232,4 +260,52 @@ final class ThreatLockerMapper
             ],
         ];
     }
-}
+
+    /**
+     * Map ThreatLocker audit log to standardized format
+     *
+     * @param array<string, mixed> $audit
+     * @param string $organizationId
+     * @return array<string, mixed>
+     */
+     public static function mapAudit(array $audit, string $organizationId): array
+     {
+         $auditId = $audit['auditId'] ?? $audit['id'] ?? null;
+         $date = $audit['date'] ?? null;
+         $dateIso = null;
+         if ($date) {
+             try {
+                 $dateIso = Carbon::parse($date)->toIso8601String();
+             } catch (\Exception $e) {
+                 $dateIso = $date;
+             }
+         }
+
+         return [
+             'external_id' => (string) $auditId,
+             'data_type' => 'threatlocker_audit',
+             'organization_id' => $organizationId,
+             'data' => [
+                 'audit_id' => $auditId,
+                 'organization_id' => $organizationId,
+                 'date' => $dateIso,
+                 'computer_name' => $audit['computerName'] ?? null,
+                 'computer_id' => $audit['computerId'] ?? null,
+                 'action' => $audit['action'] ?? null,
+                 'kind_of_action' => $audit['kindOfAction'] ?? null,
+                 'application' => $audit['application'] ?? null,
+                 'process_name' => $audit['processName'] ?? null,
+                 'file_path' => $audit['filePath'] ?? null,
+                 'user' => $audit['user'] ?? null,
+                 'policy_name' => $audit['policyName'] ?? null,
+                 'policy_id' => $audit['policyId'] ?? null,
+                 'certificate' => $audit['certificate'] ?? null,
+                 'hash' => $audit['hash'] ?? null,
+                 'interface' => $audit['interface'] ?? null,
+                 'ip_address' => $audit['ipAddress'] ?? null,
+                 'is_server' => $audit['isServer'] ?? false,
+             ],
+         ];
+     }
+ }
+
