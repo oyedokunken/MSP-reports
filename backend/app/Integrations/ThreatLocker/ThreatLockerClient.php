@@ -22,7 +22,8 @@ final class ThreatLockerClient
     protected string $baseUrl;
     protected RateLimiter $rateLimiter;
     protected Integration $integration;
-    protected string $apiSecret;
+    protected string $apiToken;
+    protected string $managedOrganizationId;
 
     protected const CACHE_KEY_PREFIX = 'threatlocker_';
     protected const DEFAULT_TIMEOUT = 60;
@@ -39,44 +40,12 @@ final class ThreatLockerClient
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
 
-        // Resolve the Portal API base URL from the provided host
-        // User provides: https://api.g.threatlocker.com/
-        // Portal API is: https://portalapi.g.threatlocker.com/portalApi/
-        $this->baseUrl = $this->resolvePortalApiUrl($credentials['api_url'] ?? 'https://api.g.threatlocker.com/');
-        $this->apiSecret = $credentials['api_secret'] ?? '';
-    }
-
-    /**
-     * Resolve the Portal API URL from the user-provided API hostname.
-     *
-     * Extracts the instance letter (e.g. "g") from the provided URL and constructs
-     * the correct Portal API base URL.
-     *
-     * Input examples:
-     *   - https://api.g.threatlocker.com/
-     *   - https://api.g.threatlocker.com
-     *   - api.g.threatlocker.com
-     *
-     * Output: https://portalapi.g.threatlocker.com/portalApi/
-     */
-    protected function resolvePortalApiUrl(string $apiUrl): string
-    {
-        $apiUrl = rtrim(trim($apiUrl), '/');
-
-        // Extract the instance letter from the host
-        // Pattern: api.{instance}.threatlocker.com
-        $host = parse_url($apiUrl, PHP_URL_HOST);
-        if (!$host) {
-            // Maybe they provided just the hostname without scheme
-            $host = parse_url("https://{$apiUrl}", PHP_URL_HOST);
-        }
-
-        $instance = 'g'; // default
-        if ($host && preg_match('/^api\.([a-z])\.threatlocker\.com$/i', $host, $matches)) {
-            $instance = strtolower($matches[1]);
-        }
-
-        return "https://portalapi.{$instance}.threatlocker.com/portalApi";
+        $url = $credentials['api_url'] ?? 'https://portalapi.au1.threatlocker.com/portalapi/';
+        // Strip the specific endpoint suffix if present to get the base URL
+        $url = str_replace('/Computer/ComputerGetByAllParameters', '', $url);
+        $this->baseUrl = rtrim($url, '/');
+        $this->apiToken = $credentials['api_token'] ?? '';
+        $this->managedOrganizationId = $credentials['managed_organization_id'] ?? '';
     }
 
     /**
@@ -85,11 +54,25 @@ final class ThreatLockerClient
     public function testConnection(): bool
     {
         try {
-            // Fetch page 1 of organizations (minimal request)
+            // Fetch page 1 of computers (minimal request)
             $response = $this->makeRequest(
                 'POST',
-                'Organization/OrganizationGetChildOrganizationsByParameters',
-                ['pageSize' => 1, 'pageNumber' => 1]
+                'Computer/ComputerGetByAllParameters',
+                [
+                    'searchText' => '',
+                    'computerGroup' => '00000000-0000-0000-0000-000000000000',
+                    'orderBy' => 'computername',
+                    'pageSize' => 1,
+                    'pageNumber' => 1,
+                    'childOrganizations' => false,
+                    'action' => '',
+                    'isAscending' => true,
+                    'kindOfAction' => '',
+                    'computerId' => '00000000-0000-0000-0000-000000000000',
+                    'showLastCheckIn' => true,
+                    'showDeleted' => false,
+                    'searchBy' => (int) ($this->integration->configuration['search_by'] ?? 1),
+                ]
             );
 
             if ($response === null) {
@@ -219,12 +202,14 @@ final class ThreatLockerClient
                     'orderBy' => 'computername',
                     'pageSize' => self::DEFAULT_PAGE_SIZE,
                     'pageNumber' => $page,
-                    'computerId' => '00000000-0000-0000-0000-000000000000',
                     'childOrganizations' => $includeChildren,
-                    'showLastCheckIn' => true,
+                    'action' => '',
                     'isAscending' => true,
                     'kindOfAction' => '',
-                    'hasComputerPassword' => false,
+                    'computerId' => '00000000-0000-0000-0000-000000000000',
+                    'showLastCheckIn' => true,
+                    'showDeleted' => false,
+                    'searchBy' => (int) ($this->integration->configuration['search_by'] ?? 1),
                 ],
                 [],
                 $organizationId
@@ -648,12 +633,13 @@ final class ThreatLockerClient
         array $query = [],
         ?string $orgId = null
     ): ?array {
-        if (empty($this->apiSecret)) {
-            Log::error('ThreatLocker: API secret is missing', [
+
+        if (empty($this->apiToken)) {
+            Log::error('ThreatLocker: API token is missing', [
                 'integration_id' => $this->integration->integration_id,
                 'credentials_keys' => array_keys($this->credentials),
             ]);
-            throw new AuthenticationException('ThreatLocker API secret is required', 401);
+            throw new AuthenticationException('ThreatLocker API token is required', 401);
         }
 
         $url = rtrim($this->baseUrl, '/') . '/' . ltrim($endpoint, '/');
@@ -666,14 +652,16 @@ final class ThreatLockerClient
 
         try {
             $headers = [
-                'Authorization' => $this->apiSecret,
+                'Authorization' => $this->apiToken,
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
             ];
 
-            // Add org scope header if provided
+            // Add org scope header - prefer argument, fallback to config
             if ($orgId) {
-                $headers['managedorganizationid'] = $orgId;
+                $headers['managedOrganizationId'] = $orgId;
+            } elseif ($this->managedOrganizationId) {
+                $headers['managedOrganizationId'] = $this->managedOrganizationId;
             }
 
             Log::debug('ThreatLocker API request', [

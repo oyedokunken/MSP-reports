@@ -81,11 +81,13 @@ class IntegrationService
 
         $metadata = $instance->getMetadata();
         $credentialFields = $instance->getCredentialFields();
+        $configurationFields = method_exists($instance, 'getConfigurationFields') ? $instance->getConfigurationFields() : [];
 
         return [
             'name' => $metadata['name'] ?? $integrationType,
             'description' => $metadata['description'] ?? '',
             'credential_fields' => $credentialFields,
+            'configuration_fields' => $configurationFields,
             'data_types' => $metadata['data_types'] ?? [],
             'supports_historical' => $metadata['supports_historical'] ?? false,
             'historical_range_days' => $metadata['historical_range_days'] ?? 0,
@@ -192,8 +194,7 @@ class IntegrationService
                 $credentials['api_url'] = $credentials['api_url'] ?? 'https://cloud.gravityzone.bitdefender.com/api/v1.0/jsonrpc';
                 break;
             case 'ThreatLocker':
-                $credentials['api_url'] = $credentials['api_url'] ?? 'https://api.g.threatlocker.com/';
-                $credentials['api_url'] = rtrim($credentials['api_url'], '/') . '/';
+                $credentials['api_url'] = $credentials['api_url'] ?? 'https://portalapi.au1.threatlocker.com/portalapi/Computer/ComputerGetByAllParameters';
                 break;
         }
 

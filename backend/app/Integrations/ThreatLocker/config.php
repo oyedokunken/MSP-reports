@@ -10,34 +10,42 @@ return [
 
     'credentials' => [
         'api_url' => [
-            'type' => 'text',
-            'label' => 'Host Name or IP Address',
+            'type' => 'select',
+            'label' => 'API Endpoint',
             'required' => true,
-            'default' => 'https://api.g.threatlocker.com/',
-            'placeholder' => 'https://api.g.threatlocker.com/',
-            'help' => 'The hostname or IP address of the ThreatLocker server. The instance letter (e.g. "g") will be extracted automatically.',
+            'default' => 'https://portalapi.au1.threatlocker.com/portalapi/Computer/ComputerGetByAllParameters',
+            'options' => [
+                [
+                    'value' => 'https://portalapi.au1.threatlocker.com/portalapi/Computer/ComputerGetByAllParameters',
+                    'label' => 'AU1 (Australia)',
+                ],
+                [
+                    'value' => 'https://portalapi.au2.threatlocker.com/portalapi/Computer/ComputerGetByAllParameters',
+                    'label' => 'AU2 (Australia 2) - Coming Soon',
+                    'disabled' => true,
+                ],
+                [
+                    'value' => 'https://portalapi.au3.threatlocker.com/portalapi/Computer/ComputerGetByAllParameters',
+                    'label' => 'AU3 (Australia 3) - Coming Soon',
+                    'disabled' => true,
+                ],
+            ],
+            'help' => 'Select the ThreatLocker Portal API endpoint for your region.',
         ],
-        'api_user_id' => [
-            'type' => 'text',
-            'label' => 'API User ID',
-            'required' => true,
-            'placeholder' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
-            'help' => 'The API User ID (GUID) from the ThreatLocker console. Found under Administrators → API Users.',
-        ],
-        'api_token_name' => [
-            'type' => 'text',
-            'label' => 'API Token Name',
-            'required' => true,
-            'placeholder' => 'e.g. msp-reports@xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
-            'help' => 'The API Token Name assigned when creating the API user.',
-        ],
-        'api_secret' => [
+        'api_token' => [
             'type' => 'password',
-            'label' => 'API Secret',
+            'label' => 'Authorization Token',
             'required' => true,
             'encrypted' => true,
-            'placeholder' => 'Enter your ThreatLocker API secret',
-            'help' => 'The API Secret (Auth Key) generated for the API user. This is only shown once at creation time.',
+            'placeholder' => 'Enter your ThreatLocker Authorization Token',
+            'help' => 'The Authorization header value found in your API request headers.',
+        ],
+        'managed_organization_id' => [
+            'type' => 'text',
+            'label' => 'Managed Organization ID',
+            'required' => true,
+            'placeholder' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+            'help' => 'The managedOrganizationId header value found in your API request headers.',
         ],
     ],
 
@@ -59,6 +67,17 @@ return [
             'label' => 'Sync Policies',
             'default' => true,
             'help' => 'Whether to sync application control policies from ThreatLocker.',
+        ],
+        'search_by' => [
+            'type' => 'select',
+            'label' => 'Search By',
+            'required' => true,
+            'default' => 1,
+            'options' => [
+                1 => 'Option 1',
+                2 => 'Option 2'
+            ],
+            'help' => 'Select the search criteria (1 or 2).',
         ],
     ],
 

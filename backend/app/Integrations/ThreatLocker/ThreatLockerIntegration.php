@@ -621,7 +621,19 @@ final class ThreatLockerIntegration implements IntegrationInterface
     {
         $fields = [];
         foreach ($this->config['credentials'] ?? [] as $key => $field) {
-            $fields[] = array_merge(['key' => $key], $field);
+            $fields[] = array_merge(['name' => $key, 'key' => $key], $field);
+        }
+        return $fields;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getConfigurationFields(): array
+    {
+        $fields = [];
+        foreach ($this->config['configuration'] ?? [] as $key => $field) {
+            $fields[] = array_merge(['name' => $key, 'key' => $key], $field);
         }
         return $fields;
     }
