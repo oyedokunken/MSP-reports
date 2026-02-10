@@ -730,40 +730,63 @@ final class CIPPIntegration implements IntegrationInterface
     public function getPreviewData(?int $integrationCustomerId = null): array
     {
         try {
-            $tenants = $this->client->listTenants();
-            $tenantCount = count($tenants);
+            Log::info('CIPP Preview: Fetching preview data', [
+                'integration_id' => $this->integration->integration_id,
+                'customer_id' => $integrationCustomerId
+            ]);
 
-            // Get summary stats
-            $totalUsers = 0;
-            $totalLicenses = 0;
-            $activeAlerts = 0;
+            // 1. Get tenants from API (fastest way to verify connection)
+            // We cache this for 5 minutes to avoid repeated slow calls
+            $cacheKey = "cipp_tenants_{$this->integration->integration_id}";
+            $tenants = Cache::remember($cacheKey, 300, function() {
+                return $this->client->listTenants();
+            });
+            
+            // Handle if tenants is wrapped in Results
+            if (isset($tenants['Results']) && is_array($tenants['Results'])) {
+                $tenants = $tenants['Results'];
+            }
+            
+            $tenantCount = is_array($tenants) ? count($tenants) : 0;
+            Log::debug('CIPP Preview: Tenant count', ['count' => $tenantCount]);
 
-            // Sample first few tenants for stats
-            $sampleTenants = array_slice($tenants, 0, 5);
-            foreach ($sampleTenants as $tenant) {
-                $tenantFilter = $tenant['defaultDomainName'] ?? null;
-                if (!$tenantFilter)
-                    continue;
+            // 2. Fetch summary metrics from DATABASE instead of API
+            // Sequential API calls for sample tenants were causing timeouts (60s+)
+            $totalUsers = IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', 'user')
+                ->count();
 
-                try {
-                    $users = $this->client->listMFAUsers($tenantFilter);
-                    $totalUsers += count($users);
+            $totalLicenses = IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', 'license')
+                ->count();
 
-                    $licenses = $this->client->listLicenses($tenantFilter);
-                    $totalLicenses += count($licenses);
+            $activeAlerts = IntegrationData::where('integration_id', $this->integration->integration_id)
+                ->where('data_type', 'security_alert')
+                ->where('data_payload->status', '!=', 'resolved')
+                ->count();
 
-                    $alerts = $this->client->listSecurityAlerts($tenantFilter);
-                    $activeAlerts += count(array_filter($alerts, fn($a) => ($a['status'] ?? '') !== 'resolved'));
-                } catch (\Exception $e) {
-                    // Continue with other tenants
+            // 3. Prepare tenant list for display
+            // If customerId is provided, just show that one if it exists
+            $displayTenants = [];
+            if ($integrationCustomerId) {
+                $customer = \App\Models\IntegrationCustomer::find($integrationCustomerId);
+                if ($customer) {
+                    $displayTenants[] = [
+                        'name' => $customer->name,
+                        'domain' => $customer->external_id,
+                        'status' => $customer->active ? 'active' : 'inactive'
+                    ];
                 }
             }
-
-            $tenantsData = array_map(fn($t) => [
-                'name' => $t['displayName'] ?? 'Unknown',
-                'domain' => $t['defaultDomainName'] ?? '',
-                'status' => 'active'
-            ], array_slice($tenants, 0, 10));
+            
+            // If we have no specific customer or it wasn't found, show top 10 from API
+            if (empty($displayTenants) && is_array($tenants)) {
+                $displayTenants = array_map(fn($t) => [
+                    'name' => $t['displayName'] ?? $t['defaultDomainName'] ?? 'Unknown',
+                    'domain' => $t['defaultDomainName'] ?? $t['customerId'] ?? '',
+                    'status' => 'active'
+                ], array_slice($tenants, 0, 10));
+            }
 
             return [
                 'success' => true,
@@ -774,11 +797,17 @@ final class CIPPIntegration implements IntegrationInterface
                         'total_licenses' => $totalLicenses,
                         'active_alerts' => $activeAlerts,
                     ],
-                    'tenants' => $tenantsData
+                    'tenants' => $displayTenants
                 ],
                 'timestamp' => now()->toIso8601String()
             ];
         } catch (\Exception $e) {
+            Log::error('CIPP Preview Error', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return [
                 'success' => false,
                 'error' => 'Failed to fetch preview data: ' . $e->getMessage()
