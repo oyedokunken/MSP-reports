@@ -48,7 +48,10 @@ export const EVENT_TYPES = {
   integration_updated: 'Integration Updated',
   integration_deleted: 'Integration Deleted',
   integration_synced: 'Integration Synced',
+  historical_import_queued: 'Historical Import Queued',
   historical_import_started: 'Historical Import Started',
+  historical_import_completed: 'Historical Import Completed',
+  historical_import_failed: 'Historical Import Failed',
 
   customer_created: 'Customer Created',
   customer_updated: 'Customer Updated',

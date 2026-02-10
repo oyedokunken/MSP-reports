@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust all proxies (Docker, nginx, load balancers) so request()->ip() returns the real client IP
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(remove: [
             \Illuminate\Session\Middleware\StartSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,

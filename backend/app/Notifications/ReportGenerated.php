@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
-final class ReportGenerated extends Notification implements ShouldBroadcastNow
+final class ReportGenerated extends Notification
 {
     use Queueable;
 
@@ -33,7 +32,13 @@ final class ReportGenerated extends Notification implements ShouldBroadcastNow
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast'];
+        $channels = ['database'];
+
+        if (!in_array(config('broadcasting.default'), ['log', 'null', null])) {
+            $channels[] = 'broadcast';
+        }
+
+        return $channels;
     }
 
     /**
@@ -44,8 +49,8 @@ final class ReportGenerated extends Notification implements ShouldBroadcastNow
     public function toArray(object $notifiable): array
     {
         return [
-            'type' => 'report',
-            'severity' => 'blue',
+            'type' => $this->data['type'] ?? 'report',
+            'severity' => $this->data['severity'] ?? 'blue',
             'title' => $this->data['title'] ?? 'Report Generated',
             'description' => $this->data['description'] ?? 'Your scheduled report is now ready.',
             'metadata' => $this->data['metadata'] ?? []
@@ -59,8 +64,8 @@ final class ReportGenerated extends Notification implements ShouldBroadcastNow
     {
         return new BroadcastMessage([
             'id' => $this->id,
-            'type' => 'report',
-            'severity' => 'blue',
+            'type' => $this->data['type'] ?? 'report',
+            'severity' => $this->data['severity'] ?? 'blue',
             'title' => $this->data['title'] ?? 'Report Generated',
             'description' => $this->data['description'] ?? 'Your scheduled report is now ready.',
             'created_at' => now()->toIso8601String(),

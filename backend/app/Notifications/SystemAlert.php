@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
-final class SystemAlert extends Notification implements ShouldBroadcastNow
+final class SystemAlert extends Notification
 {
     use Queueable;
 
@@ -33,7 +32,13 @@ final class SystemAlert extends Notification implements ShouldBroadcastNow
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast'];
+        $channels = ['database'];
+
+        if (!in_array(config('broadcasting.default'), ['log', 'null', null])) {
+            $channels[] = 'broadcast';
+        }
+
+        return $channels;
     }
 
     /**
@@ -44,7 +49,7 @@ final class SystemAlert extends Notification implements ShouldBroadcastNow
     public function toArray(object $notifiable): array
     {
         return [
-            'type' => 'alert',
+            'type' => $this->data['type'] ?? 'alert',
             'severity' => $this->data['severity'] ?? 'yellow',
             'title' => $this->data['title'] ?? 'System Alert',
             'description' => $this->data['description'] ?? 'A system event requires your attention.',
@@ -59,7 +64,7 @@ final class SystemAlert extends Notification implements ShouldBroadcastNow
     {
         return new BroadcastMessage([
             'id' => $this->id,
-            'type' => 'alert',
+            'type' => $this->data['type'] ?? 'alert',
             'severity' => $this->data['severity'] ?? 'yellow',
             'title' => $this->data['title'] ?? 'System Alert',
             'description' => $this->data['description'] ?? 'A system event requires your attention.',

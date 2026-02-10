@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
-final class ReportDelivered extends Notification implements ShouldBroadcastNow
+final class ReportDelivered extends Notification
 {
     use Queueable;
 
@@ -33,7 +32,13 @@ final class ReportDelivered extends Notification implements ShouldBroadcastNow
      */
     public function via(object $notifiable): array
     {
-        return ['database', 'broadcast'];
+        $channels = ['database'];
+
+        if (!in_array(config('broadcasting.default'), ['log', 'null', null])) {
+            $channels[] = 'broadcast';
+        }
+
+        return $channels;
     }
 
     /**
@@ -44,8 +49,8 @@ final class ReportDelivered extends Notification implements ShouldBroadcastNow
     public function toArray(object $notifiable): array
     {
         return [
-            'type' => 'report_delivered',
-            'severity' => 'green',
+            'type' => $this->data['type'] ?? 'report_delivered',
+            'severity' => $this->data['severity'] ?? 'green',
             'title' => $this->data['title'] ?? 'Report Delivered',
             'description' => $this->data['description'] ?? 'Your report has been delivered successfully.',
             'metadata' => $this->data['metadata'] ?? []
@@ -59,8 +64,8 @@ final class ReportDelivered extends Notification implements ShouldBroadcastNow
     {
         return new BroadcastMessage([
             'id' => $this->id,
-            'type' => 'report_delivered',
-            'severity' => 'green',
+            'type' => $this->data['type'] ?? 'report_delivered',
+            'severity' => $this->data['severity'] ?? 'green',
             'title' => $this->data['title'] ?? 'Report Delivered',
             'description' => $this->data['description'] ?? 'Your report has been delivered successfully.',
             'created_at' => now()->toIso8601String(),
