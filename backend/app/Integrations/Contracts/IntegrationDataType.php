@@ -51,6 +51,14 @@ final class IntegrationDataType
     public const MAILBOX_USAGE = 'mailbox_usage';
     public const EXCHANGE_PROTECTION = 'exchange_protection';
 
+    // ThreatLocker Types
+    public const THREATLOCKER_COMPUTER = 'threatlocker_computer';
+    public const THREATLOCKER_POLICY = 'threatlocker_policy';
+    public const THREATLOCKER_APPLICATION = 'threatlocker_application';
+    public const THREATLOCKER_APPLICATION_FILE = 'threatlocker_application_file';
+    public const THREATLOCKER_STORAGE_POLICY = 'threatlocker_storage_policy';
+    public const THREATLOCKER_STORAGE_DEVICE = 'threatlocker_storage_device';
+
     // Generic Types
     public const LICENSE = 'license';
     public const USER = 'user';
@@ -95,6 +103,12 @@ final class IntegrationDataType
             self::DEFENDER_STATE,
             self::MAILBOX_USAGE,
             self::EXCHANGE_PROTECTION,
+            self::THREATLOCKER_COMPUTER,
+            self::THREATLOCKER_POLICY,
+            self::THREATLOCKER_APPLICATION,
+            self::THREATLOCKER_APPLICATION_FILE,
+            self::THREATLOCKER_STORAGE_POLICY,
+            self::THREATLOCKER_STORAGE_DEVICE,
         ];
     }
 
@@ -140,6 +154,23 @@ final class IntegrationDataType
             self::VEEAM_ALARM,
             self::VEEAM_REPOSITORY,
             self::VEEAM_PROTECTED_WORKLOAD,
+        ];
+    }
+
+    /**
+     * Get ThreatLocker specific types
+     * 
+     * @return array<int, string>
+     */
+    public static function threatLocker(): array
+    {
+        return [
+            self::THREATLOCKER_COMPUTER,
+            self::THREATLOCKER_POLICY,
+            self::THREATLOCKER_APPLICATION,
+            self::THREATLOCKER_APPLICATION_FILE,
+            self::THREATLOCKER_STORAGE_POLICY,
+            self::THREATLOCKER_STORAGE_DEVICE,
         ];
     }
 

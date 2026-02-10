@@ -4,39 +4,40 @@ declare(strict_types=1);
 
 return [
     'name' => 'ThreatLocker',
-    'description' => 'ThreatLocker application allowlisting and ringfencing integration',
-    'version' => '1.0.0',
+    'display_name' => 'ThreatLocker',
+    'description' => 'ThreatLocker application allowlisting, ringfencing, and endpoint security',
+    'version' => '2.0.0',
 
-    // Credential fields for ThreatLocker authentication
     'credentials' => [
         'api_url' => [
             'type' => 'text',
-            'label' => 'API URL',
+            'label' => 'Host Name or IP Address',
             'required' => true,
             'default' => 'https://api.g.threatlocker.com/',
             'placeholder' => 'https://api.g.threatlocker.com/',
-            'help' => 'ThreatLocker API base URL. Use the region-specific URL provided (e.g., api.g, api.eu, api.au).',
+            'help' => 'The hostname or IP address of the ThreatLocker server. The instance letter (e.g. "g") will be extracted automatically.',
         ],
         'api_user_id' => [
             'type' => 'text',
             'label' => 'API User ID',
             'required' => true,
-            'placeholder' => 'Enter ThreatLocker API User ID',
-            'help' => 'The GUID identifier for the API User.',
+            'placeholder' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+            'help' => 'The API User ID (GUID) from the ThreatLocker console. Found under Administrators → API Users.',
+        ],
+        'api_token_name' => [
+            'type' => 'text',
+            'label' => 'API Token Name',
+            'required' => true,
+            'placeholder' => 'e.g. msp-reports@xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+            'help' => 'The API Token Name assigned when creating the API user.',
         ],
         'api_secret' => [
             'type' => 'password',
             'label' => 'API Secret',
             'required' => true,
-            'placeholder' => 'Enter ThreatLocker API Secret',
-            'help' => 'The Secret key/Token generated for the API User.',
-        ],
-        'api_token_name' => [
-            'type' => 'text',
-            'label' => 'API Token Name',
-            'required' => false,
-            'placeholder' => 'Enter API Token Name',
-            'help' => 'The name given to the API token (e.g., msp-reports@...)',
+            'encrypted' => true,
+            'placeholder' => 'Enter your ThreatLocker API secret',
+            'help' => 'The API Secret (Auth Key) generated for the API user. This is only shown once at creation time.',
         ],
     ],
 
@@ -44,31 +45,46 @@ return [
         'sync_interval' => [
             'type' => 'number',
             'label' => 'Sync Interval (seconds)',
-            'default' => 86400,
-            'help' => 'How often to sync ThreatLocker data. Placeholder only for now.',
+            'default' => 21600, // 6 hours
+            'help' => 'How often to sync ThreatLocker data (in seconds).',
+        ],
+        'sync_computers' => [
+            'type' => 'boolean',
+            'label' => 'Sync Computers',
+            'default' => true,
+            'help' => 'Whether to sync computer/endpoint data from ThreatLocker.',
+        ],
+        'sync_policies' => [
+            'type' => 'boolean',
+            'label' => 'Sync Policies',
+            'default' => true,
+            'help' => 'Whether to sync application control policies from ThreatLocker.',
         ],
     ],
 
     'data_types' => [
-        'allowlist_policies' => 'ThreatLocker Allowlist Policies',
-        'ringfencing_policies' => 'ThreatLocker Ringfencing Policies',
-        'blocked_applications' => 'ThreatLocker Blocked Applications',
-        'security_events' => 'ThreatLocker Security Events',
+        'threatlocker_organization' => 'ThreatLocker Organizations',
+        'threatlocker_computer' => 'ThreatLocker Computers / Endpoints',
+        'threatlocker_policy' => 'ThreatLocker Application Control Policies',
+        'threatlocker_application' => 'ThreatLocker Applications',
+        'threatlocker_application_file' => 'ThreatLocker Application Files',
+        'threatlocker_storage_policy' => 'ThreatLocker Storage Control Policies',
+        'threatlocker_storage_device' => 'ThreatLocker Storage Devices',
     ],
 
     'rate_limits' => [
         'requests_per_minute' => 60,
         'requests_per_hour' => 1000,
         'burst_allowance' => 10,
-        'min_request_interval_ms' => 100,
+        'min_request_interval_ms' => 200,
         'concurrent_requests' => 3,
         'historical_import_multiplier' => 0.5,
     ],
 
     'sync_frequency' => [
-        'recommended' => 'daily',
-        'minimum' => 'daily',
-        'maximum' => 'weekly',
+        'recommended' => 'every_6_hours',
+        'minimum' => 'every_6_hours',
+        'maximum' => 'daily',
     ],
 
     'historical_data' => [
@@ -78,7 +94,7 @@ return [
     ],
 
     'features' => [
-        'customer_mapping' => false,
+        'customer_mapping' => true,
         'historical_import' => false,
         'real_time_sync' => false,
         'webhooks' => false,

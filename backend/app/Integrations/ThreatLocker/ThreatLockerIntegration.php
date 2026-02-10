@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 namespace App\Integrations\ThreatLocker;
-use App\Integrations\Concerns\HasHeartbeat;
 
+use App\Integrations\Concerns\HasHeartbeat;
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\Concerns\HasDefaultPreview;
 use App\Models\Integration;
@@ -18,25 +18,38 @@ use Illuminate\Support\Facades\Log;
 
 final class ThreatLockerIntegration implements IntegrationInterface
 {
-    use HasDefaultPreview;
     use HasHeartbeat;
+    use HasDefaultPreview;
+
     protected Integration $integration;
     protected ThreatLockerClient $client;
-    protected CustomerMappingService $mappingService;
-    /** @var array<int, mixed> */
-    protected array $mappedDuringSync = [];
+    protected RateLimiter $rateLimiter;
+
+    /** @var array<string, mixed> */
+    protected array $config;
 
     public function __construct(Integration $integration)
     {
         $this->integration = $integration;
-        $rateLimiter = app(RateLimiter::class);
-        $this->client = new ThreatLockerClient($integration->credentials ?? [], $rateLimiter, $integration);
-        $this->mappingService = app(CustomerMappingService::class);
+        $this->rateLimiter = app(RateLimiter::class);
+        $this->config = include __DIR__ . '/config.php';
+
+        /** @var array<string, mixed> $credentials */
+        $credentials = $integration->credentials ?? [];
+        $this->client = new ThreatLockerClient($credentials, $this->rateLimiter, $integration);
     }
 
     public function authenticate(): bool
     {
-        return $this->client->testConnection();
+        try {
+            return $this->client->testConnection();
+        } catch (\Exception $e) {
+            Log::error('ThreatLocker: Authentication failed', [
+                'integration_id' => $this->integration->integration_id,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     /**
@@ -44,88 +57,530 @@ final class ThreatLockerIntegration implements IntegrationInterface
      */
     public function sync(): array
     {
+        Log::info('ThreatLocker: Starting sync', [
+            'integration_id' => $this->integration->integration_id,
+        ]);
+
+        $totalSynced = 0;
+        $totalFailed = 0;
+        /** @var array<int, string> $errors */
         $errors = [];
-        $this->mappedDuringSync = [];
-        $totalProcessed = 0;
+        /** @var array<int, array{id: int, name: string}> $customersMapped */
+        $customersMapped = [];
 
         try {
-            // Get all organizations from ThreatLocker
-            $organizations = $this->client->getOrganizations();
-            
-            Log::info('ThreatLocker Integration: Starting sync', [
-                'integration_id' => $this->integration->integration_id,
-                'organization_count' => count($organizations),
-            ]);
+            // Step 1: Sync organizations as integration customers
+            $orgResult = $this->syncOrganizations();
+            $totalSynced += $orgResult['synced'];
+            $totalFailed += $orgResult['failed'];
+            $errors = array_merge($errors, $orgResult['errors']);
+            $customersMapped = $orgResult['customers_mapped'];
 
-            foreach ($organizations as $org) {
-                try {
-                    $standardized = ThreatLockerMapper::mapOrganization($org);
-                    $this->storeCustomer($standardized);
-                    $totalProcessed++;
-                } catch (\Exception $e) {
-                    $orgId = $org['id'] ?? $org['organizationId'] ?? 'unknown';
-                    $errors[] = "Failed to process organization {$orgId}: {$e->getMessage()}";
-                    Log::error('ThreatLocker Integration: Failed to process organization', [
-                        'integration_id' => $this->integration->integration_id,
-                        'organization_id' => $orgId,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+            $this->sendHeartbeat($totalSynced);
+
+            // Step 2: Sync computers for each organization
+            /** @var array<string, mixed> $configuration */
+            $configuration = $this->integration->configuration ?? [];
+            $syncComputers = $configuration['sync_computers'] ?? true;
+
+            if ($syncComputers) {
+                $computerResult = $this->syncComputers();
+                $totalSynced += $computerResult['synced'];
+                $totalFailed += $computerResult['failed'];
+                $errors = array_merge($errors, $computerResult['errors']);
             }
 
+            $this->sendHeartbeat($totalSynced);
+
+            // Step 3: Sync policies (if enabled)
+            $syncPolicies = $configuration['sync_policies'] ?? true;
+
+            if ($syncPolicies) {
+                $policyResult = $this->syncPolicies();
+                $totalSynced += $policyResult['synced'];
+                $totalFailed += $policyResult['failed'];
+                $errors = array_merge($errors, $policyResult['errors']);
+            }
+
+            $this->sendHeartbeat($totalSynced);
+
+            // Step 4: Sync applications (if enabled)
+            $syncApplications = $configuration['sync_applications'] ?? true;
+
+            if ($syncApplications) {
+                $appResult = $this->syncApplications();
+                $totalSynced += $appResult['synced'];
+                $totalFailed += $appResult['failed'];
+                $errors = array_merge($errors, $appResult['errors']);
+            }
+
+            $this->sendHeartbeat($totalSynced);
+
+            // Step 5: Sync storage policies (if enabled)
+            $syncStoragePolicies = $configuration['sync_storage_policies'] ?? true;
+
+            if ($syncStoragePolicies) {
+                $storageResult = $this->syncStoragePolicies();
+                $totalSynced += $storageResult['synced'];
+                $totalFailed += $storageResult['failed'];
+                $errors = array_merge($errors, $storageResult['errors']);
+            }
+
+            $this->sendHeartbeat($totalSynced);
+
+            // Step 6: Sync storage devices (if enabled)
+            $syncStorageDevices = $configuration['sync_storage_devices'] ?? true;
+
+            if ($syncStorageDevices) {
+                $deviceResult = $this->syncStorageDevices();
+                $totalSynced += $deviceResult['synced'];
+                $totalFailed += $deviceResult['failed'];
+                $errors = array_merge($errors, $deviceResult['errors']);
+            }
+
+            $this->sendHeartbeat($totalSynced);
+
+            // Step 4: Auto-match customers
+            try {
+                BatchAutoMatchCustomersJob::dispatch($this->integration);
+            } catch (\Exception $e) {
+                Log::warning('ThreatLocker: Auto-match dispatch failed (non-critical)', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            Log::info('ThreatLocker: Sync completed', [
+                'integration_id' => $this->integration->integration_id,
+                'total_synced' => $totalSynced,
+                'total_failed' => $totalFailed,
+                'errors_count' => count($errors),
+            ]);
         } catch (\Exception $e) {
-            $errors[] = "Sync failed: {$e->getMessage()}";
-            Log::error('ThreatLocker Integration: Sync failed', [
+            Log::error('ThreatLocker: Sync failed', [
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
+            $errors[] = $e->getMessage();
         }
 
-        // Process unmapped customers
-        $this->processUnmappedCustomers();
-
-        $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNotNull('customer_id')
-            ->count();
-        
-        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->count();
-
-        Log::info('ThreatLocker Integration: Sync completed', [
-            'integration_id' => $this->integration->integration_id,
-            'total_processed' => $totalProcessed,
-            'mapped_count' => $mappedCount,
-            'unmapped_count' => $unmappedCount,
-            'errors' => count($errors),
-        ]);
-
         return [
-            'records_synced' => $mappedCount,
-            'records_new' => $unmappedCount,
-            'customers_mapped' => $this->mappedDuringSync,
-            'records_failed' => count($errors),
+            'records_synced' => $totalSynced,
+            'records_failed' => $totalFailed,
             'errors' => $errors,
+            'customers_mapped' => $customersMapped,
+            'batches_dispatched' => 0,
         ];
     }
 
     /**
-     * @return array<int, mixed>
+     * Sync organizations as integration customers
+     *
+     * @return array{synced: int, failed: int, errors: array<int, string>, customers_mapped: array<int, array{id: int, name: string}>}
      */
-    private function processUnmappedCustomers(): array
+    protected function syncOrganizations(): array
     {
-        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
-            ->whereNull('customer_id')
-            ->count();
-        
-        if ($unmappedCount > 0) {
-            BatchAutoMatchCustomersJob::dispatchSync($this->integration);
-            Log::info('ThreatLocker: Dispatched auto-match job', [
-                'integration_id' => $this->integration->integration_id,
-                'unmapped_count' => $unmappedCount,
-            ]);
+        $synced = 0;
+        $failed = 0;
+        /** @var array<int, string> $errors */
+        $errors = [];
+        /** @var array<int, array{id: int, name: string}> $customers_mapped */
+        $customers_mapped = [];
+
+        try {
+            $organizations = $this->client->getOrganizations();
+
+            foreach ($organizations as $org) {
+                try {
+                    $mapped = ThreatLockerMapper::mapOrganization($org);
+
+                    if (empty($mapped['external_id'])) {
+                        $failed++;
+                        continue;
+                    }
+
+                    $customer = IntegrationCustomer::updateOrCreate(
+                        [
+                            'integration_id' => $this->integration->integration_id,
+                            'external_id' => $mapped['external_id'],
+                        ],
+                        [
+                            'name' => $mapped['name'],
+                            'active' => $mapped['active'],
+                            'metadata' => $mapped['metadata'],
+                            'last_seen_at' => now(),
+                        ]
+                    );
+
+                    $customers_mapped[] = [
+                        'id' => $customer->integration_customer_id,
+                        'name' => (string) $mapped['name'],
+                    ];
+
+                    $synced++;
+                } catch (\Exception $e) {
+                    $failed++;
+                    $orgName = $org['name'] ?? 'unknown';
+                    $errors[] = "Org sync error ({$orgName}): " . $e->getMessage();
+                }
+            }
+        } catch (\Exception $e) {
+            $errors[] = 'Organization fetch failed: ' . $e->getMessage();
         }
-        return [];
+
+        Log::info('ThreatLocker: Organizations synced', [
+            'integration_id' => $this->integration->integration_id,
+            'synced' => $synced,
+            'failed' => $failed,
+        ]);
+
+        return compact('synced', 'failed', 'errors', 'customers_mapped');
+    }
+
+    /**
+     * Sync computers for all integration customers
+     *
+     * @return array{synced: int, failed: int, errors: array<int, string>}
+     */
+    protected function syncComputers(): array
+    {
+        $synced = 0;
+        $failed = 0;
+        /** @var array<int, string> $errors */
+        $errors = [];
+
+        $customers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($customers as $customer) {
+            try {
+                $orgId = $customer->external_id;
+                $computers = $this->client->getComputers($orgId);
+
+                foreach ($computers as $computer) {
+                    try {
+                        $mapped = ThreatLockerMapper::mapComputer($computer, $orgId);
+
+                        if (empty($mapped['external_id'])) {
+                            $failed++;
+                            continue;
+                        }
+
+                        IntegrationData::updateOrCreate(
+                            [
+                                'integration_id' => $this->integration->integration_id,
+                                'integration_customer_id' => $customer->integration_customer_id,
+                                'data_type' => $mapped['data_type'],
+                                'external_id' => $mapped['external_id'],
+                            ],
+                            [
+                                'data' => $mapped['data'],
+                                'last_seen_at' => now(),
+                            ]
+                        );
+
+                        $synced++;
+                    } catch (\Exception $e) {
+                        $failed++;
+                        $compName = $computer['computerName'] ?? 'unknown';
+                        $errors[] = "Computer sync error ({$compName}): " . $e->getMessage();
+                    }
+                }
+
+                $this->sendHeartbeat($synced);
+            } catch (\Exception $e) {
+                $errors[] = "Computer fetch failed for org {$customer->name}: " . $e->getMessage();
+            }
+        }
+
+        Log::info('ThreatLocker: Computers synced', [
+            'integration_id' => $this->integration->integration_id,
+            'synced' => $synced,
+            'failed' => $failed,
+        ]);
+
+        return compact('synced', 'failed', 'errors');
+    }
+
+    /**
+     * Sync policies for all integration customers
+     *
+     * @return array{synced: int, failed: int, errors: array<int, string>}
+     */
+    protected function syncPolicies(): array
+    {
+        $synced = 0;
+        $failed = 0;
+        /** @var array<int, string> $errors */
+        $errors = [];
+
+        $customers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($customers as $customer) {
+            try {
+                $orgId = $customer->external_id;
+                $policies = $this->client->getPolicies($orgId);
+
+                foreach ($policies as $policy) {
+                    try {
+                        $mapped = ThreatLockerMapper::mapPolicy($policy, $orgId);
+
+                        if (empty($mapped['external_id'])) {
+                            $failed++;
+                            continue;
+                        }
+
+                        IntegrationData::updateOrCreate(
+                            [
+                                'integration_id' => $this->integration->integration_id,
+                                'integration_customer_id' => $customer->integration_customer_id,
+                                'data_type' => $mapped['data_type'],
+                                'external_id' => $mapped['external_id'],
+                            ],
+                            [
+                                'data' => $mapped['data'],
+                                'last_seen_at' => now(),
+                            ]
+                        );
+
+                        $synced++;
+                    } catch (\Exception $e) {
+                        $failed++;
+                        $polName = $policy['name'] ?? 'unknown';
+                        $errors[] = "Policy sync error ({$polName}): " . $e->getMessage();
+                    }
+                }
+
+                $this->sendHeartbeat($synced);
+            } catch (\Exception $e) {
+                $errors[] = "Policy fetch failed for org {$customer->name}: " . $e->getMessage();
+            }
+        }
+
+        Log::info('ThreatLocker: Policies synced', [
+            'integration_id' => $this->integration->integration_id,
+            'synced' => $synced,
+            'failed' => $failed,
+        ]);
+
+        return compact('synced', 'failed', 'errors');
+    }
+
+    /**
+     * Sync applications for all integration customers
+     *
+     * @return array{synced: int, failed: int, errors: array<int, string>}
+     */
+    protected function syncApplications(): array
+    {
+        $synced = 0;
+        $failed = 0;
+        /** @var array<int, string> $errors */
+        $errors = [];
+
+        $customers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($customers as $customer) {
+            try {
+                $orgId = $customer->external_id;
+                $applications = $this->client->getApplications($orgId);
+
+                foreach ($applications as $app) {
+                    try {
+                        $mapped = ThreatLockerMapper::mapApplication($app, $orgId);
+
+                        if (empty($mapped['external_id'])) {
+                            $failed++;
+                            continue;
+                        }
+
+                        IntegrationData::updateOrCreate(
+                            [
+                                'integration_id' => $this->integration->integration_id,
+                                'integration_customer_id' => $customer->integration_customer_id,
+                                'data_type' => $mapped['data_type'],
+                                'external_id' => $mapped['external_id'],
+                            ],
+                            [
+                                'data' => $mapped['data'],
+                                'last_seen_at' => now(),
+                            ]
+                        );
+
+                        $synced++;
+                    } catch (\Exception $e) {
+                        $failed++;
+                        $appName = $app['name'] ?? 'unknown';
+                        $errors[] = "Application sync error ({$appName}): " . $e->getMessage();
+                    }
+                }
+
+                $this->sendHeartbeat($synced);
+            } catch (\Exception $e) {
+                $errors[] = "Application fetch failed for org {$customer->name}: " . $e->getMessage();
+            }
+        }
+
+        Log::info('ThreatLocker: Applications synced', [
+            'integration_id' => $this->integration->integration_id,
+            'synced' => $synced,
+            'failed' => $failed,
+        ]);
+
+        return compact('synced', 'failed', 'errors');
+    }
+
+    /**
+     * Sync storage control policies for all integration customers
+     *
+     * @return array{synced: int, failed: int, errors: array<int, string>}
+     */
+    protected function syncStoragePolicies(): array
+    {
+        $synced = 0;
+        $failed = 0;
+        /** @var array<int, string> $errors */
+        $errors = [];
+
+        $customers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($customers as $customer) {
+            try {
+                $orgId = $customer->external_id;
+
+                // Get groups first to scope storage policies
+                $groupData = $this->client->getComputerGroups($orgId);
+                $groups = $groupData['groups'];
+
+                foreach ($groups as $group) {
+                    $groupId = $group['groupId'] ?? null;
+                    if (!$groupId) {
+                        continue;
+                    }
+
+                    try {
+                        $policies = $this->client->getStoragePolicies($orgId, $groupId);
+
+                        foreach ($policies as $policy) {
+                            try {
+                                $mapped = ThreatLockerMapper::mapStoragePolicy($policy, $orgId);
+
+                                if (empty($mapped['external_id'])) {
+                                    $failed++;
+                                    continue;
+                                }
+
+                                IntegrationData::updateOrCreate(
+                                    [
+                                        'integration_id' => $this->integration->integration_id,
+                                        'integration_customer_id' => $customer->integration_customer_id,
+                                        'data_type' => $mapped['data_type'],
+                                        'external_id' => $mapped['external_id'],
+                                    ],
+                                    [
+                                        'data' => $mapped['data'],
+                                        'last_seen_at' => now(),
+                                    ]
+                                );
+
+                                $synced++;
+                            } catch (\Exception $e) {
+                                $failed++;
+                                $polName = $policy['name'] ?? 'unknown';
+                                $errors[] = "Storage policy sync error ({$polName}): " . $e->getMessage();
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        $groupName = $group['name'] ?? 'unknown';
+                        $errors[] = "Storage policy fetch failed for group {$groupName}: " . $e->getMessage();
+                    }
+                }
+
+                $this->sendHeartbeat($synced);
+            } catch (\Exception $e) {
+                $errors[] = "Storage policy fetch failed for org {$customer->name}: " . $e->getMessage();
+            }
+        }
+
+        Log::info('ThreatLocker: Storage policies synced', [
+            'integration_id' => $this->integration->integration_id,
+            'synced' => $synced,
+            'failed' => $failed,
+        ]);
+
+        return compact('synced', 'failed', 'errors');
+    }
+
+    /**
+     * Sync storage devices for all integration customers
+     *
+     * @return array{synced: int, failed: int, errors: array<int, string>}
+     */
+    protected function syncStorageDevices(): array
+    {
+        $synced = 0;
+        $failed = 0;
+        /** @var array<int, string> $errors */
+        $errors = [];
+
+        $customers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            ->where('active', true)
+            ->get();
+
+        foreach ($customers as $customer) {
+            try {
+                $orgId = $customer->external_id;
+                $devices = $this->client->getStorageDevices($orgId);
+
+                foreach ($devices as $device) {
+                    try {
+                        $mapped = ThreatLockerMapper::mapStorageDevice($device, $orgId);
+
+                        if (empty($mapped['external_id'])) {
+                            $failed++;
+                            continue;
+                        }
+
+                        IntegrationData::updateOrCreate(
+                            [
+                                'integration_id' => $this->integration->integration_id,
+                                'integration_customer_id' => $customer->integration_customer_id,
+                                'data_type' => $mapped['data_type'],
+                                'external_id' => $mapped['external_id'],
+                            ],
+                            [
+                                'data' => $mapped['data'],
+                                'last_seen_at' => now(),
+                            ]
+                        );
+
+                        $synced++;
+                    } catch (\Exception $e) {
+                        $failed++;
+                        $devName = $device['deviceName'] ?? 'unknown';
+                        $errors[] = "Storage device sync error ({$devName}): " . $e->getMessage();
+                    }
+                }
+
+                $this->sendHeartbeat($synced);
+            } catch (\Exception $e) {
+                $errors[] = "Storage device fetch failed for org {$customer->name}: " . $e->getMessage();
+            }
+        }
+
+        Log::info('ThreatLocker: Storage devices synced', [
+            'integration_id' => $this->integration->integration_id,
+            'synced' => $synced,
+            'failed' => $failed,
+        ]);
+
+        return compact('synced', 'failed', 'errors');
     }
 
     /**
@@ -134,57 +589,13 @@ final class ThreatLockerIntegration implements IntegrationInterface
     public function getCustomers(): array
     {
         $organizations = $this->client->getOrganizations();
-        return array_map(fn($org) => ThreatLockerMapper::mapOrganization($org), $organizations);
-    }
+        $customers = [];
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
-    {
-        $data = [];
-        $errors = [];
-
-        try {
-            // Get security events
-            $events = $this->client->getSecurityEvents(null, $startDate);
-            
-            foreach ($events as $event) {
-                try {
-                    $standardized = ThreatLockerMapper::mapSecurityEvent($event);
-                    $data[] = $standardized;
-                    $this->storeHistoricalData($standardized);
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to process security event: {$e->getMessage()}";
-                }
-            }
-
-            // Get application blocks
-            $blocks = $this->client->getApplicationBlocks(null, $startDate);
-            
-            foreach ($blocks as $block) {
-                try {
-                    $standardized = ThreatLockerMapper::mapApplicationBlock($block);
-                    $data[] = $standardized;
-                    $this->storeHistoricalData($standardized);
-                } catch (\Exception $e) {
-                    $errors[] = "Failed to process application block: {$e->getMessage()}";
-                }
-            }
-
-        } catch (\Exception $e) {
-            $errors[] = "Historical data fetch failed: {$e->getMessage()}";
+        foreach ($organizations as $org) {
+            $customers[] = ThreatLockerMapper::mapOrganization($org);
         }
 
-        return [
-            'data' => $data,
-            'errors' => $errors,
-        ];
-    }
-
-    public function getAvailableHistoryRange(): Carbon
-    {
-        return now()->subDays(90);
+        return $customers;
     }
 
     /**
@@ -193,25 +604,26 @@ final class ThreatLockerIntegration implements IntegrationInterface
     public function getMetadata(): array
     {
         return [
-            'name' => 'ThreatLocker',
-            'description' => 'ThreatLocker application allowlisting and ringfencing',
-            'data_types' => [
-                'threatlocker_organization',
-                'threatlocker_computer',
-                'threatlocker_policy',
-                'threatlocker_security_event',
-                'threatlocker_application_block',
-            ],
-            'supports_historical' => true,
-            'historical_range_days' => 90,
+            'name' => $this->config['name'] ?? 'ThreatLocker',
+            'description' => $this->config['description'] ?? '',
+            'version' => $this->config['version'] ?? '2.0.0',
+            'data_types' => array_keys($this->config['data_types'] ?? []),
+            'supports_historical' => false,
+            'historical_range_days' => 0,
+            'rate_limits' => $this->config['rate_limits'] ?? [],
         ];
     }
 
-    public function disconnect(): void
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getCredentialFields(): array
     {
-        Log::info('ThreatLocker Integration: Disconnected', [
-            'integration_id' => $this->integration->integration_id,
-        ]);
+        $fields = [];
+        foreach ($this->config['credentials'] ?? [] as $key => $field) {
+            $fields[] = array_merge(['key' => $key], $field);
+        }
+        return $fields;
     }
 
     public function healthCheck(): bool
@@ -224,145 +636,38 @@ final class ThreatLockerIntegration implements IntegrationInterface
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
+    {
+        // ThreatLocker Portal API doesn't support date-range historical queries
+        return [
+            'data' => [],
+            'total_processed' => 0,
+            'errors' => [],
+        ];
+    }
+
+    public function getAvailableHistoryRange(): ?Carbon
+    {
+        return null;
+    }
+
+    public function disconnect(): void
+    {
+        $this->client->clearCache();
+    }
+
+    /**
      * @return array<string, int>
      */
     public function getRateLimits(): array
     {
+        $rateLimits = $this->config['rate_limits'] ?? [];
+
         return [
-            'requests_per_minute' => 60,
-            'requests_per_hour' => 1000,
+            'requests_per_minute' => (int) ($rateLimits['requests_per_minute'] ?? 60),
+            'requests_per_hour' => (int) ($rateLimits['requests_per_hour'] ?? 1000),
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $customer
-     */
-    private function storeCustomer(array $customer): void
-    {
-        $integrationCustomer = IntegrationCustomer::updateOrCreate(
-            [
-                'integration_id' => $this->integration->integration_id,
-                'external_id' => $customer['external_id'],
-            ],
-            [
-                'name' => $customer['name'],
-                'metadata' => $customer['metadata'],
-                'active' => $customer['active'],
-                'last_seen_at' => now(),
-            ]
-        );
-
-        $integrationCustomer->refresh();
-
-        if (!$integrationCustomer->customer_id && $this->integration->is_source_of_truth) {
-            $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($integrationCustomer, 'ThreatLocker');
-        }
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     */
-    private function storeHistoricalData(array $data): void
-    {
-        $payload = $data['payload'];
-        $recordId = $payload['id'] ?? $payload['eventId'] ?? null;
-        
-        if ($recordId) {
-            $existing = IntegrationData::where('integration_id', $this->integration->integration_id)
-                ->where('data_type', $data['data_type'])
-                ->whereRaw("data_payload->>'id' = ?", [(string)$recordId])
-                ->first();
-
-            if ($existing) {
-                $existing->update([
-                    'data_timestamp' => $data['timestamp'],
-                    'data_payload' => $payload,
-                    'imported_at' => now(),
-                ]);
-            } else {
-                IntegrationData::create([
-                    'company_id' => $this->integration->company_id,
-                    'integration_id' => $this->integration->integration_id,
-                    'integration_customer_id' => $data['integration_customer_id'] ?? null,
-                    'data_type' => $data['data_type'],
-                    'data_timestamp' => $data['timestamp'],
-                    'data_payload' => $payload,
-                    'imported_at' => now(),
-                    'data_version' => 1,
-                ]);
-            }
-        } else {
-            IntegrationData::create([
-                'company_id' => $this->integration->company_id,
-                'integration_id' => $this->integration->integration_id,
-                'integration_customer_id' => $data['integration_customer_id'] ?? null,
-                'data_type' => $data['data_type'],
-                'data_timestamp' => $data['timestamp'],
-                'data_payload' => $payload,
-                'imported_at' => now(),
-                'data_version' => 1,
-            ]);
-        }
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    public function getCredentialFields(): array
-    {
-        return [
-            [
-                'name' => 'api_url',
-                'label' => 'API URL',
-                'type' => 'text',
-                'required' => true,
-                'default' => 'https://api.g.threatlocker.com/',
-                'placeholder' => 'https://api.g.threatlocker.com/',
-                'help' => 'Your region-specific ThreatLocker API URL',
-            ],
-            [
-                'name' => 'api_user_id',
-                'label' => 'API User ID',
-                'type' => 'text',
-                'required' => true,
-                'placeholder' => 'Enter your ThreatLocker API User ID',
-                'help' => 'The GUID identifier for your API User',
-            ],
-            [
-                'name' => 'api_secret',
-                'label' => 'API Secret',
-                'type' => 'password',
-                'required' => true,
-                'placeholder' => 'Enter your ThreatLocker API Secret',
-                'help' => 'The Secret key/Token for your API User',
-            ],
-            [
-                'name' => 'api_token_name',
-                'label' => 'API Token Name',
-                'type' => 'text',
-                'required' => false,
-                'placeholder' => 'Enter API Token Name',
-                'help' => 'The name of your API token (optional)',
-            ],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function getDisplayTemplate(): array
-    {
-        $builder = new \App\Integrations\DisplayTemplate\TemplateBuilder('threatlocker', 'ThreatLocker');
-        $builder->description('Application allowlisting and ringfencing');
-        
-        $builder->addSection('status', 'Integration Status', 'grid')
-            ->icon('Lock')
-            ->dataPath('status')
-            ->gridColumns(2)
-            ->addMetric('status', 'Status', 'status', 'text', 'CheckCircle', 'blue')
-            ->addMetric('message', 'Message', 'message', 'text', 'Info', 'gray')
-            ->end();
-        
-        return $builder->build();
     }
 }

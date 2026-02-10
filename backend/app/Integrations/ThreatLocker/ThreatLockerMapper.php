@@ -16,21 +16,19 @@ final class ThreatLockerMapper
      */
     public static function mapOrganization(array $org): array
     {
-        $id = $org['id'] ?? $org['organizationId'] ?? $org['Id'] ?? null;
-        $name = $org['name'] ?? $org['organizationName'] ?? $org['Name'] ?? 'Unknown Organization';
-        
+        $id = $org['organizationId'] ?? $org['id'] ?? $org['Id'] ?? null;
+        $name = $org['name'] ?? $org['Name'] ?? $org['organizationName'] ?? 'Unknown';
+        $parentId = $org['parentId'] ?? $org['ParentId'] ?? null;
+
         return [
             'external_id' => (string) $id,
             'name' => $name,
-            'active' => ($org['status'] ?? $org['isActive'] ?? true) === true || 
-                        ($org['status'] ?? '') === 'Active',
+            'active' => true,
             'metadata' => [
                 'organization_id' => $id,
-                'name' => $name,
-                'status' => $org['status'] ?? 'Active',
-                'computer_count' => $org['computerCount'] ?? $org['totalComputers'] ?? 0,
-                'created_at' => $org['createdAt'] ?? $org['dateCreated'] ?? null,
-                'parent_id' => $org['parentId'] ?? $org['parentOrganizationId'] ?? null,
+                'parent_id' => $parentId,
+                'computer_count' => $org['computerCount'] ?? $org['ComputerCount'] ?? null,
+                'source' => 'threatlocker',
             ],
         ];
     }
@@ -39,27 +37,44 @@ final class ThreatLockerMapper
      * Map ThreatLocker computer/endpoint to standardized format
      * 
      * @param array<string, mixed> $computer
+     * @param string $organizationId
      * @return array<string, mixed>
      */
-    public static function mapComputer(array $computer, ?int $integrationCustomerId = null): array
+    public static function mapComputer(array $computer, string $organizationId): array
     {
-        $id = $computer['id'] ?? $computer['computerId'] ?? $computer['Id'] ?? null;
-        
+        $computerId = $computer['computerId'] ?? $computer['id'] ?? $computer['ComputerId'] ?? null;
+        $computerName = $computer['computerName'] ?? $computer['name'] ?? $computer['ComputerName'] ?? 'Unknown';
+
+        $lastCheckIn = $computer['lastCheckin'] ?? $computer['lastCheckIn'] ?? $computer['LastCheckin'] ?? null;
+        $lastCheckInDate = null;
+        if ($lastCheckIn) {
+            try {
+                $lastCheckInDate = Carbon::parse($lastCheckIn)->toIso8601String();
+            } catch (\Exception $e) {
+                $lastCheckInDate = $lastCheckIn;
+            }
+        }
+
         return [
-            'integration_customer_id' => $integrationCustomerId,
+            'external_id' => (string) $computerId,
             'data_type' => 'threatlocker_computer',
-            'timestamp' => Carbon::parse($computer['lastSeen'] ?? $computer['lastCheckIn'] ?? now()),
-            'payload' => [
-                'id' => $id,
-                'computer_name' => $computer['computerName'] ?? $computer['name'] ?? 'Unknown',
-                'organization_id' => $computer['organizationId'] ?? null,
-                'os' => $computer['operatingSystem'] ?? $computer['os'] ?? null,
-                'os_version' => $computer['osVersion'] ?? null,
-                'agent_version' => $computer['agentVersion'] ?? $computer['version'] ?? null,
-                'last_seen' => $computer['lastSeen'] ?? $computer['lastCheckIn'] ?? null,
-                'status' => $computer['status'] ?? 'Unknown',
-                'ip_address' => $computer['ipAddress'] ?? $computer['localIp'] ?? null,
-                'is_online' => $computer['isOnline'] ?? ($computer['status'] === 'Online'),
+            'organization_id' => $organizationId,
+            'data' => [
+                'computer_id' => $computerId,
+                'computer_name' => $computerName,
+                'organization_id' => $organizationId,
+                'os_name' => $computer['osName'] ?? $computer['OsName'] ?? null,
+                'os_version' => $computer['osVersion'] ?? $computer['OsVersion'] ?? null,
+                'last_check_in' => $lastCheckInDate,
+                'ip_address' => $computer['ipAddress'] ?? $computer['IpAddress'] ?? null,
+                'agent_version' => $computer['agentVersion'] ?? $computer['AgentVersion'] ?? null,
+                'is_online' => $computer['isOnline'] ?? $computer['IsOnline'] ?? null,
+                'computer_group_id' => $computer['computerGroupId'] ?? $computer['ComputerGroupId'] ?? null,
+                'computer_group_name' => $computer['computerGroupName'] ?? $computer['ComputerGroupName'] ?? null,
+                'is_server' => $computer['isServer'] ?? $computer['IsServer'] ?? null,
+                'domain' => $computer['domain'] ?? $computer['Domain'] ?? null,
+                'logged_on_user' => $computer['loggedOnUser'] ?? $computer['LoggedOnUser'] ?? null,
+                'has_computer_password' => $computer['hasComputerPassword'] ?? false,
             ],
         ];
     }
@@ -68,88 +83,152 @@ final class ThreatLockerMapper
      * Map ThreatLocker policy data into a standardized IntegrationData payload
      * 
      * @param array<string, mixed> $policy
+     * @param string $organizationId
      * @return array<string, mixed>
      */
-    public static function mapPolicy(array $policy, ?int $integrationCustomerId = null): array
+    public static function mapPolicy(array $policy, string $organizationId): array
     {
-        $id = $policy['id'] ?? $policy['policyId'] ?? $policy['Id'] ?? null;
-        
+        $policyId = $policy['policyId'] ?? $policy['id'] ?? $policy['PolicyId'] ?? null;
+        $policyName = $policy['name'] ?? $policy['policyName'] ?? $policy['Name'] ?? 'Unknown';
+
         return [
-            'integration_customer_id' => $integrationCustomerId,
+            'external_id' => (string) $policyId,
             'data_type' => 'threatlocker_policy',
-            'timestamp' => Carbon::parse($policy['createdAt'] ?? $policy['dateCreated'] ?? now()),
-            'payload' => [
-                'id' => $id,
-                'name' => $policy['name'] ?? $policy['policyName'] ?? 'Unknown Policy',
-                'type' => $policy['type'] ?? $policy['policyType'] ?? null,
-                'organization_id' => $policy['organizationId'] ?? null,
-                'status' => $policy['status'] ?? 'Active',
-                'description' => $policy['description'] ?? null,
-                'created_at' => $policy['createdAt'] ?? $policy['dateCreated'] ?? null,
-                'updated_at' => $policy['updatedAt'] ?? $policy['dateModified'] ?? null,
+            'organization_id' => $organizationId,
+            'data' => [
+                'policy_id' => $policyId,
+                'policy_name' => $policyName,
+                'organization_id' => $organizationId,
+                'policy_type' => $policy['policyType'] ?? $policy['PolicyType'] ?? null,
+                'status' => $policy['status'] ?? $policy['Status'] ?? null,
+                'is_enabled' => $policy['isEnabled'] ?? $policy['IsEnabled'] ?? true,
+                'action' => $policy['action'] ?? $policy['Action'] ?? null,
+                'description' => $policy['description'] ?? $policy['Description'] ?? null,
+                'computer_group_id' => $policy['computerGroupId'] ?? $policy['ComputerGroupId'] ?? null,
+                'computer_group_name' => $policy['computerGroupName'] ?? $policy['ComputerGroupName'] ?? null,
+                'application_name' => $policy['applicationName'] ?? $policy['ApplicationName'] ?? null,
+                'created_at' => $policy['createdDate'] ?? $policy['CreatedDate'] ?? null,
+                'modified_at' => $policy['modifiedDate'] ?? $policy['ModifiedDate'] ?? null,
             ],
         ];
     }
 
     /**
-     * Map ThreatLocker security event into a standardized IntegrationData payload
-     * 
-     * @param array<string, mixed> $event
+     * Map ThreatLocker application to standardized format
+     *
+     * @param array<string, mixed> $app
+     * @param string $organizationId
      * @return array<string, mixed>
      */
-    public static function mapSecurityEvent(array $event, ?int $integrationCustomerId = null): array
+    public static function mapApplication(array $app, string $organizationId): array
     {
-        $id = $event['id'] ?? $event['eventId'] ?? $event['Id'] ?? null;
-        $timestamp = $event['timestamp'] ?? $event['eventTime'] ?? $event['dateTime'] ?? now();
-        
+        $appId = $app['applicationId'] ?? $app['id'] ?? $app['ApplicationId'] ?? null;
+        $appName = $app['name'] ?? $app['applicationName'] ?? $app['Name'] ?? 'Unknown';
+
         return [
-            'integration_customer_id' => $integrationCustomerId,
-            'data_type' => 'threatlocker_security_event',
-            'timestamp' => Carbon::parse($timestamp),
-            'payload' => [
-                'id' => $id,
-                'event_type' => $event['eventType'] ?? $event['type'] ?? 'Unknown',
-                'severity' => $event['severity'] ?? $event['level'] ?? 'Info',
-                'computer_name' => $event['computerName'] ?? $event['machineName'] ?? null,
-                'computer_id' => $event['computerId'] ?? null,
-                'organization_id' => $event['organizationId'] ?? null,
-                'user' => $event['user'] ?? $event['userName'] ?? null,
-                'description' => $event['description'] ?? $event['message'] ?? null,
-                'application' => $event['application'] ?? $event['processName'] ?? null,
-                'path' => $event['path'] ?? $event['filePath'] ?? null,
-                'hash' => $event['hash'] ?? $event['fileHash'] ?? null,
-                'timestamp' => $timestamp,
+            'external_id' => (string) $appId,
+            'data_type' => 'threatlocker_application',
+            'organization_id' => $organizationId,
+            'data' => [
+                'application_id' => $appId,
+                'application_name' => $appName,
+                'organization_id' => $organizationId,
+                'description' => $app['description'] ?? $app['Description'] ?? null,
+                'os_type' => $app['osType'] ?? $app['OsType'] ?? null,
+                'is_built_in' => $app['isBuiltInApplication'] ?? $app['IsBuiltInApplication'] ?? false,
+                'is_hidden' => $app['isHidden'] ?? $app['IsHidden'] ?? false,
+                'is_temporary' => $app['isTemporary'] ?? $app['IsTemporary'] ?? false,
+                'file_count' => $app['fileCount'] ?? $app['FileCount'] ?? null,
+                'category' => $app['category'] ?? $app['Category'] ?? null,
             ],
         ];
     }
 
     /**
-     * Map ThreatLocker application block into a standardized IntegrationData payload
-     * 
-     * @param array<string, mixed> $block
+     * Map ThreatLocker application file to standardized format
+     *
+     * @param array<string, mixed> $file
+     * @param string $organizationId
+     * @param string $applicationId
      * @return array<string, mixed>
      */
-    public static function mapApplicationBlock(array $block, ?int $integrationCustomerId = null): array
+    public static function mapApplicationFile(array $file, string $organizationId, string $applicationId): array
     {
-        $id = $block['id'] ?? $block['blockId'] ?? $block['Id'] ?? null;
-        $timestamp = $block['timestamp'] ?? $block['blockTime'] ?? $block['dateTime'] ?? now();
-        
+        $fileId = $file['applicationFileId'] ?? $file['id'] ?? $file['ApplicationFileId'] ?? null;
+
         return [
-            'integration_customer_id' => $integrationCustomerId,
-            'data_type' => 'threatlocker_application_block',
-            'timestamp' => Carbon::parse($timestamp),
-            'payload' => [
-                'id' => $id,
-                'application_name' => $block['applicationName'] ?? $block['processName'] ?? 'Unknown',
-                'computer_name' => $block['computerName'] ?? $block['machineName'] ?? null,
-                'computer_id' => $block['computerId'] ?? null,
-                'organization_id' => $block['organizationId'] ?? null,
-                'user' => $block['user'] ?? $block['userName'] ?? null,
-                'path' => $block['path'] ?? $block['filePath'] ?? null,
-                'hash' => $block['hash'] ?? $block['fileHash'] ?? null,
-                'reason' => $block['reason'] ?? $block['blockReason'] ?? null,
-                'policy_name' => $block['policyName'] ?? null,
-                'timestamp' => $timestamp,
+            'external_id' => (string) $fileId,
+            'data_type' => 'threatlocker_application_file',
+            'organization_id' => $organizationId,
+            'data' => [
+                'file_id' => $fileId,
+                'application_id' => $applicationId,
+                'organization_id' => $organizationId,
+                'file_name' => $file['fileName'] ?? $file['FileName'] ?? null,
+                'full_path' => $file['fullPath'] ?? $file['FullPath'] ?? null,
+                'process_path' => $file['processPath'] ?? $file['ProcessPath'] ?? null,
+                'hash' => $file['hash'] ?? $file['Hash'] ?? null,
+                'certificate' => $file['certificate'] ?? $file['Certificate'] ?? null,
+                'file_type' => $file['fileType'] ?? $file['FileType'] ?? null,
+            ],
+        ];
+    }
+
+    /**
+     * Map ThreatLocker storage control policy to standardized format
+     *
+     * @param array<string, mixed> $policy
+     * @param string $organizationId
+     * @return array<string, mixed>
+     */
+    public static function mapStoragePolicy(array $policy, string $organizationId): array
+    {
+        $policyId = $policy['storagePolicyId'] ?? $policy['id'] ?? $policy['StoragePolicyId'] ?? null;
+        $policyName = $policy['name'] ?? $policy['policyName'] ?? $policy['Name'] ?? 'Unknown';
+
+        return [
+            'external_id' => (string) $policyId,
+            'data_type' => 'threatlocker_storage_policy',
+            'organization_id' => $organizationId,
+            'data' => [
+                'policy_id' => $policyId,
+                'policy_name' => $policyName,
+                'organization_id' => $organizationId,
+                'status' => $policy['status'] ?? $policy['Status'] ?? null,
+                'is_enabled' => $policy['isEnabled'] ?? $policy['IsEnabled'] ?? true,
+                'action' => $policy['action'] ?? $policy['Action'] ?? null,
+                'description' => $policy['description'] ?? $policy['Description'] ?? null,
+                'computer_group_id' => $policy['computerGroupId'] ?? $policy['ComputerGroupId'] ?? null,
+                'computer_group_name' => $policy['computerGroupName'] ?? $policy['ComputerGroupName'] ?? null,
+                'device_type' => $policy['deviceType'] ?? $policy['DeviceType'] ?? null,
+            ],
+        ];
+    }
+
+    /**
+     * Map ThreatLocker storage device to standardized format
+     *
+     * @param array<string, mixed> $device
+     * @param string $organizationId
+     * @return array<string, mixed>
+     */
+    public static function mapStorageDevice(array $device, string $organizationId): array
+    {
+        $deviceId = $device['storageDeviceId'] ?? $device['id'] ?? $device['StorageDeviceId'] ?? null;
+
+        return [
+            'external_id' => (string) $deviceId,
+            'data_type' => 'threatlocker_storage_device',
+            'organization_id' => $organizationId,
+            'data' => [
+                'device_id' => $deviceId,
+                'organization_id' => $organizationId,
+                'device_name' => $device['deviceName'] ?? $device['DeviceName'] ?? null,
+                'serial_number' => $device['serialNumber'] ?? $device['SerialNumber'] ?? null,
+                'vendor_id' => $device['vendorId'] ?? $device['VendorId'] ?? null,
+                'product_id' => $device['productId'] ?? $device['ProductId'] ?? null,
+                'device_type' => $device['deviceType'] ?? $device['DeviceType'] ?? null,
+                'is_approved' => $device['isApproved'] ?? $device['IsApproved'] ?? null,
             ],
         ];
     }
