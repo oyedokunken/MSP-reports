@@ -380,6 +380,7 @@ final class IntegrationController extends Controller
             'Barracuda' => \App\Integrations\Barracuda\BarracudaIntegration::class,
             'SharePoint' => \App\Integrations\SharePoint\SharePointIntegration::class,
             'ActiveDirectory' => \App\Integrations\ActiveDirectory\ActiveDirectoryIntegration::class,
+            'ThreatLocker' => \App\Integrations\ThreatLocker\ThreatLockerIntegration::class,
         ];
 
         $className = $integrationClasses[$integration->integration_type] ?? null;

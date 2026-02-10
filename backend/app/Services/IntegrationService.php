@@ -193,9 +193,7 @@ class IntegrationService
                 break;
             case 'ThreatLocker':
                 $credentials['api_url'] = $credentials['api_url'] ?? 'https://api.g.threatlocker.com/';
-                if (isset($credentials['api_url'])) {
-                    $credentials['api_url'] = rtrim($credentials['api_url'], '/') . '/';
-                }
+                $credentials['api_url'] = rtrim($credentials['api_url'], '/') . '/';
                 break;
         }
 
@@ -304,7 +302,7 @@ class IntegrationService
         return match ($integrationType) {
             'Datto' => '*/5 * * * *',
             'LibreNMS', 'Autotask' => '*/10 * * * *',
-            'ITGlue', 'SaaS', 'BitDefender', 'Sendmarc', 'Barracuda' => '0 */6 * * *',
+            'ITGlue', 'SaaS', 'BitDefender', 'Sendmarc', 'Barracuda', 'ThreatLocker' => '0 */6 * * *',
             default => '0 */6 * * *',
         };
     }

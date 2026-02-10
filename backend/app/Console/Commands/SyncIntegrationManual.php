@@ -16,6 +16,7 @@ use App\Integrations\LibreNMS\LibreNMSIntegration;
 use App\Integrations\BitDefender\BitDefenderIntegration;
 use App\Integrations\SaaS\SaaSIntegration;
 use App\Integrations\VeeamOne\VeeamOneIntegration;
+use App\Integrations\ThreatLocker\ThreatLockerIntegration;
 
 class SyncIntegrationManual extends Command
 {
@@ -36,6 +37,7 @@ class SyncIntegrationManual extends Command
         'BitDefender' => BitDefenderIntegration::class,
         'SaaS' => SaaSIntegration::class,
         'VeeamOne' => VeeamOneIntegration::class,
+        'ThreatLocker' => ThreatLockerIntegration::class,
     ];
 
     public function handle(SyncEngine $syncEngine): int

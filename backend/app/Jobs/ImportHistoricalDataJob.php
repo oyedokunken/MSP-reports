@@ -333,6 +333,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
             'VeeamOne' => VeeamOneIntegration::class,
             'CIPP' => CIPPIntegration::class,
             'Barracuda' => \App\Integrations\Barracuda\BarracudaIntegration::class,
+            'ThreatLocker' => \App\Integrations\ThreatLocker\ThreatLockerIntegration::class,
         ];
 
         $className = $integrationClasses[$integration->integration_type] ?? null;
