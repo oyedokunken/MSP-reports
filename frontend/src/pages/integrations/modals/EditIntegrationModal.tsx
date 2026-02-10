@@ -17,8 +17,16 @@ interface EditIntegrationModalProps {
   onSuccess?: () => void
 }
 
+interface CredentialField {
+  name: string
+  label: string
+  type?: string
+  required?: boolean
+  help?: string
+}
+
 // Static cache to store integration configs and avoid multiple API calls
-const configCache: Record<string, any[]> = {}
+const configCache: Record<string, CredentialField[]> = {}
 
 export function EditIntegrationModal({
   open,
@@ -30,7 +38,7 @@ export function EditIntegrationModal({
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [displayName, setDisplayName] = useState('')
-  const [credentialFields, setCredentialFields] = useState<any[]>([])
+  const [credentialFields, setCredentialFields] = useState<CredentialField[]>([])
   const [loadingConfig, setLoadingConfig] = useState(false)
 
 
@@ -51,7 +59,7 @@ export function EditIntegrationModal({
 
         setLoadingConfig(true)
         try {
-          const response = await api.get<{ config: { credential_fields: any[] } }>(`/integrations/config/${integration.type}`)
+          const response = await api.get<{ config: { credential_fields: CredentialField[] } }>(`/integrations/config/${integration.type}`)
           if (response?.config?.credential_fields) {
             configCache[integration.type] = response.config.credential_fields
             setCredentialFields(response.config.credential_fields)

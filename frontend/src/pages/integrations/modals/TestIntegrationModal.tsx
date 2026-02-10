@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -35,13 +35,7 @@ export function TestIntegrationModal({
   const [results, setResults] = useState<TestResult[]>([])
   const [overallStatus, setOverallStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle')
 
-  useEffect(() => {
-    if (open && integration) {
-      runTest()
-    }
-  }, [open, integration])
-
-  const runTest = async () => {
+  const runTest = useCallback(async () => {
     if (!integration) return
 
     setIsTesting(true)
@@ -117,7 +111,13 @@ export function TestIntegrationModal({
       setIsTesting(false)
       setCurrentStep('')
     }
-  }
+  }, [integration])
+
+  useEffect(() => {
+    if (open && integration) {
+      runTest()
+    }
+  }, [open, integration, runTest])
 
   const handleClose = () => {
     if (isTesting) return
@@ -172,20 +172,18 @@ export function TestIntegrationModal({
 
           {/* Overall Status */}
           {!isTesting && overallStatus !== 'idle' && (
-            <div className={`p-4 rounded-lg border ${
-              overallStatus === 'success' 
-                ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' 
-                : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
-            }`}>
+            <div className={`p-4 rounded-lg border ${overallStatus === 'success'
+              ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+              : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+              }`}>
               <div className="flex items-center gap-2">
                 {overallStatus === 'success' ? (
                   <CheckCircle2 className="h-6 w-6 text-green-500" />
                 ) : (
                   <XCircle className="h-6 w-6 text-red-500" />
                 )}
-                <span className={`font-semibold ${
-                  overallStatus === 'success' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
-                }`}>
+                <span className={`font-semibold ${overallStatus === 'success' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'
+                  }`}>
                   {overallStatus === 'success' ? 'All Tests Passed!' : 'Test Failed'}
                 </span>
               </div>

@@ -12,12 +12,14 @@ import { Settings, MoreVertical, Edit, FileText, Cable, Send, CheckCircle, XCirc
 import { useNavigate } from "react-router-dom";
 import type { MappedCustomer } from "../types";
 
+export type CustomerAction = 'edit' | 'integrations' | 'applyTemplate' | 'delivery' | 'merge' | 'split';
+
 interface MasterCustomersTableProps {
     customers: MappedCustomer[];
     isLoading: boolean;
     canConfigureReports: boolean;
     canEditCustomers: boolean;
-    onCustomerAction: (customer: MappedCustomer, action: any) => void;
+    onCustomerAction: (customer: MappedCustomer, action: CustomerAction) => void;
 }
 
 export function MasterCustomersTable({
