@@ -312,20 +312,37 @@ final class ThreatLockerIntegration implements IntegrationInterface
     {
         return [
             [
-                'name' => 'api_key',
-                'label' => 'API Key',
-                'type' => 'password',
-                'required' => true,
-                'placeholder' => 'Enter your ThreatLocker API key',
-                'help' => 'Your ThreatLocker API key from the admin portal',
-            ],
-            [
-                'name' => 'organization_id',
-                'label' => 'Organization ID',
+                'name' => 'api_url',
+                'label' => 'API URL',
                 'type' => 'text',
                 'required' => true,
-                'placeholder' => 'Enter your Organization ID',
-                'help' => 'Your ThreatLocker organization identifier',
+                'default' => 'https://api.g.threatlocker.com/',
+                'placeholder' => 'https://api.g.threatlocker.com/',
+                'help' => 'Your region-specific ThreatLocker API URL',
+            ],
+            [
+                'name' => 'api_user_id',
+                'label' => 'API User ID',
+                'type' => 'text',
+                'required' => true,
+                'placeholder' => 'Enter your ThreatLocker API User ID',
+                'help' => 'The GUID identifier for your API User',
+            ],
+            [
+                'name' => 'api_secret',
+                'label' => 'API Secret',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter your ThreatLocker API Secret',
+                'help' => 'The Secret key/Token for your API User',
+            ],
+            [
+                'name' => 'api_token_name',
+                'label' => 'API Token Name',
+                'type' => 'text',
+                'required' => false,
+                'placeholder' => 'Enter API Token Name',
+                'help' => 'The name of your API token (optional)',
             ],
         ];
     }

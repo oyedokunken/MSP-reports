@@ -113,3 +113,5 @@ Homestead.yaml
 docker-compose.override.yml
 *.bak
 services/embedding/venv/
+
+/tts

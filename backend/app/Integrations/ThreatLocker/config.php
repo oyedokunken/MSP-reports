@@ -4,26 +4,39 @@ declare(strict_types=1);
 
 return [
     'name' => 'ThreatLocker',
-    'description' => 'ThreatLocker application allowlisting and ringfencing integration (placeholder configuration)',
+    'description' => 'ThreatLocker application allowlisting and ringfencing integration',
     'version' => '1.0.0',
 
-    // Placeholder credential fields – update once real API details are known
+    // Credential fields for ThreatLocker authentication
     'credentials' => [
         'api_url' => [
             'type' => 'text',
             'label' => 'API URL',
-            'required' => false,
-            'default' => 'https://api.threatlocker.com',
-            'placeholder' => 'https://api.threatlocker.com',
-            'help' => 'ThreatLocker API base URL. Use a real endpoint when available.',
+            'required' => true,
+            'default' => 'https://api.g.threatlocker.com/',
+            'placeholder' => 'https://api.g.threatlocker.com/',
+            'help' => 'ThreatLocker API base URL. Use the region-specific URL provided (e.g., api.g, api.eu, api.au).',
         ],
-        'api_key' => [
+        'api_user_id' => [
+            'type' => 'text',
+            'label' => 'API User ID',
+            'required' => true,
+            'placeholder' => 'Enter ThreatLocker API User ID',
+            'help' => 'The GUID identifier for the API User.',
+        ],
+        'api_secret' => [
             'type' => 'password',
-            'label' => 'API Key',
+            'label' => 'API Secret',
+            'required' => true,
+            'placeholder' => 'Enter ThreatLocker API Secret',
+            'help' => 'The Secret key/Token generated for the API User.',
+        ],
+        'api_token_name' => [
+            'type' => 'text',
+            'label' => 'API Token Name',
             'required' => false,
-            'encrypted' => true,
-            'placeholder' => 'Enter ThreatLocker API key (optional for now)',
-            'help' => 'Placeholder credential until real ThreatLocker API details are defined.',
+            'placeholder' => 'Enter API Token Name',
+            'help' => 'The name given to the API token (e.g., msp-reports@...)',
         ],
     ],
 
@@ -37,11 +50,10 @@ return [
     ],
 
     'data_types' => [
-        // These are speculative; adjust once real use-cases are known
-        'allowlist_policies' => 'ThreatLocker Allowlist Policies (placeholder)',
-        'ringfencing_policies' => 'ThreatLocker Ringfencing Policies (placeholder)',
-        'blocked_applications' => 'ThreatLocker Blocked Applications (placeholder)',
-        'security_events' => 'ThreatLocker Security Events (placeholder)',
+        'allowlist_policies' => 'ThreatLocker Allowlist Policies',
+        'ringfencing_policies' => 'ThreatLocker Ringfencing Policies',
+        'blocked_applications' => 'ThreatLocker Blocked Applications',
+        'security_events' => 'ThreatLocker Security Events',
     ],
 
     'rate_limits' => [

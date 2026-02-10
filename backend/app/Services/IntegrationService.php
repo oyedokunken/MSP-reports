@@ -191,6 +191,12 @@ class IntegrationService
             case 'BitDefender':
                 $credentials['api_url'] = $credentials['api_url'] ?? 'https://cloud.gravityzone.bitdefender.com/api/v1.0/jsonrpc';
                 break;
+            case 'ThreatLocker':
+                $credentials['api_url'] = $credentials['api_url'] ?? 'https://api.g.threatlocker.com/';
+                if (isset($credentials['api_url'])) {
+                    $credentials['api_url'] = rtrim($credentials['api_url'], '/') . '/';
+                }
+                break;
         }
 
         return $credentials;
