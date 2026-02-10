@@ -156,6 +156,7 @@ export default function FloatingNav() {
                         <Button
                             variant="ghost"
                             size="sm"
+                            data-tour="notifications-bell"
                             onClick={() =>
                                 setIsNotificationMenuOpen(!isNotificationMenuOpen)
                             }
@@ -199,8 +200,8 @@ export default function FloatingNav() {
                                                         )
                                                     }
                                                     className={`p-3 hover:bg-muted/50 cursor-pointer border-b border-border last:border-b-0 transition-colors ${!notification.read
-                                                            ? "bg-primary/5"
-                                                            : ""
+                                                        ? "bg-primary/5"
+                                                        : ""
                                                         }`}
                                                 >
                                                     <div className="flex items-start gap-3">
@@ -257,9 +258,9 @@ export default function FloatingNav() {
                     >
                         <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground overflow-hidden shadow-sm border border-gray-200 dark:border-gray-800">
                             {user?.profile_picture_url ? (
-                                <img 
-                                    src={user.profile_picture_url} 
-                                    alt={user.name || "User"} 
+                                <img
+                                    src={user.profile_picture_url}
+                                    alt={user.name || "User"}
                                     className="h-full w-full object-cover"
                                 />
                             ) : (

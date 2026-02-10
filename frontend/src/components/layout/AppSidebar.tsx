@@ -20,8 +20,8 @@ import {
   HelpCircle,
   Shield,
   ShieldCheck,
-  User,
-  Settings,
+  // User,
+  // Settings,
 } from 'lucide-react'
 import { hasPermission } from '@/utils/permissions'
 import { useAuth } from '@/contexts/AuthContext'
@@ -83,36 +83,75 @@ export default function AppSidebar() {
     sessionStorage.setItem('customersExpanded', String(customersExpanded))
   }, [customersExpanded])
 
-  const navItems = [
-    { path: '/platform/dashboard', icon: LayoutDashboard, label: 'Dashboard', show: true, tourId: 'nav-dashboard' },
-    { path: '/platform/integrations', icon: Cable, label: 'Integrations', show: hasPermission(user, 'integrations', 'view'), tourId: 'nav-integrations' },
-    { path: '/platform/customers', icon: Users, label: 'Customers', show: hasPermission(user, 'customers', 'view'), tourId: 'nav-customers', isCustomers: true },
-    { path: '/platform/reports', icon: FileText, label: 'Reports', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-reports' },
-    { path: '/platform/schedules', icon: Calendar, label: 'Schedules', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-schedules' },
-    { path: '/platform/templates', icon: LayoutTemplate, label: 'Templates', show: hasPermission(user, 'reports', 'configure'), tourId: 'nav-templates' },
-    { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: hasPermission(user, 'notifications', 'view'), tourId: 'nav-notifications' },
-  ].filter(item => item.show !== false)
-
   const customersSubItems = [
     { path: '/platform/customers/master', icon: Database, label: 'Master List', show: hasPermission(user, 'customers', 'view') },
     { path: '/platform/customers/secondary', icon: Building2, label: 'Secondary List', show: hasPermission(user, 'customers', 'view') },
     { path: '/platform/customers/map', icon: MapPin, label: 'Map Customers', badge: unmappedCount, show: hasPermission(user, 'customers', 'map') },
   ].filter(item => item.show)
 
-  const profileNavItems = [
-    { path: '/profile/me', icon: User, label: 'My Profile', show: true },
-    { path: '/profile/settings', icon: Settings, label: 'Settings', show: hasPermission(user, 'company_settings', 'view') },
-    { path: '/profile/security', icon: Shield, label: 'Security', show: true },
-  ].filter(item => item.show !== false)
+  interface NavItem {
+    path: string
+    icon: any
+    label: string
+    show: boolean
+    tourId?: string
+    isCustomers?: boolean
+    hasBadge?: boolean
+  }
 
-  const adminNavItems = [
-    { path: '/admin/users', icon: UserPlus, label: 'Users', show: hasPermission(user, 'users', 'view') },
-    { path: '/admin/api-keys', icon: KeyRound, label: 'API Keys', show: hasPermission(user, 'api_keys', 'view') },
-    { path: '/admin/licenses', icon: FileBadge, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view') },
-    { path: '/admin/monitoring', icon: Activity, label: 'Monitoring', show: hasPermission(user, 'monitoring', 'view') },
-    { path: '/admin/status', icon: ShieldCheck, label: 'System Status', show: hasPermission(user, 'monitoring', 'view') },
-    { path: '/admin/audit-logs', icon: Shield, label: 'Audit Logs', show: hasPermission(user, 'security', 'view_logs') },
-  ].filter(item => item.show !== false)
+  interface NavGroup {
+    label: string
+    items: NavItem[]
+  }
+
+  const menuGroups: NavGroup[] = [
+    {
+      label: 'General',
+      items: [
+        { path: '/platform/dashboard', icon: LayoutDashboard, label: 'Dashboard', show: true, tourId: 'nav-dashboard' },
+        { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: hasPermission(user, 'notifications', 'view'), tourId: 'nav-notifications', hasBadge: true },
+      ]
+    },
+    {
+      label: 'Clients',
+      items: [
+        { path: '/platform/customers', icon: Users, label: 'Customers', show: hasPermission(user, 'customers', 'view'), tourId: 'nav-customers', isCustomers: true },
+        { path: '/platform/integrations', icon: Cable, label: 'Integrations', show: hasPermission(user, 'integrations', 'view'), tourId: 'nav-integrations' },
+      ]
+    },
+    {
+      label: 'Reporting',
+      items: [
+        { path: '/platform/reports', icon: FileText, label: 'Reports', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-reports' },
+        { path: '/platform/schedules', icon: Calendar, label: 'Schedules', show: hasPermission(user, 'reports', 'view'), tourId: 'nav-schedules' },
+        { path: '/platform/templates', icon: LayoutTemplate, label: 'Templates', show: hasPermission(user, 'reports', 'configure'), tourId: 'nav-templates' },
+      ]
+    },
+    {
+      label: 'Admin',
+      items: [
+        { path: '/admin/users', icon: UserPlus, label: 'Users', show: hasPermission(user, 'users', 'view') },
+        { path: '/admin/api-keys', icon: KeyRound, label: 'API Keys', show: hasPermission(user, 'api_keys', 'view') },
+        { path: '/admin/licenses', icon: FileBadge, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view') },
+        { path: '/admin/monitoring', icon: Activity, label: 'Monitoring', show: hasPermission(user, 'monitoring', 'view'), tourId: 'nav-monitoring' },
+        { path: '/admin/status', icon: ShieldCheck, label: 'System Status', show: hasPermission(user, 'monitoring', 'view'), tourId: 'nav-status' },
+        { path: '/admin/audit-logs', icon: Shield, label: 'Audit Logs', show: hasPermission(user, 'security', 'view_logs') },
+      ]
+    },
+    /*
+    {
+      label: 'Account',
+      items: [
+        { path: '/profile/me', icon: User, label: 'My Profile', show: true },
+        { path: '/profile/settings', icon: Settings, label: 'Settings', show: hasPermission(user, 'company_settings', 'view') },
+        { path: '/profile/security', icon: Shield, label: 'Security', show: true },
+      ]
+    }
+    */
+  ].map(group => ({
+    ...group,
+    items: group.items.filter(item => item.show)
+  })).filter(group => group.items.length > 0);
 
   const isActive = (path: string) => {
     if (path === '/platform/dashboard' || path === '/admin/settings') {
@@ -214,168 +253,133 @@ export default function AppSidebar() {
       <SidebarSeparator className="opacity-50" />
 
       <SidebarContent className="px-1 py-2 group-data-[collapsible=icon]:px-0 thin-scrollbar">
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Platform</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="border-l border-sidebar-border ml-3.5 pl-2.5 pr-3 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:pr-0">
-              {navItems.map((item) => {
-                const Icon = item.icon
-                const active = item.isCustomers
-                  ? location.pathname.startsWith('/platform/customers')
-                  : isActive(item.path)
-                const showBadge = item.path === '/platform/notifications' && unreadCount > 0
+        {menuGroups.map((group) => (
+          <SidebarGroup key={group.label} className="py-1 first:pt-0">
+            <SidebarGroupLabel className="px-2 h-6 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.1em] mb-1 group-data-[collapsible=icon]:hidden opacity-70">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="border-l border-sidebar-border/50 ml-3.5 pl-2.5 pr-3 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:pr-0 space-y-0.5">
+                {group.items.map((item) => {
+                  const Icon = item.icon
+                  const active = item.isCustomers
+                    ? location.pathname.startsWith('/platform/customers')
+                    : isActive(item.path)
+                  const showBadge = item.hasBadge && unreadCount > 0
 
-                if (item.isCustomers) {
-                  return (
-                    <SidebarMenuItem key={item.path} className="group-data-[collapsible=icon]:static" data-tour="nav-customers">
-                      {state === 'collapsed' ? (
-                        <Tooltip delayDuration={0}>
-                          <TooltipTrigger asChild>
-                            <div className="relative">
+                  if (item.isCustomers) {
+                    return (
+                      <SidebarMenuItem key={item.path} className="group-data-[collapsible=icon]:static" data-tour="nav-customers">
+                        {state === 'collapsed' ? (
+                          <Tooltip delayDuration={0}>
+                            <TooltipTrigger asChild>
+                              <div className="relative">
+                                <SidebarMenuButton
+                                  tooltip="Customers"
+                                  className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10"
+                                  isActive={active}
+                                  style={active ? { background: 'var(--brand-gradient)' } : undefined}
+                                >
+                                  <Users className="h-4 w-4 flex-shrink-0" />
+                                  <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">Customers</span>
+                                </SidebarMenuButton>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="p-0 min-w-[180px]">
+                              <div className="flex flex-col">
+                                {customersSubItems.map((subItem, index) => {
+                                  const SubIcon = subItem.icon
+                                  const subActive = isActive(subItem.path)
+                                  const showSubBadge = typeof subItem.badge === 'number' && subItem.badge > 0
+                                  const isFirst = index === 0
+                                  const isLast = index === customersSubItems.length - 1
+                                  return (
+                                    <Link
+                                      key={subItem.path}
+                                      to={subItem.path}
+                                      className={`flex items-center gap-3 px-3 py-2.5 transition-colors relative ${isFirst ? 'rounded-t-md' : ''
+                                        } ${isLast ? 'rounded-b-md' : ''}`}
+                                      style={subActive ? { background: 'var(--brand-gradient)' } : undefined}
+                                      onMouseEnter={(e) => {
+                                        if (!subActive) {
+                                          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.1)'
+                                        }
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        if (!subActive) {
+                                          e.currentTarget.style.background = ''
+                                        }
+                                      }}
+                                    >
+                                      <SubIcon className="h-4 w-4 flex-shrink-0" />
+                                      <span className="flex-1 text-sm whitespace-nowrap">{subItem.label}</span>
+                                      {showSubBadge && (
+                                        <span className="h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                                          {subItem.badge}
+                                        </span>
+                                      )}
+                                    </Link>
+                                  )
+                                })}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <>
+                            <div className="relative group">
+                              <span className={`absolute left-[-14px] top-5 h-1.5 w-1.5 rounded-full transition-colors group-data-[collapsible=icon]:hidden ${active ? 'bg-primary' : 'bg-sidebar-border'}`} />
                               <SidebarMenuButton
                                 tooltip="Customers"
+                                onClick={() => setCustomersExpanded(!customersExpanded)}
                                 className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10"
                                 isActive={active}
                                 style={active ? { background: 'var(--brand-gradient)' } : undefined}
                               >
                                 <Users className="h-4 w-4 flex-shrink-0" />
                                 <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">Customers</span>
+                                <ChevronDown className={`h-4 w-4 transition-transform group-data-[collapsible=icon]:hidden ${customersExpanded ? 'rotate-180' : ''}`} />
                               </SidebarMenuButton>
                             </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="right" className="p-0 min-w-[180px]">
-                            <div className="flex flex-col">
-                              {customersSubItems.map((subItem, index) => {
-                                const SubIcon = subItem.icon
-                                const subActive = isActive(subItem.path)
-                                const showSubBadge = typeof subItem.badge === 'number' && subItem.badge > 0
-                                const isFirst = index === 0
-                                const isLast = index === customersSubItems.length - 1
-                                return (
-                                  <Link
-                                    key={subItem.path}
-                                    to={subItem.path}
-                                    className={`flex items-center gap-3 px-3 py-2.5 transition-colors relative ${isFirst ? 'rounded-t-md' : ''
-                                      } ${isLast ? 'rounded-b-md' : ''}`}
-                                    style={subActive ? { background: 'var(--brand-gradient)' } : undefined}
-                                    onMouseEnter={(e) => {
-                                      if (!subActive) {
-                                        e.currentTarget.style.background = 'rgba(0, 0, 0, 0.1)'
-                                      }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      if (!subActive) {
-                                        e.currentTarget.style.background = ''
-                                      }
-                                    }}
-                                  >
-                                    <SubIcon className="h-4 w-4 flex-shrink-0" />
-                                    <span className="flex-1 text-sm whitespace-nowrap">{subItem.label}</span>
-                                    {showSubBadge && (
-                                      <span className="h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
-                                        {subItem.badge}
-                                      </span>
-                                    )}
-                                  </Link>
-                                )
-                              })}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <>
-                          <div className="relative group">
-                            <span className={`absolute left-[-14px] top-5 h-1.5 w-1.5 rounded-full transition-colors group-data-[collapsible=icon]:hidden ${active ? 'bg-primary' : 'bg-sidebar-border'}`} />
-                            <SidebarMenuButton
-                              tooltip="Customers"
-                              onClick={() => setCustomersExpanded(!customersExpanded)}
-                              className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10"
-                              isActive={active}
-                              style={active ? { background: 'var(--brand-gradient)' } : undefined}
+                            <div
+                              className={`overflow-hidden transition-all duration-300 ease-in-out ${customersExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                                }`}
                             >
-                              <Users className="h-4 w-4 flex-shrink-0" />
-                              <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">Customers</span>
-                              <ChevronDown className={`h-4 w-4 transition-transform group-data-[collapsible=icon]:hidden ${customersExpanded ? 'rotate-180' : ''}`} />
-                            </SidebarMenuButton>
-                          </div>
-                          <div
-                            className={`overflow-hidden transition-all duration-300 ease-in-out ${customersExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                              }`}
-                          >
-                            <SidebarMenuSub className="group-data-[collapsible=icon]:hidden">
-                              {customersSubItems.map((subItem) => {
-                                const SubIcon = subItem.icon
-                                const subActive = isActive(subItem.path)
-                                const showSubBadge = typeof subItem.badge === 'number' && subItem.badge > 0
-                                return (
-                                  <SidebarMenuSubItem key={subItem.path} className="relative group">
-                                    <span className={`absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full transition-colors ${subActive ? 'bg-primary' : 'bg-sidebar-border'}`} />
-                                    {showSubBadge && (
-                                      <span className="absolute -top-2 -right-2 h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center ring-1 ring-background z-10">
-                                        {subItem.badge}
-                                      </span>
-                                    )}
-                                    <SidebarMenuSubButton
-                                      asChild
-                                      isActive={subActive}
-                                      style={subActive ? { background: 'var(--brand-gradient)' } : undefined}
-                                    >
-                                      <Link to={subItem.path} onClick={(e) => handleNavClick(e, subItem.path)}>
-                                        <div className="relative flex-shrink-0">
-                                          <SubIcon className="h-4 w-4" />
-                                        </div>
-                                        <span className="flex-1 whitespace-nowrap">{subItem.label}</span>
-                                      </Link>
-                                    </SidebarMenuSubButton>
-                                  </SidebarMenuSubItem>
-                                )
-                              })}
-                            </SidebarMenuSub>
-                          </div>
-                        </>
-                      )}
-                    </SidebarMenuItem>
-                  )
-                }
-
-                return (
-                  <SidebarMenuItem key={item.path} className="relative group-data-[collapsible=icon]:static group">
-                    <span className={`absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full transition-colors group-data-[collapsible=icon]:hidden ${active ? 'bg-primary' : 'bg-sidebar-border'}`} />
-                    <SidebarMenuButton
-                      asChild
-                      isActive={active}
-                      tooltip={item.label}
-                      className="rounded-lg group-data-[collapsible=icon]:!p-0"
-                      style={active ? { background: 'var(--brand-gradient)' } : undefined}
-                    >
-                      <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} data-tour={item.tourId} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
-                        <div className="relative flex-shrink-0">
-                          <Icon className="h-4 w-4" />
-                          {showBadge && (
-                            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
-                          )}
-                        </div>
-                        <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">{item.label}</span>
-                        {showBadge && (
-                          <span className="ml-auto h-2 w-2 rounded-full bg-red-500 group-data-[collapsible=icon]:hidden" />
+                              <SidebarMenuSub className="group-data-[collapsible=icon]:hidden">
+                                {customersSubItems.map((subItem) => {
+                                  const SubIcon = subItem.icon
+                                  const subActive = isActive(subItem.path)
+                                  const showSubBadge = typeof subItem.badge === 'number' && subItem.badge > 0
+                                  return (
+                                    <SidebarMenuSubItem key={subItem.path} className="relative group">
+                                      <span className={`absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full transition-colors ${subActive ? 'bg-primary' : 'bg-sidebar-border'}`} />
+                                      {showSubBadge && (
+                                        <span className="absolute -top-2 -right-2 h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center ring-1 ring-background z-10">
+                                          {subItem.badge}
+                                        </span>
+                                      )}
+                                      <SidebarMenuSubButton
+                                        asChild
+                                        isActive={subActive}
+                                        style={subActive ? { background: 'var(--brand-gradient)' } : undefined}
+                                      >
+                                        <Link to={subItem.path} onClick={(e) => handleNavClick(e, subItem.path)}>
+                                          <div className="relative flex-shrink-0">
+                                            <SubIcon className="h-4 w-4" />
+                                          </div>
+                                          <span className="flex-1 whitespace-nowrap">{subItem.label}</span>
+                                        </Link>
+                                      </SidebarMenuSubButton>
+                                    </SidebarMenuSubItem>
+                                  )
+                                })}
+                              </SidebarMenuSub>
+                            </div>
+                          </>
                         )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                      </SidebarMenuItem>
+                    )
+                  }
 
-        {adminNavItems.length > 0 && (
-          <SidebarGroup className="mt-4 group-data-[collapsible=icon]:mt-2">
-            <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Admin</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="border-l border-sidebar-border ml-3.5 pl-2.5 pr-2 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:pr-0">
-                {adminNavItems.map((item) => {
-                  const Icon = item.icon
-                  const active = isActive(item.path)
                   return (
                     <SidebarMenuItem key={item.path} className="relative group-data-[collapsible=icon]:static group">
                       <span className={`absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full transition-colors group-data-[collapsible=icon]:hidden ${active ? 'bg-primary' : 'bg-sidebar-border'}`} />
@@ -386,9 +390,17 @@ export default function AppSidebar() {
                         className="rounded-lg group-data-[collapsible=icon]:!p-0"
                         style={active ? { background: 'var(--brand-gradient)' } : undefined}
                       >
-                        <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
-                          <Icon className="h-4 w-4 flex-shrink-0" />
-                          <span className="font-medium group-data-[collapsible=icon]:hidden">{item.label}</span>
+                        <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} data-tour={item.tourId} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
+                          <div className="relative flex-shrink-0">
+                            <Icon className="h-4 w-4" />
+                            {showBadge && (
+                              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
+                            )}
+                          </div>
+                          <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">{item.label}</span>
+                          {showBadge && (
+                            <span className="ml-auto h-2 w-2 rounded-full bg-red-500 group-data-[collapsible=icon]:hidden" />
+                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -397,38 +409,7 @@ export default function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        )}
-
-        {profileNavItems.length > 0 && (
-          <SidebarGroup className="mt-4 group-data-[collapsible=icon]:mt-2">
-            <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 group-data-[collapsible=icon]:hidden">Profile</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="border-l border-sidebar-border ml-3.5 pl-2.5 pr-2 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:pl-0 group-data-[collapsible=icon]:pr-0">
-                {profileNavItems.map((item) => {
-                  const Icon = item.icon
-                  const active = isActive(item.path)
-                  return (
-                    <SidebarMenuItem key={item.path} className="relative group-data-[collapsible=icon]:static group">
-                      <span className={`absolute left-[-14px] top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full transition-colors group-data-[collapsible=icon]:hidden ${active ? 'bg-primary' : 'bg-sidebar-border'}`} />
-                      <SidebarMenuButton
-                        asChild
-                        isActive={active}
-                        tooltip={item.label}
-                        className="rounded-lg group-data-[collapsible=icon]:!p-0"
-                        style={active ? { background: 'var(--brand-gradient)' } : undefined}
-                      >
-                        <Link to={item.path} onClick={(e) => handleNavClick(e, item.path)} className="flex items-center gap-3 px-3 py-2.5 h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:justify-center">
-                          <Icon className="h-4 w-4 flex-shrink-0" />
-                          <span className="font-medium group-data-[collapsible=icon]:hidden">{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="px-3 pb-3 group-data-[collapsible=icon]:px-2">

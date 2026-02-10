@@ -16,7 +16,7 @@ interface OnboardingState {
   currentStep: number
   isTourActive: boolean
   showWelcomeModal: boolean
-  
+
   setHasSeenWelcome: (seen: boolean) => void
   setHasCompletedTour: (completed: boolean) => void
   startTour: () => void
@@ -77,7 +77,15 @@ export const tourSteps: OnboardingStep[] = [
     description: 'Monitor system health, integration sync status, queue processing, and view activity trends. Get alerts when issues occur.',
     target: '[data-tour="nav-monitoring"]',
     placement: 'right',
-    route: '/platform/monitoring',
+    route: '/admin/monitoring',
+  },
+  {
+    id: 'status',
+    title: 'System Status',
+    description: 'Check real-time health for all platform services, including API, database, and external connections.',
+    target: '[data-tour="nav-status"]',
+    placement: 'right',
+    route: '/admin/status',
   },
   {
     id: 'notifications',
@@ -116,19 +124,19 @@ export const useOnboardingStore = create<OnboardingState>()(
 
       setHasSeenWelcome: (seen) => set({ hasSeenWelcome: seen }),
       setHasCompletedTour: (completed) => set({ hasCompletedTour: completed }),
-      
-      startTour: () => set({ 
-        isTourActive: true, 
+
+      startTour: () => set({
+        isTourActive: true,
         currentStep: 0,
         showWelcomeModal: false,
       }),
-      
-      endTour: () => set({ 
-        isTourActive: false, 
+
+      endTour: () => set({
+        isTourActive: false,
         hasCompletedTour: true,
         currentStep: 0,
       }),
-      
+
       nextStep: () => {
         const { currentStep } = get()
         if (currentStep < tourSteps.length - 1) {
@@ -137,22 +145,22 @@ export const useOnboardingStore = create<OnboardingState>()(
           get().endTour()
         }
       },
-      
+
       prevStep: () => {
         const { currentStep } = get()
         if (currentStep > 0) {
           set({ currentStep: currentStep - 1 })
         }
       },
-      
+
       goToStep: (step) => set({ currentStep: step }),
-      
-      skipTour: () => set({ 
-        isTourActive: false, 
+
+      skipTour: () => set({
+        isTourActive: false,
         hasSeenWelcome: true,
         showWelcomeModal: false,
       }),
-      
+
       resetOnboarding: () => set({
         hasSeenWelcome: false,
         hasCompletedTour: false,

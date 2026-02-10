@@ -89,129 +89,96 @@ export default function DocsIndex() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container mx-auto px-4 py-12 md:py-16">
-            <div className="max-w-3xl mx-auto text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-6">
-                <Book className="w-8 h-8 text-primary" />
-              </div>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-                Documentation & Guides
-              </h1>
-              <p className="text-lg text-muted-foreground mb-6">
-                Everything you need to know about using the reporting platform. Search for topics or
-                browse by category.
-              </p>
+    <div className="space-y-6">
+      <div className="text-center pt-8 md:pt-12 pb-2">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">Documentation & Guides</h1>
+        <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+          Everything you need to know about using the reporting platform. Browse through our categories or search for specific help.
+        </p>
+        <Button
+          onClick={() => startTour()}
+          variant={hasCompletedTour ? 'outline' : 'default'}
+          size="lg"
+          className="gap-2 mx-auto rounded-xl"
+        >
+          <PlayCircle className="h-5 w-5" />
+          {hasCompletedTour ? 'Retake Guided Tour' : 'Take Guided Tour'}
+        </Button>
+      </div>
 
-              <div className="mb-8">
-                <Button
-                  onClick={() => {
-                    navigate('/platform/dashboard')
-                    setTimeout(() => startTour(), 300)
-                  }}
-                  variant={hasCompletedTour ? 'outline' : 'default'}
-                  size="lg"
-                  className="gap-2"
-                >
-                  <PlayCircle className="h-5 w-5" />
-                  {hasCompletedTour ? 'Retake the Guided Tour' : 'Take the Guided Tour'}
-                </Button>
-              </div>
+      <div className="relative max-w-2xl mx-auto mb-12">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder="Search documentation..."
+          className="pl-12 h-14 text-lg rounded-xl shadow-sm border-2 focus:border-primary transition-all"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
 
-              <div className="relative max-w-xl mx-auto">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search documentation..."
-                  className="pl-12 h-12 text-base rounded-xl border-2 focus:border-primary"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+        {searchQuery && searchResults.length > 0 && (
+          <div className="absolute left-0 right-0 mt-2 bg-background border rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto">
+            {searchResults.slice(0, 8).map((article) => (
+              <button
+                key={`${article.categoryId}-${article.id}`}
+                onClick={() => handleArticleClick(article.categoryId, article.id)}
+                className="w-full px-5 py-4 text-left hover:bg-muted/50 flex items-center gap-4 border-b last:border-b-0 transition-colors"
+              >
+                <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold truncate text-base">{article.title}</p>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {article.categoryTitle}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
-              {searchQuery && searchResults.length > 0 && (
-                <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-xl mt-2 bg-background border rounded-xl shadow-lg z-50 max-h-96 overflow-y-auto">
-                  {searchResults.slice(0, 8).map((article) => (
-                    <button
-                      key={`${article.categoryId}-${article.id}`}
-                      onClick={() => handleArticleClick(article.categoryId, article.id)}
-                      className="w-full px-4 py-3 text-left hover:bg-muted/50 flex items-center gap-3 border-b last:border-b-0"
-                    >
-                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">{article.title}</p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {article.categoryTitle}
-                        </p>
-                      </div>
-                    </button>
+      {filteredData.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-lg text-muted-foreground">
+            No results found for "{searchQuery}"
+          </p>
+          <Button variant="link" onClick={() => setSearchQuery('')}>
+            Clear search
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-12">
+          {filteredData.map((category) => {
+            const CategoryIcon = getIcon(category.icon)
+            return (
+              <section key={category.id}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <CategoryIcon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold">{category.title}</h2>
+                    <p className="text-muted-foreground">{category.description}</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {category.articles.map((article) => (
+                    <ArticleCard
+                      key={article.id}
+                      article={article}
+                      categoryId={category.id}
+                      onCopyLink={() => copyShareLink(category.id, article.id)}
+                      isCopied={copiedLink === article.id}
+                    />
                   ))}
                 </div>
-              )}
-            </div>
-          </div>
+              </section>
+            )
+          })}
         </div>
-
-        <div className="container mx-auto px-4 py-12">
-          {filteredData.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-lg text-muted-foreground">
-                No results found for "{searchQuery}"
-              </p>
-              <Button variant="link" onClick={() => setSearchQuery('')}>
-                Clear search
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-12">
-              {filteredData.map((category) => {
-                const CategoryIcon = getIcon(category.icon)
-                return (
-                  <section key={category.id}>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <CategoryIcon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-semibold">{category.title}</h2>
-                        <p className="text-muted-foreground">{category.description}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {category.articles.map((article) => (
-                        <ArticleCard
-                          key={article.id}
-                          article={article}
-                          categoryId={category.id}
-                          onCopyLink={() => copyShareLink(category.id, article.id)}
-                          isCopied={copiedLink === article.id}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="border-t bg-muted/30">
-          <div className="container mx-auto px-4 py-8">
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-              <span>Need more help?</span>
-              <Link to="/admin/settings" className="text-primary hover:underline">
-                Contact Support
-              </Link>
-              <span>•</span>
-              <Link to="/platform/dashboard" className="text-primary hover:underline">
-                Back to Dashboard
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
+    </div>
   )
 }
 
