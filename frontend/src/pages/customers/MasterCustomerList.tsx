@@ -13,8 +13,7 @@ import { CreateStaticCustomerModal } from "./modals/CreateStaticCustomerModal";
 import { useMasterCustomerList } from "./hooks/index";
 import { useState } from "react";
 import { ApplyTemplateToCustomerModal } from "@/pages/customers/modals/ApplyTemplateToCustomerModal";
-import { useAuth } from "@/contexts/AuthContext";
-import { hasPermission } from "@/utils/permissions";
+import { usePermission } from "@/hooks/usePermission";
 
 export default function MasterCustomerList() {
     const [showCreateStatic, setShowCreateStatic] = useState(false);
@@ -49,10 +48,10 @@ export default function MasterCustomerList() {
         handleModalSuccess,
     } = useMasterCustomerList();
 
-    const { user } = useAuth();
-    const canConfigureReports = hasPermission(user, 'reports', 'configure');
-    const canEditCustomers = hasPermission(user, 'customers', 'edit');
-    const canMapCustomers = hasPermission(user, 'customers', 'map');
+    const { canPerform } = usePermission();
+    const canConfigureReports = canPerform('reports', 'configure');
+    const canEditCustomers = canPerform('customers', 'edit');
+    const canMapCustomers = canPerform('customers', 'map');
 
     return (
         <div className="space-y-6 max-w-full overflow-hidden">
