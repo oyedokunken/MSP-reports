@@ -5,8 +5,7 @@ import { Upload, Trash2, Image as ImageIcon, Crop, Check, X, ZoomIn, ZoomOut, Ro
 import { useToast } from '@/components/ui/Toast'
 import apiClient from '@/lib/api'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
-import Cropper from 'react-easy-crop'
-import type { Area, Point } from 'react-easy-crop'
+import Cropper, { type Area, type Point } from 'react-easy-crop'
 import {
   Dialog,
   DialogContent,
@@ -69,10 +68,10 @@ function createImage(url: string): Promise<HTMLImageElement> {
   })
 }
 
-export function LogoUpload({ 
-  type, 
-  currentLogoUrl, 
-  onUploadSuccess, 
+export function LogoUpload({
+  type,
+  currentLogoUrl,
+  onUploadSuccess,
   onDeleteSuccess,
   uploadUrl,
   deleteUrl,
@@ -223,7 +222,7 @@ export function LogoUpload({
       const data = response.data as { status?: string; message?: string; data?: { logo_url?: string; profile_picture_url?: string } }
       if (data.status === 'success') {
         toast.success('Upload Successful', data.message || 'Logo uploaded successfully')
-        
+
         const url = data.data?.profile_picture_url || data.data?.logo_url;
         if (url) {
           onUploadSuccess(url)
@@ -245,7 +244,7 @@ export function LogoUpload({
   }
 
   const handleDeleteClick = () => {
-      setShowDeleteModal(true)
+    setShowDeleteModal(true)
   }
 
   const handleConfirmDelete = async () => {
@@ -288,22 +287,22 @@ export function LogoUpload({
             <div className="w-32 h-32 border-2 border-dashed border-border rounded-lg flex items-center justify-center bg-muted/20 overflow-hidden relative">
               {displayImageUrl ? (
                 <>
-                    <img
-                      src={displayImageUrl}
-                      alt={title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div 
-                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-                      onClick={handleDeleteClick}
-                      title="Remove Image"
-                    >
-                        {deleting ? (
-                            <span className="text-white text-xs">Deleting...</span>
-                        ) : (
-                            <Trash2 className="h-8 w-8 text-white" />
-                        )}
-                    </div>
+                  <img
+                    src={displayImageUrl}
+                    alt={title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                    onClick={handleDeleteClick}
+                    title="Remove Image"
+                  >
+                    {deleting ? (
+                      <span className="text-white text-xs">Deleting...</span>
+                    ) : (
+                      <Trash2 className="h-8 w-8 text-white" />
+                    )}
+                  </div>
                 </>
               ) : (
                 <ImageIcon className="h-12 w-12 text-muted-foreground" />
@@ -422,7 +421,7 @@ export function LogoUpload({
         </DialogContent>
       </Dialog>
 
-      <ConfirmationModal 
+      <ConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleConfirmDelete}
