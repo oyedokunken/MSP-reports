@@ -123,43 +123,43 @@ export function IntegrationCard({
                 className={`p-6 h-full flex flex-col transition-all duration-300 ${isSyncing ? "ring-2 ring-primary/50 shadow-lg bg-primary/5" : ""
                     } ${isSourceOfTruth ? "border-2 border-primary" : ""}`}
             >
-                {/* Top row: Icon, Name/Type, and Status Pill */}
+                {/* Row 1: Icon, Type, and Status Pill */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
                             {getIntegrationIcon(integration.type)}
                         </div>
-                        <div className="flex flex-col border-l pl-2 min-w-0">
-                            <div className="flex items-center gap-2">
-                                <h3
-                                    className="font-semibold text-foreground text-lg truncate leading-tight"
-                                    title={integration.name}
-                                >
-                                    {integration.name}
-                                </h3>
-                                {isSourceOfTruth && (
-                                    <Badge
-                                        variant="default"
-                                        className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap h-5 px-1.5 flex-shrink-0"
-                                    >
-                                        <Crown className="h-3 w-3 mr-1" />
-                                        Master List
-                                    </Badge>
-                                )}
-                            </div>
-                            <p
-                                className="text-xs text-muted-foreground truncate"
-                                title={integration.type}
-                            >
-                                {integration.type}
-                            </p>
-                        </div>
+                        <p
+                            className="text-xs text-muted-foreground truncate"
+                            title={integration.type}
+                        >
+                            {integration.type}
+                        </p>
                     </div>
                     <span
                         className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium whitespace-nowrap shrink-0 ml-2 ${statusInfo.color}`}
                     >
                         {statusInfo.text}
                     </span>
+                </div>
+
+                {/* Row 2: Full integration name */}
+                <div className="flex items-center gap-2 mt-2">
+                    <h3
+                        className="font-semibold text-foreground text-lg leading-tight"
+                        title={integration.name}
+                    >
+                        {integration.name}
+                    </h3>
+                    {isSourceOfTruth && (
+                        <Badge
+                            variant="default"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap h-5 px-1.5 flex-shrink-0"
+                        >
+                            <Crown className="h-3 w-3 mr-1" />
+                            Master List
+                        </Badge>
+                    )}
                 </div>
 
 
