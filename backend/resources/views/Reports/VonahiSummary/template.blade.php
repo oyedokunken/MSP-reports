@@ -58,15 +58,15 @@
         }
 
         .section {
-            margin-bottom: 35px;
+            margin-bottom: 25px;
         }
 
         .section-title {
             font-family: 'Outfit', sans-serif;
             font-size: 18px;
             font-weight: 700;
-            margin-bottom: 18px;
-            padding-bottom: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
             border-bottom: 2px solid {{ $branding['primary_color'] ?? '#1a56db' }}20;
             color: #0f172a;
         }
@@ -348,18 +348,15 @@
             </div>
         @endif
 
-        <div class="page-break"></div>
-
         @if (!empty($findings))
             <div class="section">
                 <h2 class="section-title">Security Findings Detail</h2>
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 30%;">Finding Name</th>
+                            <th style="width: 35%;">Finding Name</th>
                             <th style="text-align: center;">Severity</th>
-                            <th style="text-align: center;">Impact</th>
-                            <th>Remediation Strategy</th>
+                            <th>Security Impact</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -377,8 +374,6 @@
                                 <td style="text-align: center;"><span
                                         class="badge {{ $find['severity'] }}">{{ $find['severity'] }}</span></td>
                                 <td style="font-size: 9px; color: #475569;">{{ $find['impact'] }}</td>
-                                <td style="font-size: 9px; color: #065f46; font-style: italic;">
-                                    {{ $find['recommendation'] }}</td>
                             </tr>
                         @endforeach
                     </tbody>

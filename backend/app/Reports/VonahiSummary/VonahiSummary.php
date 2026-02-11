@@ -166,12 +166,12 @@ class VonahiSummary extends BaseReport
             $weight = $severityOrder[$severity] ?? 0;
             if ($weight >= $minWeight) {
                 $list[] = [
-                    'name' => $p['name'],
+                    'name' => strip_tags($p['name'] ?? ''),
                     'severity' => $severity,
                     'hosts_count' => $p['affected_hosts_count'] ?? 0,
                     'hosts_ips' => array_slice($p['affected_host_ips'] ?? [], 0, 5),
-                    'impact' => Str::limit($p['security_impact'] ?? '', 150),
-                    'recommendation' => Str::limit($p['recommendation'] ?? '', 150),
+                    'impact' => Str::limit(strip_tags($p['security_impact'] ?? ''), 200),
+                    'recommendation' => Str::limit(strip_tags($p['recommendation'] ?? ''), 200),
                 ];
             }
         }
