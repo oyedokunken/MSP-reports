@@ -123,13 +123,20 @@ class VonahiSummary extends BaseReport
         ]);
     }
 
-    private function inRange($timestamp, Carbon $start, Carbon $end): bool
+    /**
+     * @param string|Carbon|null $timestamp
+     */
+    private function inRange(mixed $timestamp, Carbon $start, Carbon $end): bool
     {
         if (!$timestamp) return false;
         $ts = $timestamp instanceof Carbon ? $timestamp : Carbon::parse($timestamp);
         return $ts->between($start->copy()->startOfDay(), $end->copy()->endOfDay());
     }
 
+    /**
+     * @param Collection<int, array<string, mixed>> $assessments
+     * @return array{list: array<int, array<string, mixed>>}
+     */
     private function analyzeAssessments(Collection $assessments): array
     {
         return [
@@ -147,12 +154,17 @@ class VonahiSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, array<string, mixed>> $findings
+     * @return array{total_count: int, severity_counts: array<string, int>, list: array<int, array<string, mixed>>}
+     */
     private function analyzeFindings(Collection $findings, string $minSeverity): array
     {
         $severityOrder = ['informational' => 0, 'low' => 1, 'medium' => 2, 'high' => 3, 'critical' => 4];
         $minWeight = $severityOrder[strtolower($minSeverity)] ?? 0;
 
         $counts = ['critical' => 0, 'high' => 0, 'medium' => 0, 'low' => 0, 'informational' => 0];
+        /** @var array<int, array<string, mixed>> $list */
         $list = [];
 
         foreach ($findings as $row) {
@@ -186,6 +198,10 @@ class VonahiSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param Collection<int, array<string, mixed>> $agents
+     * @return array{active_count: int, list: array<int, array<string, mixed>>}
+     */
     private function analyzeAgents(Collection $agents): array
     {
         $active = 0;
@@ -209,6 +225,10 @@ class VonahiSummary extends BaseReport
         ];
     }
 
+    /**
+     * @param array{total_count: int, severity_counts: array<string, int>, list: array<int, array<string, mixed>>} $findingSummary
+     * @return array<int, string>
+     */
     private function buildRecommendations(array $findingSummary): array
     {
         $recs = [];

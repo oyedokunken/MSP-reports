@@ -483,6 +483,7 @@ final class VonahiIntegration implements IntegrationInterface
 
     /**
      * @param array<int, array<string, mixed>> $customerRows
+     * @param positive-int $chunkSize
      */
     private function bulkUpsertCustomers(array $customerRows, int $chunkSize = 500): void
     {

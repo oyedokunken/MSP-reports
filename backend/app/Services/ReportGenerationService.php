@@ -489,7 +489,6 @@ final class ReportGenerationService
                     'email_protection' => $reportData['email_protection'] ?? [],
                     // ThreatLocker Summary specific variables
                     'computer_summary' => $reportData['computer_summary'] ?? [],
-                    'policy_summary' => $reportData['policy_summary'] ?? [],
                     'application_summary' => $reportData['application_summary'] ?? [],
                     'storage_summary' => $reportData['storage_summary'] ?? [],
                     'audit_summary' => $reportData['audit_summary'] ?? [],
@@ -577,7 +576,6 @@ final class ReportGenerationService
                         'email_protection' => $reportData['email_protection'] ?? [],
                         // ThreatLocker Summary specific variables
                         'computer_summary' => $reportData['computer_summary'] ?? [],
-                        'policy_summary' => $reportData['policy_summary'] ?? [],
                         'application_summary' => $reportData['application_summary'] ?? [],
                         'storage_summary' => $reportData['storage_summary'] ?? [],
                         'audit_summary' => $reportData['audit_summary'] ?? [],

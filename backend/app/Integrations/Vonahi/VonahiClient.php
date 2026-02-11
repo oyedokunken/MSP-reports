@@ -228,7 +228,7 @@ final class VonahiClient
         $url = $this->baseUrl . $endpoint;
         $attempt = 0;
 
-        while ($attempt <= self::MAX_RETRIES) {
+        while ($attempt < self::MAX_RETRIES) {
             try {
                 Log::debug('Vonahi API request', [
                     'integration_id' => $this->integration->integration_id,
@@ -259,7 +259,7 @@ final class VonahiClient
                         'endpoint' => $endpoint,
                     ]);
                     $attempt++;
-                    if ($attempt > self::MAX_RETRIES) {
+                    if ($attempt >= self::MAX_RETRIES) {
                         throw new \Exception('Vonahi API rate limit exceeded after retries');
                     }
                     sleep(2 * $attempt);
