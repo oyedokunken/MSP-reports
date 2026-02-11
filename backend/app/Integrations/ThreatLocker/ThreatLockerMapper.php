@@ -307,5 +307,44 @@ final class ThreatLockerMapper
              ],
          ];
      }
+     /**
+     * Map ThreatLocker system audit log (login) to standardized format
+     *
+     * @param array<string, mixed> $audit
+     * @param string $organizationId
+     * @return array<string, mixed>
+     */
+     public static function mapSystemAudit(array $audit, string $organizationId): array
+     {
+         $auditId = $audit['systemAuditId'] ?? $audit['id'] ?? null;
+         $date = $audit['dateTime'] ?? null;
+         $dateIso = null;
+         if ($date) {
+             try {
+                 $dateIso = Carbon::parse($date)->toIso8601String();
+             } catch (\Exception $e) {
+                 $dateIso = $date;
+             }
+         }
+
+         return [
+             'external_id' => (string) $auditId,
+             'data_type' => 'threatlocker_system_audit',
+             'organization_id' => $organizationId,
+             'data' => [
+                 'system_audit_id' => $auditId,
+                 'organization_id' => $organizationId,
+                 'date' => $dateIso,
+                 'effective_action' => $audit['effectiveAction'] ?? null,
+                 'email_address' => $audit['emailAddress'] ?? null,
+                 'ip_address' => $audit['ipAddress'] ?? null,
+                 'country' => $audit['country'] ?? null,
+                 'region' => $audit['region'] ?? null,
+                 'city' => $audit['city'] ?? null,
+                 'latitude' => $audit['latitude'] ?? null,
+                 'longitude' => $audit['longitude'] ?? null,
+             ],
+         ];
+     }
  }
 

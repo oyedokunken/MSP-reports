@@ -677,11 +677,45 @@ final class ThreatLockerIntegration implements IntegrationInterface
         foreach ($customers as $customer) {
             try {
                 $orgId = $customer->external_id;
-                $audits = $this->client->getAuditLogs($orgId, $startDate, $endDate);
+                // Fetch computers created/added in this range
+                $computers = $this->client->getComputersByDateRange($orgId, $startDate, $endDate);
 
-                foreach ($audits as $audit) {
+                foreach ($computers as $computer) {
                     try {
-                        $mapped = ThreatLockerMapper::mapAudit($audit, $orgId);
+                        $mapped = ThreatLockerMapper::mapComputer($computer, $orgId);
+
+                        if (empty($mapped['external_id'])) {
+                            continue;
+                        }
+
+                        IntegrationData::updateOrCreate(
+                            [
+                                'integration_id' => $this->integration->integration_id,
+                                'integration_customer_id' => $customer->integration_customer_id,
+                                'data_type' => 'threatlocker_computer_history',
+                                'external_id' => $mapped['external_id'],
+                            ],
+                            [
+                                'company_id' => $this->integration->company_id,
+                                'data_payload' => $mapped['data'],
+                                'data_timestamp' => now(),
+                                'imported_at' => now(),
+                                'data_version' => 1,
+                            ]
+                        );
+
+                        $processed++;
+                    } catch (\Exception $e) {
+                        $errors[] = "Computer map error for org {$customer->name}: " . $e->getMessage();
+                    }
+                }
+
+                // Fetch system audit logs (logins)
+                $systemAudits = $this->client->getSystemAuditLogs($orgId, $startDate, $endDate);
+
+                foreach ($systemAudits as $sAudit) {
+                    try {
+                        $mapped = ThreatLockerMapper::mapSystemAudit($sAudit, $orgId);
 
                         if (empty($mapped['external_id'])) {
                             continue;
@@ -705,22 +739,24 @@ final class ThreatLockerIntegration implements IntegrationInterface
 
                         $processed++;
                     } catch (\Exception $e) {
-                        $errors[] = "Audit map error for org {$customer->name}: " . $e->getMessage();
+                        $errors[] = "System audit map error for org {$customer->name}: " . $e->getMessage();
                     }
                 }
 
                 $this->sendHeartbeat($processed);
             } catch (\Exception $e) {
-                $errors[] = "Audit fetch failed for org {$customer->name}: " . $e->getMessage();
+                $errors[] = "Computer/Audit fetch failed for org {$customer->name}: " . $e->getMessage();
             }
         }
 
         return [
-            'data' => [], // Result is stored in DB
+            'data' => [], 
             'total_processed' => $processed,
             'errors' => $errors,
         ];
     }
+
+
 
     public function getAvailableHistoryRange(): ?Carbon
     {

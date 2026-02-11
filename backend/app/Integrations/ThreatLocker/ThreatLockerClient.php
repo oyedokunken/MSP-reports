@@ -608,6 +608,32 @@ final class ThreatLockerClient
     }
 
     /**
+     * Get computers created/added within a specific date range
+     * Note: Portal API doesn't support server-side date filtering for this endpoint,
+     * so we fetch and filter locally.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getComputersByDateRange(string $organizationId, Carbon $startDate, Carbon $endDate): array
+    {
+        $allComputers = $this->getComputers($organizationId, true);
+        $filtered = [];
+
+        foreach ($allComputers as $computer) {
+            $createdStr = $computer['dateCreated'] ?? $computer['dateAdded'] ?? null;
+            if (!$createdStr) continue;
+
+            $createdDate = Carbon::parse($createdStr);
+            if ($createdDate->between($startDate, $endDate)) {
+                $filtered[] = $computer;
+            }
+        }
+
+        return $filtered;
+    }
+
+
+    /**
      * Get audit logs for an organization within a date range
      *
      * @return array<int, array<string, mixed>>
@@ -667,6 +693,64 @@ final class ThreatLockerClient
         ]);
 
         return $allAudits;
+    }
+
+    /**
+     * Get system audit logs (logins) from Health Center
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getSystemAuditLogs(string $organizationId, Carbon $startDate, Carbon $endDate): array
+    {
+        $allSystemAudits = [];
+        $page = 1;
+        $hasMore = true;
+
+        while ($hasMore) {
+            $response = $this->makeRequest(
+                'POST',
+                'SystemAudit/SystemAuditGetForHealthCenter',
+                [
+                    'pageSize' => self::DEFAULT_PAGE_SIZE,
+                    'pageNumber' => $page,
+                ],
+                [],
+                $organizationId
+            );
+
+            $audits = $this->extractResponseData($response);
+
+            if (empty($audits)) {
+                break;
+            }
+
+            // Filter by date range locally if endpoint doesn't support it
+            foreach ($audits as $audit) {
+                $dateStr = $audit['dateTime'] ?? null;
+                if (!$dateStr) continue;
+
+                $date = Carbon::parse($dateStr);
+                if ($date->between($startDate, $endDate)) {
+                    $allSystemAudits[] = $audit;
+                }
+            }
+
+            $totalPages = $this->extractTotalPages($response);
+            $hasMore = $page < $totalPages;
+            $page++;
+
+            if ($page > self::MAX_PAGES) {
+                break;
+            }
+        }
+
+        Log::info('ThreatLocker: Fetched system audit logs', [
+            'integration_id' => $this->integration->integration_id,
+            'organization_id' => $organizationId,
+            'count' => count($allSystemAudits),
+        ]);
+
+        return $allSystemAudits;
     }
 
     /**

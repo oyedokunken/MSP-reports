@@ -90,6 +90,8 @@ return [
         'threatlocker_storage_policy' => 'ThreatLocker Storage Control Policies',
         'threatlocker_storage_device' => 'ThreatLocker Storage Devices',
         'threatlocker_audit' => 'ThreatLocker Audit Logs (Historical)',
+        'threatlocker_computer_history' => 'ThreatLocker Computer Inventory (Historical)',
+        'threatlocker_system_audit' => 'ThreatLocker System Audit (Logins)',
     ],
 
     'rate_limits' => [
