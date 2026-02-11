@@ -71,7 +71,7 @@ class ListReports extends Command
                 $this->line("    Data Types: " . implode(', ', $report['data_types'] ?? []));
                 $this->line("    Frequencies: " . implode(', ', $report['frequencies'] ?? []));
                 $this->line("    Formats: " . implode(', ', $report['formats'] ?? []));
-                $this->line("    Enabled: " . ($report['enabled'] ? 'Yes' : 'No'));
+                $this->line("    Enabled: " . (($report['enabled'] ?? true) ? 'Yes' : 'No'));
                 $this->newLine();
             }
         }
