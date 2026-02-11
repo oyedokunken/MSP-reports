@@ -466,6 +466,42 @@ final class IntegrationController extends Controller
         }
     }
 
+    public function dismissHistoricalImportFailure(Request $request, int $id): JsonResponse
+    {
+        $company = $request->user()->company;
+
+        $integration = $company->integrations()
+            ->where('integration_id', $id)
+            ->first();
+
+        if (!$integration) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Integration not found for this company.'
+            ], 404);
+        }
+
+        // Only allow dismissing if the status is actually 'failed'
+        if ($integration->historical_import_status !== 'failed') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Historical import is not in a failed state.'
+            ], 400);
+        }
+
+        // Reset the historical import status to pending
+        $integration->update([
+            'historical_import_status' => 'pending',
+            'historical_import_progress' => 0,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Historical import failure dismissed. You can retry the import anytime.'
+        ]);
+    }
+
+
     public function browseSharePoint(Request $request, int $id): JsonResponse
     {
         $company = $request->user()->company;

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,6 +10,7 @@ import { api } from '@/lib/api'
 import { logger } from '@/lib/logger'
 import { getErrorMessage } from '@/types/errors'
 import type { Integration } from '../types/integration'
+import { integrationKeys } from '../hooks/useIntegrations'
 
 interface EditIntegrationModalProps {
   open: boolean
@@ -34,6 +36,7 @@ export function EditIntegrationModal({
   integration,
   onSuccess
 }: EditIntegrationModalProps) {
+  const queryClient = useQueryClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -97,6 +100,9 @@ export function EditIntegrationModal({
       await api.patch(`/integrations/${integration.id}`, {
         display_name: displayName.trim(),
       })
+
+      // Invalidate queries to refresh the list
+      await queryClient.invalidateQueries({ queryKey: integrationKeys.lists() })
 
       setSuccess(true)
       setTimeout(() => {

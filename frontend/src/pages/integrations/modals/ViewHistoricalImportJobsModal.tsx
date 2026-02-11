@@ -71,8 +71,18 @@ export function ViewHistoricalImportJobsModal({
   useEffect(() => {
     if (open && integration) {
       fetchJobs()
+    } else if (!open) {
+      // Clear jobs when modal closes to prevent showing stale data
+      setJobs([])
+      setError('')
     }
   }, [open, integration, fetchJobs])
+
+  // Clear jobs when integration changes (even if modal stays open)
+  useEffect(() => {
+    setJobs([])
+    setError('')
+  }, [integration?.id])
 
   useEffect(() => {
     if (!open || !integration) return
@@ -141,25 +151,25 @@ export function ViewHistoricalImportJobsModal({
 
   const calculateETA = (job: HistoricalImportJob): string | null => {
     if (job.status !== 'running' || !job.started_at) return null
-    
+
     const progress = calculateProgress(job)
     if (progress <= 0 || progress >= 100) return null
-    
+
     const startedAt = new Date(job.started_at).getTime()
     const now = Date.now()
     const elapsedMs = now - startedAt
-    
+
     if (elapsedMs < 60000) return 'Calculating...'
-    
+
     const totalEstimatedMs = (elapsedMs / progress) * 100
     const remainingMs = totalEstimatedMs - elapsedMs
-    
+
     if (remainingMs <= 0) return 'Almost done...'
-    
+
     const remainingSeconds = Math.floor(remainingMs / 1000)
     const hours = Math.floor(remainingSeconds / 3600)
     const minutes = Math.floor((remainingSeconds % 3600) / 60)
-    
+
     if (hours > 0) {
       return `~${hours}h ${minutes}m remaining`
     } else if (minutes > 0) {
@@ -177,8 +187,8 @@ export function ViewHistoricalImportJobsModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-3xl max-h-[80vh] flex flex-col gap-0 p-0">
+        <DialogHeader className="px-6 py-4 border-b">
           <div className="flex items-center gap-2">
             <Database className="h-5 w-5 text-primary" />
             <DialogTitle>Historical Import Jobs</DialogTitle>
@@ -188,116 +198,118 @@ export function ViewHistoricalImportJobsModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {isLoading && jobs.length === 0 ? (
-            <div className="flex items-center justify-center py-8">
-              <Spinner className="h-8 w-8" />
-            </div>
-          ) : error ? (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-              <p className="text-sm text-destructive font-medium">{error}</p>
-            </div>
-          ) : jobs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Database className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>No historical import jobs found</p>
-              <p className="text-xs mt-1">Start a historical import to see jobs here</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {jobs.map((job, index) => {
-                const progress = calculateProgress(job)
-                return (
-                  <div
-                    key={`job-${job.id}-${index}`}
-                    className="rounded-lg border border-border p-4 space-y-3"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-semibold">Job #{job.id}</h4>
-                          {getStatusBadge(job.status)}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Date Range: {formatDateRange(job.import_start_date, job.import_end_date)}
-                        </p>
-                      </div>
-                      <div className="text-right text-sm">
-                        <p className="text-muted-foreground">Priority</p>
-                        <p className="font-medium">{job.priority_level}</p>
-                      </div>
-                    </div>
-
-                    {(job.status === 'running' || job.status === 'queued') && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">
-                            {job.status === 'running' ? 'Progress' : 'Waiting to start...'}
-                          </span>
-                          <div className="flex items-center gap-3">
-                            {job.status === 'running' && calculateETA(job) && (
-                              <span className="text-muted-foreground font-medium">
-                                {calculateETA(job)}
-                              </span>
-                            )}
-                            <span className="font-medium text-primary">{Math.round(progress)}%</span>
+        <div className="flex-1 overflow-y-auto thin-scrollbar">
+          <div className="space-y-4 p-6">
+            {isLoading && jobs.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <Spinner className="h-8 w-8" />
+              </div>
+            ) : error ? (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+                <p className="text-sm text-destructive font-medium">{error}</p>
+              </div>
+            ) : jobs.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Database className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>No historical import jobs found</p>
+                <p className="text-xs mt-1">Start a historical import to see jobs here</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {jobs.map((job, index) => {
+                  const progress = calculateProgress(job)
+                  return (
+                    <div
+                      key={`job-${job.id}-${index}`}
+                      className="rounded-lg border border-border p-4 space-y-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-semibold">Job #{job.id}</h4>
+                            {getStatusBadge(job.status)}
                           </div>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div
-                            className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                        {job.current_position && (
-                          <p className="text-xs text-muted-foreground">
-                            Current Position: {new Date(job.current_position).toLocaleDateString()}
+                          <p className="text-sm text-muted-foreground">
+                            Date Range: {formatDateRange(job.import_start_date, job.import_end_date)}
                           </p>
+                        </div>
+                        <div className="text-right text-sm">
+                          <p className="text-muted-foreground">Priority</p>
+                          <p className="font-medium">{job.priority_level}</p>
+                        </div>
+                      </div>
+
+                      {(job.status === 'running' || job.status === 'queued') && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">
+                              {job.status === 'running' ? 'Progress' : 'Waiting to start...'}
+                            </span>
+                            <div className="flex items-center gap-3">
+                              {job.status === 'running' && calculateETA(job) && (
+                                <span className="text-muted-foreground font-medium">
+                                  {calculateETA(job)}
+                                </span>
+                              )}
+                              <span className="font-medium text-primary">{Math.round(progress)}%</span>
+                            </div>
+                          </div>
+                          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className="bg-primary h-2 rounded-full transition-all duration-300 ease-out"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          {job.current_position && (
+                            <p className="text-xs text-muted-foreground">
+                              Current Position: {new Date(job.current_position).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-3 gap-3 pt-3 border-t">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Records Imported</p>
+                          <p className="text-sm font-medium text-green-600">{(job.records_imported || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Records Failed</p>
+                          <p className="text-sm font-medium text-red-600">{(job.records_failed || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Error Count</p>
+                          <p className="text-sm font-medium text-orange-600">{job.error_count || 0}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-xs pt-3 border-t">
+                        <div key={`${job.id}-created`}>
+                          <p className="text-muted-foreground">Created</p>
+                          <p className="font-medium">{formatDate(job.created_at)}</p>
+                        </div>
+                        {job.started_at && (
+                          <div key={`${job.id}-started`}>
+                            <p className="text-muted-foreground">Started</p>
+                            <p className="font-medium">{formatDate(job.started_at)}</p>
+                          </div>
+                        )}
+                        {job.completed_at && (
+                          <div key={`${job.id}-completed`}>
+                            <p className="text-muted-foreground">Completed</p>
+                            <p className="font-medium">{formatDate(job.completed_at)}</p>
+                          </div>
                         )}
                       </div>
-                    )}
-
-                    <div className="grid grid-cols-3 gap-3 pt-3 border-t">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Records Imported</p>
-                        <p className="text-sm font-medium text-green-600">{(job.records_imported || 0).toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Records Failed</p>
-                        <p className="text-sm font-medium text-red-600">{(job.records_failed || 0).toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Error Count</p>
-                        <p className="text-sm font-medium text-orange-600">{job.error_count || 0}</p>
-                      </div>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-xs pt-3 border-t">
-                      <div key={`${job.id}-created`}>
-                        <p className="text-muted-foreground">Created</p>
-                        <p className="font-medium">{formatDate(job.created_at)}</p>
-                      </div>
-                      {job.started_at && (
-                        <div key={`${job.id}-started`}>
-                          <p className="text-muted-foreground">Started</p>
-                          <p className="font-medium">{formatDate(job.started_at)}</p>
-                        </div>
-                      )}
-                      {job.completed_at && (
-                        <div key={`${job.id}-completed`}>
-                          <p className="text-muted-foreground">Completed</p>
-                          <p className="font-medium">{formatDate(job.completed_at)}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex justify-between items-center pt-4 border-t">
+        <div className="flex justify-between items-center p-4 border-t bg-muted/20">
           <Button
             variant="outline"
             size="sm"

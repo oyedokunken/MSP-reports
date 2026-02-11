@@ -128,8 +128,8 @@ export function ViewSyncLogsModal({
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col gap-0 p-0">
+                <DialogHeader className="px-6 py-4 border-b">
                     <div className="flex items-center gap-2">
                         <FileText className="h-5 w-5 text-primary" />
                         <DialogTitle>Sync Logs</DialogTitle>
@@ -139,83 +139,85 @@ export function ViewSyncLogsModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4">
-                    {isLoading ? (
-                        <div className="flex items-center justify-center py-8">
-                            <Spinner className="h-8 w-8" />
-                        </div>
-                    ) : error ? (
-                        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-                            <p className="text-sm text-destructive font-medium">
-                                {error}
-                            </p>
-                        </div>
-                    ) : logs.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                            <p>No sync logs found</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {logs.map((log) => (
-                                <div
-                                    key={log.sync_id}
-                                    className="rounded-lg border border-border p-4 space-y-2"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            {getStatusBadge(log.status)}
-                                            <span className="text-sm text-muted-foreground capitalize">
-                                                {log.sync_type}
+                <div className="flex-1 overflow-y-auto thin-scrollbar">
+                    <div className="space-y-4 p-6">
+                        {isLoading ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Spinner className="h-8 w-8" />
+                            </div>
+                        ) : error ? (
+                            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+                                <p className="text-sm text-destructive font-medium">
+                                    {error}
+                                </p>
+                            </div>
+                        ) : logs.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                <p>No sync logs found</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {logs.map((log) => (
+                                    <div
+                                        key={log.sync_id}
+                                        className="rounded-lg border border-border p-4 space-y-2"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                {getStatusBadge(log.status)}
+                                                <span className="text-sm text-muted-foreground capitalize">
+                                                    {log.sync_type}
+                                                </span>
+                                            </div>
+                                            <span className="text-xs text-muted-foreground">
+                                                {formatDate(log.started_at)}
                                             </span>
                                         </div>
-                                        <span className="text-xs text-muted-foreground">
-                                            {formatDate(log.started_at)}
-                                        </span>
-                                    </div>
 
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <p className="text-muted-foreground">
-                                                Records Synced
-                                            </p>
-                                            <p className="font-medium">
-                                                {log.records_synced}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-muted-foreground">
-                                                Records Failed
-                                            </p>
-                                            <p className="font-medium">
-                                                {log.records_failed}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {log.error_messages &&
-                                        Object.keys(log.error_messages).length >
-                                        0 && (
-                                            <div className="rounded bg-destructive/10 p-2 overflow-hidden">
-                                                <p className="text-xs text-destructive font-medium">
-                                                    Errors:
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                            <div>
+                                                <p className="text-muted-foreground">
+                                                    Records Synced
                                                 </p>
-                                                <pre className="text-xs text-destructive/80 mt-1 whitespace-pre-wrap break-words">
-                                                    {JSON.stringify(
-                                                        log.error_messages,
-                                                        null,
-                                                        2,
-                                                    )}
-                                                </pre>
+                                                <p className="font-medium">
+                                                    {log.records_synced}
+                                                </p>
                                             </div>
-                                        )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                                            <div>
+                                                <p className="text-muted-foreground">
+                                                    Records Failed
+                                                </p>
+                                                <p className="font-medium">
+                                                    {log.records_failed}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {log.error_messages &&
+                                            Object.keys(log.error_messages).length >
+                                            0 && (
+                                                <div className="rounded bg-destructive/10 p-2 overflow-hidden">
+                                                    <p className="text-xs text-destructive font-medium">
+                                                        Errors:
+                                                    </p>
+                                                    <pre className="text-xs text-destructive/80 mt-1 whitespace-pre-wrap break-words">
+                                                        {JSON.stringify(
+                                                            log.error_messages,
+                                                            null,
+                                                            2,
+                                                        )}
+                                                    </pre>
+                                                </div>
+                                            )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end p-4 border-t bg-muted/20">
                     <Button variant="outline" onClick={handleClose}>
                         Close
                     </Button>

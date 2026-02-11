@@ -18,13 +18,14 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
 import { useIntegrationsQuery, useSyncIntegrationMutation, useSetSourceOfTruthMutation } from "./hooks/useIntegrations";
+import { api } from "@/lib/api";
 
 export default function IntegrationList() {
     const toast = useToast();
     const navigate = useNavigate();
     const { user } = useAuth();
 
-    const { data, isLoading } = useIntegrationsQuery();
+    const { data, isLoading, refetch } = useIntegrationsQuery();
     const allIntegrations = data?.integrations || [];
     const syncMutation = useSyncIntegrationMutation();
     const setSourceOfTruthMutation = useSetSourceOfTruthMutation();
@@ -142,8 +143,23 @@ export default function IntegrationList() {
     };
 
     const handleCancelHistoricalImport = async (integration: Integration) => {
-        // Just dismiss the failed status - user can retry later if needed
-        toast.info("Import Dismissed", `You can retry the historical import for ${integration.name} anytime.`);
+        if (!hasPermission(user, 'integrations', 'sync')) {
+            toast.error('Permission Denied', 'You don\'t have permission to dismiss import failures');
+            return;
+        }
+
+        try {
+            const response = await api.delete<{ status: string; message: string }>(
+                `/integrations/${integration.id}/historical-import/dismiss`
+            );
+
+            toast.success('Import Dismissed', response.message || `You can retry the historical import for ${integration.name} anytime.`);
+            // Refetch integrations to update the UI
+            refetch();
+        } catch (error: any) {
+            console.error('Error dismissing historical import:', error);
+            toast.error('Failed to Dismiss', error.message || 'Could not dismiss the failed import');
+        }
     };
 
     return (

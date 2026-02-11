@@ -274,20 +274,12 @@ export function IntegrationCard({
                                         variant="outline"
                                         size="sm"
                                         onClick={() => onCancelHistoricalImport(integration)}
-                                        className="text-destructive hover:text-destructive"
+                                        className="flex-1"
                                     >
                                         <XCircle className="h-3 w-3 mr-1" />
                                         Dismiss
                                     </Button>
                                 )}
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => onViewHistoricalJobs(integration)}
-                                >
-                                    <FileText className="h-3 w-3 mr-1" />
-                                    View Logs
-                                </Button>
                             </div>
                         </div>
                     )}

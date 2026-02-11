@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,6 +14,7 @@ import { Trash2, AlertTriangle } from 'lucide-react'
 import { api } from '@/lib/api'
 import { SuccessDialog } from '@/components/modals/SuccessDialog'
 import type { Integration } from '../types/integration'
+import { integrationKeys } from '../hooks/useIntegrations'
 
 interface DeleteIntegrationModalProps {
   open: boolean
@@ -27,6 +29,7 @@ export function DeleteIntegrationModal({
   integration,
   onSuccess
 }: DeleteIntegrationModalProps) {
+  const queryClient = useQueryClient()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -41,6 +44,9 @@ export function DeleteIntegrationModal({
 
     try {
       await api.delete(`/integrations/${integration.id}`)
+
+      // Invalidate queries to refresh the list
+      await queryClient.invalidateQueries({ queryKey: integrationKeys.lists() })
 
       setSuccess(true)
 

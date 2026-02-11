@@ -107,6 +107,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::get('/integrations/{id}/health', [IntegrationController::class, 'healthCheck'])->middleware('permission:integrations,view');
         Route::get('/integrations/{id}/rate-limit', [IntegrationController::class, 'getRateLimitStatus'])->middleware('permission:integrations,view');
         Route::post('/integrations/{id}/historical-import', [IntegrationController::class, 'startHistoricalImport'])->middleware('permission:integrations,sync');
+        Route::delete('/integrations/{id}/historical-import/dismiss', [IntegrationController::class, 'dismissHistoricalImportFailure'])->middleware('permission:integrations,sync');
         Route::get('/integrations/{id}/historical-import-jobs', [IntegrationController::class, 'getHistoricalImportJobs'])->middleware('permission:integrations,sync');
         Route::patch('/company/source-integration', [IntegrationController::class, 'setSourceIntegration'])->middleware('permission:integrations,manage');
 
