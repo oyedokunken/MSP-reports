@@ -33,6 +33,8 @@ final class CIPPIntegration implements IntegrationInterface
     protected CustomerMappingService $mappingService;
     /** @var array<string, bool> */
     protected array $supportedEndpoints = [];
+    /** @var \Closure|null */
+    protected ?\Closure $progressCallback = null;
 
     public function __construct(Integration $integration)
     {
@@ -40,6 +42,11 @@ final class CIPPIntegration implements IntegrationInterface
         $rateLimiter = app(RateLimiter::class);
         $this->client = new CIPPClient($integration->credentials, $rateLimiter, $integration);
         $this->mappingService = app(CustomerMappingService::class);
+    }
+
+    public function setProgressCallback(\Closure $callback): void
+    {
+        $this->progressCallback = $callback;
     }
 
     /**
@@ -132,7 +139,7 @@ final class CIPPIntegration implements IntegrationInterface
 
             // Dispatch tenant batches (e.g., 5 tenants per batch)
             $batchesDispatched = 0;
-            $chunks = array_chunk($tenants, 3); // 3 tenants per batch for safe time limit
+            $chunks = array_chunk($tenants, 1); // 3 tenants per batch for safe time limit
 
             foreach ($chunks as $chunk) {
                 \App\Jobs\ProcessIntegrationBatchJob::dispatch(
@@ -196,10 +203,12 @@ final class CIPPIntegration implements IntegrationInterface
                     $this->syncLicensesForTenant($tenantFilter);
                 }
 
-                // Sync security alerts
+                // Sync security alerts & incidents
                 if ($config['sync_security'] ?? true) {
                     $this->syncSecurityAlertsForTenant($tenantFilter);
                     $this->syncSecurityIncidentsForTenant($tenantFilter);
+                    $this->syncDefenderTVMForTenant($tenantFilter);
+                    $this->syncStandardsForTenant($tenantFilter);
                 }
 
                 // Sync conditional access policies
@@ -267,8 +276,12 @@ final class CIPPIntegration implements IntegrationInterface
                 ];
             }
 
-            // High performance insert
-            IntegrationData::insert($insertData);
+            // High performance upsert to handle retries and overlapping data
+            IntegrationData::upsert(
+                $insertData,
+                ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
+                ['data_payload', 'updated_at']
+            );
 
             $totalSynced += count($chunk);
             $this->sendHeartbeat(count($chunk)); // Update UI progress!
@@ -412,8 +425,7 @@ final class CIPPIntegration implements IntegrationInterface
             $this->supportedEndpoints['alerts'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
-                $this->supportedEndpoints['alerts'] = false;
+            $this->handleEndpointError($e, 'alerts');
             return ['synced' => 0, 'errors' => ["Failed to list security alerts for {$tenantFilter}: {$e->getMessage()}"]];
         }
     }
@@ -442,8 +454,7 @@ final class CIPPIntegration implements IntegrationInterface
             $this->supportedEndpoints['incidents'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
-                $this->supportedEndpoints['incidents'] = false;
+            $this->handleEndpointError($e, 'incidents');
             return ['synced' => 0, 'errors' => ["Failed to list security incidents for {$tenantFilter}: {$e->getMessage()}"]];
         }
     }
@@ -472,8 +483,7 @@ final class CIPPIntegration implements IntegrationInterface
             $this->supportedEndpoints['conditional_access'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
-                $this->supportedEndpoints['conditional_access'] = false;
+            $this->handleEndpointError($e, 'conditional_access');
             return ['synced' => 0, 'errors' => ["Failed to list conditional access policies for {$tenantFilter}: {$e->getMessage()}"]];
         }
     }
@@ -500,8 +510,7 @@ final class CIPPIntegration implements IntegrationInterface
             $this->supportedEndpoints['defender'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
-                $this->supportedEndpoints['defender'] = false;
+            $this->handleEndpointError($e, 'defender');
             return ['synced' => 0, 'errors' => ["Failed to list Defender state for {$tenantFilter}: {$e->getMessage()}"]];
         }
     }
@@ -530,8 +539,7 @@ final class CIPPIntegration implements IntegrationInterface
             $this->supportedEndpoints['mailbox'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
-                $this->supportedEndpoints['mailbox'] = false;
+            $this->handleEndpointError($e, 'mailbox');
             return ['synced' => 0, 'errors' => ["Failed to list mailbox usage for {$tenantFilter}: {$e->getMessage()}"]];
         }
     }
@@ -558,9 +566,93 @@ final class CIPPIntegration implements IntegrationInterface
             $this->supportedEndpoints['exchange'] = true;
             return ['synced' => $synced, 'errors' => $errors];
         } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), '403'))
-                $this->supportedEndpoints['exchange'] = false;
+            $this->handleEndpointError($e, 'exchange');
             return ['synced' => 0, 'errors' => ["Failed to list exchange protection for {$tenantFilter}: {$e->getMessage()}"]];
+        }
+    }
+
+    /**
+     * @return array{synced: int, errors: array<string>}
+     */
+    protected function syncDefenderTVMForTenant(string $tenantFilter): array
+    {
+        if (isset($this->supportedEndpoints['defender_tvm']) && !$this->supportedEndpoints['defender_tvm'])
+            return ['synced' => 0, 'errors' => []];
+        $errors = [];
+        try {
+            $vulnerabilities = $this->client->listDefenderTVM($tenantFilter);
+            $mappedItems = [];
+            foreach ($vulnerabilities as $item) {
+                try {
+                    $mappedItems[] = CIPPMapper::mapDefenderVulnerability($item, $tenantFilter);
+                } catch (\Exception $e) {
+                    $errors[] = "Defender TVM mapping error: {$e->getMessage()}";
+                }
+            }
+            $synced = $this->bulkSyncData('defender_vulnerability', $mappedItems);
+            $this->supportedEndpoints['defender_tvm'] = true;
+            return ['synced' => $synced, 'errors' => $errors];
+        } catch (\Exception $e) {
+            $this->handleEndpointError($e, 'defender_tvm');
+            return ['synced' => 0, 'errors' => ["Failed to list Defender TVM for {$tenantFilter}: {$e->getMessage()}"]];
+        }
+    }
+
+    /**
+     * @return array{synced: int, errors: array<string>}
+     */
+    protected function syncStandardsForTenant(string $tenantFilter): array
+    {
+        if (isset($this->supportedEndpoints['standards']) && !$this->supportedEndpoints['standards'])
+            return ['synced' => 0, 'errors' => []];
+        $errors = [];
+        try {
+            $standards = $this->client->listStandards($tenantFilter);
+            $mappedItems = [];
+            foreach ($standards as $item) {
+                // Standards are already quite descriptive, we just tag them
+                $mappedItems[] = [
+                    'external_id' => $item['id'] ?? $item['GUID'] ?? md5(json_encode($item)),
+                    'tenant_id' => $tenantFilter,
+                    'type' => 'standard',
+                    'data' => $item,
+                ];
+            }
+            $synced = $this->bulkSyncData('standard', $mappedItems);
+            $this->supportedEndpoints['standards'] = true;
+            return ['synced' => $synced, 'errors' => $errors];
+        } catch (\Exception $e) {
+            $this->handleEndpointError($e, 'standards');
+            return ['synced' => 0, 'errors' => ["Failed to list standards for {$tenantFilter}: {$e->getMessage()}"]];
+        }
+    }
+
+    /**
+     * Centralized endpoint error handling to track supported features per tenant session
+     */
+    protected function handleEndpointError(\Exception $e, string $endpointKey): void
+    {
+        $message = $e->getMessage();
+        // Skip endpoints that return 404, 403, or specific licensing errors
+        if (
+            str_contains($message, '404') || 
+            str_contains($message, '403') || 
+            str_contains($message, 'doesn\'t have premium license') ||
+            str_contains($message, 'not a B2C tenant')
+        ) {
+            $this->supportedEndpoints[$endpointKey] = false;
+            
+            // If it's a security/premium licensing error, disable the whole group
+            if (str_contains($message, '403') || str_contains($message, 'premium license')) {
+                $securityEndpoints = ['alerts', 'incidents', 'defender_tvm', 'defender'];
+                if (in_array($endpointKey, $securityEndpoints)) {
+                    foreach ($securityEndpoints as $ep) {
+                        $this->supportedEndpoints[$ep] = false;
+                    }
+                }
+            }
+
+            Log::info("CIPP: Disabling endpoint '{$endpointKey}' (and related) for current session due to expected API error: {$message}");
         }
     }
 
@@ -592,37 +684,104 @@ final class CIPPIntegration implements IntegrationInterface
      */
     public function getHistoricalData(Carbon $startDate, Carbon $endDate): array
     {
-        $data = [
-            'sign_ins' => [],
-            'audit_logs' => [],
-            'security_alerts' => [],
-        ];
+        $totalProcessed = 0;
+        $tenantsProcessed = 0;
 
         try {
             $tenants = $this->client->listTenants();
+            $totalTenants = count($tenants);
 
             foreach ($tenants as $tenant) {
+                $tenantsProcessed++;
                 $this->sendHeartbeat();
                 $tenantFilter = $tenant['defaultDomainName'] ?? $tenant['customerId'] ?? null;
                 if (!$tenantFilter) {
                     continue;
                 }
 
+                $tenantProcessedCount = 0;
+
                 try {
-                    // Get sign-in logs
-                    $days = $startDate->diffInDays($endDate);
-                    $signIns = $this->client->listSignIns($tenantFilter, (int) $days);
-                    foreach ($signIns as $signIn) {
-                        $data['sign_ins'][] = CIPPMapper::mapSignIn($signIn, $tenantFilter);
+                    // 1. Get sign-in logs
+                    if (!isset($this->supportedEndpoints['sign_in']) || $this->supportedEndpoints['sign_in']) {
+                        try {
+                            $days = (int) $startDate->diffInDays($endDate);
+                            if ($days < 1) $days = 1;
+                            $signIns = $this->client->listSignIns($tenantFilter, $days);
+                            $mappedSignIns = [];
+                            foreach ($signIns as $signIn) {
+                                $mappedSignIns[] = CIPPMapper::mapSignIn($signIn, $tenantFilter);
+                            }
+                            $synced = $this->bulkSyncData('sign_in', $mappedSignIns);
+                            $tenantProcessedCount += $synced;
+                            $totalProcessed += $synced;
+                        } catch (\Exception $e) {
+                            $this->handleEndpointError($e, 'sign_in');
+                            throw $e;
+                        }
                     }
 
-                    // Get audit logs
-                    $auditLogs = $this->client->listAuditLogs(
-                        $tenantFilter,
-                        $startDate->toIso8601String(),
-                        $endDate->toIso8601String()
-                    );
-                    $data['audit_logs'] = array_merge($data['audit_logs'], $auditLogs);
+                    // 2. Get audit logs
+                    if (!isset($this->supportedEndpoints['audit_log']) || $this->supportedEndpoints['audit_log']) {
+                        try {
+                            $auditLogs = $this->client->listAuditLogs(
+                                $tenantFilter,
+                                $startDate->toIso8601String(),
+                                $endDate->toIso8601String()
+                            );
+                            $mappedAudits = [];
+                            foreach ($auditLogs as $log) {
+                                $mappedAudits[] = CIPPMapper::mapAuditLog($log, $tenantFilter);
+                            }
+                            $synced = $this->bulkSyncData('audit_log', $mappedAudits);
+                            $tenantProcessedCount += $synced;
+                            $totalProcessed += $synced;
+                        } catch (\Exception $e) {
+                            $this->handleEndpointError($e, 'audit_log');
+                            throw $e;
+                        }
+                    }
+
+                    // 3. Get security alerts
+                    if (!isset($this->supportedEndpoints['alerts']) || $this->supportedEndpoints['alerts']) {
+                        try {
+                            $alerts = $this->client->listSecurityAlerts($tenantFilter);
+                            $mappedAlerts = [];
+                            foreach ($alerts as $alert) {
+                                // Filter by date range if alert has timestamp
+                                $alertDate = Carbon::parse($alert['createdDateTime'] ?? $alert['CreatedDateTime'] ?? now());
+                                if ($alertDate->between($startDate, $endDate)) {
+                                    $mappedAlerts[] = CIPPMapper::mapSecurityAlert($alert, $tenantFilter);
+                                }
+                            }
+                            $synced = $this->bulkSyncData('security_alert', $mappedAlerts);
+                            $tenantProcessedCount += $synced;
+                            $totalProcessed += $synced;
+                        } catch (\Exception $e) {
+                            $this->handleEndpointError($e, 'alerts');
+                            throw $e;
+                        }
+                    }
+
+                    // 4. Get security incidents
+                    if (!isset($this->supportedEndpoints['incidents']) || $this->supportedEndpoints['incidents']) {
+                        try {
+                            $incidents = $this->client->listSecurityIncidents($tenantFilter);
+                            $mappedIncidents = [];
+                            foreach ($incidents as $incident) {
+                                $incidentDate = Carbon::parse($incident['createdDateTime'] ?? $incident['Created'] ?? now());
+                                if ($incidentDate->between($startDate, $endDate)) {
+                                    $mappedIncidents[] = CIPPMapper::mapSecurityIncident($incident, $tenantFilter);
+                                }
+                            }
+                            $synced = $this->bulkSyncData('security_incident', $mappedIncidents);
+                            $tenantProcessedCount += $synced;
+                            $totalProcessed += $synced;
+                        } catch (\Exception $e) {
+                            $this->handleEndpointError($e, 'incidents');
+                            throw $e;
+                        }
+                    }
 
                 } catch (\Exception $e) {
                     Log::warning('CIPP: Error getting historical data for tenant', [
@@ -630,6 +789,12 @@ final class CIPPIntegration implements IntegrationInterface
                         'tenant' => $tenantFilter,
                         'error' => $e->getMessage(),
                     ]);
+                }
+
+                // Update callback progress (per tenant completion within the day chunk)
+                if ($this->progressCallback) {
+                    $subProgress = ($tenantsProcessed / $totalTenants) * 100;
+                    ($this->progressCallback)(0, $subProgress);
                 }
             }
         } catch (\Exception $e) {
@@ -640,8 +805,8 @@ final class CIPPIntegration implements IntegrationInterface
         }
 
         return [
-            'data' => $data,
-            'total_processed' => count($data['sign_ins']) + count($data['audit_logs']) + count($data['security_alerts']),
+            'data' => [], // Data is now stored immediately inside the loop
+            'total_processed' => $totalProcessed,
         ];
     }
 

@@ -35,7 +35,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 5;
-    public int $timeout = 1800;
+    public int $timeout = 3600;
     /** @var array<int, int> */
     public array $backoff = [120, 300, 600, 1200];
 
@@ -99,10 +99,8 @@ final class ImportHistoricalDataJob implements ShouldQueue
                 throw new \Exception("Integration type {$integration->integration_type} not found.");
             }
 
-            // Process 7 days at a time to balance queue efficiency with progress updates
-            // 90-day import = ~13 jobs instead of 90 jobs
-            // Progress bar still updates reasonably frequently (every ~week)
-            $daysToProcess = 7;
+            // Process 1 day at a time to avoid worker timeouts on large tenants (e.g. CIPP with 100+ tenants)
+            $daysToProcess = 1;
             $currentDate = $this->chunkDate->copy();
             $endDate = $this->chunkDate->copy()->addDays($daysToProcess - 1)->endOfDay();
 

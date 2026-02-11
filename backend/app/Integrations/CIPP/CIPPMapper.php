@@ -371,4 +371,32 @@ final class CIPPMapper
             ],
         ];
     }
+    /**
+     * Map an audit log event to standardized format
+     * 
+     * @param array<string, mixed> $log
+     * @param string $tenantId
+     * @return array<string, mixed>
+     */
+    public static function mapAuditLog(array $log, string $tenantId): array
+    {
+        return [
+            'external_id' => $log['id'] ?? $log['Id'] ?? '',
+            'tenant_id' => $tenantId,
+            'activity' => $log['activity'] ?? $log['Activity'] ?? 'Unknown Activity',
+            'category' => $log['category'] ?? $log['Category'] ?? null,
+            'operation' => $log['operation'] ?? $log['Operation'] ?? null,
+            'result' => $log['result'] ?? $log['Result'] ?? null,
+            'actor' => $log['userPrincipalName'] ?? $log['UserPrincipalName'] ?? $log['actor'] ?? null,
+            'ip_address' => $log['ipAddress'] ?? $log['IPAddress'] ?? $log['clientIP'] ?? null,
+            'created_at' => $log['createdDateTime'] ?? $log['CreatedDateTime'] ?? $log['creationDate'] ?? $log['creationTime'] ?? null,
+            'metadata' => [
+                'correlation_id' => $log['correlationId'] ?? null,
+                'target_resources' => $log['targetResources'] ?? [],
+                'additional_details' => $log['additionalDetails'] ?? [],
+                'workload' => $log['workload'] ?? null,
+                'client_app' => $log['clientApp'] ?? null,
+            ],
+        ];
+    }
 }

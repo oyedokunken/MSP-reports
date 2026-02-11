@@ -134,6 +134,7 @@ final class CIPPClient
 
         $token = $this->getAccessToken();
         $url = $this->baseUrl . $endpoint;
+        $startTime = microtime(true);
 
         Log::debug('CIPP: Making API request', [
             'integration_id' => $this->integration->integration_id,
@@ -162,6 +163,7 @@ final class CIPPClient
             };
 
             $this->rateLimiter->recordRequest($this->integration);
+            $duration = round(microtime(true) - $startTime, 2);
 
             if ($response->status() === 429) {
                 $retryAfter = (string) $response->header('Retry-After');
@@ -183,18 +185,32 @@ final class CIPPClient
                     'integration_id' => $this->integration->integration_id,
                     'endpoint' => $endpoint,
                     'status' => $response->status(),
+                    'duration' => $duration,
                     'error' => $error,
                 ]);
                 throw new \RuntimeException("CIPP API error ({$response->status()}): {$error}");
             }
 
-            return $response->json() ?? [];
+            $body = $response->json() ?? [];
+            $count = is_array($body) ? count($body) : 0;
+
+            Log::debug('CIPP: API request completed', [
+                'integration_id' => $this->integration->integration_id,
+                'endpoint' => $endpoint,
+                'duration' => $duration,
+                'record_count' => $count,
+                'response_size' => strlen($response->body()),
+            ]);
+
+            return $body;
         } catch (AuthenticationException | RateLimitExceededException $e) {
             throw $e;
         } catch (\Exception $e) {
+            $duration = round(microtime(true) - $startTime, 2);
             Log::error('CIPP: API request exception', [
                 'integration_id' => $this->integration->integration_id,
                 'endpoint' => $endpoint,
+                'duration' => $duration,
                 'error' => $e->getMessage(),
             ]);
             throw $e;
