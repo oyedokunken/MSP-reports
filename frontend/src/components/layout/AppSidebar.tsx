@@ -7,7 +7,7 @@ import {
   Users,
   FileText,
   Calendar,
-  Bell,
+  // Bell,
   UserPlus,
   KeyRound,
   FileBadge,
@@ -109,7 +109,7 @@ export default function AppSidebar() {
       label: 'General',
       items: [
         { path: '/platform/dashboard', icon: LayoutDashboard, label: 'Dashboard', show: true, tourId: 'nav-dashboard' },
-        { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: hasPermission(user, 'notifications', 'view'), tourId: 'nav-notifications', hasBadge: true },
+        // { path: '/platform/notifications', icon: Bell, label: 'Notifications', show: hasPermission(user, 'notifications', 'view'), tourId: 'nav-notifications', hasBadge: true },
       ]
     },
     {

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, Bell, LogOut, Calendar, Shield, User } from "lucide-react";
+import { Settings, Bell, LogOut, Calendar, Shield, User, ArrowRight } from "lucide-react";
 import { logger } from '@/lib/logger'
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
@@ -169,7 +169,7 @@ export default function FloatingNav() {
                         </Button>
 
                         {isNotificationMenuOpen && (
-                            <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-gray-200 dark:border-gray-800 bg-background dark:bg-[hsl(var(--auth-card))] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 max-h-96 overflow-hidden z-50">
+                            <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-gray-200 dark:border-gray-800 bg-background dark:bg-[hsl(var(--auth-card))] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 max-h-96 overflow-hidden z-50 flex flex-col">
                                 <div className="p-4 border-b border-border">
                                     <div className="flex items-center justify-between">
                                         <h3 className="font-semibold text-foreground">
@@ -183,7 +183,7 @@ export default function FloatingNav() {
                                     </div>
                                 </div>
 
-                                <div className="max-h-80 overflow-y-auto">
+                                <div className="flex-1 overflow-y-auto thin-scrollbar min-h-0">
                                     {notifications.length === 0 ? (
                                         <div className="p-8 text-center text-sm text-muted-foreground">
                                             No notifications
@@ -229,21 +229,20 @@ export default function FloatingNav() {
                                     )}
                                 </div>
 
-                                {notifications.length > 0 && (
-                                    <div className="p-2 border-t border-border">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="w-full text-xs"
-                                            onClick={() => {
-                                                setIsNotificationMenuOpen(false);
-                                                navigate("/platform/notifications");
-                                            }}
-                                        >
-                                            View all notifications
-                                        </Button>
-                                    </div>
-                                )}
+                                <div className="p-2 border-t border-border flex-shrink-0">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full text-xs"
+                                        onClick={() => {
+                                            setIsNotificationMenuOpen(false);
+                                            navigate("/platform/notifications");
+                                        }}
+                                    >
+                                        View all notifications
+                                        <ArrowRight className="ml-2 h-3 w-3" />
+                                    </Button>
+                                </div>
                             </div>
                         )}
                     </div>
