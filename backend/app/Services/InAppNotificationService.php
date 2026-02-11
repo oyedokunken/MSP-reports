@@ -20,6 +20,8 @@ class InAppNotificationService
 {
     /**
      * Notify all users in a company
+     * 
+     * @param \Illuminate\Notifications\Notification|mixed $notification
      */
     protected function notifyCompanyUsers(Company $company, $notification, ?string $permission = null): void
     {
@@ -46,6 +48,8 @@ class InAppNotificationService
 
     /**
      * Notify a specific user
+     * 
+     * @param \Illuminate\Notifications\Notification|mixed $notification
      */
     protected function notifyUser(User $user, $notification): void
     {
@@ -206,7 +210,7 @@ class InAppNotificationService
      */
     public function scheduleCreated(ReportSchedule $schedule, User $actor): void
     {
-        $customerName = $schedule->customer?->canonical_name ?? 'Unknown';
+        $customerName = $schedule->customer->canonical_name ?? 'Unknown';
         
         $this->notifyCompanyUsers(
             $schedule->company,
@@ -214,7 +218,7 @@ class InAppNotificationService
                 'type' => 'report',
                 'severity' => 'green',
                 'title' => 'Report Schedule Created',
-                'description' => "{$actor->name} created a " . ($schedule->frequency?->value ?? 'custom') . " report schedule for {$customerName}",
+                'description' => "{$actor->name} created a " . ($schedule->frequency->value ?? 'custom') . " report schedule for {$customerName}",
                 'metadata' => [
                     'schedule_id' => $schedule->report_schedule_id,
                     'customer_name' => $customerName,

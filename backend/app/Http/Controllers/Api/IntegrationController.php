@@ -387,7 +387,10 @@ final class IntegrationController extends Controller
         $className = $integrationClasses[$integration->integration_type] ?? null;
 
         if ($className && class_exists($className)) {
-            return new $className($integration);
+            $instance = new $className($integration);
+            if ($instance instanceof \App\Integrations\Contracts\IntegrationInterface) {
+                return $instance;
+            }
         }
 
         return null;

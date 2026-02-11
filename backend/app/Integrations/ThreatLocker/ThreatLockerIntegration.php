@@ -758,7 +758,7 @@ final class ThreatLockerIntegration implements IntegrationInterface
 
 
 
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         return now()->subDays(90);
     }

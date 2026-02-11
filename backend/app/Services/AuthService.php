@@ -68,7 +68,7 @@ final class AuthService
 
         // Transform company logos to absolute URLs
         $company = $user->company;
-        if ($company && isset($company->settings['white_label'])) {
+        if (isset($company->settings['white_label'])) {
             $settings = $company->settings;
             if (!empty($settings['white_label']['logo_url'])) {
                 $settings['white_label']['logo_url'] = \Illuminate\Support\Facades\Storage::disk('public')->url($settings['white_label']['logo_url']);

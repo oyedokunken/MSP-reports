@@ -66,6 +66,12 @@ class CIPPSummaryReport extends BaseReport
     }
 
     /**
+     * @param array<string, mixed> $userData
+     * @param array<string, mixed> $licenseData
+     * @param array<string, mixed> $securityData
+     * @param array<string, mixed> $defenderData
+     * @param array<string, mixed> $conditionalAccessData
+     * @param array<string, mixed> $emailData
      * @return array<string, mixed>
      */
     private function buildExecutiveSummary(array $userData, array $licenseData, array $securityData, array $defenderData, array $conditionalAccessData, array $emailData): array
@@ -91,6 +97,10 @@ class CIPPSummaryReport extends BaseReport
     }
 
     /**
+     * @param array<string, mixed> $userData
+     * @param array<string, mixed> $securityData
+     * @param array<string, mixed> $defenderData
+     * @param array<string, mixed> $conditionalAccessData
      * @return array<int, array{severity: string, title: string, description: string, action: string}>
      */
     private function buildRecommendations(array $userData, array $securityData, array $defenderData, array $conditionalAccessData): array

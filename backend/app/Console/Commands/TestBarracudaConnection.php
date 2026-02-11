@@ -25,20 +25,18 @@ class TestBarracudaConnection extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): void
     {
         $this->info("Starting Barracuda API Test...");
 
-        $clientId = env('BARRACUDA_CLIENT_ID');
-        $clientSecret = env('BARRACUDA_CLIENT_SECRET');
-        $parentAccountId = env('BARRACUDA_PARENT_ACCOUNT_ID');
+        $clientId = config('services.barracuda.client_id');
+        $clientSecret = config('services.barracuda.client_secret');
+        $parentAccountId = config('services.barracuda.parent_account_id');
         
         // Use v1 endpoint as discovered in previous testing
         $tokenUrl = 'https://data.barracudanetworks.com/b1/v1/authorization/token'; 
-        // Or use env variable if set, but fallback to known working v1 URL
-        // $tokenUrl = env('BARRACUDA_TOKEN_URL', 'https://data.barracudanetworks.com/b1/v1/authorization/token');
 
-        if (empty($clientId) || empty($clientSecret)) {
+        if (!is_string($clientId) || !is_string($clientSecret)) {
             $this->error("Missing BARRACUDA_CLIENT_ID or BARRACUDA_CLIENT_SECRET in .env");
             return;
         }
@@ -50,10 +48,11 @@ class TestBarracudaConnection extends Command
         $this->line("Request URL: $tokenUrl");
         $this->line("Request Method: POST");
         $this->line("Request Body (JSON):");
-        $this->line(json_encode([
-            'ClientId' => '***' . substr($clientId, -4),
-            'ClientSecret' => '***' . substr($clientSecret, -4),
-        ], JSON_PRETTY_PRINT));
+        $json = json_encode([
+            'ClientId' => '***' . substr((string)$clientId, -4),
+            'ClientSecret' => '***' . substr((string)$clientSecret, -4),
+        ], JSON_PRETTY_PRINT);
+        $this->line($json ?: '');
 
         $startTime = microtime(true);
         
@@ -78,11 +77,16 @@ class TestBarracudaConnection extends Command
             $data = $response->json();
             $token = $data['access_token'] ?? null;
             
+            if (!$token || !is_string($token)) {
+                $this->error("No access token in response");
+                return;
+            }
+
             $this->info("Authentication Successful!");
             $this->line("Token received (truncated): " . substr($token, 0, 20) . "...");
             $this->line("Expires in: " . ($data['expires_in'] ?? 'unknown') . " seconds");
             
-            if (!$parentAccountId) {
+            if (!$parentAccountId || !is_string($parentAccountId)) {
                 $this->error("Missing BARRACUDA_PARENT_ACCOUNT_ID in .env - cannot proceed with account tests");
                 return;
             }
@@ -95,7 +99,7 @@ class TestBarracudaConnection extends Command
         }
     }
 
-    private function testChildAccounts($token, $accountId)
+    private function testChildAccounts(string $token, string $accountId): void
     {
         $this->info("\n-------------------------------------------");
         $this->info("STEP 2: Get Child Accounts");
@@ -128,7 +132,7 @@ class TestBarracudaConnection extends Command
         }
     }
 
-    private function testProductState($token, $accountId)
+    private function testProductState(string $token, string $accountId): void
     {
         $this->info("\n-------------------------------------------");
         $this->info("STEP 3: Get Product State");
@@ -161,12 +165,12 @@ class TestBarracudaConnection extends Command
         }
     }
 
-    private function formatJson($json)
+    private function formatJson(mixed $json): string
     {
         $data = json_decode($json);
         if ($data === null) {
-            return $json;
+            return is_string($json) ? $json : '';
         }
-        return json_encode($data, JSON_PRETTY_PRINT);
+        return (string)json_encode($data, JSON_PRETTY_PRINT);
     }
 }

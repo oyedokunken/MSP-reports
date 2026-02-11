@@ -379,7 +379,9 @@ class ThreatLockerSummary extends BaseReport
         }
 
         // Check for tamper protection disabled
-        $tamperDisabled = collect($computerSummary['computers_list'] ?? [])
+        /** @var array<int, array<string, mixed>> $computersList */
+        $computersList = $computerSummary['computers_list'] ?? [];
+        $tamperDisabled = collect($computersList)
             ->filter(fn ($c) => ($c['tamper_protection_disabled'] ?? false) === true)
             ->count();
         if ($tamperDisabled > 0) {

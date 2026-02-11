@@ -365,6 +365,9 @@ final class HealthCheckController extends Controller
         }
     }
 
+    /**
+     * @return \Illuminate\Support\Collection<string, mixed>
+     */
     private function getSyncActivityData(int $companyId, Carbon $start, Carbon $end): \Illuminate\Support\Collection
     {
         return SyncLog::whereHas('integration', function ($q) use ($companyId) {
@@ -383,6 +386,9 @@ final class HealthCheckController extends Controller
             ->keyBy('date');
     }
 
+    /**
+     * @return \Illuminate\Support\Collection<string, mixed>
+     */
     private function getReportActivityData(int $companyId, Carbon $start, Carbon $end): \Illuminate\Support\Collection
     {
         return GeneratedReport::where('company_id', $companyId)
@@ -398,6 +404,9 @@ final class HealthCheckController extends Controller
             ->keyBy('date');
     }
 
+    /**
+     * @return \Illuminate\Support\Collection<string, mixed>
+     */
     private function getJobActivityData(Carbon $start, Carbon $end): \Illuminate\Support\Collection
     {
         if (!\Illuminate\Support\Facades\Schema::hasTable('jobs')) {
@@ -416,6 +425,9 @@ final class HealthCheckController extends Controller
             ->keyBy('date');
     }
 
+    /**
+     * @return \Illuminate\Support\Collection<string, mixed>
+     */
     private function getLoginActivityData(int $companyId, Carbon $start, Carbon $end): \Illuminate\Support\Collection
     {
         return AuditLog::where('company_id', $companyId)

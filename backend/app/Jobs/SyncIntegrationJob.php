@@ -61,11 +61,10 @@ final class SyncIntegrationJob implements ShouldQueue
             'company_id' => $this->integration->company_id,
         ]);
 
+        $masterKey = "sync_log:{$this->syncLog->sync_id}:master_running";
         try {
-
             // Start Master Lock - prevents workers from completing the sync before we are done dispatching
             $redis = \Illuminate\Support\Facades\Redis::connection();
-            $masterKey = "sync_log:{$this->syncLog->sync_id}:master_running";
             $redis->set($masterKey, 1);
             $redis->expire($masterKey, 3600); // 1 hour safety
 
@@ -211,9 +210,7 @@ final class SyncIntegrationJob implements ShouldQueue
 
         } catch (\Exception $e) {
             // Ensure lock is released even on failure
-            if (isset($masterKey)) {
-                \Illuminate\Support\Facades\Redis::connection()->set($masterKey, 0);
-            }
+            \Illuminate\Support\Facades\Redis::connection()->set($masterKey, 0);
 
             Log::error('Integration sync failed', [
                 'integration_id' => $this->integration->integration_id,

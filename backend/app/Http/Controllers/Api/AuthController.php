@@ -144,7 +144,7 @@ final class AuthController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Password verified.',
-            'api_key' => $apiKey?->plain_text_key ?? $apiKey?->display_name ?? 'No API key configured',
+            'api_key' => $apiKey ? ($apiKey->plain_text_key ?? $apiKey->display_name) : 'No API key configured',
         ]);
     }
 

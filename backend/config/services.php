@@ -64,4 +64,10 @@ return [
         'threshold' => env('EMBEDDING_SIMILARITY_THRESHOLD', 0.6),
     ],
 
+    'barracuda' => [
+        'client_id' => env('BARRACUDA_CLIENT_ID'),
+        'client_secret' => env('BARRACUDA_CLIENT_SECRET'),
+        'parent_account_id' => env('BARRACUDA_PARENT_ACCOUNT_ID'),
+    ],
+
 ];

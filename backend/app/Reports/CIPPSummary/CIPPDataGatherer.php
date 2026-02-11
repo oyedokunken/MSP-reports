@@ -55,6 +55,7 @@ class CIPPDataGatherer
     /**
      * Query integration data by type within date range
      * 
+     * @param array<int>|null $integrationCustomerIds
      * @return Collection<int, IntegrationData>
      */
     protected function queryData(string $dataType, Carbon $startDate, Carbon $endDate, ?array $integrationCustomerIds = null): Collection
@@ -68,7 +69,7 @@ class CIPPDataGatherer
             $query->where('integration_id', $integrationId);
         }
 
-        if ($integrationCustomerIds && !empty($integrationCustomerIds)) {
+        if ($integrationCustomerIds !== null && !empty($integrationCustomerIds)) {
             $query->whereIn('integration_customer_id', $integrationCustomerIds);
         }
 
@@ -78,6 +79,7 @@ class CIPPDataGatherer
     /**
      * Get latest snapshot data (not time-ranged, just most recent)
      * 
+     * @param array<int>|null $integrationCustomerIds
      * @return Collection<int, IntegrationData>
      */
     protected function queryLatestData(string $dataType, ?array $integrationCustomerIds = null): Collection
@@ -91,7 +93,7 @@ class CIPPDataGatherer
             $query->where('integration_id', $integrationId);
         }
 
-        if ($integrationCustomerIds && !empty($integrationCustomerIds)) {
+        if ($integrationCustomerIds !== null && !empty($integrationCustomerIds)) {
             $query->whereIn('integration_customer_id', $integrationCustomerIds);
         }
 
@@ -119,7 +121,7 @@ class CIPPDataGatherer
         $userList = [];
 
         foreach ($users as $record) {
-            $payload = is_array($record->data_payload) ? $record->data_payload : json_decode($record->data_payload, true);
+            $payload = $record->data_payload;
             if (!$payload) continue;
 
             $mfaStatus = $payload['mfa_status'] ?? $payload['MFAStatus'] ?? $payload['per_user'] ?? 'unknown';
@@ -176,7 +178,7 @@ class CIPPDataGatherer
         $totalAvailable = 0;
 
         foreach ($licenses as $record) {
-            $payload = is_array($record->data_payload) ? $record->data_payload : json_decode($record->data_payload, true);
+            $payload = $record->data_payload;
             if (!$payload) continue;
 
             $skuName = $payload['sku_name'] ?? $payload['skuPartNumber'] ?? $payload['name'] ?? 'Unknown License';
@@ -223,7 +225,7 @@ class CIPPDataGatherer
         $statusCounts = ['new' => 0, 'in_progress' => 0, 'resolved' => 0];
 
         foreach ($alerts as $record) {
-            $payload = is_array($record->data_payload) ? $record->data_payload : json_decode($record->data_payload, true);
+            $payload = $record->data_payload;
             if (!$payload) continue;
 
             $severity = strtolower($payload['severity'] ?? 'informational');
@@ -243,7 +245,7 @@ class CIPPDataGatherer
 
         $incidentList = [];
         foreach ($incidents as $record) {
-            $payload = is_array($record->data_payload) ? $record->data_payload : json_decode($record->data_payload, true);
+            $payload = $record->data_payload;
             if (!$payload) continue;
 
             $incidentList[] = [
@@ -281,7 +283,7 @@ class CIPPDataGatherer
         $deviceList = [];
 
         foreach ($defenders as $record) {
-            $payload = is_array($record->data_payload) ? $record->data_payload : json_decode($record->data_payload, true);
+            $payload = $record->data_payload;
             if (!$payload) continue;
 
             $isProtected = $payload['is_managed'] ?? $payload['isManaged'] ?? $payload['real_time_protection'] ?? true;
@@ -333,7 +335,7 @@ class CIPPDataGatherer
         $reportOnlyCount = 0;
 
         foreach ($policies as $record) {
-            $payload = is_array($record->data_payload) ? $record->data_payload : json_decode($record->data_payload, true);
+            $payload = $record->data_payload;
             if (!$payload) continue;
 
             $state = strtolower($payload['state'] ?? $payload['status'] ?? 'enabled');
@@ -379,7 +381,7 @@ class CIPPDataGatherer
         $mailboxList = [];
 
         foreach ($mailboxes as $record) {
-            $payload = is_array($record->data_payload) ? $record->data_payload : json_decode($record->data_payload, true);
+            $payload = $record->data_payload;
             if (!$payload) continue;
 
             $storageBytes = (float)($payload['storage_used'] ?? $payload['storageUsedInBytes'] ?? $payload['total_item_size'] ?? 0);
@@ -400,7 +402,7 @@ class CIPPDataGatherer
 
         $protectionList = [];
         foreach ($protection as $record) {
-            $payload = is_array($record->data_payload) ? $record->data_payload : json_decode($record->data_payload, true);
+            $payload = $record->data_payload;
             if (!$payload) continue;
 
             $protectionList[] = [

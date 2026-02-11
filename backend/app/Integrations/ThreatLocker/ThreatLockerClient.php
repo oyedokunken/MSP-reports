@@ -922,6 +922,8 @@ final class ThreatLockerClient
 
     /**
      * Extract total pages from the Pagination response header data
+     * 
+     * @param array<string, mixed>|null $response
      */
     protected function extractTotalPages(?array $response): int
     {

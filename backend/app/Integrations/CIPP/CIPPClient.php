@@ -126,7 +126,7 @@ final class CIPPClient
      * @param string $method HTTP method
      * @param string $endpoint API endpoint (e.g., '/api/ListTenants')
      * @param array<string, mixed> $params Query parameters or body data
-     * @return array
+     * @return array<mixed>
      */
     public function request(string $method, string $endpoint, array $params = []): array
     {

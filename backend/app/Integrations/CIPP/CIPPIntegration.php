@@ -31,6 +31,7 @@ final class CIPPIntegration implements IntegrationInterface
     protected Integration $integration;
     protected CIPPClient $client;
     protected CustomerMappingService $mappingService;
+    /** @var array<string, bool> */
     protected array $supportedEndpoints = [];
 
     public function __construct(Integration $integration)
@@ -477,6 +478,9 @@ final class CIPPIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array{synced: int, errors: array<string>}
+     */
     protected function syncDefenderForTenant(string $tenantFilter): array
     {
         if (isset($this->supportedEndpoints['defender']) && !$this->supportedEndpoints['defender'])
@@ -532,6 +536,9 @@ final class CIPPIntegration implements IntegrationInterface
         }
     }
 
+    /**
+     * @return array{synced: int, errors: array<string>}
+     */
     protected function syncExchangeProtectionForTenant(string $tenantFilter): array
     {
         if (isset($this->supportedEndpoints['exchange']) && !$this->supportedEndpoints['exchange'])
@@ -641,7 +648,7 @@ final class CIPPIntegration implements IntegrationInterface
     /**
      * Get the earliest date for which historical data is available
      */
-    public function getAvailableHistoryRange(): ?Carbon
+    public function getAvailableHistoryRange(): Carbon
     {
         // CIPP typically has 30 days of sign-in and audit log history
         return now()->subDays(30);
@@ -742,12 +749,7 @@ final class CIPPIntegration implements IntegrationInterface
                 return $this->client->listTenants();
             });
             
-            // Handle if tenants is wrapped in Results
-            if (isset($tenants['Results']) && is_array($tenants['Results'])) {
-                $tenants = $tenants['Results'];
-            }
-            
-            $tenantCount = is_array($tenants) ? count($tenants) : 0;
+            $tenantCount = count($tenants);
             Log::debug('CIPP Preview: Tenant count', ['count' => $tenantCount]);
 
             // 2. Fetch summary metrics from DATABASE instead of API
@@ -780,7 +782,7 @@ final class CIPPIntegration implements IntegrationInterface
             }
             
             // If we have no specific customer or it wasn't found, show top 10 from API
-            if (empty($displayTenants) && is_array($tenants)) {
+            if (empty($displayTenants) && !empty($tenants)) {
                 $displayTenants = array_map(fn($t) => [
                     'name' => $t['displayName'] ?? $t['defaultDomainName'] ?? 'Unknown',
                     'domain' => $t['defaultDomainName'] ?? $t['customerId'] ?? '',

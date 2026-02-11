@@ -18,6 +18,7 @@ use App\Models\Scopes\CompanyScope;
  * @property int $created_by_user_id
  * @property string $display_name
  * @property string $key_hash
+ * @property string|null $plain_text_key
  * @property \Carbon\Carbon|null $last_used_at
  * @property array<string, mixed>|null $permissions
  * @property array<string, mixed>|null $ip_whitelist
