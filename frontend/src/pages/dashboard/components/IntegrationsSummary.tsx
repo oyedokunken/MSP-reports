@@ -74,55 +74,54 @@ export function IntegrationsSummary({
                 </button>
             </div>
 
-            <div className="mt-4 space-y-3 overflow-y-auto flex-1 min-h-0 pr-2 scrollbar-hide">
+            <div className="mt-4 space-y-3 overflow-y-auto flex-1 min-h-0 pr-2 thin-scrollbar">
                 {integrations.map((intg) => (
                     <div
                         key={intg.id}
-                        className={`rounded-lg p-4 ${
-                            intg.isSourceOfTruth
+                        className={`rounded-lg p-4 ${intg.isSourceOfTruth
                                 ? "bg-blue-50/50 dark:bg-blue-950/20 border-2 border-blue-500/70 shadow-sm ring-1 ring-blue-500/10"
                                 : "border border-border/50"
-                        }`}
+                            }`}
                     >
-                            <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-start gap-3 min-w-0 flex-1">
-                                    <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
-                                        <Cable className="h-5 w-5 text-primary" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <p className="font-medium text-foreground truncate">
-                                                {intg.name}
-                                            </p>
-                                            {intg.isSourceOfTruth && (
-                                                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                                                    Source of Truth
-                                                </span>
-                                            )}
-                                            <span
-                                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${getStatusBadge(
-                                                    intg.status,
-                                                    intg.syncStatus
-                                                )}`}
-                                            >
-                                                {getStatusIcon(
-                                                    intg.status,
-                                                    intg.syncStatus
-                                                )}
-                                                {getStatusText(
-                                                    intg.status,
-                                                    intg.syncStatus
-                                                )}
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                            Last sync {intg.lastSync} •{" "}
-                                            {intg.customers} customers
+                        <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                                <div className="rounded-lg bg-primary/10 p-2 flex-shrink-0">
+                                    <Cable className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="font-medium text-foreground truncate">
+                                            {intg.name}
                                         </p>
+                                        {intg.isSourceOfTruth && (
+                                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                                                Source of Truth
+                                            </span>
+                                        )}
+                                        <span
+                                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ${getStatusBadge(
+                                                intg.status,
+                                                intg.syncStatus
+                                            )}`}
+                                        >
+                                            {getStatusIcon(
+                                                intg.status,
+                                                intg.syncStatus
+                                            )}
+                                            {getStatusText(
+                                                intg.status,
+                                                intg.syncStatus
+                                            )}
+                                        </span>
                                     </div>
+                                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                        Last sync {intg.lastSync} •{" "}
+                                        {intg.customers} customers
+                                    </p>
                                 </div>
                             </div>
                         </div>
+                    </div>
                 ))}
             </div>
         </AnimatedCard>

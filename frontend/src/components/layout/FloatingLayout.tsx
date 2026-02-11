@@ -23,7 +23,7 @@ export default function FloatingLayout({ children }: FloatingLayoutProps) {
                 <AppSidebar />
                 <SidebarInset className="flex flex-col flex-1 overflow-hidden">
                     <FloatingNav />
-                    <main id="main-content" className="flex-1 overflow-y-auto">
+                    <main id="main-content" className="flex-1 overflow-y-auto thin-scrollbar">
                         <div className="p-7 md:p-8 max-w-full">
                             {children || <Outlet />}
                         </div>

@@ -1,4 +1,4 @@
-import type { ReportSchedule } from "@/stores/useSchedulesStore";
+import { useEffect } from "react";
 import {
     getIntegrationStatusBadge,
     getIntegrationStatusIcon,
@@ -10,8 +10,12 @@ import { HealthRateLimitChart } from "./components/HealthRateLimitChart";
 import { IntegrationsSummary } from "./components/IntegrationsSummary";
 import { SchedulesSummaryCard } from "./components/SchedulesSummaryCard";
 import { StatsGrid } from "./components/StatsGrid";
+import { DashboardErrorBoundary } from "./components/DashboardErrorBoundary";
+import { StatsGridSkeleton } from "./components/skeletons/StatsGridSkeleton";
+import { ChartSkeleton } from "./components/skeletons/ChartSkeleton";
+import { markPerformance, measurePerformance } from "@/utils/performance";
 
-export default function Dashboard() {
+function DashboardContent() {
     const {
         loadingStats,
         loadingIntegrations,
@@ -25,44 +29,87 @@ export default function Dashboard() {
         allSchedules,
     } = useDashboard();
 
+    // Performance monitoring
+    useEffect(() => {
+        markPerformance('dashboard-start');
+
+        return () => {
+            if (!loadingStats && !loadingCharts) {
+                markPerformance('dashboard-interactive');
+                measurePerformance('dashboard-load-time', 'dashboard-start', 'dashboard-interactive');
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!loadingStats && !loadingCharts) {
+            markPerformance('dashboard-data-ready');
+            measurePerformance('dashboard-data-load', 'dashboard-start', 'dashboard-data-ready');
+        }
+    }, [loadingStats, loadingCharts]);
+
     return (
-        <div className="flex flex-col gap-6 pb-8">
-            <StatsGrid isLoading={loadingStats} stats={stats} />
+        <div className="flex flex-col gap-6 pb-0">
+            {loadingStats ? (
+                <StatsGridSkeleton />
+            ) : (
+                <StatsGrid isLoading={false} stats={stats} />
+            )}
 
             <div className="grid gap-6 lg:grid-cols-2">
-                <div className="flex flex-col gap-6 h-full">
-                    <SchedulesSummaryCard
-                        isLoading={loadingSchedules}
-                        totalSchedules={allSchedules.length}
-                        activeSchedules={allSchedules.filter((s: ReportSchedule) => s.active).length}
-                        className=""
-                    />
-                    <IntegrationsSummary
-                        isLoading={loadingIntegrations}
-                        integrations={dashboardIntegrations}
-                        getStatusBadge={getIntegrationStatusBadge}
-                        getStatusText={getIntegrationStatusText}
-                        getStatusIcon={getIntegrationStatusIcon}
-                        className="flex-1"
-                    />
+                <div className="flex flex-col gap-6">
+                    <div className="h-[130px]">
+                        <SchedulesSummaryCard
+                            isLoading={loadingSchedules}
+                            totalSchedules={allSchedules.length}
+                            activeSchedules={allSchedules.filter((s) => s.status === 'scheduled').length}
+                            className="h-full"
+                        />
+                    </div>
+                    <div className="h-[630px]">
+                        <IntegrationsSummary
+                            isLoading={loadingIntegrations}
+                            integrations={dashboardIntegrations}
+                            getStatusBadge={getIntegrationStatusBadge}
+                            getStatusText={getIntegrationStatusText}
+                            getStatusIcon={getIntegrationStatusIcon}
+                            className="h-full"
+                        />
+                    </div>
                 </div>
 
                 <div className="flex flex-col gap-6">
                     <div className="h-[380px]">
-                        <ReportsGeneratedChart
-                            isLoading={loadingCharts}
-                            data={reportsChartData}
-                        />
+                        {loadingCharts ? (
+                            <ChartSkeleton />
+                        ) : (
+                            <ReportsGeneratedChart
+                                isLoading={false}
+                                data={reportsChartData}
+                            />
+                        )}
                     </div>
                     <div className="h-[380px]">
-                        <HealthRateLimitChart
-                            isLoading={loadingCharts}
-                            data={activityTrends}
-                            systemStatus={systemStatus}
-                        />
+                        {loadingCharts ? (
+                            <ChartSkeleton />
+                        ) : (
+                            <HealthRateLimitChart
+                                isLoading={false}
+                                data={activityTrends}
+                                systemStatus={systemStatus}
+                            />
+                        )}
                     </div>
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function Dashboard() {
+    return (
+        <DashboardErrorBoundary>
+            <DashboardContent />
+        </DashboardErrorBoundary>
     );
 }

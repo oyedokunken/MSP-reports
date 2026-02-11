@@ -26,11 +26,25 @@ export const useIntegrationsQuery = (options?: {
   refetchInterval?: number | false
   enabled?: boolean
 }) => {
+  const query = useQuery({
+    queryKey: integrationKeys.lists(),
+    queryFn: fetchIntegrations,
+    staleTime: 30000, // 30 seconds (increased from 5s)
+    enabled: options?.enabled ?? true,
+  });
+
+  // Intelligent polling: fast during syncs, slow otherwise
+  const hasSyncInProgress = query.data?.integrations.some(
+    int => int.status === 'importing_historical' || int.syncStatus === 'pending'
+  ) ?? false;
+
+  const refetchInterval = options?.refetchInterval ?? (hasSyncInProgress ? 5000 : 60000);
+
   return useQuery({
     queryKey: integrationKeys.lists(),
     queryFn: fetchIntegrations,
-    refetchInterval: options?.refetchInterval ?? 10000, // Default 10s (faster for progress updates)
-    staleTime: 5000,
+    refetchInterval,
+    staleTime: 30000,
     enabled: options?.enabled ?? true,
   });
 };

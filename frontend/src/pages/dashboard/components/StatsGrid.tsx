@@ -18,5 +18,3 @@ export function StatsGrid({ isLoading, stats }: StatsGridProps) {
     </div>
   )
 }
-
-
