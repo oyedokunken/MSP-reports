@@ -151,28 +151,17 @@
 </head>
 <body>
 
-@php
-    $shouldRender = function(string $section) use ($sections_to_render) {
-        if (!isset($sections_to_render) || $sections_to_render === null) return true;
-        return in_array($section, $sections_to_render);
-    };
-    $renderPart = $render_part ?? 'all';
-@endphp
-
-{{-- COVER PAGE --}}
-@if($renderPart === 'all' || $renderPart === 'cover')
-<div class="cover-page">
-    @if(!empty($branding['logo_base64']))
-        <div class="logo"><img src="{{ $branding['logo_base64'] }}" alt="Logo"></div>
+    @if(!isset($render_part) || $render_part === 'all' || $render_part === 'cover')
+        @include('CoverPages.default')
     @endif
-    <h1>ThreatLocker Security Report</h1>
-    <div class="subtitle">Application Control & Endpoint Security Summary</div>
-    <div class="customer-name">{{ $customer->canonical_name }}</div>
-    <div class="period">{{ $period['formatted'] ?? '' }}</div>
-</div>
-@endif
 
-@if($renderPart === 'all' || $renderPart === 'content')
+    @if(!isset($render_part) || $render_part === 'all' || $render_part === 'content')
+    @php
+        $shouldRender = function(string $section) use ($sections_to_render) {
+            if (!isset($sections_to_render) || $sections_to_render === null) return true;
+            return in_array($section, $sections_to_render) || in_array('all', $sections_to_render);
+        };
+    @endphp
 
 {{-- EXECUTIVE SUMMARY --}}
 @if($shouldRender('executive_summary'))
