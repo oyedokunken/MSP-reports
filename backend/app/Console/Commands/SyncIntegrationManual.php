@@ -17,6 +17,7 @@ use App\Integrations\BitDefender\BitDefenderIntegration;
 use App\Integrations\SaaS\SaaSIntegration;
 use App\Integrations\VeeamOne\VeeamOneIntegration;
 use App\Integrations\ThreatLocker\ThreatLockerIntegration;
+use App\Integrations\Vonahi\VonahiIntegration;
 
 class SyncIntegrationManual extends Command
 {
@@ -38,6 +39,7 @@ class SyncIntegrationManual extends Command
         'SaaS' => SaaSIntegration::class,
         'VeeamOne' => VeeamOneIntegration::class,
         'ThreatLocker' => ThreatLockerIntegration::class,
+        'Vonahi' => VonahiIntegration::class,
     ];
 
     public function handle(SyncEngine $syncEngine): int

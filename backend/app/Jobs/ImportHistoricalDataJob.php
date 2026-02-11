@@ -26,6 +26,7 @@ use App\Integrations\SaaS\SaaSIntegration;
 use App\Integrations\BitDefender\BitDefenderIntegration;
 use App\Integrations\VeeamOne\VeeamOneIntegration;
 use App\Integrations\CIPP\CIPPIntegration;
+use App\Integrations\Vonahi\VonahiIntegration;
 use App\Integrations\Contracts\IntegrationInterface;
 
 
@@ -428,6 +429,7 @@ final class ImportHistoricalDataJob implements ShouldQueue
             'CIPP' => CIPPIntegration::class,
             'Barracuda' => \App\Integrations\Barracuda\BarracudaIntegration::class,
             'ThreatLocker' => \App\Integrations\ThreatLocker\ThreatLockerIntegration::class,
+            'Vonahi' => VonahiIntegration::class,
         ];
 
         $className = $integrationClasses[$integration->integration_type] ?? null;

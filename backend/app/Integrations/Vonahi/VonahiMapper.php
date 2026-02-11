@@ -9,151 +9,183 @@ use Carbon\Carbon;
 final class VonahiMapper
 {
     /**
-     * Map Vonahi organization to standardized customer format
-     * 
-     * @param array<string, mixed> $org
+     * Map Vonahi company to standardized customer format.
+     *
+     * API fields: id, full_name, short_name, industry_id, time_zone, trial_company, created_at, updated_at
+     *
+     * @param array<string, mixed> $company
      * @return array<string, mixed>
      */
-    public static function mapOrganization(array $org): array
+    public static function mapCompany(array $company): array
     {
-        $id = $org['id'] ?? $org['organizationId'] ?? null;
-        $name = $org['name'] ?? $org['organizationName'] ?? 'Unknown Organization';
-        
+        $id = $company['id'] ?? null;
+        $name = $company['full_name'] ?? $company['short_name'] ?? 'Unknown Company';
+
         return [
             'external_id' => (string) $id,
             'name' => $name,
-            'active' => ($org['status'] ?? 'active') === 'active',
+            'active' => true,
             'metadata' => [
-                'organization_id' => $id,
-                'name' => $name,
-                'status' => $org['status'] ?? 'active',
-                'pentest_count' => $org['pentestCount'] ?? 0,
-                'created_at' => $org['createdAt'] ?? null,
+                'company_id' => $id,
+                'full_name' => $company['full_name'] ?? null,
+                'short_name' => $company['short_name'] ?? null,
+                'industry_id' => $company['industry_id'] ?? null,
+                'time_zone' => $company['time_zone'] ?? null,
+                'trial_company' => $company['trial_company'] ?? false,
+                'auto_purge_report_after' => $company['auto_purge_report_after'] ?? null,
+                'created_at' => $company['created_at'] ?? null,
+                'updated_at' => $company['updated_at'] ?? null,
             ],
         ];
     }
 
     /**
-     * Map Vonahi penetration test to standardized format
-     * 
-     * @param array<string, mixed> $pentest
+     * Map Vonahi assessment to standardized IntegrationData payload.
+     *
+     * API fields: id, company_id, name, severity, created_at, updated_at,
+     *   remediation_scan, assessment_display_name, paused, paused_at,
+     *   agent_ip, agent_subnet, agent_dns
+     *
+     * @param array<string, mixed> $assessment
      * @return array<string, mixed>
      */
-    public static function mapPenTest(array $pentest, ?int $integrationCustomerId = null): array
+    public static function mapAssessment(array $assessment, ?int $integrationCustomerId = null): array
     {
-        $id = $pentest['id'] ?? $pentest['pentestId'] ?? null;
-        $timestamp = $pentest['completedAt'] ?? $pentest['startedAt'] ?? $pentest['createdAt'] ?? now();
-        
+        $id = $assessment['id'] ?? null;
+        $timestamp = $assessment['updated_at'] ?? $assessment['created_at'] ?? now();
+
         return [
             'integration_customer_id' => $integrationCustomerId,
-            'data_type' => 'vonahi_pentest',
+            'data_type' => 'vonahi_assessment',
             'timestamp' => Carbon::parse($timestamp),
             'payload' => [
                 'id' => $id,
-                'name' => $pentest['name'] ?? $pentest['title'] ?? 'Penetration Test',
-                'type' => $pentest['type'] ?? $pentest['testType'] ?? 'network',
-                'status' => $pentest['status'] ?? 'completed',
-                'organization_id' => $pentest['organizationId'] ?? null,
-                'started_at' => $pentest['startedAt'] ?? null,
-                'completed_at' => $pentest['completedAt'] ?? null,
-                'findings_count' => $pentest['findingsCount'] ?? 0,
-                'critical_count' => $pentest['criticalCount'] ?? 0,
-                'high_count' => $pentest['highCount'] ?? 0,
-                'medium_count' => $pentest['mediumCount'] ?? 0,
-                'low_count' => $pentest['lowCount'] ?? 0,
-                'scope' => $pentest['scope'] ?? null,
+                'company_id' => $assessment['company_id'] ?? null,
+                'name' => $assessment['name'] ?? 'Unknown Assessment',
+                'display_name' => $assessment['assessment_display_name'] ?? null,
+                'severity' => $assessment['severity'] ?? 'informational',
+                'remediation_scan' => $assessment['remediation_scan'] ?? false,
+                'paused' => $assessment['paused'] ?? false,
+                'paused_at' => $assessment['paused_at'] ?? null,
+                'agent_ip' => $assessment['agent_ip'] ?? null,
+                'agent_subnet' => $assessment['agent_subnet'] ?? null,
+                'agent_dns' => $assessment['agent_dns'] ?? null,
+                'created_at' => $assessment['created_at'] ?? null,
+                'updated_at' => $assessment['updated_at'] ?? null,
             ],
         ];
     }
 
     /**
-     * Map Vonahi security finding into a standardized IntegrationData payload
-     * 
+     * Map Vonahi finding to standardized IntegrationData payload.
+     *
+     * API fields: id, assessment_id, name, description, severity, references,
+     *   security_impact, reproduction_steps, recommendation, affected_urls,
+     *   evidence_data, affected_hosts_count, affected_host_ips, created_at, updated_at
+     *
      * @param array<string, mixed> $finding
      * @return array<string, mixed>
      */
-    public static function mapSecurityFinding(array $finding, ?int $integrationCustomerId = null): array
+    public static function mapFinding(array $finding, ?int $integrationCustomerId = null): array
     {
-        $id = $finding['id'] ?? $finding['findingId'] ?? null;
-        $timestamp = $finding['discoveredAt'] ?? $finding['createdAt'] ?? now();
-        
+        $id = $finding['id'] ?? null;
+        $timestamp = $finding['created_at'] ?? now();
+
         return [
             'integration_customer_id' => $integrationCustomerId,
-            'data_type' => 'vonahi_security_finding',
+            'data_type' => 'vonahi_finding',
             'timestamp' => Carbon::parse($timestamp),
             'payload' => [
                 'id' => $id,
-                'title' => $finding['title'] ?? $finding['name'] ?? 'Unknown Finding',
+                'assessment_id' => $finding['assessment_id'] ?? null,
+                'name' => $finding['name'] ?? 'Unknown Finding',
                 'description' => $finding['description'] ?? null,
-                'severity' => $finding['severity'] ?? $finding['risk'] ?? 'Medium',
-                'cvss_score' => $finding['cvssScore'] ?? $finding['cvss'] ?? null,
-                'status' => $finding['status'] ?? 'open',
-                'pentest_id' => $finding['pentestId'] ?? null,
-                'asset' => $finding['asset'] ?? $finding['target'] ?? null,
-                'ip_address' => $finding['ipAddress'] ?? $finding['ip'] ?? null,
-                'port' => $finding['port'] ?? null,
-                'protocol' => $finding['protocol'] ?? null,
-                'remediation' => $finding['remediation'] ?? $finding['recommendation'] ?? null,
-                'cve' => $finding['cve'] ?? $finding['cveId'] ?? null,
-                'discovered_at' => $timestamp,
+                'severity' => $finding['severity'] ?? 'Informational',
+                'references' => $finding['references'] ?? null,
+                'security_impact' => $finding['security_impact'] ?? null,
+                'reproduction_steps' => $finding['reproduction_steps'] ?? null,
+                'recommendation' => $finding['recommendation'] ?? null,
+                'affected_urls' => $finding['affected_urls'] ?? null,
+                'evidence_data' => $finding['evidence_data'] ?? null,
+                'affected_hosts_count' => $finding['affected_hosts_count'] ?? 0,
+                'affected_host_ips' => $finding['affected_host_ips'] ?? [],
+                'created_at' => $finding['created_at'] ?? null,
+                'updated_at' => $finding['updated_at'] ?? null,
             ],
         ];
     }
 
     /**
-     * Map Vonahi scan to standardized format
-     * 
-     * @param array<string, mixed> $scan
+     * Map Vonahi report to standardized IntegrationData payload.
+     *
+     * API fields: id, assessment_id, created_at, updated_at, purge_date,
+     *   released_on, executive_summary_url, technical_report_url,
+     *   ai_enhanced_executive_summary_url, ai_enhanced_version_url,
+     *   supporting_evidence_url
+     *
+     * @param array<string, mixed> $report
      * @return array<string, mixed>
      */
-    public static function mapScan(array $scan, ?int $integrationCustomerId = null): array
+    public static function mapReport(array $report, ?int $integrationCustomerId = null): array
     {
-        $id = $scan['id'] ?? $scan['scanId'] ?? null;
-        $timestamp = $scan['completedAt'] ?? $scan['startedAt'] ?? now();
-        
+        $id = $report['id'] ?? null;
+        $timestamp = $report['released_on'] ?? $report['created_at'] ?? now();
+
         return [
             'integration_customer_id' => $integrationCustomerId,
-            'data_type' => 'vonahi_scan',
+            'data_type' => 'vonahi_report',
             'timestamp' => Carbon::parse($timestamp),
             'payload' => [
                 'id' => $id,
-                'name' => $scan['name'] ?? 'Vulnerability Scan',
-                'type' => $scan['type'] ?? $scan['scanType'] ?? 'vulnerability',
-                'status' => $scan['status'] ?? 'completed',
-                'organization_id' => $scan['organizationId'] ?? null,
-                'started_at' => $scan['startedAt'] ?? null,
-                'completed_at' => $scan['completedAt'] ?? null,
-                'hosts_scanned' => $scan['hostsScanned'] ?? 0,
-                'vulnerabilities_found' => $scan['vulnerabilitiesFound'] ?? 0,
+                'assessment_id' => $report['assessment_id'] ?? null,
+                'purge_date' => $report['purge_date'] ?? null,
+                'released_on' => $report['released_on'] ?? null,
+                'executive_summary_url' => $report['executive_summary_url'] ?? null,
+                'technical_report_url' => $report['technical_report_url'] ?? null,
+                'ai_enhanced_executive_summary_url' => $report['ai_enhanced_executive_summary_url'] ?? null,
+                'ai_enhanced_version_url' => $report['ai_enhanced_version_url'] ?? null,
+                'supporting_evidence_url' => $report['supporting_evidence_url'] ?? null,
+                'created_at' => $report['created_at'] ?? null,
+                'updated_at' => $report['updated_at'] ?? null,
             ],
         ];
     }
 
     /**
-    /**
-     * Map Vonahi asset to standardized format
-     * 
-     * @param array<string, mixed> $asset
+     * Map Vonahi agent to standardized IntegrationData payload.
+     *
+     * @param array<string, mixed> $agent
      * @return array<string, mixed>
      */
-    public static function mapAsset(array $asset, ?int $integrationCustomerId = null): array
+    public static function mapAgent(array $agent, ?int $integrationCustomerId = null): array
     {
-        $id = $asset['id'] ?? $asset['assetId'] ?? null;
-        
+        $id = $agent['id'] ?? null;
+        $timestamp = $agent['updated_at'] ?? $agent['created_at'] ?? now();
+
         return [
             'integration_customer_id' => $integrationCustomerId,
-            'data_type' => 'vonahi_asset',
-            'timestamp' => Carbon::now(),
+            'data_type' => 'vonahi_agent',
+            'timestamp' => Carbon::parse($timestamp),
             'payload' => [
                 'id' => $id,
-                'name' => $asset['name'] ?? $asset['hostname'] ?? 'Unknown Asset',
-                'ip_address' => $asset['ipAddress'] ?? $asset['ip'] ?? null,
-                'hostname' => $asset['hostname'] ?? null,
-                'type' => $asset['type'] ?? $asset['assetType'] ?? null,
-                'os' => $asset['operatingSystem'] ?? $asset['os'] ?? null,
-                'organization_id' => $asset['organizationId'] ?? null,
-                'status' => $asset['status'] ?? 'active',
-                'last_scanned' => $asset['lastScanned'] ?? null,
+                'company_id' => $agent['company_id'] ?? null,
+                'name' => $agent['name'] ?? 'Unknown Agent',
+                'private_ip' => $agent['private_ip'] ?? null,
+                'public_ip' => $agent['public_ip'] ?? null,
+                'subnet_mask' => $agent['subnet_mask'] ?? null,
+                'default_gateway' => $agent['default_gateway'] ?? null,
+                'dns_server' => $agent['dns_server'] ?? [],
+                'uuid' => $agent['uuid'] ?? null,
+                'activation_status' => $agent['activation_status'] ?? null,
+                'network_status' => $agent['network_status'] ?? null,
+                'last_heartbeat' => $agent['last_heartbeat'] ?? null,
+                'agent_type' => $agent['agent_type'] ?? null,
+                'mac' => $agent['mac'] ?? null,
+                'network_interface' => $agent['network_interface'] ?? null,
+                'location_id' => $agent['location_id'] ?? null,
+                'registration_date' => $agent['registration_date'] ?? null,
+                'created_at' => $agent['created_at'] ?? null,
+                'updated_at' => $agent['updated_at'] ?? null,
             ],
         ];
     }

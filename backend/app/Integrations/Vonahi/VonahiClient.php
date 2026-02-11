@@ -6,13 +6,21 @@ namespace App\Integrations\Vonahi;
 
 use App\Services\RateLimiter;
 use App\Models\Integration;
+use App\Integrations\Concerns\HttpClientTrait;
 use App\Integrations\Exceptions\AuthenticationException;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 final class VonahiClient
 {
+    use HttpClientTrait;
+
+    private const DEFAULT_BASE_URL = 'https://app.vpentest.io/api/v3';
+    private const MAX_PER_PAGE = 100;
+    private const DEFAULT_TIMEOUT = 60;
+    private const CONNECT_TIMEOUT = 15;
+    private const MAX_RETRIES = 2;
+
     /** @var array<string, mixed> */
     protected array $credentials;
     protected string $baseUrl;
@@ -28,26 +36,25 @@ final class VonahiClient
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
 
-        // Vonahi vPenTest API base URL
-        $this->baseUrl = rtrim($credentials['api_url'] ?? 'https://api.vpentest.io', '/');
+        $this->baseUrl = rtrim($credentials['api_url'] ?? self::DEFAULT_BASE_URL, '/');
     }
 
     /**
-     * Test connection to Vonahi API
+     * Test connection by listing companies.
      */
     public function testConnection(): bool
     {
         try {
-            $response = $this->makeRequest('/v1/organizations');
-            
-            if ($response === null) {
-                throw new AuthenticationException('Vonahi authentication failed - empty response', 401);
+            $response = $this->makeRequest('/companies', ['per_page' => 1]);
+
+            if ($response === null || !isset($response['data'])) {
+                throw new AuthenticationException('Vonahi authentication failed - invalid response', 401);
             }
-            
+
             Log::info('Vonahi: Connection test successful', [
                 'integration_id' => $this->integration->integration_id,
             ]);
-            
+
             return true;
         } catch (AuthenticationException $e) {
             throw $e;
@@ -56,7 +63,7 @@ final class VonahiClient
                 'integration_id' => $this->integration->integration_id,
                 'error' => $e->getMessage(),
             ]);
-            
+
             throw new AuthenticationException(
                 'Vonahi authentication failed: ' . $e->getMessage(),
                 400
@@ -65,145 +72,230 @@ final class VonahiClient
     }
 
     /**
-     * Get all organizations/tenants
-     * 
+     * Get all companies (paginated).
+     *
      * @return array<int, array<string, mixed>>
      */
-    public function getOrganizations(): array
+    public function getCompanies(): array
     {
-        $response = $this->makeRequest('/v1/organizations');
-        return $response['data'] ?? $response['organizations'] ?? $response ?? [];
+        return $this->fetchAllPages('/companies');
     }
 
     /**
-     * Get penetration tests
-     * 
+     * Get all assessments, optionally filtered by company.
+     *
      * @return array<int, array<string, mixed>>
      */
-    public function getPenTests(?string $organizationId = null): array
+    public function getAssessments(?string $companyId = null): array
     {
-        $endpoint = $organizationId 
-            ? "/v1/organizations/{$organizationId}/pentests"
-            : '/v1/pentests';
+        $params = [];
+        if ($companyId !== null) {
+            $params['company_id'] = $companyId;
+        }
 
-        $response = $this->makeRequest($endpoint);
-        return $response['data'] ?? $response['pentests'] ?? $response ?? [];
+        return $this->fetchAllPages('/assessments', $params);
     }
 
     /**
-     * Get security findings/vulnerabilities
-     * 
+     * Get findings for a specific assessment (paginated).
+     *
      * @return array<int, array<string, mixed>>
      */
-    public function getSecurityFindings(?string $pentestId = null): array
+    public function getFindings(string $assessmentId): array
     {
-        $endpoint = $pentestId 
-            ? "/v1/pentests/{$pentestId}/findings"
-            : '/v1/findings';
-
-        $response = $this->makeRequest($endpoint);
-        return $response['data'] ?? $response['findings'] ?? $response ?? [];
+        return $this->fetchAllPages("/assessments/{$assessmentId}/findings");
     }
 
     /**
-     * Get vulnerability scans
-     * 
+     * Get reports, optionally filtered by assessment or company.
+     *
      * @return array<int, array<string, mixed>>
      */
-    public function getScans(?string $organizationId = null): array
+    public function getReports(?string $assessmentId = null, ?string $companyId = null): array
     {
-        $endpoint = $organizationId 
-            ? "/v1/organizations/{$organizationId}/scans"
-            : '/v1/scans';
+        $params = [];
+        if ($assessmentId !== null) {
+            $params['assessment_id'] = $assessmentId;
+        }
+        if ($companyId !== null) {
+            $params['company_id'] = $companyId;
+        }
 
-        $response = $this->makeRequest($endpoint);
-        return $response['data'] ?? $response['scans'] ?? $response ?? [];
+        return $this->fetchAllPages('/reports', $params);
     }
 
     /**
-     * Get assets/targets
-     * 
-     * @return array<int, array<string, mixed>>
+     * Get a single report with download URLs.
+     *
+     * @return array<string, mixed>|null
      */
-    public function getAssets(?string $organizationId = null): array
+    public function getReport(string $reportId): ?array
     {
-        $endpoint = $organizationId 
-            ? "/v1/organizations/{$organizationId}/assets"
-            : '/v1/assets';
-
-        $response = $this->makeRequest($endpoint);
-        return $response['data'] ?? $response['assets'] ?? $response ?? [];
+        $response = $this->makeRequest("/reports/{$reportId}");
+        return $response['data'] ?? null;
     }
 
     /**
-     * Make authenticated request to Vonahi API
-     * 
+     * Get agents, optionally filtered by company.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getAgents(?string $companyId = null): array
+    {
+        $params = [];
+        if ($companyId !== null) {
+            $params['company_id'] = $companyId;
+        }
+
+        return $this->fetchAllPages('/agents', $params);
+    }
+
+    /**
+     * Get schedules, optionally filtered by company.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getSchedules(?string $companyId = null): array
+    {
+        $params = [];
+        if ($companyId !== null) {
+            $params['company_id'] = $companyId;
+        }
+
+        return $this->fetchAllPages('/schedules', $params);
+    }
+
+    /**
+     * Get activities for a specific assessment (paginated).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getActivities(string $assessmentId): array
+    {
+        return $this->fetchAllPages("/assessments/{$assessmentId}/activities");
+    }
+
+    /**
+     * Fetch all pages of a paginated endpoint.
+     *
+     * @param array<string, mixed> $params
+     * @return array<int, array<string, mixed>>
+     */
+    protected function fetchAllPages(string $endpoint, array $params = []): array
+    {
+        $allItems = [];
+        $page = 1;
+        $params['per_page'] = self::MAX_PER_PAGE;
+
+        do {
+            $params['page'] = $page;
+            $response = $this->makeRequest($endpoint, $params);
+
+            $items = $response['data'] ?? [];
+            $allItems = array_merge($allItems, $items);
+
+            $totalPages = $response['total_pages'] ?? 1;
+
+            Log::debug('Vonahi: Fetched page', [
+                'integration_id' => $this->integration->integration_id,
+                'endpoint' => $endpoint,
+                'page' => $page,
+                'items_count' => count($items),
+                'total_pages' => $totalPages,
+                'total_count' => $response['total_count'] ?? 'unknown',
+            ]);
+
+            $page++;
+        } while ($page <= $totalPages);
+
+        return $allItems;
+    }
+
+    /**
+     * Make authenticated request to Vonahi vPenTest API v3.
+     *
      * @param array<string, mixed> $params
      * @return array<string, mixed>|null
      */
     protected function makeRequest(string $endpoint, array $params = []): ?array
     {
         $apiKey = $this->credentials['api_key'] ?? null;
-        
+
         if (empty($apiKey)) {
             throw new AuthenticationException('Vonahi API key is required', 401);
         }
 
         $url = $this->baseUrl . $endpoint;
+        $attempt = 0;
 
-        try {
-            Log::debug('Vonahi API request', [
-                'integration_id' => $this->integration->integration_id,
-                'endpoint' => $endpoint,
-            ]);
-
-            $response = Http::timeout(60)
-                ->connectTimeout(15)
-                ->withOptions(['verify' => config('app.env') === 'production'])
-                ->withHeaders([
-                    'Authorization' => 'Bearer ' . $apiKey,
-                    'Accept' => 'application/json',
-                    'Content-Type' => 'application/json',
-                ])
-                ->get($url, $params);
-
-            if ($response->status() === 401 || $response->status() === 403) {
-                throw new AuthenticationException(
-                    'Vonahi authentication failed - invalid API key',
-                    $response->status()
-                );
-            }
-
-            if ($response->status() === 429) {
-                Log::warning('Vonahi: Rate limit hit', [
-                    'integration_id' => $this->integration->integration_id,
-                ]);
-                throw new \Exception('Vonahi API rate limit exceeded');
-            }
-
-            if (!$response->successful()) {
-                Log::error('Vonahi: API request failed', [
+        while ($attempt <= self::MAX_RETRIES) {
+            try {
+                Log::debug('Vonahi API request', [
                     'integration_id' => $this->integration->integration_id,
                     'endpoint' => $endpoint,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
+                    'attempt' => $attempt + 1,
                 ]);
-                throw new \Exception('API request failed: ' . $response->body());
+
+                $response = $this->createHttpClient()
+                    ->timeout(self::DEFAULT_TIMEOUT)
+                    ->connectTimeout(self::CONNECT_TIMEOUT)
+                    ->withHeaders([
+                        'Authorization' => 'Bearer ' . $apiKey,
+                        'Accept' => 'application/json',
+                        'Content-Type' => 'application/json',
+                    ])
+                    ->get($url, $params);
+
+                if ($response->status() === 401 || $response->status() === 403) {
+                    throw new AuthenticationException(
+                        'Vonahi authentication failed - invalid or expired API key',
+                        $response->status()
+                    );
+                }
+
+                if ($response->status() === 429) {
+                    Log::warning('Vonahi: Rate limit hit', [
+                        'integration_id' => $this->integration->integration_id,
+                        'endpoint' => $endpoint,
+                    ]);
+                    $attempt++;
+                    if ($attempt > self::MAX_RETRIES) {
+                        throw new \Exception('Vonahi API rate limit exceeded after retries');
+                    }
+                    sleep(2 * $attempt);
+                    continue;
+                }
+
+                if (!$response->successful()) {
+                    Log::error('Vonahi: API request failed', [
+                        'integration_id' => $this->integration->integration_id,
+                        'endpoint' => $endpoint,
+                        'status' => $response->status(),
+                        'body' => $response->body(),
+                    ]);
+                    throw new \Exception("API request failed with status {$response->status()}: {$response->body()}");
+                }
+
+                $this->rateLimiter->recordRequest($this->integration);
+
+                return $response->json();
+
+            } catch (AuthenticationException $e) {
+                throw $e;
+            } catch (\Exception $e) {
+                $attempt++;
+                if ($attempt > self::MAX_RETRIES) {
+                    Log::error('Vonahi: API request error after retries', [
+                        'integration_id' => $this->integration->integration_id,
+                        'endpoint' => $endpoint,
+                        'error' => $e->getMessage(),
+                    ]);
+                    throw $e;
+                }
+                sleep(2 * $attempt);
             }
-
-            $this->rateLimiter->recordRequest($this->integration);
-
-            return $response->json();
-
-        } catch (AuthenticationException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            Log::error('Vonahi: API request error', [
-                'integration_id' => $this->integration->integration_id,
-                'endpoint' => $endpoint,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
         }
+
+        throw new \Exception('Vonahi API: Max retries reached');
     }
 }

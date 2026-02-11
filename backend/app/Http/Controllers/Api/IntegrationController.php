@@ -381,6 +381,7 @@ final class IntegrationController extends Controller
             'SharePoint' => \App\Integrations\SharePoint\SharePointIntegration::class,
             'ActiveDirectory' => \App\Integrations\ActiveDirectory\ActiveDirectoryIntegration::class,
             'ThreatLocker' => \App\Integrations\ThreatLocker\ThreatLockerIntegration::class,
+            'Vonahi' => \App\Integrations\Vonahi\VonahiIntegration::class,
         ];
 
         $className = $integrationClasses[$integration->integration_type] ?? null;

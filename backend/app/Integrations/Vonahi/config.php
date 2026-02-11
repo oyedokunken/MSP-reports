@@ -4,26 +4,25 @@ declare(strict_types=1);
 
 return [
     'name' => 'Vonahi',
-    'description' => 'Vonahi Security penetration testing and vulnerability assessment integration (placeholder configuration)',
+    'description' => 'Vonahi vPenTest automated network penetration testing and vulnerability assessment',
     'version' => '1.0.0',
 
-    // Placeholder credential fields – update once real API details are known
     'credentials' => [
         'api_url' => [
             'type' => 'text',
             'label' => 'API URL',
             'required' => false,
-            'default' => 'https://api.vonahi.io',
-            'placeholder' => 'https://api.vonahi.io',
-            'help' => 'Vonahi API base URL. Use a real endpoint when available.',
+            'default' => 'https://app.vpentest.io/api/v3',
+            'placeholder' => 'https://app.vpentest.io/api/v3',
+            'help' => 'Vonahi vPenTest API v3 URL. Usually no change needed.',
         ],
         'api_key' => [
             'type' => 'password',
             'label' => 'API Key',
-            'required' => false,
+            'required' => true,
             'encrypted' => true,
-            'placeholder' => 'Enter Vonahi API key (optional for now)',
-            'help' => 'Placeholder credential until real Vonahi API details are defined.',
+            'placeholder' => 'Enter your vPenTest API key',
+            'help' => 'Generate from your vPenTest profile drop-down → Generate API Key.',
         ],
     ],
 
@@ -32,15 +31,15 @@ return [
             'type' => 'number',
             'label' => 'Sync Interval (seconds)',
             'default' => 86400,
-            'help' => 'How often to sync Vonahi data. Placeholder only for now.',
+            'help' => 'How often to sync Vonahi data (default: daily).',
         ],
     ],
 
     'data_types' => [
-        // These are speculative; adjust once real use-cases are known
-        'vulnerability_scans' => 'Vonahi Vulnerability Scans (placeholder)',
-        'penetration_tests' => 'Vonahi Penetration Test Results (placeholder)',
-        'security_findings' => 'Vonahi Security Findings (placeholder)',
+        'vonahi_assessment' => 'Vonahi Penetration Test Assessments',
+        'vonahi_finding' => 'Vonahi Security Findings',
+        'vonahi_report' => 'Vonahi Reports',
+        'vonahi_agent' => 'Vonahi Agents',
     ],
 
     'rate_limits' => [
@@ -59,14 +58,14 @@ return [
     ],
 
     'historical_data' => [
-        'supports_historical' => false,
-        'max_range_days' => 0,
-        'recommended_range_days' => 0,
+        'supports_historical' => true,
+        'max_range_days' => 365,
+        'recommended_range_days' => 90,
     ],
 
     'features' => [
-        'customer_mapping' => false,
-        'historical_import' => false,
+        'customer_mapping' => true,
+        'historical_import' => true,
         'real_time_sync' => false,
         'webhooks' => false,
     ],
