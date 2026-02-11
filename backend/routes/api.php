@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ITGlueReportController;
 use App\Http\Controllers\Api\DeliveryConfigController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\ApiKeyController;
+use App\Http\Controllers\Api\DashboardController;
 
 // All routes are automatically prefixed with /api prefix
 
@@ -43,24 +44,24 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::post('/auth/password/request', [AuthController::class, 'requestPasswordReset']);
         Route::post('/auth/password/reset', [AuthController::class, 'resetPassword']);
     });
-    
+
     // OAuth & SAML Routes (Session Enabled for State/PKCE)
     Route::middleware([\Illuminate\Session\Middleware\StartSession::class])->group(function () {
         // Microsoft
         Route::get('/auth/microsoft/redirect', [AuthController::class, 'redirectToMicrosoft']);
         Route::get('/auth/microsoft/callback', [AuthController::class, 'handleMicrosoftCallback']);
-        
+
         // Keycloak OIDC
         Route::get('/auth/keycloak/redirect', [AuthController::class, 'redirectToKeycloak']);
         Route::get('/auth/keycloak/callback', [AuthController::class, 'handleKeycloakCallback']);
-        
+
         // SAML
         Route::get('/auth/saml/login', [AuthController::class, 'initiateSamlLogin']);
         Route::post('/auth/saml/acs', [AuthController::class, 'handleSamlAcs']);
         Route::get('/auth/saml/sls', [AuthController::class, 'handleSamlSls']);
         Route::post('/auth/saml/sls', [AuthController::class, 'handleSamlSls']);
     });
-    
+
     Route::post('/auth/logout', [AuthController::class, 'authLogout'])->middleware('auth:sanctum');
     Route::get('/auth/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
     Route::post('/auth/password/change', [AuthController::class, 'changePassword'])->middleware('auth:sanctum');
@@ -108,11 +109,11 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::post('/integrations/{id}/historical-import', [IntegrationController::class, 'startHistoricalImport'])->middleware('permission:integrations,sync');
         Route::get('/integrations/{id}/historical-import-jobs', [IntegrationController::class, 'getHistoricalImportJobs'])->middleware('permission:integrations,sync');
         Route::patch('/company/source-integration', [IntegrationController::class, 'setSourceIntegration'])->middleware('permission:integrations,manage');
-        
+
         // SharePoint Routes
         Route::get('/integrations/{id}/sharepoint/browse', [IntegrationController::class, 'browseSharePoint'])->middleware('permission:integrations,view');
         Route::post('/integrations/{id}/sharepoint/folders', [IntegrationController::class, 'createSharePointFolder'])->middleware('permission:integrations,manage');
-        
+
         // Integration Preview Routes
         Route::get('/integrations/{integration}/preview/template', [IntegrationPreviewController::class, 'getTemplate'])->middleware('permission:integrations,view');
         Route::get('/integrations/{integration}/preview/data', [IntegrationPreviewController::class, 'getPreviewData'])->middleware('permission:integrations,view');
@@ -145,7 +146,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::post('/customers/{id}/merge', [CustomerMappingController::class, 'mergeCustomers'])->middleware('permission:customers,edit');
         Route::post('/customers/{id}/split', [CustomerMappingController::class, 'splitCustomer'])->middleware('permission:customers,edit');
         Route::delete('/customers/{customerId}/mappings/{mappingId}', [CustomerMappingController::class, 'deleteMapping'])->middleware('permission:customers,edit');
-        
+
         // Smart matching with embeddings
         Route::get('/customers/embedding-status', [CustomerMappingController::class, 'getEmbeddingStatus'])->middleware('permission:customers,map');
         Route::post('/customers/smart-match', [CustomerMappingController::class, 'getSmartMatchSuggestions'])->middleware('permission:customers,map');
@@ -188,7 +189,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::delete('/reports', [ReportAnalyticsController::class, 'batchDelete'])->middleware('permission:reports,generate');
         Route::delete('/reports/{id}', [ReportAnalyticsController::class, 'deleteReport'])->middleware('permission:reports,generate');
         Route::delete('/reports/schedules/{id}', [ReportAnalyticsController::class, 'deleteSchedule'])->middleware('permission:reports,configure');
-        
+
         // ITGlue Reports
         Route::get('/reports/itglue/license-consumption', [ITGlueReportController::class, 'downloadLicenseReport'])->middleware('permission:reports,download');
     });
@@ -239,6 +240,11 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::delete('/notifications/{id}', [\App\Http\Controllers\Api\NotificationController::class, 'destroy'])->middleware('permission:notifications,view');
     });
 
+    // Dashboard Routes - Optimized aggregated endpoint
+    Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
+        Route::get('/dashboard/summary', [DashboardController::class, 'getSummary']);
+    });
+
     // Monitoring & Health Routes
     Route::middleware(['auth:sanctum', 'session.timeout'])->group(function () {
         Route::get('/monitoring/status', [HealthCheckController::class, 'status'])->middleware('permission:monitoring,view');
@@ -247,7 +253,7 @@ Route::middleware(['secure.headers', 'throttle:300,1'])->group(function () {
         Route::get('/monitoring/reports/monthly', [HealthCheckController::class, 'monthlyReportAnalytics'])->middleware('permission:monitoring,view');
         Route::get('/monitoring/queue', [HealthCheckController::class, 'queueMetrics'])->middleware('permission:monitoring,view');
         Route::get('/monitoring/activity-trends', [HealthCheckController::class, 'activityTrends'])->middleware('permission:monitoring,view');
-        
+
         // Audit Log Routes
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->middleware('permission:security,view_logs');
         Route::get('/audit-logs/stats', [AuditLogController::class, 'stats'])->middleware('permission:security,view_logs');
