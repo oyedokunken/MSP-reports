@@ -497,6 +497,12 @@ final class ReportGenerationService
                     'policies_list' => $reportData['policies_list'] ?? [],
                     'applications_list' => $reportData['applications_list'] ?? [],
                     'audit_events' => $reportData['audit_events'] ?? [],
+                    // Vonahi vPenTest Summary specific variables
+                    'assessments' => $reportData['assessments'] ?? [],
+                    'findings' => $reportData['findings'] ?? [],
+                    'severity_distribution' => $reportData['severity_distribution'] ?? [],
+                    'agents' => $reportData['agents'] ?? [],
+                    'latest_reports' => $reportData['latest_reports'] ?? [],
                     'render_part' => $renderPart,
                 ])->render();
             } catch (\Exception $e) {
@@ -579,6 +585,12 @@ final class ReportGenerationService
                         'policies_list' => $reportData['policies_list'] ?? [],
                         'applications_list' => $reportData['applications_list'] ?? [],
                         'audit_events' => $reportData['audit_events'] ?? [],
+                        // Vonahi vPenTest Summary specific variables
+                        'assessments' => $reportData['assessments'] ?? [],
+                        'findings' => $reportData['findings'] ?? [],
+                        'severity_distribution' => $reportData['severity_distribution'] ?? [],
+                        'agents' => $reportData['agents'] ?? [],
+                        'latest_reports' => $reportData['latest_reports'] ?? [],
                         'render_part' => $renderPart,
                     ])->render();
                 }
