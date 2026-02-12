@@ -53,6 +53,10 @@
         }
 
         .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-grid.six-cols { grid-template-columns: repeat(6, 1fr); gap: 10px; }
+        .stat-grid.six-cols .stat-box { padding: 12px 5px; }
+        .stat-grid.six-cols .stat-value { font-size: 20px; }
+        .stat-grid.six-cols .stat-label { font-size: 9px; margin-top: 2px; }
         .stat-box {
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
             border: 1px solid #e2e8f0;
@@ -167,7 +171,7 @@
 @if($shouldRender('executive_summary'))
 <div class="section page-break">
     <h2 class="section-title">Executive Summary</h2>
-    <div class="stat-grid">
+    <div class="stat-grid six-cols">
         <div class="stat-box blue">
             <div class="stat-value">{{ $executive_summary['total_endpoints'] ?? 0 }}</div>
             <div class="stat-label">Total Endpoints</div>
@@ -209,7 +213,8 @@
 
 {{-- ENDPOINT OVERVIEW --}}
 @if($shouldRender('computers'))
-<div class="section page-break">
+<!-- <div class="section page-break"> -->
+<div class="section">
     <h2 class="section-title">Endpoint Overview</h2>
     <div class="stat-grid">
         <div class="stat-box blue">
@@ -286,26 +291,17 @@
 @if($shouldRender('policies'))
 <div class="section page-break">
     <h2 class="section-title">Application Control Policies</h2>
-    <div class="stat-grid">
-        <div class="stat-box purple">
-            <div class="stat-value">{{ $policy_summary['total_policies'] ?? 0 }}</div>
-            <div class="stat-label">Total Policies</div>
+    
+    <!-- <div class="two-col" style="margin-bottom: 24px;">
+        <div class="chart-container">
+            <canvas id="policyStatusChart"></canvas>
         </div>
-        <div class="stat-box green">
-            <div class="stat-value">{{ $policy_summary['enabled_policies'] ?? 0 }}</div>
-            <div class="stat-label">Enabled</div>
+        @if(!empty($policy_summary['policies_by_action']))
+        <div class="chart-container">
+            <canvas id="policyActionChart"></canvas>
         </div>
-        <div class="stat-box red">
-            <div class="stat-value">{{ $policy_summary['disabled_policies'] ?? 0 }}</div>
-            <div class="stat-label">Disabled</div>
-        </div>
-    </div>
-
-    @if(!empty($policy_summary['policies_by_action']))
-    <div class="chart-container" style="max-width: 400px; margin: 0 auto 24px;">
-        <canvas id="policyActionChart"></canvas>
-    </div>
-    @endif
+        @endif
+    </div> -->
 
     @if(!empty($policies_list))
     <table>
@@ -345,7 +341,7 @@
 
 {{-- MANAGED APPLICATIONS --}}
 @if($shouldRender('applications'))
-<div class="section">
+<div class="section page-break">
     <h2 class="section-title">Managed Applications</h2>
     <div class="stat-grid">
         <div class="stat-box blue">
@@ -398,7 +394,7 @@
 
 {{-- STORAGE CONTROL --}}
 @if($shouldRender('storage'))
-<div class="section">
+<div class="section page-break">
     <h2 class="section-title">Storage Control</h2>
     <div class="stat-grid">
         <div class="stat-box blue">
@@ -428,7 +424,7 @@
 
 {{-- AUDIT ACTIVITY --}}
 @if($shouldRender('audit'))
-<div class="section page-break">
+<div class="section">
     <h2 class="section-title">Audit Activity</h2>
     <div class="stat-grid">
         <div class="stat-box blue">
@@ -555,6 +551,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 responsive: true,
                 plugins: {
                     title: { display: true, text: 'Endpoint Status', font: { size: 14, weight: 'bold', family: 'Outfit' } },
+                    legend: { position: 'bottom', labels: { font: { size: 10 } } }
+                }
+            }
+        });
+    }
+
+    // Policy Status Chart
+    const policyStatusCtx = document.getElementById('policyStatusChart');
+    if (policyStatusCtx) {
+        new Chart(policyStatusCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Enabled', 'Disabled'],
+                datasets: [{
+                    data: [{{ $policy_summary['enabled_policies'] ?? 0 }}, {{ $policy_summary['disabled_policies'] ?? 0 }}],
+                    backgroundColor: ['#22c55e', '#ef4444'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Policy Status', font: { size: 14, weight: 'bold', family: 'Outfit' } },
                     legend: { position: 'bottom', labels: { font: { size: 10 } } }
                 }
             }

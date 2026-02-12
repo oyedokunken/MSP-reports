@@ -62,6 +62,39 @@ class ThreatLockerSummary extends BaseReport
         return $this->dataGatherer->hasData($customer, $integrationCustomerIds);
     }
 
+    /**
+     * Override to check for ANY data, as ThreatLocker report contains snapshot data
+     * which is valid regardless of the specific historical frequency window.
+     */
+    public static function hasDataForFrequency(int $customerId, string $frequency = 'monthly'): bool
+    {
+        $customer = Customer::find($customerId);
+        if (!$customer) {
+            return false;
+        }
+
+        $integrationCustomerIds = $customer->integrationCustomers()
+            ->whereHas('integration', function ($q) {
+                $q->where('integration_type', 'ThreatLocker')
+                  ->whereIn('status', ['active', 'importing_historical', 'syncing']);
+            })
+            ->pluck('integration_customers.integration_customer_id')
+            ->toArray();
+
+        if (empty($integrationCustomerIds)) {
+            return false;
+        }
+
+        // Check if any snapshot data exists (computers, policies)
+        return IntegrationData::where('company_id', $customer->company_id)
+            ->whereIn('data_type', [
+                'threatlocker_computer',
+                'threatlocker_policy',
+            ])
+            ->whereIn('integration_customer_id', $integrationCustomerIds)
+            ->exists();
+    }
+
     public function generate(Customer $customer, Carbon $startDate, Carbon $endDate, array $options = []): array
     {
         $integrationCustomerIds = $this->getIntegrationCustomerIds($customer);
