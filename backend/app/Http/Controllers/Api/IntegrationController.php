@@ -481,23 +481,43 @@ final class IntegrationController extends Controller
             ], 404);
         }
 
-        // Only allow dismissing if the status is actually 'failed'
-        if ($integration->historical_import_status !== 'failed') {
+        // Allow dismissing failed OR stuck importing states
+        if (!in_array($integration->historical_import_status, ['failed', 'pending']) 
+            && $integration->status->value !== 'importing_historical') {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Historical import is not in a failed state.'
+                'message' => 'Historical import is not in a failed or stuck state.'
             ], 400);
         }
 
-        // Reset the historical import status to pending
+        // Mark any queued/running import jobs as failed (they're stale)
+        $integration->historicalImportJobs()
+            ->whereIn('status', ['queued', 'running'])
+            ->update([
+                'status' => 'failed',
+                'completed_at' => now(),
+            ]);
+
+        // Update any running sync logs for historical to failed
+        SyncLog::where('integration_id', $integration->integration_id)
+            ->where('sync_type', 'historical')
+            ->where('status', 'running')
+            ->update([
+                'status' => 'failed',
+                'completed_at' => now(),
+                'error_messages' => json_encode(['Dismissed by user - import was stuck']),
+            ]);
+
+        // Reset the integration status back to active
         $integration->update([
+            'status' => 'active',
             'historical_import_status' => 'pending',
             'historical_import_progress' => 0,
         ]);
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Historical import failure dismissed. You can retry the import anytime.'
+            'message' => 'Historical import dismissed. Integration is now active. You can retry the import anytime.'
         ]);
     }
 

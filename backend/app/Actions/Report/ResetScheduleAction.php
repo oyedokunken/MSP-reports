@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\Report;
 
+use App\Concerns\LogsAudit;
 use App\Models\ReportSchedule;
 use Illuminate\Validation\ValidationException;
 
 final class ResetScheduleAction
 {
+    use LogsAudit;
+
     public function execute(ReportSchedule $schedule): ReportSchedule
     {
         if (!$schedule->template_id || !$schedule->template) {
@@ -54,6 +57,12 @@ final class ResetScheduleAction
 
             $customer->update(['report_configuration' => $reportConfig]);
         }
+
+        $this->audit($schedule->company_id, 'schedule_reset', $schedule, [
+            'schedule_id' => $schedule->report_schedule_id,
+            'report_type' => $schedule->report_type,
+            'template_name' => $template->template_name ?? null,
+        ]);
 
         return $schedule;
     }
