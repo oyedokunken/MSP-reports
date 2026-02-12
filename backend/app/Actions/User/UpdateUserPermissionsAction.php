@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Actions\User;
 
+use App\Concerns\LogsAudit;
 use App\Models\User;
 use App\Services\RolePermissionService;
 use Illuminate\Validation\ValidationException;
 
 final class UpdateUserPermissionsAction
 {
+    use LogsAudit;
+
     /**
      * @param array{permissions: array<string, array<string, bool>>} $data
      * @throws ValidationException
@@ -43,6 +46,12 @@ final class UpdateUserPermissionsAction
 
         $user->permissions = $permissions;
         $user->save();
+
+        $this->audit($authUser->company_id, 'user_permissions_updated', $user, [
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'permissions' => $permissions,
+        ]);
 
         return $user;
     }

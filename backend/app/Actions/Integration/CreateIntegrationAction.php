@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Integration;
 
+use App\Concerns\LogsAudit;
 use App\Models\Company;
 use App\Models\Integration;
 use App\Services\IntegrationLifecycleService;
@@ -13,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 final class CreateIntegrationAction
 {
+    use LogsAudit;
+
     public function __construct(
         private readonly IntegrationService $integrationService,
         private readonly IntegrationLifecycleService $lifecycleService,
@@ -47,6 +50,11 @@ final class CreateIntegrationAction
         if ($actor) {
             $this->notificationService->integrationCreated($integration, $actor);
         }
+
+        $this->audit($company->company_id, 'integration_created', $integration, [
+            'integration_name' => $integration->display_name,
+            'integration_type' => $integration->integration_type,
+        ]);
 
         return $integration;
     }

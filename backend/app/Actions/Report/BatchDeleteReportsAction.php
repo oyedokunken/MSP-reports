@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\Report;
 
+use App\Concerns\LogsAudit;
 use App\Models\GeneratedReport;
 use Illuminate\Support\Facades\Storage;
 
 final class BatchDeleteReportsAction
 {
+    use LogsAudit;
+
     /**
      * @param array<int> $reportIds
      */
@@ -38,6 +41,12 @@ final class BatchDeleteReportsAction
             
             $deletedCount++;
         }
+
+        $this->audit($companyId, 'report_batch_deleted', null, [
+            'report_ids' => $reportIds,
+            'deleted_count' => $deletedCount,
+            'force' => $force,
+        ]);
 
         return $deletedCount;
     }

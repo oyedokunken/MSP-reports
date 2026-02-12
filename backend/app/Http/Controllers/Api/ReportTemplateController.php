@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Concerns\LogsAudit;
 use App\Http\Controllers\Controller;
 use App\Models\ReportTemplate;
 use App\Models\Customer;
@@ -20,6 +21,8 @@ use Illuminate\Http\Request;
 
 final class ReportTemplateController extends Controller
 {
+    use LogsAudit;
+
     public function __construct(
         private ReportTemplateService $templateService,
         private InAppNotificationService $notificationService,
@@ -121,6 +124,12 @@ final class ReportTemplateController extends Controller
         // Send notification
         $this->notificationService->templateCreated($template, auth()->user());
 
+        $this->audit(auth()->user()->company_id, 'template_created', $template, [
+            'template_name' => $template->template_name,
+            'report_type' => $template->report_type,
+            'is_global' => $isGlobal,
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => $template->load('customer'),
@@ -146,7 +155,12 @@ final class ReportTemplateController extends Controller
         
         // Sync schedules if this is a global template or belongs to this customer
         $syncStats = $this->templateService->syncLinkedSchedules($template);
-        
+
+        $this->audit(auth()->user()->company_id, 'template_updated', $template, [
+            'template_name' => $template->template_name,
+            'updated_fields' => array_keys($validated),
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => $template,
@@ -175,8 +189,18 @@ final class ReportTemplateController extends Controller
             'schedules_count' => $schedulesCount,
         ]);
         
+        $templateName = $template->template_name;
+        $templateType = $template->report_type;
+        $companyId = $template->company_id;
+
         // Delete template (cascade will handle schedules via foreign key)
         $deleted = $template->delete();
+
+        $this->audit($companyId, 'template_deleted', null, [
+            'template_name' => $templateName,
+            'report_type' => $templateType,
+            'schedules_deleted' => $schedulesCount,
+        ]);
         
         \Log::info('Delete result', [
             'deleted' => $deleted,
@@ -201,7 +225,12 @@ final class ReportTemplateController extends Controller
         /** @var \App\Models\Customer $customer */
         $customer = Customer::findOrFail($validated['customer_id']);
         $schedule = $this->templateService->applyTemplateToCustomer($template, $customer);
-        
+
+        $this->audit(auth()->user()->company_id, 'template_applied', $template, [
+            'template_name' => $template->template_name,
+            'customer_name' => $customer->canonical_name,
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => $schedule,
@@ -220,7 +249,12 @@ final class ReportTemplateController extends Controller
             $template,
             $validated['customer_ids']
         );
-        
+
+        $this->audit(auth()->user()->company_id, 'template_bulk_applied', $template, [
+            'template_name' => $template->template_name,
+            'customer_count' => count($validated['customer_ids']),
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => $schedules,

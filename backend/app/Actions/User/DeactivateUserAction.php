@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\User;
 
+use App\Concerns\LogsAudit;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
 final class DeactivateUserAction
 {
+    use LogsAudit;
+
     /**
      * @throws ValidationException
      */
@@ -33,6 +36,11 @@ final class DeactivateUserAction
         $user->status = \App\Enums\UserStatus::INACTIVE;
         $user->save();
         $user->tokens()->delete();
+
+        $this->audit($authUser->company_id, 'user_deactivated', $user, [
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+        ]);
 
         return $user;
     }

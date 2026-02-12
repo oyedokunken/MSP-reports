@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Report;
 
+use App\Concerns\LogsAudit;
 use App\Jobs\DeliverReportJob;
 use App\Models\GeneratedReport;
 use App\Models\ReportSchedule;
@@ -12,6 +13,8 @@ use Carbon\Carbon;
 
 final class GenerateReportAction
 {
+    use LogsAudit;
+
     private ReportGenerationService $reportService;
 
     public function __construct(ReportGenerationService $reportService)
@@ -46,6 +49,13 @@ final class GenerateReportAction
         }
 
         $schedule->update(['last_generated_at' => now()]);
+
+        $this->audit($schedule->company_id, 'report_generated', $generatedReport, [
+            'report_type' => $schedule->report_type,
+            'customer_name' => $schedule->customer?->canonical_name,
+            'schedule_id' => $schedule->report_schedule_id,
+            'preview_only' => $previewOnly,
+        ]);
 
         return $generatedReport;
     }

@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Actions\Customer;
 
+use App\Concerns\LogsAudit;
 use App\Models\Company;
 use App\Models\Customer;
 use Illuminate\Validation\ValidationException;
 
 final class UpdateCustomerAction
 {
+    use LogsAudit;
+
     /**
      * @param array{
      *   canonical_name?: string,
@@ -48,6 +51,11 @@ final class UpdateCustomerAction
         }
 
         $customer->save();
+
+        $this->audit($company->company_id, 'customer_updated', $customer, [
+            'customer_name' => $customer->canonical_name,
+            'updated_fields' => array_keys($data),
+        ]);
 
         return $customer;
     }

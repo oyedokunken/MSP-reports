@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Actions\User;
 
+use App\Concerns\LogsAudit;
 use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
 final class UpdateUserAction
 {
+    use LogsAudit;
+
     /**
      * @param array{
      *   name?: string,
@@ -53,6 +56,12 @@ final class UpdateUserAction
         }
 
         $user->save();
+
+        $this->audit($authUser->company_id, 'user_updated', $user, [
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'updated_fields' => array_keys($data),
+        ]);
 
         return $user;
     }

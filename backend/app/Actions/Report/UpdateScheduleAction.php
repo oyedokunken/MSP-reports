@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions\Report;
 
+use App\Concerns\LogsAudit;
 use App\Models\ReportSchedule;
 
 final class UpdateScheduleAction
 {
+    use LogsAudit;
+
     /**
      * @param array<string, mixed> $data
      */
@@ -41,6 +44,12 @@ final class UpdateScheduleAction
         }
 
         $schedule->save();
+
+        $this->audit($schedule->company_id, 'schedule_updated', $schedule, [
+            'schedule_id' => $schedule->report_schedule_id,
+            'report_type' => $schedule->report_type,
+            'updated_fields' => array_keys($data),
+        ]);
 
         return $schedule;
     }

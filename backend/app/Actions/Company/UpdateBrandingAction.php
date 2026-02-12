@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\Company;
 
+use App\Concerns\LogsAudit;
 use App\Models\Company;
 use Illuminate\Support\Facades\Log;
 
 final class UpdateBrandingAction
 {
+    use LogsAudit;
+
     /**
      * @param array<string, mixed> $data
      * @return array<string, mixed>
@@ -65,6 +68,10 @@ final class UpdateBrandingAction
         Log::info('Company branding updated', [
             'company_id' => $company->company_id,
             'user_id' => $userId,
+        ]);
+
+        $this->audit($company->company_id, 'branding_updated', $company, [
+            'updated_fields' => array_keys($data),
         ]);
 
         $whiteLabel = $settings['white_label'] ?? [];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Integration;
 
+use App\Concerns\LogsAudit;
 use App\Models\Company;
 use App\Models\Integration;
 use App\Models\SyncLog;
@@ -14,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 final class TriggerSyncAction
 {
+    use LogsAudit;
+
     public function __construct(
         private readonly IntegrationService $integrationService,
         private readonly InAppNotificationService $notificationService,
@@ -37,6 +40,11 @@ final class TriggerSyncAction
         if ($actor) {
             $this->notificationService->syncStarted($integration, $actor);
         }
+
+        $this->audit($company->company_id, 'integration_synced', $integration, [
+            'integration_name' => $integration->display_name,
+            'sync_id' => $syncLog->sync_id,
+        ]);
 
         return $syncLog;
     }

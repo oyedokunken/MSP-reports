@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Report;
 
+use App\Concerns\LogsAudit;
 use App\Models\GeneratedReport;
 use App\Models\ReportShareToken;
 use App\Models\User;
@@ -13,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 final class GenerateShareLinkAction
 {
+    use LogsAudit;
+
     /**
      * @return array<string, mixed>
      */
@@ -51,6 +54,12 @@ final class GenerateShareLinkAction
             'report_id' => $report->generated_report_id,
             'expires_at' => $shareToken->expires_at,
             'user' => $user->email,
+        ]);
+
+        $this->audit($user->company_id, 'report_shared', $report, [
+            'report_type' => $report->reportSchedule?->report_type ?? 'Unknown',
+            'customer_name' => $report->customer?->canonical_name ?? 'Unknown',
+            'expires_at' => $shareToken->expires_at->toIso8601String(),
         ]);
 
         return [

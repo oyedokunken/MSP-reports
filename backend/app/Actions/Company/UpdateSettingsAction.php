@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\Company;
 
+use App\Concerns\LogsAudit;
 use App\Models\Company;
 use Illuminate\Support\Facades\Log;
 
 final class UpdateSettingsAction
 {
+    use LogsAudit;
+
     /**
      * @param array{
      *   name?: string,
@@ -27,6 +30,10 @@ final class UpdateSettingsAction
             'company_id' => $company->company_id,
             'updated_fields' => array_keys($data),
             'user_id' => $userId,
+        ]);
+
+        $this->audit($company->company_id, 'settings_updated', $company, [
+            'updated_fields' => array_keys($data),
         ]);
 
         return $company;

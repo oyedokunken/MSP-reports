@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Company;
 
+use App\Concerns\LogsAudit;
 use App\Models\Company;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 final class UploadLogoAction
 {
+    use LogsAudit;
+
     /**
      * @throws ValidationException
      * @return array{logo_path: string, logo_url: string, settings_key: string}
@@ -59,6 +62,11 @@ final class UploadLogoAction
             'type' => $type,
             'filename' => $filename,
             'user_id' => $userId,
+        ]);
+
+        $this->audit($company->company_id, 'logo_uploaded', $company, [
+            'type' => $type,
+            'filename' => $filename,
         ]);
 
         return [

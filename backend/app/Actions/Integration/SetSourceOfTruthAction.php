@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Actions\Integration;
 
+use App\Concerns\LogsAudit;
 use App\Models\Company;
 use App\Models\Integration;
 use Illuminate\Validation\ValidationException;
 
 final class SetSourceOfTruthAction
 {
+    use LogsAudit;
+
     /**
      * @throws ValidationException
      * @return array{integration: Integration, message: string}
@@ -38,6 +41,11 @@ final class SetSourceOfTruthAction
         $settings['integrations']['source_of_truth_integration_id'] = $integration->integration_id;
         $company->settings = $settings;
         $company->save();
+
+        $this->audit($company->company_id, 'integration_source_of_truth_changed', $integration, [
+            'integration_name' => $integration->display_name,
+            'integration_type' => $integration->integration_type,
+        ]);
 
         return [
             'integration' => $integration,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Report;
 
+use App\Concerns\LogsAudit;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\ReportSchedule;
@@ -12,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 final class BulkGenerateReportsAction
 {
+    use LogsAudit;
+
     private GenerateReportAction $generateReportAction;
 
     public function __construct(GenerateReportAction $generateReportAction)
@@ -128,6 +131,14 @@ final class BulkGenerateReportsAction
                 ];
             }
         }
+
+        $this->audit($company->company_id, 'report_bulk_generated', null, [
+            'total_customers' => $results['total_customers'],
+            'successful' => $results['successful'],
+            'failed' => $results['failed'],
+            'skipped' => $results['skipped'],
+            'report_type' => $reportType,
+        ]);
 
         return $results;
     }

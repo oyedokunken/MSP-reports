@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Customer;
 
+use App\Concerns\LogsAudit;
 use App\Models\Company;
 use App\Models\CustomerMapping;
 use App\Models\IntegrationCustomer;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Log;
 
 final class BatchAutoMatchAction
 {
+    use LogsAudit;
+
     private CustomerMappingService $mappingService;
 
     public function __construct(CustomerMappingService $mappingService)
@@ -106,11 +109,19 @@ final class BatchAutoMatchAction
             $results[] = $result;
         }
 
-        return [
+        $summary = [
             'processed' => count($results),
             'matched' => count(array_filter($results, fn($r) => $r['match_found'])),
             'applied' => $appliedCount,
             'results' => $results,
         ];
+
+        $this->audit($company->company_id, 'customer_batch_auto_matched', null, [
+            'processed' => $summary['processed'],
+            'matched' => $summary['matched'],
+            'applied' => $summary['applied'],
+        ]);
+
+        return $summary;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\User;
 
+use App\Concerns\LogsAudit;
 use App\Enums\AuthMethod;
 use App\Enums\UserStatus;
 use App\Mail\WelcomeUserMail;
@@ -20,6 +21,8 @@ use Illuminate\Validation\ValidationException;
 
 final class CreateUserAction
 {
+    use LogsAudit;
+
     public function __construct(
         private readonly LicenseChecker $licenseChecker,
         private readonly InAppNotificationService $notificationService,
@@ -84,6 +87,13 @@ final class CreateUserAction
 
         // Send in-app notification
         $this->notificationService->userCreated($user, $authUser);
+
+        $this->audit($authUser->company_id, 'user_created', $user, [
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'role' => $roleName,
+            'auth_method' => $user->auth_method,
+        ]);
 
         return $user;
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Report;
 
+use App\Concerns\LogsAudit;
 use App\Models\GeneratedReport;
 use App\Models\ReportShareToken;
 use App\Services\ReportNamingService;
@@ -14,6 +15,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class DownloadReportAction
 {
+    use LogsAudit;
+
     public function __construct(
         private ReportNamingService $namingService
     ) {}
@@ -31,6 +34,11 @@ final class DownloadReportAction
                 'report' => ['Report not found or access denied.'],
             ]);
         }
+
+        $this->audit($companyId, 'report_downloaded', $report, [
+            'report_type' => $report->reportSchedule?->report_type ?? 'Unknown',
+            'customer_name' => $report->customer?->canonical_name ?? 'Unknown',
+        ]);
 
         return $this->download($report);
     }

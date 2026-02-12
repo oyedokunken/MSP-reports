@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\User;
 
+use App\Concerns\LogsAudit;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
 final class ReactivateUserAction
 {
+    use LogsAudit;
+
     /**
      * @throws ValidationException
      */
@@ -26,6 +29,11 @@ final class ReactivateUserAction
 
         $user->status = \App\Enums\UserStatus::ACTIVE;
         $user->save();
+
+        $this->audit($authUser->company_id, 'user_reactivated', $user, [
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+        ]);
 
         return $user;
     }

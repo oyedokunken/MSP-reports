@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Report;
 
+use App\Concerns\LogsAudit;
 use App\Jobs\DeliverReportJob;
 use App\Models\GeneratedReport;
 use App\Models\User;
@@ -13,6 +14,8 @@ use Illuminate\Validation\ValidationException;
 
 final class EmailReportAction
 {
+    use LogsAudit;
+
     /**
      * @param array<int, string>|string $emails
      * @return array<string, mixed>
@@ -62,6 +65,12 @@ final class EmailReportAction
             'customer' => $report->customer->canonical_name ?? 'Unknown',
             'recipients' => $emailAddresses,
             'user' => $user->email,
+        ]);
+
+        $this->audit($report->company_id, 'report_emailed', $report, [
+            'report_type' => $report->reportSchedule->report_type ?? 'Unknown',
+            'customer_name' => $report->customer->canonical_name ?? 'Unknown',
+            'recipients' => $emailAddresses,
         ]);
 
         return [

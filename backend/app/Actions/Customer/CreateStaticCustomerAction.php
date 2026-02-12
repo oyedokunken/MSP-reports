@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Customer;
 
+use App\Concerns\LogsAudit;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\User;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 
 final class CreateStaticCustomerAction
 {
+    use LogsAudit;
+
     public function __construct(
         private readonly InAppNotificationService $notificationService,
     ) {}
@@ -39,6 +42,10 @@ final class CreateStaticCustomerAction
             if ($actor) {
                 $this->notificationService->customerCreated($customer, $actor);
             }
+
+            $this->audit($company->company_id, 'customer_created', $customer, [
+                'customer_name' => $customer->canonical_name,
+            ]);
 
             return $customer;
         });

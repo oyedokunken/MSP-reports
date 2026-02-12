@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Actions\Integration;
 
+use App\Concerns\LogsAudit;
 use App\Models\Company;
 use App\Models\Integration;
 use Illuminate\Validation\ValidationException;
 
 final class UpdateIntegrationAction
 {
+    use LogsAudit;
+
     /**
      * @param array{
      *   display_name?: string,
@@ -48,6 +51,11 @@ final class UpdateIntegrationAction
         }
 
         $integration->save();
+
+        $this->audit($company->company_id, 'integration_updated', $integration, [
+            'integration_name' => $integration->display_name,
+            'updated_fields' => array_keys($data),
+        ]);
 
         return $integration;
     }

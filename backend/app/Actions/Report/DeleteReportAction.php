@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Actions\Report;
 
+use App\Concerns\LogsAudit;
 use App\Models\GeneratedReport;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 final class DeleteReportAction
 {
+    use LogsAudit;
+
     /**
      * @return int The ID of the deleted report
      */
@@ -31,7 +34,15 @@ final class DeleteReportAction
         }
 
         $id = $report->generated_report_id;
+        $reportType = $report->reportSchedule?->report_type ?? 'Unknown';
+        $customerName = $report->customer?->canonical_name ?? 'Unknown';
         $report->delete();
+
+        $this->audit($companyId, 'report_deleted', null, [
+            'report_id' => $id,
+            'report_type' => $reportType,
+            'customer_name' => $customerName,
+        ]);
 
         return $id;
     }

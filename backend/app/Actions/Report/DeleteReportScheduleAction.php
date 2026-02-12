@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Report;
 
+use App\Concerns\LogsAudit;
 use App\Models\ReportSchedule;
 use App\Models\ReportTemplate;
 use Illuminate\Validation\ValidationException;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Log;
 
 final class DeleteReportScheduleAction
 {
+    use LogsAudit;
+
     /**
      * @return array{deleted_schedule_id: int, customer_name: string, report_type: string, template_deleted: bool}
      */
@@ -53,6 +56,13 @@ final class DeleteReportScheduleAction
                 ]);
             }
         }
+
+        $this->audit($companyId, 'schedule_deleted', null, [
+            'schedule_id' => $scheduleId,
+            'customer_name' => $customerName,
+            'report_type' => $reportType,
+            'template_deleted' => $templateDeleted,
+        ]);
 
         return [
             'deleted_schedule_id' => $scheduleId,
