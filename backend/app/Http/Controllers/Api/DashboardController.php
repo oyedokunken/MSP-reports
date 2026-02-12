@@ -152,7 +152,7 @@ final class DashboardController extends Controller
         $schedules = ReportSchedule::where('company_id', $companyId)
             ->where('active', true)
             ->whereNotNull('next_scheduled_at')
-            ->with('customer:customer_id,name')
+            ->with('customer:customer_id,canonical_name')
             ->orderBy('next_scheduled_at', 'asc')
             ->limit(5)
             ->get()
@@ -160,7 +160,7 @@ final class DashboardController extends Controller
                 return [
                     'id' => $schedule->report_schedule_id,
                     'name' => $schedule->report_type,
-                    'customer' => $schedule->customer->name ?? 'Unknown Customer',
+                    'customer' => $schedule->customer->canonical_name ?? 'Unknown Customer',
                     'nextRun' => $schedule->next_scheduled_at
                         ? $schedule->next_scheduled_at->format('Y-m-d H:i:s')
                         : 'Not scheduled',
@@ -195,7 +195,7 @@ final class DashboardController extends Controller
                 };
 
                 return [
-                    'id' => $log->sync_log_id,
+                    'id' => $log->sync_id,
                     'type' => 'sync',
                     'title' => "{$log->integration->display_name} sync {$log->status}",
                     'time' => $log->started_at->diffForHumans(),
@@ -316,7 +316,7 @@ final class DashboardController extends Controller
             ->select(
                 DB::raw("generated_at::date as date"),
                 DB::raw('COUNT(*) as total'),
-                DB::raw("SUM(CASE WHEN status = 'failed' THEN 1 END) as failed")
+                DB::raw("SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed")
             )
             ->groupBy(DB::raw("generated_at::date"))
             ->orderBy('date', 'asc')
