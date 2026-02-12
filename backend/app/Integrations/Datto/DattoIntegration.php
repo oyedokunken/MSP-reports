@@ -561,6 +561,9 @@ final class DattoIntegration implements IntegrationInterface
                 ->where('active', true)
                 ->get();
 
+            $totalCustomers = $integrationCustomers->count();
+            $processedCount = 0;
+
             foreach ($integrationCustomers as $customer) {
                 try {
                     // Fetch resolved alerts since the start date
@@ -581,11 +584,24 @@ final class DattoIntegration implements IntegrationInterface
                             $count = count($filteredAlerts);
                             $totalProcessed += $count;
                             
+                            // Calculate sub-progress
+                            $processedCount++;
+                            $subProgress = ($processedCount / $totalCustomers) * 100;
+                            
                             if ($this->progressCallback) {
-                                ($this->progressCallback)($count);
+                                ($this->progressCallback)($count, $subProgress);
                             }
+                            continue;
                         }
                     }
+
+                    // Even if no alerts found, update progress
+                    $processedCount++;
+                    $subProgress = ($processedCount / $totalCustomers) * 100;
+                    if ($this->progressCallback) {
+                        ($this->progressCallback)(0, $subProgress);
+                    }
+
                 } catch (\Exception $e) {
                     $errors[] = "Failed to fetch historical alerts for customer {$customer->name}: {$e->getMessage()}";
                 }

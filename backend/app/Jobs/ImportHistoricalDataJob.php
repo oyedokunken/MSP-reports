@@ -110,20 +110,36 @@ final class ImportHistoricalDataJob implements ShouldQueue
             }
 
             // Process the chunk (up to 7 days)
+            // Process the chunk (up to 7 days)
             // Set progress callback if supported
             if (method_exists($integrationClass, 'setProgressCallback')) {
                 $integrationClass->setProgressCallback(function (int $count, ?float $subProgress = null) use ($integration) {
                     $this->importJob->increment('records_imported', $count);
 
-                    if ($subProgress !== null && $this->importJob->total_jobs > 0) {
-                        // Calculate total progress: (completed_chunks + this_chunk_fraction) / total_chunks
-                        // We use fresh() to get the latest jobs_completed from other parallel workers
+                    if ($subProgress !== null) {
+                        // Calculate total progress
+                        // We use fresh() to get the latest state
                         $job = $this->importJob->fresh();
                         if ($job) {
-                            $baseProgress = $job->jobs_completed / $job->total_jobs;
-                            $currentChunkContribution = ($subProgress / 100) * (1 / $job->total_jobs);
-                            /** @var int $newProgress */
-                            $newProgress = (int) min(99, round(($baseProgress + $currentChunkContribution) * 100));
+                            $newProgress = 0;
+
+                            if ($job->total_jobs > 0) {
+                                // Parallel Jobs Mode
+                                $baseProgress = $job->jobs_completed / $job->total_jobs;
+                                $currentChunkContribution = ($subProgress / 100) * (1 / $job->total_jobs);
+                                $newProgress = (int) min(99, round(($baseProgress + $currentChunkContribution) * 100));
+                            } else {
+                                // Date-based / Sequential Mode (Fallback)
+                                $totalDays = $job->import_start_date->diffInDays($job->import_end_date) ?: 1;
+                                $completedDays = $job->import_start_date->diffInDays($this->chunkDate);
+                                
+                                $baseProgress = $completedDays / $totalDays;
+                                // Assuming 1 day per chunk as per logic above
+                                $chunkWeight = 1 / $totalDays;
+                                
+                                $currentChunkContribution = ($subProgress / 100) * $chunkWeight;
+                                $newProgress = (int) min(99, round(($baseProgress + $currentChunkContribution) * 100));
+                            }
 
                             $jobProgress = $job->progress_percent ?? 0;
                             if ($newProgress > $jobProgress) {
