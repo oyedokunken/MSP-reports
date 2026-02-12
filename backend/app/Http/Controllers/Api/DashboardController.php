@@ -76,6 +76,11 @@ final class DashboardController extends Controller
             })
             ->count();
 
+        // Total integration customers (imported from all integrations)
+        $importedCustomers = IntegrationCustomer::whereHas('integration', function ($q) use ($companyId) {
+            $q->where('company_id', $companyId);
+        })->count();
+
         // Optimized: Single query for template counts
         $templateStats = ReportTemplate::where('company_id', $companyId)
             ->selectRaw('COUNT(*) as total')
@@ -91,6 +96,7 @@ final class DashboardController extends Controller
         return [
             'totalCustomers' => (int) ($customerStats->total_customers ?? 0),
             'unmappedCustomers' => $unmappedCount,
+            'importedCustomers' => $importedCustomers,
             'templates' => [
                 'total' => (int) ($templateStats->total ?? 0),
                 'customized' => (int) ($templateStats->customized ?? 0),

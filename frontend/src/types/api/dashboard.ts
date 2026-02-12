@@ -1,6 +1,7 @@
 export interface DashboardStats {
     totalCustomers: number;
     unmappedCustomers: number;
+    importedCustomers: number;
     templates: {
         total: number;
         customized: number;

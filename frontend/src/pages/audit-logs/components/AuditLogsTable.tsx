@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import { type AuditLog, EVENT_TYPES } from '../types'
 import { AuditLogDetailDialog } from './AuditLogDetailDialog'
 
@@ -173,9 +174,20 @@ export function AuditLogsTable({
 
                     <td className="px-4 py-4">
                       <div className="flex flex-col gap-1">
-                        <span className="text-sm text-foreground">
-                          {log.target_name || '-'}
-                        </span>
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-sm text-foreground truncate max-w-[200px] block cursor-default">
+                                {log.target_name || '-'}
+                              </span>
+                            </TooltipTrigger>
+                            {log.target_name && log.target_name.length > 25 && (
+                              <TooltipContent side="top">
+                                <p>{log.target_name}</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
                         {log.target_type && (
                           <span className="text-xs text-gray-500 dark:text-gray-400">
                             {log.target_type}
@@ -268,9 +280,20 @@ export function AuditLogsTable({
                 </div>
                 <div>
                   <div className="text-[10px] font-medium uppercase tracking-wider text-gray-500">Target</div>
-                  <div className="mt-0.5 text-xs text-foreground truncate">
-                    {log.target_name || '-'}
-                  </div>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="mt-0.5 text-xs text-foreground truncate cursor-default">
+                          {log.target_name || '-'}
+                        </div>
+                      </TooltipTrigger>
+                      {log.target_name && log.target_name.length > 20 && (
+                        <TooltipContent side="top">
+                          <p>{log.target_name}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                   {log.target_type && (
                     <div className="text-[9px] text-gray-500 mt-0.5">{log.target_type}</div>
                   )}

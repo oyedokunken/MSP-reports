@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { logger } from '@/lib/logger'
 import { useToast } from "@/components/ui/Toast";
-import { Users, UserMinus, LayoutTemplate, ShieldCheck } from "lucide-react";
+import { Users, UserMinus, ShieldCheck, UserPlus } from "lucide-react";
 import { useDashboardSummaryQuery } from "./hooks/useDashboardSummary";
 import type { Integration, UpcomingReport, RecentActivity, Stat } from "./types";
 
@@ -61,6 +61,12 @@ export const useDashboard = () => {
         if (!dashboardData?.data?.stats) {
             return [
                 {
+                    label: "Imported Customers",
+                    value: "0",
+                    icon: UserPlus,
+                    trend: { value: "From integrations", isPositive: true },
+                },
+                {
                     label: "Mapped Customers",
                     value: "0",
                     icon: Users,
@@ -73,12 +79,6 @@ export const useDashboard = () => {
                     trend: { value: "All mapped", isPositive: true },
                 },
                 {
-                    label: "Customized Templates",
-                    value: "0",
-                    icon: LayoutTemplate,
-                    trend: { value: "0 total templates", isPositive: true },
-                },
-                {
                     label: "System Users",
                     value: "0",
                     icon: ShieldCheck,
@@ -87,16 +87,27 @@ export const useDashboard = () => {
             ];
         }
 
-        const { totalCustomers, unmappedCustomers, templates, users } = dashboardData.data.stats;
+        const { totalCustomers, unmappedCustomers, importedCustomers, users } = dashboardData.data.stats;
 
         return [
+            {
+                label: "Imported Customers",
+                value: (importedCustomers ?? 0).toString(),
+                icon: UserPlus,
+                trend: {
+                    value: importedCustomers > 0 ? "From integrations" : "Sync to import",
+                    isPositive: importedCustomers > 0,
+                },
+            },
             {
                 label: "Mapped Customers",
                 value: totalCustomers.toString(),
                 icon: Users,
                 trend: {
-                    value: totalCustomers > 0 ? "All customers" : "No customers",
-                    isPositive: true,
+                    value: totalCustomers > 0
+                        ? `${totalCustomers} of ${importedCustomers ?? 0} mapped`
+                        : importedCustomers > 0 ? `${importedCustomers} awaiting mapping` : "No customers",
+                    isPositive: totalCustomers > 0,
                 },
             },
             {
@@ -106,15 +117,6 @@ export const useDashboard = () => {
                 trend: {
                     value: unmappedCustomers > 0 ? `${unmappedCustomers} pending` : "All mapped",
                     isPositive: unmappedCustomers === 0,
-                },
-            },
-            {
-                label: "Customized Templates",
-                value: templates.customized.toString(),
-                icon: LayoutTemplate,
-                trend: {
-                    value: `${templates.total} total templates`,
-                    isPositive: true,
                 },
             },
             {
