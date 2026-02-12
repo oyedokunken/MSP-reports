@@ -60,7 +60,7 @@ final class DashboardController extends Controller
      * Get dashboard statistics
      * 
      * @param int $companyId
-     * @return array
+     * @return array{totalCustomers: int, unmappedCustomers: int, templates: array{total: int, customized: int}, users: array{total: int, active: int}}
      */
     private function getStats(int $companyId): array
     {
@@ -106,7 +106,7 @@ final class DashboardController extends Controller
      * Get top integrations with their status
      * 
      * @param int $companyId
-     * @return array
+     * @return array<int, array{id: int, name: string, type: string, status: string, lastSync: string, syncStatus: string, customers: int, isSourceOfTruth: bool}>
      */
     private function getIntegrations(int $companyId): array
     {
@@ -145,7 +145,7 @@ final class DashboardController extends Controller
      * Get upcoming scheduled reports
      * 
      * @param int $companyId
-     * @return array
+     * @return array<int, array{id: int, name: string, customer: string, nextRun: string, status: string}>
      */
     private function getUpcomingSchedules(int $companyId): array
     {
@@ -175,7 +175,7 @@ final class DashboardController extends Controller
      * Get recent activity from audit logs and notifications
      * 
      * @param int $companyId
-     * @return array
+     * @return array<int, array{id: int, type: string, title: string, time: string, severity: string}>
      */
     private function getRecentActivity(int $companyId): array
     {
@@ -243,7 +243,7 @@ final class DashboardController extends Controller
      * 
      * @param int $companyId
      * @param int $months
-     * @return array
+     * @return array<int, array{date: string, count: int}>
      */
     private function getMonthlyReports(int $companyId, int $months = 6): array
     {
@@ -287,7 +287,7 @@ final class DashboardController extends Controller
      * 
      * @param int $companyId
      * @param int $days
-     * @return array
+     * @return array<int, array{date: string, syncs: int, failed_syncs: int, rate_limits: int, reports: int, failed_reports: int, logins: int}>
      */
     private function getActivityTrends(int $companyId, int $days = 7): array
     {

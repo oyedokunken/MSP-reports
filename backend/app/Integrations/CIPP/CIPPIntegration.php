@@ -612,7 +612,7 @@ final class CIPPIntegration implements IntegrationInterface
             foreach ($standards as $item) {
                 // Standards are already quite descriptive, we just tag them
                 $mappedItems[] = [
-                    'external_id' => $item['id'] ?? $item['GUID'] ?? md5(json_encode($item)),
+                    'external_id' => $item['id'] ?? $item['GUID'] ?? md5((string) json_encode($item)),
                     'tenant_id' => $tenantFilter,
                     'type' => 'standard',
                     'data' => $item,
