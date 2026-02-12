@@ -173,7 +173,7 @@ export default function FloatingNav() {
                                 <div className="p-4 border-b border-border">
                                     <div className="flex items-center justify-between">
                                         <h3 className="font-semibold text-foreground">
-                                            Notifications
+                                            Recent Notifications
                                         </h3>
                                         {unreadCount > 0 && (
                                             <span className="text-xs px-2 py-1 rounded-full bg-secondary text-secondary-foreground">

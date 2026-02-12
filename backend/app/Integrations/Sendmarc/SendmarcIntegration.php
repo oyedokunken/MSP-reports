@@ -45,7 +45,7 @@ final class SendmarcIntegration implements IntegrationInterface
                 'label' => 'API Token',
                 'type' => 'password',
                 'required' => true,
-                'placeholder' => 'Enter your Sendmarc API token',
+                'placeholder' => 'Enter your API Token',
                 'help' => 'Found in Sendmarc under Settings > API Tokens',
             ],
         ];

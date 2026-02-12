@@ -12,14 +12,14 @@ return [
             'type' => 'password',
             'label' => 'API Key',
             'required' => true,
-            'placeholder' => 'Enter your SaaS Alerts API key',
+            'placeholder' => 'Enter your API Key',
             'help' => 'Found in SaaS Alerts Partner Portal. Used in api_key header for authentication.',
         ],
         'partner_id' => [
-            'type' => 'text',
+            'type' => 'password',
             'label' => 'Partner ID',
             'required' => true,
-            'placeholder' => 'Enter SaaS Alerts Partner ID',
+            'placeholder' => 'Enter Partner ID',
             'help' => 'Your SaaS Alerts Partner ID. Found in Partner Portal.',
         ],
         'base_url' => [

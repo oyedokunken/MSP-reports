@@ -350,20 +350,11 @@ final class VonahiIntegration implements IntegrationInterface
     {
         return [
             [
-                'name' => 'api_url',
-                'label' => 'API URL',
-                'type' => 'text',
-                'required' => false,
-                'default' => 'https://app.vpentest.io/api/v3',
-                'placeholder' => 'https://app.vpentest.io/api/v3',
-                'help' => 'Vonahi vPenTest API v3 URL (usually no change needed)',
-            ],
-            [
                 'name' => 'api_key',
                 'label' => 'API Key',
                 'type' => 'password',
                 'required' => true,
-                'placeholder' => 'Enter your vPenTest API key',
+                'placeholder' => 'Enter your API Key',
                 'help' => 'Generate from your vPenTest profile → Generate API Key',
             ],
         ];
@@ -476,6 +467,7 @@ final class VonahiIntegration implements IntegrationInterface
                 ->get();
 
             foreach ($unmapped as $ic) {
+                /** @var IntegrationCustomer $ic */
                 $this->mappedDuringSync[] = $this->mappingService->createFromSourceOfTruth($ic, 'Vonahi');
             }
         }

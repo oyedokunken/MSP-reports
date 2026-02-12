@@ -66,17 +66,17 @@ final class CIPPIntegration implements IntegrationInterface
             [
                 'name' => 'tenant_id',
                 'label' => 'Azure Tenant ID',
-                'type' => 'text',
+                'type' => 'password',
                 'required' => true,
-                'placeholder' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                'placeholder' => 'Enter your Azure AD Tenant ID',
                 'help' => 'Your Azure AD Tenant ID (GUID format)',
             ],
             [
                 'name' => 'client_id',
                 'label' => 'Application (Client) ID',
-                'type' => 'text',
+                'type' => 'password',
                 'required' => true,
-                'placeholder' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                'placeholder' => 'Enter your Application (Client) ID',
                 'help' => 'The Application ID from your CIPP API client registration',
             ],
             [
@@ -84,6 +84,7 @@ final class CIPPIntegration implements IntegrationInterface
                 'label' => 'Client Secret',
                 'type' => 'password',
                 'required' => true,
+                'placeholder' => 'Enter your Client Secret',
                 'help' => 'The client secret from your CIPP API client',
             ],
         ];
@@ -635,13 +636,13 @@ final class CIPPIntegration implements IntegrationInterface
         $message = $e->getMessage();
         // Skip endpoints that return 404, 403, or specific licensing errors
         if (
-            str_contains($message, '404') || 
-            str_contains($message, '403') || 
+            str_contains($message, '404') ||
+            str_contains($message, '403') ||
             str_contains($message, 'doesn\'t have premium license') ||
             str_contains($message, 'not a B2C tenant')
         ) {
             $this->supportedEndpoints[$endpointKey] = false;
-            
+
             // If it's a security/premium licensing error, disable the whole group
             if (str_contains($message, '403') || str_contains($message, 'premium license')) {
                 $securityEndpoints = ['alerts', 'incidents', 'defender_tvm', 'defender'];
@@ -706,7 +707,8 @@ final class CIPPIntegration implements IntegrationInterface
                     if (!isset($this->supportedEndpoints['sign_in']) || $this->supportedEndpoints['sign_in']) {
                         try {
                             $days = (int) $startDate->diffInDays($endDate);
-                            if ($days < 1) $days = 1;
+                            if ($days < 1)
+                                $days = 1;
                             $signIns = $this->client->listSignIns($tenantFilter, $days);
                             $mappedSignIns = [];
                             foreach ($signIns as $signIn) {
@@ -910,10 +912,10 @@ final class CIPPIntegration implements IntegrationInterface
             // 1. Get tenants from API (fastest way to verify connection)
             // We cache this for 5 minutes to avoid repeated slow calls
             $cacheKey = "cipp_tenants_{$this->integration->integration_id}";
-            $tenants = Cache::remember($cacheKey, 300, function() {
+            $tenants = Cache::remember($cacheKey, 300, function () {
                 return $this->client->listTenants();
             });
-            
+
             $tenantCount = count($tenants);
             Log::debug('CIPP Preview: Tenant count', ['count' => $tenantCount]);
 
@@ -936,7 +938,7 @@ final class CIPPIntegration implements IntegrationInterface
             // If customerId is provided, just show that one if it exists
             $displayTenants = [];
             if ($integrationCustomerId) {
-                $customer = \App\Models\IntegrationCustomer::find($integrationCustomerId);
+                $customer = IntegrationCustomer::find($integrationCustomerId);
                 if ($customer) {
                     $displayTenants[] = [
                         'name' => $customer->name,
@@ -945,7 +947,7 @@ final class CIPPIntegration implements IntegrationInterface
                     ];
                 }
             }
-            
+
             // If we have no specific customer or it wasn't found, show top 10 from API
             if (empty($displayTenants) && !empty($tenants)) {
                 $displayTenants = array_map(fn($t) => [

@@ -13,7 +13,7 @@ return [
             'label' => 'API Key',
             'required' => true,
             'encrypted' => true,
-            'placeholder' => 'ITG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+            'placeholder' => 'Enter your API Key',
             'help' => 'Your IT Glue API key (starts with ITG.)',
         ],
         'base_url' => [

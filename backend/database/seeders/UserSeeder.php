@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Hash;
 class UserSeeder extends Seeder
 {
     /**
-     * Seed users for each default role.
+     * Seed users based on realistic MSP personas.
      */
     public function run(): void
     {
@@ -24,128 +24,153 @@ class UserSeeder extends Seeder
         }
 
         $roles = Role::all();
-        $password = 'password123';
+        $commonPassword = 'password123'; // Default for demo
 
-        // 1. Admin User
-        $adminRole = $roles->where('name', 'Admin')->first();
-        if ($adminRole) {
-            User::firstOrCreate(
-                ['email' => 'admin@tts.com.au'],
-                [
-                    'company_id' => $company->company_id,
-                    'role_id' => $adminRole->id,
-                    'name' => 'TTS Administrator',
-                    'password' => Hash::make('ChangeMe123!'),
-                    'status' => 'active',
-                    'auth_method' => 'local',
-                    'permissions' => RolePermissionService::getDefaultPermissions('Admin'),
-                    'settings' => [
-                        'theme' => 'light',
-                        'notifications' => ['email' => true, 'browser' => true],
-                    ],
-                    'email_verified_at' => now(),
-                ]
-            );
+        $this->command->info('Seeding Realistic MSP Personas...');
 
-            // Kristian Admin
-            User::firstOrCreate(
-                ['email' => 'kristianbas14@gmail.com'],
-                [
-                    'company_id' => $company->company_id,
-                    'role_id' => $adminRole->id,
-                    'name' => 'Kristian',
-                    'password' => Hash::make($password),
-                    'status' => 'active',
-                    'auth_method' => 'local',
-                    'permissions' => RolePermissionService::getDefaultPermissions('Admin'),
-                    'settings' => ['theme' => 'dark'],
-                    'email_verified_at' => now(),
-                ]
-            );
-        }
-
-        // 2. Manager User
-        $managerRole = $roles->where('name', 'Manager')->first();
-        if ($managerRole) {
-            User::firstOrCreate(
-                ['email' => 'manager@tts.com.au'],
-                [
-                    'company_id' => $company->company_id,
-                    'role_id' => $managerRole->id,
-                    'name' => 'Territory Manager',
-                    'password' => Hash::make($password),
-                    'status' => 'active',
-                    'auth_method' => 'local',
-                    'permissions' => RolePermissionService::getDefaultPermissions('Manager'),
-                    'email_verified_at' => now(),
-                ]
-            );
-        }
-
-        // 3. Technician User
-        $techRole = $roles->where('name', 'Technician')->first();
-        if ($techRole) {
-            User::firstOrCreate(
-                ['email' => 'technician@tts.com.au'],
-                [
-                    'company_id' => $company->company_id,
-                    'role_id' => $techRole->id,
-                    'name' => 'Field Technician',
-                    'password' => Hash::make($password),
-                    'status' => 'active',
-                    'auth_method' => 'local',
-                    'permissions' => RolePermissionService::getDefaultPermissions('Technician'),
-                    'email_verified_at' => now(),
-                ]
-            );
-        }
-
-        // 4. Viewer User
-        $viewerRole = $roles->where('name', 'Viewer')->first();
-        if ($viewerRole) {
-            User::firstOrCreate(
-                ['email' => 'viewer@tts.com.au'],
-                [
-                    'company_id' => $company->company_id,
-                    'role_id' => $viewerRole->id,
-                    'name' => 'Internal Viewer',
-                    'password' => Hash::make($password),
-                    'status' => 'active',
-                    'auth_method' => 'local',
-                    'permissions' => RolePermissionService::getDefaultPermissions('Viewer'),
-                    'email_verified_at' => now(),
-                ]
-            );
-        }
-
-        // 5. Customer User
-        $customerRole = $roles->where('name', 'Customer')->first();
-        if ($customerRole) {
-            User::firstOrCreate(
-                ['email' => 'customer@tts.com.au'],
-                [
-                    'company_id' => $company->company_id,
-                    'role_id' => $customerRole->id,
-                    'name' => 'TTS Client User',
-                    'password' => Hash::make($password),
-                    'status' => 'active',
-                    'auth_method' => 'local',
-                    'scoped_customers' => [1], // Scoped to first customer example
-                    'permissions' => RolePermissionService::getDefaultPermissions('Customer'),
-                    'email_verified_at' => now(),
-                ]
-            );
-        }
-
-        $this->command->info('All 5 standard users seeded successfully.');
-        $this->command->table(
-            ['Role', 'Email', 'Password'],
+        // ----------------------------------------------------------------
+        // 1. THE "POWER USER" - Service Delivery Manager (SDM)
+        // ----------------------------------------------------------------
+        // ROLE: Manager
+        // WHY: This is your ideal user. They set up the templates, 
+        // configure the report schedules, and ensure all clients are mapped.
+        // They need access to everything EXCEPT destroying system config (API Keys).
+        $this->createUser(
+            $company,
+            $roles,
+            'Manager',
+            'sdm@tts.com.au',
+            'Liam (Service Delivery Manager)',
+            $commonPassword,
             [
-                ['Admin', 'admin@tts.com.au', 'ChangeMe123!'],
-                ['Manager', 'manager@tts.com.au', 'password123'],
-                ['Technician', 'technician@tts.com.au', 'password123'],
-                ['Viewer', 'viewer@tts.com.au', 'password123'],
-                ['Customer', 'customer@tts.com.au', 'password123'],
+                'theme' => 'light',
+                'notifications' => ['email' => true, 'browser' => true],
+                'dashboard_layout' => 'executive_summary'
+            ]
+        );
+
+        // ----------------------------------------------------------------
+        // 2. THE "TECHNICAL LEAD" - System Administrator
+        // ----------------------------------------------------------------
+        // ROLE: Technician / Admin
+        // WHY: They fix the broken syncs. If "ViewSyncLogsModal" shows errors,
+        // this is the person who logs in to fix the API credentials or mappings.
+        $this->createUser(
+            $company,
+            $roles,
+            'Technician',
+            'sysadmin@tts.com.au',
+            'Marcus (System Admin)',
+            $commonPassword,
+            [
+                'theme' => 'dark', // Techs love dark mode
+                'notifications' => ['email' => true, 'browser' => false]
+            ]
+        );
+
+        // ----------------------------------------------------------------
+        // 3. THE "CLIENT FACING" - vCIO / Account Manager
+        // ----------------------------------------------------------------
+        // ROLE: Viewer
+        // WHY: They don't configure reports. They just log in 5 minutes before
+        // a meeting to "View" the dashboard and print a PDF to show the client.
+        $this->createUser(
+            $company,
+            $roles,
+            'Viewer',
+            'vcio@tts.com.au',
+            'Sarah (Account Manager)',
+            $commonPassword,
+            [
+                'theme' => 'light',
+                'notifications' => ['email' => false, 'browser' => false]
+            ]
+        );
+
+        // ----------------------------------------------------------------
+        // 4. THE "SUPER USER" - Owner / CTO
+        // ----------------------------------------------------------------
+        // ROLE: Admin
+        // WHY: Full access to verify billing, licenses, and system security.
+        $this->createUser(
+            $company,
+            $roles,
+            'Admin',
+            'admin@tts.com.au',
+            'TTS Administrator',
+            'ChangeMe123!',
+            ['theme' => 'light']
+        );
+
+        // Kristian (Your requested Admin user)
+        $this->createUser(
+            $company,
+            $roles,
+            'Admin',
+            'kristianbas14@gmail.com',
+            'Kristian',
+            'password123',
+            ['theme' => 'dark']
+        );
+
+        // ----------------------------------------------------------------
+        // 5. THE "END CLIENT" - Customer Portal
+        // ----------------------------------------------------------------
+        // ROLE: Customer
+        // WHY: A client who wants to see their own SLAs without calling you.
+        $this->createUser(
+            $company,
+            $roles,
+            'Customer',
+            'client@bigcorp.com',
+            'Big Corp CEO',
+            $commonPassword,
+            ['theme' => 'light'],
+            false,
+            [1] // Scoped ONLY to their own company data
+        );
+
+        $this->command->table(
+            ['Persona', 'Role', 'Email', 'Password', 'Primary Goal'],
+            [
+                ['Service Delivery Manager', 'Manager', 'sdm@tts.com.au', $commonPassword, 'Manage Reports & Schedules'],
+                ['System Admin', 'Technician', 'sysadmin@tts.com.au', $commonPassword, 'Fix Integrations & Syncs'],
+                ['Account Manager', 'Viewer', 'vcio@tts.com.au', $commonPassword, 'Present Data to Clients'],
+                ['Owner / CTO', 'Admin', 'admin@tts.com.au', 'ChangeMe123!', 'Full Control'],
+                ['End Client', 'Customer', 'client@bigcorp.com', $commonPassword, 'View Own Stats'],
+            ]
+        );
+    }
+
+    private function createUser(
+        Company $company,
+        $roles,
+        string $roleName,
+        string $email,
+        string $name,
+        string $password,
+        array $settings = [],
+        bool $forcePasswordChange = false,
+        array $scopedCustomers = []
+    ): void {
+        $role = $roles->where('name', $roleName)->first();
+        if (!$role)
+            return;
+
+        User::firstOrCreate(
+            ['email' => $email],
+            [
+                'company_id' => $company->company_id,
+                'role_id' => $role->id,
+                'name' => $name,
+                'password' => Hash::make($password),
+                'status' => 'active',
+                'auth_method' => 'local',
+                'permissions' => RolePermissionService::getDefaultPermissions($roleName),
+                'settings' => $settings,
+                'email_verified_at' => now(),
+                'force_password_change' => $forcePasswordChange,
+                'scoped_customers' => $scopedCustomers,
             ]
         );
     }

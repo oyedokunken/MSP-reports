@@ -6,7 +6,7 @@ return [
     'name' => 'CIPP',
     'display_name' => 'CIPP (Microsoft 365)',
     'description' => 'CyberDrain Improved Partner Portal - Comprehensive Microsoft 365 management including security, compliance, identity, and tenant administration.',
-    
+
     'credentials' => [
         'base_url' => [
             'type' => 'text',
@@ -17,19 +17,19 @@ return [
             'help' => 'Your CIPP instance URL (e.g., https://cippsm233.azurewebsites.net)',
         ],
         'tenant_id' => [
-            'type' => 'text',
+            'type' => 'password',
             'label' => 'Azure Tenant ID',
             'required' => true,
             'encrypted' => false,
-            'placeholder' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+            'placeholder' => 'Enter your Azure AD Tenant ID',
             'help' => 'Your Azure AD Tenant ID (GUID)',
         ],
         'client_id' => [
-            'type' => 'text',
+            'type' => 'password',
             'label' => 'Application (Client) ID',
             'required' => true,
             'encrypted' => false,
-            'placeholder' => 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+            'placeholder' => 'Enter your Application (Client) ID',
             'help' => 'The Application ID from your CIPP API client registration',
         ],
         'client_secret' => [
@@ -37,10 +37,11 @@ return [
             'label' => 'Client Secret',
             'required' => true,
             'encrypted' => true,
+            'placeholder' => 'Enter your Client Secret',
             'help' => 'The client secret from your CIPP API client',
         ],
     ],
-    
+
     'configuration' => [
         'sync_frequency' => [
             'type' => 'select',
@@ -97,7 +98,7 @@ return [
             'help' => 'Sync mailbox usage, sizes, and exchange protection settings',
         ],
     ],
-    
+
     'data_types' => [
         'tenant' => 'M365 Tenants',
         'user' => 'Users & Identity',
@@ -113,10 +114,10 @@ return [
         'sign_in' => 'Sign-in Events',
         'audit_log' => 'Audit Logs',
     ],
-    
+
     'supports_historical' => true,
     'historical_range_days' => 30,
-    
+
     'rate_limits' => [
         'requests_per_minute' => 60,
         'requests_per_hour' => 500,

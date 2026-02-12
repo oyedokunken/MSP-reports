@@ -8,20 +8,12 @@ return [
     'version' => '1.0.0',
 
     'credentials' => [
-        'api_url' => [
-            'type' => 'text',
-            'label' => 'API URL',
-            'required' => false,
-            'default' => 'https://app.vpentest.io/api/v3',
-            'placeholder' => 'https://app.vpentest.io/api/v3',
-            'help' => 'Vonahi vPenTest API v3 URL. Usually no change needed.',
-        ],
         'api_key' => [
             'type' => 'password',
             'label' => 'API Key',
             'required' => true,
             'encrypted' => true,
-            'placeholder' => 'Enter your vPenTest API key',
+            'placeholder' => 'Enter your API Key',
             'help' => 'Generate from your vPenTest profile drop-down → Generate API Key.',
         ],
     ],

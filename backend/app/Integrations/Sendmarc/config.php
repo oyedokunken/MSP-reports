@@ -14,7 +14,7 @@ return [
             'label' => 'API Token',
             'required' => true,
             'encrypted' => true,
-            'placeholder' => 'Enter your Sendmarc API token',
+            'placeholder' => 'Enter your API Token',
             'help' => 'Found in Sendmarc Portal under API Settings',
         ],
         'base_url' => [

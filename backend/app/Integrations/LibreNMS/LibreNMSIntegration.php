@@ -62,7 +62,7 @@ final class LibreNMSIntegration implements IntegrationInterface
                 'label' => 'API Token',
                 'type' => 'password',
                 'required' => true,
-                'placeholder' => 'Enter your LibreNMS API token',
+                'placeholder' => 'Enter your API Token',
                 'help' => 'Your LibreNMS API token from Settings > API',
             ],
         ];

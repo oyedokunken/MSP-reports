@@ -6,7 +6,7 @@ return [
     'name' => 'Autotask',
     'display_name' => 'Autotask PSA',
     'description' => 'Integrate with Autotask PSA for ticket management, time tracking, billing, and customer data.',
-    
+
     'credentials' => [
         'username' => [
             'type' => 'text',
@@ -23,7 +23,7 @@ return [
             'help' => 'Your Autotask API secret key',
         ],
         'api_integration_code' => [
-            'type' => 'text',
+            'type' => 'password',
             'label' => 'API Integration Code',
             'required' => true,
             'encrypted' => true,
@@ -37,7 +37,7 @@ return [
             'help' => 'Your Autotask API endpoint URL (e.g., https://webservices26.autotask.net/atservicesrest/v1.0)',
         ],
     ],
-    
+
     'configuration' => [
         'sync_interval' => [
             'type' => 'number',
@@ -61,7 +61,7 @@ return [
             'default' => false,
         ],
     ],
-    
+
     'data_types' => [
         'tickets' => 'Support Tickets',
         'time_entries' => 'Time Tracking',
@@ -69,15 +69,15 @@ return [
         'billing' => 'Billing Information',
         'service_calls' => 'Service Call Records',
     ],
-    
+
     'rate_limits' => [
         'requests_per_minute' => 100,
         'requests_per_hour' => 5000,
         'burst_allowance' => 20,
     ],
-    
+
     'supports_historical' => true,
     'historical_range_days' => 365,
-    
+
     'documentation_url' => 'https://ww4.autotask.net/help/DeveloperHelp/Content/APIs/REST/API_Calls/REST_API_Calls.htm',
 ];

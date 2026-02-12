@@ -66,7 +66,7 @@ final class ITGlueIntegration implements IntegrationInterface
                 'label'       => 'API Key',
                 'type'        => 'password',
                 'required'    => true,
-                'placeholder' => 'ITG.xxxxxxxx...',
+                'placeholder' => 'Enter your API Key',
                 'help'        => 'Your IT Glue API key from Account > Settings > API Keys',
             ],
             [
@@ -74,7 +74,7 @@ final class ITGlueIntegration implements IntegrationInterface
                 'label'   => 'Region',
                 'type'    => 'select',
                 'required'=> true,
-                'options' => [
+                'options' => [  
                     'https://api.au.itglue.com' => 'Australia',
                     'https://api.itglue.com'    => 'United States',
                     'https://api.eu.itglue.com' => 'Europe',
