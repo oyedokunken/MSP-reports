@@ -30,7 +30,7 @@ class TestSendmarcReport extends Command
     /**
      * Execute the console command.
      */
-    public function handle(ReportGenerationService $reportService)
+    public function handle(ReportGenerationService $reportService): int
     {
         $email = $this->argument('email');
         $customerId = $this->option('customer');

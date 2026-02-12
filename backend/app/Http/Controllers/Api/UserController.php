@@ -8,6 +8,7 @@ use App\Actions\User\CreateUserAction;
 use App\Actions\User\DeactivateUserAction;
 use App\Actions\User\DeleteUserAction;
 use App\Actions\User\DeleteUserProfilePictureAction;
+use App\Actions\User\GetUsersAction;
 use App\Actions\User\ReactivateUserAction;
 use App\Actions\User\ResetUserPasswordAction;
 use App\Actions\User\UpdateUserAction;
@@ -36,31 +37,10 @@ use Illuminate\Validation\ValidationException;
 
 final class UserController extends Controller
 {
-    public function getUser(GetUsersRequest $request): JsonResponse
+    public function getUser(GetUsersRequest $request, GetUsersAction $action): JsonResponse
     {
         $authUser = $request->user();
-        $validated = $request->validated();
-        $perPage = $validated['per_page'] ?? 10;
-        $page = $validated['page'] ?? 1;
-
-        $query = User::where('company_id', $authUser->company_id)->with('role');
-        
-        if (!empty($validated['search'])) {
-            $query->where(function($q) use ($validated) {
-                $q->where('name', 'like', '%' . $validated['search'] . '%')
-                  ->orWhere('email', 'like', '%' . $validated['search'] . '%');
-            });
-        }
-
-        if (!empty($validated['role_id'])) {
-            $query->where('role_id', $validated['role_id']);
-        }
-
-        $users = $query->paginate($perPage, ['*'], 'page', $page);
-
-        $users->getCollection()->transform(function ($user) {
-            return $user->makeHidden(['password']);
-        });
+        $users = $action->execute($authUser, $request->validated());
 
         return $this->success(UserResource::collection($users->items()), null, 200, [
             'pagination' => [
@@ -174,11 +154,7 @@ final class UserController extends Controller
     public function getRoles(GetRolesRequest $request): JsonResponse
     {
         $roles = Role::select('id', 'name')->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $roles
-        ]);
+        return $this->success($roles);
     }
 
     public function uploadProfilePicture(UploadProfilePictureRequest $request, int $id, UploadUserProfilePictureAction $action): JsonResponse
