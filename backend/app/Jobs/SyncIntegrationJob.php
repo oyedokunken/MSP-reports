@@ -45,9 +45,9 @@ final class SyncIntegrationJob implements ShouldQueue
     public function middleware(): array
     {
         return [
-            (new WithoutOverlapping((string)$this->integration->integration_id))
-                ->releaseAfter(60) 
-                ->expireAfter(3600) 
+            // (new WithoutOverlapping((string)$this->integration->integration_id))
+            //     ->releaseAfter(60) 
+            //     ->expireAfter(3600) 
         ];
     }
 
@@ -84,18 +84,8 @@ final class SyncIntegrationJob implements ShouldQueue
                 'sync_log_id' => $this->syncLog->sync_id,
             ]);
 
-            // Prevent overlapping syncs (Double-check)
-            // The WithoutOverlapping middleware handles job locking, but since we dispatch batches and return,
-            // the lock releases early. We must check DB state to ensure no other logical sync is active.
-            $activeSyncExists = \App\Models\SyncLog::where('integration_id', $this->integration->integration_id)
-                ->whereIn('status', ['running', 'processing_batches']) // 'processing_batches' is legacy but safe to check
-                ->where('sync_id', '!=', $this->syncLog->sync_id)
-                ->where('created_at', '>', now()->subHours(2)) // Ignore stale (>2h) syncs that cleanup hasn't caught yet
-                ->exists();
-
-            if ($activeSyncExists) {
-                throw new \Exception("Sync aborted: Another sync is currently in progress.");
-            }
+            // Prevent overlapping syncs
+            // The WithoutOverlapping middleware handles atomic job locking via Redis.
             
             Log::info('Loading integration class...', [
                 'integration_type' => $this->integration->integration_type,

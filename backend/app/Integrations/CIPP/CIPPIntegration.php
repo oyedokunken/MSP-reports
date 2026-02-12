@@ -277,9 +277,16 @@ final class CIPPIntegration implements IntegrationInterface
                 ];
             }
 
+            // Deduplicate insert data based on unique keys to prevent Postgres cardinality violation
+            $uniqueInsertData = [];
+            foreach ($insertData as $row) {
+                $key = "{$row['integration_id']}:{$row['data_type']}:{$row['external_id']}:{$row['data_timestamp']}";
+                $uniqueInsertData[$key] = $row;
+            }
+
             // High performance upsert to handle retries and overlapping data
             IntegrationData::upsert(
-                $insertData,
+                array_values($uniqueInsertData),
                 ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
                 ['data_payload', 'updated_at']
             );
