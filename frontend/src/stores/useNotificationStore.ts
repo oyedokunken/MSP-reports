@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { notificationApi } from '@/services/api/notifications'
 import { initEcho } from '@/lib/echo'
 import { logger } from '@/lib/logger'
+import { useAIWatcherStore } from '@/stores/useAIWatcherStore'
 
 export interface Notification {
   id: string | number
@@ -256,6 +257,19 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     echoInstance.private(`App.Models.User.${user_id}`)
       .notification((notification: { id?: string | number; type?: string; title?: string; description?: string; severity?: 'green' | 'yellow' | 'red' | 'blue'; metadata?: Record<string, unknown> }) => {
+        // Route AI watcher messages to the AI watcher store
+        if (notification.type === 'ai_watcher' && notification.metadata?.is_ai_watcher) {
+          const meta = notification.metadata || {}
+          useAIWatcherStore.getState().addMessage({
+            title: (notification.title || '').replace(/^🤖\s*/, ''),
+            content: notification.description || '',
+            eventType: (meta.event_type as string) || 'unknown',
+            docPath: (meta.doc_path as string) || null,
+            docLabel: (meta.doc_label as string) || null,
+            severity: notification.severity || 'blue',
+          })
+        }
+
         const newNotification: Notification = {
           id: notification.id || Date.now(),
           type: notification.type || 'info',

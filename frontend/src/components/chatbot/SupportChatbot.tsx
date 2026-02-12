@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Send, Bot, Sparkles } from 'lucide-react'
+import { X, Send, Bot, Sparkles, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { findAnswer } from './knowledgeBase'
 import { useAuth } from '@/contexts/AuthContext'
+import { useAIWatcherStore } from '@/stores/useAIWatcherStore'
 
 function parseMessageContent(content: string): string {
   return content
@@ -19,6 +20,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  isAIWatcher?: boolean
 }
 
 export function SupportChatbot() {
@@ -27,13 +29,19 @@ export function SupportChatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const [hasShownWelcome, setHasShownWelcome] = useState(false)
   const [showPulse, setShowPulse] = useState(true)
+  const [pendingAICount, setPendingAICount] = useState(0)
+  const lastProcessedIdRef = useRef<string | null>(null)
+
+  const aiMessages = useAIWatcherStore((s) => s.messages)
+  const aiUnreadCount = useAIWatcherStore((s) => s.unreadCount)
+  const markAllRead = useAIWatcherStore((s) => s.markAllRead)
 
   const firstName = user?.name?.split(' ')[0] || 'there'
 
   const getWelcomeMessage = useCallback(() => ({
     id: '1',
     role: 'assistant' as const,
-    content: `Hi ${firstName}! 👋 I'm your **AI Assistant** for the MSP Reporting Platform.\n\nI can help you with:\n\n• [Integrations](/platform/integrations) - Connect Autotask, Datto, ITGlue & more\n• [Customers](/platform/customers/master) - Mapping & management\n• [Reports](/platform/reports) - Schedules & delivery\n• [Admin](/admin/users) - Users, API keys, audit logs\n• [Monitoring](/admin/monitoring) - System health & settings\n\nJust ask me anything or pick a quick question below!`,
+    content: `Hi ${firstName}! 👋 I'm your **AI Assistant** for the MSP Reporting Platform.\n\nI can help you with:\n\n• [Integrations](/platform/integrations) - Connect Autotask, Datto, ITGlue & more\n• [Customers](/platform/customers/master) - Mapping & management\n• [Reports](/platform/reports) - Schedules & delivery\n• [Admin](/admin/users) - Users, API keys, audit logs\n• [Monitoring](/admin/monitoring) - System health & settings\n\nI also **watch your activity** and provide helpful tips as you work! 👀\n\nJust ask me anything or pick a quick question below!`,
     timestamp: new Date(),
   }), [firstName])
 
@@ -49,6 +57,44 @@ export function SupportChatbot() {
     }
   }, [user, hasShownWelcome, getWelcomeMessage])
 
+  // Listen for new AI Watcher messages and inject them into the chat
+  useEffect(() => {
+    if (aiMessages.length === 0) return
+
+    const latestMessage = aiMessages[0]
+    if (!latestMessage || latestMessage.id === lastProcessedIdRef.current) return
+
+    lastProcessedIdRef.current = latestMessage.id
+
+    // Simulate typing effect
+    setIsTyping(true)
+    const delay = setTimeout(() => {
+      const chatMessage: Message = {
+        id: `ai-chat-${latestMessage.id}`,
+        role: 'assistant',
+        content: latestMessage.content,
+        timestamp: latestMessage.timestamp,
+        isAIWatcher: true,
+      }
+      setMessages((prev) => [...prev, chatMessage])
+      setIsTyping(false)
+
+      // If chatbot is closed, show the pending count badge
+      if (!isOpen) {
+        setPendingAICount((c) => c + 1)
+      }
+    }, 800)
+
+    return () => clearTimeout(delay)
+  }, [aiMessages, isOpen])
+
+  // Mark AI messages as read when chatbot is opened
+  useEffect(() => {
+    if (isOpen && aiUnreadCount > 0) {
+      markAllRead()
+      setPendingAICount(0)
+    }
+  }, [isOpen, aiUnreadCount, markAllRead])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -112,17 +158,31 @@ export function SupportChatbot() {
           <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
         )}
         <Button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            setIsOpen(true)
+            setPendingAICount(0)
+          }}
           className="relative h-16 w-16 rounded-full shadow-xl hover:shadow-2xl transition-all hover:scale-110 bg-gradient-to-br from-primary to-primary/80"
           size="icon"
         >
           <Bot className="h-7 w-7" />
-          {showPulse && (
+          {(showPulse || pendingAICount > 0) && (
             <span className="absolute -top-1 -right-1 flex h-5 w-5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-5 w-5 bg-green-500 items-center justify-center">
-                <Sparkles className="h-3 w-3 text-white" />
-              </span>
+              {pendingAICount > 0 ? (
+                <>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-5 w-5 bg-amber-500 items-center justify-center">
+                    <span className="text-[10px] font-bold text-white">{pendingAICount > 9 ? '9+' : pendingAICount}</span>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-5 w-5 bg-green-500 items-center justify-center">
+                    <Sparkles className="h-3 w-3 text-white" />
+                  </span>
+                </>
+              )}
             </span>
           )}
         </Button>
@@ -139,7 +199,9 @@ export function SupportChatbot() {
           </div>
           <div className="leading-tight">
             <h3 className="text-lg font-bold text-foreground m-0 leading-tight">AI Assistant</h3>
-            <p className="text-xs text-muted-foreground m-0 leading-tight">Here to help</p>
+            <p className="text-xs text-muted-foreground m-0 leading-tight flex items-center gap-1">
+              <Eye className="h-3 w-3" /> Watching your activity
+            </p>
           </div>
         </div>
         <Button
@@ -162,9 +224,17 @@ export function SupportChatbot() {
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-md transition-all hover:shadow-lg ${message.role === 'user'
                   ? 'bg-gradient-to-br from-primary to-primary/90 text-primary-foreground'
-                  : 'bg-card text-foreground border border-border/50 backdrop-blur-sm'
+                  : message.isAIWatcher
+                    ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 text-foreground border border-amber-200/50 dark:border-amber-700/50 backdrop-blur-sm'
+                    : 'bg-card text-foreground border border-border/50 backdrop-blur-sm'
                   }`}
               >
+                {message.isAIWatcher && (
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Eye className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Activity Insight</span>
+                  </div>
+                )}
                 <div
                   className="text-sm whitespace-pre-wrap prose prose-sm max-w-none dark:prose-invert"
                   onClick={(e) => {

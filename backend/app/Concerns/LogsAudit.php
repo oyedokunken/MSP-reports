@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Concerns;
 
 use App\Models\AuditLog;
+use App\Services\AIWatcherService;
 use Illuminate\Database\Eloquent\Model;
 
 trait LogsAudit
@@ -46,6 +47,18 @@ trait LogsAudit
                 'user_agent' => request()->userAgent(),
                 'created_at' => now(),
             ]);
+
+            // Trigger AI Watcher message for the actor
+            try {
+                app(AIWatcherService::class)->processAuditEvent(
+                    $companyId,
+                    $eventType,
+                    $eventData,
+                    $actorId,
+                );
+            } catch (\Throwable $e) {
+                // AI Watcher is non-critical — never block audit logging
+            }
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Failed to write audit log', [
                 'event_type' => $eventType,
