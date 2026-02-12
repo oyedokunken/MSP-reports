@@ -39,7 +39,7 @@ function DashboardContent() {
                 measurePerformance('dashboard-load-time', 'dashboard-start', 'dashboard-interactive');
             }
         };
-    }, []);
+    }, [loadingStats, loadingCharts]);
 
     useEffect(() => {
         if (!loadingStats && !loadingCharts) {

@@ -27,7 +27,7 @@ import { hasPermission } from '@/utils/permissions'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBranding } from '@/contexts/BrandingContext'
 import { useNotificationStore } from '@/stores/useNotificationStore'
-import { useCustomersStore } from '@/stores/useCustomersStore'
+import { useUnmappedCustomersQuery } from '@/pages/customers/hooks/useCustomersQueries'
 import {
   Sidebar,
   SidebarContent,
@@ -70,7 +70,8 @@ export default function AppSidebar() {
     fetchNotifications()
   }, [fetchNotifications])
 
-  const unmappedCount = useCustomersStore((state) => state.unmappedCount)
+  const { data: unmappedResponse } = useUnmappedCustomersQuery(1)
+  const unmappedCount = unmappedResponse?.summary?.total_unmapped || 0
 
   useEffect(() => {
     if (location.pathname.startsWith('/platform/customers')) {
@@ -91,7 +92,7 @@ export default function AppSidebar() {
 
   interface NavItem {
     path: string
-    icon: any
+    icon: React.ElementType
     label: string
     show: boolean
     tourId?: string

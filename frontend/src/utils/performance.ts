@@ -61,7 +61,7 @@ class PerformanceMonitor {
         if (typeof performance.measure === 'function' && endMark) {
             try {
                 performance.measure(name, startMark, endMark);
-            } catch (e) {
+            } catch {
                 // Silently fail if marks don't exist
             }
         }

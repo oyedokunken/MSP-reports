@@ -1,4 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +18,12 @@ import { Edit, AlertCircle } from "lucide-react";
 import { useUpdateCustomerMutation } from "../hooks/useCustomersQueries";
 import type { Customer } from "../types";
 
+const editCustomerSchema = z.object({
+    canonical_name: z.string().min(1, "Customer name is required"),
+});
+
+type EditCustomerFormValues = z.infer<typeof editCustomerSchema>;
+
 interface EditCustomerModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -28,40 +37,41 @@ export function EditCustomerModal({
     customer,
     onSuccess,
 }: EditCustomerModalProps) {
-    const [name, setName] = useState("");
-    const [localError, setLocalError] = useState("");
-
     const updateMutation = useUpdateCustomerMutation();
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        formState: { errors }
+    } = useForm<EditCustomerFormValues>({
+        resolver: zodResolver(editCustomerSchema),
+        defaultValues: {
+            canonical_name: "",
+        },
+    });
 
     useEffect(() => {
         if (open && customer) {
-            setName(customer.canonical_name || customer.name || "");
-            setLocalError("");
+            reset({
+                canonical_name: customer.canonical_name || customer.name || "",
+            });
         }
-    }, [open, customer]);
+    }, [open, customer, reset]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!name.trim()) {
-            setLocalError("Please enter a customer name");
-            return;
-        }
-
+    const onSubmit = async (data: EditCustomerFormValues) => {
         if (!customer?.customer_id) return;
-
-        setLocalError("");
 
         try {
             await updateMutation.mutateAsync({
                 customerId: customer.customer_id,
-                data: { canonical_name: name.trim() }
+                data: { canonical_name: data.canonical_name.trim() }
             });
 
             onOpenChange(false);
             onSuccess?.();
         } catch {
-            // Error is handled by mutation state, but we can catch to avoid unhandled rejection
+            // Error is handled by mutation state
         }
     };
 
@@ -73,7 +83,7 @@ export function EditCustomerModal({
 
     // Extract error message from mutation
     const mutationError = updateMutation.error instanceof Error ? updateMutation.error.message : "";
-    const displayError = localError || mutationError;
+    const displayError = errors.canonical_name?.message || mutationError;
 
     if (!customer) return null;
 
@@ -90,22 +100,21 @@ export function EditCustomerModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div>
                         <Label
-                            htmlFor="name"
+                            htmlFor="canonical_name"
                             className="text-sm font-medium mb-2 block"
                         >
                             Customer Name
                         </Label>
                         <Input
-                            id="name"
+                            id="canonical_name"
                             type="text"
                             placeholder="Customer Name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
+                            {...register("canonical_name")}
                             disabled={updateMutation.isPending}
-                            className="w-full"
+                            className={`w-full ${errors.canonical_name ? "border-destructive focus-visible:ring-destructive" : ""}`}
                         />
                     </div>
 

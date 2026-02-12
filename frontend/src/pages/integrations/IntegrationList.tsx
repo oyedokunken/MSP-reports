@@ -156,9 +156,10 @@ export default function IntegrationList() {
             toast.success('Import Dismissed', response.message || `You can retry the historical import for ${integration.name} anytime.`);
             // Refetch integrations to update the UI
             refetch();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error dismissing historical import:', error);
-            toast.error('Failed to Dismiss', error.message || 'Could not dismiss the failed import');
+            const message = error instanceof Error ? error.message : 'Could not dismiss the failed import';
+            toast.error('Failed to Dismiss', message);
         }
     };
 
