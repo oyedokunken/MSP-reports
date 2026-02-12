@@ -11,7 +11,7 @@ type IntegrationGridProps = {
     progress: number;
     settingSourceOfTruthId: number | null;
     onSync: (id: number, name: string) => void;
-    onEmptyAction: () => void;
+
     onViewCustomers: (id: number, name: string) => void;
     onSetSourceOfTruth: (id: number, name: string) => void;
     onEdit: (integration: Integration) => void;
@@ -36,7 +36,7 @@ export function IntegrationGrid({
     progress,
     settingSourceOfTruthId,
     onSync,
-    onEmptyAction,
+
     onSetSourceOfTruth,
     onEdit,
     onViewLogs,
@@ -65,8 +65,6 @@ export function IntegrationGrid({
                         icon={Cable}
                         title="No Integrations Yet"
                         description="Connect your first integration to start syncing data and generating reports"
-                        actionLabel="Add Integration"
-                        onAction={onEmptyAction}
                     />
                 </div>
             ) : (
@@ -104,20 +102,7 @@ export function IntegrationGrid({
                     ))
             )}
 
-            {!isLoading && items.length > 0 && (
-                <button
-                    onClick={onEmptyAction}
-                    className="rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-800 bg-white dark:bg-[hsl(var(--auth-card))] p-6 hover:bg-muted/50 transition-colors flex flex-col items-center justify-center min-h-[250px]"
-                >
-                    <Cable className="h-12 w-12 text-muted-foreground mb-3" />
-                    <p className="text-sm font-medium text-foreground">
-                        Add New Integration
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        Connect another system
-                    </p>
-                </button>
-            )}
+
         </div>
     );
 }

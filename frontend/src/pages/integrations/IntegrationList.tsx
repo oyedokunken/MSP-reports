@@ -63,7 +63,28 @@ export default function IntegrationList() {
         return matchesSearch && matchesStatus && matchesType;
     });
 
-    const paginatedIntegrations = filteredIntegrations.slice(
+    const sortedIntegrations = [...filteredIntegrations].sort((a, b) => {
+        // 1. Source of Truth
+        if (a.isSourceOfTruth && !b.isSourceOfTruth) return -1;
+        if (!a.isSourceOfTruth && b.isSourceOfTruth) return 1;
+
+        // 2. Historical Import Status
+        const getPriority = (int: Integration) => {
+            if (int.historicalImportStatus === 'completed') return 0;
+            if (int.status === 'importing_historical' || int.historicalImportStatus === 'running' || int.historicalImportStatus === 'in_progress') return 1;
+            if (int.historicalImportStatus === 'pending' || !int.historicalImportStatus) return 2;
+            return 3;
+        };
+
+        const priorityA = getPriority(a);
+        const priorityB = getPriority(b);
+
+        if (priorityA !== priorityB) return priorityA - priorityB;
+
+        return 0;
+    });
+
+    const paginatedIntegrations = sortedIntegrations.slice(
         (currentPage - 1) * perPage,
         currentPage * perPage
     );
@@ -191,13 +212,7 @@ export default function IntegrationList() {
                     progress={syncProgress}
                     settingSourceOfTruthId={setSourceOfTruthMutation.isPending ? setSourceOfTruthMutation.variables : null}
                     onSync={handleSync}
-                    onEmptyAction={() => {
-                        if (!hasPermission(user, 'integrations', 'manage')) {
-                            toast.error('Permission Denied', 'You don\'t have permission to add integrations');
-                            return;
-                        }
-                        navigate('/platform/integrations/add');
-                    }}
+
                     onViewCustomers={(id) => {
                         // Use integration ID directly - more reliable than name-based routing
                         navigate(`/platform/integrations/${id}/preview`);
@@ -245,13 +260,7 @@ export default function IntegrationList() {
                     progress={syncProgress}
                     settingSourceOfTruthId={setSourceOfTruthMutation.isPending ? setSourceOfTruthMutation.variables : null}
                     onSync={handleSync}
-                    onEmptyAction={() => {
-                        if (!hasPermission(user, 'integrations', 'manage')) {
-                            toast.error('Permission Denied', 'You don\'t have permission to add integrations');
-                            return;
-                        }
-                        navigate('/platform/integrations/add');
-                    }}
+
                     onSetSourceOfTruth={handleSetSourceOfTruth}
                     onEdit={(int) => {
                         if (!hasPermission(user, 'integrations', 'manage')) {

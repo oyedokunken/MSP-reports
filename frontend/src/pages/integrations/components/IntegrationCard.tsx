@@ -143,7 +143,7 @@ export function IntegrationCard({
                                             <div className="flex-shrink-0">
                                                 <Badge
                                                     variant="default"
-                                                    className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap h-5 px-1.5"
+                                                    className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap h-5 px-1.5 pt-1"
                                                 >
                                                     <Crown className={`h-3 w-3 ${integration.name.length <= 18 ? 'mr-1' : ''}`} />
                                                     {integration.name.length <= 18 && "Master List"}

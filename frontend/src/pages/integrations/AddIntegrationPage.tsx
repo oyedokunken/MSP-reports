@@ -159,7 +159,7 @@ export default function AddIntegrationPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Cable className="h-8 w-8 text-primary" />
+              {/* <Cable className="h-8 w-8 text-primary" /> */}
               Add Integration
             </h1>
             <p className="text-muted-foreground">Connect a new integration to your platform</p>

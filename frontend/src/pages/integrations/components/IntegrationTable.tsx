@@ -57,7 +57,7 @@ type IntegrationTableProps = {
     progress: number;
     settingSourceOfTruthId: number | null;
     onSync: (id: number, name: string) => void;
-    onEmptyAction: () => void;
+
     onSetSourceOfTruth: (id: number, name: string) => void;
     onEdit: (integration: Integration) => void;
     onViewLogs: (integration: Integration) => void;
@@ -80,7 +80,7 @@ export function IntegrationTable({
     progress,
     settingSourceOfTruthId,
     onSync,
-    onEmptyAction,
+
     onSetSourceOfTruth,
     onEdit,
     onViewLogs,
@@ -145,8 +145,6 @@ export function IntegrationTable({
                     icon={Cable}
                     title="No Integrations Yet"
                     description="Connect your first integration to start syncing data and generating reports"
-                    actionLabel="Add Integration"
-                    onAction={onEmptyAction}
                 />
             </div>
         );

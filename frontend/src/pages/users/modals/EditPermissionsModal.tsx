@@ -269,7 +269,7 @@ export function EditPermissionsModal({ open, onOpenChange, user, onSuccess }: Ed
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto thin-scrollbar">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <Settings className="h-5 w-5 text-primary" />
