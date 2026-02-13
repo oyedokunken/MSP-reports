@@ -436,21 +436,22 @@ final class DattoIntegration implements IntegrationInterface
         }
 
         if (empty($insertData)) return;
+        
+        // Deduplicate locally to prevent 'cardinality violation' in Postgres
+        $uniqueInsertData = [];
+        foreach ($insertData as $row) {
+            $key = "{$row['integration_id']}:{$row['data_type']}:{$row['external_id']}:" . $row['data_timestamp']->toIso8601String();
+            $uniqueInsertData[$key] = $row;
+        }
 
-        DB::transaction(function () use ($deviceUids, $insertData) {
-            foreach (array_chunk($deviceUids, 500) as $chunk) {
-                DB::table('integration_data')
-                    ->where('integration_id', $this->integration->integration_id)
-                    ->where('data_type', IntegrationDataType::DEVICE_STATUS)
-                    ->whereIn('external_id', $chunk)
-                    ->delete();
-            }
-
-            // Chunk inserts to prevent memory exhaustion with large datasets
-            foreach (array_chunk($insertData, 500) as $chunk) {
-                IntegrationData::insert($chunk);
-            }
-        });
+        // High performance upsert to handle retries and overlapping data
+        foreach (array_chunk(array_values($uniqueInsertData), 500) as $chunk) {
+            IntegrationData::upsert(
+                $chunk,
+                ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
+                ['data_payload', 'imported_at', 'data_version', 'integration_customer_id']
+            );
+        }
     }
     /**
      * @param array<int, array<string, mixed>> $alerts
@@ -526,20 +527,21 @@ final class DattoIntegration implements IntegrationInterface
 
         if (empty($insertData)) return;
 
-        DB::transaction(function () use ($alertUids, $insertData) {
-            foreach (array_chunk($alertUids, 500) as $chunk) {
-                DB::table('integration_data')
-                    ->where('integration_id', $this->integration->integration_id)
-                    ->where('data_type', IntegrationDataType::ALERT)
-                    ->whereIn('external_id', $chunk)
-                    ->delete();
-            }
+        // Deduplicate locally to prevent 'cardinality violation' in Postgres
+        $uniqueInsertData = [];
+        foreach ($insertData as $row) {
+            $key = "{$row['integration_id']}:{$row['data_type']}:{$row['external_id']}:" . $row['data_timestamp']->toIso8601String();
+            $uniqueInsertData[$key] = $row;
+        }
 
-            // Chunk inserts to prevent memory exhaustion with large datasets
-            foreach (array_chunk($insertData, 500) as $chunk) {
-                IntegrationData::insert($chunk);
-            }
-        });
+        // High performance upsert to handle retries and overlapping data
+        foreach (array_chunk(array_values($uniqueInsertData), 500) as $chunk) {
+            IntegrationData::upsert(
+                $chunk,
+                ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
+                ['data_payload', 'imported_at', 'data_version', 'integration_customer_id']
+            );
+        }
     }
 
     /**

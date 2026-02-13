@@ -19,7 +19,7 @@ class TestConcurrency extends Command
     /** @var array<int, string> */
     protected array $targetIntegrations = [
         2  => 'Datto',
-        20 => 'Cipp',
+        21 => 'Cipp',
     ];
 
     public function handle(SyncEngine $syncEngine): int
@@ -80,7 +80,7 @@ class TestConcurrency extends Command
             $defaultQueueSize = Redis::connection()->llen('queues:default');
             
             $this->warn("Queue Status: [sync: {$syncQueueSize}] [default: {$defaultQueueSize}]");
-            $this->line("Workers available: [sync: 2] [default: 12]");
+            $this->line("Workers available: [sync: 2] [default: 12]"); // for now 2 numprocs using for parallel
             $this->newLine();
 
             $this->table(
