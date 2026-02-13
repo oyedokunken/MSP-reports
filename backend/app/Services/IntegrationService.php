@@ -172,7 +172,7 @@ class IntegrationService
                 break;
             case 'LibreNMS':
                 if (!isset($credentials['base_url']) && isset($credentials['api_token'])) {
-                    $credentials['base_url'] = 'https://nms.arafuracloud.com.au/api/v0';
+                    $credentials['base_url'] = 'http://192.168.228.7/api/v0';
                 }
                 if (isset($credentials['base_url'])) {
                     $credentials['base_url'] = rtrim($credentials['base_url'], '/');

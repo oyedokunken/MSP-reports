@@ -21,9 +21,9 @@ return [
             'label' => 'Base URL',
             'required' => true,
             'hidden' => true,
-            'default' => 'https://nms.arafuracloud.com.au/api/v0',
-            'placeholder' => 'https://nms.arafuracloud.com.au/api/v0',
-            'help' => 'LibreNMS API base URL (e.g., https://nms.arafuracloud.com.au/api/v0 or https://nms.example.com/api/v0)',
+            'default' => 'http://192.168.228.7/api/v0',
+            'placeholder' => 'http://192.168.228.7/api/v0',
+            'help' => 'LibreNMS API base URL (e.g., http://192.168.228.7/api/v0)',
         ],
     ],
     

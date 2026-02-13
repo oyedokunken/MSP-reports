@@ -29,7 +29,7 @@ final class LibreNMSClient
         $this->rateLimiter = $rateLimiter;
         $this->integration = $integration;
         
-        $this->baseUrl = rtrim($credentials['base_url'] ?? 'https://nms.arafuracloud.com.au/api/v0', '/');
+        $this->baseUrl = rtrim($credentials['base_url'] ?? 'http://192.168.228.7/api/v0', '/');
     }
 
     public function testConnection(): bool
