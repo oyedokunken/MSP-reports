@@ -10,6 +10,10 @@ export interface DashboardStats {
         total: number;
         active: number;
     };
+    schedules: {
+        total: number;
+        active: number;
+    };
 }
 
 export interface DashboardIntegration {

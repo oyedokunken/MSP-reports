@@ -253,6 +253,17 @@ export const useDashboard = () => {
         return dashboardData?.data?.upcomingSchedules || [];
     }, [dashboardData?.data?.upcomingSchedules]);
 
+    const scheduleCounts = useMemo(() => {
+        const schedules = dashboardData?.data?.stats?.schedules;
+        if (schedules) {
+            return { total: schedules.total, active: schedules.active };
+        }
+        return {
+            total: allSchedules.length,
+            active: allSchedules.filter((s) => s.status === 'scheduled').length,
+        };
+    }, [dashboardData?.data?.stats?.schedules, allSchedules]);
+
     return {
         user,
         loadingStats,
@@ -268,6 +279,7 @@ export const useDashboard = () => {
         stats,
         systemStatus,
         allSchedules,
+        scheduleCounts,
         handleRefresh,
         toast,
         error,

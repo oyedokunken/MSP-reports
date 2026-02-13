@@ -26,7 +26,7 @@ function DashboardContent() {
         activityTrends,
         stats,
         systemStatus,
-        allSchedules,
+        scheduleCounts,
     } = useDashboard();
 
     // Performance monitoring
@@ -61,8 +61,8 @@ function DashboardContent() {
                     <div className="h-[130px]">
                         <SchedulesSummaryCard
                             isLoading={loadingSchedules}
-                            totalSchedules={allSchedules.length}
-                            activeSchedules={allSchedules.filter((s) => s.status === 'scheduled').length}
+                            totalSchedules={scheduleCounts.total}
+                            activeSchedules={scheduleCounts.active}
                             className="h-full"
                         />
                     </div>

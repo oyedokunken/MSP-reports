@@ -93,6 +93,12 @@ final class DashboardController extends Controller
             ->selectRaw("COUNT(CASE WHEN status = 'active' THEN 1 END) as active")
             ->first();
 
+        // Optimized: Single query for schedule counts
+        $scheduleStats = ReportSchedule::where('company_id', $companyId)
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('COUNT(CASE WHEN active = true THEN 1 END) as active')
+            ->first();
+
         return [
             'totalCustomers' => (int) ($customerStats->total_customers ?? 0),
             'unmappedCustomers' => $unmappedCount,
@@ -104,6 +110,10 @@ final class DashboardController extends Controller
             'users' => [
                 'total' => (int) ($userStats->total ?? 0),
                 'active' => (int) ($userStats->active ?? 0),
+            ],
+            'schedules' => [
+                'total' => (int) ($scheduleStats->total ?? 0),
+                'active' => (int) ($scheduleStats->active ?? 0),
             ],
         ];
     }
