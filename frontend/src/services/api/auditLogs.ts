@@ -1,5 +1,7 @@
 import { api } from '@/lib/api'
+import apiClient from '@/lib/api'
 import type { AuditLog, AuditLogsFilters, AuditLogStats } from '@/pages/audit-logs/types'
+import type { AxiosResponse } from 'axios'
 
 export interface AuditLogListResponse {
   status: string
@@ -26,13 +28,19 @@ export const auditLogsService = {
   },
 
   exportLogs: async (params: Partial<AuditLogsFilters>) => {
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-    const searchParams = new URLSearchParams(params as Record<string, string>)
-    if (token) searchParams.append('api_token', token) // If backend supports token in query
-    
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/api`
-    const url = `${baseUrl}/audit-logs/export?${searchParams.toString()}`
-    
-    window.open(url, '_blank')
+    const response: AxiosResponse<Blob> = await apiClient.get('/audit-logs/export', {
+      params,
+      responseType: 'blob',
+    })
+
+    const blob = new Blob([response.data], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `audit_logs_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '_')}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
   }
 }
