@@ -1,0 +1,525 @@
+{
+  "info": {
+    "name": "ThreatLocker Portal API",
+    "description": "ThreatLocker Portal API collection for TTS Production.\n\nBase URL: https://portalapi.au1.threatlocker.com/portalapi\n\nAuth headers required on every request:\n- Authorization: {api_token}\n- managedOrganizationId: {org_id}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://portalapi.au1.threatlocker.com/portalapi",
+      "type": "string"
+    },
+    {
+      "key": "api_token",
+      "value": "1DD1568D354BDE3C1FFEDD2FFD5D4B72803A33AB5930852EF6D109E92F6C8657",
+      "type": "string"
+    },
+    {
+      "key": "managed_org_id",
+      "value": "12c746bf-a855-4d14-9eef-43c2b072f0f1",
+      "type": "string"
+    },
+    {
+      "key": "organization_id",
+      "value": "12c746bf-a855-4d14-9eef-43c2b072f0f1",
+      "type": "string"
+    },
+    {
+      "key": "computer_id",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "type": "string"
+    },
+    {
+      "key": "policy_id",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "type": "string"
+    },
+    {
+      "key": "application_id",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "type": "string"
+    },
+    {
+      "key": "storage_policy_id",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "type": "string"
+    },
+    {
+      "key": "computer_group_id",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "1. Get Child Organizations (Paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var data = pm.response.json();",
+                  "if (Array.isArray(data) && data.length > 0) {",
+                  "    var orgId = data[0].organizationId || data[0].id;",
+                  "    if (orgId) {",
+                  "        pm.collectionVariables.set('organization_id', orgId);",
+                  "        console.log('Saved organization_id: ' + orgId);",
+                  "    }",
+                  "}",
+                  "",
+                  "var pagination = pm.response.headers.get('Pagination');",
+                  "if (pagination) {",
+                  "    console.log('Pagination: ' + pagination);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{managed_org_id}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"pageSize\": 100,\n    \"pageNumber\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/Organization/OrganizationGetChildOrganizationsByParameters",
+              "host": ["{{base_url}}"],
+              "path": ["Organization", "OrganizationGetChildOrganizationsByParameters"]
+            }
+          }
+        },
+        {
+          "name": "2. Get Organization Nav Tree",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{managed_org_id}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/Organization/OrganizationGetListForNav?search=",
+              "host": ["{{base_url}}"],
+              "path": ["Organization", "OrganizationGetListForNav"],
+              "query": [
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Computers",
+      "item": [
+        {
+          "name": "3. Get Computers (Paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var data = pm.response.json();",
+                  "if (Array.isArray(data) && data.length > 0) {",
+                  "    var compId = data[0].computerId || data[0].id;",
+                  "    if (compId) {",
+                  "        pm.collectionVariables.set('computer_id', compId);",
+                  "        console.log('Saved computer_id: ' + compId);",
+                  "    }",
+                  "}",
+                  "",
+                  "var pagination = pm.response.headers.get('Pagination');",
+                  "if (pagination) {",
+                  "    console.log('Pagination: ' + pagination);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"searchText\": \"\",\n    \"computerGroup\": \"00000000-0000-0000-0000-000000000000\",\n    \"orderBy\": \"computername\",\n    \"pageSize\": 100,\n    \"pageNumber\": 1,\n    \"childOrganizations\": false,\n    \"action\": \"\",\n    \"isAscending\": true,\n    \"kindOfAction\": \"\",\n    \"computerId\": \"00000000-0000-0000-0000-000000000000\",\n    \"showLastCheckIn\": true,\n    \"showDeleted\": false,\n    \"searchBy\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/Computer/ComputerGetByAllParameters",
+              "host": ["{{base_url}}"],
+              "path": ["Computer", "ComputerGetByAllParameters"]
+            }
+          }
+        },
+        {
+          "name": "4. Get Computer Groups & Computers",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var data = pm.response.json();",
+                  "if (Array.isArray(data)) {",
+                  "    data.forEach(function(section) {",
+                  "        if (section.label === 'Computer Groups' && section.items && section.items.length > 0) {",
+                  "            pm.collectionVariables.set('computer_group_id', section.items[0].value);",
+                  "            console.log('Saved computer_group_id: ' + section.items[0].value);",
+                  "        }",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ComputerGroup/ComputerGroupGetGroupAndComputer?osType=0&includeGlobal=true&includeAllPolicies=false&includeOrganizations=false&includeParentGroups=false&includeLoggedInObjects=false",
+              "host": ["{{base_url}}"],
+              "path": ["ComputerGroup", "ComputerGroupGetGroupAndComputer"],
+              "query": [
+                { "key": "osType", "value": "0" },
+                { "key": "includeGlobal", "value": "true" },
+                { "key": "includeAllPolicies", "value": "false" },
+                { "key": "includeOrganizations", "value": "false" },
+                { "key": "includeParentGroups", "value": "false" },
+                { "key": "includeLoggedInObjects", "value": "false" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Policies (Application Control)",
+      "item": [
+        {
+          "name": "5. Get Policies (Paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var data = pm.response.json();",
+                  "if (Array.isArray(data) && data.length > 0) {",
+                  "    var polId = data[0].policyId || data[0].id;",
+                  "    if (polId) {",
+                  "        pm.collectionVariables.set('policy_id', polId);",
+                  "        console.log('Saved policy_id: ' + polId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"activeOnly\": true,\n    \"filter\": \"\",\n    \"isEnabled\": true,\n    \"searchText\": \"\",\n    \"status\": 0,\n    \"utcOffset\": 0,\n    \"pageSize\": 100,\n    \"pageNumber\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/Policy/PolicyGetByParameters",
+              "host": ["{{base_url}}"],
+              "path": ["Policy", "PolicyGetByParameters"]
+            }
+          }
+        },
+        {
+          "name": "6. Get Policy By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/Policy/PolicyGetById?policyId={{policy_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["Policy", "PolicyGetById"],
+              "query": [
+                { "key": "policyId", "value": "{{policy_id}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "7. Get Applications (Paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var data = pm.response.json();",
+                  "if (Array.isArray(data) && data.length > 0) {",
+                  "    var appId = data[0].applicationId || data[0].id;",
+                  "    if (appId) {",
+                  "        pm.collectionVariables.set('application_id', appId);",
+                  "        console.log('Saved application_id: ' + appId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"searchText\": \"\",\n    \"searchBy\": \"app\",\n    \"orderBy\": \"name\",\n    \"isAscending\": true,\n    \"includeMaster\": true,\n    \"permittedApplications\": true,\n    \"isBuiltInApplication\": false,\n    \"isHidden\": false,\n    \"isTemporary\": false,\n    \"category\": 1,\n    \"osType\": 0,\n    \"includeChildOrganizations\": false,\n    \"countries\": [],\n    \"categories\": [],\n    \"pageSize\": 100,\n    \"pageNumber\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/Application/ApplicationGetByParameters",
+              "host": ["{{base_url}}"],
+              "path": ["Application", "ApplicationGetByParameters"]
+            }
+          }
+        },
+        {
+          "name": "8. Get Application By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/Application/ApplicationGetById?applicationId={{application_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["Application", "ApplicationGetById"],
+              "query": [
+                { "key": "applicationId", "value": "{{application_id}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "9. Get Application Files",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/ApplicationFile/ApplicationFileGetByApplicationId?applicationId={{application_id}}&searchText=&pageSize=100&pageNumber=1",
+              "host": ["{{base_url}}"],
+              "path": ["ApplicationFile", "ApplicationFileGetByApplicationId"],
+              "query": [
+                { "key": "applicationId", "value": "{{application_id}}" },
+                { "key": "searchText", "value": "" },
+                { "key": "pageSize", "value": "100" },
+                { "key": "pageNumber", "value": "1" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Storage Control",
+      "item": [
+        {
+          "name": "10. Get Storage Policies",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var data = pm.response.json();",
+                  "if (Array.isArray(data) && data.length > 0) {",
+                  "    var spId = data[0].storagePolicyId || data[0].id;",
+                  "    if (spId) {",
+                  "        pm.collectionVariables.set('storage_policy_id', spId);",
+                  "        console.log('Saved storage_policy_id: ' + spId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"activeOnly\": true,\n    \"filter\": \"\",\n    \"isEnabled\": true,\n    \"searchText\": \"\",\n    \"status\": 0,\n    \"pageSize\": 100,\n    \"pageNumber\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/StoragePolicy/StoragePolicyGetByParameters",
+              "host": ["{{base_url}}"],
+              "path": ["StoragePolicy", "StoragePolicyGetByParameters"]
+            }
+          }
+        },
+        {
+          "name": "11. Get Storage Policy By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/StoragePolicy/StoragePolicyGetById?storagePolicyId={{storage_policy_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["StoragePolicy", "StoragePolicyGetById"],
+              "query": [
+                { "key": "storagePolicyId", "value": "{{storage_policy_id}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "12. Get Storage Devices (Paginated)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"pageSize\": 100,\n    \"pageNumber\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/StorageDevice/StorageDeviceGetByParameters",
+              "host": ["{{base_url}}"],
+              "path": ["StorageDevice", "StorageDeviceGetByParameters"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit Logs",
+      "item": [
+        {
+          "name": "13. Get Audit Logs (Date Filtered)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"startDate\": \"2026-01-01T00:00:00Z\",\n    \"endDate\": \"2026-02-13T23:59:59Z\",\n    \"searchText\": \"\",\n    \"pageSize\": 100,\n    \"pageNumber\": 1,\n    \"orderBy\": \"date\",\n    \"isAscending\": false,\n    \"action\": \"\",\n    \"kindOfAction\": \"\",\n    \"policyId\": \"00000000-0000-0000-0000-000000000000\",\n    \"computerId\": \"00000000-0000-0000-0000-000000000000\",\n    \"computerGroupId\": \"00000000-0000-0000-0000-000000000000\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/Audit/AuditGetByAllParameters",
+              "host": ["{{base_url}}"],
+              "path": ["Audit", "AuditGetByAllParameters"]
+            }
+          }
+        },
+        {
+          "name": "14. Get System Audit Logs (Health Center)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "{{api_token}}" },
+              { "key": "managedOrganizationId", "value": "{{organization_id}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"pageSize\": 100,\n    \"pageNumber\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/SystemAudit/SystemAuditGetForHealthCenter",
+              "host": ["{{base_url}}"],
+              "path": ["SystemAudit", "SystemAuditGetForHealthCenter"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
