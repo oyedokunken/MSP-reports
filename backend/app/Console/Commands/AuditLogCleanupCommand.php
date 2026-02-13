@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace App\Console\Commands;
 
@@ -35,7 +33,7 @@ class AuditLogCleanupCommand extends Command
         $count = \App\Models\AuditLog::where('created_at', '<', $cutoffDate)->delete();
 
         $this->info("Successfully deleted {$count} audit log entries.");
-        
+
         return 0;
     }
 }
