@@ -16,6 +16,7 @@ import { useIntegrationsQuery } from './hooks/useIntegrations'
 import { useToast } from '@/components/ui/Toast'
 import { cn } from '@/lib/utils'
 import type { Integration } from './types/integration'
+import { IntegrationWalkthroughModal } from './modals/IntegrationWalkthroughModal'
 
 export default function AddIntegrationPage() {
   const navigate = useNavigate()
@@ -34,6 +35,8 @@ export default function AddIntegrationPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [walkthroughOpen, setWalkthroughOpen] = useState(false)
+  const [addedIntegration, setAddedIntegration] = useState<{ name: string; type: string } | null>(null)
 
   const [formData, setFormData] = useState<{
     integration_type: string
@@ -104,10 +107,12 @@ export default function AddIntegrationPage() {
 
       toast.success('Integration Added', 'The integration has been added successfully.')
 
-      // Invalidate and refetch the integrations list before navigating
+      // Invalidate and refetch the integrations list
       await queryClient.invalidateQueries({ queryKey: ['integrations', 'list'] })
 
-      navigate('/platform/integrations')
+      // Show walkthrough modal instead of navigating immediately
+      setAddedIntegration({ name: formData.display_name, type: formData.integration_type })
+      setWalkthroughOpen(true)
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } }; message?: string }
       const errorMessage = error.response?.data?.message || error.message || 'Failed to add integration'
@@ -445,6 +450,17 @@ export default function AddIntegrationPage() {
           )}
         </div>
       </form>
+
+      {/* Walkthrough Modal - shown after successfully adding an integration */}
+      {addedIntegration && (
+        <IntegrationWalkthroughModal
+          isOpen={walkthroughOpen}
+          onClose={() => setWalkthroughOpen(false)}
+          integrationName={addedIntegration.name}
+          integrationType={addedIntegration.type}
+          onNavigate={(path) => navigate(path)}
+        />
+      )}
     </div>
   )
 }
