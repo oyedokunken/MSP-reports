@@ -26,6 +26,12 @@ final class DattoIntegration implements IntegrationInterface
 {
     use HasHeartbeat;
 
+    /** Open alerts = full snapshot, infrequent reconciliation */
+    protected const OPEN_ALERT_SYNC_INTERVAL_MINUTES = 60;
+
+    /** Resolved alerts = incremental, frequent */
+    protected const RESOLVED_ALERT_SYNC_INTERVAL_MINUTES = 5;
+
     protected Integration $integration;
     protected DattoClient $client;
     protected CustomerMappingService $mappingService;
@@ -125,7 +131,7 @@ final class DattoIntegration implements IntegrationInterface
                 ]);
 
                 if (!$this->integration->is_source_of_truth) {
-                    $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                    $unmappedCount = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
                         ->whereNull('customer_id')
                         ->count();
 
@@ -187,11 +193,11 @@ final class DattoIntegration implements IntegrationInterface
         $cacheKey = "integration_{$this->integration->integration_id}_customer_counts";
         Cache::forget($cacheKey);
 
-        $mappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+        $mappedCount = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
             ->whereNotNull('customer_id')
             ->count();
 
-        $unmappedCount = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+        $unmappedCount = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
             ->whereNull('customer_id')
             ->count();
 
@@ -246,31 +252,265 @@ final class DattoIntegration implements IntegrationInterface
         $this->lastBatchProcessedCount = 0;
 
         if ($type === 'devices_alerts') {
-            foreach ($items as $site) {
-                $this->sendHeartbeat(); // Heartbeat at start of site processing
-                try {
-                    $siteUid = $site['uid'] ?? $site['organizationId'] ?? null;
-                    if ($siteUid) {
-                        $this->syncSiteDevices($siteUid, $site);
-                        $this->syncSiteAlerts($siteUid, $site);
+            $this->processBatchParallel($items);
+        }
+    }
+
+    /**
+     * Process a batch of sites using Http::pool for parallel API requests.
+     * 
+     * Strategy:
+     * 1. Determine which endpoints each site needs (based on metadata timestamps)
+     * 2. Fire all first-page requests in parallel
+     * 3. Process responses, paginate sequentially if needed
+     *
+     * @param array<int, array<string, mixed>> $sites
+     */
+    protected function processBatchParallel(array $sites): void
+    {
+        $this->sendHeartbeat();
+
+        // ── 1. BUILD REQUEST MAP ──────────────────────────────────────────
+        $requestMap = [];
+        $siteContexts = []; // Track what each site needs
+
+        foreach ($sites as $site) {
+            $siteUid = $site['uid'] ?? $site['organizationId'] ?? null;
+            if (!$siteUid) {
+                continue;
+            }
+
+            $integrationCustomer = IntegrationCustomer::withoutGlobalScopes()
+                ->where('integration_id', $this->integration->integration_id)
+                ->where('external_id', $siteUid)
+                ->first();
+
+            if (!$integrationCustomer) {
+                continue;
+            }
+
+            $metadata = $integrationCustomer->metadata ?? [];
+            $context = [
+                'site' => $site,
+                'site_uid' => $siteUid,
+                'integration_customer' => $integrationCustomer,
+                'metadata' => $metadata,
+                'needs_devices' => false,
+                'needs_open_alerts' => false,
+                'needs_resolved_alerts' => false,
+            ];
+
+            // Check device sync interval
+            $lastDeviceSync = isset($metadata['last_device_sync_at'])
+                ? Carbon::parse($metadata['last_device_sync_at'])
+                : null;
+            $deviceInterval = $this->integration->credentials['device_poll_interval_minutes'] ?? 10;
+            if (!$lastDeviceSync || $lastDeviceSync->lt(now()->subMinutes($deviceInterval + 2))) {
+                $context['needs_devices'] = true;
+                $requestMap["devices_{$siteUid}"] = [
+                    'endpoint' => "/site/{$siteUid}/devices",
+                    'params' => ['max' => 250, 'page' => 0],
+                ];
+            }
+
+            // Check resolved alerts interval
+            $lastResolvedSync = isset($metadata['last_resolved_alert_sync_at'])
+                ? Carbon::parse($metadata['last_resolved_alert_sync_at'])
+                : null;
+            $resolvedInterval = (int) ($this->integration->credentials['resolved_alert_poll_interval_minutes']
+                ?? self::RESOLVED_ALERT_SYNC_INTERVAL_MINUTES);
+            if (!$lastResolvedSync || $lastResolvedSync->lt(now()->subMinutes($resolvedInterval + 2))) {
+                $context['needs_resolved_alerts'] = true;
+                $since = $lastResolvedSync ?? now()->subHours(2);
+                $requestMap["resolved_{$siteUid}"] = [
+                    'endpoint' => "/site/{$siteUid}/alerts/resolved",
+                    'params' => [
+                        'max' => 250,
+                        'page' => 0,
+                        'resolvedSince' => $since->format('Y-m-d\TH:i:s\Z'),
+                    ],
+                ];
+                $context['resolved_since'] = $since;
+            }
+
+            // Check open alerts interval
+            $lastOpenSync = isset($metadata['last_open_alert_sync_at'])
+                ? Carbon::parse($metadata['last_open_alert_sync_at'])
+                : null;
+            $openInterval = (int) ($this->integration->credentials['open_alert_poll_interval_minutes']
+                ?? self::OPEN_ALERT_SYNC_INTERVAL_MINUTES);
+            if (!$lastOpenSync || $lastOpenSync->lt(now()->subMinutes($openInterval + 2))) {
+                $context['needs_open_alerts'] = true;
+                $requestMap["open_{$siteUid}"] = [
+                    'endpoint' => "/site/{$siteUid}/alerts/open",
+                    'params' => ['max' => 250, 'page' => 0],
+                ];
+            }
+
+            $siteContexts[$siteUid] = $context;
+        }
+
+        if (empty($requestMap)) {
+            Log::info('Datto Batch: All sites recently synced, nothing to do');
+            return;
+        }
+
+        // ── 2. FIRE PARALLEL REQUESTS ─────────────────────────────────────
+        Log::info('Datto Batch: Firing parallel requests', [
+            'site_count' => count($siteContexts),
+            'request_count' => count($requestMap),
+        ]);
+
+        $responses = $this->client->poolRmmRequests($requestMap);
+        $this->sendHeartbeat();
+
+        // ── 3. PROCESS RESPONSES PER SITE ─────────────────────────────────
+        foreach ($siteContexts as $siteUid => $context) {
+            try {
+                $site = $context['site'];
+                $integrationCustomer = $context['integration_customer'];
+                $metadata = $context['metadata'];
+
+                // --- DEVICES ---
+                if ($context['needs_devices']) {
+                    $key = "devices_{$siteUid}";
+                    $allDevices = $this->extractPaginatedData(
+                        $responses, $key, 'devices', $siteUid, "/site/{$siteUid}/devices"
+                    );
+
+                    if (!empty($allDevices)) {
+                        collect($allDevices)->chunk(500)->each(function ($chunk) use ($site) {
+                            $this->bulkStoreDevices($chunk->toArray(), $site);
+                            $this->lastBatchProcessedCount += count($chunk);
+                        });
                     }
-                    $this->sendHeartbeat(); // Heartbeat after site processing
-                } catch (\Exception $e) {
-                    Log::error('Datto Batch: Failed to sync site', [
-                        'site_id' => $site['id'] ?? 'unknown',
-                        'error' => $e->getMessage(),
+
+                    $metadata['last_device_sync_at'] = now()->toIso8601String();
+
+                    Log::info('Datto Batch: Devices synced', [
+                        'site_uid' => $siteUid,
+                        'count' => count($allDevices),
                     ]);
                 }
+
+                // --- RESOLVED ALERTS ---
+                if ($context['needs_resolved_alerts']) {
+                    $key = "resolved_{$siteUid}";
+                    $resolvedAlerts = $this->extractPaginatedData(
+                        $responses, $key, 'alerts', $siteUid, "/site/{$siteUid}/alerts/resolved",
+                        ['resolvedSince' => ($context['resolved_since'] ?? now()->subHours(2))->format('Y-m-d\TH:i:s\Z')]
+                    );
+
+                    if (!empty($resolvedAlerts)) {
+                        collect($resolvedAlerts)->chunk(500)->each(function ($chunk) use ($site) {
+                            $this->bulkStoreAlerts($chunk->toArray(), $site);
+                            $this->lastBatchProcessedCount += count($chunk);
+                        });
+                    }
+
+                    $metadata['last_resolved_alert_sync_at'] = now()->toIso8601String();
+
+                    Log::info('Datto Batch: Resolved alerts synced', [
+                        'site_uid' => $siteUid,
+                        'count' => count($resolvedAlerts),
+                    ]);
+                }
+
+                // --- OPEN ALERTS ---
+                if ($context['needs_open_alerts']) {
+                    $key = "open_{$siteUid}";
+                    $openAlerts = $this->extractPaginatedData(
+                        $responses, $key, 'alerts', $siteUid, "/site/{$siteUid}/alerts/open"
+                    );
+
+                    if (!empty($openAlerts)) {
+                        collect($openAlerts)->chunk(500)->each(function ($chunk) use ($site) {
+                            $this->bulkStoreAlerts($chunk->toArray(), $site);
+                            $this->lastBatchProcessedCount += count($chunk);
+                        });
+                    }
+
+                    $metadata['last_open_alert_sync_at'] = now()->toIso8601String();
+
+                    Log::info('Datto Batch: Open alerts reconciled', [
+                        'site_uid' => $siteUid,
+                        'count' => count($openAlerts),
+                    ]);
+                }
+
+                // --- PERSIST METADATA ---
+                $integrationCustomer->metadata = $metadata;
+                $integrationCustomer->save();
+
+                $this->sendHeartbeat();
+            } catch (\App\Integrations\Exceptions\RateLimitException $e) {
+                throw $e;
+            } catch (\Exception $e) {
+                Log::error('Datto Batch: Failed to process site', [
+                    'site_uid' => $siteUid,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
-        // Legacy 'sites' case can be removed or kept for backward compatibility
+    }
+
+    /**
+     * Extract data from a pooled response and handle pagination if needed.
+     * First page comes from the pool; subsequent pages are fetched sequentially.
+     *
+     * @param array<string, \Illuminate\Http\Client\Response> $responses
+     * @param array<string, mixed> $extraParams
+     * @return array<int, array<string, mixed>>
+     */
+    protected function extractPaginatedData(
+        array $responses,
+        string $key,
+        string $dataKey,
+        string $siteUid,
+        string $endpoint,
+        array $extraParams = []
+    ): array {
+        $allData = [];
+
+        // Process first page from pool
+        if (!isset($responses[$key]) || !$responses[$key]->successful()) {
+            $status = isset($responses[$key]) ? $responses[$key]->status() : 'missing';
+            Log::warning("Datto Batch: Pool response failed for {$key}", [
+                'status' => $status,
+            ]);
+            return [];
+        }
+
+        $responseData = $responses[$key]->json() ?? [];
+        $pageData = $responseData[$dataKey] ?? [];
+        $allData = array_merge($allData, $pageData);
+
+        // Check if there are more pages
+        $pageDetails = $responseData['pageDetails'] ?? [];
+        $hasMore = !empty($pageDetails['nextPageUrl']);
+        $page = 1;
+
+        // Fetch remaining pages sequentially (these are typically small)
+        while ($hasMore && $page <= 100) {
+            $params = array_merge($extraParams, ['max' => 250, 'page' => $page]);
+            $nextResponse = $this->client->makeRmmRequest($endpoint, $params);
+
+            $pageData = $nextResponse[$dataKey] ?? [];
+            $allData = array_merge($allData, $pageData);
+
+            $pageDetails = $nextResponse['pageDetails'] ?? [];
+            $hasMore = !empty($pageDetails['nextPageUrl']);
+            $page++;
+        }
+
+        return $allData;
     }
 /**
      * @param array<string, mixed> $site
      */
     protected function syncSiteDevices(string $siteUid, array $site): void
     {
-        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+        $integrationCustomer = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
             ->where('external_id', $siteUid)
             ->first();
 
@@ -319,11 +559,15 @@ final class DattoIntegration implements IntegrationInterface
     }
 
     /**
+     * Tiered alert sync strategy:
+     * - Resolved alerts: incremental fetch every ~5 min (cheap, small payload)
+     * - Open alerts: full reconciliation every ~60 min (expensive, large payload)
+     *
      * @param array<string, mixed> $site
      */
     protected function syncSiteAlerts(string $siteUid, array $site): void
     {
-        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+        $integrationCustomer = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
             ->where('external_id', $siteUid)
             ->first();
 
@@ -332,47 +576,85 @@ final class DattoIntegration implements IntegrationInterface
         }
 
         $metadata = $integrationCustomer->metadata ?? [];
-        $lastSync = isset($metadata['last_alert_sync_at'])
-            ? Carbon::parse($metadata['last_alert_sync_at'])
-            : null;
-
-        $intervalMinutes = $this->integration->credentials['alert_poll_interval_minutes'] ?? 5;
-
-        if ($lastSync && $lastSync->gt(now()->subMinutes($intervalMinutes + 2))) {
-            Log::info('Datto: Skipping alert sync - recent enough', [
-                'site_uid' => $siteUid,
-                'last_sync' => $lastSync,
-            ]);
-            return;
-        }
+        $allAlerts = [];
+        $openCount = 0;
+        $resolvedCount = 0;
 
         try {
-            $allAlerts = [];
+            // ── RESOLVED ALERTS (incremental, frequent) ──────────────────
+            $lastResolvedSync = isset($metadata['last_resolved_alert_sync_at'])
+                ? Carbon::parse($metadata['last_resolved_alert_sync_at'])
+                : null;
 
-            // Open alerts
-            $openAlerts = $this->client->getRmmAlerts($siteUid, true);
-            $allAlerts = array_merge($allAlerts, $openAlerts);
+            $resolvedInterval = (int) ($this->integration->credentials['resolved_alert_poll_interval_minutes']
+                ?? self::RESOLVED_ALERT_SYNC_INTERVAL_MINUTES);
 
-            // Resolved alerts – only since last sync (fallback 2 hours)
-            $since = $lastSync ?? now()->subHours(2);
-            $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, $since);
-            $allAlerts = array_merge($allAlerts, $resolvedAlerts);
+            $shouldSyncResolved = !$lastResolvedSync
+                || $lastResolvedSync->lt(now()->subMinutes($resolvedInterval + 2));
 
-            collect($allAlerts)->chunk(500)->each(function ($chunk) use ($site) {
-                $this->bulkStoreAlerts($chunk->toArray(), $site);
-                $this->lastBatchProcessedCount += count($chunk);
-                $this->sendHeartbeat(); // Keep alive during large alert lists
-            });
+            if ($shouldSyncResolved) {
+                $since = $lastResolvedSync ?? now()->subHours(2);
+                $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, $since);
+                $allAlerts = array_merge($allAlerts, $resolvedAlerts);
+                $resolvedCount = count($resolvedAlerts);
 
-            // Update timestamp
-            $metadata['last_alert_sync_at'] = now()->toIso8601String();
+                $metadata['last_resolved_alert_sync_at'] = now()->toIso8601String();
+
+                Log::info('Datto: Resolved alerts synced (incremental)', [
+                    'site_uid' => $siteUid,
+                    'count' => $resolvedCount,
+                    'since' => $since->toIso8601String(),
+                ]);
+            }
+
+            // ── OPEN ALERTS (full reconciliation, infrequent) ────────────
+            $lastOpenSync = isset($metadata['last_open_alert_sync_at'])
+                ? Carbon::parse($metadata['last_open_alert_sync_at'])
+                : null;
+
+            $openInterval = (int) ($this->integration->credentials['open_alert_poll_interval_minutes']
+                ?? self::OPEN_ALERT_SYNC_INTERVAL_MINUTES);
+
+            $shouldSyncOpen = !$lastOpenSync
+                || $lastOpenSync->lt(now()->subMinutes($openInterval + 2));
+
+            if ($shouldSyncOpen) {
+                $openAlerts = $this->client->getRmmAlerts($siteUid, true);
+                $allAlerts = array_merge($allAlerts, $openAlerts);
+                $openCount = count($openAlerts);
+
+                $metadata['last_open_alert_sync_at'] = now()->toIso8601String();
+
+                Log::info('Datto: Open alerts reconciled (full snapshot)', [
+                    'site_uid' => $siteUid,
+                    'count' => $openCount,
+                ]);
+            } else {
+                Log::info('Datto: Skipping open alert reconciliation - recent enough', [
+                    'site_uid' => $siteUid,
+                    'last_sync' => $lastOpenSync?->toIso8601String(),
+                    'next_in_min' => $openInterval - (int) $lastOpenSync?->diffInMinutes(now()),
+                ]);
+            }
+
+            // ── STORE ────────────────────────────────────────────────────
+            if (!empty($allAlerts)) {
+                collect($allAlerts)->chunk(500)->each(function ($chunk) use ($site) {
+                    $this->bulkStoreAlerts($chunk->toArray(), $site);
+                    $this->lastBatchProcessedCount += count($chunk);
+                    $this->sendHeartbeat();
+                });
+            }
+
+            // ── PERSIST METADATA ─────────────────────────────────────────
             $integrationCustomer->metadata = $metadata;
             $integrationCustomer->save();
 
-            Log::info('Datto: Alerts synced', [
+            Log::info('Datto: Alert sync complete for site', [
                 'site_uid' => $siteUid,
-                'open_count' => count($openAlerts),
-                'resolved_new' => count($resolvedAlerts),
+                'open_count' => $openCount,
+                'resolved_count' => $resolvedCount,
+                'open_reconciled' => $shouldSyncOpen,
             ]);
         } catch (\App\Integrations\Exceptions\RateLimitException $e) {
             throw $e;
@@ -390,7 +672,7 @@ final class DattoIntegration implements IntegrationInterface
         $siteUid = $site['uid'] ?? $site['id'] ?? null;
         if (!$siteUid) return;
 
-        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+        $integrationCustomer = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
             ->where('external_id', $siteUid)
             ->first();
 
@@ -462,7 +744,7 @@ final class DattoIntegration implements IntegrationInterface
         $siteUid = $site['uid'] ?? $site['id'] ?? null;
         if (!$siteUid) return;
 
-        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+        $integrationCustomer = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
             ->where('external_id', $siteUid)
             ->first();
 
@@ -559,7 +841,7 @@ final class DattoIntegration implements IntegrationInterface
                 'end_date' => $endDate->toDateString(),
             ]);
 
-            $integrationCustomers = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+            $integrationCustomers = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
                 ->where('active', true)
                 ->get();
 
@@ -698,19 +980,29 @@ final class DattoIntegration implements IntegrationInterface
         }
 
         DB::transaction(function () use ($customer) {
-            $integrationCustomer = IntegrationCustomer::updateOrCreate(
-                [
+            $integrationCustomer = IntegrationCustomer::withoutGlobalScopes()->where([
+                'integration_id' => $this->integration->integration_id,
+                'external_id' => $customer['external_id'],
+            ])->first();
+
+            if ($integrationCustomer) {
+                $newMetadata = array_merge($integrationCustomer->metadata ?? [], $customer['metadata'] ?? []);
+                $integrationCustomer->update([
+                    'name' => $customer['name'],
+                    'metadata' => $newMetadata,
+                    'active' => $customer['active'] ?? true,
+                    'last_seen_at' => now(),
+                ]);
+            } else {
+                $integrationCustomer = IntegrationCustomer::create([
                     'integration_id' => $this->integration->integration_id,
                     'external_id' => $customer['external_id'],
-                ],
-                [
                     'name' => $customer['name'],
                     'metadata' => $customer['metadata'] ?? [],
                     'active' => $customer['active'] ?? true,
                     'last_seen_at' => now(),
-                ]
-            );
-            $integrationCustomer->refresh();
+                ]);
+            }
 
             if ($this->integration->is_source_of_truth && !$integrationCustomer->customer_id) {
                 $this->mappingService->createFromSourceOfTruth(
@@ -737,7 +1029,7 @@ final class DattoIntegration implements IntegrationInterface
         $siteUid = $site['uid'] ?? $site['id'] ?? null;
         if (!$siteUid) return;
 
-        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+        $integrationCustomer = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
             ->where('external_id', $siteUid)
             ->first();
 
@@ -1024,7 +1316,7 @@ final class DattoIntegration implements IntegrationInterface
             // If specific customer requested, filter data
             $customer = null;
             if ($integrationCustomerId) {
-                $customer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+                $customer = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
                     ->where('id', $integrationCustomerId)
                     ->first();
                 
@@ -1255,7 +1547,7 @@ final class DattoIntegration implements IntegrationInterface
             return;
         }
         
-        $integrationCustomer = IntegrationCustomer::where('integration_id', $this->integration->integration_id)
+        $integrationCustomer = IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $this->integration->integration_id)
             ->where('external_id', $siteUid)
             ->first();
         

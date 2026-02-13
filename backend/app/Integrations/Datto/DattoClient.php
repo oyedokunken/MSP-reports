@@ -402,7 +402,7 @@ final class DattoClient
      * @param array<string, mixed> $params
      * @return array<string, mixed>|null
      */
-    protected function makeRmmRequest(string $endpoint, array $params = []): ?array
+    public function makeRmmRequest(string $endpoint, array $params = []): ?array
     {
         if (empty($this->accessToken)) {
             $this->accessToken = $this->getAccessToken();
@@ -506,6 +506,57 @@ final class DattoClient
         }
         
         throw new \Exception('Unexpected error in makeRmmRequest');
+    }
+
+    /**
+     * Make multiple parallel RMM API requests using Http::pool.
+     *
+     * @param array<string, array{endpoint: string, params: array<string, mixed>}> $requests
+     * @return array<string, \Illuminate\Http\Client\Response>
+     */
+    public function poolRmmRequests(array $requests): array
+    {
+        if (empty($requests)) {
+            return [];
+        }
+
+        // Ensure we have a valid token before pooling
+        if (empty($this->accessToken)) {
+            $this->accessToken = $this->getAccessToken();
+        }
+
+        $token = $this->accessToken;
+        $baseUrl = $this->baseUrl . '/api/v2';
+
+        Log::info('Datto RMM: Making parallel API requests', [
+            'integration_id' => $this->integration->integration_id,
+            'count' => count($requests),
+            'endpoints' => array_map(fn($r) => $r['endpoint'], $requests),
+        ]);
+
+        $responses = Http::pool(function ($pool) use ($requests, $token, $baseUrl) {
+            $pooled = [];
+            foreach ($requests as $key => $req) {
+                $url = $baseUrl . $req['endpoint'];
+                $pooled[] = $pool->as((string) $key)
+                    ->timeout(120)
+                    ->connectTimeout(30)
+                    ->withOptions(['verify' => config('app.env') === 'production'])
+                    ->withHeaders([
+                        'Authorization' => 'Bearer ' . $token,
+                        'Accept' => 'application/json',
+                    ])
+                    ->get($url, $req['params'] ?? []);
+            }
+            return $pooled;
+        });
+
+        // Record rate limiter usage for each request
+        foreach ($responses as $key => $response) {
+            $this->rateLimiter->recordRequest($this->integration);
+        }
+
+        return $responses;
     }
     
     /**
