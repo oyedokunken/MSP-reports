@@ -138,9 +138,9 @@ final class CIPPIntegration implements IntegrationInterface
                 'tenant_count' => $totalTenants,
             ]);
 
-            // Dispatch tenant batches (e.g., 5 tenants per batch)
+            // Dispatch tenant batches (e.g., 10 tenants per batch)
             $batchesDispatched = 0;
-            $chunks = array_chunk($tenants, 1); // 3 tenants per batch for safe time limit
+            $chunks = array_chunk($tenants, 10); 
 
             foreach ($chunks as $chunk) {
                 \App\Jobs\ProcessIntegrationBatchJob::dispatch(
@@ -194,39 +194,7 @@ final class CIPPIntegration implements IntegrationInterface
             }
 
             try {
-                // Sync users & MFA
-                if ($config['sync_users'] ?? true) {
-                    $this->syncUsersForTenant($tenantFilter);
-                }
-
-                // Sync licenses
-                if ($config['sync_licenses'] ?? true) {
-                    $this->syncLicensesForTenant($tenantFilter);
-                }
-
-                // Sync security alerts & incidents
-                if ($config['sync_security'] ?? true) {
-                    $this->syncSecurityAlertsForTenant($tenantFilter);
-                    $this->syncSecurityIncidentsForTenant($tenantFilter);
-                    $this->syncDefenderTVMForTenant($tenantFilter);
-                    $this->syncStandardsForTenant($tenantFilter);
-                }
-
-                // Sync conditional access policies
-                if ($config['sync_conditional_access'] ?? true) {
-                    $this->syncConditionalAccessForTenant($tenantFilter);
-                }
-
-                // Sync Defender status
-                if ($config['sync_defender'] ?? true) {
-                    $this->syncDefenderForTenant($tenantFilter);
-                }
-
-                // Sync Email & Exchange
-                if ($config['sync_email'] ?? true) {
-                    $this->syncMailboxUsageForTenant($tenantFilter);
-                    $this->syncExchangeProtectionForTenant($tenantFilter);
-                }
+                $this->syncTenantDataParallel($tenantFilter, $config);
             } catch (\Exception $e) {
                 Log::warning('CIPP Batch: Error syncing tenant data', [
                     'integration_id' => $this->integration->integration_id,
@@ -234,6 +202,155 @@ final class CIPPIntegration implements IntegrationInterface
                     'error' => $e->getMessage(),
                 ]);
             }
+        }
+    }
+
+    /**
+     * Sync data for a single tenant in parallel
+     */
+    protected function syncTenantDataParallel(string $tenantFilter, array $config): void
+    {
+        $this->loadUnsupportedEndpointsCache();
+
+        $requestMap = [];
+
+        // 1. Prepare requests based on configuration and cached support
+        if (($config['sync_users'] ?? true) && !$this->isEndpointUnsupported('users')) {
+            $requestMap['users'] = ['endpoint' => '/api/ListMFAUsers', 'params' => ['TenantFilter' => $tenantFilter]];
+        }
+
+        if (($config['sync_licenses'] ?? true) && !$this->isEndpointUnsupported('licenses')) {
+            $requestMap['licenses'] = ['endpoint' => '/api/ListLicenses', 'params' => ['TenantFilter' => $tenantFilter]];
+        }
+
+        if ($config['sync_security'] ?? true) {
+            if (!$this->isEndpointUnsupported('alerts')) {
+                $requestMap['alerts'] = ['endpoint' => '/api/ExecAlertsList', 'params' => ['TenantFilter' => $tenantFilter]];
+            }
+            if (!$this->isEndpointUnsupported('incidents')) {
+                $requestMap['incidents'] = ['endpoint' => '/api/ExecIncidentsList', 'params' => ['TenantFilter' => $tenantFilter]];
+            }
+            if (!$this->isEndpointUnsupported('defender_tvm')) {
+                $requestMap['defender_tvm'] = ['endpoint' => '/api/ExecDefenderTVM', 'params' => ['TenantFilter' => $tenantFilter]];
+            }
+            if (!$this->isEndpointUnsupported('standards')) {
+                $requestMap['standards'] = ['endpoint' => '/api/ListStandards', 'params' => ['TenantFilter' => $tenantFilter]];
+            }
+        }
+
+        if (($config['sync_conditional_access'] ?? true) && !$this->isEndpointUnsupported('conditional_access')) {
+            $requestMap['conditional_access'] = ['endpoint' => '/api/ListConditionalAccessPolicies', 'params' => ['TenantFilter' => $tenantFilter]];
+        }
+
+        if (($config['sync_defender'] ?? true) && !$this->isEndpointUnsupported('defender')) {
+            $requestMap['defender'] = ['endpoint' => '/api/listDefenderStatus', 'params' => ['TenantFilter' => $tenantFilter]];
+        }
+
+        if ($config['sync_email'] ?? true) {
+            if (!$this->isEndpointUnsupported('mailbox')) {
+                $requestMap['mailbox'] = ['endpoint' => '/api/ListMailboxUsage', 'params' => ['TenantFilter' => $tenantFilter]];
+            }
+            if (!$this->isEndpointUnsupported('exchange')) {
+                $requestMap['exchange'] = ['endpoint' => '/api/ListExchangeProtection', 'params' => ['TenantFilter' => $tenantFilter]];
+            }
+        }
+
+        if (empty($requestMap)) {
+            return;
+        }
+
+        // 2. Fire parallel requests
+        $responses = $this->client->poolRequests($requestMap);
+
+        // 3. Process each response
+        foreach ($responses as $key => $response) {
+            try {
+                if (!$response->successful()) {
+                    $this->handleEndpointError(new \Exception($response->body(), $response->status()), $key);
+                    continue;
+                }
+
+                $data = $response->json();
+                $this->processParallelResponse($key, $data, $tenantFilter);
+            } catch (\Exception $e) {
+                Log::warning("CIPP: Parallel Sync error on '$key'", [
+                    'tenant' => $tenantFilter,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Process an individual endpoint response from the parallel pool
+     */
+    protected function processParallelResponse(string $key, mixed $data, string $tenantFilter): void
+    {
+        if (empty($data)) return;
+
+        switch ($key) {
+            case 'users':
+                $mapped = [];
+                foreach ($data as $item) $mapped[] = CIPPMapper::mapUser($item, $tenantFilter);
+                $this->bulkSyncData('mfa_user', $mapped);
+                break;
+
+            case 'licenses':
+                $mapped = [];
+                foreach ($data as $item) $mapped[] = CIPPMapper::mapLicense($item, $tenantFilter);
+                $this->bulkSyncData('license', $mapped);
+                break;
+
+            case 'alerts':
+                // Alerts have double-nested Results -> MSResults structure
+                $items = $data['Results']['MSResults'] ?? [];
+                $mapped = [];
+                foreach ($items as $item) $mapped[] = CIPPMapper::mapSecurityAlert($item, $tenantFilter);
+                $this->bulkSyncData('security_alert', $mapped);
+                break;
+
+            case 'incidents':
+                // Incidents have Results structure
+                $items = $data['Results'] ?? [];
+                $mapped = [];
+                foreach ($items as $item) $mapped[] = CIPPMapper::mapSecurityIncident($item, $tenantFilter);
+                $this->bulkSyncData('security_incident', $mapped);
+                break;
+
+            case 'defender_tvm':
+                $mapped = [];
+                foreach ($data as $item) $mapped[] = CIPPMapper::mapDefenderVulnerability($item, $tenantFilter);
+                $this->bulkSyncData('defender_tvm', $mapped);
+                break;
+
+            case 'standards':
+                // Standards are often raw data in CIPP
+                $this->bulkSyncData('standards_compliance', $data);
+                break;
+
+            case 'conditional_access':
+                $mapped = [];
+                foreach ($data as $item) $mapped[] = CIPPMapper::mapConditionalAccessPolicy($item, $tenantFilter);
+                $this->bulkSyncData('conditional_access', $mapped);
+                break;
+
+            case 'defender':
+                $mapped = [];
+                foreach ($data as $item) $mapped[] = CIPPMapper::mapDefenderState($item, $tenantFilter);
+                $this->bulkSyncData('defender_status', $mapped);
+                break;
+
+            case 'mailbox':
+                $mapped = [];
+                foreach ($data as $item) $mapped[] = CIPPMapper::mapMailboxUsage($item, $tenantFilter);
+                $this->bulkSyncData('mailbox_usage', $mapped);
+                break;
+
+            case 'exchange':
+                $mapped = [];
+                foreach ($data as $item) $mapped[] = CIPPMapper::mapExchangeProtection($item, $tenantFilter);
+                $this->bulkSyncData('exchange_protection', $mapped);
+                break;
         }
     }
 
@@ -416,7 +533,7 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncSecurityAlertsForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['alerts']) && !$this->supportedEndpoints['alerts'])
+        if ($this->isEndpointUnsupported('alerts'))
             return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
@@ -445,7 +562,7 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncSecurityIncidentsForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['incidents']) && !$this->supportedEndpoints['incidents'])
+        if ($this->isEndpointUnsupported('incidents'))
             return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
@@ -474,7 +591,7 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncConditionalAccessForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['conditional_access']) && !$this->supportedEndpoints['conditional_access'])
+        if ($this->isEndpointUnsupported('conditional_access'))
             return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
@@ -501,7 +618,7 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncDefenderForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['defender']) && !$this->supportedEndpoints['defender'])
+        if ($this->isEndpointUnsupported('defender'))
             return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
@@ -530,7 +647,7 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncMailboxUsageForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['mailbox']) && !$this->supportedEndpoints['mailbox'])
+        if ($this->isEndpointUnsupported('mailbox'))
             return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
@@ -557,7 +674,7 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncExchangeProtectionForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['exchange']) && !$this->supportedEndpoints['exchange'])
+        if ($this->isEndpointUnsupported('exchange'))
             return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
@@ -584,7 +701,7 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncDefenderTVMForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['defender_tvm']) && !$this->supportedEndpoints['defender_tvm'])
+        if ($this->isEndpointUnsupported('defender_tvm'))
             return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
@@ -611,7 +728,7 @@ final class CIPPIntegration implements IntegrationInterface
      */
     protected function syncStandardsForTenant(string $tenantFilter): array
     {
-        if (isset($this->supportedEndpoints['standards']) && !$this->supportedEndpoints['standards'])
+        if ($this->isEndpointUnsupported('standards'))
             return ['synced' => 0, 'errors' => []];
         $errors = [];
         try {
@@ -641,14 +758,23 @@ final class CIPPIntegration implements IntegrationInterface
     protected function handleEndpointError(\Exception $e, string $endpointKey): void
     {
         $message = $e->getMessage();
+        $integrationId = $this->integration->integration_id;
+        $cacheKey = "cipp_unsupported_{$integrationId}_{$endpointKey}";
+
         // Skip endpoints that return 404, 403, or specific licensing errors
         if (
             str_contains($message, '404') ||
             str_contains($message, '403') ||
+            str_contains($message, '500') ||
+            str_contains($message, 'timed out') ||
+            str_contains($message, 'timeout') ||
             str_contains($message, 'doesn\'t have premium license') ||
             str_contains($message, 'not a B2C tenant')
         ) {
             $this->supportedEndpoints[$endpointKey] = false;
+            
+            // Per-integration cache for 24 hours to avoid repeated licensing errors across jobs
+            Cache::put($cacheKey, true, now()->addHours(24));
 
             // If it's a security/premium licensing error, disable the whole group
             if (str_contains($message, '403') || str_contains($message, 'premium license')) {
@@ -656,11 +782,41 @@ final class CIPPIntegration implements IntegrationInterface
                 if (in_array($endpointKey, $securityEndpoints)) {
                     foreach ($securityEndpoints as $ep) {
                         $this->supportedEndpoints[$ep] = false;
+                        Cache::put("cipp_unsupported_{$integrationId}_{$ep}", true, now()->addHours(24));
                     }
                 }
             }
 
-            Log::info("CIPP: Disabling endpoint '{$endpointKey}' (and related) for current session due to expected API error: {$message}");
+            Log::info("CIPP: Disabling endpoint '{$endpointKey}' (and related) for 24h due to expected API error: {$message}");
+        }
+    }
+
+    /**
+     * Check if an endpoint is known to be unsupported
+     */
+    protected function isEndpointUnsupported(string $endpointKey): bool
+    {
+        if (isset($this->supportedEndpoints[$endpointKey]) && $this->supportedEndpoints[$endpointKey] === false) {
+            return true;
+        }
+
+        $integrationId = $this->integration->integration_id;
+        if (Cache::has("cipp_unsupported_{$integrationId}_{$endpointKey}")) {
+            $this->supportedEndpoints[$endpointKey] = false;
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Pre-load common unsupported endpoints from cache
+     */
+    protected function loadUnsupportedEndpointsCache(): void
+    {
+        $commonEndpoints = ['alerts', 'incidents', 'conditional_access', 'defender', 'mailbox', 'exchange', 'defender_tvm', 'standards', 'sign_in', 'audit_log'];
+        foreach ($commonEndpoints as $ep) {
+            $this->isEndpointUnsupported($ep);
         }
     }
 

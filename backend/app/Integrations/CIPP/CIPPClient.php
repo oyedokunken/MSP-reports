@@ -218,6 +218,52 @@ final class CIPPClient
     }
 
     /**
+     * Make multiple parallel requests to CIPP
+     * 
+     * @param array<string, array{endpoint: string, params: array<string, mixed>}> $requests
+     * @return array<string, \Illuminate\Http\Client\Response>
+     */
+    public function poolRequests(array $requests): array
+    {
+        if (empty($requests)) {
+            return [];
+        }
+
+        $token = $this->getAccessToken();
+        $baseUrl = $this->baseUrl;
+
+        Log::debug('CIPP: Making parallel API requests', [
+            'integration_id' => $this->integration->integration_id,
+            'count' => count($requests),
+        ]);
+
+        $responses = Http::pool(function ($pool) use ($requests, $token, $baseUrl) {
+            $pooled = [];
+            foreach ($requests as $key => $req) {
+                $url = $baseUrl . $req['endpoint'];
+                $pooled[] = $pool->as((string)$key)
+                    ->timeout(120) // Consistent with request()
+                    ->connectTimeout(10)
+                    ->withOptions(['verify' => config('app.env') === 'production'])
+                    ->withHeaders([
+                        'Authorization' => "Bearer {$token}",
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'application/json',
+                    ])
+                    ->get($url, $req['params'] ?? []);
+            }
+            return $pooled;
+        });
+
+        // Record usage for each request
+        foreach ($responses as $key => $response) {
+            $this->rateLimiter->recordRequest($this->integration);
+        }
+
+        return $responses;
+    }
+
+    /**
      * Test connection to CIPP API
      */
     public function testConnection(): bool

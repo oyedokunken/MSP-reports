@@ -42,14 +42,14 @@ final class SyncIntegrationJob implements ShouldQueue
     /**
      * @return array<int, object>
      */
-    public function middleware(): array
-    {
-        return [
-            (new WithoutOverlapping((string)$this->integration->integration_id))
-                ->releaseAfter(60) 
-                ->expireAfter(3600) 
-        ];
-    }
+    // public function middleware(): array
+    // {
+    //     return [
+    //         (new WithoutOverlapping((string)$this->integration->integration_id))
+    //             ->releaseAfter(60) 
+    //             ->expireAfter(3600) 
+    //     ];
+    // }
 
     public function handle(SyncEngine $syncEngine): void
     {
