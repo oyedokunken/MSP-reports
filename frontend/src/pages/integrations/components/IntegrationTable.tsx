@@ -188,9 +188,18 @@ export function IntegrationTable({
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-medium">
-                                                        {integration.name}
-                                                    </span>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <span className="font-medium truncate max-w-[220px] block cursor-default">
+                                                                {integration.name}
+                                                            </span>
+                                                        </TooltipTrigger>
+                                                        {integration.name.length > 28 && (
+                                                            <TooltipContent side="top">
+                                                                <p>{integration.name}</p>
+                                                            </TooltipContent>
+                                                        )}
+                                                    </Tooltip>
                                                     {isSourceOfTruth && (
                                                         <Badge className="bg-primary text-[10px] h-4 px-1">
                                                             Master
@@ -289,16 +298,13 @@ export function IntegrationTable({
                                                     View Customers
                                                 </TooltipContent>
                                             </Tooltip>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <div>
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                                    <MoreVertical className="h-4 w-4" />
-                                                                    <span className="sr-only">More options</span>
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                        <span className="sr-only">More options</span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
                                                                 {!isSourceOfTruth && canManageSlice && (
                                                                     <>
@@ -407,13 +413,7 @@ export function IntegrationTable({
                                                                     </>
                                                                 )}
                                                             </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </div>
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    More Actions
-                                                </TooltipContent>
-                                            </Tooltip>
+                                            </DropdownMenu>
                                         </div>
                                     </TableCell>
                                 </TableRow>

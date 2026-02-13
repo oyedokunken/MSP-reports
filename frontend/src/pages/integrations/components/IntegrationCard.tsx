@@ -131,12 +131,18 @@ export function IntegrationCard({
                         </div>
                         <div className="flex flex-col border-l pl-2 min-w-0">
                             <div className="flex items-center gap-2">
-                                <h3
-                                    className="font-semibold text-foreground text-lg truncate leading-tight"
-                                    title={integration.name}
-                                >
-                                    {integration.name}
-                                </h3>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <h3 className="font-semibold text-foreground text-lg truncate leading-tight cursor-default">
+                                            {integration.name}
+                                        </h3>
+                                    </TooltipTrigger>
+                                    {integration.name.length > 22 && (
+                                        <TooltipContent side="top">
+                                            <p>{integration.name}</p>
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
                                 {isSourceOfTruth && (
                                     <Tooltip>
                                         <TooltipTrigger asChild>
