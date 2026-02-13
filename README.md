@@ -591,21 +591,64 @@ npm run build  # Check for TypeScript errors
 
 ### Production Checklist
 
+#### Environment & Security
 - [ ] Set `APP_ENV=production` and `APP_DEBUG=false`
-- [ ] Generate new `APP_KEY`
-- [ ] Configure PostgreSQL with TimescaleDB extension
-- [ ] Set up Redis for caching and queues
-- [ ] Configure SMTP for email delivery
-- [ ] Set up SSL/TLS certificates
-- [ ] Configure firewall rules
-- [ ] Set up automated backups
-- [ ] Configure queue workers via Supervisor
-- [ ] Set up monitoring and alerting
-- [ ] Review security headers in `SecureHeaders` middleware
-- [ ] Configure rate limiting per integration
-- [ ] Test white-label branding configuration
+- [ ] Generate new `APP_KEY` (`php artisan key:generate`)
+- [ ] Set `LOG_LEVEL=warning` or `LOG_LEVEL=error`
+- [ ] Set `SESSION_SECURE_COOKIE=true` (requires HTTPS)
+- [ ] Set `SESSION_DOMAIN` to your production domain
+- [ ] Configure `CORS_ALLOWED_ORIGINS` to production frontend URL only
+- [ ] Configure `SANCTUM_STATEFUL_DOMAINS` for production domain
+- [ ] Change all default passwords immediately after first login
 
-See [CONFIGURATION.md](CONFIGURATION.md) for detailed deployment guide.
+#### Database & Services
+- [ ] Configure PostgreSQL with TimescaleDB extension
+- [ ] Run all pending migrations (`php artisan migrate --force`)
+- [ ] Set up Redis for caching, queues, and rate limiting
+- [ ] Set `CACHE_STORE=redis` and `QUEUE_CONNECTION=redis`
+- [ ] Configure Gotenberg for PDF generation (`GOTENBERG_URL`)
+- [ ] Configure embedding service if using AI customer matching
+
+#### Email & Delivery
+- [ ] Configure SMTP (`MAIL_MAILER=smtp` with real credentials)
+- [ ] Set `MAIL_FROM_ADDRESS` and `MAIL_FROM_NAME` to company values
+- [ ] Test email delivery with a test report
+
+#### Real-Time & WebSocket
+- [ ] Configure Laravel Reverb (`BROADCAST_CONNECTION=reverb`)
+- [ ] Set `REVERB_APP_KEY`, `REVERB_APP_SECRET` to unique values
+- [ ] Configure `VITE_REVERB_*` variables for frontend WebSocket
+
+#### Infrastructure
+- [ ] Set up SSL/TLS certificates (Let's Encrypt or manual)
+- [ ] Configure Nginx with `nginx/mspreports.conf`
+- [ ] Install systemd services (`systemd/install-services.sh`)
+- [ ] Configure firewall rules (allow 80, 443, block all else)
+- [ ] Set up automated database backups
+- [ ] Configure log rotation
+
+#### Integrations & Data
+- [ ] Add and test each integration (Datto, CIPP, Autotask, etc.)
+- [ ] Verify integration syncs complete successfully
+- [ ] Run customer auto-matching after initial sync
+- [ ] Review and approve customer mappings
+- [ ] Configure rate limits per integration
+
+#### Branding & Reports
+- [ ] Upload company logo and configure white-label branding
+- [ ] Set company contact details (email, phone, address)
+- [ ] Configure report templates per customer
+- [ ] Set up report schedules
+- [ ] Test PDF generation with Gotenberg
+- [ ] Test report delivery (email and/or SharePoint)
+
+#### Monitoring
+- [ ] Verify health check endpoint (`/api/monitoring/status`)
+- [ ] Set up monitoring for queue workers
+- [ ] Configure alerting for sync failures
+- [ ] Review audit logs for completeness
+
+See [docs/DEPLOYMENT_NATIVE.md](docs/DEPLOYMENT_NATIVE.md) for the complete deployment guide.
 
 ---
 
@@ -761,39 +804,18 @@ Share link endpoints:
 
 ---
 
-## 📋 Recent Changes (Last 30 Commits)
+## 📋 Version 1.0.0 Highlights
 
-### Infrastructure & Deployment
-- **Native Deployment** - Shifted from Docker to native Linux deployment
-- **Production Nginx Config** - Added `nginx/mspreports.conf` with full routing
-- **Systemd Services** - Enhanced with security hardening, resource limits, unified target
-- **Deployment Guide** - Comprehensive `docs/DEPLOYMENT_NATIVE.md` for TTS
-
-### Integrations
-- **14 Integrations** - Standardized all integrations to unified sync protocol
-- **Push-Based Agents** - Active Directory and Exchange with heartbeats and checkpointing
-- **Parallel Batch Processing** - Improved sync performance across all integrations
-
-### Reports & Delivery
-- **ConfigureReports Redesign** - Clickable cards and unified delivery panel
-- **SharePoint Delivery** - Upload reports directly to customer SharePoint sites
-- **Data Availability Indicators** - Visual indicators for report template data
-
-### Authentication & Security
-- **LDAP/Active Directory** - Full enterprise directory integration
-- **SAML & OAuth** - Single sign-on support configured
-- **RBAC with Customer Scoping** - Granular role-based permissions
-
-### UI/UX Improvements
-- **Professional Fonts** - Updated typography across the platform
-- **Sidebar Navigation** - Fixed and improved navigation experience
-- **Customer Mapping Fix** - Resolved display and mapping issues
-- **Static Customer Creation** - Create customers not linked to integrations
-
-### Code Quality
-- **Console.log Cleanup** - Removed all debug statements from production code
-- **Security Hardening** - Enhanced .gitignore, credential protection
-- **Windows Support** - Added PowerShell setup script for Windows development
+### Production-Ready for TTS
+- **22 Integrations** - Datto, CIPP, Autotask, ITGlue, ThreatLocker, Vonahi, and 16 more
+- **Native Linux Deployment** - Systemd services, Nginx config, deploy script
+- **Gotenberg PDF Generation** - Professional branded reports
+- **AI Watcher Chatbot** - Real-time contextual tips based on user activity
+- **Unified Dashboard** - Single optimized API with 30s caching
+- **Comprehensive Audit Logging** - ISO 27001 compliant with 7-year retention
+- **Multi-Auth** - Local, LDAP/AD, SAML 2.0, OAuth 2.0 (Microsoft 365)
+- **Real-Time Notifications** - WebSocket via Laravel Reverb
+- **Embedding-Based Customer Matching** - AI-powered semantic similarity
 
 ---
 
