@@ -283,6 +283,8 @@
     @if(count($computers_list) > 50)
         <p style="color: #64748b; font-size: 10px; text-align: center;">Showing 50 of {{ count($computers_list) }} endpoints</p>
     @endif
+    @else
+        <div class="alert-card alert-info">No endpoint data available for this reporting period.</div>
     @endif
 </div>
 @endif
@@ -335,6 +337,8 @@
     @if(count($policies_list) > 50)
         <p style="color: #64748b; font-size: 10px; text-align: center;">Showing 50 of {{ count($policies_list) }} policies</p>
     @endif
+    @else
+        <div class="alert-card alert-info">No application control policies found for this organization.</div>
     @endif
 </div>
 @endif
@@ -388,6 +392,8 @@
     @if(count($applications_list) > 30)
         <p style="color: #64748b; font-size: 10px; text-align: center;">Showing 30 of {{ count($applications_list) }} applications</p>
     @endif
+    @else
+        <div class="alert-card alert-info">No managed applications found for this organization.</div>
     @endif
 </div>
 @endif
@@ -477,6 +483,8 @@
     @if(count($audit_events) > 30)
         <p style="color: #64748b; font-size: 10px; text-align: center;">Showing 30 of {{ count($audit_events) }} events</p>
     @endif
+    @else
+        <div class="alert-card alert-info">No audit events recorded for this reporting period.</div>
     @endif
 </div>
 @endif
