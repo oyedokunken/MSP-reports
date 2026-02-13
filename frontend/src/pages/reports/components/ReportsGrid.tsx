@@ -11,6 +11,8 @@ interface ReportsGridProps {
   onDownload: (reportId: number) => void
   onDelete?: (reportId: number) => void
   deleting?: number | null | string
+  onResend?: (reportId: number) => void
+  resending?: number | null
   selectedIds?: number[]
   onToggleSelection?: (reportId: number) => void
 }
@@ -22,6 +24,8 @@ export function ReportsGrid({
   onDownload, 
   onDelete, 
   deleting,
+  onResend,
+  resending,
   selectedIds = [],
   onToggleSelection
 }: ReportsGridProps) {
@@ -80,6 +84,8 @@ export function ReportsGrid({
           onDownload={() => onDownload(report.generated_report_id)}
           onDelete={onDelete}
           deleting={deleting === report.generated_report_id || (deleting === 'batch' && selectedIds.includes(report.generated_report_id))}
+          onResend={onResend ? () => onResend(report.generated_report_id) : undefined}
+          resending={resending === report.generated_report_id}
           isSelected={selectedIds.includes(report.generated_report_id)}
           onSelect={() => onToggleSelection?.(report.generated_report_id)}
         />

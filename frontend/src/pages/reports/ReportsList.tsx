@@ -22,6 +22,8 @@ export default function ReportsList() {
     setReportTypeFilters,
     handleDownload,
     handleDelete,
+    handleResend,
+    resending,
     handleBatchDelete,
     selectedReportIds,
     toggleReportSelection,
@@ -71,6 +73,8 @@ export default function ReportsList() {
             onDownload={handleDownload}
             onDelete={setReportToDelete}
             deleting={deleting}
+            onResend={handleResend}
+            resending={resending}
             selectedIds={selectedReportIds}
             onToggleSelection={toggleReportSelection}
           />
@@ -82,6 +86,8 @@ export default function ReportsList() {
             onDownload={handleDownload}
             onDelete={setReportToDelete}
             deleting={deleting}
+            onResend={handleResend}
+            resending={resending}
             selectedIds={selectedReportIds}
             onToggleSelection={toggleReportSelection}
           />

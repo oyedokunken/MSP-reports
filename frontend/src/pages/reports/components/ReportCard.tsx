@@ -25,6 +25,8 @@ interface ReportCardProps {
   onDownload: () => void
   onDelete?: (reportId: number) => void
   deleting?: boolean
+  onResend?: () => void
+  resending?: boolean
   isSelected?: boolean
   onSelect?: () => void
 }
@@ -35,6 +37,8 @@ export function ReportCard({
   onDownload, 
   onDelete, 
   deleting = false,
+  onResend,
+  resending = false,
   isSelected = false,
   onSelect
 }: ReportCardProps) {
@@ -174,9 +178,12 @@ export function ReportCard({
                 <Share2 className="mr-2 h-4 w-4" />
                 Quick Share Link
               </DropdownMenuItem>
-              <DropdownMenuItem disabled={report.status !== 'completed'}>
-                <Send className="mr-2 h-4 w-4" />
-                Resend Report
+              <DropdownMenuItem
+                disabled={report.status !== 'completed' || resending}
+                onClick={() => onResend?.()}
+              >
+                <Send className={cn("mr-2 h-4 w-4", resending && "animate-spin")} />
+                {resending ? 'Resending...' : 'Resend Report'}
               </DropdownMenuItem>
               {canManageReports && (
                 <>

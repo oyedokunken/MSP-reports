@@ -36,6 +36,7 @@ final class DeliverReportJob implements ShouldQueue
     {
         $this->generatedReport = $generatedReport;
         $this->customRecipients = $customRecipients;
+        $this->onQueue('critical');
     }
 
     public function handle(DeliveryManager $deliveryManager): void

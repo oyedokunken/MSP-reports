@@ -121,6 +121,19 @@ export const useReportsList = () => {
     }
   })
 
+  const resendMutation = useMutation({
+    mutationFn: async (reportId: number) => {
+      await api.post(`/reports/${reportId}/deliver`)
+    },
+    onSuccess: () => {
+      toast.success('Report Resent', 'Report has been queued for delivery')
+      queryClient.invalidateQueries({ queryKey: ['reports'] })
+    },
+    onError: (error: Error) => {
+      toast.error('Resend Failed', error.message)
+    }
+  })
+
   const batchDeleteMutation = useMutation({
     mutationFn: async (reportIds: number[]) => {
       await apiClient.delete('/reports', { data: { report_ids: reportIds } })
@@ -155,6 +168,8 @@ export const useReportsList = () => {
     setPage,
     handleDownload: (id: number) => downloadMutation.mutate(id),
     handleDelete: (id: number) => deleteMutation.mutate(id),
+    handleResend: (id: number) => resendMutation.mutate(id),
+    resending: resendMutation.isPending ? resendMutation.variables : null,
     handleBatchDelete: () => {
       if (selectedReportIds.length > 0) {
         batchDeleteMutation.mutate(selectedReportIds)

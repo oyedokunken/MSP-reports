@@ -48,6 +48,8 @@ interface ReportsTableProps {
     onDownload: (reportId: number) => void
     onDelete?: (reportId: number) => void
     deleting?: number | null | string
+    onResend?: (reportId: number) => void
+    resending?: number | null
     selectedIds?: number[]
     onToggleSelection?: (reportId: number) => void
 }
@@ -59,6 +61,8 @@ export function ReportsTable({
     onDownload,
     onDelete,
     deleting,
+    onResend,
+    resending,
     selectedIds = [],
     onToggleSelection,
 }: ReportsTableProps) {
@@ -260,9 +264,12 @@ export function ReportsTable({
                                                         <Share2 className="mr-2 h-4 w-4" />
                                                         Quick Share Link
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem disabled={report.status !== 'completed'}>
-                                                        <Send className="mr-2 h-4 w-4" />
-                                                        Resend Report
+                                                    <DropdownMenuItem
+                                                        disabled={report.status !== 'completed' || resending === report.generated_report_id}
+                                                        onClick={() => onResend?.(report.generated_report_id)}
+                                                    >
+                                                        <Send className={cn("mr-2 h-4 w-4", resending === report.generated_report_id && "animate-spin")} />
+                                                        {resending === report.generated_report_id ? 'Resending...' : 'Resend Report'}
                                                     </DropdownMenuItem>
                                                     {canManageReports && (
                                                         <>
