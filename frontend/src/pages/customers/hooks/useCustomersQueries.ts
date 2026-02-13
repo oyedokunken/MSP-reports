@@ -46,10 +46,10 @@ export const useCustomerInfiniteQuery = (params: {
 }
 
 
-export const useUnmappedCustomersQuery = (page?: number, search?: string) => {
+export const useUnmappedCustomersQuery = (page?: number, search?: string, skipSuggestions?: boolean) => {
     return useQuery({
-        queryKey: customerKeys.unmappedList(page, search),
-        queryFn: () => customerApi.getUnmappedCustomers(page, search),
+        queryKey: [...customerKeys.unmappedList(page, search), { skipSuggestions }] as const,
+        queryFn: () => customerApi.getUnmappedCustomers(page, search, skipSuggestions),
         placeholderData: (previousData) => previousData,
     })
 }

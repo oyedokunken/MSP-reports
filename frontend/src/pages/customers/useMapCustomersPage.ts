@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useCustomersStore } from "@/stores/useCustomersStore";
 import type { IntegrationCustomer } from "./types";
-import { useUnmappedCustomersQuery, useCustomersQuery } from "./hooks/useCustomersQueries";
+import { useUnmappedCustomersQuery } from "./hooks/useCustomersQueries";
 
 type SortField = 'name' | 'integration_type' | 'external_id' | 'last_seen_at';
 type SortDirection = 'asc' | 'desc';
@@ -28,17 +28,13 @@ export const useMapCustomersPage = () => {
     const [view, setView] = useState<'grid' | 'table'>('grid');
     const [integrationFilters, setIntegrationFilters] = useState<string[]>([]);
 
-    // React Query for Unmapped
+    // React Query for Unmapped - optimized to skip suggestions
+    // This significantly speeds up the query as it avoids O(N*M) similarity calculations on the backend
     const {
         data: unmappedResponse,
         isLoading,
         refetch: refetchUnmapped,
-    } = useUnmappedCustomersQuery(unmappedCurrentPage, unmappedSearchQuery);
-
-    // React Query for existing customers (needed for the mapping modal)
-    const {
-        data: mappedResponse,
-    } = useCustomersQuery({ page: 1, statuses: ['active'] });
+    } = useUnmappedCustomersQuery(unmappedCurrentPage, unmappedSearchQuery, true);
 
     const unmappedCustomers = useMemo(() => unmappedResponse?.data || [], [unmappedResponse]);
     const unmappedCount = unmappedResponse?.summary?.total_unmapped || unmappedCustomers.length;
@@ -141,10 +137,6 @@ export const useMapCustomersPage = () => {
         }
     }, [filteredAndSortedCustomers, selectedIds, setSelectedUnmappedCustomer, openModal]);
 
-    const getMappedCustomers = useCallback(() => {
-        return mappedResponse?.data || [];
-    }, [mappedResponse]);
-
     return {
         isLoading,
         searchQuery,
@@ -167,7 +159,6 @@ export const useMapCustomersPage = () => {
         setView,
         openModal,
         closeModal,
-        getMappedCustomers,
         handleSort,
         handleMapClick,
         handleMapSuccess,

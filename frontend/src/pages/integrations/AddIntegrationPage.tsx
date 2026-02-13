@@ -171,11 +171,14 @@ export default function AddIntegrationPage() {
         {/* Left Column: Selection */}
         <div className="space-y-4">
           <Card className="sticky top-6">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Integrations</CardTitle>
-              <CardDescription className="text-xs">Select provider</CardDescription>
+            <CardHeader className="pb-0">
+              <div className="flex items-center gap-2">
+                <Cable className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg">Integrations</CardTitle>
+              </div>
+              <CardDescription className="text-xs">Please select an integration to add</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="max-h-[calc(85vh_-_12rem)] overflow-y-auto thin-scrollbar pt-2">
               <div className="grid grid-cols-2 gap-3">
                 {availableTypes.map((type) => {
                   const typeLower = type.toLowerCase();

@@ -24,12 +24,16 @@ import type { Customer } from "../types";
 interface IntegrationMapping {
     integration_customer_id: number;
     integration_id: number;
-    integration_name: string;
     integration_type: string;
+    display_name: string;
     external_id: string;
-    external_name: string;
-    mapping_id: number;
-    mapped_at: string;
+    name: string;
+    active: boolean;
+    mapping: {
+        mapping_id: number;
+        mapped_at: string;
+        // other fields if needed
+    } | null;
     metadata?: Record<string, unknown>;
 }
 
@@ -121,27 +125,27 @@ export function ViewCustomerIntegrationsModal({
                         <div className="space-y-3">
                             {integrations.map((integration) => (
                                 <Card key={integration.integration_customer_id} className="overflow-hidden">
-                                    <CardContent className="p-4">
+                                    <CardContent className="pl-4 pr-4">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
                                                     <Cable className="h-4 w-4 text-primary flex-shrink-0" />
                                                     <h3 className="font-semibold truncate">
-                                                        {integration.integration_name}
+                                                        {integration.display_name}
                                                     </h3>
                                                     <Badge variant="outline" className="capitalize flex-shrink-0">
                                                         {integration.integration_type}
                                                     </Badge>
                                                 </div>
                                                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                                    <span className="truncate">{integration.external_name}</span>
+                                                    <span className="truncate">{integration.name}</span>
                                                     <span className="flex-shrink-0">ID: {integration.external_id}</span>
                                                 </div>
                                                 <div className="mt-2 text-xs text-muted-foreground">
-                                                    Mapped: {new Date(integration.mapped_at).toLocaleDateString()}
+                                                    Mapped: {integration.mapping?.mapped_at ? new Date(integration.mapping.mapped_at).toLocaleDateString() : 'N/A'}
                                                 </div>
                                             </div>
-                                            {canEdit && (
+                                            {canEdit && integration.mapping?.mapping_id && (
                                                 <div className="flex items-center gap-2 ml-4 flex-shrink-0">
                                                     <Button
                                                         variant="ghost"
@@ -149,13 +153,13 @@ export function ViewCustomerIntegrationsModal({
                                                         onClick={() =>
                                                             handleDeleteMapping(
                                                                 customer.customer_id,
-                                                                integration.mapping_id
+                                                                integration.mapping!.mapping_id
                                                             )
                                                         }
-                                                        disabled={deleteMutation.isPending && deleteMutation.variables?.mappingId === integration.mapping_id}
+                                                        disabled={deleteMutation.isPending && deleteMutation.variables?.mappingId === integration.mapping?.mapping_id}
                                                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                     >
-                                                        {deleteMutation.isPending && deleteMutation.variables?.mappingId === integration.mapping_id ? (
+                                                        {deleteMutation.isPending && deleteMutation.variables?.mappingId === integration.mapping?.mapping_id ? (
                                                             <Spinner className="h-4 w-4" />
                                                         ) : (
                                                             <Trash2 className="h-4 w-4" />
