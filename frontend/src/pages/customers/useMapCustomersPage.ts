@@ -50,8 +50,12 @@ export const useMapCustomersPage = () => {
     }, [searchQuery, unmappedSearchQuery, setUnmappedSearchQuery]);
 
     const integrationTypes = useMemo(() => {
+        const byType = unmappedResponse?.summary?.by_integration_type;
+        if (byType && Object.keys(byType).length > 0) {
+            return Object.keys(byType);
+        }
         return [...new Set(unmappedCustomers.map(c => c.integration_type))];
-    }, [unmappedCustomers]);
+    }, [unmappedResponse, unmappedCustomers]);
 
     const filteredAndSortedCustomers = useMemo(() => {
         let result = [...unmappedCustomers];

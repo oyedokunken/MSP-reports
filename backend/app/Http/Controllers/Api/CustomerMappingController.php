@@ -233,11 +233,15 @@ final class CustomerMappingController extends Controller
         // OPTIMIZED: Get summary stats from the paginator (no extra queries needed)
         $totalUnmapped = $unmappedIntegrationCustomers->total();
 
-        // OPTIMIZED: Calculate integration type counts from paginated results only
-        // This is approximate but much faster - if you need exact counts, consider caching
-        $countsByIntegrationType = $unmappedIntegrationCustomers
-            ->groupBy(fn($ic) => $ic->integration->integration_type ?? 'Unknown')
-            ->map(fn($group) => $group->count())
+        // Get integration type counts across ALL unmapped customers (not just current page)
+        $countsByIntegrationType = IntegrationCustomer::whereHas('integration', function ($q) use ($company) {
+            $q->where('company_id', $company->company_id);
+        })
+            ->whereNull('customer_id')
+            ->join('integrations', 'integration_customers.integration_id', '=', 'integrations.integration_id')
+            ->select('integrations.integration_type', \DB::raw('count(*) as count'))
+            ->groupBy('integrations.integration_type')
+            ->pluck('count', 'integration_type')
             ->toArray();
 
         // Check if we should skip suggestions (for performance, e.g. dashboard stats)
