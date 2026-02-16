@@ -63,15 +63,15 @@ export function CreateApiKeyModal({ open, onOpenChange, onSuccess }: CreateApiKe
     setIsSubmitting(true)
 
     try {
-      const response = await api.post<{ status: string; data: { api_key: string } }>('/api-keys', {
+      const response = await api.post<{ status: string; data: any; api_key: string }>('/api-keys', {
         display_name: displayName,
         customer_id: (customerId && customerId !== 'none') ? parseInt(customerId) : null,
         permissions,
         ip_whitelist: ipWhitelist ? ipWhitelist.split(',').map(ip => ip.trim()) : null,
       })
 
-      if (response?.data?.api_key) {
-        setGeneratedKey(response.data.api_key)
+      if (response?.api_key) {
+        setGeneratedKey(response.api_key)
         setStep('success')
       }
     } catch (error) {
