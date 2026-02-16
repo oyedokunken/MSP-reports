@@ -217,8 +217,15 @@ final class ITGlueIntegration implements IntegrationInterface
 
    protected function syncCertificates(int &$batches): int
     {
-        $items = $this->client->getSslCertificates(['expiration' => 'next90days']);
+        $items = $this->client->getSslCertificates();
         $totalItems = count($items);
+
+        // Purge all existing SSL cert records for this integration
+        // to prevent stale/expired certs from accumulating
+        \Illuminate\Support\Facades\DB::table('integration_data')
+            ->where('integration_id', $this->integration->integration_id)
+            ->where('data_type', IntegrationDataType::SSL_CERTIFICATE)
+            ->delete();
 
         if ($totalItems === 0) {
             return 0;
@@ -239,8 +246,15 @@ final class ITGlueIntegration implements IntegrationInterface
 
     protected function syncDomains(int &$batches): int
     {
-        $items = $this->client->getDomains(['expiration' => 'next90days']);
+        $items = $this->client->getDomains();
         $totalItems = count($items);
+
+        // Purge all existing domain records for this integration
+        // to prevent stale/expired domains from accumulating
+        \Illuminate\Support\Facades\DB::table('integration_data')
+            ->where('integration_id', $this->integration->integration_id)
+            ->where('data_type', IntegrationDataType::DOMAINS)
+            ->delete();
 
         if ($totalItems === 0) {
             return 0;
