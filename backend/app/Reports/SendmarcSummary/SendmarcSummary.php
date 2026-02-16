@@ -76,6 +76,11 @@ class SendmarcSummary extends BaseReport
         $includedSections = $options['included_sections'] ?? $options['data_types'] ?? ['all'];
         $sectionsToRender = count($includedSections) > 0 && !in_array('all', $includedSections) ? $includedSections : ['all'];
 
+        // Determine timezone for date display in report
+        $timezone = $options['timezone'] ?? $customer->reportSchedules()->where('report_type', 'sendmarc_summary')->first()?->timezone ?? config('app.timezone');
+        $displayStart = $startDate->copy()->setTimezone($timezone);
+        $displayEnd = $endDate->copy()->setTimezone($timezone);
+
         // Gather (Sendmarc data currently stored as snapshot timestamps)
         // Apply date filtering, but if it yields no results and we have data,
         // fall back to using the available snapshot so the report still renders useful information.
@@ -91,19 +96,30 @@ class SendmarcSummary extends BaseReport
 
         $volumeTotals = collect();
         if (in_array('all', $sectionsToRender) || in_array('executive_summary', $sectionsToRender) || in_array('recommendations', $sectionsToRender)) {
-            $rawVolumeTotals = $this->dataGatherer->gatherVolumeTotals($customer, $integrationCustomerIds);
-            $volumeTotals = $rawVolumeTotals->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
-            if ($volumeTotals->isEmpty() && $rawVolumeTotals->isNotEmpty()) {
-                $volumeTotals = $rawVolumeTotals;
+            // Prefer timeline data for totals if available as it is more granular and accurate than aggregate totals
+            $rawTimeline = $this->dataGatherer->gatherVolumeTimeline($customer, $integrationCustomerIds);
+            $volumeTotals = $rawTimeline->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
+            
+            if ($volumeTotals->isEmpty()) {
+                $rawVolumeTotals = $this->dataGatherer->gatherVolumeTotals($customer, $integrationCustomerIds);
+                $volumeTotals = $rawVolumeTotals->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
+                if ($volumeTotals->isEmpty() && $rawVolumeTotals->isNotEmpty()) {
+                    $volumeTotals = $rawVolumeTotals;
+                }
             }
         }
 
         $timeline = collect();
         if (in_array('all', $sectionsToRender) || in_array('volume_timeline', $sectionsToRender)) {
-            $rawTimeline = $this->dataGatherer->gatherVolumeTimeline($customer, $integrationCustomerIds);
-            $timeline = $rawTimeline->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
-            if ($timeline->isEmpty() && $rawTimeline->isNotEmpty()) {
-                $timeline = $rawTimeline;
+            // Reuse the already gathered and filtered timeline if possible
+            if ($volumeTotals->isNotEmpty() && isset($volumeTotals->first()['payload']['index'])) {
+                $timeline = $volumeTotals;
+            } else {
+                $rawTimeline = $this->dataGatherer->gatherVolumeTimeline($customer, $integrationCustomerIds);
+                $timeline = $rawTimeline->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
+                if ($timeline->isEmpty() && $rawTimeline->isNotEmpty()) {
+                    $timeline = $rawTimeline;
+                }
             }
         }
 
@@ -143,9 +159,9 @@ class SendmarcSummary extends BaseReport
                 'name' => $customer->canonical_name,
             ],
             'period' => [
-                'start' => $this->formatDate($startDate),
-                'end' => $this->formatDate($endDate),
-                'formatted' => $this->formatDateRange($startDate, $endDate),
+                'start' => $this->formatDate($displayStart),
+                'end' => $this->formatDate($displayEnd),
+                'formatted' => $this->formatDateRange($displayStart, $displayEnd),
             ],
             'executive_summary' => $executiveSummary,
             'totals' => $totals,
@@ -154,7 +170,7 @@ class SendmarcSummary extends BaseReport
             'ip_sources' => $ipSummary['top_ips'],
             'alerts' => $recommendations,
             'volume_timeline' => $timeline->map(fn($row) => [
-                'date' => Carbon::parse($row['timestamp'])->format('Y-m-d'),
+                'date' => Carbon::parse($row['timestamp'])->setTimezone($timezone)->format('Y-m-d'),
                 'total' => $row['payload']['total_incidents'] ?? 0,
                 'passes' => $row['payload']['total_complete_passes'] ?? 0,
                 'failures' => $row['payload']['total_complete_failures'] ?? 0,
@@ -186,17 +202,11 @@ class SendmarcSummary extends BaseReport
         ];
     }
 
-    /**
-     * @param Carbon|string|null $timestamp
-     * @param Carbon $start
-     * @param Carbon $end
-     * @return bool
-     */
     private function inRange($timestamp, Carbon $start, Carbon $end): bool
     {
         if (!$timestamp) return false;
         $ts = $timestamp instanceof Carbon ? $timestamp : Carbon::parse($timestamp);
-        return $ts->between($start->copy()->startOfDay(), $end->copy()->endOfDay());
+        return $ts->between($start, $end);
     }
 
     /**

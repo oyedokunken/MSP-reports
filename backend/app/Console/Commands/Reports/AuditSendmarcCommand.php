@@ -15,8 +15,7 @@ use Carbon\Carbon;
 
 class AuditSendmarcCommand extends Command
 {
-    protected $signature = 'reports:audit-sendmarc
-                            {customer_id : The ID of the customer}';
+    protected $signature = 'reports:audit-sendmarc {customer_id} {--days=30} {--start=} {--end=}';
 
     protected $description = 'Audit Sendmarc report data by comparing Live API vs Database vs Last Report';
 
@@ -34,7 +33,7 @@ class AuditSendmarcCommand extends Command
         $this->newLine();
 
         // 1. Get Integration Info
-        $mapping = DB::table('customer_mappings')
+        $mappings = DB::table('customer_mappings')
             ->join('integration_customers', 'customer_mappings.integration_customer_id', '=', 'integration_customers.integration_customer_id')
             ->where('customer_mappings.customer_id', $customerId)
             ->where('integration_customers.integration_id', function ($q) {
@@ -44,42 +43,31 @@ class AuditSendmarcCommand extends Command
                     ->limit(1);
             })
             ->select('integration_customers.*')
-            ->first();
+            ->get();
 
-        if (!$mapping) {
+        if ($mappings->isEmpty()) {
             $this->error("No Sendmarc integration found for this customer.");
             return 1;
         }
 
-        $icId = (int) $mapping->integration_customer_id;
-        $externalId = $mapping->external_id; // This is the domain name usually? Or ID? Sendmarc uses domain name as external_id usually.
-        // Wait, Sendmarc uses 'external_id' which is likely the domain ID from the mapper?
-        // Let's verify. Mapper uses $domain['external_id'] which IS the ID.
-        // But for API calls we need account UUID and domain UUID.
-        // The integration_customer metadata should have these.
-        
-        $ic = IntegrationCustomer::find($icId);
-        $metadata = $ic->metadata ?? [];
-        $domainUuid = $metadata['uuid'] ?? null;
-        $accountUuid = $metadata['account_uuid'] ?? null;
-
-        if (!$domainUuid || !$accountUuid) {
-            $this->error("Missing UUIDs in integration customer metadata (domain_uuid: $domainUuid, account_uuid: $accountUuid).");
-            return 1;
-        }
-
-        $integration = $ic->integration;
+        $integration = \App\Models\Integration::find($mappings->first()->integration_id);
         
         // Determine timezone
         $smSchedule = $customer->reportSchedules()->where('report_type', 'sendmarc_summary')->first();
         $timezone = $smSchedule ? ($smSchedule->timezone ?: config('app.timezone')) : config('app.timezone');
         $this->line("    Using Timezone: {$timezone}");
         
-        // Window: Last 30 Days (Standard Audit Window)
-        $endDate = now()->setTimezone($timezone)->endOfDay();
-        $startDate = $endDate->copy()->subDays(30)->startOfDay();
+        // Window: Start/End options or Dynamic based on --days
+        if ($this->option('start') && $this->option('end')) {
+            $startDate = Carbon::parse($this->option('start'), $timezone)->startOfDay();
+            $endDate = Carbon::parse($this->option('end'), $timezone)->endOfDay();
+        } else {
+            $days = (int) ($this->option('days') ?: 30);
+            $endDate = now()->setTimezone($timezone)->endOfDay();
+            $startDate = $endDate->copy()->subDays($days)->startOfDay();
+        }
         
-        $this->info("    Audit Window: {$startDate->toDateString()} to {$endDate->toDateString()}");
+        $this->info("    Audit Window: {$startDate->toDateTimeString()} to {$endDate->toDateTimeString()}");
 
         // 2. Fetch Live API Data
         $this->comment("1/3 Fetching Live Data from Sendmarc API...");
@@ -90,34 +78,38 @@ class AuditSendmarcCommand extends Command
             $integration
         );
 
-        $liveVolume = [
-            'total' => 0,
-            'passing' => 0
-        ];
+        $liveVolumeTotal = 0;
+        $livePassingTotal = 0;
         
-        try {
-            // Fetch Volume Totals for the exact window (Aggregate)
-            $totals = $client->getDomainVolumeTotals($accountUuid, $domainUuid, $startDate, $endDate);
-            $liveVolume['total'] = $totals['total_incidents'] ?? 0;
-            $liveVolume['passing'] = $totals['total_complete_passes'] ?? 0;
-            
-            // Fetch Volume Timeline sum for apples-to-apples comparison with DB
-            $timeline = $client->getDomainVolumeTimeline($accountUuid, $domainUuid, $startDate, $endDate);
-            $liveTimelineTotal = collect($timeline)->sum('total_incidents');
-            
-        } catch (\Exception $e) {
-             $this->warn("    ⚠️ API Fetch Failed: " . $e->getMessage());
-             $liveVolume['total'] = 'N/A';
-             $liveTimelineTotal = 'N/A';
+        foreach ($mappings as $mapping) {
+            $ic = \App\Models\IntegrationCustomer::find($mapping->integration_customer_id);
+            $metadata = $ic->metadata ?? [];
+            $domainUuid = $metadata['uuid'] ?? null;
+            $accountUuid = $metadata['account_uuid'] ?? null;
+
+            if (!$domainUuid || !$accountUuid) {
+                $this->warn("      ⚠️ Missing UUIDs for domain: {$ic->name}");
+                continue;
+            }
+
+            try {
+                $totals = $client->getDomainVolumeTotals($accountUuid, $domainUuid, $startDate, $endDate);
+                $liveVolumeTotal += ($totals['total_incidents'] ?? 0);
+                $livePassingTotal += ($totals['total_complete_passes'] ?? 0);
+                
+                $this->line("      - Domain: {$ic->name} | Volume: " . ($totals['total_incidents'] ?? 0));
+            } catch (\Exception $e) {
+                 $this->warn("      ⚠️ API Fetch Failed for {$ic->name}: " . $e->getMessage());
+            }
         }
 
         // 3. Fetch Database Data (Using Gatherer logic)
         $this->comment("2/3 Querying Local Database Cache...");
         
-        // Gatherer fetches ALL rows for this customer
-        $dbVolumeRows = $gatherer->gatherVolumeTimeline($customer, [$icId]);
+        $icIds = $mappings->pluck('integration_customer_id')->toArray();
+        $dbVolumeRows = $gatherer->gatherVolumeTimeline($customer, $icIds);
         
-        // Filter rows by date range (using timestamp in payload or row)
+        // Filter rows by date range
         $dbVolumeFiltered = $dbVolumeRows->filter(function($row) use ($startDate, $endDate) {
             $ts = Carbon::parse($row['timestamp']); 
             return $ts->between($startDate, $endDate);
@@ -130,7 +122,7 @@ class AuditSendmarcCommand extends Command
         $this->comment("3/3 Checking Latest Generated Report...");
         
         $lastReport = GeneratedReport::where('customer_id', $customerId)
-            ->whereNotNull('report_data->executive_summary->total_emails') // Check unique field
+            ->whereNotNull('report_data->executive_summary->total_emails')
             ->when($smSchedule, fn($q) => $q->where('report_schedule_id', $smSchedule->report_schedule_id))
             ->orderBy('generated_report_id', 'desc')
             ->first();
@@ -139,8 +131,8 @@ class AuditSendmarcCommand extends Command
         $reportCompliance = $lastReport ? ($lastReport->report_data['executive_summary']['compliance_rate'] ?? 'N/A') : 'N/A';
 
         // Calculations
-        $liveComplianceRate = is_numeric($liveTimelineTotal) && $liveTimelineTotal > 0 
-            ? round(($liveVolume['passing'] / $liveTimelineTotal) * 100, 2) 
+        $liveComplianceRate = $liveVolumeTotal > 0 
+            ? round(($livePassingTotal / $liveVolumeTotal) * 100, 2) 
             : 0;
             
         $dbComplianceRate = $dbTotal > 0 
@@ -151,24 +143,21 @@ class AuditSendmarcCommand extends Command
         $this->newLine();
         $this->info("Email Volume Comparison (Last 30 Days):");
         
-        // Use Live Timeline Sum for comparison if available, otherwise Totals
-        $apiValue = is_numeric($liveTimelineTotal) ? $liveTimelineTotal : $liveVolume['total'];
-        
         $this->table(
             ['Source', 'Total Emails', 'Compliance Rate', 'Status'],
             [
-                ['Live API', $apiValue, $liveComplianceRate . '%', 'Verified Source'],
-                ['Local Database', $dbTotal, $dbComplianceRate . '%', ($dbTotal == $apiValue ? '✅ MATCH' : '⚠️ DIFFERENT')],
+                ['Live API', $liveVolumeTotal, $liveComplianceRate . '%', 'Verified Source'],
+                ['Local Database', $dbTotal, $dbComplianceRate . '%', ($dbTotal == $liveVolumeTotal ? '✅ MATCH' : '⚠️ DIFFERENT')],
                 ['Last Report (ID: ' . ($lastReport->generated_report_id ?? 'None') . ')', $reportTotal, $reportCompliance . '%', ($reportTotal == $dbTotal ? '✅ MATCH (DB)' : '⚠️ DIFFERENT')],
             ]
         );
 
         $this->newLine();
         
-        if ($dbTotal == $apiValue) {
+        if ($dbTotal == $liveVolumeTotal) {
              $this->info("✅ Volume counts match perfectly.");
         } else {
-             $this->warn("⚠️ Volume Mismatch: API {$apiValue} vs DB {$dbTotal}");
+             $this->warn("⚠️ Volume Mismatch: API {$liveVolumeTotal} vs DB {$dbTotal}");
              $this->line("   Run 'php artisan integrations:sync {$integration->integration_id}' to update.");
         }
 
