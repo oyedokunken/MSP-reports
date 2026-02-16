@@ -18,11 +18,11 @@ final class ITGlueReportController extends Controller
      */
     public function downloadLicenseReport(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
     {
-        $month = $request->input('month', date('n'));
-        $year = $request->input('year', date('Y'));
+        $month = (int) $request->input('month', date('n'));
+        $year = (int) $request->input('year', date('Y'));
         $emailTo = $request->input('email_to');
         
-        $filename = 'license-consumption-' . $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '.xlsx';
+        $filename = 'license-consumption-' . $year . '-' . str_pad((string) $month, 2, '0', STR_PAD_LEFT) . '.xlsx';
 
         // If email recipient provided, send via email
         if ($emailTo) {
