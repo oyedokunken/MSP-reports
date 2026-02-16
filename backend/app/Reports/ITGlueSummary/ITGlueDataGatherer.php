@@ -77,9 +77,10 @@ class ITGlueDataGatherer
      * 
      * @param Customer $customer
      * @param array<int, int> $integrationCustomerIds
+     * @param array<string, mixed> $options
      * @return Collection<int, mixed>
      */
-    public function gatherCertificates(Customer $customer, array $integrationCustomerIds): Collection
+    public function gatherCertificates(Customer $customer, array $integrationCustomerIds, array $options = []): Collection
     {
         if (empty($integrationCustomerIds)) {
             return collect([]);
@@ -91,13 +92,18 @@ class ITGlueDataGatherer
             ->orderBy('data_timestamp', 'desc')
             ->get();
 
+        $timezone = $options['timezone'] ?? config('app.timezone');
+
         return $rawData->unique(function($item) {
             return $item->data_payload['certificate_id'] ?? $item->integration_data_id;
-        })->map(function($item) {
+        })->map(function($item) use ($timezone) {
             $payload = $item->data_payload;
             // SSL certificates stored as 'expires_on' in database (mapped from 'valid-until')
             $expiryDate = $this->safeParseDate($payload['expires_on'] ?? null);
-            $daysUntilExpiry = $expiryDate ? now()->diffInDays($expiryDate, false) : null;
+            
+            // Calculate relative to client's "now"
+            $clientNow = now()->setTimezone($timezone);
+            $daysUntilExpiry = $expiryDate ? $clientNow->diffInDays($expiryDate, false) : null;
             
             $severity = 'healthy';
             if ($daysUntilExpiry !== null) {
@@ -106,6 +112,9 @@ class ITGlueDataGatherer
                 elseif ($daysUntilExpiry <= 30) $severity = 'warning';
             }
             
+            // Format for display in client's timezone
+            $formattedExpiry = $expiryDate ? $expiryDate->setTimezone($timezone)->format('M d, Y') : 'Unknown';
+            
             return [
                 'domain' => $payload['name'] ?? 'Unknown',
                 'common_name' => $payload['host'] ?? null,
@@ -113,8 +122,8 @@ class ITGlueDataGatherer
                 'issued_by' => $payload['issued_by'] ?? null,
                 'issuer_country' => $payload['issuer_country'] ?? null,
                 'organization_name' => $payload['organization_name'] ?? null,
-                'expiry_date_formatted' => $expiryDate ? $expiryDate->format('M d, Y') : 'Unknown',
-                'days_until_expiry' => $daysUntilExpiry,
+                'expiry_date_formatted' => $formattedExpiry,
+                'days_until_expiry' => (int) $daysUntilExpiry,
                 'created_at' => $payload['created_at'] ?? null,
                 'updated_at' => $payload['updated_at'] ?? null,
                 'notes' => $payload['notes'] ?? null,
@@ -129,9 +138,10 @@ class ITGlueDataGatherer
      * 
      * @param Customer $customer
      * @param array<int, int> $integrationCustomerIds
+     * @param array<string, mixed> $options
      * @return Collection<int, mixed>
      */
-    public function gatherDomains(Customer $customer, array $integrationCustomerIds): Collection
+    public function gatherDomains(Customer $customer, array $integrationCustomerIds, array $options = []): Collection
     {
         if (empty($integrationCustomerIds)) {
             return collect([]);
@@ -143,12 +153,17 @@ class ITGlueDataGatherer
             ->orderBy('data_timestamp', 'desc')
             ->get();
 
+        $timezone = $options['timezone'] ?? config('app.timezone');
+
         return $rawData->unique(function($item) {
             return $item->data_payload['domain_id'] ?? $item->integration_data_id;
-        })->map(function($item) {
+        })->map(function($item) use ($timezone) {
             $payload = $item->data_payload;
             $expiryDate = $this->safeParseDate($payload['expires_on'] ?? null);
-            $daysUntilExpiry = $expiryDate ? now()->diffInDays($expiryDate, false) : null;
+            
+            // Calculate relative to client's "now"
+            $clientNow = now()->setTimezone($timezone);
+            $daysUntilExpiry = $expiryDate ? $clientNow->diffInDays($expiryDate, false) : null;
             
             $severity = 'healthy';
             if ($daysUntilExpiry !== null) {
@@ -157,12 +172,14 @@ class ITGlueDataGatherer
                 elseif ($daysUntilExpiry <= 30) $severity = 'warning';
             }
             
+            $formattedExpiry = $expiryDate ? $expiryDate->setTimezone($timezone)->format('M d, Y') : 'Unknown';
+            
             return [
                 'domain_name' => $payload['name'] ?? 'Unknown',
                 'registrar' => $payload['registrar'] ?? null,
                 'organization_name' => $payload['organization_name'] ?? null,
-                'expiry_date_formatted' => $expiryDate ? $expiryDate->format('M d, Y') : 'Unknown',
-                'days_until_expiry' => $daysUntilExpiry,
+                'expiry_date_formatted' => $formattedExpiry,
+                'days_until_expiry' => (int) $daysUntilExpiry,
                 'created_at' => $payload['created_at'] ?? null,
                 'updated_at' => $payload['updated_at'] ?? null,
                 'notes' => $payload['notes'] ?? null,

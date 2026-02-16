@@ -85,17 +85,17 @@ class ITGlueSummary extends BaseReport
             ->toArray();
 
         // Gather licenses using DataGatherer
-        $licenses = $this->dataGatherer->gatherLicenses($customer, $integrationCustomerIds);
+        $licenses = $this->dataGatherer->gatherLicenses($customer, $integrationCustomerIds); // License data doesn't use dates heavily
         $licenseSummary = $this->getLicenseSummary($licenses);
         $licenseRecommendations = $this->getLicenseRecommendations($licenses);
 
         // Gather SSL certificates using DataGatherer
-        $certificates = $this->dataGatherer->gatherCertificates($customer, $integrationCustomerIds);
+        $certificates = $this->dataGatherer->gatherCertificates($customer, $integrationCustomerIds, $options);
         $sslSummary = $this->getCertificateSummary($certificates);
         $sslAlerts = $this->getCertificateAlerts($certificates);
 
         // Gather domains using DataGatherer
-        $domains = $this->dataGatherer->gatherDomains($customer, $integrationCustomerIds);
+        $domains = $this->dataGatherer->gatherDomains($customer, $integrationCustomerIds, $options);
         $domainSummary = $this->getDomainSummary($domains);
         $domainAlerts = $this->getDomainAlerts($domains);
 

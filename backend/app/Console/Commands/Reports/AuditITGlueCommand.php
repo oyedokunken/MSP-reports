@@ -83,8 +83,13 @@ class AuditITGlueCommand extends Command
 
         // 3. Fetch Database Data (Using Gatherer logic)
         $this->comment("2/3 Querying Local Database Cache...");
-        $dbCerts = $gatherer->gatherCertificates($customer, [$icId]);
-        $dbDomains = $gatherer->gatherDomains($customer, [$icId]);
+        
+        $customerSchedule = $customer->reportSchedules()->where('report_type', 'itglue_summary')->first();
+        $timezone = $customerSchedule ? ($customerSchedule->timezone ?: config('app.timezone')) : config('app.timezone');
+        $options = ['timezone' => $timezone];
+        
+        $dbCerts = $gatherer->gatherCertificates($customer, [$icId], $options);
+        $dbDomains = $gatherer->gatherDomains($customer, [$icId], $options);
         $dbLicenses = $gatherer->gatherLicenses($customer, [$icId]);
 
         $dbSslCount = $dbCerts->count();
