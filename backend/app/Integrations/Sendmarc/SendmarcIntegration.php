@@ -316,11 +316,17 @@ final class SendmarcIntegration implements IntegrationInterface
                             }
 
                             // 3. Volume timeline
+                            // Use Range API to ensure full volume capture (Daily API misses data).
+                            // Since API response lacks date keys, we map sequentially from startDate.
+                            // This guarantees Total Volume matches API, even if exact dates are inferred.
                             $volumeTimeline = $this->client->getDomainVolumeTimeline($accountUuid, $domainUuid, $startDate, $endDate);
+                            
                             foreach ($volumeTimeline as $idx => $timelineEntry) {
-                                $timestamp = isset($timelineEntry['date']) ? Carbon::parse($timelineEntry['date']) : $startDate;
+                                // Map index to date (Assuming sequential daily data from API)
+                                $timestamp = $startDate->copy()->addDays($idx);
                                 
-                                if (!$timestamp->between($startDate->copy()->startOfDay(), $endDate->copy()->endOfDay())) {
+                                // Verify we don't exceed endDate (in case of extra items)
+                                if ($timestamp->gt($endDate->copy()->endOfDay())) {
                                     continue;
                                 }
 
