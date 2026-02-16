@@ -28,7 +28,7 @@ final class ReportGenerationService
         $this->namingService = $namingService;
     }
 
-    public function generateReport(ReportSchedule $schedule, ?Carbon $customStartDate = null, ?Carbon $customEndDate = null): GeneratedReport
+    public function generateReport(ReportSchedule $schedule, ?Carbon $customStartDate = null, ?Carbon $customEndDate = null, array $customOptions = []): GeneratedReport
     {
         // Use custom dates if provided, otherwise calculate from schedule
         if ($customStartDate && $customEndDate) {
@@ -71,6 +71,11 @@ final class ReportGenerationService
             $options = [];
             if ($schedule->schedule_config) {
                 $options = $schedule->schedule_config;
+            }
+            
+            // Merge custom options (e.g. from manual generation)
+            if (!empty($customOptions)) {
+                $options = array_merge($options, $customOptions);
             }
 
             // Add frequency and timezone to options so report can adjust dynamically
@@ -150,37 +155,38 @@ final class ReportGenerationService
      */
     private function calculateReportPeriod(ReportSchedule $schedule): array
     {
-        $now = now();
+        $timezone = $schedule->timezone ?: config('app.timezone');
+        $now = now()->setTimezone($timezone);
 
         switch ($schedule->frequency) {
             case 'daily':
                 return [
-                    'start' => $now->copy()->subDay()->startOfDay(),
-                    'end' => $now->copy()->subDay()->endOfDay(),
+                    'start' => $now->copy()->subDay()->startOfDay()->setTimezone('UTC'),
+                    'end' => $now->copy()->subDay()->endOfDay()->setTimezone('UTC'),
                 ];
 
             case 'weekly':
                 return [
-                    'start' => $now->copy()->subWeek()->startOfWeek(),
-                    'end' => $now->copy()->subWeek()->endOfWeek(),
+                    'start' => $now->copy()->subWeek()->startOfWeek()->setTimezone('UTC'),
+                    'end' => $now->copy()->subWeek()->endOfWeek()->setTimezone('UTC'),
                 ];
 
             case 'monthly':
                 return [
-                    'start' => $now->copy()->subMonth()->startOfMonth(),
-                    'end' => $now->copy()->subMonth()->endOfMonth(),
+                    'start' => $now->copy()->subMonth()->startOfMonth()->setTimezone('UTC'),
+                    'end' => $now->copy()->subMonth()->endOfMonth()->setTimezone('UTC'),
                 ];
 
             case 'yearly':
                 return [
-                    'start' => $now->copy()->subYear()->startOfYear(),
-                    'end' => $now->copy()->subYear()->endOfYear(),
+                    'start' => $now->copy()->subYear()->startOfYear()->setTimezone('UTC'),
+                    'end' => $now->copy()->subYear()->endOfYear()->setTimezone('UTC'),
                 ];
 
             default:
                 return [
-                    'start' => $now->copy()->subDays(30),
-                    'end' => $now,
+                    'start' => $now->copy()->subDays(30)->startOfDay()->setTimezone('UTC'),
+                    'end' => $now->copy()->endOfDay()->setTimezone('UTC'),
                 ];
         }
     }

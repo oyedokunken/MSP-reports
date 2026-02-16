@@ -27,8 +27,9 @@ final class GenerateReportAction
      */
     public function execute(ReportSchedule $schedule, array $options = []): GeneratedReport
     {
-        $startDate = isset($options['start_date']) ? Carbon::parse($options['start_date'])->startOfDay() : null;
-        $endDate = isset($options['end_date']) ? Carbon::parse($options['end_date'])->endOfDay() : null;
+        $timezone = $schedule->timezone ?: config('app.timezone');
+        $startDate = isset($options['start_date']) ? Carbon::parse($options['start_date'], $timezone)->startOfDay()->setTimezone('UTC') : null;
+        $endDate = isset($options['end_date']) ? Carbon::parse($options['end_date'], $timezone)->endOfDay()->setTimezone('UTC') : null;
         $frequencyOverride = $options['frequency'] ?? null;
         $previewOnly = $options['preview_only'] ?? false;
 
@@ -39,9 +40,9 @@ final class GenerateReportAction
         // Generate report with custom dates only if explicitly provided
         // Otherwise, let the schedule's frequency determine the date range
         if ($startDate && $endDate) {
-            $generatedReport = $this->reportService->generateReport($schedule, $startDate, $endDate);
+            $generatedReport = $this->reportService->generateReport($schedule, $startDate, $endDate, $options);
         } else {
-            $generatedReport = $this->reportService->generateReport($schedule);
+            $generatedReport = $this->reportService->generateReport($schedule, null, null, $options);
         }
 
         if (!$previewOnly) {

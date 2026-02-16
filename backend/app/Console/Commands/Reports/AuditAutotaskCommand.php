@@ -34,12 +34,12 @@ class AuditAutotaskCommand extends Command
             return 1;
         }
 
-        $dates = $this->calculateDates();
+        $dates = $this->calculateDates($customer);
         $start = $dates['start'];
         $end = $dates['end'];
 
         $this->info("=== Auditing Autotask: {$customer->canonical_name} ===");
-        $this->info("Period: {$start->toDateString()} to {$end->toDateString()}");
+        $this->info("Period: {$start->toDateTimeString()} to {$end->toDateTimeString()} (UTC)");
         $this->newLine();
 
         // 1. Get Integration Info
@@ -82,10 +82,18 @@ class AuditAutotaskCommand extends Command
 
         // 4. Get Latest Generated Report
         $this->comment("3/3 Checking Latest Generated Report...");
-        $lastReport = GeneratedReport::where('customer_id', $customerId)
+        $query = GeneratedReport::where('customer_id', $customerId)
             ->where('report_data->tickets->summary', '!=', null)
-            ->orderBy('generated_at', 'desc')
-            ->first();
+            ->where('report_data->options->frequency', $this->option('frequency'));
+
+        $startOpt = $this->option('start');
+        $endOpt = $this->option('end');
+        if ($startOpt && $endOpt) {
+            $query->where('report_data->options->start_date', $startOpt)
+                  ->where('report_data->options->end_date', $endOpt);
+        }
+
+        $lastReport = $query->orderBy('generated_at', 'desc')->first();
 
         $reportCompleted = $lastReport ? ($lastReport->report_data['tickets']['summary']['completed_tickets'] ?? 'N/A') : 'N/A';
         $reportOpen = $lastReport ? ($lastReport->report_data['tickets']['summary']['open_tickets'] ?? 'N/A') : 'N/A';
@@ -111,28 +119,40 @@ class AuditAutotaskCommand extends Command
         return 0;
     }
 
-    private function calculateDates(): array
+    private function calculateDates(Customer $customer): array
     {
         $start = $this->option('start');
         $end = $this->option('end');
         $frequency = $this->option('frequency');
 
+        $schedule = $customer->reportSchedules()->where('report_type', 'autotask_summary')->first();
+        $timezone = $schedule ? ($schedule->timezone ?: config('app.timezone')) : config('app.timezone');
+        
         if ($start && $end) {
             return [
-                'start' => Carbon::parse($start)->startOfDay(),
-                'end' => Carbon::parse($end)->endOfDay(),
+                'start' => Carbon::parse($start, $timezone)->startOfDay()->setTimezone('UTC'),
+                'end' => Carbon::parse($end, $timezone)->endOfDay()->setTimezone('UTC'),
             ];
         }
 
-        $now = now();
+        $now = now()->setTimezone($timezone);
         switch ($frequency) {
             case 'daily':
-                return ['start' => $now->copy()->subDay()->startOfDay(), 'end' => $now->copy()->subDay()->endOfDay()];
+                return [
+                    'start' => $now->copy()->subDay()->startOfDay()->setTimezone('UTC'), 
+                    'end' => $now->copy()->subDay()->endOfDay()->setTimezone('UTC')
+                ];
             case 'weekly':
-                return ['start' => $now->copy()->subWeek()->startOfWeek(), 'end' => $now->copy()->subWeek()->endOfWeek()];
+                return [
+                    'start' => $now->copy()->subWeek()->startOfWeek()->setTimezone('UTC'), 
+                    'end' => $now->copy()->subWeek()->endOfWeek()->setTimezone('UTC')
+                ];
             case 'monthly':
             default:
-                return ['start' => $now->copy()->subMonth()->startOfMonth(), 'end' => $now->copy()->subMonth()->endOfMonth()];
+                return [
+                    'start' => $now->copy()->subMonth()->startOfMonth()->setTimezone('UTC'), 
+                    'end' => $now->copy()->subMonth()->endOfMonth()->setTimezone('UTC')
+                ];
         }
     }
 }

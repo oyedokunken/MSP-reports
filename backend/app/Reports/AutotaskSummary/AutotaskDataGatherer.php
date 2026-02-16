@@ -60,9 +60,11 @@ class AutotaskDataGatherer
 
         $rawData = $ticketsInRange->merge($completedInRange)->merge($createdInRange)->merge($openTickets);
 
+        $timezone = $options['timezone'] ?? config('app.timezone');
+
         return $rawData->unique(function($item) {
             return $item->data_payload['ticket_id'] ?? null;
-        })->map(function($item) use ($startDate, $endDate) {
+        })->map(function($item) use ($startDate, $endDate, $timezone) {
             $payload = $item->data_payload;
             $createdDate = isset($payload['created_date']) ? Carbon::parse($payload['created_date']) : null;
             $completedDate = isset($payload['completed_date']) ? Carbon::parse($payload['completed_date']) : null;
@@ -84,10 +86,7 @@ class AutotaskDataGatherer
             if ($createdDate && $completedDate) {
                 $resolutionHours = $createdDate->diffInHours($completedDate);
             }
-            
-        $timezone = $options['timezone'] ?? config('app.timezone');
-            
-        return [
+            return [
             'ticket_id' => $payload['ticket_id'] ?? null,
             'ticket_number' => $payload['ticket_number'] ?? 'N/A',
             'title' => $payload['title'] ?? 'Untitled',
@@ -104,11 +103,11 @@ class AutotaskDataGatherer
             'queue_id' => $payload['queue_id'] ?? null,
             'contract_id' => $payload['contract_id'] ?? null,
             'billing_code_id' => $payload['billing_code_id'] ?? null,
-            'created_date' => $createdDate ? $createdDate->setTimezone($timezone)->format('M d, Y g:i A') : 'Unknown',
-            'completed_date' => $completedDate ? $completedDate->setTimezone($timezone)->format('M d, Y g:i A') : null,
-            'due_date' => $dueDate ? $dueDate->setTimezone($timezone)->format('M d, Y g:i A') : null,
-            'resolved_date' => $resolvedDate ? $resolvedDate->setTimezone($timezone)->format('M d, Y g:i A') : null,
-            'last_activity_date' => $lastActivityDate ? $lastActivityDate->setTimezone($timezone)->format('M d, Y g:i A') : null,
+            'created_date' => $createdDate ? $createdDate->toIso8601String() : 'Unknown',
+            'completed_date' => $completedDate ? $completedDate->toIso8601String() : null,
+            'due_date' => $dueDate ? $dueDate->toIso8601String() : null,
+            'resolved_date' => $resolvedDate ? $resolvedDate->toIso8601String() : null,
+            'last_activity_date' => $lastActivityDate ? $lastActivityDate->toIso8601String() : null,
             'resolution_hours' => $resolutionHours,
             'assigned_resource' => $payload['assigned_resource'] ?? null,
             'assigned_resource_role_id' => $payload['assigned_resource_role_id'] ?? null,
@@ -147,9 +146,11 @@ class AutotaskDataGatherer
             ->orderBy('data_timestamp', 'desc')
             ->get();
 
+        $timezone = $options['timezone'] ?? config('app.timezone');
+
         return $rawData->unique(function($item) {
             return $item->data_payload['time_entry_id'] ?? null;
-        })->map(function($item) {
+        })->map(function($item) use ($timezone) {
             $payload = $item->data_payload;
             $dateWorked = isset($payload['date_worked']) ? Carbon::parse($payload['date_worked']) : null;
             $startDateTime = isset($payload['start_date_time']) ? Carbon::parse($payload['start_date_time']) : null;
@@ -161,9 +162,9 @@ class AutotaskDataGatherer
                 'ticket_id' => $payload['ticket_id'] ?? null,
                 'resource_id' => $payload['resource_id'] ?? null,
                 'role_id' => $payload['role_id'] ?? null,
-                'date_worked' => $dateWorked ? $dateWorked->setTimezone($options['timezone'] ?? config('app.timezone'))->format('M d, Y') : 'Unknown',
-                'start_date_time' => $startDateTime ? $startDateTime->setTimezone($options['timezone'] ?? config('app.timezone'))->format('M d, Y H:i') : null,
-                'end_date_time' => $endDateTime ? $endDateTime->setTimezone($options['timezone'] ?? config('app.timezone'))->format('M d, Y H:i') : null,
+                'date_worked' => $dateWorked ? $dateWorked->toIso8601String() : 'Unknown',
+                'start_date_time' => $startDateTime ? $startDateTime->toIso8601String() : null,
+                'end_date_time' => $endDateTime ? $endDateTime->toIso8601String() : null,
                 'hours_worked' => $payload['hours_worked'] ?? 0,
                 'hours_to_bill' => $payload['hours_to_bill'] ?? 0,
                 'offset_hours' => $payload['offset_hours'] ?? 0,
@@ -178,7 +179,7 @@ class AutotaskDataGatherer
                 'contract_id' => $payload['contract_id'] ?? null,
                 'contract_service_id' => $payload['contract_service_id'] ?? null,
                 'contract_service_bundle_id' => $payload['contract_service_bundle_id'] ?? null,
-                'create_date_time' => $createDateTime ? $createDateTime->setTimezone($options['timezone'] ?? config('app.timezone'))->format('M d, Y H:i') : null,
+                'create_date_time' => $createDateTime ? $createDateTime->toIso8601String() : null,
                 'creator_user_id' => $payload['creator_user_id'] ?? null,
                 'last_modified_user_id' => $payload['last_modified_user_id'] ?? null,
             ];
