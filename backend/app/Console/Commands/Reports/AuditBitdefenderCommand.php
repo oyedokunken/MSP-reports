@@ -63,6 +63,11 @@ class AuditBitdefenderCommand extends Command
             $rateLimiter,
             $integration
         );
+        
+        // Determine timezone
+        $bdSchedule = $customer->reportSchedules()->where('report_type', 'bitdefender_summary')->first();
+        $timezone = $bdSchedule ? ($bdSchedule->timezone ?: config('app.timezone')) : config('app.timezone');
+        $this->line("    Using Timezone: {$timezone}");
 
         // Live Endpoints
         $liveEndpoints = collect($client->getEndpointsForCompany($externalId));
@@ -76,7 +81,7 @@ class AuditBitdefenderCommand extends Command
         $this->comment("    Fetching threats (last 30 days)...");
         $liveThreatCount = 0;
         try {
-            $startDate = now()->subDays(31);
+            $startDate = now()->setTimezone($timezone)->subDays(31);
             $allThreats = collect($client->getThreatDetections($startDate));
             
             // Filter by company ID (Bitdefender returns companyId as string)
@@ -106,7 +111,6 @@ class AuditBitdefenderCommand extends Command
 
         // 4. Get Latest Generated Report
         $this->comment("3/3 Checking Latest Generated Report...");
-        $bdSchedule = $customer->reportSchedules()->where('report_type', 'bitdefender_summary')->first();
         
         $lastReport = GeneratedReport::where('customer_id', $customerId)
             ->whereNotNull('report_data->executive_summary->total_endpoints')
