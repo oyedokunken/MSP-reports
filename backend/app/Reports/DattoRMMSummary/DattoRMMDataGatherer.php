@@ -96,7 +96,9 @@ class DattoRMMDataGatherer
             ->orderBy('data_timestamp', 'desc')
             ->get();
 
-        return $rawData->map(function($item) {
+        $timezone = $options['timezone'] ?? config('app.timezone');
+
+        return $rawData->map(function($item) use ($timezone) {
             $payload = $item->data_payload;
             $timestamp = $item->data_timestamp;
             $resolvedAt = isset($payload['resolved_at']) ? Carbon::parse($payload['resolved_at']) : null;
@@ -105,8 +107,6 @@ class DattoRMMDataGatherer
             if ($resolvedAt) {
                 $resolutionMinutes = $timestamp->diffInMinutes($resolvedAt);
             }
-            
-            $timezone = $options['timezone'] ?? config('app.timezone');
             
             return [
                 'alert_uid' => $payload['alert_uid'] ?? null,

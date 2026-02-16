@@ -23,6 +23,7 @@ class GenerateManualReport extends Command
                             {--start= : Start date (YYYY-MM-DD)}
                             {--end= : End date (YYYY-MM-DD)}
                             {--frequency= : Frequency override (daily, weekly, monthly, yearly)}
+                            {--timezone= : Timezone override (e.g., Australia/Darwin)}
                             {--no-deliver : Skip delivery jobs}';
 
     /**
@@ -42,6 +43,7 @@ class GenerateManualReport extends Command
         $startDate = $this->option('start');
         $endDate = $this->option('end');
         $frequency = $this->option('frequency');
+        $timezone = $this->option('timezone');
         $noDeliver = $this->option('no-deliver');
 
         $customer = Customer::find($customerId);
@@ -64,10 +66,13 @@ class GenerateManualReport extends Command
                 'report_type' => $reportType,
                 'frequency' => $frequency ?: 'monthly',
                 'active' => true,
-                'timezone' => 'UTC',
+                'timezone' => $timezone ?: 'Australia/Darwin',
             ]);
             // We must save it because GenerateReportAction uses its relationship and ID
             $schedule->save();
+        } elseif ($timezone) {
+            // Override schedule timezone if provided via CLI
+            $schedule->timezone = $timezone;
         }
 
         if (!$startDate || !$endDate) {
