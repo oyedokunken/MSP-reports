@@ -63,6 +63,11 @@ class VonahiSummary extends BaseReport
         $allAgents = $this->dataGatherer->gatherAgents($customer, $integrationCustomerIds);
         $allReports = $this->dataGatherer->gatherReports($customer, $integrationCustomerIds);
 
+        // Determine timezone for date display in report
+        $timezone = $options['timezone'] ?? $customer->reportSchedules()->where('report_type', 'vonahi_summary')->first()?->timezone ?? config('app.timezone');
+        $displayStart = $startDate->copy()->setTimezone($timezone);
+        $displayEnd = $endDate->copy()->setTimezone($timezone);
+
         // Filter by date range
         $assessments = $allAssessments->filter(fn($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
         $findings = $allFindings->filter(fn($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
@@ -94,9 +99,9 @@ class VonahiSummary extends BaseReport
             'generated_at' => now()->toDateTimeString(),
             'customer' => $customer,
             'period' => [
-                'start' => $this->formatDate($startDate),
-                'end' => $this->formatDate($endDate),
-                'formatted' => $this->formatDateRange($startDate, $endDate),
+                'start' => $this->formatDate($displayStart),
+                'end' => $this->formatDate($displayEnd),
+                'formatted' => $this->formatDateRange($displayStart, $displayEnd),
             ],
             'executive_summary' => $executiveSummary,
             'assessments' => $assessmentSummary['list'],
@@ -130,7 +135,7 @@ class VonahiSummary extends BaseReport
     {
         if (!$timestamp) return false;
         $ts = $timestamp instanceof Carbon ? $timestamp : Carbon::parse($timestamp);
-        return $ts->between($start->copy()->startOfDay(), $end->copy()->endOfDay());
+        return $ts->between($start, $end);
     }
 
     /**
