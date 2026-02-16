@@ -166,6 +166,7 @@ final class ReportConfigController extends Controller
 
         $schedules = ReportSchedule::where('customer_id', $customer->customer_id)
             ->where('company_id', $company->company_id)
+            ->with('template')
             ->get()
             ->map(function ($schedule) {
                 return [
@@ -258,7 +259,8 @@ final class ReportConfigController extends Controller
 
         $schedulesQuery = ReportSchedule::where('customer_id', $customer->customer_id)
             ->where('company_id', $company->company_id)
-            ->where('active', true);
+            ->where('active', true)
+            ->with('template');
 
         if ($reportType) {
             $schedulesQuery->where('report_type', $reportType);
@@ -328,6 +330,7 @@ final class ReportConfigController extends Controller
 
         $schedule = ReportSchedule::where('report_schedule_id', $schedule_id)
             ->where('company_id', $company->company_id)
+            ->with('template')
             ->firstOrFail();
 
         try {
