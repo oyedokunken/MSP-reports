@@ -22,6 +22,7 @@ class GenerateManualReport extends Command
                             {report_type : The type of report to generate (e.g., vonahi_summary)}
                             {--start= : Start date (YYYY-MM-DD)}
                             {--end= : End date (YYYY-MM-DD)}
+                            {--frequency= : Frequency override (daily, weekly, monthly, yearly)}
                             {--no-deliver : Skip delivery jobs}';
 
     /**
@@ -40,6 +41,7 @@ class GenerateManualReport extends Command
         $reportType = $this->argument('report_type');
         $startDate = $this->option('start');
         $endDate = $this->option('end');
+        $frequency = $this->option('frequency');
         $noDeliver = $this->option('no-deliver');
 
         $customer = Customer::find($customerId);
@@ -60,7 +62,7 @@ class GenerateManualReport extends Command
                 'company_id' => $customer->company_id,
                 'customer_id' => $customer->customer_id,
                 'report_type' => $reportType,
-                'frequency' => 'monthly',
+                'frequency' => $frequency ?: 'monthly',
                 'active' => true,
                 'timezone' => 'UTC',
             ]);
@@ -68,9 +70,34 @@ class GenerateManualReport extends Command
             $schedule->save();
         }
 
+        if (!$startDate || !$endDate) {
+            $now = now();
+            $freq = $frequency ?: $schedule->frequency;
+            
+            switch ($freq) {
+                case 'daily':
+                    $startDate = $startDate ?: $now->copy()->subDay()->toDateString();
+                    $endDate = $endDate ?: $now->copy()->subDay()->toDateString();
+                    break;
+                case 'weekly':
+                    $startDate = $startDate ?: $now->copy()->subWeek()->startOfWeek()->toDateString();
+                    $endDate = $endDate ?: $now->copy()->subWeek()->endOfWeek()->toDateString();
+                    break;
+                case 'yearly':
+                    $startDate = $startDate ?: $now->copy()->subYear()->startOfYear()->toDateString();
+                    $endDate = $endDate ?: $now->copy()->subYear()->endOfYear()->toDateString();
+                    break;
+                case 'monthly':
+                default:
+                    $startDate = $startDate ?: $now->copy()->subMonth()->startOfMonth()->toDateString();
+                    $endDate = $endDate ?: $now->copy()->subMonth()->endOfMonth()->toDateString();
+                    break;
+            }
+        }
+
         $options = [
-            'start_date' => $startDate ?: now()->subMonth()->startOfMonth()->toDateString(),
-            'end_date' => $endDate ?: now()->subMonth()->endOfMonth()->toDateString(),
+            'start_date' => $startDate,
+            'end_date' => $endDate,
             'preview_only' => $noDeliver,
         ];
 

@@ -73,9 +73,10 @@ final class ReportGenerationService
                 $options = $schedule->schedule_config;
             }
 
-            // Add frequency to options so report can adjust title dynamically
+            // Add frequency and timezone to options so report can adjust dynamically
             $frequency = $schedule->frequency;
             $options['frequency'] = $frequency instanceof \BackedEnum ? (string) $frequency->value : 'monthly';
+            $options['timezone'] = $schedule->timezone ?: config('app.timezone');
 
             // Generate report with Carbon dates and options
             $reportData = $reportClass->generate($schedule->customer, $startDate, $endDate, $options);
@@ -123,6 +124,7 @@ final class ReportGenerationService
                 'status' => 'completed',
                 'file_path' => $pdfPath,
                 'file_size' => $fileSize,
+                'report_data' => $reportData,
                 'retention_until' => $this->calculateRetentionDate($schedule->company),
             ]);
 

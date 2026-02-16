@@ -149,10 +149,10 @@ class AutotaskSummary extends BaseReport
             ->toArray();
 
         // Gather all data sections using DataGatherer
-        $tickets = $this->dataGatherer->gatherTickets($customer, $integrationCustomerIds, $startDate, $endDate);
-        $timeEntries = $this->dataGatherer->gatherTimeEntries($customer, $integrationCustomerIds, $startDate, $endDate);
+        $tickets = $this->dataGatherer->gatherTickets($customer, $integrationCustomerIds, $startDate, $endDate, $options);
+        $timeEntries = $this->dataGatherer->gatherTimeEntries($customer, $integrationCustomerIds, $startDate, $endDate, $options);
         $resources = $this->dataGatherer->gatherResources($customer);
-        $contracts = $this->dataGatherer->gatherContracts($customer, $integrationCustomerIds);
+        $contracts = $this->dataGatherer->gatherContracts($customer, $integrationCustomerIds, $options);
 
         // Calculate summaries
         $ticketSummary = $this->getTicketSummary($tickets, $startDate, $endDate);

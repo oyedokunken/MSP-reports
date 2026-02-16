@@ -200,6 +200,30 @@ final class AutotaskClient
     }
 
     /**
+     * Specialized method for auditing report counts.
+     * Filters specifically by completedDate.
+     * 
+     * @return array<int, array<string, mixed>>
+     */
+    public function getTicketsAudit(Carbon $startDate, Carbon $endDate, int $companyId): array
+    {
+        $response = $this->makeRequest('POST', '/Tickets/query', [
+            'filter' => [
+                ['field' => 'companyID', 'op' => 'eq', 'value' => $companyId],
+                ['field' => 'completedDate', 'op' => 'gte', 'value' => $startDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')],
+                ['field' => 'completedDate', 'op' => 'lte', 'value' => $endDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')]
+            ],
+            'MaxRecords' => 500
+        ]);
+
+        if (!$response->successful()) {
+            throw new \Exception("API Audit query failed: " . $response->body());
+        }
+
+        return $response->json('items') ?? [];
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function getTimeEntries(Carbon $startDate, Carbon $endDate): array

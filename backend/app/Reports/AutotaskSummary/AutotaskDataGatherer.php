@@ -20,31 +20,45 @@ class AutotaskDataGatherer
      * @param Carbon $endDate
      * @return Collection<int, mixed>
      */
-    public function gatherTickets(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
+    public function gatherTickets(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate, array $options = []): Collection
     {
         if (empty($integrationCustomerIds)) {
             return collect([]);
         }
 
-        $startUtc = $startDate->copy()->setTimezone('UTC');
-        $endUtc = $endDate->copy()->setTimezone('UTC');
+        $startUtcIso = $startDate->copy()->setTimezone('UTC')->toIso8601String();
+        $endUtcIso = $endDate->copy()->setTimezone('UTC')->toIso8601String();
 
         $ticketsInRange = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'ticket')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->whereBetween('data_timestamp', [$startUtc, $endUtc])
+            ->whereBetween('data_timestamp', [$startDate, $endDate])
             ->orderBy('data_timestamp', 'desc')
+            ->get();
+
+        $completedInRange = IntegrationData::where('company_id', $customer->company_id)
+            ->where('data_type', 'ticket')
+            ->whereIn('integration_customer_id', $integrationCustomerIds)
+            ->where('data_payload->completed_date', '>=', $startUtcIso)
+            ->where('data_payload->completed_date', '<=', $endUtcIso)
+            ->get();
+
+        $createdInRange = IntegrationData::where('company_id', $customer->company_id)
+            ->where('data_type', 'ticket')
+            ->whereIn('integration_customer_id', $integrationCustomerIds)
+            ->where('data_payload->created_date', '>=', $startUtcIso)
+            ->where('data_payload->created_date', '<=', $endUtcIso)
             ->get();
 
         $openTickets = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'ticket')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->where('data_payload->status', '!=', '5')
-            ->where('data_payload->created_date', '<=', $endUtc->toDateTimeString())
+            ->where('data_payload->created_date', '<=', $endUtcIso)
             ->orderBy('data_timestamp', 'desc')
             ->get();
 
-        $rawData = $ticketsInRange->merge($openTickets);
+        $rawData = $ticketsInRange->merge($completedInRange)->merge($createdInRange)->merge($openTickets);
 
         return $rawData->unique(function($item) {
             return $item->data_payload['ticket_id'] ?? null;
@@ -71,38 +85,40 @@ class AutotaskDataGatherer
                 $resolutionHours = $createdDate->diffInHours($completedDate);
             }
             
-            return [
-                'ticket_id' => $payload['ticket_id'] ?? null,
-                'ticket_number' => $payload['ticket_number'] ?? 'N/A',
-                'title' => $payload['title'] ?? 'Untitled',
-                'description' => $payload['description'] ?? null,
-                'status' => $payload['status'] ?? null,
-                'status_label' => $this->getStatusLabel($payload['status'] ?? null),
-                'priority' => $payload['priority'] ?? null,
-                'priority_label' => $this->getPriorityLabel($payload['priority'] ?? null),
-                'ticket_type' => $payload['ticket_type'] ?? null,
-                'ticket_category' => $payload['ticket_category'] ?? null,
-                'issue_type' => $payload['issue_type'] ?? null,
-                'sub_issue_type' => $payload['sub_issue_type'] ?? null,
-                'source' => $payload['source'] ?? null,
-                'queue_id' => $payload['queue_id'] ?? null,
-                'contract_id' => $payload['contract_id'] ?? null,
-                'billing_code_id' => $payload['billing_code_id'] ?? null,
-                'created_date' => $createdDate ? $createdDate->format('M d, Y g:i A') : 'Unknown',
-                'completed_date' => $completedDate ? $completedDate->format('M d, Y g:i A') : null,
-                'due_date' => $dueDate ? $dueDate->format('M d, Y g:i A') : null,
-                'resolved_date' => $resolvedDate ? $resolvedDate->format('M d, Y g:i A') : null,
-                'last_activity_date' => $lastActivityDate ? $lastActivityDate->format('M d, Y g:i A') : null,
-                'resolution_hours' => $resolutionHours,
-                'assigned_resource' => $payload['assigned_resource'] ?? null,
-                'assigned_resource_role_id' => $payload['assigned_resource_role_id'] ?? null,
-                'creator_resource_id' => $payload['creator_resource_id'] ?? null,
-                'completed_by_resource_id' => $payload['completed_by_resource_id'] ?? null,
-                'estimated_hours' => $payload['estimated_hours'] ?? 0,
-                'hours_to_be_scheduled' => $payload['hours_to_be_scheduled'] ?? 0,
-                'purchase_order_number' => $payload['purchase_order_number'] ?? null,
-                'resolution' => $payload['resolution'] ?? null,
-            ];
+        $timezone = $options['timezone'] ?? config('app.timezone');
+            
+        return [
+            'ticket_id' => $payload['ticket_id'] ?? null,
+            'ticket_number' => $payload['ticket_number'] ?? 'N/A',
+            'title' => $payload['title'] ?? 'Untitled',
+            'description' => $payload['description'] ?? null,
+            'status' => $payload['status'] ?? null,
+            'status_label' => $this->getStatusLabel($payload['status'] ?? null),
+            'priority' => $payload['priority'] ?? null,
+            'priority_label' => $this->getPriorityLabel($payload['priority'] ?? null),
+            'ticket_type' => $payload['ticket_type'] ?? null,
+            'ticket_category' => $payload['ticket_category'] ?? null,
+            'issue_type' => $payload['issue_type'] ?? null,
+            'sub_issue_type' => $payload['sub_issue_type'] ?? null,
+            'source' => $payload['source'] ?? null,
+            'queue_id' => $payload['queue_id'] ?? null,
+            'contract_id' => $payload['contract_id'] ?? null,
+            'billing_code_id' => $payload['billing_code_id'] ?? null,
+            'created_date' => $createdDate ? $createdDate->setTimezone($timezone)->format('M d, Y g:i A') : 'Unknown',
+            'completed_date' => $completedDate ? $completedDate->setTimezone($timezone)->format('M d, Y g:i A') : null,
+            'due_date' => $dueDate ? $dueDate->setTimezone($timezone)->format('M d, Y g:i A') : null,
+            'resolved_date' => $resolvedDate ? $resolvedDate->setTimezone($timezone)->format('M d, Y g:i A') : null,
+            'last_activity_date' => $lastActivityDate ? $lastActivityDate->setTimezone($timezone)->format('M d, Y g:i A') : null,
+            'resolution_hours' => $resolutionHours,
+            'assigned_resource' => $payload['assigned_resource'] ?? null,
+            'assigned_resource_role_id' => $payload['assigned_resource_role_id'] ?? null,
+            'creator_resource_id' => $payload['creator_resource_id'] ?? null,
+            'completed_by_resource_id' => $payload['completed_by_resource_id'] ?? null,
+            'estimated_hours' => $payload['estimated_hours'] ?? 0,
+            'hours_to_be_scheduled' => $payload['hours_to_be_scheduled'] ?? 0,
+            'purchase_order_number' => $payload['purchase_order_number'] ?? null,
+            'resolution' => $payload['resolution'] ?? null,
+        ];
         })->filter()->values();
     }
 
@@ -115,7 +131,7 @@ class AutotaskDataGatherer
      * @param Carbon $endDate
      * @return Collection<int, mixed>
      */
-    public function gatherTimeEntries(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate): Collection
+    public function gatherTimeEntries(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate, array $options = []): Collection
     {
         if (empty($integrationCustomerIds)) {
             return collect([]);
@@ -145,9 +161,9 @@ class AutotaskDataGatherer
                 'ticket_id' => $payload['ticket_id'] ?? null,
                 'resource_id' => $payload['resource_id'] ?? null,
                 'role_id' => $payload['role_id'] ?? null,
-                'date_worked' => $dateWorked ? $dateWorked->format('M d, Y') : 'Unknown',
-                'start_date_time' => $startDateTime ? $startDateTime->format('M d, Y H:i') : null,
-                'end_date_time' => $endDateTime ? $endDateTime->format('M d, Y H:i') : null,
+                'date_worked' => $dateWorked ? $dateWorked->setTimezone($options['timezone'] ?? config('app.timezone'))->format('M d, Y') : 'Unknown',
+                'start_date_time' => $startDateTime ? $startDateTime->setTimezone($options['timezone'] ?? config('app.timezone'))->format('M d, Y H:i') : null,
+                'end_date_time' => $endDateTime ? $endDateTime->setTimezone($options['timezone'] ?? config('app.timezone'))->format('M d, Y H:i') : null,
                 'hours_worked' => $payload['hours_worked'] ?? 0,
                 'hours_to_bill' => $payload['hours_to_bill'] ?? 0,
                 'offset_hours' => $payload['offset_hours'] ?? 0,
@@ -162,7 +178,7 @@ class AutotaskDataGatherer
                 'contract_id' => $payload['contract_id'] ?? null,
                 'contract_service_id' => $payload['contract_service_id'] ?? null,
                 'contract_service_bundle_id' => $payload['contract_service_bundle_id'] ?? null,
-                'create_date_time' => $createDateTime ? $createDateTime->format('M d, Y H:i') : null,
+                'create_date_time' => $createDateTime ? $createDateTime->setTimezone($options['timezone'] ?? config('app.timezone'))->format('M d, Y H:i') : null,
                 'creator_user_id' => $payload['creator_user_id'] ?? null,
                 'last_modified_user_id' => $payload['last_modified_user_id'] ?? null,
             ];
@@ -234,7 +250,7 @@ class AutotaskDataGatherer
      * @param array<int, int> $integrationCustomerIds
      * @return Collection<int, mixed>
      */
-    public function gatherContracts(Customer $customer, array $integrationCustomerIds): Collection
+    public function gatherContracts(Customer $customer, array $integrationCustomerIds, array $options = []): Collection
     {
         if (empty($integrationCustomerIds)) {
             return collect([]);

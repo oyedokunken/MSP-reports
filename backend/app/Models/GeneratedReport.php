@@ -57,6 +57,7 @@ class GeneratedReport extends Model
         'delivery_method',
         'error_message',
         'retention_until',
+        'report_data',
     ];
 
     protected $casts = [
@@ -65,6 +66,7 @@ class GeneratedReport extends Model
         'delivered_at' => 'datetime',
         'retention_until' => 'datetime',
         'delivered' => 'boolean',
+        'report_data' => 'array',
     ];
 
     
