@@ -25,6 +25,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use App\Models\Integration;
+use App\Models\SyncLog;
 
 final class IntegrationController extends Controller
 {
