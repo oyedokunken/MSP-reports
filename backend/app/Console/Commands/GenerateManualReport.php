@@ -98,6 +98,7 @@ class GenerateManualReport extends Command
         $options = [
             'start_date' => $startDate,
             'end_date' => $endDate,
+            'frequency' => $frequency,
             'preview_only' => $noDeliver,
         ];
 

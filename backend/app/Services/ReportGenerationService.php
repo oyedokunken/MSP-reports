@@ -75,7 +75,7 @@ final class ReportGenerationService
 
             // Add frequency and timezone to options so report can adjust dynamically
             $frequency = $schedule->frequency;
-            $options['frequency'] = $frequency instanceof \BackedEnum ? (string) $frequency->value : 'monthly';
+            $options['frequency'] = $frequency instanceof \BackedEnum ? (string) $frequency->value : ($frequency ?: 'monthly');
             $options['timezone'] = $schedule->timezone ?: config('app.timezone');
 
             // Generate report with Carbon dates and options
