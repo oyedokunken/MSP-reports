@@ -41,7 +41,7 @@ final class AuthService
         if (!$user && $authMethod !== 'ldap') {
             $this->recordFailedAttempt($ip, $email);
             throw ValidationException::withMessages([
-                'email' => ['Invalid credentials.'],
+                'email' => ['No account found with this email.'],
             ]);
         }
 
@@ -56,7 +56,7 @@ final class AuthService
         }
 
         // Success
-        $this->clearRateLimit($ip);
+        $this->clearRateLimit($ip, $email);
         
         $user->update(['last_login_at' => now()]);
         $token = $user->createToken('api-token')->plainTextToken;
@@ -103,7 +103,7 @@ final class AuthService
 
     protected function checkRateLimit(string $ip, string $email): void
     {
-        $lockoutKey = 'login_attempts:' . $ip;
+        $lockoutKey = 'login_attempts:' . $ip . ':' . $email;
         $attempts = (int) Cache::get($lockoutKey, 0);
         
         if ($attempts >= 5) {
@@ -112,7 +112,7 @@ final class AuthService
                 'email' => $email
             ]);
             throw ValidationException::withMessages([
-                'email' => ['Too many failed login attempts. Please try again in 15 minutes.'],
+                'email' => ['Too many failed login attempts. Please try again in 5 minutes.'],
             ]);
         }
     }
@@ -177,9 +177,9 @@ final class AuthService
 
     protected function recordFailedAttempt(string $ip, string $email, ?int $companyId = null): void
     {
-        $lockoutKey = 'login_attempts:' . $ip;
+        $lockoutKey = 'login_attempts:' . $ip . ':' . $email;
         $attempts = (int) Cache::get($lockoutKey, 0) + 1;
-        Cache::put($lockoutKey, $attempts, now()->addMinutes(15));
+        Cache::put($lockoutKey, $attempts, now()->addMinutes(5));
 
         Log::warning('Failed login attempt', [
             'ip' => $ip,
@@ -195,9 +195,9 @@ final class AuthService
         }
     }
 
-    protected function clearRateLimit(string $ip): void
+    protected function clearRateLimit(string $ip, string $email): void
     {
-        Cache::forget('login_attempts:' . $ip);
+        Cache::forget('login_attempts:' . $ip . ':' . $email);
     }
 
     /**

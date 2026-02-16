@@ -214,11 +214,11 @@ final class AuthController extends Controller
                     'email' => $oauthUser['email']
                 ]);
 
-                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=user_not_found');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=auto_provision_failed&email=' . urlencode($oauthUser['email']));
             }
 
             if (!$user) {
-                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=user_not_found');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=user_not_found&email=' . urlencode($oauthUser['email']));
             }
 
             // Check company and user status
@@ -325,7 +325,7 @@ final class AuthController extends Controller
                 Log::warning('Keycloak OAuth: User not found', [
                     'email' => $oauthUser['email']
                 ]);
-                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=user_not_found');
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=user_not_found&email=' . urlencode($oauthUser['email']));
             }
 
             // Check company and user status
@@ -334,7 +334,7 @@ final class AuthController extends Controller
             }
 
             if (in_array($user->status->value, ['inactive', 'locked'])) {
-                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=account_' . $user->status->value);
+                return redirect(config('auth_methods.frontend_url') . '/sign-in?error=account_' . $user->status->value . '&email=' . urlencode($user->email));
             }
 
             // Update last login
