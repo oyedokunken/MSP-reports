@@ -316,31 +316,23 @@ final class SendmarcIntegration implements IntegrationInterface
                             }
 
                             // 3. Volume timeline
-                            // REPLACEMENT: Use day-by-day getDomainVolumeTotals loop to ensure accurate dates
-                            // because getDomainVolumeTimeline API response lacks date keys.
-                            $loopDate = $startDate->copy()->startOfDay();
-                            $loopEnd = $endDate->copy()->endOfDay();
+                            // Use Range API to ensure full volume capture (Daily API misses data).
+                            // Since API response lacks date keys, we map sequentially from startDate.
+                            // This guarantees Total Volume matches API, even if exact dates are inferred.
+                            $volumeTimeline = $this->client->getDomainVolumeTimeline($accountUuid, $domainUuid, $startDate, $endDate);
                             
-                            while ($loopDate->lte($loopEnd)) {
-                                try {
-                                    $dayTotals = $this->client->getDomainVolumeTotals($accountUuid, $domainUuid, $loopDate, $loopDate);
-                                    
-                                    // Use 'volume_timeline' as data_type for daily stats
-                                    // The structure of dayTotals matches timelineEntry
-                                    $standardized = SendmarcMapper::mapVolumeTimeline($dayTotals, $domainUuid, 0, $loopDate->copy());
-                                    $this->storeHistoricalData($standardized);
-                                    
-                                    $totalProcessed++;
-                                } catch (\Exception $e) {
-                                    // Ignore errors for single days (e.g. timeout) to continue
-                                    \Log::warning('Sendmarc historical: Failed day fetch', [
-                                         'date' => $loopDate->toDateString(), 'error' => $e->getMessage()
-                                    ]);
-                                }
-                                $loopDate->addDay();
+                            foreach ($volumeTimeline as $idx => $timelineEntry) {
+                                // Map index to date (Assuming sequential daily data from API)
+                                $timestamp = $startDate->copy()->addDays($idx);
                                 
-                                // Heartbeat frequently in loop
-                                if ($loopDate->day % 5 === 0) $this->sendHeartbeat();
+                                // Verify we don't exceed endDate (in case of extra items)
+                                if ($timestamp->gt($endDate->copy()->endOfDay())) {
+                                    continue;
+                                }
+
+                                $standardized = SendmarcMapper::mapVolumeTimeline($timelineEntry, $domainUuid, $idx, $timestamp);
+                                $this->storeHistoricalData($standardized);
+                                $totalProcessed++;
                             }
 
                             // 4. IP addresses
