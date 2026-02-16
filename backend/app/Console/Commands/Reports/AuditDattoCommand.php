@@ -34,12 +34,12 @@ class AuditDattoCommand extends Command
             return 1;
         }
 
-        $dates = $this->calculateDates();
+        $dates = $this->calculateDates($customer);
         $start = $dates['start'];
         $end = $dates['end'];
 
         $this->info("=== Auditing Datto RMM: {$customer->canonical_name} ===");
-        $this->info("Period: {$start->toDateString()} to {$end->toDateString()}");
+        $this->info("Period: {$start->toDateTimeString()} to {$end->toDateTimeString()} (UTC)");
         $this->newLine();
 
         // 1. Get Integration Info
@@ -84,9 +84,11 @@ class AuditDattoCommand extends Command
 
         // 4. Get Latest Generated Report
         $this->comment("3/3 Checking Latest Generated Report...");
+        $dattoSchedule = $customer->reportSchedules()->where('report_type', 'datto_rmm_summary')->first();
         $lastReport = GeneratedReport::where('customer_id', $customerId)
             ->whereNotNull('report_data->executive_summary->devices')
-            ->orderBy('generated_at', 'desc')
+            ->when($dattoSchedule, fn($q) => $q->where('report_schedule_id', $dattoSchedule->report_schedule_id))
+            ->orderBy('generated_report_id', 'desc')
             ->first();
 
         $reportDevices = $lastReport ? ($lastReport->report_data['executive_summary']['devices']['total'] ?? 'N/A') : 'N/A';
@@ -125,7 +127,13 @@ class AuditDattoCommand extends Command
             [
                 ['Live Datto API', $liveAlertCount, $liveActionable, 'Verified Source'],
                 ['Local Database', '-', $dbAlertCount, ($dbAlertCount >= $liveActionable ? '✅ MATCH' : '⚠️ CURATED')],
-                ['Last Report (ID: ' . ($lastReport->generated_report_id ?? 'None') . ')', '-', $reportAlerts, ($reportAlerts == $dbAlertCount ? '✅ MATCH' : '⚠️ DIFFERENT')],
+                ['Last Report (ID: ' . ($lastReport->generated_report_id ?? 'None') . ')', '-', $reportAlerts, (function() use ($reportAlerts, $dbAlertCount) {
+                    if ($reportAlerts === 'N/A') return '⚠️ NO REPORT';
+                    if ($reportAlerts == $dbAlertCount) return '✅ MATCH';
+                    $diff = abs($reportAlerts - $dbAlertCount);
+                    $pct = $dbAlertCount > 0 ? round($diff / $dbAlertCount * 100, 1) : 100;
+                    return $pct <= 5 ? "✅ MATCH (~{$diff} drift)" : "⚠️ DIFFERENT (-{$diff})";
+                })()],
             ]
         );
 
@@ -137,28 +145,40 @@ class AuditDattoCommand extends Command
         return 0;
     }
 
-    private function calculateDates(): array
+    private function calculateDates(Customer $customer): array
     {
         $start = $this->option('start');
         $end = $this->option('end');
         $frequency = $this->option('frequency');
 
+        $schedule = $customer->reportSchedules()->where('report_type', 'datto_rmm_summary')->first();
+        $timezone = $schedule ? ($schedule->timezone ?: config('app.timezone')) : config('app.timezone');
+
         if ($start && $end) {
             return [
-                'start' => Carbon::parse($start)->startOfDay(),
-                'end' => Carbon::parse($end)->endOfDay(),
+                'start' => Carbon::parse($start, $timezone)->startOfDay()->setTimezone('UTC'),
+                'end' => Carbon::parse($end, $timezone)->endOfDay()->setTimezone('UTC'),
             ];
         }
 
-        $now = now()->setTimezone('Australia/Darwin');
+        $now = now()->setTimezone($timezone);
         switch ($frequency) {
             case 'daily':
-                return ['start' => $now->copy()->subDay()->startOfDay(), 'end' => $now->copy()->subDay()->endOfDay()];
+                return [
+                    'start' => $now->copy()->subDay()->startOfDay()->setTimezone('UTC'),
+                    'end' => $now->copy()->subDay()->endOfDay()->setTimezone('UTC'),
+                ];
             case 'weekly':
-                return ['start' => $now->copy()->subWeek()->startOfWeek(), 'end' => $now->copy()->subWeek()->endOfWeek()];
+                return [
+                    'start' => $now->copy()->subWeek()->startOfWeek()->setTimezone('UTC'),
+                    'end' => $now->copy()->subWeek()->endOfWeek()->setTimezone('UTC'),
+                ];
             case 'monthly':
             default:
-                return ['start' => $now->copy()->subMonth()->startOfMonth(), 'end' => $now->copy()->subMonth()->endOfMonth()];
+                return [
+                    'start' => $now->copy()->subMonth()->startOfMonth()->setTimezone('UTC'),
+                    'end' => $now->copy()->subMonth()->endOfMonth()->setTimezone('UTC'),
+                ];
         }
     }
 }
