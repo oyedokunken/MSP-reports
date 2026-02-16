@@ -74,9 +74,9 @@ class DattoRMMSummary extends BaseReport
             ->toArray();
 
         // Gather all data sections
-        $devices = $this->dataGatherer->gatherDevices($customer, $integrationCustomerIds, $startDate, $endDate);
-        $alerts = $this->dataGatherer->gatherAlerts($customer, $integrationCustomerIds, $startDate, $endDate);
-        $uptimeMetrics = $this->dataGatherer->gatherUptimeMetrics($customer, $integrationCustomerIds, $startDate, $endDate);
+        $devices = $this->dataGatherer->gatherDevices($customer, $integrationCustomerIds, $startDate, $endDate, $options);
+        $alerts = $this->dataGatherer->gatherAlerts($customer, $integrationCustomerIds, $startDate, $endDate, $options);
+        $uptimeMetrics = $this->dataGatherer->gatherUptimeMetrics($customer, $integrationCustomerIds, $startDate, $endDate, $options);
 
         // Calculate summaries
         $deviceSummary = $this->getDeviceSummary($devices);
@@ -85,67 +85,84 @@ class DattoRMMSummary extends BaseReport
         $securitySummary = $this->getSecuritySummary($devices);
 
         // Generate recommendations
-        $recommendations = $this->generateRecommendations($devices, $alerts, $complianceSummary, $securitySummary);
+    $recommendations = $this->generateRecommendations($devices, $alerts, $complianceSummary, $securitySummary);
 
-        // Create executive summary
-        $executiveSummary = [
-            'devices' => [
-                'total' => $deviceSummary['total_devices'] ?? 0,
-                'online' => $deviceSummary['online_devices'] ?? 0,
-                'offline' => $deviceSummary['offline_devices'] ?? 0,
-                'uptime_percentage' => $deviceSummary['overall_uptime'] ?? 0,
-            ],
-            'alerts' => [
-                'total' => $alertSummary['total_alerts'] ?? 0,
-                'critical' => $alertSummary['critical_alerts'] ?? 0,
-                'high' => $alertSummary['high_alerts'] ?? 0,
-                'resolved' => $alertSummary['resolved_alerts'] ?? 0,
-                'avg_resolution_time' => $alertSummary['avg_resolution_minutes'] ?? 0,
-            ],
-            'compliance' => [
-                'patch_compliance' => $complianceSummary['patch_compliance_percentage'] ?? 0,
-                'antivirus_coverage' => $securitySummary['antivirus_coverage_percentage'] ?? 0,
-                'devices_needing_reboot' => $complianceSummary['devices_needing_reboot'] ?? 0,
-            ],
-            'total_recommendations' => count($recommendations),
-            'daily_trends' => $this->getDailyTrends($alerts, $startDate, $endDate),
-        ];
+    // Exception Reporting: Sort devices by "Criticality" so the PDF shows issues first
+    $sortedDevices = $devices->sortByDesc(function($device) {
+        $score = 0;
+        // Priority 1: Servers Offline (Critical Infrastructure)
+        if (($device['device_category'] ?? '') === 'Server' && !($device['online'] ?? true)) $score += 1000;
+        // Priority 2: Reboot Required (Easy Actionable Wins)
+        if ($device['reboot_required'] ?? false) $score += 500;
+        // Priority 3: Offline Devices (General Availability)
+        if (!($device['online'] ?? true)) $score += 200;
+        // Priority 4: Patching Issues
+        if (($device['patch_status'] ?? '') !== 'Patched' && ($device['patch_status'] ?? '') !== 'FullyPatched') $score += 100;
+        
+        return $score;
+    });
 
-        return [
-            'generated_at' => now()->toDateTimeString(),
-            'customer' => $customer,
-            'customer_data' => [
-                'id' => $customer->customer_id,
-                'name' => $customer->canonical_name,
-            ],
-            'period' => [
-                'start' => $this->formatDate($startDate),
-                'end' => $this->formatDate($endDate),
-                'formatted' => $this->formatDateRange($startDate, $endDate),
-            ],
-            'executive_summary' => $executiveSummary,
-            'devices' => [
-                'data' => $devices->toArray(),
-                'summary' => $deviceSummary,
-            ],
-            'alerts' => [
-                'data' => $alerts->toArray(),
-                'summary' => $alertSummary,
-            ],
-            'compliance' => [
-                'summary' => $complianceSummary,
-            ],
-            'security' => [
-                'summary' => $securitySummary,
-            ],
-            'uptime' => [
-                'data' => $uptimeMetrics->toArray(),
-            ],
-            'options' => $options,
-            'cover_title' => 'Datto RMM ' . ucfirst($options['frequency'] instanceof \BackedEnum ? $options['frequency']->value : ($options['frequency'] ?? 'Monthly')) . ' Summary',
-            'cover_subtitle' => 'Comprehensive analysis of device health, security compliance, and infrastructure alerts.',
-            'recommendations' => $recommendations,
-        ];
+    // Create executive summary
+    $executiveSummary = [
+        'devices' => [
+            'total' => $deviceSummary['total_devices'] ?? 0,
+            'online' => $deviceSummary['online_devices'] ?? 0,
+            'offline' => $deviceSummary['offline_devices'] ?? 0,
+            'uptime_percentage' => $deviceSummary['overall_uptime'] ?? 0,
+            'server_uptime' => $deviceSummary['server_uptime'] ?? 0,
+            'workstation_uptime' => $deviceSummary['workstation_uptime'] ?? 0,
+        ],
+        'alerts' => [
+            'total' => $alertSummary['total_alerts'] ?? 0,
+            'critical' => $alertSummary['critical_alerts'] ?? 0,
+            'high' => $alertSummary['high_alerts'] ?? 0,
+            'resolved' => $alertSummary['resolved_alerts'] ?? 0,
+            'avg_resolution_time' => $alertSummary['avg_resolution_minutes'] ?? 0,
+        ],
+        'compliance' => [
+            'patch_compliance' => $complianceSummary['patch_compliance_percentage'] ?? 0,
+            'antivirus_coverage' => $securitySummary['antivirus_coverage_percentage'] ?? 0,
+            'devices_needing_reboot' => $complianceSummary['devices_needing_reboot'] ?? 0,
+        ],
+        'total_recommendations' => count($recommendations),
+        'daily_trends' => $this->getDailyTrends($alerts, $startDate, $endDate),
+    ];
+
+    return [
+        'generated_at' => now()->toDateTimeString(),
+        'customer' => $customer,
+        'customer_data' => [
+            'id' => $customer->customer_id,
+            'name' => $customer->canonical_name,
+        ],
+        'period' => [
+            'start' => $this->formatDate($startDate),
+            'end' => $this->formatDate($endDate),
+            'formatted' => $this->formatDateRange($startDate, $endDate),
+        ],
+        'executive_summary' => $executiveSummary,
+        'devices' => [
+            'data' => $sortedDevices->values()->toArray(),
+            'summary' => $deviceSummary,
+        ],
+        'alerts' => [
+            'data' => $alerts->toArray(),
+            'summary' => $alertSummary,
+        ],
+        'compliance' => [
+            'summary' => $complianceSummary,
+        ],
+        'security' => [
+            'summary' => $securitySummary,
+        ],
+        'uptime' => [
+            'data' => $uptimeMetrics->toArray(),
+        ],
+        'options' => $options,
+        'cover_title' => 'Datto RMM ' . ucfirst($options['frequency'] instanceof \BackedEnum ? $options['frequency']->value : ($options['frequency'] ?? 'Monthly')) . ' Summary',
+        'cover_subtitle' => 'Comprehensive analysis of device health, security compliance, and infrastructure alerts.',
+        'recommendations' => $recommendations,
+    ];
     }
 
     public function getTemplate(): string
@@ -199,20 +216,32 @@ class DattoRMMSummary extends BaseReport
             return 'Other';
         })->map->count()->toArray();
 
-        // Calculate overall uptime
-        $overallUptime = $total > 0 ? round(($online / $total) * 100, 1) : 0;
+    // Calculate overall uptime
+    $overallUptime = $total > 0 ? round(($online / $total) * 100, 1) : 0;
 
-        return [
-            'total_devices' => $total,
-            'online_devices' => $online,
-            'offline_devices' => $offline,
-            'suspended_devices' => $suspended,
-            'devices_needing_reboot' => $rebootRequired,
-            'overall_uptime' => $overallUptime,
-            'device_types' => $deviceTypes,
-            'os_breakdown' => $osBreakdown,
-        ];
-    }
+    // Segmented Uptime (Professional View)
+    $servers = $devices->filter(fn($d) => ($d['device_category'] ?? '') === 'Server');
+    $workstations = $devices->filter(fn($d) => ($d['device_category'] ?? '') !== 'Server');
+    
+    $serverOnline = $servers->where('online', true)->count();
+    $serverUptime = $servers->count() > 0 ? round(($serverOnline / $servers->count()) * 100, 1) : 100;
+    
+    $wsOnline = $workstations->where('online', true)->count();
+    $wsUptime = $workstations->count() > 0 ? round(($wsOnline / $workstations->count()) * 100, 1) : 0;
+
+    return [
+        'total_devices' => $total,
+        'online_devices' => $online,
+        'offline_devices' => $offline,
+        'suspended_devices' => $suspended,
+        'devices_needing_reboot' => $rebootRequired,
+        'overall_uptime' => $overallUptime,
+        'server_uptime' => $serverUptime,
+        'workstation_uptime' => $wsUptime,
+        'device_types' => $deviceTypes,
+        'os_breakdown' => $osBreakdown,
+    ];
+}
 
     /**
      * Calculate alert summary statistics
@@ -238,15 +267,23 @@ class DattoRMMSummary extends BaseReport
             ? round($resolvedAlerts->avg('resolution_minutes'), 0)
             : 0;
 
-        // Top alert types
-        $topAlerts = $alerts->groupBy(fn($alert): string => (string)($alert['diagnostics'] ?? 'unknown'))
-            ->map(function($group) {
-                return [
-                    'message' => $group->first()['diagnostics'],
-                    'count' => $group->count(),
-                    'priority' => $group->first()['priority'],
-                ];
-            })
+        // Top alert types (Filter out technical noise - Info priority)
+        $topAlerts = $alerts->filter(function($alert) {
+            $p = strtolower($alert['priority'] ?? '');
+            return !in_array($p, ['information', 'low', 'standard']);
+        })
+        ->groupBy(function($alert): string {
+            $msg = trim($alert['diagnostics'] ?? '');
+            return !empty($msg) ? $msg : 'General System Alert';
+        })
+        ->map(function($group) {
+            $msg = trim($group->first()['diagnostics'] ?? '');
+            return [
+                'message' => !empty($msg) ? $msg : 'General System Alert',
+                'count' => $group->count(),
+                'priority' => $group->first()['priority'],
+            ];
+        })
             ->sortByDesc('count')
             ->take(5)
             ->values()

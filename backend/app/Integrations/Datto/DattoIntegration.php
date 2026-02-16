@@ -157,8 +157,7 @@ final class DattoIntegration implements IntegrationInterface
                     \App\Jobs\ProcessIntegrationBatchJob::dispatch(
                         $this->integration,
                         'devices_alerts',
-                        $chunk->toArray(),
-                        $this->currentSyncLogId ?? null
+                        $chunk->toArray()
                     );
                     $batchesDispatched++;
                     $this->saveSyncState('devices', $offset + (($index + 1) * 5), $totalCustomers);
@@ -691,6 +690,7 @@ final class DattoIntegration implements IntegrationInterface
             $payload = [
                 'device_uid' => $deviceUid,
                 'hostname' => $device['hostname'] ?? 'Unknown',
+                'site_name' => $device['siteName'] ?? 'Unknown',
                 'type' => $device['deviceType']['category'] ?? 'server',
                 'os' => $device['operatingSystem'] ?? 'Unknown',
                 'ip_address' => $device['intIpAddress'] ?? $device['internalIp'] ?? null,
@@ -700,6 +700,10 @@ final class DattoIntegration implements IntegrationInterface
                     : null,
                 'model' => $device['model'] ?? null,
                 'manufacturer' => $device['manufacturer'] ?? null,
+                'antivirus_status' => $device['antivirus'] ?? null,
+                'patch_status' => $device['patchManagement'] ?? null,
+                'reboot_required' => $device['rebootRequired'] ?? false,
+                'suspended' => $device['suspended'] ?? false,
             ];
 
             $insertData[] = [

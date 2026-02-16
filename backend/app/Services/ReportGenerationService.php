@@ -469,7 +469,10 @@ final class ReportGenerationService
                     'alert_summary' => $reportData['alert_summary'] ?? [],
                     'compliance_summary' => $reportData['compliance_summary'] ?? [],
                     'security_summary' => $reportData['security_summary'] ?? [],
+                    'security' => $reportData['security'] ?? [],
+                    'compliance' => $reportData['compliance'] ?? [],
                     'devices' => $reportData['devices'] ?? [],
+                    'uptime' => $reportData['uptime'] ?? [],
                     'uptime_metrics' => $reportData['uptime_metrics'] ?? [],
                     // SaaS Monthly Summary specific variables
                     'user_activity' => $reportData['user_activity'] ?? [],
@@ -556,7 +559,10 @@ final class ReportGenerationService
                         'alert_summary' => $reportData['alert_summary'] ?? [],
                         'compliance_summary' => $reportData['compliance_summary'] ?? [],
                         'security_summary' => $reportData['security_summary'] ?? [],
+                        'security' => $reportData['security'] ?? [],
+                        'compliance' => $reportData['compliance'] ?? [],
                         'devices' => $reportData['devices'] ?? [],
+                        'uptime' => $reportData['uptime'] ?? [],
                         'uptime_metrics' => $reportData['uptime_metrics'] ?? [],
                         // SaaS Monthly Summary specific variables
                         'user_activity' => $reportData['user_activity'] ?? [],
