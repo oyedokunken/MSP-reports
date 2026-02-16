@@ -34,6 +34,7 @@ class UserResource extends JsonResource
             'auth_method' => $user->auth_method,
             'status' => $user->status,
             'permissions' => $user->permissions,
+            'scoped_customers' => $user->scoped_customers,
             'profile_picture_url' => $user->profile_picture ? '/storage/' . $user->profile_picture : null,
             'last_login_at' => $user->last_login_at?->toIso8601String(),
             'last_login' => $user->last_login_at?->toIso8601String(),
