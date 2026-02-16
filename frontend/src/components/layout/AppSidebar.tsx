@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { cn } from "@/lib/utils";
+
 import {
   LayoutDashboard,
   Cable,
@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import { hasPermission } from '@/utils/permissions'
 import { useAuth } from '@/contexts/AuthContext'
-import { useBranding } from '@/contexts/BrandingContext'
+
 import { useNotificationStore } from '@/stores/useNotificationStore'
 import { useUnmappedCustomersQuery } from '@/pages/customers/hooks/useCustomersQueries'
 import {
@@ -53,7 +53,7 @@ export default function AppSidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { branding } = useBranding()
+
   const { state } = useSidebar()
   const [createUserOpen, setCreateUserOpen] = useState(false)
   const [customersExpanded, setCustomersExpanded] = useState(() => {
@@ -180,24 +180,7 @@ export default function AppSidebar() {
             >
               {state === 'expanded' && (
                 <div className="flex items-center justify-center w-full">
-                  {branding?.logo_url && branding.logo_url !== 'null' ? (
-                    <img
-                      src={branding.logo_url}
-                      alt={branding.company_name}
-                      className="h-12 w-auto object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const fallback = target.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.classList.remove('hidden');
-                      }}
-                    />
-                  ) : null}
-
-                  <div className={cn(
-                    "flex items-center",
-                    branding?.logo_url && branding.logo_url !== 'null' ? "hidden" : ""
-                  )}>
+                  <div className="flex items-center">
                     <img
                       src="/logo.png"
                       alt="Logo"
@@ -214,24 +197,7 @@ export default function AppSidebar() {
 
               {state === 'collapsed' && (
                 <div className="flex items-center justify-center w-full">
-                  {branding?.logo_url && branding.logo_url !== 'null' ? (
-                    <img
-                      src={branding.logo_url}
-                      alt={branding.company_name}
-                      className="h-9 w-9 object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const fallback = target.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.classList.remove('hidden');
-                      }}
-                    />
-                  ) : null}
-
-                  <div className={cn(
-                    "flex items-center justify-center w-full",
-                    branding?.logo_url && branding.logo_url !== 'null' ? "hidden" : ""
-                  )}>
+                  <div className="flex items-center justify-center w-full">
                     <img
                       src="/msp-logo-icon.png"
                       alt="Logo Icon"
