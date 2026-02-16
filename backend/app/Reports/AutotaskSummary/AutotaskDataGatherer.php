@@ -301,9 +301,16 @@ class AutotaskDataGatherer
         $statusLabels = [
             1 => 'New',
             2 => 'In Progress',
+            3 => 'On Hold',
+            4 => 'Waiting Vendor',
             5 => 'Complete',
+            6 => 'Waiting Customer',
+            7 => 'Scheduled',
             8 => 'Waiting Customer',
             9 => 'Waiting Vendor',
+            10 => 'Post-Implementation',
+            11 => 'Ready to Bill',
+            12 => 'Client Portal',
         ];
         
         return $statusLabels[$statusInt] ?? 'Unknown';

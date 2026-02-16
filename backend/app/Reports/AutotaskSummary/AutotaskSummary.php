@@ -155,7 +155,7 @@ class AutotaskSummary extends BaseReport
         $contracts = $this->dataGatherer->gatherContracts($customer, $integrationCustomerIds);
 
         // Calculate summaries
-        $ticketSummary = $this->getTicketSummary($tickets);
+        $ticketSummary = $this->getTicketSummary($tickets, $startDate, $endDate);
         $timeSummary = $this->getTimeSummary($timeEntries);
         $technicianSummary = $this->getTechnicianSummary($timeEntries, $tickets, $resources);
         $contractSummary = $this->getContractSummary($contracts);
@@ -261,18 +261,41 @@ class AutotaskSummary extends BaseReport
 
     /**
      * @param Collection<int, mixed> $tickets
+     * @param Carbon $startDate
+     * @param Carbon $endDate
      * @return array<string, mixed>
      */
-    private function getTicketSummary(Collection $tickets): array
+    private function getTicketSummary(Collection $tickets, Carbon $startDate, Carbon $endDate): array
     {
         $totalTickets = $tickets->count();
-        $completedTickets = $tickets->where('completed_date', '!=', null)->count();
-        $openTickets = $totalTickets - $completedTickets;
         
-        // Calculate average resolution time
-        $resolvedTickets = $tickets->filter(fn($t) => $t['resolution_hours'] !== null);
-        $avgResolutionHours = $resolvedTickets->count() > 0 
-            ? round($resolvedTickets->avg('resolution_hours'), 1) 
+        // Count tickets completed WITHIN the period
+        $completedTickets = $tickets->filter(function($t) use ($startDate, $endDate) {
+            if (!$t['completed_date']) return false;
+            try {
+                $compDate = Carbon::parse($t['completed_date']);
+                return $compDate->between($startDate, $endDate);
+            } catch (\Exception $e) {
+                return false;
+            }
+        })->count();
+
+        // Count tickets currently OPEN (Status is NOT 5/Complete)
+        $openTickets = $tickets->where('status', '!=', 5)->count();
+        
+        // Calculate average resolution time for tickets completed THIS month
+        $resolvedInRange = $tickets->filter(function($t) use ($startDate, $endDate) {
+            if ($t['resolution_hours'] === null || !$t['completed_date']) return false;
+            try {
+                $compDate = Carbon::parse($t['completed_date']);
+                return $compDate->between($startDate, $endDate);
+            } catch (\Exception $e) {
+                return false;
+            }
+        });
+
+        $avgResolutionHours = $resolvedInRange->count() > 0 
+            ? round($resolvedInRange->avg('resolution_hours'), 1) 
             : 0;
         
         // Priority breakdown
@@ -379,7 +402,7 @@ class AutotaskSummary extends BaseReport
     {
         return [
             'total_contracts' => $contracts->count(),
-            'active_contracts' => $contracts->whereIn('status', ['active', 'importing_historical', 'syncing'])->count(),
+            'active_contracts' => $contracts->whereIn('status', ['active', 'expiring_soon'])->count(),
             'expiring_soon' => $contracts->where('status', 'expiring_soon')->count(),
             'expired_contracts' => $contracts->where('status', 'expired')->count(),
             'total_value' => $contracts->sum('contract_value'),

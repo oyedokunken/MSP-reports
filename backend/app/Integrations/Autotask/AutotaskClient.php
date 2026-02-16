@@ -137,7 +137,7 @@ final class AutotaskClient
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function getTickets(Carbon $startDate, Carbon $endDate): array
+    public function getTickets(Carbon $startDate, Carbon $endDate, ?int $companyId = null): array
     {
         $allTickets = [];
         $lastId = 0;
@@ -151,6 +151,10 @@ final class AutotaskClient
                     ['field' => 'lastActivityDate', 'op' => 'gte', 'value' => $startDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')],
                     ['field' => 'lastActivityDate', 'op' => 'lt', 'value' => $endDate->copy()->utc()->format('Y-m-d\TH:i:s\Z')]
                 ];
+
+                if ($companyId) {
+                    $filters[] = ['field' => 'companyID', 'op' => 'eq', 'value' => $companyId];
+                }
 
                 $response = $this->makeRequest('POST', '/Tickets/query', [
                     'filter' => $filters,

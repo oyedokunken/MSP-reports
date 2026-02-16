@@ -123,6 +123,8 @@ final class AutotaskMapper
                 'company_id' => $autotaskTicket['companyID'] ?? null,
                 'created_date' => $autotaskTicket['createDate'] ?? null,
                 'completed_date' => $autotaskTicket['completedDate'] ?? null,
+                'last_activity_date' => $autotaskTicket['lastActivityDate'] ?? null,
+                'issue_type' => $autotaskTicket['issueType'] ?? null,
                 'estimated_hours' => $autotaskTicket['estimatedHours'] ?? 0,
                 'hours_worked' => $autotaskTicket['hoursToBeScheduled'] ?? 0,
             ],
