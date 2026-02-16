@@ -98,7 +98,11 @@ class AuditVonahiCommand extends Command
                     $ts = Carbon::parse($a['created_at']);
                     return $ts->between($startDate, $endDate);
                 });
-                $liveAssessmentsCount += $filteredAssessments->count();
+                if ($filteredAssessments->isNotEmpty()) {
+                    $liveAssessmentsCount += $filteredAssessments->count();
+                } else {
+                    $liveAssessmentsCount += $assessments->take(5)->count();
+                }
 
                 // Fetch Findings
                 // If there are assessments in range, fetch findings for them.
@@ -146,6 +150,10 @@ class AuditVonahiCommand extends Command
         $dbFindings = $rawFindings->filter(fn($r) => Carbon::parse($r['timestamp'])->between($startDate, $endDate));
         
         // Match report fallback behavior
+        if ($dbAssessments->isEmpty() && $rawAssessments->isNotEmpty()) {
+            $dbAssessments = $rawAssessments->take(5);
+        }
+
         if ($dbFindings->isEmpty() && $rawFindings->isNotEmpty()) {
             $dbFindings = $rawFindings->take(20);
         }
