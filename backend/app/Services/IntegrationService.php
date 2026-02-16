@@ -91,6 +91,7 @@ class IntegrationService
             'data_types' => $metadata['data_types'] ?? [],
             'supports_historical' => $metadata['supports_historical'] ?? false,
             'historical_range_days' => $metadata['historical_range_days'] ?? 0,
+            'setup_instructions' => $metadata['setup_instructions'] ?? [],
         ];
     }
 

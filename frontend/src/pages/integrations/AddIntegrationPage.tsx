@@ -363,48 +363,82 @@ export default function AddIntegrationPage() {
                     </div>
                   ) : (
                     <>
-                      {config && config.credential_fields && config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden).length > 0 && (
+                      {config && config.setup_instructions && config.setup_instructions.length > 0 ? (
                         <div className="space-y-6 pt-6 border-t border-dashed">
                           <div>
-                            <h4 className="text-sm font-bold flex items-center gap-2">
+                            <h4 className="text-sm font-bold flex items-center gap-2 text-primary">
                               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                              API Credentials
+                              Agent Setup Required
                             </h4>
                             <p className="text-xs text-muted-foreground mt-1">
-                              Securely connect to the {formData.integration_type} API provider.
+                              This integration uses an agent installed on the customer's infrastructure.
                             </p>
                           </div>
-
-                          <div className="grid gap-4">
-                            <DynamicCredentialForm
-                              fields={config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden)}
-                              values={formData.credentials as Record<string, string>}
-                              onChange={handleCredentialChange}
-                            />
+                          
+                          <div className="bg-muted/30 rounded-lg p-4 border border-dashed">
+                            <h5 className="font-semibold text-sm mb-3">Installation Steps:</h5>
+                            <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                              {config.setup_instructions.map((step, idx) => (
+                                <li key={idx} className="leading-relaxed pl-1 marker:font-medium">
+                                  {step}
+                                </li>
+                              ))}
+                            </ol>
                           </div>
-                        </div>
-                      )}
 
-                      {config && config.configuration_fields && config.configuration_fields.filter((field: { hidden?: boolean }) => !field.hidden).length > 0 && (
-                        <div className="space-y-6 pt-6 border-t border-dashed">
-                          <div>
-                            <h4 className="text-sm font-bold flex items-center gap-2">
-                              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                              Configuration
-                            </h4>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Configure integration settings.
+                          <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300 rounded border border-blue-100 dark:border-blue-900 text-xs">
+                            <Info className="h-4 w-4 shrink-0" />
+                            <p>
+                              Create this integration once. Then use <strong>API Keys</strong> to connect each customer agent.
                             </p>
                           </div>
-
-                          <div className="grid gap-4">
-                            <DynamicCredentialForm
-                              fields={config.configuration_fields.filter((field: { hidden?: boolean }) => !field.hidden)}
-                              values={formData.configuration as Record<string, string>}
-                              onChange={handleConfigChange}
-                            />
-                          </div>
                         </div>
+                      ) : (
+                        <>
+                          {config && config.credential_fields && config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden).length > 0 && (
+                            <div className="space-y-6 pt-6 border-t border-dashed">
+                              <div>
+                                <h4 className="text-sm font-bold flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                  API Credentials
+                                </h4>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Securely connect to the {formData.integration_type} API provider.
+                                </p>
+                              </div>
+
+                              <div className="grid gap-4">
+                                <DynamicCredentialForm
+                                  fields={config.credential_fields.filter((field: { hidden?: boolean }) => !field.hidden)}
+                                  values={formData.credentials as Record<string, string>}
+                                  onChange={handleCredentialChange}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {config && config.configuration_fields && config.configuration_fields.filter((field: { hidden?: boolean }) => !field.hidden).length > 0 && (
+                            <div className="space-y-6 pt-6 border-t border-dashed">
+                              <div>
+                                <h4 className="text-sm font-bold flex items-center gap-2">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                  Configuration
+                                </h4>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Configure integration settings.
+                                </p>
+                              </div>
+
+                              <div className="grid gap-4">
+                                <DynamicCredentialForm
+                                  fields={config.configuration_fields.filter((field: { hidden?: boolean }) => !field.hidden)}
+                                  values={formData.configuration as Record<string, string>}
+                                  onChange={handleConfigChange}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
                     </>
                   )}

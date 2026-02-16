@@ -11,6 +11,7 @@ interface IntegrationConfig {
   data_types?: string[];
   supports_historical?: boolean;
   historical_range_days?: number;
+  setup_instructions?: string[];
 }
 
 interface ApiResponse {
