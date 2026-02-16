@@ -16,7 +16,7 @@ export function CustomerIntegrationSelector({
 }: CustomerIntegrationSelectorProps) {
   return (
     <div>
-      <div className="border rounded-lg max-h-64 overflow-y-auto">
+      <div className="border rounded-lg max-h-64 overflow-y-auto thin-scrollbar">
         {customers.map((customer) => {
           const integrations = customerIntegrations[customer.customer_id] ||
             customer.integrations?.map(i => i.integration_type) || []

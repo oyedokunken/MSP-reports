@@ -31,6 +31,10 @@ export function SupportChatbot() {
   const [showPulse, setShowPulse] = useState(true)
   const [pendingAICount, setPendingAICount] = useState(0)
   const lastProcessedIdRef = useRef<string | null>(null)
+  const sliderRef = useRef<HTMLDivElement>(null)
+  const isDownRef = useRef(false)
+  const startXRef = useRef(0)
+  const scrollLeftRef = useRef(0)
 
   const aiMessages = useAIWatcherStore((s) => s.messages)
   const aiUnreadCount = useAIWatcherStore((s) => s.unreadCount)
@@ -215,7 +219,7 @@ export function SupportChatbot() {
       </div>
 
       <CardContent className="flex-1 flex flex-col p-0 overflow-hidden bg-gradient-to-b from-background to-muted/20">
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+        <div className="flex-1 overflow-y-auto p-5 space-y-3 thin-scrollbar">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -279,12 +283,37 @@ export function SupportChatbot() {
             <p className="text-xs font-semibold text-muted-foreground mb-3">
               Quick Questions
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div
+              className="flex flex-nowrap gap-2 overflow-x-auto pb-2 thin-scrollbar cursor-grab active:cursor-grabbing select-none"
+              ref={sliderRef}
+              onMouseDown={(e) => {
+                isDownRef.current = true;
+                if(sliderRef.current) {
+                  startXRef.current = e.pageX - sliderRef.current.offsetLeft;
+                  scrollLeftRef.current = sliderRef.current.scrollLeft;
+                }
+              }}
+              onMouseLeave={() => {
+                isDownRef.current = false;
+              }}
+              onMouseUp={() => {
+                isDownRef.current = false;
+              }}
+              onMouseMove={(e) => {
+                if (!isDownRef.current) return;
+                e.preventDefault();
+                if(sliderRef.current) {
+                  const x = e.pageX - sliderRef.current.offsetLeft;
+                  const walk = (x - startXRef.current) * 2; // Scroll-fast
+                  sliderRef.current.scrollLeft = scrollLeftRef.current - walk;
+                }
+              }}
+            >
               {quickQuestions.map((question, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickQuestion(question)}
-                  className="text-xs px-3.5 py-2 rounded-full bg-gradient-to-r from-primary/15 to-primary/10 hover:from-primary/25 hover:to-primary/20 text-primary font-medium transition-all hover:scale-105 hover:shadow-md border border-primary/20"
+                  className="whitespace-nowrap flex-shrink-0 text-xs px-3.5 py-2 rounded-full bg-gradient-to-r from-primary/15 to-primary/10 hover:from-primary/25 hover:to-primary/20 text-primary font-medium transition-all hover:scale-105 hover:shadow-md border border-primary/20"
                 >
                   {question}
                 </button>

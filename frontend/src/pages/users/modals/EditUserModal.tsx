@@ -316,7 +316,7 @@ export function EditUserModal({
               disabled={isSubmitting || isLoadingCustomers}
             />
 
-            <div className="border rounded-md max-h-48 overflow-y-auto">
+            <div className="border rounded-md max-h-48 overflow-y-auto thin-scrollbar">
               {isLoadingCustomers ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">
                   <Spinner className="h-4 w-4 mx-auto mb-2" />

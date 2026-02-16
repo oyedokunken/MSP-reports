@@ -397,7 +397,7 @@ export default function ConfigureReports() {
               </CardContent>
             </Card>
 
-            <Card className="bg-primary/5 border-primary/20">
+            {/* <Card className="bg-primary/5 border-primary/20">
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Timezone</span>
@@ -412,7 +412,7 @@ export default function ConfigureReports() {
                   <span className="font-semibold">{enabledReports.length} Active</span>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         </div>
       </div>
