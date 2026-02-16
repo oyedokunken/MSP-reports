@@ -12,14 +12,14 @@ import {
     Calendar,
     Search,
     Filter,
-    LayoutGrid,
     List,
+    Folder,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
 
-export type ViewMode = 'grid' | 'table';
+export type ViewMode = "table" | "folders";
 
 interface SchedulesHeaderProps {
     onCreateSchedule: () => void;
@@ -48,12 +48,13 @@ export function SchedulesHeader({
     onStatusChange,
     onFrequencyChange,
     viewMode,
-    onViewModeChange
+    onViewModeChange,
 }: SchedulesHeaderProps) {
     const { user } = useAuth();
-    const canCreateSchedule = hasPermission(user, 'schedules', 'create');
+    const canCreateSchedule = hasPermission(user, "schedules", "create");
 
-    const activeFilterCount = (statusFilter !== 'all' ? 1 : 0) + (frequencyFilter !== 'all' ? 1 : 0);
+    const activeFilterCount =
+        (statusFilter !== "all" ? 1 : 0) + (frequencyFilter !== "all" ? 1 : 0);
 
     return (
         <div className="space-y-4">
@@ -69,7 +70,11 @@ export function SchedulesHeader({
             <div className="flex flex-col md:flex-row gap-3">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full md:w-auto h-10">
+                        <Button
+                            variant="outline"
+                            className="w-full md:w-auto h-10"
+                            disabled={viewMode === 'folders'}
+                        >
                             <Filter className="h-4 w-4 mr-2" />
                             Filters
                             {activeFilterCount > 0 && (
@@ -82,14 +87,26 @@ export function SchedulesHeader({
                     <DropdownMenuContent align="start" className="w-56">
                         <DropdownMenuLabel>Status</DropdownMenuLabel>
                         <DropdownMenuCheckboxItem
-                            checked={statusFilter === 'active'}
-                            onCheckedChange={() => onStatusChange(statusFilter === 'active' ? 'all' : 'active')}
+                            checked={statusFilter === "active"}
+                            onCheckedChange={() =>
+                                onStatusChange(
+                                    statusFilter === "active"
+                                        ? "all"
+                                        : "active",
+                                )
+                            }
                         >
                             Active
                         </DropdownMenuCheckboxItem>
                         <DropdownMenuCheckboxItem
-                            checked={statusFilter === 'inactive'}
-                            onCheckedChange={() => onStatusChange(statusFilter === 'inactive' ? 'all' : 'inactive')}
+                            checked={statusFilter === "inactive"}
+                            onCheckedChange={() =>
+                                onStatusChange(
+                                    statusFilter === "inactive"
+                                        ? "all"
+                                        : "inactive",
+                                )
+                            }
                         >
                             Inactive
                         </DropdownMenuCheckboxItem>
@@ -101,8 +118,18 @@ export function SchedulesHeader({
                                 {uniqueFrequencies.map((freq) => (
                                     <DropdownMenuCheckboxItem
                                         key={freq}
-                                        checked={frequencyFilter === freq.toLowerCase()}
-                                        onCheckedChange={() => onFrequencyChange(frequencyFilter === freq.toLowerCase() ? 'all' : freq.toLowerCase())}
+                                        checked={
+                                            frequencyFilter ===
+                                            freq.toLowerCase()
+                                        }
+                                        onCheckedChange={() =>
+                                            onFrequencyChange(
+                                                frequencyFilter ===
+                                                    freq.toLowerCase()
+                                                    ? "all"
+                                                    : freq.toLowerCase(),
+                                            )
+                                        }
                                         className="capitalize"
                                     >
                                         {formatFrequency(freq)}
@@ -113,13 +140,23 @@ export function SchedulesHeader({
                     </DropdownMenuContent>
                 </DropdownMenu>
 
-                <Tabs value={viewMode} onValueChange={(v) => onViewModeChange(v as ViewMode)} className="w-full md:w-auto">
+                <Tabs
+                    value={viewMode}
+                    onValueChange={(v) => onViewModeChange(v as ViewMode)}
+                    className="w-full md:w-auto"
+                >
                     <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 h-10 w-full justify-start">
-                        <TabsTrigger value="grid" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md flex-1 sm:flex-initial">
-                            <LayoutGrid className="h-4 w-4" />
-                            <span className="ml-2">Grid</span>
+                        <TabsTrigger
+                            value="folders"
+                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md flex-1 sm:flex-initial"
+                        >
+                            <Folder className="h-4 w-4" />
+                            <span className="ml-2">Folders</span>
                         </TabsTrigger>
-                        <TabsTrigger value="table" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md flex-1 sm:flex-initial">
+                        <TabsTrigger
+                            value="table"
+                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md flex-1 sm:flex-initial"
+                        >
                             <List className="h-4 w-4" />
                             <span className="ml-2">Table</span>
                         </TabsTrigger>
