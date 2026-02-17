@@ -131,9 +131,9 @@ export default function AppSidebar() {
     {
       label: 'Management',
       items: [
-        { path: '/admin/users', icon: UserPlus, label: 'Users', show: hasPermission(user, 'users', 'view') },
-        { path: '/admin/api-keys', icon: KeyRound, label: 'API Keys', show: hasPermission(user, 'api_keys', 'view') },
-        { path: '/admin/licenses', icon: FileBadge, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view') },
+        { path: '/admin/users', icon: UserPlus, label: 'Users', show: hasPermission(user, 'users', 'view'), tourId: 'nav-users' },
+        { path: '/admin/api-keys', icon: KeyRound, label: 'API Keys', show: hasPermission(user, 'api_keys', 'view'), tourId: 'nav-api-keys' },
+        { path: '/admin/licenses', icon: FileBadge, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view'), tourId: 'nav-licenses' },
       ]
     },
     {
@@ -141,7 +141,7 @@ export default function AppSidebar() {
       items: [
         { path: '/admin/monitoring', icon: Activity, label: 'Monitoring', show: hasPermission(user, 'monitoring', 'view'), tourId: 'nav-monitoring' },
         { path: '/admin/status', icon: ShieldCheck, label: 'System Status', show: hasPermission(user, 'monitoring', 'view'), tourId: 'nav-status' },
-        { path: '/admin/audit-logs', icon: Shield, label: 'Audit Logs', show: hasPermission(user, 'security', 'view_logs') },
+        { path: '/admin/audit-logs', icon: Shield, label: 'Audit Logs', show: hasPermission(user, 'security', 'view_logs'), tourId: 'nav-audit-logs' },
       ]
     },
     /*

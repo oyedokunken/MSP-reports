@@ -229,7 +229,7 @@ export default function FloatingNav() {
             </div>
 
             <div className="flex items-center gap-3">
-                <div className="relative" ref={searchRef}>
+                <div className="relative" ref={searchRef} data-tour="global-search">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <input
                         ref={searchInputRef}

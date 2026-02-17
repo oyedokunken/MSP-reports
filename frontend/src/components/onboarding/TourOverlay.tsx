@@ -29,6 +29,32 @@ export function TourOverlay() {
   const isFirstStep = currentStep === 0
   const isLastStep = currentStep === tourSteps.length - 1
 
+  const scrollAndPosition = useCallback(() => {
+    if (!step?.target) {
+      setTooltipPosition({
+        top: window.innerHeight / 2 - 100,
+        left: window.innerWidth / 2 - 175,
+        arrowPosition: 'top',
+      })
+      setTargetRect(null)
+      return
+    }
+
+    const element = document.querySelector(step.target)
+    if (!element) {
+      setTooltipPosition({
+        top: window.innerHeight / 2 - 100,
+        left: window.innerWidth / 2 - 175,
+        arrowPosition: 'top',
+      })
+      setTargetRect(null)
+      return
+    }
+
+    // Scroll the target element into view so sidebar items below the fold become visible
+    element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+  }, [step])
+
   const calculatePosition = useCallback(() => {
     if (!step?.target) {
       setTooltipPosition({
@@ -114,9 +140,13 @@ export function TourOverlay() {
   useEffect(() => {
     if (!isTourActive) return
 
+    // First scroll the element into view
+    scrollAndPosition()
+
+    // Then calculate position after scroll animation settles
     const timer = setTimeout(() => {
       calculatePosition()
-    }, 300)
+    }, 450)
 
     const handleResize = () => calculatePosition()
     window.addEventListener('resize', handleResize)
@@ -125,7 +155,7 @@ export function TourOverlay() {
       clearTimeout(timer)
       window.removeEventListener('resize', handleResize)
     }
-  }, [isTourActive, currentStep, calculatePosition, location.pathname])
+  }, [isTourActive, currentStep, scrollAndPosition, calculatePosition, location.pathname])
 
   useEffect(() => {
     if (!isTourActive) return
