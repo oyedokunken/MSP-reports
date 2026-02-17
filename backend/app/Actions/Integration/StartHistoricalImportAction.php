@@ -70,7 +70,7 @@ final class StartHistoricalImportAction
         $tempDate = $startDate->copy();
         while ($tempDate->lt($endDate)) {
             $chunks[] = $tempDate->copy();
-            $tempDate->addDays(7);
+            $tempDate->addDay();
         }
 
         $totalJobs = count($chunks);

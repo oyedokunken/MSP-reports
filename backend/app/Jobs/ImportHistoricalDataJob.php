@@ -54,6 +54,14 @@ final class ImportHistoricalDataJob implements ShouldQueue
         // Refresh to get latest status/total_jobs from DB
         $this->importJob->refresh();
 
+        if (in_array($this->importJob->status, ['failed', 'cancelled'])) {
+            Log::info('ImportHistoricalDataJob skipped as parent job is failed/cancelled', [
+                'import_job_id' => $this->importJob->historical_import_job_id,
+                'status' => $this->importJob->status,
+            ]);
+            return;
+        }
+
         Log::debug('ImportHistoricalDataJob started', [
             'import_job_id' => $this->importJob->historical_import_job_id,
             'chunk_date' => $this->chunkDate->toDateString(),

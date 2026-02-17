@@ -110,6 +110,7 @@ class VonahiSummary extends BaseReport
             'agents' => $agentSummary['list'],
             'latest_reports' => $reports->take(10)->values()->toArray(),
             'recommendations' => $this->buildRecommendations($findingSummary),
+            'options' => $options,
         ];
 
         return $this->filterSections($reportData, $options);
