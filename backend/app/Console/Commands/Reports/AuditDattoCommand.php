@@ -46,7 +46,12 @@ class AuditDattoCommand extends Command
         $mappings = DB::table('customer_mappings')
             ->join('integration_customers', 'customer_mappings.integration_customer_id', '=', 'integration_customers.integration_customer_id')
             ->where('customer_mappings.customer_id', $customerId)
-            ->where('integration_customers.integration_id', 2) // Datto
+            ->where('integration_customers.integration_id', function ($q) {
+                $q->select('integration_id')
+                    ->from('integrations')
+                    ->where('integration_type', 'Datto')
+                    ->limit(1);
+            })
             ->select('integration_customers.*')
             ->get();
 

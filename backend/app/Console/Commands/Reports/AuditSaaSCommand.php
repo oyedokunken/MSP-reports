@@ -36,7 +36,12 @@ class AuditSaaSCommand extends Command
         $mappings = DB::table('customer_mappings')
             ->join('integration_customers', 'customer_mappings.integration_customer_id', '=', 'integration_customers.integration_customer_id')
             ->where('customer_mappings.customer_id', $customerId)
-            ->where('integration_customers.integration_id', 7) // SaaS Alerts
+            ->where('integration_customers.integration_id', function ($q) {
+                $q->select('integration_id')
+                    ->from('integrations')
+                    ->where('integration_type', 'SaaS')
+                    ->limit(1);
+            })
             ->select('integration_customers.*')
             ->get();
 
@@ -139,7 +144,7 @@ class AuditSaaSCommand extends Command
         if ($dbEventCount != $liveEventCount && $liveEventCount !== 'N/A') {
              $this->newLine();
              $this->warn("Mismatch detected! Recommended action:");
-             $this->line("1. Run a 'historical' sync for SaaS integration (ID: 7).");
+             $this->line("1. Run a 'historical' sync for the SaaS Alerts integration.");
              $this->line("2. Verify if any events were deleted or if the sync window was too small.");
         }
 
