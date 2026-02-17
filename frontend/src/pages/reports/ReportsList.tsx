@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ConfirmationModal } from '@/components/ui/ConfirmationModal'
-import { ReportsHeader, ReportsFilters, ReportsGrid, ReportsTable, BulkGenerateModal, type ViewMode } from './components'
+import { ReportsHeader, ReportsFilters, ReportsTable, BulkGenerateModal, ReportsFolders, type ViewMode } from './components'
 import { Pagination } from '@/pages/customers/components/Pagination'
 import { useReportsList } from './hooks'
 
@@ -35,7 +35,7 @@ export default function ReportsList() {
   const [reportToDelete, setReportToDelete] = useState<number | null>(null)
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
   const [showBulkGenerateModal, setShowBulkGenerateModal] = useState(false)
-  const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [viewMode, setViewMode] = useState<ViewMode>('table')
 
   const { current_page: currentPage, last_page: totalPages, total, per_page: perPage } = pagination
 
@@ -65,8 +65,8 @@ export default function ReportsList() {
           onViewModeChange={setViewMode}
         />
 
-        {viewMode === 'grid' ? (
-          <ReportsGrid
+        {viewMode === 'folders' ? (
+          <ReportsFolders
             reports={filteredReports}
             isLoading={isLoading}
             downloading={downloading}
@@ -77,6 +77,8 @@ export default function ReportsList() {
             resending={resending}
             selectedIds={selectedReportIds}
             onToggleSelection={toggleReportSelection}
+            onBulkGenerate={() => setShowBulkGenerateModal(true)}
+            searchQuery={searchQuery}
           />
         ) : (
           <ReportsTable

@@ -4,4 +4,5 @@ export { ReportsFilters, type ViewMode } from './ReportsFilters'
 export { ReportsGrid } from './ReportsGrid'
 export { ReportsTable } from './ReportsTable'
 export { BulkGenerateModal } from './BulkGenerateModal'
+export { ReportsFolders } from './ReportsFolders'
 

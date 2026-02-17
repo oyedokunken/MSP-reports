@@ -8,13 +8,13 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Filter, Trash2, Loader2, LayoutGrid, LayoutList, Users } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Search, Filter, Trash2, Loader2, List, Folder, Users } from 'lucide-react'
 import { formatReportType } from '../utils/formatters'
-import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { hasPermission } from '@/utils/permissions'
 
-export type ViewMode = 'grid' | 'table'
+export type ViewMode = 'folders' | 'table'
 
 interface ReportsFiltersProps {
   searchQuery: string
@@ -46,7 +46,7 @@ export function ReportsFilters({
   customerId,
   selectedCount = 0,
   isDeleting = false,
-  viewMode = 'grid',
+  viewMode = 'table',
   onViewModeChange,
 }: ReportsFiltersProps) {
   const activeFilterCount = statusFilters.length + reportTypeFilters.length
@@ -74,7 +74,7 @@ export function ReportsFilters({
     <div className="flex flex-col md:flex-row gap-3">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="w-full md:w-auto h-10">
+          <Button variant="outline" className="w-full md:w-auto h-10" disabled={viewMode === 'folders'}>
             <Filter className="h-4 w-4 mr-2" />
             Filters
             {activeFilterCount > 0 && (
@@ -130,32 +130,28 @@ export function ReportsFilters({
       </DropdownMenu>
 
       {onViewModeChange && (
-        <div className="flex items-center border border-slate-200 dark:border-slate-800 rounded-md bg-white dark:bg-slate-900 p-1 h-10">
-          <button
-            onClick={() => onViewModeChange('grid')}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors rounded-md",
-              viewMode === 'grid'
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <LayoutGrid className="h-4 w-4" />
-            <span className="hidden sm:inline">Grid</span>
-          </button>
-          <button
-            onClick={() => onViewModeChange('table')}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors rounded-md",
-              viewMode === 'table'
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <LayoutList className="h-4 w-4" />
-            <span className="hidden sm:inline">Table</span>
-          </button>
-        </div>
+        <Tabs
+          value={viewMode}
+          onValueChange={(v) => onViewModeChange(v as ViewMode)}
+          className="w-full md:w-auto"
+        >
+          <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 h-10 w-full justify-start">
+            <TabsTrigger
+              value="table"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md flex-1 sm:flex-initial"
+            >
+              <List className="h-4 w-4" />
+              <span className="ml-2">Table</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="folders"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md flex-1 sm:flex-initial"
+            >
+              <Folder className="h-4 w-4" />
+              <span className="ml-2">Folders</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       )}
 
       <div className="flex-1 relative">
@@ -169,7 +165,7 @@ export function ReportsFilters({
       </div>
 
       {!customerId && onBulkGenerate && canManageReports && (
-        <Button 
+        <Button
           onClick={onBulkGenerate}
           className="w-full md:w-auto h-10"
         >

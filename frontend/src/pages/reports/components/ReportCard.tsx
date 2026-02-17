@@ -31,11 +31,11 @@ interface ReportCardProps {
   onSelect?: () => void
 }
 
-export function ReportCard({ 
-  report, 
-  downloading, 
-  onDownload, 
-  onDelete, 
+export function ReportCard({
+  report,
+  downloading,
+  onDownload,
+  onDelete,
   deleting = false,
   onResend,
   resending = false,
@@ -44,7 +44,7 @@ export function ReportCard({
 }: ReportCardProps) {
   const { user } = useAuth()
   const canManageReports = hasPermission(user, 'reports', 'generate')
-  
+
   const [showPreview, setShowPreview] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
 
@@ -68,13 +68,13 @@ export function ReportCard({
   }
 
   const formatReportType = (type: string) => {
-    return type.split('_').map(word => 
+    return type.split('_').map(word =>
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ')
   }
 
   return (
-    <AnimatedCard 
+    <AnimatedCard
       className={cn(
         "p-6 h-full flex flex-col transition-all duration-200",
         isSelected && "ring-2 ring-primary border-primary bg-primary/5"
@@ -84,8 +84,8 @@ export function ReportCard({
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div className="flex items-center gap-3">
             {canManageReports && (
-              <Checkbox 
-                checked={isSelected} 
+              <Checkbox
+                checked={isSelected}
                 onCheckedChange={onSelect}
                 className="h-5 w-5"
               />
@@ -111,7 +111,7 @@ export function ReportCard({
           <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <span className="text-foreground truncate">{report.customer_name || 'Unknown Customer'}</span>
         </div>
-        
+
         <div className="flex items-center gap-2 text-sm">
           <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <span className="text-foreground">{formatDate(report.generated_at)}</span>
@@ -171,7 +171,7 @@ export function ReportCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 disabled={report.status !== 'completed'}
                 onClick={() => setShowShareModal(true)}
               >
@@ -188,7 +188,7 @@ export function ReportCard({
               {canManageReports && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     className="text-destructive font-medium focus:text-destructive"
                     onClick={() => onDelete?.(report.generated_report_id)}
                     disabled={deleting}
