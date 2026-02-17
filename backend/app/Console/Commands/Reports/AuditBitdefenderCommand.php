@@ -16,7 +16,10 @@ use Carbon\Carbon;
 class AuditBitdefenderCommand extends Command
 {
     protected $signature = 'reports:audit-bitdefender
-                            {customer_id : The ID of the customer}';
+                            {customer_id : The ID of the customer}
+                            {--start= : Start date (YYYY-MM-DD)}
+                            {--end= : End date (YYYY-MM-DD)}
+                            {--frequency=monthly : daily, weekly, monthly}';
 
     protected $description = 'Audit BitDefender report data by comparing Live API vs Database vs Last Report';
 
@@ -34,7 +37,7 @@ class AuditBitdefenderCommand extends Command
         $this->newLine();
 
         // 1. Get Integration Info
-        $mapping = DB::table('customer_mappings')
+        $mappings = DB::table('customer_mappings')
             ->join('integration_customers', 'customer_mappings.integration_customer_id', '=', 'integration_customers.integration_customer_id')
             ->where('customer_mappings.customer_id', $customerId)
             ->where('integration_customers.integration_id', function ($q) {
@@ -44,76 +47,100 @@ class AuditBitdefenderCommand extends Command
                     ->limit(1);
             })
             ->select('integration_customers.*')
-            ->first();
+            ->get();
 
-        if (!$mapping) {
+        if ($mappings->isEmpty()) {
             $this->error("No BitDefender integration found for this customer.");
             return 1;
         }
 
-        $icId = (int) $mapping->integration_customer_id;
-        $externalId = $mapping->external_id;
+        $icIds = $mappings->pluck('integration_customer_id')->toArray();
 
         // 2. Fetch Live API Data
         $this->comment("1/3 Fetching Live Data from BitDefender API...");
-        $ic = IntegrationCustomer::find($icId);
-        $integration = $ic->integration;
-        $client = new \App\Integrations\BitDefender\BitDefenderClient(
-            $integration->credentials,
-            $rateLimiter,
-            $integration
-        );
+        $totalLiveEndpointCount = 0;
+        $totalLiveManagedCount = 0;
+        $totalLiveThreatCount = 0;
         
         // Determine timezone
         $bdSchedule = $customer->reportSchedules()->where('report_type', 'bitdefender_summary')->first();
         $timezone = $bdSchedule ? ($bdSchedule->timezone ?: config('app.timezone')) : config('app.timezone');
         $this->line("    Using Timezone: {$timezone}");
 
-        // Live Endpoints
-        $liveEndpoints = collect($client->getEndpointsForCompany($externalId));
-        $liveEndpointCount = $liveEndpoints->count();
-        $liveManagedCount = $liveEndpoints->filter(fn($e) => ($e['isManaged'] ?? false) === true)->count();
-        
-        // Live Threats (Quarantine)
-        // Note: API fetches ALL threats visible to the key. We must filter by company ID.
-        // We limit lookup to last 30 days to avoid fetching excessive history if global list is huge,
-        // matching the report's typical monthly scope.
-        $this->comment("    Fetching threats (last 30 days)...");
-        $liveThreatCount = 0;
-        try {
-            $startDate = now()->setTimezone($timezone)->subDays(31);
-            $allThreats = collect($client->getThreatDetections($startDate));
-            
-            // Filter by company ID (Bitdefender returns companyId as string)
-            $liveThreats = $allThreats->filter(fn($t) => ($t['companyId'] ?? '') == $externalId);
-            $liveThreatCount = $liveThreats->count();
-        } catch (\Exception $e) {
-            $this->warn("    ⚠️ Threat/Quarantine API Access Denied or Failed: " . $e->getMessage());
-            $liveThreatCount = 'N/A';
+        // Determine audit window
+        if ($this->option('start') && $this->option('end')) {
+            $startDateObj = Carbon::parse($this->option('start'), $timezone)->startOfDay();
+            $endDateObj = Carbon::parse($this->option('end'), $timezone)->endOfDay();
+        } else {
+            $endDateObj = now()->setTimezone($timezone)->endOfDay();
+            $startDateObj = $endDateObj->copy()->subDays(30)->startOfDay();
         }
+        $this->info("    Audit Window: {$startDateObj->toDateTimeString()} to {$endDateObj->toDateTimeString()}");
+
+        foreach ($mappings as $mapping) {
+            $ic = IntegrationCustomer::find($mapping->integration_customer_id);
+            $integration = $ic->integration;
+            $client = new \App\Integrations\BitDefender\BitDefenderClient(
+                $integration->credentials,
+                $rateLimiter,
+                $integration
+            );
+
+            // Live Endpoints
+            try {
+                $liveEndpoints = collect($client->getEndpointsForCompany($mapping->external_id));
+                $totalLiveEndpointCount += $liveEndpoints->count();
+                $totalLiveManagedCount += $liveEndpoints->filter(fn($e) => ($e['isManaged'] ?? false) === true)->count();
+            } catch (\Exception $e) {
+                $this->warn("      - [{$mapping->external_id}] ⚠️ Endpoint API Failed: " . $e->getMessage());
+            }
+
+            // Live Threats (Filtered by Window)
+            try {
+                $allThreats = collect($client->getThreatDetections($startDateObj));
+                $liveThreats = $allThreats->filter(fn($t) => 
+                    ($t['companyId'] ?? '') == $mapping->external_id &&
+                    Carbon::parse($t['detection_time'])->between($startDateObj, $endDateObj)
+                );
+                $totalLiveThreatCount += $liveThreats->count();
+            } catch (\Exception $e) {
+                $this->warn("      - [{$mapping->external_id}] ⚠️ Threat API Failed: " . $e->getMessage());
+            }
+        }
+
+        $liveEndpointCount = $totalLiveEndpointCount;
+        $liveManagedCount = $totalLiveManagedCount;
+        $liveThreatCount = $totalLiveThreatCount;
 
         // 3. Fetch Database Data (Using Gatherer logic)
         $this->comment("2/3 Querying Local Database Cache...");
         
-        // Gatherer returns latest snapshot for endpoints
-        $dbEndpoints = $gatherer->gatherEndpoints($customer, [$icId]);
+        // Gatherer returns latest snapshot for endpoints as of end of target period
+        $dbEndpoints = $gatherer->gatherEndpoints($customer, $icIds, $endDateObj, 5);
+        
+        // Strict Filter: Only count devices that actually recorded a snapshot WITHIN the audit period 
+        // (Matches the 'inRange' logic used in BitDefenderSummary.php)
+        $dbEndpoints = $dbEndpoints->filter(function($row) use ($startDateObj, $endDateObj) {
+            $ts = Carbon::parse($row['timestamp']);
+            return $ts->between($startDateObj, $endDateObj);
+        });
+
         $dbEndpointCount = $dbEndpoints->count();
         $dbManagedCount = $dbEndpoints->filter(fn($e) => ($e['payload']['is_managed'] ?? false) === true)->count();
         
         // Gatherer returns unique threats
-        $dbThreats = $gatherer->gatherThreatDetections($customer, [$icId]);
-        // Filter threats to match the 30-day window of the live fetch for fairer comparison,
-        // OR compare against total if we want to check retention. 
-        // Report logic filters by report range. Let's align with the report logic later.
-        // For DB check, we usually want to see what matches the Live API for "now".
-        // But threats are historical. Let's just count total in DB for now and note the difference.
+        $dbThreats = $gatherer->gatherThreatDetections($customer, $icIds)->filter(function($t) use ($startDateObj, $endDateObj) {
+             $ts = Carbon::parse($t['timestamp']);
+             return $ts->between($startDateObj, $endDateObj);
+        });
         $dbThreatCount = $dbThreats->count();
 
         // 4. Get Latest Generated Report
         $this->comment("3/3 Checking Latest Generated Report...");
-        
+        $frequency = $this->option('frequency') ?: 'monthly';
         $lastReport = GeneratedReport::where('customer_id', $customerId)
             ->whereNotNull('report_data->executive_summary->total_endpoints')
+            ->where('report_data->options->frequency', $frequency)
             ->when($bdSchedule, fn($q) => $q->where('report_schedule_id', $bdSchedule->report_schedule_id))
             ->orderBy('generated_report_id', 'desc')
             ->first();

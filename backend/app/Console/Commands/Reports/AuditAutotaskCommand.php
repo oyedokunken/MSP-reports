@@ -37,40 +37,46 @@ class AuditAutotaskCommand extends Command
         $dates = $this->calculateDates($customer);
         $start = $dates['start'];
         $end = $dates['end'];
+        $timezone = $dates['timezone'];
 
         $this->info("=== Auditing Autotask: {$customer->canonical_name} ===");
         $this->info("Period: {$start->toDateTimeString()} to {$end->toDateTimeString()} (UTC)");
         $this->newLine();
 
         // 1. Get Integration Info
-        $mapping = DB::table('customer_mappings')
+        $mappings = DB::table('customer_mappings')
             ->join('integration_customers', 'customer_mappings.integration_customer_id', '=', 'integration_customers.integration_customer_id')
             ->where('customer_mappings.customer_id', $customerId)
             ->where('integration_customers.integration_id', 9) // Autotask
             ->select('integration_customers.*')
-            ->first();
+            ->get();
 
-        if (!$mapping) {
+        if ($mappings->isEmpty()) {
             $this->error("No Autotask integration found for this customer.");
             return 1;
         }
 
-        $icId = (int) $mapping->integration_customer_id;
-        $externalId = (int) $mapping->external_id;
+        $icIds = $mappings->pluck('integration_customer_id')->toArray();
 
         // 2. Fetch Live API Data
         $this->comment("1/3 Fetching Live Data from Autotask API...");
-        $ic = IntegrationCustomer::find($icId);
-        $integration = $ic->integration;
-        $clientClass = "App\\Integrations\\Autotask\\AutotaskClient";
-        $client = new $clientClass($integration->credentials, $rateLimiter, $integration);
+        $totalLiveCompleted = 0;
         
-        $liveTickets = collect($client->getTicketsAudit($start->copy()->utc(), $end->copy()->utc(), $externalId));
-        $liveCompleted = $liveTickets->count(); 
+        foreach ($mappings as $mapping) {
+            $ic = IntegrationCustomer::find($mapping->integration_customer_id);
+            $integration = $ic->integration;
+            $clientClass = "App\\Integrations\\Autotask\\AutotaskClient";
+            $client = new $clientClass($integration->credentials, $rateLimiter, $integration);
+            
+            $liveTickets = collect($client->getTicketsAudit($start->copy()->utc(), $end->copy()->utc(), (int) $mapping->external_id));
+            $totalLiveCompleted += $liveTickets->count(); 
+        }
         
-        // 3. Fetch Database Data (Using Gatherer logic)
-        $this->comment("2/3 Querying Local Database Cache...");
-        $dbTickets = $gatherer->gatherTickets($customer, [$icId], $start, $end);
+        $liveCompleted = $totalLiveCompleted;
+        
+        $options = ['timezone' => $timezone];
+        $dbTickets = $gatherer->gatherTickets($customer, $icIds, $start, $end, $options);
+
         
         $dbCompleted = $dbTickets->filter(function($t) use ($start, $end) {
             if (!$t['completed_date']) return false;
@@ -110,10 +116,33 @@ class AuditAutotaskCommand extends Command
         );
 
         if ($dbCompleted != $liveCompleted) {
+            $liveTicketNumbers = $liveTickets->pluck('ticketNumber')->sort()->values()->toArray();
+            $dbTicketNumbers = $dbTickets->filter(function($t) use ($start, $end) {
+                if (!$t['completed_date']) return false;
+                $comp = Carbon::parse($t['completed_date']);
+                return $comp->between($start, $end);
+            })->pluck('ticket_number')->sort()->values()->toArray();
+
+            $this->newLine();
+            $this->info("Live Ticket Numbers: " . implode(', ', $liveTicketNumbers));
+            $this->info("DB Ticket Numbers:   " . implode(', ', $dbTicketNumbers));
+            
+            $missing = array_diff($liveTicketNumbers, $dbTicketNumbers);
+            if (!empty($missing)) {
+                $this->error("Missing from DB: " . implode(', ', $missing));
+            }
+            
+            $extra = array_diff($dbTicketNumbers, $liveTicketNumbers);
+            if (!empty($extra)) {
+                $this->warn("Extra in DB: " . implode(', ', $extra));
+            }
+        }
+
+        if ($dbCompleted != $liveCompleted) {
             $this->newLine();
             $this->warn("Mismatch detected! Recommended action:");
             $this->line("1. Run a 'historical' sync for this customer.");
-            $this->line("2. Check for orphaned records with company_id: {$externalId}");
+            $this->line("2. Check for orphaned records with external ID: " . $mappings->pluck('external_id')->implode(', '));
         }
 
         return 0;
@@ -132,6 +161,7 @@ class AuditAutotaskCommand extends Command
             return [
                 'start' => Carbon::parse($start, $timezone)->startOfDay()->setTimezone('UTC'),
                 'end' => Carbon::parse($end, $timezone)->endOfDay()->setTimezone('UTC'),
+                'timezone' => $timezone
             ];
         }
 
@@ -140,18 +170,21 @@ class AuditAutotaskCommand extends Command
             case 'daily':
                 return [
                     'start' => $now->copy()->subDay()->startOfDay()->setTimezone('UTC'), 
-                    'end' => $now->copy()->subDay()->endOfDay()->setTimezone('UTC')
+                    'end' => $now->copy()->subDay()->endOfDay()->setTimezone('UTC'),
+                    'timezone' => $timezone
                 ];
             case 'weekly':
                 return [
                     'start' => $now->copy()->subWeek()->startOfWeek()->setTimezone('UTC'), 
-                    'end' => $now->copy()->subWeek()->endOfWeek()->setTimezone('UTC')
+                    'end' => $now->copy()->subWeek()->endOfWeek()->setTimezone('UTC'),
+                    'timezone' => $timezone
                 ];
             case 'monthly':
             default:
                 return [
                     'start' => $now->copy()->subMonth()->startOfMonth()->setTimezone('UTC'), 
-                    'end' => $now->copy()->subMonth()->endOfMonth()->setTimezone('UTC')
+                    'end' => $now->copy()->subMonth()->endOfMonth()->setTimezone('UTC'),
+                    'timezone' => $timezone
                 ];
         }
     }

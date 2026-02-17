@@ -15,7 +15,7 @@ use Carbon\Carbon;
 
 class AuditSendmarcCommand extends Command
 {
-    protected $signature = 'reports:audit-sendmarc {customer_id} {--days=30} {--start=} {--end=}';
+    protected $signature = 'reports:audit-sendmarc {customer_id} {--days=30} {--start=} {--end=} {--frequency=monthly}';
 
     protected $description = 'Audit Sendmarc report data by comparing Live API vs Database vs Last Report';
 
@@ -50,6 +50,9 @@ class AuditSendmarcCommand extends Command
             return 1;
         }
 
+        $integrationCode = DB::table('integrations')
+            ->where('integration_id', $mappings->first()->integration_id)
+            ->first();
         $integration = \App\Models\Integration::find($mappings->first()->integration_id);
         
         // Determine timezone
@@ -120,12 +123,14 @@ class AuditSendmarcCommand extends Command
 
         // 4. Get Latest Generated Report
         $this->comment("3/3 Checking Latest Generated Report...");
-        
+        $frequency = $this->option('frequency') ?: 'monthly';
         $lastReport = GeneratedReport::where('customer_id', $customerId)
             ->whereNotNull('report_data->executive_summary->total_emails')
+            ->where('report_data->options->frequency', $frequency)
             ->when($smSchedule, fn($q) => $q->where('report_schedule_id', $smSchedule->report_schedule_id))
             ->orderBy('generated_report_id', 'desc')
             ->first();
+
 
         $reportTotal = $lastReport ? ($lastReport->report_data['executive_summary']['total_emails'] ?? 'N/A') : 'N/A';
         $reportCompliance = $lastReport ? ($lastReport->report_data['executive_summary']['compliance_rate'] ?? 'N/A') : 'N/A';

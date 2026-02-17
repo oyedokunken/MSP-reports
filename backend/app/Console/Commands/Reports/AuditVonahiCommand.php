@@ -15,7 +15,7 @@ use Carbon\Carbon;
 
 class AuditVonahiCommand extends Command
 {
-    protected $signature = 'reports:audit-vonahi {customer_id} {--days=30} {--start=} {--end=}';
+    protected $signature = 'reports:audit-vonahi {customer_id} {--days=30} {--start=} {--end=} {--frequency=monthly}';
 
     protected $description = 'Audit Vonahi report data by comparing Live API vs Database vs Last Report';
 
@@ -173,12 +173,10 @@ class AuditVonahiCommand extends Command
 
         // 4. Get Latest Generated Report
         $this->comment("3/3 Checking Latest Generated Report...");
-        
+        $frequency = $this->option('frequency') ?: 'monthly';
         $lastReport = GeneratedReport::where('customer_id', $customerId)
-            ->whereHas('reportSchedule', function($q) {
-                $q->where('report_type', 'vonahi_summary');
-            })
             ->whereNotNull('report_data->executive_summary->total_assessments')
+            ->where('report_data->options->frequency', $frequency)
             ->orderBy('generated_report_id', 'desc')
             ->first();
 

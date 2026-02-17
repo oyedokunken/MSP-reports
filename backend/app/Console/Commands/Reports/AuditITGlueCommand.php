@@ -11,11 +11,15 @@ use App\Reports\ITGlueSummary\ITGlueDataGatherer;
 use App\Services\RateLimiter;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AuditITGlueCommand extends Command
 {
     protected $signature = 'reports:audit-itglue
-                            {customer_id : The ID of the customer}';
+                            {customer_id : The ID of the customer}
+                            {--start= : Start date (YYYY-MM-DD)}
+                            {--end= : End date (YYYY-MM-DD)}
+                            {--frequency=monthly : daily, weekly, monthly}';
 
     protected $description = 'Audit ITGlue report data by comparing Live API vs Database vs Last Report';
 
@@ -33,7 +37,7 @@ class AuditITGlueCommand extends Command
         $this->newLine();
 
         // 1. Get Integration Info
-        $mapping = DB::table('customer_mappings')
+        $mappings = DB::table('customer_mappings')
             ->join('integration_customers', 'customer_mappings.integration_customer_id', '=', 'integration_customers.integration_customer_id')
             ->where('customer_mappings.customer_id', $customerId)
             ->where('integration_customers.integration_id', function ($q) {
@@ -43,43 +47,50 @@ class AuditITGlueCommand extends Command
                     ->limit(1);
             })
             ->select('integration_customers.*')
-            ->first();
+            ->get();
 
-        if (!$mapping) {
+        if ($mappings->isEmpty()) {
             $this->error("No ITGlue integration found for this customer.");
             return 1;
         }
 
-        $icId = (int) $mapping->integration_customer_id;
-        $externalId = $mapping->external_id;
+        $icIds = $mappings->pluck('integration_customer_id')->toArray();
 
         // 2. Fetch Live API Data
         $this->comment("1/3 Fetching Live Data from ITGlue API...");
-        $ic = IntegrationCustomer::find($icId);
-        $integration = $ic->integration;
-        $client = new \App\Integrations\ITGlue\ITGlueClient(
-            $integration->credentials,
-            $rateLimiter,
-            $integration
-        );
+        $totalLiveSslCount = 0;
+        $totalLiveDomainCount = 0;
+        $totalLiveFlexibleAssets = 0;
+        
+        foreach ($mappings as $mapping) {
+            $ic = IntegrationCustomer::find($mapping->integration_customer_id);
+            $integration = $ic->integration;
+            $client = new \App\Integrations\ITGlue\ITGlueClient(
+                $integration->credentials,
+                $rateLimiter,
+                $integration
+            );
 
-        $liveSslCerts = collect($client->getSslCertificates(['organization_id' => $externalId]));
-        $liveDomains = collect($client->getDomains(['organization_id' => $externalId]));
+            $liveSslCerts = collect($client->getSslCertificates(['organization_id' => $mapping->external_id]));
+            $liveDomains = collect($client->getDomains(['organization_id' => $mapping->external_id]));
 
-        // For flexible assets, we need to find license type IDs first
-        $liveFlexibleAssets = 0;
-        try {
-            $licenseTypeIds = $client->findLicenseAssetTypeIds();
-            foreach ($licenseTypeIds as $typeId) {
-                $assets = $client->getFlexibleAssets($typeId, $externalId);
-                $liveFlexibleAssets += count($assets);
+            $totalLiveSslCount += $liveSslCerts->count();
+            $totalLiveDomainCount += $liveDomains->count();
+
+            try {
+                $licenseTypeIds = $client->findLicenseAssetTypeIds();
+                foreach ($licenseTypeIds as $typeId) {
+                    $assets = $client->getFlexibleAssets($typeId, $mapping->external_id);
+                    $totalLiveFlexibleAssets += count($assets);
+                }
+            } catch (\Exception $e) {
+                $this->warn("  Could not fetch flexible assets for {$ic->name}: " . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            $this->warn("  Could not fetch flexible assets: " . $e->getMessage());
         }
 
-        $liveSslCount = $liveSslCerts->count();
-        $liveDomainCount = $liveDomains->count();
+        $liveSslCount = $totalLiveSslCount;
+        $liveDomainCount = $totalLiveDomainCount;
+        $liveFlexibleAssets = $totalLiveFlexibleAssets;
 
         // 3. Fetch Database Data (Using Gatherer logic)
         $this->comment("2/3 Querying Local Database Cache...");
@@ -88,9 +99,15 @@ class AuditITGlueCommand extends Command
         $timezone = $customerSchedule ? ($customerSchedule->timezone ?: config('app.timezone')) : config('app.timezone');
         $options = ['timezone' => $timezone];
         
-        $dbCerts = $gatherer->gatherCertificates($customer, [$icId], $options);
-        $dbDomains = $gatherer->gatherDomains($customer, [$icId], $options);
-        $dbLicenses = $gatherer->gatherLicenses($customer, [$icId]);
+        $endDate = $this->option('end') 
+            ? Carbon::parse($this->option('end'), $timezone)->endOfDay() 
+            : now()->setTimezone($timezone)->endOfDay();
+
+        // Use 5-day activity window to match standard report logic
+        $dbCerts = $gatherer->gatherCertificates($customer, $icIds, $options, $endDate, 5);
+        $dbDomains = $gatherer->gatherDomains($customer, $icIds, $options, $endDate, 5);
+        $dbLicenses = $gatherer->gatherLicenses($customer, $icIds, $endDate, 5);
+
 
         $dbSslCount = $dbCerts->count();
         $dbDomainCount = $dbDomains->count();
@@ -98,9 +115,11 @@ class AuditITGlueCommand extends Command
 
         // 4. Get Latest Generated Report
         $this->comment("3/3 Checking Latest Generated Report...");
+        $frequency = $this->option('frequency') ?: 'monthly';
         $itglueSchedule = $customer->reportSchedules()->where('report_type', 'itglue_summary')->first();
         $lastReport = GeneratedReport::where('customer_id', $customerId)
             ->whereNotNull('report_data->executive_summary->ssl_certificates')
+            ->where('report_data->options->frequency', $frequency)
             ->when($itglueSchedule, fn($q) => $q->where('report_schedule_id', $itglueSchedule->report_schedule_id))
             ->orderBy('generated_report_id', 'desc')
             ->first();

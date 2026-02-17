@@ -43,50 +43,86 @@ class AuditDattoCommand extends Command
         $this->newLine();
 
         // 1. Get Integration Info
-        $mapping = DB::table('customer_mappings')
+        $mappings = DB::table('customer_mappings')
             ->join('integration_customers', 'customer_mappings.integration_customer_id', '=', 'integration_customers.integration_customer_id')
             ->where('customer_mappings.customer_id', $customerId)
             ->where('integration_customers.integration_id', 2) // Datto
             ->select('integration_customers.*')
-            ->first();
+            ->get();
 
-        if (!$mapping) {
+        if ($mappings->isEmpty()) {
             $this->error("No Datto integration found for this customer.");
             return 1;
         }
 
-        $icId = (int) $mapping->integration_customer_id;
-        $externalId = $mapping->external_id;
+        $icIds = $mappings->pluck('integration_customer_id')->toArray();
 
         // 2. Fetch Live API Data
         $this->comment("1/3 Fetching Live Data from Datto API...");
-        $ic = IntegrationCustomer::find($icId);
-        $integration = $ic->integration;
-        $clientClass = "App\\Integrations\\Datto\\DattoClient";
-        $client = new $clientClass($integration->credentials, $rateLimiter, $integration);
+        $totalLiveDeviceCount = 0;
+        $totalLiveAlertCount = 0;
+        $totalLiveActive = 0;
+        $totalLiveStale = 0;
+        $totalLiveActionable = 0;
         
-        $liveDevices = collect($client->getRmmDevices($externalId));
-        $liveOpenAlerts = collect($client->getRmmAlerts($externalId, true));
-        $liveResolvedAlerts = collect($client->getRmmAlerts($externalId, false, $start));
+        foreach ($mappings as $mapping) {
+            $ic = IntegrationCustomer::find($mapping->integration_customer_id);
+            $integration = $ic->integration;
+            $clientClass = "App\\Integrations\\Datto\\DattoClient";
+            $client = new $clientClass($integration->credentials, $rateLimiter, $integration);
+            
+            $liveDevices = collect($client->getRmmDevices($mapping->external_id));
+            $liveOpenAlerts = collect($client->getRmmAlerts($mapping->external_id, true));
+            $liveResolvedAlerts = collect($client->getRmmAlerts($mapping->external_id, false, $start));
+            
+            $totalLiveDeviceCount += $liveDevices->count();
+            
+            $mappingStale = $liveDevices->filter(function($d) {
+                $lastSeen = isset($d['lastSeen']) ? Carbon::createFromTimestampMs($d['lastSeen']) : null;
+                return !$lastSeen || $lastSeen->lt(now()->subDays(5));
+            })->count();
+            
+            $totalLiveStale += $mappingStale;
+            $totalLiveActive += ($liveDevices->count() - $mappingStale);
+            
+            $allAlerts = $liveOpenAlerts->merge($liveResolvedAlerts);
+            $totalLiveAlertCount += $allAlerts->count();
+            
+            $mappingActionable = $allAlerts->filter(function($a) {
+                $p = $a['priority'] ?? '';
+                return in_array($p, ['Critical', 'High', 'Standard', 'Warning']);
+            })->count();
+            
+            $totalLiveActionable += $mappingActionable;
+        }
         
-        $liveDeviceCount = $liveDevices->count();
-        $liveAlertCount = $liveOpenAlerts->merge($liveResolvedAlerts)->count();
+        $liveDeviceCount = $totalLiveDeviceCount;
+        $liveAlertCount = $totalLiveAlertCount;
+        $liveActive = $totalLiveActive;
+        $liveStale = $totalLiveStale;
+        $liveActionable = $totalLiveActionable;
         
-        $options = ['timezone' => 'Australia/Darwin'];
+        $schedule = $customer->reportSchedules()->where('report_type', 'datto_rmm_summary')->first();
+        $timezone = $schedule ? ($schedule->timezone ?: config('app.timezone')) : config('app.timezone');
+        $options = ['timezone' => $timezone];
         
         // 3. Fetch Database Data (Using Gatherer logic)
         $this->comment("2/3 Querying Local Database Cache...");
-        $dbDevices = $gatherer->gatherDevices($customer, [$icId], $start, $end, $options);
-        $dbAlerts = $gatherer->gatherAlerts($customer, [$icId], $start, $end, $options);
+        // Use 5-day activity window to match standard report logic
+        $dbDevices = $gatherer->gatherDevices($customer, $icIds, $start, $end, $options, 5);
+        $dbAlerts = $gatherer->gatherAlerts($customer, $icIds, $start, $end, $options);
+
         
         $dbDeviceCount = $dbDevices->count();
         $dbAlertCount = $dbAlerts->count();
 
         // 4. Get Latest Generated Report
         $this->comment("3/3 Checking Latest Generated Report...");
+        $frequency = $this->option('frequency') ?: 'monthly';
         $dattoSchedule = $customer->reportSchedules()->where('report_type', 'datto_rmm_summary')->first();
         $lastReport = GeneratedReport::where('customer_id', $customerId)
             ->whereNotNull('report_data->executive_summary->devices')
+            ->where('report_data->options->frequency', $frequency)
             ->when($dattoSchedule, fn($q) => $q->where('report_schedule_id', $dattoSchedule->report_schedule_id))
             ->orderBy('generated_report_id', 'desc')
             ->first();
@@ -98,11 +134,8 @@ class AuditDattoCommand extends Command
         $this->newLine();
         $this->info("Device Count Comparison:");
         
-        $liveStale = $liveDevices->filter(function($d) {
-            $lastSeen = isset($d['lastSeen']) ? Carbon::createFromTimestampMs($d['lastSeen']) : null;
-            return !$lastSeen || $lastSeen->lt(now()->subDays(30));
-        })->count();
-        $liveActive = $liveDeviceCount - $liveStale;
+        // Use the accumulated counts from all integration mappings
+        // $liveStale and $liveActive are already calculated with the 5-day window in the loop above
 
         $this->table(
             ['Source', 'Total', 'Active (Window)', 'Stale', 'Status'],
