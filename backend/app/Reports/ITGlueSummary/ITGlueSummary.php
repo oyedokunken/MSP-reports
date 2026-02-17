@@ -84,18 +84,18 @@ class ITGlueSummary extends BaseReport
             ->pluck('integration_customers.integration_customer_id')
             ->toArray();
 
-        // Gather licenses using DataGatherer
-        $licenses = $this->dataGatherer->gatherLicenses($customer, $integrationCustomerIds); // License data doesn't use dates heavily
+        // Gather licenses using DataGatherer (Prune stale entries old than 5 days)
+        $licenses = $this->dataGatherer->gatherLicenses($customer, $integrationCustomerIds, $endDate, 5); 
         $licenseSummary = $this->getLicenseSummary($licenses);
         $licenseRecommendations = $this->getLicenseRecommendations($licenses);
 
-        // Gather SSL certificates using DataGatherer
-        $certificates = $this->dataGatherer->gatherCertificates($customer, $integrationCustomerIds, $options);
+        // Gather SSL certificates using DataGatherer (Prune stale entries)
+        $certificates = $this->dataGatherer->gatherCertificates($customer, $integrationCustomerIds, $options, $endDate, 5);
         $sslSummary = $this->getCertificateSummary($certificates);
         $sslAlerts = $this->getCertificateAlerts($certificates);
 
-        // Gather domains using DataGatherer
-        $domains = $this->dataGatherer->gatherDomains($customer, $integrationCustomerIds, $options);
+        // Gather domains using DataGatherer (Prune stale entries)
+        $domains = $this->dataGatherer->gatherDomains($customer, $integrationCustomerIds, $options, $endDate, 5);
         $domainSummary = $this->getDomainSummary($domains);
         $domainAlerts = $this->getDomainAlerts($domains);
 
@@ -134,6 +134,7 @@ class ITGlueSummary extends BaseReport
                 'end' => $this->formatDate($endDate),
                 'formatted' => $this->formatDateRange($startDate, $endDate),
             ],
+            'options' => $options,
             'executive_summary' => $executiveSummary,
             'licenses' => [
                 'data' => $licenses->toArray(),

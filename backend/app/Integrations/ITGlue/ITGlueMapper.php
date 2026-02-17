@@ -130,7 +130,7 @@ final class ITGlueMapper
 
         return [
             'integration_customer_id' => $attributes['organization-id'] ?? null,
-            'data_type'               => 'flexible_asset',
+            'data_type'               => \App\Integrations\Contracts\IntegrationDataType::FLEXIBLE_ASSETS,
             'timestamp'               => isset($attributes['updated-at'])
                 ? Carbon::parse($attributes['updated-at'])
                 : now(),

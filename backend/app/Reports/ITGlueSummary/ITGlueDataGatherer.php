@@ -19,17 +19,23 @@ class ITGlueDataGatherer
      * @param array<int, int> $integrationCustomerIds
      * @return Collection<int, mixed>
      */
-    public function gatherLicenses(Customer $customer, array $integrationCustomerIds): Collection
+    public function gatherLicenses(Customer $customer, array $integrationCustomerIds, ?Carbon $endDate = null, int $activityWindowDays = 5): Collection
     {
         if (empty($integrationCustomerIds)) {
             return collect([]);
         }
 
-        $rawData = IntegrationData::where('company_id', $customer->company_id)
+        $query = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', IntegrationDataType::FLEXIBLE_ASSETS)
-            ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->orderBy('data_timestamp', 'desc')
-            ->get();
+            ->whereIn('integration_customer_id', $integrationCustomerIds);
+
+        if ($endDate) {
+            $query->where('data_timestamp', '>=', $endDate->copy()->subDays($activityWindowDays)->startOfDay())
+                  ->where('data_timestamp', '<=', $endDate->copy()->endOfDay());
+        }
+
+        $rawData = $query->orderBy('data_timestamp', 'desc')->get();
+        // Filter for only Microsoft License flexible asset types
 
         // Filter for only Microsoft License flexible asset types
         $licenseData = $rawData->filter(function($item) {
@@ -80,17 +86,22 @@ class ITGlueDataGatherer
      * @param array<string, mixed> $options
      * @return Collection<int, mixed>
      */
-    public function gatherCertificates(Customer $customer, array $integrationCustomerIds, array $options = []): Collection
+    public function gatherCertificates(Customer $customer, array $integrationCustomerIds, array $options = [], ?Carbon $endDate = null, int $activityWindowDays = 5): Collection
     {
         if (empty($integrationCustomerIds)) {
             return collect([]);
         }
 
-        $rawData = IntegrationData::where('company_id', $customer->company_id)
+        $query = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', IntegrationDataType::SSL_CERTIFICATE)
-            ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->orderBy('data_timestamp', 'desc')
-            ->get();
+            ->whereIn('integration_customer_id', $integrationCustomerIds);
+
+        if ($endDate) {
+            $query->where('data_timestamp', '>=', $endDate->copy()->subDays($activityWindowDays)->startOfDay())
+                  ->where('data_timestamp', '<=', $endDate->copy()->endOfDay());
+        }
+
+        $rawData = $query->orderBy('data_timestamp', 'desc')->get();
 
         $timezone = $options['timezone'] ?? config('app.timezone');
 
@@ -141,17 +152,22 @@ class ITGlueDataGatherer
      * @param array<string, mixed> $options
      * @return Collection<int, mixed>
      */
-    public function gatherDomains(Customer $customer, array $integrationCustomerIds, array $options = []): Collection
+    public function gatherDomains(Customer $customer, array $integrationCustomerIds, array $options = [], ?Carbon $endDate = null, int $activityWindowDays = 5): Collection
     {
         if (empty($integrationCustomerIds)) {
             return collect([]);
         }
 
-        $rawData = IntegrationData::where('company_id', $customer->company_id)
+        $query = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', IntegrationDataType::DOMAINS)
-            ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->orderBy('data_timestamp', 'desc')
-            ->get();
+            ->whereIn('integration_customer_id', $integrationCustomerIds);
+
+        if ($endDate) {
+            $query->where('data_timestamp', '>=', $endDate->copy()->subDays($activityWindowDays)->startOfDay())
+                  ->where('data_timestamp', '<=', $endDate->copy()->endOfDay());
+        }
+
+        $rawData = $query->orderBy('data_timestamp', 'desc')->get();
 
         $timezone = $options['timezone'] ?? config('app.timezone');
 
