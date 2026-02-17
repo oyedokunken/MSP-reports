@@ -176,7 +176,7 @@
     @endif
 
     {{-- Uptime Trend Section --}}
-    @if(isset($uptime_trend) && in_array('uptime_trend', $sections_to_render ?? ['uptime_trend']))
+    @if(isset($uptime_trend))
         <h2 class="section-title">Network Availability Trend</h2>
         <p style="color: #6b7280; font-size: 10px; margin-bottom: 12px;">Average uptime across all {{ $summary['total_devices'] }} monitored devices over different time periods.</p>
         <div class="trend-grid">
@@ -248,7 +248,7 @@
     @endif
 
     {{-- Availability Watchlist (Top Issues) --}}
-    @if(in_array('top_issues', $sections_to_render ?? ['top_issues']) && count($top_issues ?? []) > 0)
+    @if(count($top_issues ?? []) > 0)
         <h2 class="section-title">Availability Watchlist</h2>
         <p style="color: #6b7280; font-size: 10px; margin-bottom: 10px;">Top {{ count($top_issues) }} devices with the lowest average uptime in the last 30 days.</p>
         <table class="top-issues-table">

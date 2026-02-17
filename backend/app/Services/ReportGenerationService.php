@@ -491,6 +491,9 @@ final class ReportGenerationService
                     'groups' => $reportData['groups'] ?? [],
                     'infrastructure' => $reportData['infrastructure'] ?? [],
                     'top_issues' => $reportData['top_issues'] ?? [],
+                    'uptime_trend' => $reportData['uptime_trend'] ?? [],
+                    'offline_devices' => $reportData['offline_devices'] ?? [],
+                    'all_devices' => $reportData['all_devices'] ?? [],
                     // CIPP M365 Summary specific variables
                     'user_identity' => $reportData['user_identity'] ?? [],
                     'license_utilization' => $reportData['license_utilization'] ?? [],
@@ -581,6 +584,9 @@ final class ReportGenerationService
                         'groups' => $reportData['groups'] ?? [],
                         'infrastructure' => $reportData['infrastructure'] ?? [],
                         'top_issues' => $reportData['top_issues'] ?? [],
+                        'uptime_trend' => $reportData['uptime_trend'] ?? [],
+                        'offline_devices' => $reportData['offline_devices'] ?? [],
+                        'all_devices' => $reportData['all_devices'] ?? [],
                         // CIPP M365 Summary specific variables
                         'user_identity' => $reportData['user_identity'] ?? [],
                         'license_utilization' => $reportData['license_utilization'] ?? [],
