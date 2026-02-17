@@ -185,50 +185,51 @@ final class SaaSIntegration implements IntegrationInterface
         ]);
 
         foreach ($customers as $index => $intCustomer) {
-            if ($index % 5 === 0) {
+            if ($index % 2 === 0) {
                 $this->sendHeartbeat();
             }
 
-            try {
-                // Use getAllEvents for complete data with scroll pagination
-                $events = $this->client->getAllEvents([
-                    'customerId' => $intCustomer->external_id,
-                    'start'      => $startDate->copy()->utc()->toIso8601String(),
-                    'end'        => $endDate->copy()->utc()->toIso8601String(),
-                    'size'       => 500,
-                ]);
+            // Slide through the window in 2-day increments to stay under the API's 10k limit
+            $currentStart = $startDate->copy();
+            while ($currentStart < $endDate) {
+                $currentEnd = $currentStart->copy()->addDays(2);
+                if ($currentEnd > $endDate) $currentEnd = $endDate->copy();
 
-                collect($events)->chunk(200)->each(function ($chunk) use (
-                    $intCustomer,
-                    &$totalEvents,
-                    &$errors
-                ) {
-                    $batch = [];
+                try {
+                    $events = $this->client->getAllEvents([
+                        'customerId' => $intCustomer->external_id,
+                        'start'      => $currentStart->copy()->utc()->toIso8601String(),
+                        'end'        => $currentEnd->copy()->utc()->toIso8601String(),
+                        'size'       => 500,
+                    ]);
 
-                    foreach ($chunk as $event) {
-                        try {
-                            $mapped = SaaSMapper::mapEvent($event, $intCustomer->integration_customer_id);
-
-                            $batch[] = [
-                                'company_id'              => $this->integration->company_id,
-                                'integration_id'          => $this->integration->integration_id,
-                                'integration_customer_id' => $mapped['integration_customer_id'],
-                                'external_id'             => $mapped['external_id'],
-                                'data_type'               => $mapped['data_type'],
-                                'data_timestamp'          => $mapped['timestamp']->format('Y-m-d H:i:s'),
-                                'data_payload'            => json_encode($mapped['payload']),
-                                'imported_at'             => now()->toDateTimeString(),
-                                'data_version'            => 1,
-                            ];
-
-                            $totalEvents++;
-                        } catch (Throwable $e) {
-                            $errors[] = "Event mapping failed for customer {$intCustomer->name}: {$e->getMessage()}";
+                    collect($events)->chunk(200)->each(function ($chunk) use (
+                        $intCustomer,
+                        &$totalEvents,
+                        &$errors
+                    ) {
+                        $batch = [];
+                        foreach ($chunk as $event) {
+                            try {
+                                $mapped = SaaSMapper::mapEvent($event, $intCustomer->integration_customer_id);
+                                $batch[] = [
+                                    'company_id'              => $this->integration->company_id,
+                                    'integration_id'          => $this->integration->integration_id,
+                                    'integration_customer_id' => $mapped['integration_customer_id'],
+                                    'external_id'             => $mapped['external_id'],
+                                    'data_type'               => $mapped['data_type'],
+                                    'data_timestamp'          => $mapped['timestamp']->format('Y-m-d H:i:s'),
+                                    'data_payload'            => json_encode($mapped['payload']),
+                                    'imported_at'             => now()->toDateTimeString(),
+                                    'data_version'            => 1,
+                                ];
+                                $totalEvents++;
+                            } catch (Throwable $e) {
+                                $errors[] = "Event mapping failed for customer {$intCustomer->name}: {$e->getMessage()}";
+                            }
                         }
-                    }
 
-                    if (!empty($batch)) {
-                        try {
+                        if (!empty($batch)) {
                             // De-duplicate batch to prevent PostgreSQL cardinality violation
                             $uniqueBatch = collect($batch)->unique(function ($item) {
                                 return $item['integration_id'] . $item['data_type'] . $item['external_id'] . $item['data_timestamp'];
@@ -239,25 +240,25 @@ final class SaaSIntegration implements IntegrationInterface
                                 ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
                                 ['data_payload', 'imported_at', 'integration_customer_id']
                             );
-                        } catch (Throwable $e) {
-                            $errors[] = "Batch upsert failed for customer {$intCustomer->name}: {$e->getMessage()}";
-                            Log::error('Historical upsert failed', ['error' => $e->getMessage()]);
                         }
-                    }
-                });
+                    });
+                } catch (Throwable $e) {
+                    $errors[] = "Failed to process window for {$intCustomer->name} ({$currentStart->toDateString()}): {$e->getMessage()}";
+                    Log::error('Historical window failed', [
+                        'customer' => $intCustomer->name,
+                        'start' => $currentStart->toIso8601String(),
+                        'error' => $e->getMessage()
+                    ]);
+                }
 
-                Log::info('Historical events processed for customer', [
-                    'customer'     => $intCustomer->name,
-                    'external_id'  => $intCustomer->external_id,
-                    'events_count' => count($events),
-                ]);
-            } catch (Throwable $e) {
-                $errors[] = "Failed to process customer {$intCustomer->name}: {$e->getMessage()}";
-                Log::error('Historical customer failed', [
-                    'external_id' => $intCustomer->external_id,
-                    'error'       => $e->getMessage(),
-                ]);
+                $currentStart = $currentEnd;
             }
+
+            Log::info('Historical events processed for customer', [
+                'customer'     => $intCustomer->name,
+                'external_id'  => $intCustomer->external_id,
+                'total_synced' => $totalEvents,
+            ]);
         }
 
         $this->updateStatsCache();
