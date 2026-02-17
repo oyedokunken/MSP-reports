@@ -45,33 +45,33 @@ final class SaaSIntegration implements IntegrationInterface
     {
         return [
             [
-                'name'        => 'api_key',
-                'label'       => 'API Key',
-                'type'        => 'password',
-                'required'    => true,
-                'placeholder' => 'Enter your API Key',
-                'help'        => 'Found in SaaS Alerts Partner Portal. Used in the api_key header.',
-            ],
-            [
-                'name'        => 'partner_id',
-                'label'       => 'Partner ID',
-                'type'        => 'password',
-                'required'    => true,
-                'placeholder' => 'eu1-Y675j1foFxorQyATsx9U',
-                'help'        => 'Your SaaS Alerts Partner ID from the portal.',
-            ],
-            [
-                'name'     => 'base_url',
-                'label'    => 'Environment',
-                'type'     => 'select',
+                'name' => 'api_key',
+                'label' => 'API Key',
+                'type' => 'password',
                 'required' => true,
-                'options'  => [
+                'placeholder' => 'Enter your API Key',
+                'help' => 'Found in SaaS Alerts Partner Portal. Used in the api_key header.',
+            ],
+            [
+                'name' => 'partner_id',
+                'label' => 'Partner ID',
+                'type' => 'password',
+                'required' => true,
+                'placeholder' => 'Enter integration partner id',
+                'help' => 'Your SaaS Alerts Partner ID from the portal.',
+            ],
+            [
+                'name' => 'base_url',
+                'label' => 'Environment',
+                'type' => 'select',
+                'required' => true,
+                'options' => [
                     'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1' => 'Production',
-                    'https://us-central1-saas-alerts-qa.cloudfunctions.net/reportApi/api/v1'    => 'QA',
-                    'https://us-central1-saas-alerts-dev.cloudfunctions.net/reportApi/api/v1'   => 'Development',
+                    'https://us-central1-saas-alerts-qa.cloudfunctions.net/reportApi/api/v1' => 'QA',
+                    'https://us-central1-saas-alerts-dev.cloudfunctions.net/reportApi/api/v1' => 'Development',
                 ],
                 'default' => 'https://us-central1-the-byway-248217.cloudfunctions.net/reportApi/api/v1',
-                'help'    => 'Select the target SaaS Alerts environment',
+                'help' => 'Select the target SaaS Alerts environment',
             ],
         ];
     }
@@ -118,7 +118,7 @@ final class SaaSIntegration implements IntegrationInterface
 
             Log::info('SaaS Alerts full sync completed', [
                 'customers_processed' => $processedCustomers,
-                'errors'              => count($errors),
+                'errors' => count($errors),
             ]);
 
             $this->updateStatsCache();
@@ -129,9 +129,9 @@ final class SaaSIntegration implements IntegrationInterface
 
         return [
             'records_synced' => $processedCustomers,
-            'records_new'    => 0,
+            'records_new' => 0,
             'records_failed' => count($errors),
-            'errors'         => $errors,
+            'errors' => $errors,
         ];
     }
 
@@ -145,7 +145,7 @@ final class SaaSIntegration implements IntegrationInterface
         if ($type === 'customers') {
             foreach ($items as $customer) {
                 $this->sendHeartbeat();
-                
+
                 try {
                     $mapped = SaaSMapper::mapCustomer($customer);
                     if (!empty($mapped['external_id']) && !empty($mapped['name'])) {
@@ -154,7 +154,7 @@ final class SaaSIntegration implements IntegrationInterface
                 } catch (Throwable $e) {
                     Log::warning('SaaS batch: Failed to process customer', [
                         'customer_id' => $customer['id'] ?? 'unknown',
-                        'error'       => $e->getMessage()
+                        'error' => $e->getMessage()
                     ]);
                 }
             }
@@ -180,8 +180,8 @@ final class SaaSIntegration implements IntegrationInterface
 
         Log::info('SaaS Alerts historical sync started', [
             'integration_id' => $this->integration->integration_id,
-            'customers'      => $customers->count(),
-            'range'          => $startDate->toDateString() . ' → ' . $endDate->toDateString(),
+            'customers' => $customers->count(),
+            'range' => $startDate->toDateString() . ' → ' . $endDate->toDateString(),
         ]);
 
         foreach ($customers as $index => $intCustomer) {
@@ -193,14 +193,15 @@ final class SaaSIntegration implements IntegrationInterface
             $currentStart = $startDate->copy();
             while ($currentStart < $endDate) {
                 $currentEnd = $currentStart->copy()->addDays(2);
-                if ($currentEnd > $endDate) $currentEnd = $endDate->copy();
+                if ($currentEnd > $endDate)
+                    $currentEnd = $endDate->copy();
 
                 try {
                     $rawEvents = $this->client->getAllEvents([
                         'customerId' => $intCustomer->external_id,
-                        'start'      => $currentStart->copy()->utc()->toIso8601String(),
-                        'end'        => $currentEnd->copy()->utc()->toIso8601String(),
-                        'size'       => 500,
+                        'start' => $currentStart->copy()->utc()->toIso8601String(),
+                        'end' => $currentEnd->copy()->utc()->toIso8601String(),
+                        'size' => 500,
                     ]);
 
                     // De-duplicate at the API level first to prevent cardinality violations
@@ -208,25 +209,21 @@ final class SaaSIntegration implements IntegrationInterface
                         return ($e['eventId'] ?? $e['_id'] ?? 'MISSING') . '|' . ($e['time'] ?? 'no-time');
                     });
 
-                    $events->chunk(200)->each(function ($chunk) use (
-                        $intCustomer,
-                        &$totalEvents,
-                        &$errors
-                    ) {
+                    $events->chunk(200)->each(function ($chunk) use ($intCustomer, &$totalEvents, &$errors) {
                         $batch = [];
                         foreach ($chunk as $event) {
                             try {
                                 $mapped = SaaSMapper::mapEvent($event, $intCustomer->integration_customer_id);
                                 $batch[] = [
-                                    'company_id'              => $this->integration->company_id,
-                                    'integration_id'          => $this->integration->integration_id,
+                                    'company_id' => $this->integration->company_id,
+                                    'integration_id' => $this->integration->integration_id,
                                     'integration_customer_id' => $mapped['integration_customer_id'],
-                                    'external_id'             => $mapped['external_id'],
-                                    'data_type'               => $mapped['data_type'],
-                                    'data_timestamp'          => $mapped['timestamp']->format('Y-m-d H:i:s.u'),
-                                    'data_payload'            => json_encode($mapped['payload']),
-                                    'imported_at'             => now()->toDateTimeString(),
-                                    'data_version'            => 1,
+                                    'external_id' => $mapped['external_id'],
+                                    'data_type' => $mapped['data_type'],
+                                    'data_timestamp' => $mapped['timestamp']->format('Y-m-d H:i:s.u'),
+                                    'data_payload' => json_encode($mapped['payload']),
+                                    'imported_at' => now()->toDateTimeString(),
+                                    'data_version' => 1,
                                 ];
                                 $totalEvents++;
                             } catch (Throwable $e) {
@@ -271,8 +268,8 @@ final class SaaSIntegration implements IntegrationInterface
             }
 
             Log::info('Historical events processed for customer', [
-                'customer'     => $intCustomer->name,
-                'external_id'  => $intCustomer->external_id,
+                'customer' => $intCustomer->name,
+                'external_id' => $intCustomer->external_id,
                 'total_synced' => $totalEvents,
             ]);
         }
@@ -284,11 +281,11 @@ final class SaaSIntegration implements IntegrationInterface
         }
 
         return [
-            'success'      => empty($errors),
+            'success' => empty($errors),
             'total_processed' => $totalEvents,
-            'customers'    => $customers->count(),
+            'customers' => $customers->count(),
             'errors_count' => count($errors),
-            'errors'       => $errors,
+            'errors' => $errors,
         ];
     }
 
@@ -309,12 +306,12 @@ final class SaaSIntegration implements IntegrationInterface
             IntegrationCustomer::updateOrCreate(
                 [
                     'integration_id' => $this->integration->integration_id,
-                    'external_id'    => $customer['external_id'],
+                    'external_id' => $customer['external_id'],
                 ],
                 [
-                    'name'         => $customer['name'],
-                    'metadata'     => $customer['metadata'] ?? [],
-                    'active'       => $customer['active'] ?? true,
+                    'name' => $customer['name'],
+                    'metadata' => $customer['metadata'] ?? [],
+                    'active' => $customer['active'] ?? true,
                     'last_seen_at' => now(),
                 ]
             );
@@ -344,8 +341,8 @@ final class SaaSIntegration implements IntegrationInterface
             ->whereNull('customer_id')->count();
 
         Cache::put($key, [
-            'mapped'    => $mapped,
-            'unmapped'  => $unmapped,
+            'mapped' => $mapped,
+            'unmapped' => $unmapped,
             'last_sync' => now(),
         ], now()->addMinutes(15));
     }
@@ -372,11 +369,11 @@ final class SaaSIntegration implements IntegrationInterface
     public function getMetadata(): array
     {
         return [
-            'name'                   => 'SaaS Alerts',
-            'description'            => 'Security monitoring and alerting for SaaS applications',
-            'data_types'             => ['customers', 'security_events'],
-            'supports_historical'    => true,
-            'historical_range_days'  => 365,
+            'name' => 'SaaS Alerts',
+            'description' => 'Security monitoring and alerting for SaaS applications',
+            'data_types' => ['customers', 'security_events'],
+            'supports_historical' => true,
+            'historical_range_days' => 365,
         ];
     }
 
@@ -401,7 +398,7 @@ final class SaaSIntegration implements IntegrationInterface
     {
         return [
             'requests_per_minute' => 100,
-            'requests_per_hour'   => 2000,
+            'requests_per_hour' => 2000,
         ];
     }
 }
