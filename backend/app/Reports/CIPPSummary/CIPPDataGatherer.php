@@ -23,13 +23,16 @@ class CIPPDataGatherer
     }
 
     /**
-     * Get integration customer IDs linked to CIPP integration
+     * Get tenant domains linked to this customer's CIPP integration
      * 
-     * @return array<int>
+     * These are the defaultDomainName values stored in IntegrationCustomer metadata,
+     * used as the tenant_id in integration_data.data_payload.
+     * 
+     * @return array<string>
      */
-    protected function getIntegrationCustomerIds(): array
+    protected function getTenantDomains(): array
     {
-        return IntegrationCustomer::query()
+        $integrationCustomers = IntegrationCustomer::query()
             ->whereIn('integration_customer_id', function ($query) {
                 $query->select('integration_customer_id')
                     ->from('customer_mappings')
@@ -38,8 +41,17 @@ class CIPPDataGatherer
             ->whereHas('integration', function ($q) {
                 $q->where('integration_type', 'CIPP');
             })
-            ->pluck('integration_customer_id')
-            ->toArray();
+            ->get();
+
+        $domains = [];
+        foreach ($integrationCustomers as $ic) {
+            $meta = $ic->metadata ?? [];
+            if (!empty($meta['default_domain'])) {
+                $domains[] = $meta['default_domain'];
+            }
+        }
+
+        return $domains;
     }
 
     /**
@@ -53,12 +65,12 @@ class CIPPDataGatherer
     }
 
     /**
-     * Query integration data by type within date range
+     * Query integration data by type within date range, scoped to customer's tenant domains
      * 
-     * @param array<int>|null $integrationCustomerIds
+     * @param array<string> $tenantDomains
      * @return Collection<int, IntegrationData>
      */
-    protected function queryData(string $dataType, Carbon $startDate, Carbon $endDate, ?array $integrationCustomerIds = null): Collection
+    protected function queryData(string $dataType, Carbon $startDate, Carbon $endDate, array $tenantDomains = []): Collection
     {
         $query = IntegrationData::where('company_id', $this->companyId)
             ->where('data_type', $dataType)
@@ -69,36 +81,66 @@ class CIPPDataGatherer
             $query->where('integration_id', $integrationId);
         }
 
-        if ($integrationCustomerIds !== null && !empty($integrationCustomerIds)) {
-            $query->whereIn('integration_customer_id', $integrationCustomerIds);
+        if (!empty($tenantDomains)) {
+            $query->where(function ($q) use ($tenantDomains) {
+                foreach ($tenantDomains as $domain) {
+                    $q->orWhereRaw("data_payload->>'tenant_id' = ?", [$domain]);
+                }
+            });
         }
 
         return $query->get();
     }
 
     /**
-     * Get latest snapshot data (not time-ranged, just most recent)
+     * Get latest snapshot data (not time-ranged, just most recent), scoped to customer's tenant domains
      * 
-     * @param array<int>|null $integrationCustomerIds
+     * @param array<string> $tenantDomains
      * @return Collection<int, IntegrationData>
      */
-    protected function queryLatestData(string $dataType, ?array $integrationCustomerIds = null): Collection
+    protected function queryLatestData(string $dataType, array $tenantDomains = []): Collection
     {
+        $integrationId = $this->getCIPPIntegrationId();
+
+        // First find the latest sync timestamp for this data type
+        $latestQuery = IntegrationData::where('company_id', $this->companyId)
+            ->where('data_type', $dataType)
+            ->where('data_timestamp', '>=', now()->subHours(48));
+
+        if ($integrationId) {
+            $latestQuery->where('integration_id', $integrationId);
+        }
+
+        if (!empty($tenantDomains)) {
+            $latestQuery->where(function ($q) use ($tenantDomains) {
+                foreach ($tenantDomains as $domain) {
+                    $q->orWhereRaw("data_payload->>'tenant_id' = ?", [$domain]);
+                }
+            });
+        }
+
+        $latestTimestamp = $latestQuery->max('data_timestamp');
+
+        if (!$latestTimestamp) {
+            return collect();
+        }
+
+        // Now get all records at that exact timestamp
         $query = IntegrationData::where('company_id', $this->companyId)
             ->where('data_type', $dataType)
-            ->orderBy('data_timestamp', 'desc');
+            ->where('data_timestamp', $latestTimestamp);
 
-        $integrationId = $this->getCIPPIntegrationId();
         if ($integrationId) {
             $query->where('integration_id', $integrationId);
         }
 
-        if ($integrationCustomerIds !== null && !empty($integrationCustomerIds)) {
-            $query->whereIn('integration_customer_id', $integrationCustomerIds);
+        if (!empty($tenantDomains)) {
+            $query->where(function ($q) use ($tenantDomains) {
+                foreach ($tenantDomains as $domain) {
+                    $q->orWhereRaw("data_payload->>'tenant_id' = ?", [$domain]);
+                }
+            });
         }
-
-        // Get latest sync batch (within last 48 hours)
-        $query->where('data_timestamp', '>=', now()->subHours(48));
 
         return $query->get();
     }
@@ -110,7 +152,8 @@ class CIPPDataGatherer
      */
     public function gatherUserData(Carbon $startDate, Carbon $endDate): array
     {
-        $users = $this->queryLatestData('user');
+        $tenantDomains = $this->getTenantDomains();
+        $users = $this->queryLatestData('mfa_user', $tenantDomains);
 
         $totalUsers = $users->count();
         $mfaEnabled = 0;
@@ -124,10 +167,10 @@ class CIPPDataGatherer
             $payload = $record->data_payload;
             if (!$payload) continue;
 
-            $mfaStatus = $payload['mfa_status'] ?? $payload['MFAStatus'] ?? $payload['per_user'] ?? 'unknown';
-            $isAdmin = $payload['is_admin'] ?? $payload['isAdmin'] ?? false;
-            $isLicensed = $payload['is_licensed'] ?? $payload['isLicensed'] ?? true;
-            $isBlocked = $payload['account_enabled'] === false || ($payload['accountEnabled'] ?? true) === false;
+            $mfaStatus = $payload['mfa_status'] ?? $payload['MFAStatus'] ?? 'unknown';
+            $isAdmin = $payload['is_admin'] ?? $payload['IsAdmin'] ?? $payload['isAdmin'] ?? false;
+            $isLicensed = $payload['is_licensed'] ?? $payload['isLicensed'] ?? $payload['IsLicensed'] ?? false;
+            $isBlocked = ($payload['account_enabled'] ?? true) === false || ($payload['AccountEnabled'] ?? true) === false;
 
             if (in_array(strtolower((string)$mfaStatus), ['enabled', 'enforced', 'true', '1'])) {
                 $mfaEnabled++;
@@ -171,7 +214,8 @@ class CIPPDataGatherer
      */
     public function gatherLicenseData(Carbon $startDate, Carbon $endDate): array
     {
-        $licenses = $this->queryLatestData('license');
+        $tenantDomains = $this->getTenantDomains();
+        $licenses = $this->queryLatestData('license', $tenantDomains);
 
         $licenseList = [];
         $totalAssigned = 0;
@@ -181,9 +225,9 @@ class CIPPDataGatherer
             $payload = $record->data_payload;
             if (!$payload) continue;
 
-            $skuName = $payload['sku_name'] ?? $payload['skuPartNumber'] ?? $payload['name'] ?? 'Unknown License';
-            $assigned = (int)($payload['consumed_units'] ?? $payload['consumedUnits'] ?? $payload['assigned'] ?? 0);
-            $total = (int)($payload['total_units'] ?? $payload['prepaidUnits'] ?? $payload['total'] ?? 0);
+            $skuName = $payload['display_name'] ?? $payload['sku_part_number'] ?? $payload['sku_name'] ?? $payload['skuPartNumber'] ?? $payload['name'] ?? 'Unknown License';
+            $assigned = (int)($payload['consumed_licenses'] ?? $payload['consumed_units'] ?? $payload['consumedUnits'] ?? $payload['assigned'] ?? 0);
+            $total = (int)($payload['total_licenses'] ?? $payload['total_units'] ?? $payload['prepaidUnits'] ?? $payload['total'] ?? 0);
             $available = max(0, $total - $assigned);
             $utilization = $total > 0 ? round(($assigned / $total) * 100, 1) : 0;
 
@@ -217,8 +261,9 @@ class CIPPDataGatherer
      */
     public function gatherSecurityData(Carbon $startDate, Carbon $endDate): array
     {
-        $alerts = $this->queryData('security_alert', $startDate, $endDate);
-        $incidents = $this->queryData('security_incident', $startDate, $endDate);
+        $tenantDomains = $this->getTenantDomains();
+        $alerts = $this->queryData('security_alert', $startDate, $endDate, $tenantDomains);
+        $incidents = $this->queryData('security_incident', $startDate, $endDate, $tenantDomains);
 
         $alertList = [];
         $severityCounts = ['high' => 0, 'medium' => 0, 'low' => 0, 'informational' => 0];
@@ -274,7 +319,8 @@ class CIPPDataGatherer
      */
     public function gatherDefenderData(Carbon $startDate, Carbon $endDate): array
     {
-        $defenders = $this->queryLatestData('defender_state');
+        $tenantDomains = $this->getTenantDomains();
+        $defenders = $this->queryLatestData('defender_status', $tenantDomains);
 
         $totalDevices = $defenders->count();
         $protected = 0;
@@ -327,7 +373,8 @@ class CIPPDataGatherer
      */
     public function gatherConditionalAccessData(Carbon $startDate, Carbon $endDate): array
     {
-        $policies = $this->queryLatestData('conditional_access');
+        $tenantDomains = $this->getTenantDomains();
+        $policies = $this->queryLatestData('conditional_access', $tenantDomains);
 
         $policyList = [];
         $enabledCount = 0;
@@ -373,8 +420,9 @@ class CIPPDataGatherer
      */
     public function gatherEmailData(Carbon $startDate, Carbon $endDate): array
     {
-        $mailboxes = $this->queryLatestData('mailbox_usage');
-        $protection = $this->queryLatestData('exchange_protection');
+        $tenantDomains = $this->getTenantDomains();
+        $mailboxes = $this->queryLatestData('mailbox_usage', $tenantDomains);
+        $protection = $this->queryLatestData('exchange_protection', $tenantDomains);
 
         $totalMailboxes = $mailboxes->count();
         $totalStorageGB = 0;
@@ -384,13 +432,13 @@ class CIPPDataGatherer
             $payload = $record->data_payload;
             if (!$payload) continue;
 
-            $storageBytes = (float)($payload['storage_used'] ?? $payload['storageUsedInBytes'] ?? $payload['total_item_size'] ?? 0);
+            $storageBytes = (float)($payload['storage_used_bytes'] ?? $payload['storage_used'] ?? $payload['storageUsedInBytes'] ?? $payload['total_item_size'] ?? 0);
             $storageGB = round($storageBytes / (1024 * 1024 * 1024), 2);
             $totalStorageGB += $storageGB;
 
             $mailboxList[] = [
                 'display_name' => $payload['display_name'] ?? $payload['displayName'] ?? $payload['name'] ?? 'Unknown',
-                'email' => $payload['email'] ?? $payload['userPrincipalName'] ?? '',
+                'email' => $payload['user_principal_name'] ?? $payload['primary_smtp_address'] ?? $payload['email'] ?? $payload['userPrincipalName'] ?? '',
                 'storage_gb' => $storageGB,
                 'item_count' => (int)($payload['item_count'] ?? $payload['itemCount'] ?? 0),
                 'last_activity' => $payload['last_activity_date'] ?? $payload['lastActivityDate'] ?? null,

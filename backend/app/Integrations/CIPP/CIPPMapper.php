@@ -44,12 +44,14 @@ final class CIPPMapper
     public static function mapUser(array $user, string $tenantId): array
     {
         return [
-            'external_id' => $user['id'] ?? $user['userPrincipalName'] ?? '',
+            'external_id' => $user['ID'] ?? $user['id'] ?? $user['UPN'] ?? $user['userPrincipalName'] ?? '',
             'tenant_id' => $tenantId,
-            'user_principal_name' => $user['userPrincipalName'] ?? null,
-            'display_name' => $user['displayName'] ?? null,
-            'email' => $user['mail'] ?? $user['userPrincipalName'] ?? null,
-            'account_enabled' => $user['accountEnabled'] ?? true,
+            'user_principal_name' => $user['UPN'] ?? $user['userPrincipalName'] ?? null,
+            'display_name' => $user['DisplayName'] ?? $user['displayName'] ?? null,
+            'email' => $user['UPN'] ?? $user['mail'] ?? $user['userPrincipalName'] ?? null,
+            'account_enabled' => $user['AccountEnabled'] ?? $user['accountEnabled'] ?? true,
+            'is_admin' => $user['IsAdmin'] ?? $user['isAdmin'] ?? false,
+            'is_licensed' => $user['isLicensed'] ?? $user['IsLicensed'] ?? false,
             'mfa_status' => self::extractMfaStatus($user),
             'metadata' => [
                 'given_name' => $user['givenName'] ?? null,
@@ -64,7 +66,12 @@ final class CIPPMapper
                 'last_sign_in' => $user['lastSignInDateTime'] ?? null,
                 'assigned_licenses' => $user['assignedLicenses'] ?? [],
                 'mfa_methods' => $user['MFAMethods'] ?? $user['mfaMethods'] ?? [],
-                'per_user_mfa' => $user['PerUserMFA'] ?? $user['perUserMFA'] ?? null,
+                'per_user_mfa' => $user['PerUser'] ?? $user['PerUserMFA'] ?? $user['perUserMFA'] ?? null,
+                'mfa_registration' => $user['MFARegistration'] ?? null,
+                'mfa_capable' => $user['MFACapable'] ?? null,
+                'covered_by_ca' => $user['CoveredByCA'] ?? null,
+                'covered_by_sd' => $user['CoveredBySD'] ?? null,
+                'ca_policies' => $user['CAPolicies'] ?? [],
             ],
         ];
     }
@@ -77,13 +84,21 @@ final class CIPPMapper
      */
     private static function extractMfaStatus(array $user): string
     {
-        $perUserMfa = $user['PerUserMFA'] ?? $user['perUserMFA'] ?? null;
+        $perUser = $user['PerUser'] ?? $user['PerUserMFA'] ?? $user['perUserMFA'] ?? null;
         $mfaMethods = $user['MFAMethods'] ?? $user['mfaMethods'] ?? [];
+        $coveredByCA = $user['CoveredByCA'] ?? null;
+        $coveredBySD = $user['CoveredBySD'] ?? null;
         
-        if ($perUserMfa === 'Enforced') {
+        if (is_string($perUser) && strtolower($perUser) === 'enforced') {
             return 'enforced';
         }
-        if ($perUserMfa === 'Enabled') {
+        if (is_string($perUser) && strtolower($perUser) === 'enabled') {
+            return 'enabled';
+        }
+        if (!empty($coveredByCA) && $coveredByCA !== 'None' && $coveredByCA !== false) {
+            return 'enabled';
+        }
+        if ($coveredBySD === true || $coveredBySD === 'true') {
             return 'enabled';
         }
         if (!empty($mfaMethods)) {
@@ -101,19 +116,22 @@ final class CIPPMapper
      */
     public static function mapLicense(array $license, string $tenantId): array
     {
-        $consumed = $license['consumedUnits'] ?? $license['ConsumedUnits'] ?? 0;
-        $total = $license['prepaidUnits']['enabled'] ?? $license['PrepaidUnits']['Enabled'] ?? 0;
-        $available = $total - $consumed;
+        // CIPP ListLicenses returns: Tenant, License, CountUsed, CountAvailable, TotalLicenses
+        // Also handle Graph API format: skuId, skuPartNumber, consumedUnits, prepaidUnits
+        $consumed = $license['CountUsed'] ?? $license['consumedUnits'] ?? $license['ConsumedUnits'] ?? 0;
+        $total = $license['TotalLicenses'] ?? $license['prepaidUnits']['enabled'] ?? $license['PrepaidUnits']['Enabled'] ?? 0;
+        $available = $license['CountAvailable'] ?? ($total - $consumed);
+        $licenseName = $license['License'] ?? $license['skuPartNumber'] ?? $license['SkuPartNumber'] ?? 'Unknown License';
 
         return [
-            'external_id' => $license['skuId'] ?? $license['SkuId'] ?? '',
+            'external_id' => $license['skuId'] ?? $license['SkuId'] ?? $licenseName,
             'tenant_id' => $tenantId,
             'sku_id' => $license['skuId'] ?? $license['SkuId'] ?? null,
-            'sku_part_number' => $license['skuPartNumber'] ?? $license['SkuPartNumber'] ?? null,
-            'display_name' => $license['skuPartNumber'] ?? $license['SkuPartNumber'] ?? 'Unknown License',
-            'total_licenses' => $total,
-            'consumed_licenses' => $consumed,
-            'available_licenses' => $available,
+            'sku_part_number' => $license['License'] ?? $license['skuPartNumber'] ?? $license['SkuPartNumber'] ?? null,
+            'display_name' => $licenseName,
+            'total_licenses' => (int) $total,
+            'consumed_licenses' => (int) $consumed,
+            'available_licenses' => (int) $available,
             'metadata' => [
                 'applies_to' => $license['appliesTo'] ?? null,
                 'capability_status' => $license['capabilityStatus'] ?? null,
@@ -334,17 +352,25 @@ final class CIPPMapper
     public static function mapMailboxUsage(array $usage, string $tenantId): array
     {
         return [
-            'external_id' => $usage['id'] ?? $usage['userPrincipalName'] ?? '',
+            'external_id' => $usage['ExchangeGuid'] ?? $usage['ExternalDirectoryObjectId'] ?? $usage['UPN'] ?? $usage['id'] ?? $usage['userPrincipalName'] ?? '',
             'tenant_id' => $tenantId,
-            'user_principal_name' => $usage['userPrincipalName'] ?? null,
-            'display_name' => $usage['displayName'] ?? null,
+            'user_principal_name' => $usage['UPN'] ?? $usage['userPrincipalName'] ?? null,
+            'display_name' => $usage['displayName'] ?? $usage['DisplayName'] ?? null,
+            'primary_smtp_address' => $usage['primarySmtpAddress'] ?? null,
+            'recipient_type' => $usage['recipientType'] ?? null,
+            'recipient_type_details' => $usage['recipientTypeDetails'] ?? null,
             'item_count' => $usage['itemCount'] ?? 0,
             'storage_used_bytes' => $usage['storageUsedInBytes'] ?? 0,
             'last_activity_date' => $usage['lastActivityDate'] ?? null,
             'metadata' => [
-                'is_deleted' => $usage['isDeleted'] ?? false,
-                'report_refresh_date' => $usage['reportRefreshDate'] ?? null,
-                'quota_bytes' => $usage['issueWarningQuotaInBytes'] ?? null,
+                'exchange_guid' => $usage['ExchangeGuid'] ?? null,
+                'archive_guid' => $usage['ArchiveGuid'] ?? null,
+                'forwarding_address' => $usage['ForwardingSmtpAddress'] ?? null,
+                'hidden_from_gal' => $usage['HiddenFromAddressListsEnabled'] ?? false,
+                'litigation_hold' => $usage['LitigationHoldEnabled'] ?? false,
+                'retention_policy' => $usage['RetentionPolicy'] ?? null,
+                'additional_addresses' => $usage['AdditionalEmailAddresses'] ?? null,
+                'is_deleted' => $usage['isDeleted'] ?? ($usage['WhenSoftDeleted'] !== null),
             ],
         ];
     }

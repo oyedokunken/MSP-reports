@@ -323,7 +323,8 @@ final class CIPPClient
         $response = $this->request('GET', '/api/ListConditionalAccessPolicies', [
             'TenantFilter' => $tenantFilter,
         ]);
-        return $response;
+        // CIPP wraps this in {"Results": [...], "Metadata": {...}}
+        return $response['Results'] ?? $response;
     }
 
     /**
@@ -891,7 +892,7 @@ final class CIPPClient
      */
     public function listMailboxUsage(string $tenantFilter): array
     {
-        $response = $this->request('GET', '/api/ListMailboxUsage', [
+        $response = $this->request('GET', '/api/ListMailboxes', [
             'TenantFilter' => $tenantFilter,
         ]);
         return $response;
