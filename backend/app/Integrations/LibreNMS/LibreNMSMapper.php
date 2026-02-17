@@ -191,6 +191,7 @@ final class LibreNMSMapper
                 'location' => $device['location'] ?? null,
                 'groups' => $groups,
                 'status' => $device['status'] ?? 0,
+                'disabled' => $device['disabled'] ?? 0,
                 'serial' => $device['serial'] ?? null,
                 'last_polled' => $device['last_polled'] ?? null,
             ],

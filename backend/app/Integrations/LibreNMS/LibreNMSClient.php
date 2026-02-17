@@ -128,11 +128,14 @@ final class LibreNMSClient
         $chunks = array_chunk($deviceIds, 20); // Process in batches of 20
 
         foreach ($chunks as $chunk) {
+            // Re-index chunk to ensure 0-based sequential keys
+            $chunk = array_values($chunk);
+
             $responses = Http::pool(function ($pool) use ($chunk) {
                 $requests = [];
                 foreach ($chunk as $id) {
                     $url = $this->baseUrl . "/devices/{$id}/availability";
-                    $requests[$id] = $pool->withHeaders([
+                    $requests[] = $pool->withHeaders([
                         'X-Auth-Token' => $this->credentials['api_token'] ?? '',
                         'Accept' => 'application/json',
                     ])->withOptions([
@@ -144,12 +147,16 @@ final class LibreNMSClient
                 return $requests;
             });
 
-            foreach ($responses as $id => $response) {
-                if ($response->successful()) {
+            // Http::pool returns 0-indexed responses matching the order of requests
+            foreach ($responses as $index => $response) {
+                $deviceId = $chunk[$index] ?? null;
+                if (!$deviceId) continue;
+
+                if ($response instanceof \Illuminate\Http\Client\Response && $response->successful()) {
                     $data = $response->json();
-                    $results[$id] = $data['availability'] ?? [];
+                    $results[$deviceId] = $data['availability'] ?? [];
                 } else {
-                    $results[$id] = [];
+                    $results[$deviceId] = [];
                 }
             }
             

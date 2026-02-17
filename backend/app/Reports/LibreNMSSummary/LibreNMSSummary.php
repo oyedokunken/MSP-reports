@@ -74,29 +74,47 @@ class LibreNMSSummary extends BaseReport
             })
             ->toArray();
 
-        // Fetch latest data (limit to last 7 days for performance)
-        $deviceDetails = IntegrationData::where('company_id', $customer->company_id)
+        // Fetch latest sync batch (records within 60s of max timestamp)
+        // This avoids loading 600K+ records into memory
+        $latestTimestamp = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'device_details')
             ->where('data_timestamp', '>=', now()->subDays(7))
-            ->orderBy('data_timestamp', 'desc')
+            ->max('data_timestamp');
+
+        if (!$latestTimestamp) {
+            return $this->filterSections([
+                'generated_at' => now()->format('F j, Y'),
+                'customer' => $customer,
+                'period' => ['start' => $startDate->format('F j, Y'), 'end' => $endDate->format('F j, Y'), 'formatted' => $this->formatDateRange($startDate, $endDate)],
+                'summary' => ['total_devices' => 0, 'online_devices' => 0, 'offline_devices' => 0, 'avg_uptime_30d' => 0, 'online_percent' => 0],
+                'infrastructure' => ['device_types' => [], 'os_types' => []],
+                'top_issues' => [],
+                'recommendations' => [['severity' => 'info', 'title' => 'No Data Available', 'description' => 'No device data found in the last 7 days.', 'action' => 'Ensure LibreNMS sync is running.']],
+            ], $options);
+        }
+
+        $batchCutoff = Carbon::parse($latestTimestamp)->subSeconds(60);
+
+        $deviceDetails = IntegrationData::where('company_id', $customer->company_id)
+            ->where('data_type', 'device_details')
+            ->where('data_timestamp', '>=', $batchCutoff)
             ->get()
-            ->unique('data_payload.device_id');
+            ->unique(fn($r) => $r->data_payload['device_id'] ?? 0);
 
         $uptimeRecords = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'device_uptime')
-            ->where('data_timestamp', '>=', now()->subDays(7))
-            ->orderBy('data_timestamp', 'desc')
+            ->where('data_timestamp', '>=', $batchCutoff)
             ->get()
-            ->unique('data_payload.device_id')
-            ->keyBy('data_payload.device_id');
+            ->unique(fn($r) => $r->data_payload['device_id'] ?? 0)
+            ->keyBy(fn($r) => $r->data_payload['device_id'] ?? 0);
 
         $availabilityRecords = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'device_availability')
             ->where('data_timestamp', '>=', now()->subDays(7))
             ->orderBy('data_timestamp', 'desc')
             ->get()
-            ->unique('data_payload.device_id')
-            ->keyBy('data_payload.device_id');
+            ->unique(fn($r) => $r->data_payload['device_id'] ?? 0)
+            ->keyBy(fn($r) => $r->data_payload['device_id'] ?? 0);
 
         $devices = [];
         foreach ($deviceDetails as $record) {
@@ -125,10 +143,12 @@ class LibreNMSSummary extends BaseReport
             $availability = $availabilityRecords[$deviceId]->data_payload['availability'] ?? [];
             
             $status = $payload['status'] ?? ($uptimePayload['status'] ?? 0);
+            $disabled = $payload['disabled'] ?? 0;
+            $isOnline = $status == 1 && $disabled == 0;
             
             $devices[] = [
                 'name' => !empty($payload['sysName']) ? $payload['sysName'] : ($payload['hostname'] ?? 'Unknown'),
-                'status' => $status == 1 ? 'Online' : 'Offline',
+                'status' => $isOnline ? 'Online' : 'Offline',
                 'type' => $payload['type'] ?? 'Unknown',
                 'os' => $payload['os'] ?? 'Unknown',
                 'uptime_30d' => $availability['30d']['uptime_percent'] ?? 0,
