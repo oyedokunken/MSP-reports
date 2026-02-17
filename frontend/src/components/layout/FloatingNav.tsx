@@ -1,5 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, Bell, LogOut, Calendar, Shield, User, ArrowRight } from "lucide-react";
+import {
+    Settings, Bell, LogOut, Calendar, Shield, User, ArrowRight, Search,
+    LayoutDashboard, Users, Cable, FileText, LayoutTemplate, UserPlus, KeyRound, FileBadge, Activity, ShieldCheck
+} from "lucide-react";
 import { logger } from '@/lib/logger'
 import { useAuth } from "@/contexts/AuthContext";
 import { hasPermission } from "@/utils/permissions";
@@ -34,6 +37,36 @@ export default function FloatingNav() {
     const [currentTime, setCurrentTime] = useState(new Date());
     const userMenuRef = useRef<HTMLDivElement>(null);
     const notificationMenuRef = useRef<HTMLDivElement>(null);
+    const searchRef = useRef<HTMLDivElement>(null);
+
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+    const pages = [
+        { label: 'Dashboard', path: '/platform/dashboard', icon: LayoutDashboard, section: 'General', permission: null },
+        { label: 'Customers', path: '/platform/customers', icon: Users, section: 'Clients', permission: { resource: 'customers', action: 'view' } },
+        { label: 'Integrations', path: '/platform/integrations', icon: Cable, section: 'Clients', permission: { resource: 'integrations', action: 'view' } },
+        { label: 'Reports', path: '/platform/reports', icon: FileText, section: 'Reporting', permission: { resource: 'reports', action: 'view' } },
+        { label: 'Schedules', path: '/platform/schedules', icon: Calendar, section: 'Reporting', permission: { resource: 'reports', action: 'view' } },
+        { label: 'Templates', path: '/platform/templates', icon: LayoutTemplate, section: 'Reporting', permission: { resource: 'reports', action: 'configure' } },
+        { label: 'Users', path: '/admin/users', icon: UserPlus, section: 'Management', permission: { resource: 'users', action: 'view' } },
+        { label: 'API Keys', path: '/admin/api-keys', icon: KeyRound, section: 'Management', permission: { resource: 'api_keys', action: 'view' } },
+        { label: 'Licenses', path: '/admin/licenses', icon: FileBadge, section: 'Management', permission: { resource: 'company_settings', action: 'view' } },
+        { label: 'Monitoring', path: '/admin/monitoring', icon: Activity, section: 'System', permission: { resource: 'monitoring', action: 'view' } },
+        { label: 'System Status', path: '/admin/status', icon: ShieldCheck, section: 'System', permission: { resource: 'monitoring', action: 'view' } },
+        { label: 'Audit Logs', path: '/admin/audit-logs', icon: Shield, section: 'System', permission: { resource: 'security', action: 'view_logs' } },
+        { label: 'My Profile', path: '/profile/me', icon: User, section: 'Account', permission: null },
+        { label: 'Settings', path: '/profile/settings', icon: Settings, section: 'Account', permission: { resource: 'company_settings', action: 'view' } },
+        { label: 'Security', path: '/profile/security', icon: Shield, section: 'Account', permission: { resource: 'security', action: 'configure' } },
+    ];
+
+    const searchResults = pages.filter(page => {
+        const matchesSearch = page.label.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            page.section.toLowerCase().includes(searchQuery.toLowerCase());
+        const hasAccess = page.permission ? hasPermission(user, page.permission.resource, page.permission.action) : true;
+        
+        return matchesSearch && hasAccess;
+    });
 
     const canViewNotifications = hasPermission(user, 'notifications', 'view');
 
@@ -114,6 +147,12 @@ export default function FloatingNav() {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (
+                searchRef.current &&
+                !searchRef.current.contains(event.target as Node)
+            ) {
+                setIsSearchFocused(false);
+            }
+            if (
                 userMenuRef.current &&
                 !userMenuRef.current.contains(event.target as Node)
             ) {
@@ -151,6 +190,52 @@ export default function FloatingNav() {
             </div>
 
             <div className="flex items-center gap-3">
+                <div className="relative hidden md:block" ref={searchRef}>
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onFocus={() => setIsSearchFocused(true)}
+                        className="h-9 w-64 rounded-md border border-input bg-background pl-9 pr-4 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-ring transition-all focus:w-80"
+                    />
+                    
+                    {isSearchFocused && searchQuery && (
+                        <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border bg-background shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 max-h-96 overflow-y-auto thin-scrollbar z-50">
+                            {searchResults.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-muted-foreground">
+                                    No results found
+                                </div>
+                            ) : (
+                                <div className="p-2">
+                                    {searchResults.map((page) => {
+                                        const PageIcon = page.icon;
+                                        return (
+                                            <button
+                                                key={page.path}
+                                                onClick={() => {
+                                                    navigate(page.path);
+                                                    setSearchQuery("");
+                                                    setIsSearchFocused(false);
+                                                }}
+                                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted text-left"
+                                            >
+                                                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted/50">
+                                                    <PageIcon className="h-4 w-4 text-muted-foreground" />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium text-foreground">{page.label}</span>
+                                                    <span className="text-xs text-muted-foreground">{page.section}</span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
                 {canViewNotifications && (
                     <div className="relative" ref={notificationMenuRef}>
                         <Button
