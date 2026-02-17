@@ -54,11 +54,11 @@ const Signin = () => {
   };
 
   const handleOAuthLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8081'}/api/auth/keycloak/redirect`;
+    window.location.href = `/api/auth/keycloak/redirect`;
   };
 
   const handleSamlLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8081'}/api/auth/saml/login`;
+    window.location.href = `/api/auth/saml/login`;
   };
 
   return (
