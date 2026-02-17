@@ -10,6 +10,13 @@ use Carbon\Carbon;
 
 final class ScheduleEvaluator
 {
+    protected ReportScheduleService $scheduleService;
+
+    public function __construct(ReportScheduleService $scheduleService)
+    {
+        $this->scheduleService = $scheduleService;
+    }
+
     /**
      * @return array<string, int>
      */
@@ -42,7 +49,7 @@ final class ScheduleEvaluator
     public function isScheduleDue(ReportSchedule $schedule): bool
     {
         if (!$schedule->next_scheduled_at) {
-            $nextRun = $this->calculateNextRun($schedule);
+            $nextRun = $this->scheduleService->calculateNextRun($schedule);
             $schedule->next_scheduled_at = $nextRun;
             $schedule->save();
             return false;
@@ -56,124 +63,16 @@ final class ScheduleEvaluator
         GenerateReportJob::dispatch($schedule);
 
         $schedule->last_generated_at = now();
-        $schedule->next_scheduled_at = $this->calculateNextRun($schedule);
+        $schedule->next_scheduled_at = $this->scheduleService->calculateNextRun($schedule);
         $schedule->save();
     }
 
+    /**
+     * Delegates to ReportScheduleService for consistent calculation.
+     */
     public function calculateNextRun(ReportSchedule $schedule): Carbon
     {
-        $timezone = $schedule->timezone ?? $schedule->company->settings['reports']['report_timezone'] ?? 'UTC';
-        $config = $schedule->schedule_config;
-        $timeOfDay = $schedule->time_of_day ?? '09:00';
-
-        $parts = explode(':', $timeOfDay);
-        $hour = (int) $parts[0];
-        $minute = (int) ($parts[1] ?? 0);
-
-        $now = Carbon::now($timezone);
-        $next = Carbon::now($timezone);
-
-        switch ($schedule->frequency) {
-            case 'daily':
-                $next = $this->calculateDailyNext($next, $hour, $minute, $config);
-                break;
-
-            case 'weekly':
-                $next = $this->calculateWeeklyNext($next, $hour, $minute, $config);
-                break;
-
-            case 'monthly':
-                $next = $this->calculateMonthlyNext($next, $hour, $minute, $config);
-                break;
-
-            case 'yearly':
-                $next = $this->calculateYearlyNext($next, $hour, $minute, $config);
-                break;
-
-            default:
-                $next = Carbon::now($timezone)->addYears(10);
-        }
-
-        return $next;
-    }
-
-    /**
-     * @param array<string, mixed> $config
-     */
-    private function calculateDailyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
-    {
-        $next->setTime($hour, $minute, 0);
-
-        if ($next->isPast()) {
-            $next->addDay();
-        }
-
-        if (isset($config['days_of_week'])) {
-            while (!in_array($next->dayOfWeek, $config['days_of_week'])) {
-                $next->addDay();
-            }
-        }
-
-        return $next;
-    }
-
-    /**
-     * @param array<string, mixed> $config
-     */
-    private function calculateWeeklyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
-    {
-        $dayOfWeek = $config['day_of_week'] ?? 1;
-
-        $next->setTime($hour, $minute, 0);
-        $next->next($dayOfWeek);
-
-        if ($next->dayOfWeek === $dayOfWeek && $next->isPast()) {
-            $next->addWeek();
-        }
-
-        return $next;
-    }
-
-    /**
-     * @param array<string, mixed> $config
-     */
-    private function calculateMonthlyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
-    {
-        $dayOfMonth = $config['day_of_month'] ?? 1;
-        $fallbackToLastDay = $config['fallback_to_last_day'] ?? true;
-
-        $next->setTime($hour, $minute, 0);
-        $next->day = min($dayOfMonth, $next->daysInMonth);
-
-        if ($next->isPast()) {
-            $next->addMonth();
-            $next->day = min($dayOfMonth, $next->daysInMonth);
-        }
-
-        if ($fallbackToLastDay && $dayOfMonth > $next->daysInMonth) {
-            $next->day = $next->daysInMonth;
-        }
-
-        return $next;
-    }
-
-    /**
-     * @param array<string, mixed> $config
-     */
-    private function calculateYearlyNext(Carbon $next, int $hour, int $minute, array $config): Carbon
-    {
-        $month = $config['month'] ?? 1;
-        $dayOfMonth = $config['day_of_month'] ?? 1;
-
-        $next->setTime($hour, $minute, 0);
-        $next->month = $month;
-        $next->day = $dayOfMonth;
-
-        if ($next->isPast()) {
-            $next->addYear();
-        }
-
-        return $next;
+        return $this->scheduleService->calculateNextRun($schedule);
     }
 
     /**
@@ -185,7 +84,7 @@ final class ScheduleEvaluator
         $tempSchedule = clone $schedule;
 
         for ($i = 0; $i < $count; $i++) {
-            $nextRun = $this->calculateNextRun($tempSchedule);
+            $nextRun = $this->scheduleService->calculateNextRun($tempSchedule);
             $runs[] = $nextRun->toDateTimeString();
 
             $tempSchedule->next_scheduled_at = $nextRun;
