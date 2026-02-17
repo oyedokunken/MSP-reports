@@ -39,7 +39,7 @@ class SaaSSummary extends BaseReport
 
         // Check if there's any SaaS security event data
         $hasData = \App\Models\IntegrationData::where('company_id', $customer->company_id)
-            ->where('integration_id', 6)
+            ->where('integration_id', 7)
             ->where('data_type', 'saas_security_event')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->exists();

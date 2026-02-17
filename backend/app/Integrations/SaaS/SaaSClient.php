@@ -192,17 +192,21 @@ final class SaaSClient
     public function getAllEvents(array $params = [], int $maxPages = 50): array
     {
         $allEvents = [];
-        $scroll    = $params['scroll'] ?? '5m';
-        $size      = $params['size']   ?? 500;
+        $size      = $params['size'] ?? 500;
+        $from      = $params['from'] ?? 0;
 
         $currentParams = $params;
-        unset($currentParams['from']); // scroll mode doesn't use from
-        $currentParams['size']   = $size;
-        $currentParams['scroll'] = $scroll;
+        $currentParams['size'] = $size;
+        
+        // Remove scroll which is not supported as expected
+        unset($currentParams['scroll']);
+        unset($currentParams['scroll_id']);
 
         $pageCount = 0;
 
         do {
+            $currentParams['from'] = $from + ($pageCount * $size);
+            
             $response = $this->makeRequest('GET', '/reports/events', $currentParams);
 
             if (!$response->successful()) {
@@ -215,11 +219,11 @@ final class SaaSClient
 
             $page = $response->json() ?? [];
             
-            // Check if page is empty (no more results)
             if (empty($page)) {
                 Log::debug('SaaS Alerts: Empty page received, ending pagination', [
                     'integration_id' => $this->integration->integration_id,
                     'page_number'    => $pageCount + 1,
+                    'offset'         => $currentParams['from'],
                 ]);
                 break;
             }
@@ -234,23 +238,10 @@ final class SaaSClient
                 'total_so_far'   => count($allEvents),
             ]);
 
-            // Try different possible locations for scroll_id
-            $responseData = $response->json();
-            $scrollId = $responseData['_scroll_id']
-                ?? $responseData['scroll_id']
-                ?? $responseData['next_scroll_id']
-                ?? $response->header('Scroll-Id');
-
-            if (empty($scrollId)) {
-                $scrollId = $response->header('X-Scroll-Id') ?: null;
-            }
-
-            $reachedEnd = count($page) < $size;
-
-            if (!$scrollId || $reachedEnd) {
-                Log::debug('SaaS Alerts: Pagination complete', [
+            // If we got fewer than requested, we reached the end
+            if (count($page) < $size) {
+                Log::debug('SaaS Alerts: Reached end of results (partial page)', [
                     'integration_id' => $this->integration->integration_id,
-                    'reason'         => !$scrollId ? 'no_scroll_id' : 'partial_page',
                     'last_page_size' => count($page),
                 ]);
                 break;
@@ -264,12 +255,6 @@ final class SaaSClient
                 ]);
                 break;
             }
-
-            // Next page uses scroll continuation
-            $currentParams = [
-                'scroll'    => $scroll,
-                'scroll_id' => $scrollId,
-            ];
 
         } while (true);
 
@@ -311,7 +296,8 @@ final class SaaSClient
      */
     protected function makeRequest(string $method, string $endpoint, array $query = [], array $body = []): Response
     {
-        if (!$this->rateLimiter->waitForSlot($this->integration, 30)) {
+        // Wait up to 5 minutes for a slot if heavily loaded (e.g. parallel historical imports)
+        if (!$this->rateLimiter->waitForSlot($this->integration, 300)) {
             throw new RateLimitExceededException('Rate limit exceeded for SaaS Alerts API');
         }
 

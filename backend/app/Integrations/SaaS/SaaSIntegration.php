@@ -193,8 +193,8 @@ final class SaaSIntegration implements IntegrationInterface
                 // Use getAllEvents for complete data with scroll pagination
                 $events = $this->client->getAllEvents([
                     'customerId' => $intCustomer->external_id,
-                    'start'      => $startDate->format('Y-m-d'),
-                    'end'        => $endDate->format('Y-m-d'),
+                    'start'      => $startDate->copy()->utc()->toIso8601String(),
+                    'end'        => $endDate->copy()->utc()->toIso8601String(),
                     'size'       => 500,
                 ]);
 
@@ -229,8 +229,13 @@ final class SaaSIntegration implements IntegrationInterface
 
                     if (!empty($batch)) {
                         try {
+                            // De-duplicate batch to prevent PostgreSQL cardinality violation
+                            $uniqueBatch = collect($batch)->unique(function ($item) {
+                                return $item['integration_id'] . $item['data_type'] . $item['external_id'] . $item['data_timestamp'];
+                            })->values()->all();
+
                             IntegrationData::upsert(
-                                $batch,
+                                $uniqueBatch,
                                 ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
                                 ['data_payload', 'imported_at', 'integration_customer_id']
                             );
@@ -257,9 +262,13 @@ final class SaaSIntegration implements IntegrationInterface
 
         $this->updateStatsCache();
 
+        if (!empty($errors)) {
+            throw new \Exception('Historical import failed with errors: ' . implode('; ', $errors));
+        }
+
         return [
             'success'      => empty($errors),
-            'total_events' => $totalEvents,
+            'total_processed' => $totalEvents,
             'customers'    => $customers->count(),
             'errors_count' => count($errors),
             'errors'       => $errors,

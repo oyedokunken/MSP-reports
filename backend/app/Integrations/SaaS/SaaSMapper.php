@@ -74,6 +74,18 @@ final class SaaSMapper
     {
         $eventId = $saasEvent['eventId'] ?? $saasEvent['_id'] ?? null;
         
+        // Fallback for events missing a native ID (prevents DB duplicates due to NULL external_id)
+        if (!$eventId) {
+            $dataToHash = [
+                'time' => $saasEvent['time'] ?? 'no-time',
+                'type' => $saasEvent['type'] ?? 'no-type',
+                'user' => $saasEvent['user'] ?? 'no-user',
+                'ip'   => $saasEvent['ip'] ?? 'no-ip',
+                'desc' => $saasEvent['jointDesc'] ?? '',
+            ];
+            $eventId = 'sb-' . md5(json_encode($dataToHash));
+        }
+
         return [
             'integration_customer_id' => $integrationCustomerId,
             'external_id' => $eventId,

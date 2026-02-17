@@ -28,12 +28,14 @@ class SaaSDataGatherer
         }
 
         return IntegrationData::where('company_id', $customer->company_id)
-            ->where('integration_id', 6) // SaaS Alerts Integration ID
+            ->where('integration_id', 7) // SaaS Alerts Integration ID
             ->where('data_type', 'saas_security_event')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->whereBetween('data_timestamp', [$startDate, $endDate])
+            ->whereBetween('data_timestamp', [
+                $startDate->copy()->utc()->toDateTimeString(),
+                $endDate->copy()->utc()->toDateTimeString()
+            ])
             ->orderBy('data_timestamp', 'desc')
-            ->limit(10000) // Limit to prevent memory issues with large datasets
             ->get()
             ->map(function ($item) {
                 $payload = $item->data_payload;
