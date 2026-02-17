@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import {
     Settings, Bell, LogOut, Calendar, Shield, User, ArrowRight, Search,
-    LayoutDashboard, Users, Cable, FileText, LayoutTemplate, UserPlus, KeyRound, FileBadge, Activity, ShieldCheck
+    LayoutDashboard, Users, Cable, FileText, LayoutTemplate, UserPlus, KeyRound, FileBadge, Activity, ShieldCheck,
+    Database, Building2, MapPin, Plus, HelpCircle
 } from "lucide-react";
 import { logger } from '@/lib/logger'
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,26 +44,41 @@ export default function FloatingNav() {
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     const pages = [
-        { label: 'Dashboard', path: '/platform/dashboard', icon: LayoutDashboard, section: 'General', permission: null },
-        { label: 'Customers', path: '/platform/customers', icon: Users, section: 'Clients', permission: { resource: 'customers', action: 'view' } },
-        { label: 'Integrations', path: '/platform/integrations', icon: Cable, section: 'Clients', permission: { resource: 'integrations', action: 'view' } },
-        { label: 'Reports', path: '/platform/reports', icon: FileText, section: 'Reporting', permission: { resource: 'reports', action: 'view' } },
-        { label: 'Schedules', path: '/platform/schedules', icon: Calendar, section: 'Reporting', permission: { resource: 'reports', action: 'view' } },
-        { label: 'Templates', path: '/platform/templates', icon: LayoutTemplate, section: 'Reporting', permission: { resource: 'reports', action: 'configure' } },
-        { label: 'Users', path: '/admin/users', icon: UserPlus, section: 'Management', permission: { resource: 'users', action: 'view' } },
-        { label: 'API Keys', path: '/admin/api-keys', icon: KeyRound, section: 'Management', permission: { resource: 'api_keys', action: 'view' } },
-        { label: 'Licenses', path: '/admin/licenses', icon: FileBadge, section: 'Management', permission: { resource: 'company_settings', action: 'view' } },
-        { label: 'Monitoring', path: '/admin/monitoring', icon: Activity, section: 'System', permission: { resource: 'monitoring', action: 'view' } },
-        { label: 'System Status', path: '/admin/status', icon: ShieldCheck, section: 'System', permission: { resource: 'monitoring', action: 'view' } },
-        { label: 'Audit Logs', path: '/admin/audit-logs', icon: Shield, section: 'System', permission: { resource: 'security', action: 'view_logs' } },
-        { label: 'My Profile', path: '/profile/me', icon: User, section: 'Account', permission: null },
-        { label: 'Settings', path: '/profile/settings', icon: Settings, section: 'Account', permission: { resource: 'company_settings', action: 'view' } },
-        { label: 'Security', path: '/profile/security', icon: Shield, section: 'Account', permission: { resource: 'security', action: 'configure' } },
+        // General
+        { label: 'Dashboard', path: '/platform/dashboard', icon: LayoutDashboard, section: 'General', permission: null, keywords: ['home', 'overview', 'stats', 'summary'] },
+        // Clients - Customers
+        { label: 'Customers', path: '/platform/customers', icon: Users, section: 'Clients', permission: { resource: 'customers', action: 'view' }, keywords: ['clients', 'accounts', 'companies'] },
+        { label: 'Master List', path: '/platform/customers/master', icon: Database, section: 'Customers', permission: { resource: 'customers', action: 'view' }, keywords: ['master', 'primary', 'main customers', 'source of truth'] },
+        { label: 'Secondary List', path: '/platform/customers/secondary', icon: Building2, section: 'Customers', permission: { resource: 'customers', action: 'view' }, keywords: ['secondary', 'imported', 'integration customers'] },
+        { label: 'Map Customers', path: '/platform/customers/map', icon: MapPin, section: 'Customers', permission: { resource: 'customers', action: 'map' }, keywords: ['map', 'mapping', 'unmapped', 'match', 'link', 'auto-match'] },
+        // Clients - Integrations
+        { label: 'Integrations', path: '/platform/integrations', icon: Cable, section: 'Clients', permission: { resource: 'integrations', action: 'view' }, keywords: ['connections', 'sync', 'datto', 'autotask', 'cipp', 'threatlocker', 'itglue', 'saas alerts', 'bitdefender', 'veeam', 'sendmarc', 'vonahi', 'rocketcyber', 'watchguard', 'barracuda', 'kemp', 'librenmms', 'admindroid'] },
+        { label: 'Add Integration', path: '/platform/integrations/add', icon: Plus, section: 'Integrations', permission: { resource: 'integrations', action: 'manage' }, keywords: ['new integration', 'connect', 'setup', 'configure integration'] },
+        // Reporting
+        { label: 'Reports', path: '/platform/reports', icon: FileText, section: 'Reporting', permission: { resource: 'reports', action: 'view' }, keywords: ['generated', 'pdf', 'download', 'history', 'report history'] },
+        { label: 'Schedules', path: '/platform/schedules', icon: Calendar, section: 'Reporting', permission: { resource: 'reports', action: 'view' }, keywords: ['schedule', 'recurring', 'automated', 'cron', 'frequency', 'daily', 'weekly', 'monthly'] },
+        { label: 'Templates', path: '/platform/templates', icon: LayoutTemplate, section: 'Reporting', permission: { resource: 'reports', action: 'configure' }, keywords: ['template', 'report type', 'layout', 'design', 'branding'] },
+        // Management
+        { label: 'Users', path: '/admin/users', icon: UserPlus, section: 'Management', permission: { resource: 'users', action: 'view' }, keywords: ['team', 'members', 'staff', 'permissions', 'roles', 'admin'] },
+        { label: 'API Keys', path: '/admin/api-keys', icon: KeyRound, section: 'Management', permission: { resource: 'api_keys', action: 'view' }, keywords: ['api', 'token', 'key', 'programmatic', 'access'] },
+        { label: 'Licenses', path: '/admin/licenses', icon: FileBadge, section: 'Management', permission: { resource: 'company_settings', action: 'view' }, keywords: ['license', 'subscription', 'plan', 'billing', 'quota'] },
+        // System
+        { label: 'Monitoring', path: '/admin/monitoring', icon: Activity, section: 'System', permission: { resource: 'monitoring', action: 'view' }, keywords: ['health', 'metrics', 'queue', 'performance', 'uptime'] },
+        { label: 'System Status', path: '/admin/status', icon: ShieldCheck, section: 'System', permission: { resource: 'monitoring', action: 'view' }, keywords: ['status', 'health check', 'database', 'redis', 'storage', 'disk'] },
+        { label: 'Audit Logs', path: '/admin/audit-logs', icon: Shield, section: 'System', permission: { resource: 'security', action: 'view_logs' }, keywords: ['audit', 'logs', 'activity', 'history', 'events', 'export'] },
+        // Account
+        { label: 'My Profile', path: '/profile/me', icon: User, section: 'Account', permission: null, keywords: ['profile', 'avatar', 'picture', 'name', 'email'] },
+        { label: 'Settings', path: '/profile/settings', icon: Settings, section: 'Account', permission: { resource: 'company_settings', action: 'view' }, keywords: ['company', 'branding', 'logo', 'color', 'white label', 'configuration', 'report naming'] },
+        { label: 'Security', path: '/profile/security', icon: Shield, section: 'Account', permission: { resource: 'security', action: 'configure' }, keywords: ['password', 'authentication', 'mfa', '2fa', 'session'] },
+        // Help
+        { label: 'Documentation', path: '/docs', icon: HelpCircle, section: 'Help', permission: null, keywords: ['docs', 'help', 'guide', 'faq', 'support', 'how to'] },
     ];
 
     const searchResults = pages.filter(page => {
-        const matchesSearch = page.label.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            page.section.toLowerCase().includes(searchQuery.toLowerCase());
+        const q = searchQuery.toLowerCase();
+        const matchesSearch = page.label.toLowerCase().includes(q) || 
+                            page.section.toLowerCase().includes(q) ||
+                            page.keywords.some(kw => kw.toLowerCase().includes(q));
         const hasAccess = page.permission ? hasPermission(user, page.permission.resource, page.permission.action) : true;
         
         return matchesSearch && hasAccess;
