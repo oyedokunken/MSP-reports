@@ -13,23 +13,36 @@ class BitDefenderDataGatherer
 {
     /**
      * Fetch endpoint data for the customer's mapped BitDefender integration customers.
-     * Returns only the latest snapshot for each unique endpoint.
+     * Returns the latest snapshot for each unique endpoint as of a specific date.
      * 
      * @param Customer $customer
      * @param array<int, int> $integrationCustomerIds
+     * @param Carbon|null $asOf
+     * @param int|null $activityWindowDays If provided, only returns endpoints that had a snapshot within this many days of $asOf
      * @return Collection<int, mixed>
      */
-    public function gatherEndpoints(Customer $customer, array $integrationCustomerIds): Collection
+    public function gatherEndpoints(Customer $customer, array $integrationCustomerIds, ?Carbon $asOf = null, ?int $activityWindowDays = null): Collection
     {
         if (empty($integrationCustomerIds)) {
             return collect();
         }
 
         // Get all endpoint snapshots
-        $allEndpoints = IntegrationData::where('company_id', $customer->company_id)
+        $query = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'bitdefender_endpoint')
-            ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->orderBy('data_timestamp', 'desc')
+            ->whereIn('integration_customer_id', $integrationCustomerIds);
+
+        if ($asOf) {
+            $query->where('data_timestamp', '<=', $asOf->copy()->endOfDay());
+            
+            if ($activityWindowDays) {
+                $query->where('data_timestamp', '>=', $asOf->copy()->subDays($activityWindowDays)->startOfDay());
+            }
+        } elseif ($activityWindowDays) {
+            $query->where('data_timestamp', '>=', now()->subDays($activityWindowDays)->startOfDay());
+        }
+
+        $allEndpoints = $query->orderBy('data_timestamp', 'desc')
             ->get()
             ->map(fn ($row) => [
                 'integration_customer_id' => $row->integration_customer_id,

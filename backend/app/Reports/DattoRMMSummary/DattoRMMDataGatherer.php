@@ -11,7 +11,7 @@ use Illuminate\Support\Collection;
 
 class DattoRMMDataGatherer
 {
-    public function gatherDevices(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate, array $options = []): Collection
+    public function gatherDevices(Customer $customer, array $integrationCustomerIds, Carbon $startDate, Carbon $endDate, array $options = [], int $activityWindowDays = 5): Collection
     {
         if (empty($integrationCustomerIds)) {
             return collect([]);
@@ -20,13 +20,15 @@ class DattoRMMDataGatherer
         $timezone = $options['timezone'] ?? config('app.timezone');
 
         // Professional MSP Approach: 
-        // We report on the "Managed Fleet" - any device seen in the last 30 days.
+        // We report on the "Managed Fleet" - any device seen in the last $activityWindowDays days.
         // This ensures the Total Device count is stable and matches billing/inventory,
         // even if the report is run over a weekend when devices are off.
         $rawData = IntegrationData::where('company_id', $customer->company_id)
             ->where('data_type', 'device_status')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
-            ->where('data_timestamp', '>', now()->subDays(30))
+            // Use end-of-report date minus window to prune stale devices
+            ->where('data_timestamp', '>=', $endDate->copy()->subDays($activityWindowDays)->startOfDay())
+            ->where('data_timestamp', '<=', $endDate->copy()->endOfDay())
             ->orderBy('external_id')
             ->orderBy('data_timestamp', 'desc')
             ->get();
@@ -65,7 +67,7 @@ class DattoRMMDataGatherer
                 'antivirus_product' => $payload['antivirus_status']['antivirusProduct'] ?? $payload['antivirus_product'] ?? 'N/A',
                 'antivirus_status' => $payload['antivirus_status']['antivirusStatus'] ?? $payload['antivirus_status'] ?? 'N/A',
                 // Patch Management
-                'patch_status' => $payload['patch_status']['patchStatus'] ?? $payload['patch_status'] ?? 'N/A',
+                'patch_status' => $payload['patch_status']['patchStatus'] ?? (is_string($payload['patch_status'] ?? null) ? $payload['patch_status'] : 'N/A'),
                 'patches_approved_pending' => $payload['patch_status']['patchesApprovedPending'] ?? $payload['patches_approved_pending'] ?? 0,
                 'patches_not_approved' => $payload['patch_status']['patchesNotApproved'] ?? $payload['patches_not_approved'] ?? 0,
                 'patches_installed' => $payload['patch_status']['patchesInstalled'] ?? $payload['patches_installed'] ?? 0,

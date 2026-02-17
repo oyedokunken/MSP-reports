@@ -74,7 +74,8 @@ class BitDefenderSummary extends BaseReport
             ->toArray();
 
         // Gather endpoint data (BitDefender stores snapshots)
-        $rawEndpoints = $this->dataGatherer->gatherEndpoints($customer, $integrationCustomerIds);
+        // Only include machines that have checked in recently (last 5 days of period) to prune stale/deleted devices
+        $rawEndpoints = $this->dataGatherer->gatherEndpoints($customer, $integrationCustomerIds, $endDate, 5);
         $endpoints = $rawEndpoints->filter(fn ($row) => $this->inRange($row['timestamp'], $startDate, $endDate));
         if ($endpoints->isEmpty() && $rawEndpoints->isNotEmpty()) {
             $endpoints = $rawEndpoints;
@@ -130,6 +131,7 @@ class BitDefenderSummary extends BaseReport
             'os_distribution' => $osSummary['os_distribution'] ?? [],
             'threats_list' => $threatSummary['threats_list'] ?? [],
             'alerts' => $recommendations,
+            'options' => $options,
         ];
 
         \Log::info('Generating BitDefender report', [

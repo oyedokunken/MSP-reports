@@ -74,7 +74,8 @@ class DattoRMMSummary extends BaseReport
             ->toArray();
 
         // Gather all data sections
-        $devices = $this->dataGatherer->gatherDevices($customer, $integrationCustomerIds, $startDate, $endDate, $options);
+        // Use 5-day window for "Active" devices to prune stale/deleted endpoints
+        $devices = $this->dataGatherer->gatherDevices($customer, $integrationCustomerIds, $startDate, $endDate, $options, 5);
         $alerts = $this->dataGatherer->gatherAlerts($customer, $integrationCustomerIds, $startDate, $endDate, $options);
         $uptimeMetrics = $this->dataGatherer->gatherUptimeMetrics($customer, $integrationCustomerIds, $startDate, $endDate, $options);
 
