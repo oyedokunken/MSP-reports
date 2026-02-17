@@ -140,8 +140,6 @@ class AuditThreatLockerCommand extends Command
         $frequency = $this->option('frequency') ?: 'monthly';
         $lastReport = GeneratedReport::where('customer_id', $customerId)
             ->whereNotNull('report_data->executive_summary->total_endpoints')
-            ->where('report_data->options->frequency', $frequency)
-            ->when($tlSchedule, fn($q) => $q->where('report_schedule_id', $tlSchedule->report_schedule_id))
             ->orderBy('generated_report_id', 'desc')
             ->first();
 
