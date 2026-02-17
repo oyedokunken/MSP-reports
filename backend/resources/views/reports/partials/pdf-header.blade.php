@@ -38,7 +38,6 @@
             font-size: 14px;
             font-weight: 700;
             color: #1e293b;
-            margin-left: 12px;
             letter-spacing: -0.01em;
         }
         .header-right {
@@ -58,8 +57,9 @@
         <div class="header-left">
             @if(isset($branding['company_logo']) && $branding['company_logo'])
                 <img src="{{ $branding['company_logo'] }}" alt="Logo" class="company-logo">
+            @else
+                <div class="company-name">{{ $branding['company_name'] ?? 'Reporting' }}</div>
             @endif
-            <div class="company-name">{{ $branding['company_name'] ?? 'Reporting' }}</div>
         </div>
         <div class="header-right">
             <img src="data:image/png;base64,{{ base64_encode(file_get_contents(public_path('logo.png'))) }}" alt="MSP Reports" class="msp-logo">
