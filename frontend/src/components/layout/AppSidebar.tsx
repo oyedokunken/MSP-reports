@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import {
@@ -129,11 +129,16 @@ export default function AppSidebar() {
       ]
     },
     {
-      label: 'Admin',
+      label: 'Management',
       items: [
         { path: '/admin/users', icon: UserPlus, label: 'Users', show: hasPermission(user, 'users', 'view') },
         { path: '/admin/api-keys', icon: KeyRound, label: 'API Keys', show: hasPermission(user, 'api_keys', 'view') },
         { path: '/admin/licenses', icon: FileBadge, label: 'Licenses', show: hasPermission(user, 'company_settings', 'view') },
+      ]
+    },
+    {
+      label: 'System',
+      items: [
         { path: '/admin/monitoring', icon: Activity, label: 'Monitoring', show: hasPermission(user, 'monitoring', 'view'), tourId: 'nav-monitoring' },
         { path: '/admin/status', icon: ShieldCheck, label: 'System Status', show: hasPermission(user, 'monitoring', 'view'), tourId: 'nav-status' },
         { path: '/admin/audit-logs', icon: Shield, label: 'Audit Logs', show: hasPermission(user, 'security', 'view_logs') },
@@ -220,8 +225,12 @@ export default function AppSidebar() {
       <SidebarSeparator className="opacity-50" />
 
       <SidebarContent className="px-1 py-2 group-data-[collapsible=icon]:px-0 thin-scrollbar">
-        {menuGroups.map((group) => (
-          <SidebarGroup key={group.label} className="py-1 first:pt-0">
+        {menuGroups.map((group, index) => (
+          <React.Fragment key={group.label}>
+            {index > 0 && (
+              <SidebarSeparator className="mx-2 my-2 hidden group-data-[collapsible=icon]:block opacity-50" />
+            )}
+            <SidebarGroup className="py-1 first:pt-0">
             <SidebarGroupLabel className="px-2 h-6 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.1em] mb-1 group-data-[collapsible=icon]:hidden opacity-70">
               {group.label}
             </SidebarGroupLabel>
@@ -243,9 +252,8 @@ export default function AppSidebar() {
                               <div className="relative">
                                 <SidebarMenuButton
                                   tooltip="Customers"
-                                  className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10"
+                                  className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10 data-[active=true]:!bg-gray-200 dark:data-[active=true]:!bg-gray-700 hover:!bg-gray-200 dark:hover:!bg-gray-700 data-[active=true]:!text-sidebar-foreground hover:!text-sidebar-foreground"
                                   isActive={active}
-                                  style={active ? { background: 'var(--brand-gradient)' } : undefined}
                                 >
                                   <Users className="h-4 w-4 flex-shrink-0" />
                                   <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">Customers</span>
@@ -298,9 +306,8 @@ export default function AppSidebar() {
                               <SidebarMenuButton
                                 tooltip="Customers"
                                 onClick={() => setCustomersExpanded(!customersExpanded)}
-                                className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10"
+                                className="rounded-lg group-data-[collapsible=icon]:!p-0 px-3 py-2.5 h-10 data-[active=true]:!bg-gray-200 dark:data-[active=true]:!bg-gray-700 hover:!bg-gray-200 dark:hover:!bg-gray-700 data-[active=true]:!text-sidebar-foreground hover:!text-sidebar-foreground"
                                 isActive={active}
-                                style={active ? { background: 'var(--brand-gradient)' } : undefined}
                               >
                                 <Users className="h-4 w-4 flex-shrink-0" />
                                 <span className="font-medium group-data-[collapsible=icon]:hidden flex-1">Customers</span>
@@ -376,6 +383,7 @@ export default function AppSidebar() {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+          </React.Fragment>
         ))}
       </SidebarContent>
 
