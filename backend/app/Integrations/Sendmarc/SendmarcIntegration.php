@@ -316,23 +316,30 @@ final class SendmarcIntegration implements IntegrationInterface
                             }
 
                             // 3. Volume timeline
-                            // Use Range API to ensure full volume capture (Daily API misses data).
-                            // Since API response lacks date keys, we map sequentially from startDate.
-                            // This guarantees Total Volume matches API, even if exact dates are inferred.
-                            $volumeTimeline = $this->client->getDomainVolumeTimeline($accountUuid, $domainUuid, $startDate, $endDate);
-                            
-                            foreach ($volumeTimeline as $idx => $timelineEntry) {
-                                // Map index to date (Assuming sequential daily data from API)
-                                $timestamp = $startDate->copy()->addDays($idx);
-                                
-                                // Verify we don't exceed endDate (in case of extra items)
-                                if ($timestamp->gt($endDate->copy()->endOfDay())) {
-                                    continue;
-                                }
+                            // Sendmarc timeline API is unreliable because it skips days with zero data and doesn't provide dates.
+                            // We fetch day-by-day using the Totals API to ensure 100% accurate date mapping.
+                            $currentDate = $startDate->copy()->startOfDay();
+                            $lastSyncDate = $endDate->copy()->startOfDay();
 
-                                $standardized = SendmarcMapper::mapVolumeTimeline($timelineEntry, $domainUuid, $idx, $timestamp);
-                                $this->storeHistoricalData($standardized);
-                                $totalProcessed++;
+                            while ($currentDate <= $lastSyncDate) {
+                                $this->sendHeartbeat();
+                                try {
+                                    $dailyTotal = $this->client->getDomainVolumeTotals($accountUuid, $domainUuid, $currentDate, $currentDate);
+                                    if (!empty($dailyTotal)) {
+                                        $standardized = SendmarcMapper::mapVolumeTimeline($dailyTotal, $domainUuid, 0, $currentDate->copy()->startOfDay());
+                                        $this->storeHistoricalData($standardized);
+                                        $totalProcessed++;
+                                    }
+                                    // Add small delay to avoid hitting 60/min rate limit too hard
+                                    usleep(1500000); 
+                                } catch (\Exception $e) {
+                                    \Log::warning('Sendmarc historical: Failed to fetch daily total', [
+                                        'domain' => $domain['domain_name'] ?? 'unknown',
+                                        'date' => $currentDate->toDateString(),
+                                        'error' => $e->getMessage()
+                                    ]);
+                                }
+                                $currentDate->addDay();
                             }
 
                             // 4. IP addresses
