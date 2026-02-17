@@ -1,30 +1,47 @@
 
 export const knowledgeBase = {
   integrations: {
-    keywords: ['integration', 'connect', 'add integration', 'setup', 'autotask', 'datto', 'itglue', 'sendmarc', 'bitdefender', 'sync', 'disconnect', 'credentials', 'api key', 'test connection', 'preview'],
+    keywords: ['integration', 'connect', 'add integration', 'setup', 'autotask', 'datto', 'itglue', 'sendmarc', 'bitdefender', 'threatlocker', 'vonahi', 'saas', 'cipp', 'sync', 'disconnect', 'credentials', 'api key', 'test connection', 'preview', 'historical', 'import'],
     answers: {
       'how to add': `**Adding an Integration:**
 
 1. Navigate to [Integrations](/platform/integrations) page from the sidebar
 2. Click **"Add Integration"** button
-3. Select your integration type (Autotask, Datto RMM, ITGlue, Sendmarc, BitDefender, etc.)
-4. Enter the required credentials:
-   - API URL
-   - API Key/Username
-   - Password (if required)
+3. Select your integration type:
+   - **PSA:** Autotask
+   - **RMM:** Datto RMM
+   - **Documentation:** ITGlue
+   - **Security:** BitDefender, ThreatLocker, Sendmarc, SaaS Alerts
+   - **Cloud:** CIPP (Microsoft 365)
+   - **Pen Testing:** Vonahi
+4. Enter the required credentials (API URL, Key, etc.)
 5. Click **"Test Connection"** to verify
 6. Click **"Save"** to activate
 
-The integration will start syncing automatically.`,
+The integration will start syncing automatically. You can also import historical data.`,
 
       'sync': `**Integration Syncing:**
 
 - **Auto-sync**: Runs every 4 hours by default
 - **Manual sync**: Click the sync button on the integration card
+- **Historical import**: Import weeks/months of past data with progress tracking
 - **Sync status**: View in the [Integrations](/platform/integrations) page
 - **Failed syncs**: Check the error message and verify credentials
 
 You can view sync history and logs in the integration details.`,
+
+      'historical import': `**Historical Data Import:**
+
+After adding an integration, you can import historical data:
+
+1. Go to [Integrations](/platform/integrations)
+2. Click on the integration card
+3. Click **"Import Historical Data"**
+4. Select the date range to import
+5. Import runs in the background with progress tracking
+
+**Priority order:** Recent data imports first (weekly → monthly → quarterly → older).
+You can pause, resume, or cancel imports at any time.`,
 
       'source of truth': `**Source of Truth Integration:**
 
@@ -57,6 +74,38 @@ This helps verify data quality before report generation.`,
 4. Confirm the action
 
 If you reconnect later, you may need to re-test credentials and re-sync.`,
+
+      'threatlocker': `**ThreatLocker Integration:**
+
+ThreatLocker provides application whitelisting and endpoint security data:
+
+- **Computers** — Endpoint inventory with OS and status
+- **Policies** — Application control policies
+- **Applications** — Detected applications across endpoints
+- **Audit Logs** — Security events and policy violations
+
+Reports include the **ThreatLocker Summary** with endpoint counts, policy overview, and audit events.`,
+
+      'vonahi': `**Vonahi Integration:**
+
+Vonahi provides automated penetration testing data:
+
+- **Assessments** — Scheduled and completed pen tests
+- **Findings** — Vulnerabilities discovered with severity ratings
+- **Agents** — Deployed scanning agents and their status
+- **Reports** — Pen test report documents
+
+Reports include the **Vonahi Summary** with findings by severity, recommendations, and agent status.`,
+
+      'saas alerts': `**SaaS Alerts Integration:**
+
+SaaS Alerts monitors cloud application security:
+
+- **Security alerts** across SaaS applications
+- **User behaviour analytics**
+- **Compliance monitoring**
+
+Reports include the **SaaS Summary** with alert counts, trends, and security recommendations.`,
     },
   },
 
@@ -136,6 +185,7 @@ Reports are automatically:
 - Converted to PDF with your branding
 - Emailed to configured recipients
 - Stored in the system for download
+- Shareable via **secure links** with optional expiry
 
 Check delivery status in the [Reports](/platform/reports) page.`,
 
@@ -146,6 +196,42 @@ Check delivery status in the [Reports](/platform/reports) page.`,
 3. Click **Download** (PDF)
 
 If you don't see a report you expect, check the customer's schedule and whether generation succeeded.`,
+
+      'bulk generate': `**Bulk Report Generation:**
+
+Generate reports for multiple customers at once:
+
+1. Go to [Reports](/platform/reports)
+2. Click **"Bulk Generate"**
+3. Select customers and report types
+4. Choose the date range
+5. Click **Generate All**
+
+Reports queue and generate in the background. You can monitor progress in the reports list.`,
+
+      'folder view': `**Reports Folder View:**
+
+Organise reports by customer using folder view:
+
+1. Go to [Reports](/platform/reports)
+2. Toggle between **Table** and **Folders** view
+3. In folder view, reports are grouped by customer name
+4. Click a folder to see all reports for that customer
+5. Use the search bar to filter folders by customer name
+
+This makes it easy to find all reports for a specific customer.`,
+
+      'secure links': `**Secure Report Sharing:**
+
+Share reports via secure links without requiring login:
+
+1. Find the report in [Reports](/platform/reports)
+2. Click **Share** on the report
+3. A secure link is generated
+4. Share the link with your customer
+5. Links can have optional expiry dates
+
+Secure links are tracked in the audit log for compliance.`,
     },
   },
 
@@ -230,18 +316,29 @@ Audit logs are retained for 7 years for compliance.`,
   },
 
   templates: {
-    keywords: ['template', 'report template', 'branding', 'customize', 'logo', 'colors'],
+    keywords: ['template', 'report template', 'branding', 'customize', 'logo', 'colors', 'sections', 'options'],
     answers: {
       'manage': `**Report Templates:**
 
 Customize report appearance in [Templates](/platform/templates):
 
-- View available report types
-- Preview template layouts
-- Configure branding (logo, colors)
-- Set default formatting options
+- View all available report types and their required integrations
+- Preview template layouts before generating
+- Configure which **sections** to include per report type
+- Set default formatting options and branding
+- Apply templates to customers in bulk
 
 Templates use your company branding from Settings.`,
+
+      'sections': `**Report Section Selection:**
+
+When configuring a report schedule, you can choose which sections to include:
+
+- Each report type has configurable sections
+- Toggle sections on/off per customer schedule
+- For example, the **Microsoft 365 Summary** lets you include/exclude:
+  - Executive Summary, Users & Identity, Licenses, Security, Defender, Conditional Access, Email Protection
+- Changes apply to the next scheduled generation`,
     },
   },
 
@@ -262,7 +359,7 @@ Contact your administrator to upgrade or add integrations.`,
   },
 
   users: {
-    keywords: ['user', 'permission', 'access', 'admin', 'role', 'invite', 'remove user'],
+    keywords: ['user', 'permission', 'access', 'admin', 'role', 'invite', 'remove user', 'operator', 'viewer', 'manager'],
     answers: {
       'manage users': `**User Management:**
 
@@ -270,13 +367,9 @@ Admins can manage users in [Admin → Users](/admin/users):
 
 1. Click **"Add User"**
 2. Enter user details (name, email)
-3. Set permissions:
-   - **Integrations**: view/manage/sync
-   - **Customers**: view/edit/map
-   - **Reports**: view/configure/generate
-   - **Users**: view/manage
-   - **Settings**: view/edit
-4. Click **"Create User"**
+3. Assign a **role** (Admin, Manager, Operator, Viewer)
+4. Optionally customise permissions beyond the role defaults
+5. Click **"Create User"**
 
 Users receive login credentials via email.`,
 
@@ -290,7 +383,13 @@ Granular permissions control what users can do:
 - **Configure**: Set up reports and schedules
 - **Generate**: Create reports on-demand
 
-Set permissions per user based on their role.`,
+**Roles** provide permission presets:
+- **Admin** — Full access to everything
+- **Manager** — Manage integrations, customers, and reports
+- **Operator** — Day-to-day operations, no admin access
+- **Viewer** — Read-only access across the platform
+
+Custom permissions can override role defaults per user.`,
     },
   },
 
@@ -311,12 +410,13 @@ Navigate using the sidebar menu to access all features.`,
       'getting started': `**Getting Started:**
 
 1. **Add Integration**: Connect your first system in [Integrations](/platform/integrations)
-2. **Wait for Sync**: Integration will pull customer data automatically
-3. **Map Customers**: Review and map in [Customers → Map](/platform/customers/map)
-4. **Configure Reports**: Set up [Schedules](/platform/schedules) for customers
-5. **Monitor**: Check the [Monitoring](/admin/monitoring) page for system health
+2. **Import History**: Optionally import historical data for trend analysis
+3. **Wait for Sync**: Integration will pull customer data automatically
+4. **Map Customers**: Review and map in [Customers → Map](/platform/customers/map)
+5. **Configure Reports**: Set up [Schedules](/platform/schedules) for customers
+6. **Monitor**: Check the [Monitoring](/admin/monitoring) page for system health
 
-Need help? Use this chatbot, check the [Docs](/docs) page, or contact support.`,
+Need help? Use this chatbot, check the [Docs](/docs) page, or take the **Guided Tour** from the Docs page.`,
 
       'navigation': `**Where do I find that?**
 
@@ -473,18 +573,19 @@ export function findAnswer(question: string): string {
   const tokenSet = new Set(tokens)
 
   const synonymGroups: Record<string, string[]> = {
-    sync: ['sync', 'synchronise', 'synchronize', 'pull', 'refresh', 'update'],
-    integration: ['integration', 'connector', 'connect', 'connected', 'autotask', 'datto', 'itglue'],
+    sync: ['sync', 'synchronise', 'synchronize', 'pull', 'refresh', 'update', 'historical', 'import'],
+    integration: ['integration', 'connector', 'connect', 'connected', 'autotask', 'datto', 'itglue', 'threatlocker', 'vonahi', 'saas', 'cipp', 'bitdefender', 'sendmarc'],
     customer: ['customer', 'client', 'account'],
     mapping: ['mapping', 'map', 'match', 'link', 'merge'],
-    report: ['report', 'pdf', 'export', 'download', 'generated'],
+    report: ['report', 'pdf', 'export', 'download', 'generated', 'bulk', 'folder', 'share', 'secure'],
     schedule: ['schedule', 'scheduled', 'frequency', 'cron', 'timing', 'run'],
-    permissions: ['permission', 'permissions', 'role', 'roles', 'access'],
+    permissions: ['permission', 'permissions', 'role', 'roles', 'access', 'admin', 'manager', 'operator', 'viewer'],
     monitoring: ['monitoring', 'health', 'status', 'metrics', 'uptime'],
     apikey: ['api', 'apikey', 'token', 'automation', 'programmatic'],
     audit: ['audit', 'log', 'history', 'activity', 'compliance'],
     login: ['login', 'signin', 'password', 'forgot', 'reset', 'sso', 'saml'],
     settings: ['settings', 'configure', 'branding', 'logo', 'colors'],
+    template: ['template', 'templates', 'sections', 'customize'],
   }
 
   const expandedTokenSet = new Set<string>([...tokenSet])

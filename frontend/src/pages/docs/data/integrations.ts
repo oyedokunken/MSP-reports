@@ -349,6 +349,173 @@ Once CIPP data is synced, you can generate the **Microsoft 365 Summary Report** 
 3. Review the **Sync History** for errors or partial syncs
       `,
       relatedArticles: ['integrations-overview', 'adding-integration', 'report-configuration']
+    },
+    {
+      id: 'threatlocker-integration',
+      title: 'ThreatLocker Integration',
+      description: 'Connect ThreatLocker for application whitelisting and endpoint security data',
+      icon: 'Shield',
+      content: `
+# ThreatLocker Integration
+
+ThreatLocker provides application whitelisting, ringfencing, and endpoint security data for your managed environments.
+
+## What Data Does ThreatLocker Sync?
+
+| Data Type | Description |
+|-----------|-------------|
+| **Computers** | Endpoint inventory with OS version, status, and last check-in |
+| **Policies** | Application control policies and their enforcement status |
+| **Applications** | Detected applications across all managed endpoints |
+| **Audit Logs** | Security events, policy violations, and administrative actions |
+
+## Setting Up ThreatLocker
+
+### Prerequisites
+- A ThreatLocker account with API access
+- API credentials (Organisation ID, API Key)
+
+### Step 1: Add the Integration
+1. Go to **Integrations** in the sidebar
+2. Click **Add Integration**
+3. Select **ThreatLocker** from the list
+
+### Step 2: Enter Credentials
+- **API URL** — Your ThreatLocker API endpoint
+- **API Key** — Your ThreatLocker API key
+- **Organisation ID** — Your ThreatLocker organisation identifier
+
+### Step 3: Test & Activate
+1. Click **Test Connection** to verify credentials
+2. If successful, click **Save Integration**
+3. The initial sync will begin automatically
+
+## ThreatLocker Reports
+
+The **ThreatLocker Summary Report** includes:
+- **Executive Summary** — Total endpoints, policies, and audit event counts
+- **Endpoint Inventory** — Full computer list with OS and status
+- **Policy Overview** — Active policies and enforcement status
+- **Audit Events** — Recent security events within the reporting period
+- **Recommendations** — Auto-generated based on policy gaps and security events
+
+## Historical Data Import
+
+ThreatLocker supports historical data import:
+1. Click **Import Historical Data** on the integration
+2. Select the date range
+3. Audit logs and endpoint snapshots are imported with progress tracking
+      `,
+      relatedArticles: ['integrations-overview', 'adding-integration', 'report-configuration']
+    },
+    {
+      id: 'vonahi-integration',
+      title: 'Vonahi Integration',
+      description: 'Connect Vonahi for automated penetration testing data',
+      icon: 'Search',
+      content: `
+# Vonahi Integration
+
+Vonahi provides automated internal network penetration testing, delivering continuous security assessments without manual intervention.
+
+## What Data Does Vonahi Sync?
+
+| Data Type | Description |
+|-----------|-------------|
+| **Assessments** | Scheduled and completed penetration tests with severity ratings |
+| **Findings** | Discovered vulnerabilities with affected hosts, impact, and remediation steps |
+| **Agents** | Deployed scanning agents with activation status and IP addresses |
+| **Reports** | Pen test report documents and summaries |
+
+## Setting Up Vonahi
+
+### Prerequisites
+- A Vonahi vPenTest account with API access
+- API credentials (API Key)
+
+### Step 1: Add the Integration
+1. Go to **Integrations** in the sidebar
+2. Click **Add Integration**
+3. Select **Vonahi** from the list
+
+### Step 2: Enter Credentials
+- **API Key** — Your Vonahi API key
+
+### Step 3: Test & Activate
+1. Click **Test Connection** to verify credentials
+2. If successful, click **Save Integration**
+3. The initial sync will begin automatically
+
+## Vonahi Reports
+
+The **Vonahi Summary Report** includes:
+- **Executive Summary** — Total assessments, findings count, critical/high findings, active agents
+- **Assessment History** — List of completed pen tests with dates and severity
+- **Vulnerability Findings** — Sorted by severity (Critical → High → Medium → Low)
+  - Affected hosts and IPs
+  - Security impact description
+  - Remediation recommendations
+- **Agent Status** — Active/inactive scanning agents
+- **Recommendations** — Prioritised remediation guidance based on finding severity
+
+> **Tip:** You can filter findings by minimum severity level when configuring the report schedule.
+      `,
+      relatedArticles: ['integrations-overview', 'adding-integration', 'report-configuration']
+    },
+    {
+      id: 'saas-alerts-integration',
+      title: 'SaaS Alerts Integration',
+      description: 'Monitor cloud application security with SaaS Alerts',
+      icon: 'AlertTriangle',
+      content: `
+# SaaS Alerts Integration
+
+SaaS Alerts monitors your cloud applications for security threats, providing real-time alerting and historical trend analysis.
+
+## What Data Does SaaS Alerts Sync?
+
+| Data Type | Description |
+|-----------|-------------|
+| **Security Alerts** | Alerts across monitored SaaS applications with severity and status |
+| **Alert Trends** | Historical alert counts for trend analysis |
+| **User Activity** | Suspicious user behaviour patterns |
+
+## Setting Up SaaS Alerts
+
+### Prerequisites
+- A SaaS Alerts account with API access
+- API credentials (API Key, Partner ID)
+
+### Step 1: Add the Integration
+1. Go to **Integrations** in the sidebar
+2. Click **Add Integration**
+3. Select **SaaS Alerts** from the list
+
+### Step 2: Enter Credentials
+- **API URL** — Your SaaS Alerts API endpoint
+- **API Key** — Your SaaS Alerts API key
+
+### Step 3: Test & Activate
+1. Click **Test Connection** to verify credentials
+2. If successful, click **Save Integration**
+3. The initial sync will begin automatically
+
+## SaaS Alerts Reports
+
+The **SaaS Summary Report** includes:
+- **Alert Overview** — Total alerts by severity and status
+- **Trend Analysis** — Alert volume over the reporting period
+- **Top Alert Types** — Most common alert categories
+- **Recommendations** — Security improvement suggestions based on alert patterns
+
+## Historical Data Import
+
+SaaS Alerts supports historical data import with de-duplication:
+- Data is imported in 2-day windows to respect API rate limits
+- Duplicate alerts are automatically detected and skipped
+- Progress tracking shows import completion percentage
+      `,
+      relatedArticles: ['integrations-overview', 'adding-integration', 'report-configuration']
     }
   ]
 }

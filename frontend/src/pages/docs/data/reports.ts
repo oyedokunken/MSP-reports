@@ -144,6 +144,28 @@ Reports generate automatically based on schedules:
 1. Find the report in the list
 2. Click **View** or **Download**
 3. PDF opens or downloads
+
+### Folder View
+Organise reports by customer:
+1. Toggle to **Folders** view in the Reports page
+2. Reports are grouped by customer name as folder icons
+3. Click a folder to see all reports for that customer
+4. Use search to filter folders by customer name
+
+### Bulk Generation
+Generate reports for multiple customers at once:
+1. Click **Bulk Generate** in the Reports page
+2. Select customers and report types
+3. Choose the date range
+4. Click **Generate All** — reports queue in the background
+
+### Secure Sharing
+Share reports via secure links:
+1. Click **Share** on any report
+2. A unique secure link is generated
+3. Share with your customer — no login required
+4. Links can have optional expiry dates
+5. All access is tracked in the audit log
       `,
       relatedArticles: ['reports-overview', 'report-schedules', 'report-delivery']
     },
@@ -319,7 +341,12 @@ Configure which reports to generate and how they should be formatted.
 |-------------|---------------------|-------------|
 | **Autotask Monthly Summary** | Autotask | Tickets, time entries, billing, and contracts |
 | **Microsoft 365 Summary** | CIPP | Users, MFA, licenses, security, Defender, conditional access, email |
-| **Datto Backup Report** | Datto | Backup status, success rates, storage usage |
+| **Datto RMM Summary** | Datto RMM | Device health, alerts, patch status, endpoint monitoring |
+| **BitDefender Summary** | BitDefender | Endpoint protection, threat detections, security posture |
+| **ThreatLocker Summary** | ThreatLocker | Application whitelisting, endpoint inventory, audit events |
+| **Vonahi Summary** | Vonahi | Pen test assessments, vulnerability findings, agent status |
+| **SaaS Alerts Summary** | SaaS Alerts | Cloud security alerts, user behaviour, compliance |
+| **Sendmarc Summary** | Sendmarc | Email authentication (DMARC/SPF/DKIM), domain compliance |
 | **IT Glue Documentation** | ITGlue | Configuration items, password updates, document changes |
 | **Combined Monthly Report** | Autotask + optional others | All-in-one report from multiple integrations |
 
