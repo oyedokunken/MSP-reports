@@ -12,6 +12,13 @@ final class ResetScheduleAction
 {
     use LogsAudit;
 
+    private \App\Services\ReportScheduleService $scheduleService;
+
+    public function __construct(\App\Services\ReportScheduleService $scheduleService)
+    {
+        $this->scheduleService = $scheduleService;
+    }
+
     public function execute(ReportSchedule $schedule): ReportSchedule
     {
         if (!$schedule->template_id || !$schedule->template) {
@@ -31,7 +38,7 @@ final class ResetScheduleAction
             $scheduleConfig['report_options'] = $template->report_options;
         }
 
-        $schedule->update([
+        $schedule->fill([
             'report_type' => $template->report_type,
             'frequency' => $template->frequency,
             'schedule_config' => !empty($scheduleConfig) ? $scheduleConfig : null,
@@ -40,11 +47,14 @@ final class ResetScheduleAction
             'is_customized' => false,
         ]);
 
+        $schedule->next_scheduled_at = $this->scheduleService->calculateNextRun($schedule);
+        $schedule->save();
+
         // Also revert customer report_configuration to template versions if applicable
         $customer = $schedule->customer;
         if ($template->included_sections || $template->delivery_settings || $template->report_options) {
             $reportConfig = $customer->report_configuration ?? [];
-            
+
             if ($template->included_sections) {
                 $reportConfig['included_sections'] = $template->included_sections;
             }

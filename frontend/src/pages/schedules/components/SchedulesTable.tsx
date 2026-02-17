@@ -9,13 +9,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-    Calendar, 
-    Clock, 
-    Settings, 
-    CalendarClock, 
-    Repeat, 
-    Trash2, 
+import {
+    Calendar,
+    Clock,
+    Settings,
+    CalendarClock,
+    Repeat,
+    Trash2,
     CheckCircle
 } from "lucide-react";
 import {
@@ -31,6 +31,7 @@ import {
     formatFrequency,
     formatReportType,
 } from "../utils/formatters";
+import { TimeRemaining } from "./TimeRemaining";
 import type { ReportSchedule } from "../types/schedule";
 import { cn } from "@/lib/utils";
 
@@ -179,9 +180,12 @@ export function SchedulesTable({
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex flex-col">
-                                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                                        <span className="text-sm font-medium whitespace-nowrap">
                                             {formatDate(schedule.next_scheduled_at)}
                                         </span>
+                                        {schedule.next_scheduled_at && (
+                                            <TimeRemaining dateString={schedule.next_scheduled_at} />
+                                        )}
                                     </div>
                                 </TableCell>
                                 <TableCell>

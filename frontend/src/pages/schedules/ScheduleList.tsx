@@ -14,7 +14,7 @@ export default function ScheduleList() {
   const [selectCustomerOpen, setSelectCustomerOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [scheduleToDelete, setScheduleToDelete] = useState<ReportSchedule | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>('folders')
+  const [viewMode, setViewMode] = useState<ViewMode>('table')
 
   const schedules = useSchedulesStore(state => state.schedules)
   const isLoading = useSchedulesStore(state => state.isLoading)

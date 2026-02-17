@@ -147,18 +147,18 @@ export function SchedulesHeader({
                 >
                     <TabsList className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 h-10 w-full justify-start">
                         <TabsTrigger
-                            value="folders"
-                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md flex-1 sm:flex-initial"
-                        >
-                            <Folder className="h-4 w-4" />
-                            <span className="ml-2">Folders</span>
-                        </TabsTrigger>
-                        <TabsTrigger
                             value="table"
                             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md flex-1 sm:flex-initial"
                         >
                             <List className="h-4 w-4" />
                             <span className="ml-2">Table</span>
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="folders"
+                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm px-3 rounded-md flex-1 sm:flex-initial"
+                        >
+                            <Folder className="h-4 w-4" />
+                            <span className="ml-2">Folders</span>
                         </TabsTrigger>
                     </TabsList>
                 </Tabs>
