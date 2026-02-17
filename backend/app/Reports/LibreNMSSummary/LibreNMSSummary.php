@@ -148,10 +148,17 @@ class LibreNMSSummary extends BaseReport
             
             $devices[] = [
                 'name' => !empty($payload['sysName']) ? $payload['sysName'] : ($payload['hostname'] ?? 'Unknown'),
+                'ip' => $payload['ip'] ?? 'N/A',
                 'status' => $isOnline ? 'Online' : 'Offline',
                 'type' => $payload['type'] ?? 'Unknown',
                 'os' => $payload['os'] ?? 'Unknown',
+                'uptime_24h' => $availability['24h']['uptime_percent'] ?? 0,
+                'uptime_7d' => $availability['7d']['uptime_percent'] ?? 0,
                 'uptime_30d' => $availability['30d']['uptime_percent'] ?? 0,
+                'uptime_365d' => $availability['365d']['uptime_percent'] ?? 0,
+                'last_polled' => $payload['last_polled'] ?? null,
+                'status_reason' => $payload['status_reason'] ?? '',
+                'uptime_days' => $uptimePayload['uptime_days'] ?? 0,
             ];
         }
 
@@ -178,6 +185,27 @@ class LibreNMSSummary extends BaseReport
             ->take(10)
             ->values()
             ->toArray();
+
+        // Offline devices with details
+        $offlineDevices = collect($devices)
+            ->filter(fn($d) => $d['status'] === 'Offline')
+            ->sortBy('name')
+            ->values()
+            ->toArray();
+
+        // All devices sorted by name for full table
+        $allDevices = collect($devices)
+            ->sortBy('name')
+            ->values()
+            ->toArray();
+
+        // Uptime trend averages across all devices
+        $uptimeTrend = [
+            '24h' => $totalDevices > 0 ? round(collect($devices)->avg('uptime_24h'), 2) : 0,
+            '7d' => $totalDevices > 0 ? round(collect($devices)->avg('uptime_7d'), 2) : 0,
+            '30d' => $totalDevices > 0 ? round(collect($devices)->avg('uptime_30d'), 2) : 0,
+            '365d' => $totalDevices > 0 ? round(collect($devices)->avg('uptime_365d'), 2) : 0,
+        ];
 
         // Build recommendations
         $recommendations = [];
@@ -229,6 +257,9 @@ class LibreNMSSummary extends BaseReport
                 'os_types' => $osTypes,
             ],
             'top_issues' => $topIssues,
+            'offline_devices' => $offlineDevices,
+            'all_devices' => $allDevices,
+            'uptime_trend' => $uptimeTrend,
             'recommendations' => $recommendations,
         ];
 

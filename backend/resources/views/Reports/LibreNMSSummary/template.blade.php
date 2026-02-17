@@ -42,10 +42,30 @@
         .info-value { text-align: right; font-weight: 600; }
 
         .top-issues-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .top-issues-table th { text-align: left; padding: 10px; background: #f9fafb; font-weight: 600; border-bottom: 1px solid #e5e5e5; }
+        .top-issues-table th { text-align: left; padding: 10px; background: #f9fafb; font-weight: 600; border-bottom: 1px solid #e5e5e5; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; color: #4b5563; }
         .top-issues-table td { padding: 10px; border-bottom: 1px solid #f3f4f6; }
         .percentage { font-family: monospace; font-weight: 600; }
         .low-uptime { color: #dc2626; }
+
+        .trend-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 30px; }
+        .trend-card { padding: 16px; border: 1px solid #e5e5e5; border-radius: 8px; text-align: center; position: relative; overflow: hidden; }
+        .trend-card .trend-period { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .trend-card .trend-value { font-size: 22px; font-weight: 700; display: block; }
+        .trend-card .trend-bar { position: absolute; bottom: 0; left: 0; height: 4px; border-radius: 0 0 8px 8px; }
+
+        .offline-table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 30px; }
+        .offline-table th { text-align: left; padding: 10px; background: #fef2f2; font-weight: 600; border-bottom: 1px solid #fecaca; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; color: #991b1b; }
+        .offline-table td { padding: 10px; border-bottom: 1px solid #f3f4f6; }
+        .offline-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background: #fef2f2; color: #dc2626; }
+        .reason-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; background: #f3f4f6; color: #4b5563; }
+
+        .device-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .device-table th { text-align: left; padding: 8px 10px; background: #f9fafb; font-weight: 600; border-bottom: 1px solid #e5e5e5; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; color: #4b5563; }
+        .device-table td { padding: 7px 10px; border-bottom: 1px solid #f3f4f6; font-size: 11px; }
+        .device-table tr:nth-child(even) { background: #fafbfc; }
+        .status-online { color: #10b981; font-weight: 600; }
+        .status-offline { color: #ef4444; font-weight: 600; }
+        .page-break { page-break-before: always; }
     </style>
     <style>
         /* Report Content Background Shapes */
@@ -155,10 +175,82 @@
         </div>
     @endif
 
-    {{-- Top Issues Section --}}
-    @if(in_array('top_issues', $sections_to_render ?? ['top_issues']))
+    {{-- Uptime Trend Section --}}
+    @if(isset($uptime_trend) && in_array('uptime_trend', $sections_to_render ?? ['uptime_trend']))
+        <h2 class="section-title">Network Availability Trend</h2>
+        <p style="color: #6b7280; font-size: 10px; margin-bottom: 12px;">Average uptime across all {{ $summary['total_devices'] }} monitored devices over different time periods.</p>
+        <div class="trend-grid">
+            @php
+                $periods = [
+                    '24h' => ['label' => 'Last 24 Hours', 'value' => $uptime_trend['24h'] ?? 0],
+                    '7d' => ['label' => 'Last 7 Days', 'value' => $uptime_trend['7d'] ?? 0],
+                    '30d' => ['label' => 'Last 30 Days', 'value' => $uptime_trend['30d'] ?? 0],
+                    '365d' => ['label' => 'Last 365 Days', 'value' => $uptime_trend['365d'] ?? 0],
+                ];
+            @endphp
+            @foreach($periods as $key => $period)
+                @php
+                    $val = $period['value'];
+                    $color = $val >= 99.9 ? '#10b981' : ($val >= 99.0 ? '#f59e0b' : '#ef4444');
+                    $barWidth = max($val, 0);
+                @endphp
+                <div class="trend-card">
+                    <div class="trend-period">{{ $period['label'] }}</div>
+                    <span class="trend-value" style="color: {{ $color }}">{{ number_format($val, 2) }}%</span>
+                    <div class="trend-bar" style="width: {{ $barWidth }}%; background: {{ $color }};"></div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
+    {{-- Offline Device Details Section --}}
+    @if(isset($offline_devices) && count($offline_devices) > 0)
+        <h2 class="section-title" style="border-bottom-color: #ef4444;">Offline & Disabled Devices</h2>
+        <p style="color: #6b7280; font-size: 10px; margin-bottom: 10px;">{{ count($offline_devices) }} device(s) currently reporting as offline or disabled.</p>
+        <table class="offline-table">
+            <thead>
+                <tr>
+                    <th>Device Name</th>
+                    <th>IP Address</th>
+                    <th>Type</th>
+                    <th>Reason</th>
+                    <th>Last Polled</th>
+                    <th style="text-align: right;">30d Uptime</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($offline_devices as $device)
+                <tr>
+                    <td><strong>{{ $device['name'] }}</strong></td>
+                    <td style="font-family: monospace; font-size: 11px;">{{ $device['ip'] }}</td>
+                    <td>{{ $device['type'] }}</td>
+                    <td>
+                        @if(!empty($device['status_reason']))
+                            <span class="reason-badge">{{ $device['status_reason'] }}</span>
+                        @else
+                            <span style="color: #9ca3af;">—</span>
+                        @endif
+                    </td>
+                    <td style="font-size: 10px; color: #6b7280;">
+                        @if($device['last_polled'])
+                            {{ \Carbon\Carbon::parse($device['last_polled'])->diffForHumans() }}
+                        @else
+                            N/A
+                        @endif
+                    </td>
+                    <td style="text-align: right;" class="percentage {{ $device['uptime_30d'] < 98 ? 'low-uptime' : '' }}">
+                        {{ number_format($device['uptime_30d'], 2) }}%
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    {{-- Availability Watchlist (Top Issues) --}}
+    @if(in_array('top_issues', $sections_to_render ?? ['top_issues']) && count($top_issues ?? []) > 0)
         <h2 class="section-title">Availability Watchlist</h2>
-        <p style="color: #6b7280; font-size: 10px; margin-bottom: 10px;">Devices with the lowest average uptime in the last 30 days.</p>
+        <p style="color: #6b7280; font-size: 10px; margin-bottom: 10px;">Top {{ count($top_issues) }} devices with the lowest average uptime in the last 30 days.</p>
         <table class="top-issues-table">
             <thead>
                 <tr>
@@ -170,7 +262,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($top_issues as $device)
+                @foreach($top_issues as $device)
                 <tr>
                     <td><strong>{{ $device['name'] }}</strong></td>
                     <td>{{ $device['type'] }}</td>
@@ -184,11 +276,48 @@
                         {{ number_format($device['uptime_30d'], 2) }}%
                     </td>
                 </tr>
-                @empty
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
+    {{-- Full Device Inventory --}}
+    @if(isset($all_devices) && count($all_devices) > 0)
+        <div class="page-break"></div>
+        <h2 class="section-title">Complete Device Inventory</h2>
+        <p style="color: #6b7280; font-size: 10px; margin-bottom: 10px;">All {{ count($all_devices) }} monitored devices with availability metrics.</p>
+        <table class="device-table">
+            <thead>
                 <tr>
-                    <td colspan="5" style="text-align: center; color: #9ca3af; padding: 20px;">No availability issues detected.</td>
+                    <th>Device Name</th>
+                    <th>IP Address</th>
+                    <th>Type</th>
+                    <th>OS</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">24h</th>
+                    <th style="text-align: right;">7d</th>
+                    <th style="text-align: right;">30d</th>
+                    <th style="text-align: right;">365d</th>
                 </tr>
-                @endforelse
+            </thead>
+            <tbody>
+                @foreach($all_devices as $device)
+                <tr>
+                    <td><strong>{{ $device['name'] }}</strong></td>
+                    <td style="font-family: monospace; font-size: 10px;">{{ $device['ip'] }}</td>
+                    <td>{{ $device['type'] }}</td>
+                    <td>{{ $device['os'] }}</td>
+                    <td>
+                        <span class="{{ $device['status'] === 'Online' ? 'status-online' : 'status-offline' }}">
+                            {{ $device['status'] }}
+                        </span>
+                    </td>
+                    <td style="text-align: right;" class="percentage">{{ number_format($device['uptime_24h'], 1) }}%</td>
+                    <td style="text-align: right;" class="percentage">{{ number_format($device['uptime_7d'], 1) }}%</td>
+                    <td style="text-align: right;" class="percentage {{ $device['uptime_30d'] < 98 ? 'low-uptime' : '' }}">{{ number_format($device['uptime_30d'], 1) }}%</td>
+                    <td style="text-align: right;" class="percentage">{{ number_format($device['uptime_365d'], 1) }}%</td>
+                </tr>
+                @endforeach
             </tbody>
         </table>
     @endif
