@@ -1,15 +1,13 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\Integration;
 use App\Integrations\BitDefender\BitDefenderClient;
+use App\Models\Integration;
 use App\Models\IntegrationCustomer;
 use App\Models\IntegrationData;
 use App\Services\RateLimiter;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 class BitdefenderVerifyData extends Command
@@ -21,12 +19,12 @@ class BitdefenderVerifyData extends Command
     {
         $integrationId = $this->argument('integrationId');
         if (empty($integrationId)) {
-             $integrationId = $this->ask('Enter the integration ID to verify');
+            $integrationId = $this->ask('Enter the integration ID to verify');
         }
 
         if (empty($integrationId)) {
-             $this->error('Invalid integration ID');
-             return self::FAILURE;
+            $this->error('Invalid integration ID');
+            return self::FAILURE;
         }
 
         /** @var string|int $integrationId */
@@ -42,7 +40,7 @@ class BitdefenderVerifyData extends Command
         );
 
         $this->info("Starting verification for integration #{$integration->integration_id}");
-        $this->info("Name: " . ($integration->display_name ?? 'Unnamed'));
+        $this->info('Name: ' . ($integration->display_name ?? 'Unnamed'));
         $this->newLine();
 
         // Companies verification (unchanged)
@@ -54,7 +52,7 @@ class BitdefenderVerifyData extends Command
         try {
             $apiCompanies = collect($client->getCompaniesList());
         } catch (\Exception $e) {
-            $this->error("Failed to fetch companies from API: " . $e->getMessage());
+            $this->error('Failed to fetch companies from API: ' . $e->getMessage());
             return self::FAILURE;
         }
 
@@ -65,7 +63,8 @@ class BitdefenderVerifyData extends Command
 
         foreach ($apiCompanies as $apiCompany) {
             $extId = $apiCompany['id'] ?? null;
-            if (!$extId) continue;
+            if (!$extId)
+                continue;
 
             $db = $dbCustomers->get($extId);
 
@@ -81,7 +80,7 @@ class BitdefenderVerifyData extends Command
 
         // Endpoints sample check – SAFE VERSION
         if ($dbCustomers->isEmpty()) {
-            $this->warn("No customers found in database → skipping endpoint check.");
+            $this->warn('No customers found in database → skipping endpoint check.');
         } else {
             $sampleCustomers = $dbCustomers->random(min($sampleSize, $dbCustomers->count()));
 
@@ -93,7 +92,7 @@ class BitdefenderVerifyData extends Command
                 try {
                     $apiEndpoints = $client->getEndpointsForCompany($dbCustomer->external_id);
                 } catch (\Exception $e) {
-                    $this->error("  API error: " . $e->getMessage());
+                    $this->error('  API error: ' . $e->getMessage());
                     continue;
                 }
 
@@ -105,14 +104,13 @@ class BitdefenderVerifyData extends Command
                     ->where('data_type', 'bitdefender_endpoint')
                     ->get(['data_payload']);
 
-                $dbEndpointIds = $dbRecords->map(fn($r) => 
-                    $r->data_payload['endpoint_id'] 
-                    ?? $r->data_payload['id'] 
-                    ?? ($r->data_payload['raw_data']['id'] ?? null)
-                )->filter()->unique()->values()->toArray();
+                $dbEndpointIds = $dbRecords->map(fn($r) =>
+                    $r->data_payload['endpoint_id']
+                        ?? $r->data_payload['id']
+                        ?? ($r->data_payload['raw_data']['id'] ?? null))->filter()->unique()->values()->toArray();
 
                 $missingInDb = array_diff($apiIds, $dbEndpointIds);
-                $extraInDb   = array_diff($dbEndpointIds, $apiIds);
+                $extraInDb = array_diff($dbEndpointIds, $apiIds);
 
                 if (!empty($missingInDb)) {
                     $mismatches[] = "Company {$dbCustomer->name}: Missing in DB → " . implode(', ', $missingInDb);
@@ -121,8 +119,8 @@ class BitdefenderVerifyData extends Command
                     $mismatches[] = "Company {$dbCustomer->name}: Extra in DB → " . implode(', ', $extraInDb);
                 }
 
-                $this->line("  API endpoints:   " . count($apiIds));
-                $this->line("  DB endpoints:    " . count($dbEndpointIds));
+                $this->line('  API endpoints:   ' . count($apiIds));
+                $this->line('  DB endpoints:    ' . count($dbEndpointIds));
                 $this->newLine();
             }
         }
@@ -134,7 +132,7 @@ class BitdefenderVerifyData extends Command
         } else {
             $this->error('Issues found:');
             foreach ($mismatches as $line) {
-                $this->line("  " . $line);
+                $this->line('  ' . $line);
             }
             $this->newLine();
             $this->warn('Consider running a full re-sync if differences are significant.');

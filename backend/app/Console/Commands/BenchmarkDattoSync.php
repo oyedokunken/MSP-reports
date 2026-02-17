@@ -1,18 +1,16 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\Integration;
-use App\Models\SyncLog;
-use App\Models\IntegrationCustomer;
 use App\Jobs\SyncIntegrationJob;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Artisan;
+use App\Models\Integration;
+use App\Models\IntegrationCustomer;
+use App\Models\SyncLog;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class BenchmarkDattoSync extends Command
 {
@@ -28,15 +26,16 @@ class BenchmarkDattoSync extends Command
             // 1. Reset State
             $this->info('Resetting state...');
             Artisan::call('sync:force-fail', ['--force' => true]);
-            
+
             $integration = Integration::where('integration_type', 'Datto')->firstOrFail();
-            
+
             // Clear previous logs
             SyncLog::where('integration_id', $integration->integration_id)->delete();
-            
+
             // Reset metadata timestamps to force a full re-sync for benchmark
             $this->info('Clearing integration customer metadata...');
-            IntegrationCustomer::withoutGlobalScopes()->where('integration_id', $integration->integration_id)
+            IntegrationCustomer::withoutGlobalScopes()
+                ->where('integration_id', $integration->integration_id)
                 ->chunk(100, function ($customers) {
                     foreach ($customers as $customer) {
                         $metadata = $customer->metadata ?? [];
@@ -52,13 +51,13 @@ class BenchmarkDattoSync extends Command
             $this->info('Skipping state reset (testing recurring sync)...');
             $integration = Integration::where('integration_type', 'Datto')->firstOrFail();
         }
-        
+
         // 2. Start Benchmark
         $startTime = microtime(true);
         $startDt = now();
-        
+
         $this->info("Dispatching Sync Job at {$startDt->toTimeString()}...");
-        
+
         // Create a log
         $log = SyncLog::create([
             'integration_id' => $integration->integration_id,
@@ -72,21 +71,21 @@ class BenchmarkDattoSync extends Command
 
         // 3. Monitor
         $this->info('Monitoring sync progress...');
-        $bar = $this->output->createProgressBar(100); 
+        $bar = $this->output->createProgressBar(100);
         // We don't know total yet, so just indeterminate monitoring
 
         $completed = false;
         while (!$completed) {
             $log->refresh();
-            
+
             if ($log->status === 'success' || $log->status === 'failed' || $log->status === 'completed') {
                 $completed = true;
             } else {
                 // Check if we hit our site limit by peeking at logs or DB
-                // This is hard to interject, so for a true benchmark we let it run 
-                // but if we want just a sample, we might need a modified job. 
+                // This is hard to interject, so for a true benchmark we let it run
+                // but if we want just a sample, we might need a modified job.
                 // For now, let's just measure the full sync or wait X minutes.
-                
+
                 $this->output->write('.');
                 sleep(2);
             }
@@ -98,7 +97,7 @@ class BenchmarkDattoSync extends Command
         $minutes = floor($duration / 60);
         $seconds = round($duration % 60, 2);
 
-        $this->info("Benchmark Completed!");
+        $this->info('Benchmark Completed!');
         $this->info("Status: {$log->status}");
         $this->info("Time: {$minutes}m {$seconds}s");
         $this->info("Records Synced: {$log->records_synced}");

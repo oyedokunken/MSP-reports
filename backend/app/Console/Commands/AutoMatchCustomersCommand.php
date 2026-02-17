@@ -1,12 +1,10 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\IntegrationCustomer;
 use App\Jobs\AutoMatchCustomersJob;
+use App\Models\IntegrationCustomer;
+use Illuminate\Console\Command;
 
 class AutoMatchCustomersCommand extends Command
 {
@@ -29,7 +27,7 @@ class AutoMatchCustomersCommand extends Command
         }
 
         if ($limit = $this->option('limit')) {
-            $query->limit((int)$limit);
+            $query->limit((int) $limit);
             $this->info("Limiting to {$limit} customers");
         }
 

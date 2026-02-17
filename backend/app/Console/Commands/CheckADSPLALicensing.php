@@ -1,13 +1,11 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use App\Models\Customer;
 use App\Models\ActiveDirectoryLicenseAssignment;
 use App\Models\ActiveDirectoryUser;
+use App\Models\Customer;
+use Illuminate\Console\Command;
 
 class CheckADSPLALicensing extends Command
 {
@@ -54,7 +52,7 @@ class CheckADSPLALicensing extends Command
 
             // 2. Fetch User details for these assignments
             $samAccountNames = $assignments->pluck('user_sam_account_name')->unique();
-            
+
             $users = ActiveDirectoryUser::where('company_id', $customer->company_id)
                 ->where('customer_id', $customer->customer_id)
                 ->whereIn('sam_account_name', $samAccountNames)
@@ -70,7 +68,7 @@ class CheckADSPLALicensing extends Command
 
                 $headers = ['User UPN', 'Display Name', 'Source Group'];
                 $rows = [];
-                
+
                 foreach ($items as $item) {
                     $user = $users->get($item->user_sam_account_name);
                     $rows[] = [
@@ -82,7 +80,6 @@ class CheckADSPLALicensing extends Command
 
                 $this->table($headers, $rows);
             }
-
         } catch (\Exception $e) {
             $this->error('Failed to retrieve SPLA counts: ' . $e->getMessage());
             return 1;

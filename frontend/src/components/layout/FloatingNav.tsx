@@ -42,6 +42,29 @@ export default function FloatingNav() {
 
     const [searchQuery, setSearchQuery] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Keyboard shortcut: "/" to focus search, Escape to blur
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement;
+            const isInputFocused = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+            if (e.key === '/' && !isInputFocused) {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+
+            if (e.key === 'Escape' && document.activeElement === searchInputRef.current) {
+                searchInputRef.current?.blur();
+                setIsSearchFocused(false);
+                setSearchQuery("");
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     const pages = [
         // General
@@ -206,19 +229,23 @@ export default function FloatingNav() {
             </div>
 
             <div className="flex items-center gap-3">
-                <div className="relative hidden md:block" ref={searchRef}>
+                <div className="relative" ref={searchRef}>
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <input
+                        ref={searchInputRef}
                         type="text"
                         placeholder="Search..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onFocus={() => setIsSearchFocused(true)}
-                        className="h-9 w-64 rounded-md border border-input bg-background pl-9 pr-4 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-ring transition-all focus:w-80"
+                        className="h-9 w-32 sm:w-48 md:w-64 rounded-md border border-input bg-background pl-9 pr-8 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-ring transition-all focus:w-48 sm:focus:w-64 md:focus:w-80"
                     />
+                    {!isSearchFocused && (
+                        <kbd className="pointer-events-none absolute right-2 top-2 hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">/</kbd>
+                    )}
                     
                     {isSearchFocused && searchQuery && (
-                        <div className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border bg-background shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 max-h-96 overflow-y-auto thin-scrollbar z-50">
+                        <div className="absolute right-0 sm:right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-80 rounded-xl border border-border bg-background shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 max-h-96 overflow-y-auto thin-scrollbar z-50">
                             {searchResults.length === 0 ? (
                                 <div className="p-4 text-center text-sm text-muted-foreground">
                                     No results found
