@@ -46,13 +46,13 @@ Provide timely, accurate reports that demonstrate the value of your services.
 Your central hub showing system health, recent activity, and key metrics at a glance.
 
 ### 2. Integrations
-Connect to your business systems like Autotask, Datto RMM, ITGlue, CIPP (Microsoft 365), LibreNMS, Sendmarc, BitDefender and more. Each integration syncs data automatically with live data preview capabilities.
+Connect to your business systems including Autotask, Datto RMM, ITGlue, CIPP (Microsoft 365), Sendmarc, BitDefender, ThreatLocker, SaaS Alerts, Vonahi, and more. Each integration syncs data automatically with live data preview and historical import capabilities.
 
 ### 3. Customer Management
-Manage your master customer list and map customers across different integrations for unified reporting. The auto-matching engine suggests mappings with confidence scores.
+Manage your master customer list and map customers across different integrations for unified reporting. The auto-matching engine suggests mappings with confidence scores. Merge duplicates and configure per-customer report settings.
 
 ### 4. Reports
-Generate and manage reports for your customers with customisable templates, section selection, and white-label branding. Available report types include Autotask Summary, Microsoft 365 Summary (CIPP), Datto Backup, IT Glue Documentation, and Combined Monthly.
+Generate and manage reports for your customers with customisable templates, section selection, and white-label branding. Available report types include Autotask Summary, Microsoft 365 Summary (CIPP), Datto RMM Summary, BitDefender Summary, ThreatLocker Summary, Vonahi Summary, SaaS Summary, Sendmarc Summary, IT Glue Documentation, and Combined Monthly. View reports in table or folder view, bulk-generate, and share via secure links.
 
 ### 5. Schedules
 Set up automated report generation on daily, weekly, monthly, or yearly schedules with flexible timing options.
@@ -170,31 +170,39 @@ The dashboard is your central command centre for monitoring system health and ac
 ## Dashboard Layout
 
 ### Header Section
-- **Company logo** - Click to return to dashboard from anywhere
-- **Search** - Quick search across the platform (if enabled)
-- **Notifications** - Bell icon showing unread notifications
+- **Company logo** - Shown on mobile; click to return to dashboard
+- **Global Search** - Search across all pages and features. Press **/** on your keyboard to jump straight into search from anywhere
+- **Notifications** - Bell icon showing unread notifications and system alerts
 - **Theme toggle** - Switch between light and dark modes
+- **User menu** - Access your profile, settings, and logout
 
 ### Sidebar Navigation
 The left sidebar provides access to all platform sections:
 
-**Platform Section:**
+**General:**
 - Dashboard
+
+**Clients:**
+- Customers (Master List, Secondary List, Map Customers)
 - Integrations
-- Customers
+
+**Reporting:**
 - Reports
 - Schedules
-- Notifications
+- Templates
 
-**Admin Section (if you have permissions):**
+**Management (if you have permissions):**
 - Users
 - API Keys
 - Licenses
-- Monitoring
-- Settings
 
-**Profile Section:**
-- My Profile (profile picture, name, security settings)
+**System (if you have permissions):**
+- Monitoring
+- System Status
+- Audit Logs
+
+**Help:**
+- Help & Guides (Documentation)
 
 ### Main Content Area
 The central area displays:
