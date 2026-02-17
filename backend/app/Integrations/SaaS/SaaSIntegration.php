@@ -196,14 +196,19 @@ final class SaaSIntegration implements IntegrationInterface
                 if ($currentEnd > $endDate) $currentEnd = $endDate->copy();
 
                 try {
-                    $events = $this->client->getAllEvents([
+                    $rawEvents = $this->client->getAllEvents([
                         'customerId' => $intCustomer->external_id,
                         'start'      => $currentStart->copy()->utc()->toIso8601String(),
                         'end'        => $currentEnd->copy()->utc()->toIso8601String(),
                         'size'       => 500,
                     ]);
 
-                    collect($events)->chunk(200)->each(function ($chunk) use (
+                    // De-duplicate at the API level first to prevent cardinality violations
+                    $events = collect($rawEvents)->unique(function ($e) {
+                        return ($e['eventId'] ?? $e['_id'] ?? 'MISSING') . '|' . ($e['time'] ?? 'no-time');
+                    });
+
+                    $events->chunk(200)->each(function ($chunk) use (
                         $intCustomer,
                         &$totalEvents,
                         &$errors
@@ -218,7 +223,7 @@ final class SaaSIntegration implements IntegrationInterface
                                     'integration_customer_id' => $mapped['integration_customer_id'],
                                     'external_id'             => $mapped['external_id'],
                                     'data_type'               => $mapped['data_type'],
-                                    'data_timestamp'          => $mapped['timestamp']->format('Y-m-d H:i:s'),
+                                    'data_timestamp'          => $mapped['timestamp']->format('Y-m-d H:i:s.u'),
                                     'data_payload'            => json_encode($mapped['payload']),
                                     'imported_at'             => now()->toDateTimeString(),
                                     'data_version'            => 1,
@@ -230,16 +235,27 @@ final class SaaSIntegration implements IntegrationInterface
                         }
 
                         if (!empty($batch)) {
-                            // De-duplicate batch to prevent PostgreSQL cardinality violation
+                            // De-duplicate batch one last time using the exact same logic as DB unique index
+                            // This prevents PostgreSQL cardinality violations
                             $uniqueBatch = collect($batch)->unique(function ($item) {
-                                return $item['integration_id'] . $item['data_type'] . $item['external_id'] . $item['data_timestamp'];
+                                return $item['integration_id'] . '|' . $item['data_type'] . '|' . $item['external_id'] . '|' . $item['data_timestamp'];
                             })->values()->all();
 
-                            IntegrationData::upsert(
-                                $uniqueBatch,
-                                ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
-                                ['data_payload', 'imported_at', 'integration_customer_id']
-                            );
+                            try {
+                                IntegrationData::upsert(
+                                    $uniqueBatch,
+                                    ['integration_id', 'data_type', 'external_id', 'data_timestamp'],
+                                    ['data_payload', 'imported_at', 'integration_customer_id']
+                                );
+                            } catch (Throwable $e) {
+                                Log::error('SaaS Historical upsert failed', [
+                                    'customer' => $intCustomer->name,
+                                    'error' => $e->getMessage(),
+                                    'first_item' => array_slice($uniqueBatch, 0, 1),
+                                    'batch_size' => count($uniqueBatch)
+                                ]);
+                                throw $e; // Re-throw to be caught by window loop
+                            }
                         }
                     });
                 } catch (Throwable $e) {

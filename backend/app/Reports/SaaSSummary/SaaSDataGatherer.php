@@ -32,8 +32,8 @@ class SaaSDataGatherer
             ->where('data_type', 'saas_security_event')
             ->whereIn('integration_customer_id', $integrationCustomerIds)
             ->whereBetween('data_timestamp', [
-                $startDate->copy()->utc()->toDateTimeString(),
-                $endDate->copy()->utc()->toDateTimeString()
+                $startDate->copy()->utc(),
+                $endDate->copy()->utc()
             ])
             ->orderBy('data_timestamp', 'desc')
             ->get()
