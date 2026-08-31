@@ -12,7 +12,8 @@
 6. [Report Configuration](#report-configuration)
 7. [API Reference](#api-reference)
 8. [Troubleshooting](#troubleshooting)
-9. [FAQ](#faq)
+9. [Security](#security)
+10. [FAQ](#faq)
 
 ---
 
@@ -446,10 +447,33 @@ A: Use the Customer Mapping feature to manually link customers.
 
 ---
 
+## Security
+
+### Environment File Handling
+
+Never commit real `.env`, `.env.local`, or `.env.docker` files. Only example templates should be in version control:
+
+- `.env.example`
+- `.env.docker.example`
+
+If a real `.env` file is accidentally committed, follow these steps:
+
+1. Remove it from git: `git rm --cached <file>`
+2. Harden `.gitignore` to exclude the file
+3. Rewrite git history to purge the file: `git filter-branch` or `git filter-repo`
+4. Force push the cleaned history
+5. Treat the leaked values as compromised and rotate all affected credentials
+
+### Reporting Security Issues
+
+Report vulnerabilities to the development team before making the repository public.
+
+---
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ---
 
-*Last updated: December 2, 2025*
+*Last updated: August 31, 2026*
