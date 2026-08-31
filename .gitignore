@@ -25,10 +25,16 @@ Thumbs.db
 .phpactor.json
 
 # ----- Environment & Secrets -----
+# Never commit real environment files. Use .env.example as a template.
 .env
-.env.*
+.env.local
+.env.*.local
+.env.backup
+.env.production
+.env.docker
+.env.*.docker
 !.env.example
-!.env.docker
+!.env.docker.example
 *.key
 *.pem
 *.p12
