@@ -16,23 +16,76 @@ A multi-tenant reporting platform for managed service providers. It pulls operat
 
 ## Contents
 
-1. [Features](#features)
-2. [Architecture](#architecture)
-3. [Use cases](#use-cases)
-4. [Components](#components)
-5. [Data flow](#data-flow)
-6. [Key sequences](#key-sequences)
-7. [State models](#state-models)
-8. [Data model](#data-model)
-9. [Deployment](#deployment)
-10. [Getting started](#getting-started)
-11. [Configuration](#configuration)
-12. [API overview](#api-overview)
-13. [Repository structure](#repository-structure)
+1. [Repository structure](#repository-structure)
+2. [Features](#features)
+3. [Architecture](#architecture)
+4. [Use cases](#use-cases)
+5. [Components](#components)
+6. [Data flow](#data-flow)
+7. [Key sequences](#key-sequences)
+8. [State models](#state-models)
+9. [Data model](#data-model)
+10. [Deployment](#deployment)
+11. [Getting started](#getting-started)
+12. [Configuration](#configuration)
+13. [API overview](#api-overview)
 14. [Testing](#testing)
 15. [Operations](#operations)
 16. [Known limitations](#known-limitations)
 17. [Contributing](#contributing)
+
+---
+
+## Repository structure
+
+```text
+.
+├── agents/
+│   └── windows_server/
+│       ├── active-directory/      PowerShell AD sync agent, installer, modules
+│       └── exchange/              PowerShell Exchange sync agent
+├── backend/                       Laravel 12 application
+│   ├── app/
+│   │   ├── Actions/               Single-purpose use-case classes (ApiKey, Auth, Customer, Report, User, ...)
+│   │   ├── Console/Commands/      Artisan commands: sync, audits, cleanup, diagnostics
+│   │   ├── Enums/                 IntegrationStatus, ReportFrequency, UserStatus, AuthMethod
+│   │   ├── Exceptions/            Integration and API exception types
+│   │   ├── Http/
+│   │   │   ├── Controllers/       Api/ and Admin/ controllers
+│   │   │   ├── Middleware/        Auth, permission, tenancy scope, headers, timeouts
+│   │   │   ├── Requests/          Form Request validation per endpoint
+│   │   │   └── Resources/         JSON response transformers
+│   │   ├── Integrations/          One directory per vendor connector + Contracts/
+│   │   ├── Jobs/                  Queued sync, import, generation, delivery jobs
+│   │   ├── Models/                Eloquent models and global scopes
+│   │   ├── Reports/               One directory per report type + Contracts/
+│   │   └── Services/              Domain services and delivery channels
+│   ├── database/
+│   │   ├── factories/
+│   │   ├── migrations/            Including TimescaleDB hypertable and policy migrations
+│   │   └── seeders/
+│   ├── resources/views/Reports/   Blade templates rendered to PDF
+│   ├── routes/                    api.php, web.php, console.php (schedule)
+│   └── tests/                     PHPUnit Unit and Feature suites
+├── frontend/                      React 19 + Vite SPA
+│   ├── src/
+│   │   ├── components/            Layout, UI primitives, shared modals
+│   │   ├── contexts/              Auth and theme contexts
+│   │   ├── hooks/                 Shared hooks
+│   │   ├── lib/                   API client, Echo client, logger
+│   │   ├── pages/                 Feature modules (integrations, customers, reports, ...)
+│   │   ├── services/              Typed API wrappers
+│   │   ├── stores/                Zustand stores
+│   │   └── types/                 Shared TypeScript types
+│   └── tests/e2e/                 Playwright specs
+├── services/embedding/            Python embedding service for customer matching
+├── nginx/                         Production and Docker NGINX configs
+├── systemd/                       Worker, scheduler and embedding units
+├── scripts/                       Setup, dev start and deploy scripts
+├── docs/                          Deployment, runbook, encryption, reporting flow, API
+├── docker-compose.yml             Development stack
+└── CHANGELOG.md
+```
 
 ---
 
@@ -401,7 +454,7 @@ sequenceDiagram
     participant S as ActiveDirectorySyncService
     participant DB as PostgreSQL
 
-    A->>API: POST /api/integrations/active-directory/push<br/>Authorization: Bearer <api key>
+    A->>API: POST /api/integrations/active-directory/push<br/>Authorization: Bearer API_KEY
     API->>MW: sha256(key) lookup, check revoked / expiry
     MW-->>API: company + integration context
     API->>S: users, groups, memberships, licences
@@ -441,7 +494,7 @@ stateDiagram-v2
     running --> success: all records processed
     running --> partial: some records failed
     running --> failed: exception or timeout
-    running --> failed: syncs:cleanup-stale (stuck)
+    running --> failed: stuck, swept by cleanup-stale job
     success --> [*]
     partial --> [*]
     failed --> [*]
@@ -515,19 +568,19 @@ erDiagram
 flowchart TB
     Internet((Internet)) --> NGINX
 
-    subgraph Host [Linux host]
-        NGINX[NGINX<br/>nginx/mspreports.conf]
-        FPM[PHP-FPM<br/>Laravel API]
-        W1[mspreports-worker@1..n]
-        SCH[mspreports-scheduler]
-        EMB[mspreports-embedding<br/>gunicorn :5050]
-        GOT[Gotenberg container]
-        PG[(PostgreSQL + TimescaleDB)]
-        RD[(Redis)]
+    subgraph Host ["Linux host"]
+        NGINX["NGINX<br/>nginx/mspreports.conf"]
+        FPM["PHP-FPM<br/>Laravel API"]
+        W1["mspreports-worker@1..n"]
+        SCH["mspreports-scheduler"]
+        EMB["mspreports-embedding<br/>gunicorn :5050"]
+        GOT["Gotenberg container"]
+        PG[("PostgreSQL + TimescaleDB")]
+        RD[("Redis")]
     end
 
-    NGINX -->|/api| FPM
-    NGINX -->|/| SPA[frontend/dist]
+    NGINX -->|"/api"| FPM
+    NGINX -->|"/"| SPA["frontend/dist"]
     FPM --> PG & RD & EMB
     W1 --> PG & RD & GOT
     SCH --> RD
@@ -682,59 +735,6 @@ TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login \
   -d '{"email":"admin@example.com","password":"<password>","auth_method":"local"}' | jq -r .data.token)
 
 curl -s http://localhost:8000/api/integrations -H "Authorization: Bearer $TOKEN"
-```
-
----
-
-## Repository structure
-
-```text
-.
-├── agents/
-│   └── windows_server/
-│       ├── active-directory/      PowerShell AD sync agent, installer, modules
-│       └── exchange/              PowerShell Exchange sync agent
-├── backend/                       Laravel 12 application
-│   ├── app/
-│   │   ├── Actions/               Single-purpose use-case classes (ApiKey, Auth, Customer, Report, User, ...)
-│   │   ├── Console/Commands/      Artisan commands: sync, audits, cleanup, diagnostics
-│   │   ├── Enums/                 IntegrationStatus, ReportFrequency, UserStatus, AuthMethod
-│   │   ├── Exceptions/            Integration and API exception types
-│   │   ├── Http/
-│   │   │   ├── Controllers/       Api/ and Admin/ controllers
-│   │   │   ├── Middleware/        Auth, permission, tenancy scope, headers, timeouts
-│   │   │   ├── Requests/          Form Request validation per endpoint
-│   │   │   └── Resources/         JSON response transformers
-│   │   ├── Integrations/          One directory per vendor connector + Contracts/
-│   │   ├── Jobs/                  Queued sync, import, generation, delivery jobs
-│   │   ├── Models/                Eloquent models and global scopes
-│   │   ├── Reports/               One directory per report type + Contracts/
-│   │   └── Services/              Domain services and delivery channels
-│   ├── database/
-│   │   ├── factories/
-│   │   ├── migrations/            Including TimescaleDB hypertable and policy migrations
-│   │   └── seeders/
-│   ├── resources/views/Reports/   Blade templates rendered to PDF
-│   ├── routes/                    api.php, web.php, console.php (schedule)
-│   └── tests/                     PHPUnit Unit and Feature suites
-├── frontend/                      React 19 + Vite SPA
-│   ├── src/
-│   │   ├── components/            Layout, UI primitives, shared modals
-│   │   ├── contexts/              Auth and theme contexts
-│   │   ├── hooks/                 Shared hooks
-│   │   ├── lib/                   API client, Echo client, logger
-│   │   ├── pages/                 Feature modules (integrations, customers, reports, ...)
-│   │   ├── services/              Typed API wrappers
-│   │   ├── stores/                Zustand stores
-│   │   └── types/                 Shared TypeScript types
-│   └── tests/e2e/                 Playwright specs
-├── services/embedding/            Python embedding service for customer matching
-├── nginx/                         Production and Docker NGINX configs
-├── systemd/                       Worker, scheduler and embedding units
-├── scripts/                       Setup, dev start and deploy scripts
-├── docs/                          Deployment, runbook, encryption, reporting flow, API
-├── docker-compose.yml             Development stack
-└── CHANGELOG.md
 ```
 
 ---
