@@ -98,11 +98,11 @@ Response:
 
 ## Security
 
-- ✅ **Authentication Required:** All routes protected
-- ✅ **Authorization:** Admin-only access (enforced by backend)
-- ✅ **Tenant Isolation:** Users scoped to authenticated user's company
-- ✅ **Input Validation:** Client-side and server-side validation
-- ✅ **Password Requirements:** Minimum 6 characters
+- **Authentication Required:** All routes protected
+- **Authorization:** Admin-only access (enforced by backend)
+- **Tenant Isolation:** Users scoped to authenticated user's company
+- **Input Validation:** Client-side and server-side validation
+- **Password Requirements:** Minimum 6 characters
 
 ## Installation Note
 

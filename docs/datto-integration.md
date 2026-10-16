@@ -57,13 +57,12 @@ $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, now()->subHour())
 - Each resolved alert is fetched ~12 times (every 5 mins for 1 hour)
 - Ensures no alerts missed if a sync fails
 - Handles late-appearing or backdated alerts
-- **Matches TTS-Security pattern exactly** ✅
-
+- **Matches TTS-Security pattern exactly** 
 **Trade-off:**
-- ❌ More API calls (12x redundancy)
-- ❌ More database `updateOrCreate` checks
-- ✅ **Reliability** - guarantees no missing alerts
-- ✅ Deduplication prevents actual duplicates in DB
+- More API calls (12x redundancy)
+- More database `updateOrCreate` checks
+- **Reliability** - guarantees no missing alerts
+- Deduplication prevents actual duplicates in DB
 
 **Performance Impact:**
 - **Current:** 0 alerts in last hour = no overhead
@@ -128,10 +127,10 @@ $resolvedAlerts = $this->client->getRmmAlerts($siteUid, false, now()->subHour())
 **Code Location:** [DattoIntegration.php](file:///home/mark/Music/reporting/backend/app/Integrations/Datto/DattoIntegration.php#L229-L340)
 
 **What It Fetches:**
-- ✅ Devices (current snapshot)
-- ✅ Open alerts (current state)
-- ✅ Resolved alerts (historical range)
-- ❌ Customers (already in regular sync)
+- Devices (current snapshot)
+- Open alerts (current state)
+- Resolved alerts (historical range)
+- Customers (already in regular sync)
 
 ---
 
@@ -233,9 +232,7 @@ Required credentials in `integrations.credentials`:
 - Get alerts per site: 2 requests × 110 sites = 220 requests
 - **Subtotal per sync:** ~221 requests
 
-**Per hour:** 221 requests × 12 syncs = **~2,652 requests/hour** ⚠️
-
-**Per 30-minute device poll:**
+**Per hour:** 221 requests × 12 syncs = **~2,652 requests/hour** Warning: **Per 30-minute device poll:**
 - Get devices per site: 1 request × 110 sites = 110 requests
 - **Subtotal per poll:** ~110 requests
 
@@ -245,7 +242,7 @@ Required credentials in `integrations.credentials`:
 - **Alert syncs:** 2,652 requests/hour
 - **Device polls:** 220 requests/hour
 - **Total:** ~2,872 requests/hour
-- **Headroom:** ⚠️ Using 287% of 1,000 limit!
+- **Headroom:** Warning: Using 287% of 1,000 limit!
 
 ### Rate Limit Management
 
@@ -285,13 +282,11 @@ Total:         13,866 records
 **First "Sync Now":**
 - Duration: ~30-60 seconds
 - Records: 13,866
-- Status: Success ✅
-
+- Status: Success 
 **Future 5-Min Syncs:**
 - Expected duration: 5-15 seconds
 - Expected records: 0-100 (only new/changed alerts)
-- Performance: Fast ✅
-
+- Performance: Fast 
 ---
 
 ## Alert Overlap Example
@@ -389,16 +384,15 @@ LIMIT 10;
 
 | Feature | TTS-Security | Current Project |
 |---------|-------------|-----------------|
-| Alert Window | ✅ 1 hour | ✅ 1 hour |
-| Sync Frequency | ✅ 5 minutes | ✅ 5 minutes |
-| Open Alerts | ✅ Yes | ✅ Yes |
-| Resolved Alerts | ✅ Yes (1hr) | ✅ Yes (1hr) |
-| Device Separation | ✅ Yes (30 min) | ✅ Yes (30 min) |
-| Redundancy Strategy | ✅ 12x overlap | ✅ 12x overlap |
-| Deduplication | ✅ Yes | ✅ Yes |
+| Alert Window | 1 hour | 1 hour |
+| Sync Frequency | 5 minutes | 5 minutes |
+| Open Alerts | Yes | Yes |
+| Resolved Alerts | Yes (1hr) | Yes (1hr) |
+| Device Separation | Yes (30 min) | Yes (30 min) |
+| Redundancy Strategy | 12x overlap | 12x overlap |
+| Deduplication | Yes | Yes |
 
-**Verdict:** Implementation **matches TTS-Security exactly** ✅
-
+**Verdict:** Implementation **matches TTS-Security exactly** 
 ---
 
 ## Common Scenarios
@@ -541,9 +535,9 @@ echo 'Sites found: ' . count(\$sites);
 ## Support & Maintenance
 
 ### Regular Tasks
-- ✅ **Daily:** Monitor alert volume and sync success rate
-- ✅ **Weekly:** Check rate limit usage
-- ✅ **Monthly:** Review alert trends and device count
+- **Daily:** Monitor alert volume and sync success rate
+- **Weekly:** Check rate limit usage
+- **Monthly:** Review alert trends and device count
 
 ### When to Run Historical Import
 - After fresh database setup

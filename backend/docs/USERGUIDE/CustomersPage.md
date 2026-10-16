@@ -352,8 +352,8 @@ Each customer card displays:
 ### Status Indicators
 | Indicator | Meaning |
 |-----------|---------|
-| 🟢 **Active** | Current client with active services |
-| ⚪ **Inactive** | Former client or services disabled |
+| **Active** | Current client with active services |
+| **Inactive** | Former client or services disabled |
 
 ### Integration Count Badge
 - Shows number of integrations customer appears in
@@ -419,7 +419,7 @@ Each customer card displays:
 
 ## Best Practices
 
-✅ **DO:**
+**DO:**
 - Review unmapped customers weekly
 - Set Master Customer List for consistency
 - Use canonical names (proper capitalization)
@@ -427,7 +427,7 @@ Each customer card displays:
 - Setup reports for all active customers
 - Document custom metadata fields
 
-❌ **DON'T:**
+**DON'T:**
 - Ignore unmapped customers
 - Merge customers without verification
 - Delete customers (mark inactive instead)

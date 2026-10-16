@@ -51,7 +51,7 @@ return [
     'description' => 'Brief description of what this integration does (placeholder configuration)',
     'version' => '1.0.0',
 
-    // Placeholder credential fields – update once real API details are known
+    // Placeholder credential fields, update once real API details are known
     'credentials' => [
         'api_url' => [
             'type' => 'text',
@@ -356,7 +356,7 @@ The following integrations are **fully implemented** with real API credentials a
 - **Directory:** `app/Integrations/Datto/`
 - **Purpose:** Backup monitoring, device management, and uptime tracking
 - **Data Types:** backup_status, device_status, uptime_metrics
-- **Status:** ✅ **Fully Implemented**
+- **Status:** **Fully Implemented**
 - **Credentials Required:** 
   - RMM API URL, API Key, API Secret
   - SaaS Public Key, Private Key (optional)
@@ -367,7 +367,7 @@ The following integrations are **fully implemented** with real API credentials a
 - **Directory:** `app/Integrations/Autotask/`
 - **Purpose:** Ticket management, time tracking, billing, and customer data
 - **Data Types:** tickets, time_entries, contracts, billing, service_calls
-- **Status:** ✅ **Fully Implemented**
+- **Status:** **Fully Implemented**
 - **Credentials Required:** API Username, API Secret, API Integration Code, API Endpoint
 - **Features:** Historical data support (365 days), customer mapping, configurable sync options
 - **Rate Limits:** 100/min, 5000/hour
@@ -377,7 +377,7 @@ The following integrations are **fully implemented** with real API credentials a
 - **Directory:** `app/Integrations/Sendmarc/`
 - **Purpose:** DMARC email security and monitoring
 - **Data Types:** domains, sender_statistics, volume_totals, volume_timeline, ip_address_statistics
-- **Status:** ✅ **Fully Implemented**
+- **Status:** **Fully Implemented**
 - **Credentials Required:** API Token (or Bearer Token), Base URL (defaults to https://portal.sendmarc.com/api/v1)
 - **Features:** Historical data support (90 days), customer mapping, configurable data sync
 - **Rate Limits:** 60/min, 1000/hour
@@ -387,7 +387,7 @@ The following integrations are **fully implemented** with real API credentials a
 - **Directory:** `app/Integrations/ITGlue/`
 - **Purpose:** Documentation, asset management, SSL certificate monitoring, domain expiration tracking
 - **Data Types:** organization_info, ssl_certificate, domain, flexible_asset
-- **Status:** ✅ **Fully Implemented**
+- **Status:** **Fully Implemented**
 - **Credentials Required:** API Key (starts with ITG.), Region selection (US/AU/EU)
 - **Features:** SSL certificate monitoring, domain expiration tracking, flexible asset monitoring
 - **Rate Limits:** 60/min, 1000/hour
@@ -397,7 +397,7 @@ The following integrations are **fully implemented** with real API credentials a
 - **Directory:** `app/Integrations/BitDefender/`
 - **Purpose:** Endpoint security and antivirus protection
 - **Data Types:** bitdefender_endpoint, bitdefender_threat_detection, endpoint_protection, malware_incident
-- **Status:** ✅ **Fully Implemented**
+- **Status:** **Fully Implemented**
 - **Credentials Required:** API URL, API Key
 - **Features:** Customer mapping (companies as customers), endpoint device tracking, real-time sync
 - **Rate Limits:** 60/min, 1000/hour
@@ -577,21 +577,21 @@ public function sync(): array
 ## Best Practices
 
 ### DO:
-- ✅ Use descriptive integration names (PascalCase)
-- ✅ Set `required: false` for credentials in scaffolds
-- ✅ Return `true` from `testConnection()` in scaffolds
-- ✅ Log all method calls for debugging
-- ✅ Document expected data types in config
-- ✅ Use placeholder API URLs that are clearly fake
-- ✅ Add helpful comments explaining scaffold status
+- Use descriptive integration names (PascalCase)
+- Set `required: false` for credentials in scaffolds
+- Return `true` from `testConnection()` in scaffolds
+- Log all method calls for debugging
+- Document expected data types in config
+- Use placeholder API URLs that are clearly fake
+- Add helpful comments explaining scaffold status
 
 ### DON'T:
-- ❌ Make real API calls in scaffolds
-- ❌ Throw exceptions from scaffold methods
-- ❌ Leave credentials as `required: true` in scaffolds
-- ❌ Hardcode real API keys or secrets
-- ❌ Skip implementing all IntegrationInterface methods
-- ❌ Forget to update namespace in all 4 files
+- Make real API calls in scaffolds
+- Throw exceptions from scaffold methods
+- Leave credentials as `required: true` in scaffolds
+- Hardcode real API keys or secrets
+- Skip implementing all IntegrationInterface methods
+- Forget to update namespace in all 4 files
 
 ## Testing Your Scaffold
 

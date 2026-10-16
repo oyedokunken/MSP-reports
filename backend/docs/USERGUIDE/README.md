@@ -230,11 +230,11 @@ This directory contains comprehensive user guides for every major page in the re
 
 | Permission | View | Edit | Manage | Sync | Configure | Generate | Download | Delete |
 |------------|------|------|--------|------|-----------|----------|----------|--------|
-| **Integrations** | ✓ | - | ✓ | ✓ | - | - | - | - |
-| **Customers** | ✓ | ✓ | - | - | - | - | - | - |
-| **Reports** | ✓ | - | - | - | ✓ | ✓ | ✓ | ✓ |
-| **Users** | ✓ | - | ✓ | - | - | - | - | - |
-| **Company Settings** | ✓ | ✓ | - | - | - | - | - | - |
+| **Integrations** | | - | | | - | - | - | - |
+| **Customers** | | | - | - | - | - | - | - |
+| **Reports** | | - | - | - | | | | |
+| **Users** | | - | | - | - | - | - | - |
+| **Company Settings** | | | - | - | - | - | - | - |
 
 ### Role Templates
 

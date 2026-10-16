@@ -71,9 +71,9 @@ cd reporting
 
 | Service | URL |
 |---------|-----|
-| 🎨 Frontend | http://localhost:5173 |
-| 🔐 Login Page | http://localhost:5173/login |
-| 🚀 Backend API | http://localhost:8000/api |
+| Frontend | http://localhost:5173 |
+| Login Page | http://localhost:5173/login |
+| Backend API | http://localhost:8000/api |
 
 ### Default Login Credentials
 
@@ -85,7 +85,7 @@ After running `php artisan db:seed`:
 | Test User | `kristianbas14@gmail.com` | `password123` | Administrator |
 | Viewer | `viewer@tts.com.au` | `password123` | Scoped Viewer |
 
-> ⚠️ **Change default passwords after first login!**
+> Warning: **Change default passwords after first login!**
 
 ---
 
@@ -139,7 +139,7 @@ psql -U postgres -d reporting -c "CREATE EXTENSION IF NOT EXISTS timescaledb CAS
 
 **Migrations fail?**
 ```powershell
-php artisan migrate:fresh --seed  # ⚠️ Wipes database
+php artisan migrate:fresh --seed  # Warning: Wipes database
 ```
 
 ---
@@ -163,4 +163,4 @@ For AI-assisted development with up-to-date docs:
 
 ---
 
-**Ready to code!** 🚀
+**Ready to code!** 

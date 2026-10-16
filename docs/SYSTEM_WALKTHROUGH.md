@@ -1,4 +1,4 @@
-# MSP Reports — Complete System Walkthrough
+# MSP Reports: Complete System Walkthrough
 
 > Dashboard → Every Feature: how every piece of the system connects, page by page.
 
@@ -22,7 +22,7 @@
 
 ---
 
-## 🏠 Dashboard
+## Dashboard
 
 **Route:** `/platform/dashboard`
 **API:** `GET /api/dashboard/summary` → `DashboardController@getSummary`
@@ -32,14 +32,14 @@
 
 | Widget | Data Source | What It Shows | Clicks To |
 |--------|------------|---------------|-----------|
-| Imported Customers | `IntegrationCustomer` count across all integrations | Total raw customers pulled from all integrations | — |
-| Mapped Customers | `Customer` table count | Customers mapped to master list (shows "X of Y mapped") | — |
-| Unmapped Customers | `IntegrationCustomer` where `customer_id IS NULL` | Customers awaiting mapping | — |
-| System Users | `User` table count + active filter | Total users and active count | — |
+| Imported Customers | `IntegrationCustomer` count across all integrations | Total raw customers pulled from all integrations | - |
+| Mapped Customers | `Customer` table count | Customers mapped to master list (shows "X of Y mapped") | - |
+| Unmapped Customers | `IntegrationCustomer` where `customer_id IS NULL` | Customers awaiting mapping | - |
+| System Users | `User` table count + active filter | Total users and active count | - |
 | Schedules Summary | `ReportSchedule` count + active filter | Total/active report schedules | `/platform/schedules` |
 | Integrations Summary | All `Integration` records with status, last sync, customer counts | List of integrations with sync status badges | `/platform/integrations` |
-| Reports Generated Chart | `charts.monthlyReports` — aggregated from `GeneratedReport` | Bar chart of reports generated per month | — |
-| Health & Rate Limit Chart | `charts.activityTrends` — aggregated from `AuditLog` + `SyncLog` | Line chart: syncs, failed syncs, rate limits, reports, logins | — |
+| Reports Generated Chart | `charts.monthlyReports`: aggregated from `GeneratedReport` | Bar chart of reports generated per month | - |
+| Health & Rate Limit Chart | `charts.activityTrends`: aggregated from `AuditLog` + `SyncLog` | Line chart: syncs, failed syncs, rate limits, reports, logins | - |
 
 ### Data Flow
 
@@ -53,7 +53,7 @@ Browser → GET /api/dashboard/summary (with auth cookie)
 
 ---
 
-## 🔌 Integrations
+## Integrations
 
 **Route:** `/platform/integrations`
 **API:** `GET /api/integrations` → `IntegrationController@getIntegrations`
@@ -115,7 +115,7 @@ User clicks "Sync" → GET /api/integrations/{id}/sync
 
 ---
 
-## 👥 Customers
+## Customers
 
 ### Master List
 
@@ -162,7 +162,7 @@ Integration syncs → new IntegrationCustomer records created
 
 ---
 
-## 📄 Reports
+## Reports
 
 **Route:** `/platform/reports`
 **API:** `GET /api/reports/history` → `ReportAnalyticsController@getReportHistory`
@@ -208,7 +208,7 @@ Schedule triggers (or manual generate)
 
 ---
 
-## 📅 Schedules
+## Schedules
 
 **Route:** `/platform/schedules`
 **API:** `GET /api/reports/scheduled` → `ReportAnalyticsController@getScheduledReports`
@@ -224,11 +224,11 @@ Schedule triggers (or manual generate)
 
 ### Schedule Frequencies
 
-- **Daily** — Every day or specific days of week
-- **Weekly** — Specific day of week
-- **Monthly** — Specific day of month (with fallback for short months)
-- **Yearly** — Specific month and day
-- **On-demand** — Manual trigger only
+- **Daily**: Every day or specific days of week
+- **Weekly**: Specific day of week
+- **Monthly**: Specific day of month (with fallback for short months)
+- **Yearly**: Specific month and day
+- **On-demand**: Manual trigger only
 
 ### Schedule Evaluation
 
@@ -242,7 +242,7 @@ Laravel Scheduler runs every minute
 
 ---
 
-## 📋 Templates
+## Templates
 
 **Route:** `/platform/templates`
 **API:** `GET /api/report-templates` → `ReportTemplateController@index`
@@ -261,11 +261,11 @@ Laravel Scheduler runs every minute
 
 ### Available Report Types
 
-Retrieved via `GET /api/report-templates/all-report-types` — each report type is a PHP class in `App\Reports\` namespace implementing `ReportInterface`.
+Retrieved via `GET /api/report-templates/all-report-types`: each report type is a PHP class in `App\Reports\` namespace implementing `ReportInterface`.
 
 ---
 
-## 👤 Admin Pages
+## Admin Pages
 
 ### Users (`/admin/users`)
 
@@ -335,7 +335,7 @@ Retrieved via `GET /api/report-templates/all-report-types` — each report type 
 
 ---
 
-## 🔧 Settings & Profile
+## Settings & Profile
 
 ### Company Settings (`/profile/settings`)
 
@@ -375,7 +375,7 @@ Retrieved via `GET /api/report-templates/all-report-types` — each report type 
 
 ---
 
-## 🔔 Real-Time Features
+## Real-Time Features
 
 ### Notifications
 
@@ -416,7 +416,7 @@ The AI Watcher monitors audit log events and pushes contextual messages with doc
 
 ---
 
-## 🔐 Authentication
+## Authentication
 
 ### Login Flow
 
@@ -450,7 +450,7 @@ The AI Watcher monitors audit log events and pushes contextual messages with doc
 
 ---
 
-## 📊 Route Summary
+## Route Summary
 
 | Area | Routes | Auth Required |
 |------|--------|--------------|

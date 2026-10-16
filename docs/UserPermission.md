@@ -19,31 +19,31 @@ The following matrix maps Frontend Pages to Required Permissions and shows avail
 | Page                    | Route                                | Required Permission     | Admin | Manager | Technician | Viewer | Customer |
 | :---------------------- | :----------------------------------- | :---------------------- | :---: | :-----: | :--------: | :----: | :------: |
 | **Dashboard**           |                                      |                         |       |         |            |        |          |
-| Dashboard               | `/platform/dashboard`                | _(Authenticated)_       |  ✅   |   ✅    |     ✅     |   ✅   |    ✅    |
+| Dashboard               | `/platform/dashboard`                | _(Authenticated)_       |  Yes   |      |     Yes     |     |    Yes    |
 | **Integrations**        |                                      |                         |       |         |            |        |          |
-| Integration List        | `/platform/integrations`             | `integrations.view`     |  ✅   |   ✅    |     ✅     |   ❌   |    ❌    |
-| Integration Preview     | `/platform/integrations/:id/preview` | `integrations.view`     |  ✅   |   ✅    |     ✅     |   ❌   |    ❌    |
+| Integration List        | `/platform/integrations`             | `integrations.view`     |  Yes   |      |     Yes     |   No   |       |
+| Integration Preview     | `/platform/integrations/:id/preview` | `integrations.view`     |  Yes   |      |     Yes     |   No   |       |
 | **Customers**           |                                      |                         |       |         |            |        |          |
-| Master Customer List    | `/platform/customers/master`         | `customers.view`        |  ✅   |   ✅    |     ✅     |   ✅   |    ❌    |
-| Secondary Customer List | `/platform/customers/secondary`      | `customers.view`        |  ✅   |   ✅    |     ✅     |   ✅   |    ❌    |
-| Map Customers           | `/platform/customers/map`            | `customers.map`         |  ✅   |   ❌    |     ✅     |   ❌   |    ❌    |
-| Customer Details        | `/platform/customers/:id/*`          | `customers.view`        |  ✅   |   ✅    |     ✅     |   ✅   |    ❌    |
+| Master Customer List    | `/platform/customers/master`         | `customers.view`        |  Yes   |      |     Yes     |     |    No    |
+| Secondary Customer List | `/platform/customers/secondary`      | `customers.view`        |  Yes   |      |     Yes     |     |    No    |
+| Map Customers           | `/platform/customers/map`            | `customers.map`         |  Yes   |   No    |     Yes     |   No   |       |
+| Customer Details        | `/platform/customers/:id/*`          | `customers.view`        |  Yes   |      |     Yes     |     |    No    |
 | **Reports**             |                                      |                         |       |         |            |        |          |
-| Reports List            | `/platform/reports`                  | `reports.view`          |  ✅   |   ✅    |     ✅     |   ✅   |    ✅    |
-| Schedules               | `/platform/schedules`                | `reports.view`          |  ✅   |   ✅    |     ✅     |   ✅   |   ❌\*   |
-| Templates               | `/platform/templates`                | `reports.configure`     |  ✅   |   ✅    |     ❌     |   ❌   |    ❌    |
+| Reports List            | `/platform/reports`                  | `reports.view`          |  Yes   |      |     Yes     |     |    Yes    |
+| Schedules               | `/platform/schedules`                | `reports.view`          |  Yes   |      |     Yes     |     |   \*   |
+| Templates               | `/platform/templates`                | `reports.configure`     |  Yes   |      |     No     |     |    No    |
 | **Admin & Settings**    |                                      |                         |       |         |            |        |          |
-| Company Settings        | `/admin/settings`                    | `company_settings.view` |  ✅   |   ✅    |     ❌     |   ❌   |    ❌    |
-| Security                | `/admin/security`                    | `security.configure`    |  ✅   |   ❌    |     ❌     |   ❌   |    ❌    |
-| Users List              | `/admin/users`                       | `users.view`            |  ✅   |   ✅    |     ❌     |   ❌   |    ❌    |
-| Create User             | `/admin/users/create`                | `users.manage`          |  ✅   |   ❌    |     ❌     |   ❌   |    ❌    |
-| Licenses                | `/admin/licenses`                    | `company_settings.view` |  ✅   |   ✅    |     ❌     |   ❌   |    ❌    |
-| API Keys                | `/admin/api-keys`                    | `api_keys.view`         |  ✅   |   ❌    |     ✅     |   ❌   |    ❌    |
-| Audit Logs              | `/admin/audit-logs`                  | `security.view_logs`    |  ✅   |   ❌    |     ❌     |   ❌   |    ❌    |
-| Monitoring              | `/admin/monitoring`                  | `monitoring.view`       |  ✅   |   ❌    |     ✅     |   ❌   |    ❌    |
+| Company Settings        | `/admin/settings`                    | `company_settings.view` |  Yes   |      |     No     |     |    No    |
+| Security                | `/admin/security`                    | `security.configure`    |  Yes   |   No    |         |   No   |       |
+| Users List              | `/admin/users`                       | `users.view`            |  Yes   |      |     No     |     |    No    |
+| Create User             | `/admin/users/create`                | `users.manage`          |  Yes   |   No    |         |   No   |       |
+| Licenses                | `/admin/licenses`                    | `company_settings.view` |  Yes   |      |     No     |     |    No    |
+| API Keys                | `/admin/api-keys`                    | `api_keys.view`         |  Yes   |   No    |     Yes     |   No   |       |
+| Audit Logs              | `/admin/audit-logs`                  | `security.view_logs`    |  Yes   |   No    |         |   No   |       |
+| Monitoring              | `/admin/monitoring`                  | `monitoring.view`       |  Yes   |   No    |     Yes     |   No   |       |
 | **Other**               |                                      |                         |       |         |            |        |          |
-| Notifications           | `/platform/notifications`            | `notifications.view`    |  ✅   |   ✅    |     ✅     |   ✅   |    ❌    |
-| Documentation           | `/docs`                              | _(Authenticated)_       |  ✅   |   ✅    |     ✅     |   ✅   |    ✅    |
+| Notifications           | `/platform/notifications`            | `notifications.view`    |  Yes   |      |     Yes     |     |    No    |
+| Documentation           | `/docs`                              | _(Authenticated)_       |  Yes   |      |     Yes     |     |    Yes    |
 
 _\*Note: Pages marked with (Authenticated) are accessible to any user who is logged in._
 

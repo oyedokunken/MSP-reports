@@ -1,9 +1,9 @@
 # PostgreSQL Encryption - Quick Reference
 
-## ✅ What's Configured
+## What's Configured
 
 ### Encryption in Transit (SSL/TLS)
-- **Status**: ✅ Enabled
+- **Status**: Enabled
 - **Protocol**: TLS 1.2+ 
 - **Cipher**: Strong ciphers only
 - **Password Hash**: SCRAM-SHA-256 (strongest available)
@@ -14,13 +14,13 @@
 - **Production**: Cloud KMS or LUKS encryption (documented)
 
 ### Audit Logging
-- **Status**: ✅ Enabled
+- **Status**: Enabled
 - **Logs**: All connections, disconnections, and data modifications
 - **Format**: Timestamped with user, database, client IP, SSL status
 
 ---
 
-## 🚀 Quick Commands
+## Quick Commands
 
 ```bash
 # Generate SSL certificates (first time setup)
@@ -38,7 +38,7 @@ docker-compose logs timescaledb | grep SSL
 
 ---
 
-## 📋 Verification Checklist
+## Verification Checklist
 
 After starting services, verify encryption:
 
@@ -57,31 +57,31 @@ make verify-encryption
 
 ---
 
-## 🔒 What Gets Encrypted
+## What Gets Encrypted
 
 ### In Transit (SSL/TLS)
-- ✅ All database connections from Laravel app
-- ✅ All database connections from queue workers
-- ✅ All database connections from scheduler
-- ✅ All database connections from MCP server
-- ✅ pgAdmin connections
-- ✅ Manual psql connections
+- All database connections from Laravel app
+- All database connections from queue workers
+- All database connections from scheduler
+- All database connections from MCP server
+- pgAdmin connections
+- Manual psql connections
 
 ### At Rest
-- ✅ Database files on disk (via volume/disk encryption)
-- ✅ WAL (Write-Ahead Log) files
-- ✅ Backup files
-- ✅ Temporary files
+- Database files on disk (via volume/disk encryption)
+- WAL (Write-Ahead Log) files
+- Backup files
+- Temporary files
 
 ### Application Level
-- ✅ Integration credentials (Laravel encryption)
-- ✅ API keys (Laravel encryption)
-- ✅ User passwords (bcrypt)
-- ✅ Database passwords (SCRAM-SHA-256)
+- Integration credentials (Laravel encryption)
+- API keys (Laravel encryption)
+- User passwords (bcrypt)
+- Database passwords (SCRAM-SHA-256)
 
 ---
 
-## 📖 Full Documentation
+## Full Documentation
 
 - **Complete Guide**: See `ENCRYPTION.md`
 - **Docker Setup**: See `DOCKER_SETUP.md`
@@ -89,7 +89,7 @@ make verify-encryption
 
 ---
 
-## ⚠️ Important Notes
+## Warning: Important Notes
 
 ### Development
 - Self-signed certificates are automatically generated
@@ -105,21 +105,21 @@ make verify-encryption
 
 ---
 
-## 🎯 ISO 27001 Compliance
+## ISO 27001 Compliance
 
 | Requirement | Status | Implementation |
 |-------------|--------|----------------|
-| Encryption in Transit | ✅ | SSL/TLS 1.2+ |
-| Encryption at Rest | ✅ | Volume/disk encryption |
-| Strong Password Hashing | ✅ | SCRAM-SHA-256 |
-| Audit Logging | ✅ | PostgreSQL logging |
-| Certificate Management | ✅ | Documented procedures |
-| Key Management | ✅ | Secure storage documented |
-| Access Control | ✅ | Encrypted connections required |
+| Encryption in Transit | Yes | SSL/TLS 1.2+ |
+| Encryption at Rest | Yes | Volume/disk encryption |
+| Strong Password Hashing | Yes | SCRAM-SHA-256 |
+| Audit Logging | Yes | PostgreSQL logging |
+| Certificate Management | Yes | Documented procedures |
+| Key Management | Yes | Secure storage documented |
+| Access Control | Yes | Encrypted connections required |
 
 ---
 
-## 🆘 Troubleshooting
+## Troubleshooting
 
 **SSL certificates not found?**
 ```bash
@@ -148,7 +148,7 @@ docker-compose exec timescaledb psql -U reporting_user -d reporting \
 
 ---
 
-## 📞 Support
+## Support
 
 - **Encryption Questions**: See `ENCRYPTION.md`
 - **Setup Issues**: See `DOCKER_SETUP.md`

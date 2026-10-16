@@ -235,12 +235,12 @@ Added proper CSS classes for text wrapping and container constraints.
 
 ### Before Submitting
 
-1. ✅ All tests pass
-2. ✅ Code follows coding standards
-3. ✅ Documentation updated (if needed)
-4. ✅ CHANGELOG.md updated
-5. ✅ No merge conflicts with main branch
-6. ✅ Commit messages follow convention
+1. All tests pass
+2. Code follows coding standards
+3. Documentation updated (if needed)
+4. CHANGELOG.md updated
+5. No merge conflicts with main branch
+6. Commit messages follow convention
 
 ### Merge Request Template
 
@@ -362,4 +362,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ---
 
-Thank you for contributing to make this project better! 🎉
+Thank you for contributing to make this project better! 

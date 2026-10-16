@@ -45,7 +45,7 @@ Select integration type:
   [5] ActiveDirectory
  > 5
 
-✓ License verified: integration_activedirectory
+License verified: integration_activedirectory
 
 Display name for this integration [ActiveDirectory - Territory Technology Solutions]:
  > TTS Active Directory
@@ -66,7 +66,7 @@ Agent sync interval (minutes) [240]:
 Create this integration? (yes/no) [yes]:
  > yes
 
-✓ Integration created successfully!
+Integration created successfully!
 
 ┌──────────────────┬────────────────────────────────────────┐
 │ Property         │ Value                                  │
@@ -112,9 +112,9 @@ Integrations for: Territory Technology Solutions
 ┌────┬─────────────────┬──────────────────────┬────────────────┬────────────┬─────┬────────────┬─────────────┐
 │ ID │ Type            │ Display Name         │ Company        │ Status     │ SoT │ Last Sync  │ Sync Status │
 ├────┼─────────────────┼──────────────────────┼────────────────┼────────────┼─────┼────────────┼─────────────┤
-│ 1  │ Autotask        │ Autotask PSA         │ TTS            │ ✓ active   │     │ 2 hours ago│ success     │
-│ 2  │ Datto           │ Datto RMM            │ TTS            │ ✓ active   │ ✓   │ 1 hour ago │ success     │
-│ 3  │ ActiveDirectory │ TTS Active Directory │ TTS            │ ✓ active   │     │ Never      │ N/A         │
+│ 1  │ Autotask        │ Autotask PSA         │ TTS            │ active   │     │ 2 hours ago│ success     │
+│ 2  │ Datto           │ Datto RMM            │ TTS            │ active   │   │ 1 hour ago │ success     │
+│ 3  │ ActiveDirectory │ TTS Active Directory │ TTS            │ active   │     │ Never      │ N/A         │
 └────┴─────────────────┴──────────────────────┴────────────────┴────────────┴─────┴────────────┴─────────────┘
 
 Total: 3
@@ -201,7 +201,7 @@ Summary:
 Create this API key? (yes/no) [yes]:
  > yes
 
-✓ API Key created successfully!
+API Key created successfully!
 
 IMPORTANT: This key will only be shown ONCE. Store it securely!
 

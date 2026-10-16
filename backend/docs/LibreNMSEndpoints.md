@@ -836,10 +836,10 @@ curl -X GET "https://nms.arafuracloud.com.au/api/v0/devices/101/groups" \
 
 Each test automatically validates:
 
-- ✅ Status code is 200
-- ✅ Response has `status: "ok"`
-- ✅ Required fields exist
-- ✅ Data types are correct
+- Status code is 200
+- Response has `status: "ok"`
+- Required fields exist
+- Data types are correct
 
 ---
 

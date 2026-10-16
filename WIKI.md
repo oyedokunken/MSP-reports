@@ -262,10 +262,10 @@ Designate one integration as the "source of truth" for customer names:
 
 The system validates before saving:
 
-- ✅ At least one report configured
-- ✅ Valid email destination
-- ✅ Valid email format
-- ✅ Valid CC email formats
+- At least one report configured
+- Valid email destination
+- Valid email format
+- Valid CC email formats
 
 If validation fails, a modal displays all errors.
 

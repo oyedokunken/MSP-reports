@@ -254,7 +254,7 @@ Required credentials in `integrations.credentials`:
 ### Headroom
 - **Used:** ~5 requests/hour (0.5%)
 - **Available:** 995 requests/hour (99.5%)
-- **Status:** ✅ Excellent - lots of capacity
+- **Status:** Excellent - lots of capacity
 
 ---
 
@@ -380,10 +380,10 @@ ORDER BY utilization DESC;
 | | Regular Sync | Historical Import |
 |---|---|---|
 | Frequency | Every 6 hours | Manual/one-time |
-| Organizations | ✅ All | ✅ All |
-| SSL Certificates | ✅ 90-day window | ✅ 90-day window |
-| Domains | ✅ 90-day window | ✅ 90-day window |
-| Flexible Assets | ⚠️ License types only | ✅ ALL types |
+| Organizations | All | All |
+| SSL Certificates | 90-day window | 90-day window |
+| Domains | 90-day window | 90-day window |
+| Flexible Assets | License types only | ALL types |
 | Purpose | Keep current | Initial population |
 
 **When to run historical import:**
@@ -415,7 +415,7 @@ docker exec app php artisan tinker --execute="
 \$itglue = \App\Models\Integration::where('integration_type', 'ITGlue')->first();
 \$client = new \App\Integrations\ITGlue\ITGlueClient(\$itglue->credentials, app(\App\Services\RateLimiter::class), \$itglue);
 \$result = \$client->testConnection();
-echo \$result ? 'Connected ✅' : 'Failed ❌';
+echo \$result ? 'Connected ' : 'Failed ';
 "
 ```
 
@@ -521,10 +521,10 @@ $licenseKeywords = ['license', 'microsoft', 'office', 'o365', 'm365', 'subscript
 ## Support & Maintenance
 
 ### Regular Tasks
-- ✅ **Weekly:** Review expiring SSL certificates (30-day window)
-- ✅ **Weekly:** Review expiring domains (30-day window)
-- ✅ **Monthly:** Review license utilization trends
-- ✅ **Quarterly:** Audit flexible asset types synced
+- **Weekly:** Review expiring SSL certificates (30-day window)
+- **Weekly:** Review expiring domains (30-day window)
+- **Monthly:** Review license utilization trends
+- **Quarterly:** Audit flexible asset types synced
 
 ### When to Run Historical Import
 - After fresh database setup

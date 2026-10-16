@@ -23,7 +23,7 @@ Accept: application/json
 
 **Method:** GET
 
-**Body Required:** ❌ No
+**Body Required:** No
 
 **Purpose:** Retrieve all accounts accessible with the bearer token
 
@@ -78,7 +78,7 @@ Accept: application/json
 
 **Method:** GET
 
-**Body Required:** ❌ No
+**Body Required:** No
 
 **URL Parameters:**
 - `{accountUuid}` - UUID of the account (e.g., `9590e4da-a649-453d-808d-a1869d2bb000`)
@@ -168,7 +168,7 @@ Accept: application/json
 
 **Method:** GET
 
-**Body Required:** ❌ No
+**Body Required:** No
 
 **Purpose:** Get all domains (legacy endpoint, prefer account-based endpoint)
 
@@ -190,7 +190,7 @@ Accept: application/json
 
 **Method:** GET
 
-**Body Required:** ❌ No
+**Body Required:** No
 
 **URL Parameters:**
 - `{accountUuid}` - UUID of the account
@@ -248,7 +248,7 @@ Accept: application/json
 
 **Method:** GET
 
-**Body Required:** ❌ No
+**Body Required:** No
 
 **URL Parameters:**
 - `{accountUuid}` - UUID of the account
@@ -295,7 +295,7 @@ Accept: application/json
 
 **Method:** GET
 
-**Body Required:** ❌ No
+**Body Required:** No
 
 **URL Parameters:**
 - `{accountUuid}` - UUID of the account
@@ -339,7 +339,7 @@ Accept: application/json
 
 **Method:** GET
 
-**Body Required:** ❌ No
+**Body Required:** No
 
 **URL Parameters:**
 - `{accountUuid}` - UUID of the account
@@ -394,7 +394,7 @@ Accept: application/json
 
 **Method:** GET
 
-**Body Required:** ❌ No
+**Body Required:** No
 
 **URL Parameters:**
 - `{accountUuid}` - UUID of the account
@@ -439,7 +439,7 @@ Accept: application/json
 
 **Method:** GET
 
-**Body Required:** ❌ No
+**Body Required:** No
 
 **URL Parameters:**
 - `{accountUuid}` - UUID of the account
@@ -551,15 +551,15 @@ The code tries multiple endpoints for IP addresses in this order:
 
 | # | Endpoint | Method | Body | Purpose | Line |
 |---|----------|--------|------|---------|------|
-| 1 | `/accounts` | GET | ❌ | Get all accounts | 183 |
-| 2 | `/accounts/{accountUuid}/domains` | GET | ❌ | Get domains for account | 208 |
-| 3 | `/domains` | GET | ❌ | Get all domains (legacy) | 298 |
-| 4 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/senders` | GET | ❌ | Get sender statistics | 403 |
-| 5 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/volume/totals` | GET | ❌ | Get volume totals | 551 |
-| 6 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/volume/timeline` | GET | ❌ | Get volume timeline | 638 |
-| 7 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/senders/{senderUuid}` | GET | ❌ | Get sender details | 730 |
-| 8 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/ip-addresses` | GET | ❌ | Get IP address stats | 1357 |
-| 9 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/ip-addresses/{sourceUuid}` | GET | ❌ | Get IP address details | 882 |
+| 1 | `/accounts` | GET | No | Get all accounts | 183 |
+| 2 | `/accounts/{accountUuid}/domains` | GET | No | Get domains for account | 208 |
+| 3 | `/domains` | GET | No | Get all domains (legacy) | 298 |
+| 4 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/senders` | GET | No | Get sender statistics | 403 |
+| 5 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/volume/totals` | GET | No | Get volume totals | 551 |
+| 6 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/volume/timeline` | GET | No | Get volume timeline | 638 |
+| 7 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/senders/{senderUuid}` | GET | No | Get sender details | 730 |
+| 8 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/ip-addresses` | GET | No | Get IP address stats | 1357 |
+| 9 | `/accounts/{accountUuid}/domains/{domainUuid}/statistics/dmarc/ip-addresses/{sourceUuid}` | GET | No | Get IP address details | 882 |
 
 ---
 

@@ -1,854 +1,831 @@
-# Multi-Tenant Reporting Platform
+# MSP Reports
 
-[![Laravel](https://img.shields.io/badge/Laravel-12-FF2D20?style=flat&logo=laravel)](https://laravel.com)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat&logo=postgresql)](https://www.postgresql.org)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
-[![Pipeline](https://img.shields.io/badge/Pipeline-Passing-success)](https://gitlab.athenanetworks.com.au/athenanetworks/reporting/pipelines)
-[![Version](https://img.shields.io/badge/Version-1.0.0-blue)](CHANGELOG.md)
+A multi-tenant reporting platform for managed service providers. It pulls operational data from the PSA, RMM, security, backup and Microsoft 365 tools an MSP already runs. It maps each vendor's view of a customer onto one canonical customer record, then generates branded PDF reports and delivers them on a schedule by email or SharePoint.
 
-## Overview
-
-A world-class, enterprise-grade reporting platform designed for MSPs and telcos to consolidate customer data across multiple business systems, intelligently map customers, and automatically generate professional, white-labeled reports.
-
-### Key Features
-
-- 🏢 **Multi-Tenant Architecture** - Complete tenant isolation at every layer
-- 🔐 **Enterprise Security** - ISO 27001 compliant with comprehensive audit logging
-- 🔑 **Flexible Authentication** - Local, LDAP/AD, SAML, and OAuth support
-- 🔌 **Modular Integrations** - Extensible framework for rapid integration additions
-- 📊 **Smart Customer Mapping** - AI-powered fuzzy matching with manual override
-- 📈 **Time-Series Analytics** - TimescaleDB-powered historical data analysis
-- 🎨 **White-Label Ready** - Per-tenant branding and customization
-- 🚀 **Production Ready** - Battle-tested with enterprise-grade security
-- 📱 **Modern UI** - Beautiful, responsive React interface with dark mode
-- 🔔 **Real-time Notifications** - In-app notification system with detailed views
-- 📲 **Responsive Design** - Collapsible sidebar with persistent state across navigation
-- 🎯 **Interactive UI** - Clickable notifications with full detail modals
-- 💾 **State Persistence** - UI preferences saved across sessions
-- 🔍 **Integration Data Preview** - View live data from any integration before generating reports
-- 📋 **Enhanced Company Settings** - Email, phone, and address included in report generation
-- 📄 **Professional PDF Export** - Enhanced integration preview exports with company branding and styling
-- 📊 **Report History** - Track all generated reports with filtering and download capabilities
-- 📧 **Email Reports** - Send reports directly via email with success confirmation
-- 📤 **SharePoint Delivery** - Upload reports directly to customer SharePoint sites
-- 🔄 **Extensible Delivery System** - Easy to add new delivery methods (Email, SharePoint, more)
-- ✅ **Form Validation** - Smart validation modals for required fields
-- 🔍 **Search & Filter** - Search functionality across integrations, reports, and schedules
-- 📄 **Smart Pagination** - 9 items per page with dynamic labels
-- 📚 **In-App Documentation** - Comprehensive help guides with search, categories, and sharable links
-- 🎓 **Guided Onboarding** - Welcome modal and step-by-step tour for first-time users
-- 🚫 **Custom 404 Page** - Branded error page for unknown routes with navigation options
+| | |
+|---|---|
+| Backend | PHP 8.2+, Laravel 12, Sanctum, Laravel Queues, Reverb |
+| Frontend | React 19, TypeScript 5.9, Vite 7, Tailwind CSS 3.4, Radix UI, Zustand, TanStack Query |
+| Data | PostgreSQL 16 with TimescaleDB, Redis 7 |
+| Rendering | Blade templates rendered to PDF by Gotenberg 8 |
+| Matching | Python embedding service (Flask and Gunicorn) for fuzzy customer matching |
+| Agents | PowerShell agents for on-premises Active Directory and Exchange |
+| Deployment | Docker Compose (development), systemd and NGINX on Linux (production) |
 
 ---
 
-## Technical Stack
+## Contents
+
+1. [Features](#features)
+2. [Architecture](#architecture)
+3. [Use cases](#use-cases)
+4. [Components](#components)
+5. [Data flow](#data-flow)
+6. [Key sequences](#key-sequences)
+7. [State models](#state-models)
+8. [Data model](#data-model)
+9. [Deployment](#deployment)
+10. [Getting started](#getting-started)
+11. [Configuration](#configuration)
+12. [API overview](#api-overview)
+13. [Repository structure](#repository-structure)
+14. [Testing](#testing)
+15. [Operations](#operations)
+16. [Known limitations](#known-limitations)
+17. [Contributing](#contributing)
+
+---
+
+## Features
+
+### Integrations
+
+There are 23 vendor connectors under `backend/app/Integrations`. Each one implements `IntegrationInterface` (`authenticate`, `sync`, `getCustomers`, `getHistoricalData`, `healthCheck`, `getRateLimits`, `getCredentialFields`, `getPreviewData`).
+
+| Category | Connectors |
+|---|---|
+| PSA and documentation | Autotask, ITGlue |
+| RMM and monitoring | Datto RMM, Kaseya, LibreNMS, Kemp |
+| Security | BitDefender, ThreatLocker, RocketCyber, Barracuda, Sendmarc, Vonahi, WatchGuard AuthPoint, SAT |
+| Backup | Veeam, Veeam ONE |
+| Microsoft 365 | CIPP, M365, AdminDroid, SharePoint, SaaS licensing |
+| On-premises (agent push) | Active Directory, Exchange |
+
+Each connector provides:
+
+- Credentials stored with Laravel encrypted casts.
+- Per-integration rate limits.
+- Scheduled incremental sync and on-demand sync.
+- Historical backfill jobs with stuck-job detection.
+- Health checks and a live data preview before a report is configured.
+
+### Customer mapping
+
+- One canonical `Customer` per real-world client, linked to many `IntegrationCustomer` records through `CustomerMapping`.
+- A company can designate one integration as the source of truth for its customer list.
+- Exact-name auto-match, plus embedding-based smart-match suggestions with a configurable similarity threshold.
+- Manual map, merge, split and unmap operations, all audit logged.
+
+### Reports
+
+There are 17 report types under `backend/app/Reports`. Each one implements `ReportInterface` (`getRequiredDataTypes`, `validate`, `generate`, `getTemplate`).
+
+- **Report types:** Autotask Summary, Ticket Summary, Datto RMM Summary, BitDefender Summary, ThreatLocker Summary, CIPP Summary, ITGlue Summary, LibreNMS Summary, LibreNMS Device Report, Sendmarc Summary, Vonahi Summary, SaaS Summary, SPLA Licensing, Backup Status, Uptime Report, Security Summary, Monthly Comprehensive.
+- **Schedules:** daily, weekly, monthly, yearly or on demand, evaluated in each customer's own time zone.
+- **Templates:** reusable bundles of report types, applied to one customer or many.
+- **Delivery:** email or SharePoint upload. Time-limited share links can be issued for one-off access.
+- **Branding:** logo, colours and report file naming are set per company.
+
+### Access control and security
+
+- **Sign-in:** local passwords, Microsoft Entra ID (OAuth), Keycloak (OIDC), SAML 2.0 and LDAP.
+- **Roles:** five built-in roles (`admin`, `manager`, `technician`, `viewer`, `customer`), each with resource and action permissions that can be overridden per user.
+- **Tenancy:** queries are scoped by company, and customer access is scoped per user.
+- **Sessions and headers:** idle-session timeout, rate limiting on authentication routes, and secure response headers.
+- **API keys:** SHA-256 hashed keys for agents and machine clients, which can be revoked.
+- **Audit log:** filterable and exportable, with retention-based cleanup.
+
+### Operations
+
+- Health endpoints for the database, Redis, mail, scheduler, storage, reports and external dependencies.
+- Monitoring views for queue depth, integration sync metrics and report throughput.
+- An alert rule engine that is evaluated every five minutes.
+- Licence enforcement for integration count, user count and data retention.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Clients
+        Browser[Web browser<br/>React SPA]
+        ADAgent[AD agent<br/>PowerShell]
+        EXAgent[Exchange agent<br/>PowerShell]
+    end
+
+    subgraph Edge
+        NGINX[NGINX<br/>TLS, static assets, reverse proxy]
+    end
+
+    subgraph Application
+        API[Laravel HTTP API<br/>Sanctum, middleware, actions]
+        Workers[Queue workers<br/>critical / sync / high / default / historical / low]
+        Scheduler[Scheduler<br/>schedule:work]
+        Reverb[Reverb<br/>WebSocket broadcasts]
+    end
+
+    subgraph Supporting services
+        Gotenberg[Gotenberg<br/>HTML to PDF]
+        Embedding[Embedding service<br/>Python, port 5050]
+    end
+
+    subgraph Data
+        PG[(PostgreSQL 16<br/>+ TimescaleDB)]
+        Redis[(Redis 7<br/>queues, cache)]
+        Storage[(Local or S3<br/>report files, logos)]
+    end
+
+    subgraph External
+        Vendors[Vendor APIs<br/>Autotask, Datto, CIPP, ...]
+        IdP[Identity providers<br/>Entra ID, Keycloak, SAML, LDAP]
+        Mail[SMTP]
+        SP[SharePoint / Graph]
+    end
+
+    Browser --> NGINX --> API
+    ADAgent -- API key --> NGINX
+    EXAgent -- API key --> NGINX
+    API --> PG
+    API --> Redis
+    API --> IdP
+    API --> Embedding
+    API -- broadcast --> Reverb --> Browser
+    Scheduler -- dispatch --> Redis
+    Redis --> Workers
+    Workers --> Vendors
+    Workers --> PG
+    Workers --> Gotenberg
+    Workers --> Storage
+    Workers --> Mail
+    Workers --> SP
+```
+
+### Design principles
+
+- **Plugin-style extension.** Integrations and reports are discovered from their directories, and each lives in its own namespace with a `config.php`. Adding a connector means adding a directory. No central registry needs editing.
+- **Thin controllers, explicit actions.** Controllers validate input through Form Requests and delegate to single-purpose classes in `app/Actions`. Cross-cutting logic lives in `app/Services`.
+- **Asynchronous by default.** Syncs, historical imports, report generation and delivery run on prioritised Redis queues, so the HTTP layer never waits on a vendor API.
+- **Time-series storage.** Raw integration payloads land in `integration_data`, a TimescaleDB hypertable with compression and retention policies.
+
+---
+
+## Use cases
+
+```mermaid
+flowchart LR
+    Admin((MSP admin))
+    Tech((Technician))
+    Viewer((Viewer))
+    Customer((Customer contact))
+    Agent((On-prem agent))
+    Sched((Scheduler))
+
+    subgraph MSP Reports
+        UC1[Connect an integration]
+        UC2[Run or backfill a sync]
+        UC3[Map, merge or split customers]
+        UC4[Configure reports and schedules]
+        UC5[Generate a report on demand]
+        UC6[Deliver by email or SharePoint]
+        UC7[Share a report link]
+        UC8[Manage users, roles and SSO]
+        UC9[Manage API keys]
+        UC10[Review audit log and monitoring]
+        UC11[Push directory and mailbox data]
+        UC12[View and download reports]
+    end
+
+    Admin --> UC1 & UC3 & UC4 & UC8 & UC9 & UC10
+    Tech --> UC2 & UC3 & UC5 & UC6 & UC7
+    Viewer --> UC12
+    Customer --> UC12
+    Agent --> UC11
+    Sched --> UC2 & UC5 & UC6
+```
+
+| Actor | Primary goals |
+|---|---|
+| MSP admin | Onboard vendors, set the source of truth, define templates and schedules, manage staff access and SSO. |
+| Technician | Keep data fresh, resolve mapping mismatches, produce and send reports. |
+| Viewer / Customer | Read and download reports within their permitted customers. |
+| On-prem agent | Push Active Directory and Exchange inventory over an API key. |
+| Scheduler | Drive recurring syncs, report runs, alert evaluation and data cleanup. |
+
+---
+
+## Components
 
 ### Backend
-- **Framework**: Laravel 12 (PHP 8.2+)
-- **Database**: PostgreSQL 16 + TimescaleDB (time-series extension)
-- **Authentication**: Laravel Sanctum (Local, SAML, M365, LDAP)
-- **Cache**: Redis (recommended) / Database fallback
-- **Queue**: Laravel Queue with Redis/Database drivers
-- **PDF Generation**: Gotenberg service
+
+```mermaid
+flowchart TB
+    subgraph HTTP layer
+        Routes[routes/api.php]
+        MW[Middleware<br/>auth:sanctum, permission, session.timeout,<br/>scope.customers, secure.headers, throttle, ApiKeyAuthentication]
+        FR[Form Requests<br/>app/Http/Requests]
+        Ctrl[Controllers<br/>app/Http/Controllers/Api]
+        Res[API Resources<br/>app/Http/Resources]
+    end
+
+    subgraph Domain
+        Actions[Actions<br/>app/Actions]
+        Services[Services<br/>SyncEngine, ReportGenerationService,<br/>ScheduleEvaluator, CustomerMappingService,<br/>AuthService, AlertEngine, ...]
+        Delivery[Delivery channels<br/>Email, SharePoint]
+    end
+
+    subgraph Plugins
+        Integrations[Integrations<br/>app/Integrations/*]
+        Reports[Reports<br/>app/Reports/*]
+        Registry[ReportRegistry<br/>ReportTypeRegistry]
+    end
+
+    subgraph Async
+        Jobs[Jobs<br/>SyncIntegrationJob, ImportHistoricalDataJob,<br/>GenerateReportJob, DeliverReportJob,<br/>AutoMatchCustomersJob, CleanupExpiredDataJob]
+        Commands[Console commands<br/>app/Console/Commands]
+    end
+
+    Models[Eloquent models<br/>app/Models]
+
+    Routes --> MW --> FR --> Ctrl --> Actions --> Services
+    Ctrl --> Res
+    Services --> Integrations
+    Services --> Registry --> Reports
+    Services --> Delivery
+    Services --> Jobs
+    Commands --> Jobs
+    Jobs --> Services
+    Actions --> Models
+    Services --> Models
+```
 
 ### Frontend
-- **Framework**: React 19 with TypeScript 5.9
-- **Build Tool**: Vite 7
-- **UI Library**: Radix UI + Tailwind CSS 3.4
-- **State Management**: Zustand + React Context
-- **Icons**: Lucide React
-- **Routing**: React Router v7
 
-### Infrastructure
-- **Web Server**: NGINX (production config in `nginx/`)
-- **Process Management**: Systemd services (see `systemd/`)
-- **Deployment**: Native Linux server (see `docs/DEPLOYMENT_NATIVE.md`)
-- **Monitoring**: Built-in health checks + custom alerting system
-
----
-
-## Core Features
-
-### Multi-Tenancy Architecture
-- Tenant isolation at company level
-- User management with granular read/write permissions per company
-- Data segregation ensuring no cross-tenant data leakage
-
-### Integration Framework
-- Modular, namespace-based integration system
-- Each integration lives in its own namespace (e.g., `App\Integrations\Autotask`, `App\Integrations\DattoRMM`)
-- Integration interface/contract that all integrations must implement
-- Integrations pull and store data on scheduled basis
-- Company can designate one integration as "source of truth" for customer list
-
-### Customer Mapping System
-- Auto-match customers with identical names across integrations
-- Manual mapping interface for mismatched customer names
-- Maintains relationship mapping table to ensure reports pull correct data across all integrated systems
-
-### Report Generation & Distribution
-- Per-customer report selection (which reports to generate monthly)
-- Per-customer delivery destination configuration (defaults to company admin)
-- Scheduled report generation engine
-- Modular report framework - each report type in own namespace (e.g., `App\Reports\UptimeReport`, `App\Reports\SecuritySummary`)
-- Report interface/contract that all reports must implement
-
-### UI/UX Requirements
-- Clean, modern interface
-- Intuitive navigation for non-technical users
-- Dashboard showing integration status, scheduled reports, recent deliveries
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-| Tool | Version | Download |
-|------|---------|----------|
-| PHP | 8.3+ | [windows.php.net](https://windows.php.net/download/) (Thread Safe) |
-| Composer | 2.x | [getcomposer.org](https://getcomposer.org/download/) |
-| Node.js | 20+ LTS | [nodejs.org](https://nodejs.org/) |
-| PostgreSQL | 16+ | [postgresql.org](https://www.postgresql.org/download/) |
-| TimescaleDB | 2.x | [timescale.com](https://docs.timescale.com/self-hosted/latest/install/) (optional for dev) |
-| Redis | 7+ | [Memurai](https://www.memurai.com/) (Windows) or Docker |
-| Docker | Latest | [docker.com](https://www.docker.com/products/docker-desktop) (for Gotenberg PDF) |
-
-### Installation
-
-#### Windows (PowerShell)
-
-1. **Clone the Repository**
-   ```powershell
-   git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
-   cd reporting
-   ```
-
-2. **Quick Setup (Automated)**
-   ```powershell
-   cd scripts
-   .\setup-local.ps1
-   ```
-
-3. **Manual Installation**
-   ```powershell
-   # Create PostgreSQL database
-   $env:PGPASSWORD = "postgres"
-   createdb -U postgres -h 127.0.0.1 reporting
-   
-   # Backend setup
-   cd backend
-   Copy-Item .env.example .env
-   # Edit .env: Set DB_CONNECTION=pgsql, DB_HOST=127.0.0.1, DB_DATABASE=reporting
-   composer install
-   php artisan key:generate
-   php artisan migrate
-   php artisan db:seed
-   php artisan serve --host=0.0.0.0 --port=8000
-   
-   # Frontend setup (new terminal)
-   cd frontend
-   Copy-Item .env.example .env
-   npm install
-   npm run dev
-   ```
-
-#### Linux/macOS (Bash)
-
-1. **Clone and Setup**
-   ```bash
-   git clone https://gitlab.athenanetworks.com.au/athenanetworks/reporting.git
-   cd reporting
-   ./scripts/setup-local.sh
-   ./scripts/start-dev.sh
-   ```
-
-4. **Production Deployment**
-   
-   See `docs/DEPLOYMENT_NATIVE.md` for complete production deployment guide.
-
-5. **Access the Application**
-
-   | Service | URL |
-   |---------|-----|
-   | Frontend | http://localhost:5173 |
-   | Backend API | http://localhost:8000 |
-   | Login Page | http://localhost:5173/login |
-
-### Default Login Credentials
-
-After running `php artisan db:seed`, use these credentials:
-
-| User | Email | Password | Role |
-|------|-------|----------|------|
-| Admin | `admin@tts.com.au` | `ChangeMe123!` | Full Administrator |
-| Test User | `kristianbas14@gmail.com` | `password123` | Administrator |
-| Viewer | `viewer@tts.com.au` | `password123` | Scoped Viewer |
-
-> ⚠️ **Important**: Change default passwords after first login!
-
-### Optional Services
-
-```powershell
-# Start Queue Worker (for background jobs)
-cd backend
-php artisan queue:work
-
-# Start Gotenberg (for PDF generation) - requires Docker
-docker run -d -p 3000:3000 gotenberg/gotenberg:8
-
-# Enable TimescaleDB (after installation)
-psql -U postgres -d reporting -c "CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;"
+```mermaid
+flowchart TB
+    Main[main.tsx] --> Providers[Providers<br/>QueryClient, Theme, Auth, Toast]
+    Providers --> Router[AppRoutes.tsx<br/>protected routes, permission guards]
+    Router --> Pages[pages/*<br/>dashboard, integrations, customers, reports,<br/>schedules, templates, users, api-keys,<br/>audit-logs, monitoring, settings, docs]
+    Pages --> Components[components/*<br/>layout, ui primitives, modals, charts]
+    Pages --> Stores[stores/*<br/>Zustand]
+    Pages --> Hooks[hooks/* and page hooks<br/>TanStack Query]
+    Hooks --> APIClient[lib/api.ts<br/>Axios, bearer token, 401 handling]
+    Stores --> APIClient
+    Pages --> Echo[lib/echo.ts<br/>Laravel Echo over Reverb]
+    APIClient --> Backend[(Laravel API)]
+    Echo --> Backend
 ```
 
 ---
 
-## 📚 Documentation
+## Data flow
 
-- [Architecture Overview](docs/ARCHITECTURE.md) - System design and multi-tenancy
-- [Integration Framework](docs/INTEGRATIONS.md) - How to add new integrations
-- [Report Framework](docs/REPORTS.md) - Creating custom report types
-- [API Documentation](docs/API.md) - RESTful API endpoints
-- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment
-- [Contributing Guide](CONTRIBUTING.md) - How to contribute
-- [Changelog](CHANGELOG.md) - Version history
+```mermaid
+flowchart LR
+    V[Vendor APIs] -->|scheduled / manual sync| SE[SyncEngine]
+    AG[On-prem agents] -->|POST push| AD[AD / Exchange sync services]
+    SE --> IC[(integration_customers)]
+    SE --> ID[(integration_data<br/>hypertable)]
+    AD --> ADT[(ad_* / exchange_* tables)]
 
----
+    IC --> CM[Customer mapping<br/>exact match, embeddings, manual]
+    EMB[Embedding service] <--> CM
+    CM --> C[(customers + customer_mappings)]
 
-## 🛠️ Development Guidelines
-
-### AI Usage - Keep It Focused
-**Important**: Don't let AI run away on you. Use it for targeted, specific tasks. If you ask it to "build the integration system," you'll get a mess. Instead, ask it to help with specific components like "create the integration interface contract" or "write the PostgreSQL query for customer matching logic." Keep AI focused and on-track.
-
-### Version Control Practices
-- **Commit regularly** - small, logical commits with clear messages
-- **Use git as your safety net** - if AI generates something that breaks things, you can easily roll back
-- Commit before letting AI make major changes
-- Branch strategy: feature branches off main, merge via MR
-- Follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages
-
----
-
-## Key API Endpoints
-
-### Authentication & User Management
-- `POST /api/auth/login` - Multi-mechanism authentication (Local, SAML/M365/LDAP)
-- `GET /api/users` - List users in company
-- `POST /api/users` - Create user with permissions
-- `PATCH /api/users/{id}/permissions` - Update user permissions
-
-### Company Settings
-- `GET /api/company/settings` - Get company settings and contact information
-- `PATCH /api/company/settings` - Update company details (name, email, phone, address)
-- `PATCH /api/company/branding` - Update white-label branding (colors, logos)
-
-### Integration Management
-- `GET /api/integrations` - List available integration types
-- `POST /api/integrations` - Add integration to company
-- `GET /api/integrations/{id}/sync` - Trigger manual sync
-- `GET /api/integrations/{id}/customers` - List customers from specific integration
-- `GET /api/integrations/{id}/preview/template` - Get display template for integration
-- `GET /api/integrations/{id}/preview/data` - Get preview data from integration
-- `GET /api/integrations/{id}/preview` - Get template and data in single request
-- `PATCH /api/company/source-integration` - Set source of truth integration
-
-### Customer Mapping
-- `GET /api/customers` - List all customers (merged view across integrations)
-- `GET /api/customers/unmapped` - List customers requiring manual mapping
-- `POST /api/customers/map` - Create manual customer mapping
-- `GET /api/customers/{id}/integrations` - Show which integrations have this customer
-
-### Report Configuration
-- `GET /api/reports` - List available report types
-- `GET /api/customers/{id}/reports` - Get report config for customer
-- `PATCH /api/customers/{id}/reports` - Update which reports to generate
-- `PATCH /api/customers/{id}/report-destination` - Set delivery destination
-- `POST /api/reports/generate/{customer_id}` - Manual report generation trigger
-- `POST /api/reports/{id}/email` - Email report to specified recipients
-
-### Reporting & Analytics
-- `GET /api/reports/scheduled` - View scheduled report queue
-- `GET /api/reports/history` - Report delivery history
-- `GET /api/reports/{id}/download` - Download specific report
-- `POST /api/reports/{id}/share` - Generate a 1-hour share link for a completed report
-- `GET /api/reports/shared/{token}` - Download a shared report (public, rate-limited)
-
----
-
-## Modular Framework Structure
-
-### Integration Module Structure
-```
-app/Integrations/
-├── Contracts/
-│   └── IntegrationInterface.php
-├── Autotask/
-│   ├── AutotaskIntegration.php
-│   ├── AutotaskClient.php
-│   └── config.php
-└── DattoRMM/
-    ├── DattoRMMIntegration.php
-    ├── DattoRMMClient.php
-    └── config.php
+    C --> RG[ReportGenerationService]
+    ID --> RG
+    ADT --> RG
+    RS[(report_schedules)] --> SCH[ScheduleEvaluator] --> RG
+    RG -->|Blade HTML| GT[Gotenberg] -->|PDF| ST[(Storage)]
+    RG --> GR[(generated_reports)]
+    ST --> DL[DeliverReportJob]
+    DL --> EM[Email]
+    DL --> SPO[SharePoint]
+    ST --> SH[Share token download]
 ```
 
-Each integration must implement: `sync()`, `getCustomers()`, `authenticate()`, `disconnect()`, `getDisplayTemplate()`, `getPreviewData()`
+1. **Ingest.** Connectors pull customers and metrics into `integration_customers` and `integration_data`. Agents push directory and mailbox inventory instead of being polled.
+2. **Resolve.** Integration customers are mapped to canonical customers, either automatically or by a technician.
+3. **Aggregate.** A report's data gatherer reads every mapped integration for the customer over the reporting period.
+4. **Render.** A Blade template is rendered to HTML, converted to PDF by Gotenberg, and stored.
+5. **Distribute.** The PDF is delivered through the customer's configured channel, or exposed through a share link.
 
-### Report Module Structure
+---
+
+## Key sequences
+
+### Sign-in (local credentials)
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant SPA as React SPA
+    participant API as Laravel API
+    participant DB as PostgreSQL
+
+    U->>SPA: email + password
+    SPA->>API: POST /api/auth/login (throttle 10/min)
+    API->>DB: load user, verify bcrypt hash, check status
+    alt valid and active
+        API->>DB: create Sanctum token, write audit log
+        API-->>SPA: 200 { user, company, token, force_password_change }
+        SPA->>SPA: store token, load permissions
+        SPA->>API: GET /api/auth/me (Bearer token)
+        API-->>SPA: 200 user profile
+    else invalid
+        API->>DB: write failed-login audit entry
+        API-->>SPA: 401 / 422
+    end
 ```
-app/Reports/
-├── Contracts/
-│   └── ReportInterface.php
-├── UptimeReport/
-│   ├── UptimeReport.php
-│   └── template.blade.php
-└── SecuritySummary/
-    ├── SecuritySummary.php
-    └── template.blade.php
+
+### Integration sync
+
+```mermaid
+sequenceDiagram
+    participant S as Scheduler / User
+    participant API as Laravel API
+    participant Q as Redis queue
+    participant W as Worker
+    participant I as Integration connector
+    participant V as Vendor API
+    participant DB as PostgreSQL
+
+    S->>API: GET /api/integrations/{id}/sync
+    API->>DB: create sync_log (queued)
+    API->>Q: dispatch SyncIntegrationJob (queue: sync)
+    API-->>S: 202 accepted
+    Q->>W: SyncIntegrationJob
+    W->>DB: sync_log = running, integration = syncing
+    W->>I: authenticate()
+    I->>V: OAuth / API key handshake
+    loop each resource page (rate limited)
+        W->>I: sync()
+        I->>V: GET resource
+        V-->>I: records
+        I-->>W: normalised rows
+        W->>DB: upsert integration_customers, insert integration_data
+    end
+    W->>DB: sync_log = success | partial | failed
+    W->>DB: integration = active | error
+    W-->>S: broadcast status over Reverb
 ```
 
-Each report must implement: `generate()`, `getRequiredData()`, `getTemplate()`, `deliver()`
+### Scheduled report generation and delivery
 
----
+```mermaid
+sequenceDiagram
+    participant C as Scheduler (hourly)
+    participant SE as ScheduleEvaluator
+    participant Q as Redis queue
+    participant G as GenerateReportJob
+    participant R as Report class
+    participant GT as Gotenberg
+    participant ST as Storage
+    participant D as DeliverReportJob
+    participant X as Email / SharePoint
 
-## ISO 27001 SoC Compliance Requirements
-
-- All data in PostgreSQL encrypted at rest
-- Encryption in transit (HTTPS/TLS for all API calls)
-- Audit logging for all user actions
-- Role-based access control (RBAC) enforced
-- Secure credential storage for integration API keys (encrypted in DB)
-- Data retention policies configurable per tenant
-- Secure session management
-- Input validation and sanitisation on all endpoints
-- Regular security scanning in CI/CD pipeline
-
----
-
-## Notification System
-
-The platform features a comprehensive in-app notification system that keeps users informed of all system activities:
-
-### Features
-- **Real-time Updates** - Notifications sync automatically with dashboard activities
-- **Bell Icon Indicator** - Red dot appears when new notifications are available
-- **Dropdown Preview** - Quick view of recent notifications from any page
-- **Dedicated Page** - Full notification list at `/notifications` with search and filtering
-- **Click to View Details** - Each notification opens a detailed modal with complete information
-- **Status Tracking** - Visual indicators for read/unread status
-- **Contextual Information** - Type-specific details (sync, report, alert, info)
-- **Mark as Read** - Individual or bulk actions to manage notification status
-
-### Notification Types
-- **Sync Events** - Integration synchronization completions and failures
-- **Report Events** - Report generation and delivery status
-- **Alerts** - System alerts requiring attention
-- **Info** - General system information and updates
-
-### User Experience
-- Notifications automatically created from Recent Activity on dashboard
-- Persistent across page navigation
-- Modal detail view shows event type, severity, timestamp, and contextual help
-- "View All Notifications" button in dropdown for quick access
-- Recent Activity section links directly to notifications page
-
----
-
-## Integration Data Visualization
-
-The platform features a comprehensive data preview system that allows users to view integration data before generating reports:
-
-### Features
-- **Live Data Preview** - View real-time data from any integration without generating a full report
-- **Standardized Display** - Each integration defines its own template for presenting data
-- **Flexible Rendering** - Supports tables, key-value pairs, and list formats
-- **Customer-Specific Filtering** - Option to filter data by specific customers
-- **Accessible from Customer View** - Easy access through the customer integrations modal
-
-### Display Template Types
-Each integration can define custom display templates with the following section types:
-
-- **Table View** - Tabular data with customizable columns (e.g., Active Directory users)
-- **Key-Value Pairs** - Configuration or metadata display (e.g., Exchange server settings)
-- **List View** - Simple lists of items (e.g., security groups, mailboxes)
-
-### How It Works
-1. Navigate to a customer's integrations view
-2. Click the "View Data" (eye icon) button next to any integration
-3. See live data pulled directly from the integration
-4. Review data accuracy before scheduling reports
-5. Verify customer mappings are correct
-
-This feature helps clients validate data quality and troubleshoot integration issues before committing to automated report generation.
-
----
-
-## Company Settings & Branding
-
-### Enhanced Settings
-Company settings now include comprehensive contact information that appears on all generated reports:
-
-- **Company Name** - Your organization's display name
-- **Contact Email** - Primary contact email for reports
-- **Contact Phone** - Support phone number
-- **Physical Address** - Company address (multi-line support)
-- **Primary Brand Color** - Hex color for report theming
-
-### Report Integration
-All contact details are automatically included in:
-- PDF report headers and footers
-- Email delivery notifications
-- White-labeled report templates
-- Customer-facing documentation
-
-### Settings API
+    C->>SE: reports:process-scheduled
+    SE->>SE: find schedules due in customer time zone
+    SE->>Q: dispatch GenerateReportJob per schedule
+    Q->>G: run
+    G->>R: validate(customer, start, end)
+    G->>R: generate(customer, start, end)
+    R-->>G: view data
+    G->>GT: POST rendered HTML
+    GT-->>G: PDF bytes
+    G->>ST: store PDF
+    G->>Q: dispatch DeliverReportJob
+    Q->>D: run
+    D->>X: send attachment / upload file
+    X-->>D: ok | error
+    D->>D: mark delivered or record error_message
 ```
-GET  /api/company/settings        # Retrieve company settings
-PATCH /api/company/settings        # Update company details
-PATCH /api/company/branding        # Update branding and colors
+
+### Agent push (Active Directory)
+
+```mermaid
+sequenceDiagram
+    participant A as ad-sync-agent.ps1
+    participant API as Laravel API
+    participant MW as ApiKeyAuthentication
+    participant S as ActiveDirectorySyncService
+    participant DB as PostgreSQL
+
+    A->>API: POST /api/integrations/active-directory/push<br/>Authorization: Bearer <api key>
+    API->>MW: sha256(key) lookup, check revoked / expiry
+    MW-->>API: company + integration context
+    API->>S: users, groups, memberships, licences
+    S->>DB: upsert active_directory_* tables
+    API-->>A: 200 { processed counts }
 ```
 
 ---
 
-## UI/UX Features
+## State models
 
-### Sidebar Navigation
-- **Persistent State** - Sidebar collapsed/expanded state saved in localStorage
-- **Cross-page Memory** - State maintained when navigating between pages
-- **Keyboard Shortcut** - `Ctrl+B` (or `Cmd+B` on Mac) to toggle sidebar
-- **Responsive Icons** - Collapsed state shows icon-only view with logo icon
-- **Smooth Animations** - Polished transitions for expand/collapse
-- **Mobile Optimized** - Dedicated mobile menu with sheet overlay
+### Integration status (`App\Enums\IntegrationStatus`)
 
-### Logo & Branding
-- **Custom Favicon** - Configurable site icon (msp-logo-icon.png)
-- **Dynamic Logos** - Different logos for light/dark themes
-- **Collapsed View** - Icon logo when sidebar is collapsed
-- **Expanded View** - Full logo with company name when expanded
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- PHP 8.2+
-- Composer
-- Node.js 20+ & npm
-- SQLite (dev) or PostgreSQL 16+ (production)
-- Redis (optional but recommended)
-
-### Installation
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd reporting
-
-# Install backend dependencies
-cd backend
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate --seed
-
-# Install frontend dependencies
-cd ../frontend
-npm install
-
-# Start development servers
-cd ../backend
-composer run dev  # Starts Laravel, queue, and Vite concurrently
+```mermaid
+stateDiagram-v2
+    [*] --> inactive: created
+    inactive --> active: credentials verified
+    active --> syncing: sync dispatched
+    syncing --> active: success / partial
+    syncing --> error: failed, no usable data
+    syncing --> active: failed, existing data retained
+    active --> importing_historical: historical import started
+    importing_historical --> active: import completed
+    importing_historical --> error: import failed
+    error --> syncing: retry
+    active --> disconnected: credentials revoked
+    disconnected --> active: re-authenticated
+    active --> inactive: disabled by admin
 ```
 
-Visit `http://localhost:5173` for the frontend and `http://localhost/api` for the API.
+### Sync log
 
-### Default Credentials
-
-After seeding, you can log in with:
-- **Email**: admin@example.com
-- **Password**: password
-
-**⚠️ Change these immediately in production!**
-
----
-
-## Available Integrations
-
-The platform currently supports:
-
-### PSA & Documentation
-- ✅ **Autotask PSA** - Tickets, time entries, projects, contracts
-- ✅ **ITGlue** - Documentation platform with license consumption tracking
-
-### RMM & Monitoring
-- ✅ **DattoRMM** - Device monitoring, backup status, alerts
-- ✅ **Kaseya VSA** - RMM platform integration
-- ✅ **LibreNMS** - Network monitoring and device reports
-
-### Identity & Directory
-- ✅ **Active Directory** - Users, groups, memberships (agent-based push)
-- ✅ **Exchange** - Mailboxes, permissions, statistics (agent-based push)
-- ✅ **Microsoft 365** - Cloud identity and services
-- ✅ **AdminDroid** - Microsoft 365 management reporting
-
-### Security
-- ✅ **BitDefender GravityZone** - Endpoint security
-- ✅ **RocketCyber** - Security operations platform
-- ✅ **ThreatLocker** - Application whitelisting
-- ✅ **WatchGuard AuthPoint** - MFA platform
-- ✅ **Sendmarc** - DMARC monitoring and compliance
-- ✅ **Vonahi** - Penetration testing platform
-
-### Backup & Infrastructure
-- ✅ **Veeam Backup** - Backup monitoring
-- ✅ **Barracuda** - Email security and backup
-- ✅ **Kemp** - Load balancer monitoring
-
-### SaaS & Cloud
-- ✅ **SaaS Alerts** - SaaS application monitoring
-- ✅ **SAT (Security Awareness Training)** - Training platform
-
-**24 integrations** implemented following a modular design pattern. Adding new integrations is straightforward - see [Integration Scaffold](backend/docs/INTEGRATION_SCAFFOLD.md).
-
----
-
-## Architecture Highlights
-
-### Security Features
-
-- 🔒 **Encrypted at Rest**: All sensitive data encrypted in database
-- 🔐 **HTTPS/TLS**: All API communications over TLS
-- 🛡️ **CSP Headers**: Strict Content Security Policy
-- 🚫 **Rate Limiting**: Per-integration and per-IP rate limiting
-- 📝 **Audit Logging**: Comprehensive audit trail (7-year retention)
-- 🔑 **API Keys**: Granular API access with permission scoping
-- ⏱️ **Session Management**: Configurable timeouts and encryption
-- 🚨 **Failed Login Detection**: Automatic lockout after failed attempts
-
-### Performance Features
-
-- ⚡ **TimescaleDB**: Automatic time-series data partitioning and compression
-- 🗄️ **Continuous Aggregates**: Pre-computed rollups for fast queries
-- 📦 **Redis Caching**: Optional Redis for 10-100x performance boost
-- 🔄 **Queue System**: Asynchronous job processing
-- 📊 **Database Indexes**: Optimized for common query patterns
-- 🎯 **Lazy Loading**: Efficient data loading in frontend
-
-### Reliability Features
-
-- 🔄 **Automatic Retry**: Failed jobs retry with exponential backoff
-- 📋 **Health Checks**: Built-in health monitoring endpoints
-- 🔍 **Error Tracking**: Comprehensive error logging
-- 💾 **Data Retention**: Configurable per-company retention policies
-- 🔙 **Database Fallback**: Rate limiter works without Redis
-- 🛡️ **Fail-Open Design**: Services degrade gracefully
-
----
-
-## Documentation
-
-- 📘 **[Configuration Guide](CONFIGURATION.md)** - Environment setup and production configuration
-- 📗 **[Project Plan](PROJECT_PLAN.md)** - Detailed architecture and technical decisions
-- 📙 **[Quick Start Guide](QUICK_START.md)** - Get up and running quickly
-- 📕 **[Integration Scaffold](backend/docs/INTEGRATION_SCAFFOLD.md)** - How to build new integrations
-- 📓 **[Customer Syncing](backend/docs/INTEGRATION_CUSTOMER_SYNCING.md)** - Customer mapping system
-
----
-
-## Development
-
-### Running Tests
-
-```bash
-cd backend
-php artisan test
+```mermaid
+stateDiagram-v2
+    [*] --> queued
+    queued --> running: worker picks up job
+    running --> success: all records processed
+    running --> partial: some records failed
+    running --> failed: exception or timeout
+    running --> failed: syncs:cleanup-stale (stuck)
+    success --> [*]
+    partial --> [*]
+    failed --> [*]
 ```
 
-### Code Quality
+### Generated report
 
-```bash
-# Run Laravel Pint (code formatter)
-./vendor/bin/pint
-
-# Run PHPStan (static analysis)
-./vendor/bin/phpstan analyse
+```mermaid
+stateDiagram-v2
+    [*] --> pending: queued
+    pending --> generating: GenerateReportJob started
+    generating --> completed: PDF stored
+    generating --> failed: validation or render error
+    completed --> delivered: DeliverReportJob success
+    completed --> completed: delivery error (error_message set, retry allowed)
+    delivered --> [*]
+    failed --> [*]
 ```
 
-### Frontend Linting
+`delivered` is a boolean flag on a `completed` report, not a separate enum value.
 
-```bash
-cd frontend
-npm run lint
-npm run build  # Check for TypeScript errors
+### User account (`App\Enums\UserStatus`)
+
+```mermaid
+stateDiagram-v2
+    [*] --> active: created / provisioned via SSO
+    active --> locked: locked by admin
+    locked --> active: unlocked by admin
+    active --> inactive: deactivated
+    inactive --> active: reactivated
+```
+
+---
+
+## Data model
+
+The core entities are shown below. Agent-specific tables (`active_directory_*` and `exchange_*`) are omitted.
+
+```mermaid
+erDiagram
+    COMPANY ||--o{ USER : employs
+    COMPANY ||--o{ INTEGRATION : configures
+    COMPANY ||--o{ CUSTOMER : serves
+    COMPANY ||--o{ API_KEY : issues
+    COMPANY ||--o{ REPORT_TEMPLATE : defines
+    COMPANY ||--o| LICENSE : holds
+    ROLE ||--o{ USER : grants
+    INTEGRATION ||--o{ INTEGRATION_CUSTOMER : discovers
+    INTEGRATION ||--o{ INTEGRATION_DATA : stores
+    INTEGRATION ||--o{ SYNC_LOG : records
+    INTEGRATION ||--o{ HISTORICAL_IMPORT_JOB : runs
+    CUSTOMER ||--o{ CUSTOMER_MAPPING : has
+    INTEGRATION_CUSTOMER ||--o| CUSTOMER_MAPPING : resolves_to
+    CUSTOMER ||--o{ REPORT_SCHEDULE : receives
+    REPORT_TEMPLATE ||--o{ REPORT_SCHEDULE : seeds
+    REPORT_SCHEDULE ||--o{ GENERATED_REPORT : produces
+    CUSTOMER ||--o{ GENERATED_REPORT : owns
+    GENERATED_REPORT ||--o{ REPORT_SHARE_TOKEN : exposes
+    USER ||--o{ AUDIT_LOG : performs
+    COMPANY ||--o{ ALERT_RULE : monitors
+    ALERT_RULE ||--o{ ALERT_LOG : fires
 ```
 
 ---
 
 ## Deployment
 
-### Production Checklist
+### Production (Linux, native)
 
-#### Environment & Security
-- [ ] Set `APP_ENV=production` and `APP_DEBUG=false`
-- [ ] Generate new `APP_KEY` (`php artisan key:generate`)
-- [ ] Set `LOG_LEVEL=warning` or `LOG_LEVEL=error`
-- [ ] Set `SESSION_SECURE_COOKIE=true` (requires HTTPS)
-- [ ] Set `SESSION_DOMAIN` to your production domain
-- [ ] Configure `CORS_ALLOWED_ORIGINS` to production frontend URL only
-- [ ] Configure `SANCTUM_STATEFUL_DOMAINS` for production domain
-- [ ] Change all default passwords immediately after first login
+```mermaid
+flowchart TB
+    Internet((Internet)) --> NGINX
 
-#### Database & Services
-- [ ] Configure PostgreSQL with TimescaleDB extension
-- [ ] Run all pending migrations (`php artisan migrate --force`)
-- [ ] Set up Redis for caching, queues, and rate limiting
-- [ ] Set `CACHE_STORE=redis` and `QUEUE_CONNECTION=redis`
-- [ ] Configure Gotenberg for PDF generation (`GOTENBERG_URL`)
-- [ ] Configure embedding service if using AI customer matching
+    subgraph Host [Linux host]
+        NGINX[NGINX<br/>nginx/mspreports.conf]
+        FPM[PHP-FPM<br/>Laravel API]
+        W1[mspreports-worker@1..n]
+        SCH[mspreports-scheduler]
+        EMB[mspreports-embedding<br/>gunicorn :5050]
+        GOT[Gotenberg container]
+        PG[(PostgreSQL + TimescaleDB)]
+        RD[(Redis)]
+    end
 
-#### Email & Delivery
-- [ ] Configure SMTP (`MAIL_MAILER=smtp` with real credentials)
-- [ ] Set `MAIL_FROM_ADDRESS` and `MAIL_FROM_NAME` to company values
-- [ ] Test email delivery with a test report
+    NGINX -->|/api| FPM
+    NGINX -->|/| SPA[frontend/dist]
+    FPM --> PG & RD & EMB
+    W1 --> PG & RD & GOT
+    SCH --> RD
+```
 
-#### Real-Time & WebSocket
-- [ ] Configure Laravel Reverb (`BROADCAST_CONNECTION=reverb`)
-- [ ] Set `REVERB_APP_KEY`, `REVERB_APP_SECRET` to unique values
-- [ ] Configure `VITE_REVERB_*` variables for frontend WebSocket
+The systemd units live in `systemd/` and are grouped under `mspreports.target`. See [docs/DEPLOYMENT_NATIVE.md](docs/DEPLOYMENT_NATIVE.md) and [docs/PRODUCTION_RUNBOOK.md](docs/PRODUCTION_RUNBOOK.md).
 
-#### Infrastructure
-- [ ] Set up SSL/TLS certificates (Let's Encrypt or manual)
-- [ ] Configure Nginx with `nginx/mspreports.conf`
-- [ ] Install systemd services (`systemd/install-services.sh`)
-- [ ] Configure firewall rules (allow 80, 443, block all else)
-- [ ] Set up automated database backups
-- [ ] Configure log rotation
+### Development (Docker Compose)
 
-#### Integrations & Data
-- [ ] Add and test each integration (Datto, CIPP, Autotask, etc.)
-- [ ] Verify integration syncs complete successfully
-- [ ] Run customer auto-matching after initial sync
-- [ ] Review and approve customer mappings
-- [ ] Configure rate limits per integration
-
-#### Branding & Reports
-- [ ] Upload company logo and configure white-label branding
-- [ ] Set company contact details (email, phone, address)
-- [ ] Configure report templates per customer
-- [ ] Set up report schedules
-- [ ] Test PDF generation with Gotenberg
-- [ ] Test report delivery (email and/or SharePoint)
-
-#### Monitoring
-- [ ] Verify health check endpoint (`/api/monitoring/status`)
-- [ ] Set up monitoring for queue workers
-- [ ] Configure alerting for sync failures
-- [ ] Review audit logs for completeness
-
-See [docs/DEPLOYMENT_NATIVE.md](docs/DEPLOYMENT_NATIVE.md) for the complete deployment guide.
+| Service | Purpose | Port |
+|---|---|---|
+| `backend` | `php artisan serve` | 8082 |
+| `queue-critical` (2 replicas) | Worker for `critical,high,sync` queues | none |
+| `queue-historical` (3 replicas) | Worker for `historical,default,low` queues | none |
+| `scheduler` | `php artisan schedule:work` | none |
+| `frontend` | Vite dev server | 5173 |
+| `gotenberg` | PDF rendering | 3001 |
+| `postgres` | PostgreSQL 16 | 5433 |
+| `redis` | Redis 7 | 6380 |
 
 ---
 
-## Development Roadmap
+## Getting started
 
-### ✅ Phase 1: Foundation (Completed)
-- Multi-tenant architecture
-- Authentication system
-- Core database schema
-- White-labeling system
+### Prerequisites
 
-### ✅ Phase 2: Integration Framework (Completed)
-- Modular integration contracts
-- 10+ integrations implemented
-- Rate limiting framework
-- Historical data import system
+- PHP 8.2+ (production targets 8.3 FPM) with `pdo_pgsql`, `redis`, `ldap`, `gd`, `zip` and `intl`
+- Composer 2
+- Node.js 20 LTS and npm
+- PostgreSQL 16 (TimescaleDB 2.x recommended; required for compression and retention policies)
+- Redis 7
+- Docker, for Gotenberg (and optionally for the whole stack)
+- Python 3.10+, only if you run the embedding service
 
-### ✅ Phase 3: Customer Mapping (Completed)
-- Fuzzy matching algorithm
-- Manual mapping interface
-- Source of truth designation
-- Merge/split capabilities
+### Option A: Docker Compose
 
-### ✅ Phase 4: Report Framework (Completed)
-- Report generation engine with Gotenberg PDF service
-- **14 report types** implemented:
-  - Autotask Summary, Backup Status, BitDefender Summary
-  - Datto RMM Summary, ITGlue Summary, LibreNMS Device Report
-  - Monthly Comprehensive, SaaS Summary, Security Summary
-  - Sendmarc Summary, Uptime Report, and more
-- Scheduled generation with flexible frequencies (daily/weekly/monthly/yearly)
-- White-label PDF output with company branding
-- Global/template schedules for reusable configurations
+```bash
+git clone https://github.com/oyedokunken/MSP-reports.git
+cd MSP-reports
+cp backend/.env.example backend/.env.docker   # set DB_HOST=postgres, REDIS_HOST=redis, GOTENBERG_URL=http://gotenberg:3000
+docker compose up -d --build
+docker compose exec backend php artisan key:generate
+docker compose exec backend php artisan migrate --seed
+```
 
-### ✅ Phase 5: Report Delivery (Completed)
-- Email delivery with SMTP configuration
-- **SharePoint delivery** via Microsoft Graph API
-- Extensible delivery driver system
-- Per-customer delivery configuration
-- Connection testing for delivery methods
+The SPA is served at `http://localhost:5173` and the API at `http://localhost:8082/api`.
 
-### ✅ Phase 6: Authentication & RBAC (Completed)
-- LDAP/Active Directory authentication
-- SAML and OAuth configuration
-- Role-based access control (RBAC)
-- Customer-level scoping for users
-- JIT user provisioning
+Note: `docker-compose.yml` currently hardcodes a developer LAN address (`192.168.9.85`) and uses the plain `postgres:16` image. Replace the address with `localhost`, and switch to `timescale/timescaledb:latest-pg16` if you need the hypertable migrations to apply.
 
-### 📋 Phase 7: Advanced Features (Planned)
-- Advanced analytics dashboard
-- Custom report builder
-- API webhook integrations
-- Mobile app companion
+### Option B: Local toolchain
 
----
+Run the helper script for your platform (`scripts/setup-local.sh` or `scripts/setup-local.ps1`), or set things up manually:
 
-## 🤝 Contributing
+```bash
+# Backend
+cd backend
+cp .env.example .env            # set DB_*, REDIS_*, GOTENBERG_URL
+composer install
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve --port=8000
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for comprehensive details on:
+# Workers and scheduler (separate terminals)
+php artisan queue:work redis --queue=critical,sync,high,default,historical,low
+php artisan schedule:work
 
-- Code of Conduct
-- Development setup and workflow
-- Coding standards (PSR-12, TypeScript best practices)
-- Commit message conventions (Conventional Commits)
-- Pull request process and review guidelines
-- Testing requirements
+# PDF renderer
+docker run -d -p 3000:3000 gotenberg/gotenberg:8
 
-### Quick Contribution Guide
+# Frontend
+cd ../frontend
+cp .env.example .env            # VITE_API_BASE_URL=/api, VITE_BACKEND_URL=http://localhost:8000
+npm ci
+npm run dev
+```
 
-1. Fork the repository
-2. Create feature branch from `main` (`git checkout -b feature/amazing-feature`)
-3. Follow Laravel and React best practices
-4. Write tests for new features
-5. Update documentation and CHANGELOG.md
-6. Commit using conventional commits (`git commit -m 'feat: add amazing feature'`)
-7. Push to your branch (`git push origin feature/amazing-feature`)
-8. Submit merge request for review
+`scripts/start-dev.sh` and `scripts/start-dev.ps1` start the backend, workers, scheduler and frontend together.
 
-### Code Standards
+### Optional: embedding service
 
-- **Backend**: Follow PSR-12 coding standards, use type hints
-- **Frontend**: TypeScript strict mode, React functional components with hooks
-- **Commits**: Use [Conventional Commits](https://www.conventionalcommits.org/) format
-- **Documentation**: Update README, API docs, and relevant documentation
-- **Tests**: Maintain or improve code coverage
+```bash
+cd services/embedding
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+gunicorn -w 2 -b 127.0.0.1:5050 embedding_service:app
+```
+
+Then set `EMBEDDING_SERVICE_ENABLED=true` and `EMBEDDING_SERVICE_URL=http://127.0.0.1:5050` in `backend/.env`.
 
 ---
 
-## Security
+## Configuration
 
-### Reporting Security Issues
+All backend configuration is read from `backend/.env`. See `backend/.env.example` for the full list. The groups that matter most:
 
-**DO NOT** open public issues for security vulnerabilities.
+| Group | Variables | Notes |
+|---|---|---|
+| Application | `APP_KEY`, `APP_ENV`, `APP_DEBUG`, `APP_URL`, `FRONTEND_URL`, `APP_TIMEZONE` | `APP_DEBUG` must be `false` in production. |
+| Database | `DB_CONNECTION=pgsql`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` | |
+| Queue and cache | `QUEUE_CONNECTION=redis`, `CACHE_STORE`, `REDIS_HOST`, `REDIS_PASSWORD` | `database` queue works for development only. |
+| Broadcasting | `BROADCAST_CONNECTION=reverb`, `REVERB_APP_ID`, `REVERB_APP_KEY`, `REVERB_APP_SECRET` | Replace the example key and secret. |
+| CORS and sessions | `CORS_ALLOWED_ORIGINS`, `SESSION_LIFETIME`, `SESSION_SECURE_COOKIE` | |
+| Mail | `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM_ADDRESS` | Used for report delivery and password resets. |
+| PDF | `GOTENBERG_URL`, `GOTENBERG_TIMEOUT`, `GOTENBERG_ENABLED` | |
+| Matching | `EMBEDDING_SERVICE_URL`, `EMBEDDING_SERVICE_ENABLED`, `EMBEDDING_SIMILARITY_THRESHOLD` | |
+| Keycloak SSO | `KEYCLOAK_ENABLED`, `KEYCLOAK_BASE_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `KEYCLOAK_REDIRECT_URI` | Read by `config/services.php`; not yet listed in `.env.example`. |
+| Microsoft SSO | `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `AZURE_REDIRECT_URI`, `OAUTH_ENABLED`, `OAUTH_AUTO_PROVISION` | |
+| SAML | `SAML_ENABLED`, `SAML_IDP_*`, `SAML_SP_*`, `SAML_ATTR_*`, `SAML_STRICT_MODE` | Keep `SAML_STRICT_MODE=true` and `SAML_DEBUG=false` in production. |
+| LDAP | `LDAP_HOST`, `LDAP_PORT`, `LDAP_BASE_DN`, `LDAP_USERNAME`, `LDAP_PASSWORD`, `LDAP_SSL`, `LDAP_TLS` | |
+| Storage | `FILESYSTEM_DISK`, `AWS_*` | Use `s3` for multi-node deployments. |
 
-Email security concerns to: security@athenanetworks.com.au
+Integration credentials are not environment variables. They are entered in the UI per company and stored encrypted.
 
-### Security Features
-
-- Multi-layer authentication with MFA support
-- Comprehensive audit logging
-- Rate limiting and brute force protection
-- SQL injection prevention (Eloquent ORM + parameterized queries)
-- XSS prevention (React auto-escaping + CSP headers)
-- CSRF protection (Laravel Sanctum)
-- Encrypted credentials storage
-- Secure session management
-
-### Security Implementations
-
-#### API Rate Limiting
-- **Global rate limit**: 300 requests/minute for authenticated routes
-- **Auth endpoints**: 10 requests/minute for login, password reset (brute force protection)
-- **Public endpoints**: 30 requests/minute for share link downloads
-- Rate limit headers included in responses (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`)
-
-#### Password Policy Enforcement
-Strong password requirements enforced on all password endpoints:
-- Minimum 8 characters
-- At least one uppercase letter
-- At least one lowercase letter
-- At least one number
-- At least one special character
-- Common password blocklist (password123, admin, etc.)
-
-#### Session Timeout
-Server-side session timeout enforcement:
-- **Inactivity timeout**: Configurable per company (default 60 minutes)
-- **Maximum session duration**: 8 hours absolute limit
-- Sessions automatically invalidated on timeout
-- Company-specific settings via `settings.authentication.session_timeout_minutes`
-
-#### Share Link Security
-Report share links include HMAC signatures for tamper detection:
-- 64-character cryptographically random tokens
-- HMAC-SHA256 signature using application key
-- 1-hour expiration
-- Signature verification on download
-- Failed signature attempts logged for security monitoring
-
-Share link endpoints:
-- `POST /api/reports/{id}/share` (authenticated)
-- `GET /api/reports/shared/{token}` (public, rate-limited)
-
-#### Credential Protection
-- Integration credentials never logged (only key names logged for debugging)
-- Credentials encrypted at rest using Laravel encryption (AES-256)
-- Per-company encryption keys for credential storage
-
-#### SQL Injection Prevention
-- All database queries use Eloquent ORM or parameterized queries
-- JSONB queries use bound parameters for values
-- Input validation on all API endpoints
+Never commit a real `.env`. Only `*.env.example` files are tracked.
 
 ---
 
-## 📋 Version 1.0.0 Highlights
+## API overview
 
-### Production-Ready for TTS
-- **22 Integrations** - Datto, CIPP, Autotask, ITGlue, ThreatLocker, Vonahi, and 16 more
-- **Native Linux Deployment** - Systemd services, Nginx config, deploy script
-- **Gotenberg PDF Generation** - Professional branded reports
-- **AI Watcher Chatbot** - Real-time contextual tips based on user activity
-- **Unified Dashboard** - Single optimized API with 30s caching
-- **Comprehensive Audit Logging** - ISO 27001 compliant with 7-year retention
-- **Multi-Auth** - Local, LDAP/AD, SAML 2.0, OAuth 2.0 (Microsoft 365)
-- **Real-Time Notifications** - WebSocket via Laravel Reverb
-- **Embedding-Based Customer Matching** - AI-powered semantic similarity
+All endpoints are served under `/api` and return JSON.
 
----
+- **Browser clients** authenticate with a Sanctum bearer token from `POST /api/auth/login` or an SSO callback.
+- **Agents** authenticate with an API key sent as a bearer token.
+- **Rate limits:** 300 requests per minute per client, 10 per minute on credential endpoints, and 30 per minute on public share downloads.
+- **Permissions:** every authenticated route also checks `permission:<resource>,<action>` against the user's effective permissions.
 
-## 📄 License
+| Area | Base path | Representative endpoints | Permission |
+|---|---|---|---|
+| Health | `/health` | `GET /health`, `GET /health/database`, `GET /health/redis` | public |
+| Auth | `/auth` | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/password/change`, `GET /auth/microsoft/redirect`, `POST /auth/saml/acs` | public or token |
+| Company | `/company` | `GET/PATCH /company/settings`, `PATCH /company/branding`, `POST /company/logo/upload` | token |
+| Users | `/users` | `GET /users`, `POST /users`, `PATCH /users/{id}`, `PATCH /users/{id}/permissions`, `DELETE /users/{id}` | `users.view`, `users.manage` |
+| Integrations | `/integrations` | `GET /integrations`, `POST /integrations`, `GET /integrations/{id}/sync`, `POST /integrations/{id}/historical-import`, `GET /integrations/{id}/preview` | `integrations.*` |
+| Agent push | `/integrations/{active-directory,exchange}` | `POST .../push`, `GET .../status` | API key |
+| Customers | `/customers` | `GET /customers`, `POST /customers/map`, `POST /customers/{id}/merge`, `POST /customers/{id}/split`, `POST /customers/smart-match` | `customers.*` |
+| Report config | `/reports`, `/customers/{id}/reports` | `GET /reports`, `PATCH /customers/{id}/reports`, `POST /reports/generate/{customer_id}`, `POST /reports/bulk-generate` | `reports.*` |
+| Report history | `/reports` | `GET /reports/history`, `GET /reports/{id}/download`, `POST /reports/{id}/email`, `POST /reports/{id}/share` | `reports.*` |
+| Delivery | `/delivery`, `/customers/{id}/delivery` | `GET /delivery/methods`, `PATCH /customers/{id}/delivery`, `POST /customers/{id}/delivery/test` | `reports.*` |
+| Templates | `/report-templates` | CRUD, `POST /report-templates/{t}/apply-to-customers` | `templates.*` |
+| API keys | `/api-keys` | `GET`, `POST`, `POST /{id}/revoke`, `DELETE /{id}` | `api_keys.*` |
+| Licences | `/licenses` | `GET /licenses`, `GET /licenses/usage` | `licenses.*` |
+| Notifications | `/notifications` | `GET`, `PATCH /{id}/read`, `POST /mark-all-read` | `notifications.view` |
+| Monitoring | `/monitoring`, `/audit-logs` | `GET /monitoring/queue`, `GET /audit-logs`, `GET /audit-logs/export` | `monitoring.view`, `security.view_logs` |
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+The complete endpoint reference, with request and response shapes, is in [docs/API.md](docs/API.md).
 
-Copyright © 2025 Athena Networks. All rights reserved.
+Example:
 
-The MIT License allows for free use, modification, and distribution with proper attribution.
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@example.com","password":"<password>","auth_method":"local"}' | jq -r .data.token)
 
----
-
-## 📞 Support & Resources
-
-### Documentation
-- **[Quick Start Guide](README.md#-quick-start)** - Get started quickly
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
-- **[Changelog](CHANGELOG.md)** - Version history and release notes
-- **[Project Wiki](https://gitlab.athenanetworks.com.au/athenanetworks/reporting/-/wikis/home)** - Comprehensive documentation
-
-### Getting Help
-- **Email**: support@athenanetworks.com.au
-- **Issues**: [GitLab Issues](https://gitlab.athenanetworks.com.au/athenanetworks/reporting/issues)
-- **Wiki**: Check project wiki for FAQs and guides
-
-### CI/CD Pipeline
-This project uses GitLab CI/CD for automated testing and deployment. See [.gitlab-ci.yml](.gitlab-ci.yml) for pipeline configuration.
+curl -s http://localhost:8000/api/integrations -H "Authorization: Bearer $TOKEN"
+```
 
 ---
 
-## 🙏 Acknowledgments
+## Repository structure
 
-- Built with ❤️ by the Athena Networks team
-- Special thanks to all contributors
-- Powered by Laravel, React, PostgreSQL, TimescaleDB, and other amazing open-source technologies
+```text
+.
+├── agents/
+│   └── windows_server/
+│       ├── active-directory/      PowerShell AD sync agent, installer, modules
+│       └── exchange/              PowerShell Exchange sync agent
+├── backend/                       Laravel 12 application
+│   ├── app/
+│   │   ├── Actions/               Single-purpose use-case classes (ApiKey, Auth, Customer, Report, User, ...)
+│   │   ├── Console/Commands/      Artisan commands: sync, audits, cleanup, diagnostics
+│   │   ├── Enums/                 IntegrationStatus, ReportFrequency, UserStatus, AuthMethod
+│   │   ├── Exceptions/            Integration and API exception types
+│   │   ├── Http/
+│   │   │   ├── Controllers/       Api/ and Admin/ controllers
+│   │   │   ├── Middleware/        Auth, permission, tenancy scope, headers, timeouts
+│   │   │   ├── Requests/          Form Request validation per endpoint
+│   │   │   └── Resources/         JSON response transformers
+│   │   ├── Integrations/          One directory per vendor connector + Contracts/
+│   │   ├── Jobs/                  Queued sync, import, generation, delivery jobs
+│   │   ├── Models/                Eloquent models and global scopes
+│   │   ├── Reports/               One directory per report type + Contracts/
+│   │   └── Services/              Domain services and delivery channels
+│   ├── database/
+│   │   ├── factories/
+│   │   ├── migrations/            Including TimescaleDB hypertable and policy migrations
+│   │   └── seeders/
+│   ├── resources/views/Reports/   Blade templates rendered to PDF
+│   ├── routes/                    api.php, web.php, console.php (schedule)
+│   └── tests/                     PHPUnit Unit and Feature suites
+├── frontend/                      React 19 + Vite SPA
+│   ├── src/
+│   │   ├── components/            Layout, UI primitives, shared modals
+│   │   ├── contexts/              Auth and theme contexts
+│   │   ├── hooks/                 Shared hooks
+│   │   ├── lib/                   API client, Echo client, logger
+│   │   ├── pages/                 Feature modules (integrations, customers, reports, ...)
+│   │   ├── services/              Typed API wrappers
+│   │   ├── stores/                Zustand stores
+│   │   └── types/                 Shared TypeScript types
+│   └── tests/e2e/                 Playwright specs
+├── services/embedding/            Python embedding service for customer matching
+├── nginx/                         Production and Docker NGINX configs
+├── systemd/                       Worker, scheduler and embedding units
+├── scripts/                       Setup, dev start and deploy scripts
+├── docs/                          Deployment, runbook, encryption, reporting flow, API
+├── docker-compose.yml             Development stack
+└── CHANGELOG.md
+```
+
+---
+
+## Testing
+
+```bash
+# Backend (PHPUnit)
+cd backend
+php artisan test
+php artisan test --filter=CustomerMappingTest
+
+# Frontend unit tests (Vitest)
+cd frontend
+npm test -- --run
+
+# Frontend type check and lint
+npx tsc -p tsconfig.app.json --noEmit
+npm run lint
+
+# End-to-end (Playwright)
+npm run test:e2e
+```
+
+The backend suite has 84 test methods. `phpunit.xml` runs against in-memory SQLite, so the `pdo_sqlite` extension is required, and migrations that use TimescaleDB or PostgreSQL-specific SQL do not apply cleanly under SQLite. The frontend has 33 unit tests and 2 end-to-end tests. Static analysis is available through `./vendor/bin/phpstan analyse` (Larastan) and formatting through `./vendor/bin/pint`.
+
+---
+
+## Operations
+
+### Scheduled tasks (`backend/routes/console.php`)
+
+| Command | Frequency | Purpose |
+|---|---|---|
+| `integrations:monitor` | every minute | Dispatch integration syncs that are due |
+| `alerts:evaluate` | every 5 minutes | Evaluate alert rules |
+| `imports:check-stuck --fix` | every 30 minutes | Recover stalled historical imports |
+| `reports:process-scheduled` | hourly | Generate and deliver due reports |
+| `syncs:cleanup-stale` | hourly | Fail sync logs stuck in `running` |
+| `integrations:sync-recent-data --days=7` | daily 01:00 | Re-sync the trailing week |
+| `data:cleanup` | daily 02:00 | Enforce data retention |
+| `reports:cleanup` | daily 03:00 | Remove expired report files |
+| `audit:cleanup 90` | daily 04:30 | Trim audit log to 90 days |
+
+### Queues
+
+| Queue | Workload |
+|---|---|
+| `critical` | User-initiated generation and delivery |
+| `sync` | Integration syncs |
+| `high` | Customer matching |
+| `default` | General jobs |
+| `historical` | Historical backfills (long timeout) |
+| `low` | Cleanup and maintenance |
+
+### Useful commands
+
+```bash
+php artisan integration:list
+php artisan integrations:sync {id}
+php artisan reports:list
+php artisan reports:generate-manual
+php artisan apikey:create
+php artisan customers:auto-match
+```
+
+Run `php artisan list` for the full set, including the per-vendor `reports:audit-*` verification commands.
+
+---
+
+## Known limitations
+
+These items are tracked for remediation and are intentionally listed here rather than hidden.
+
+- **The backend test suite needs a PostgreSQL test database.** Under SQLite most feature tests fail on migrations. Tenancy isolation, permission middleware and most integrations have no automated tests.
+- **No CI on the current remote.** `.gitlab-ci.yml` targets the original GitLab instance, and no GitHub Actions workflow exists yet.
+- **Bearer tokens are kept in browser storage.** A move to httpOnly cookie sessions through Sanctum SPA mode is planned.
+- **Several diagnostic commands** (`Test*`, `Fix*`, `ForceFail*`, `Benchmark*`) still ship in `app/Console/Commands` and should move behind a development-only provider.
+- **The Exchange UI module is incomplete** and its routes are disabled.
+
+---
+
+## Contributing
+
+1. Branch from `main` using `feat/`, `fix/` or `chore/` prefixes.
+2. Follow [Conventional Commits](https://www.conventionalcommits.org) for commit messages.
+3. Add or update tests for any behaviour change. `php artisan test`, `npm test -- --run`, `npx tsc --noEmit` and `npm run lint` must pass.
+4. Open a pull request with a description of the change and how it was verified.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## Licence
+
+No licence file is included. All rights are reserved by the copyright holder. Do not redistribute without permission.

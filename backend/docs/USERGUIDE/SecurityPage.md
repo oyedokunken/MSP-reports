@@ -48,10 +48,10 @@ The Security page allows users to manage their personal security settings includ
 7. All other sessions logged out (security measure)
 
 **Password Strength Indicator:**
-- 🔴 **Weak**: Doesn't meet requirements
-- 🟡 **Fair**: Meets minimum requirements
-- 🟢 **Strong**: Exceeds requirements, good entropy
-- 🟢 **Very Strong**: Excellent password
+- **Weak**: Doesn't meet requirements
+- **Fair**: Meets minimum requirements
+- **Strong**: Exceeds requirements, good entropy
+- **Very Strong**: Excellent password
 
 **Password Tips:**
 - Use a passphrase (e.g., "Coffee!Morning@2025")
@@ -238,7 +238,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 
 #### API Key Best Practices
 
-✅ **DO:**
+**DO:**
 - Use descriptive key names
 - Store keys securely (environment variables, secrets manager)
 - Rotate keys every 6-12 months
@@ -247,7 +247,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 - Revoke unused keys
 - Monitor key usage
 
-❌ **DON'T:**
+**DON'T:**
 - Hardcode keys in source code
 - Commit keys to version control (Git)
 - Share keys via email or chat
@@ -275,14 +275,14 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 
 **Example:**
 ```
-🖥️ Chrome on Windows 10
+Chrome on Windows 10
    IP: 203.123.45.67
    Location: Brisbane, Australia
    Login: 2 hours ago
    Last Activity: 5 minutes ago
    [Current Session]
 
-📱 Safari on iPhone
+Safari on iPhone
    IP: 203.123.45.68
    Location: Brisbane, Australia
    Login: 1 day ago
@@ -331,29 +331,29 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 #### Events Logged
 
 **Authentication Events:**
-- ✅ Successful login
-- ❌ Failed login attempt
-- 🔓 Logout
-- 🔄 Password changed
-- 🔐 2FA enabled/disabled
-- 🔑 API key generated/revoked
+- Successful login
+- Failed login attempt
+- Logout
+- Password changed
+- 2FA enabled/disabled
+- API key generated/revoked
 
 **Session Events:**
-- 📱 New device login
-- 🌍 Login from new location
-- ⏰ Session expired
-- 🚪 Session revoked
+- New device login
+- Login from new location
+- Session expired
+- Session revoked
 
 **Permission Events:**
-- 👤 Permissions changed
-- 👥 Role assigned/removed
-- 🔒 Access denied
+- Permissions changed
+- Role assigned/removed
+- Access denied
 
 **Security Events:**
-- ⚠️ Suspicious activity detected
-- 🚨 Account locked (too many failed logins)
-- 🔓 Account unlocked
-- 📧 Password reset requested
+- Warning: Suspicious activity detected
+- Account locked (too many failed logins)
+- Account unlocked
+- Password reset requested
 
 ---
 
@@ -370,7 +370,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 
 **Example Log Entry:**
 ```
-✅ Successful Login
+Successful Login
    Time: 2025-12-10 09:15:23 AEST
    IP: 203.123.45.67
    Device: Chrome on Windows 10
@@ -418,14 +418,14 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 ## Security Best Practices
 
 ### Password Security
-✅ **DO:**
+**DO:**
 - Use unique password (not used elsewhere)
 - Use password manager
 - Change password every 90 days
 - Use 12+ character passphrase
 - Enable 2FA
 
-❌ **DON'T:**
+**DON'T:**
 - Share password with anyone
 - Write password on sticky note
 - Use personal information in password
@@ -435,14 +435,14 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 ---
 
 ### 2FA Security
-✅ **DO:**
+**DO:**
 - Enable 2FA immediately
 - Save backup codes securely
 - Use authenticator app (not SMS if possible)
 - Have authenticator on multiple devices
 - Test backup codes periodically
 
-❌ **DON'T:**
+**DON'T:**
 - Share 2FA codes
 - Screenshot QR code and store insecurely
 - Lose backup codes
@@ -452,7 +452,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 ---
 
 ### API Key Security
-✅ **DO:**
+**DO:**
 - Store keys in environment variables
 - Use secrets manager (AWS Secrets Manager, Azure Key Vault)
 - Rotate keys every 6 months
@@ -460,7 +460,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 - Use separate keys per application
 - Revoke unused keys
 
-❌ **DON'T:**
+**DON'T:**
 - Commit keys to Git
 - Hardcode in source code
 - Share keys via email/chat
@@ -471,14 +471,14 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 ---
 
 ### Session Security
-✅ **DO:**
+**DO:**
 - Review active sessions weekly
 - Revoke unknown sessions immediately
 - Logout when leaving shared device
 - Use "Remember Me" only on personal devices
 - Monitor security log regularly
 
-❌ **DON'T:**
+**DON'T:**
 - Stay logged in on public computers
 - Ignore suspicious session alerts
 - Share login session
@@ -571,13 +571,13 @@ A: Check security log for suspicious logins, failed attempts, or unexpected chan
 ### If You Suspect Account Compromise
 
 **Immediate Actions:**
-1. ✅ Change password immediately
-2. ✅ Revoke all active sessions
-3. ✅ Enable 2FA (if not already)
-4. ✅ Revoke all API keys
-5. ✅ Review security log for unauthorized activity
-6. ✅ Contact administrator/security team
-7. ✅ Document what you observed
+1. Change password immediately
+2. Revoke all active sessions
+3. Enable 2FA (if not already)
+4. Revoke all API keys
+5. Review security log for unauthorized activity
+6. Contact administrator/security team
+7. Document what you observed
 
 **Follow-Up Actions:**
 1. Review recent account activity

@@ -6,7 +6,7 @@ This guide covers the complete backup and disaster recovery procedures for the M
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 1. [Backup Strategy](#backup-strategy)
 2. [Quick Start](#quick-start)
@@ -100,7 +100,7 @@ export APP_DIR="/home/kristian/reporting/backend"
 export ENCRYPTION_KEY="your-secure-encryption-key-here"
 ```
 
-**⚠️ IMPORTANT:** Store encryption key securely! Without it, backups cannot be restored.
+**IMPORTANT:** Store encryption key securely! Without it, backups cannot be restored.
 
 ### Step 2: Set Up Cron Jobs
 
@@ -183,7 +183,7 @@ export BACKUP_DIR="/custom/path"
 
 ## Restore Procedures
 
-### ⚠️ CRITICAL: Before Restoring
+### Warning: CRITICAL: Before Restoring
 
 1. **Stop the application:**
    ```bash
@@ -265,11 +265,11 @@ cat /var/log/reporting-backup-verify.log
 
 ### What Gets Verified
 
-- ✅ Backup files exist
-- ✅ Backup files are not empty
-- ✅ Backup files are recent (< 26 hours)
-- ✅ Encrypted backups can be decrypted
-- ✅ Backup sizes are reasonable
+- Backup files exist
+- Backup files are not empty
+- Backup files are recent (< 26 hours)
+- Encrypted backups can be decrypted
+- Backup sizes are reasonable
 
 ---
 
@@ -435,25 +435,25 @@ sudo crontab -l
 
 ## Best Practices
 
-### ✅ DO
+### DO
 
-- ✅ Enable encryption for all backups
-- ✅ Store encryption key securely (password manager, vault)
-- ✅ Keep backups off-site
-- ✅ Test restores monthly
-- ✅ Monitor backup logs
-- ✅ Document recovery procedures
-- ✅ Keep multiple backup versions (30 days)
+- Enable encryption for all backups
+- Store encryption key securely (password manager, vault)
+- Keep backups off-site
+- Test restores monthly
+- Monitor backup logs
+- Document recovery procedures
+- Keep multiple backup versions (30 days)
 
-### ❌ DON'T
+### DON'T
 
-- ❌ Store encryption key in backup scripts
-- ❌ Keep only one backup copy
-- ❌ Skip backup verification
-- ❌ Ignore backup failures
-- ❌ Store backups on same server only
-- ❌ Use weak encryption keys
-- ❌ Delete backups without testing restore
+- Store encryption key in backup scripts
+- Keep only one backup copy
+- Skip backup verification
+- Ignore backup failures
+- Store backups on same server only
+- Use weak encryption keys
+- Delete backups without testing restore
 
 ---
 
@@ -491,20 +491,20 @@ fi
 
 ### ISO 27001 Requirements
 
-- ✅ Automated daily backups
-- ✅ Encrypted at rest
-- ✅ 30-day retention minimum
-- ✅ Off-site storage
-- ✅ Monthly restore testing
-- ✅ Documented procedures
-- ✅ Audit trail (logs)
+- Automated daily backups
+- Encrypted at rest
+- 30-day retention minimum
+- Off-site storage
+- Monthly restore testing
+- Documented procedures
+- Audit trail (logs)
 
 ### GDPR Requirements
 
-- ✅ Data can be restored (availability)
-- ✅ Backups encrypted (security)
-- ✅ Retention policy enforced
-- ✅ Audit logs maintained
+- Data can be restored (availability)
+- Backups encrypted (security)
+- Retention policy enforced
+- Audit logs maintained
 
 ---
 

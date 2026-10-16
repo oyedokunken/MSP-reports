@@ -1,6 +1,6 @@
 # Active Directory Agent - Complete Implementation
 
-## ✅ What Was Created
+## What Was Created
 
 ### Core Agent Files
 
@@ -99,7 +99,7 @@
     - Excludes state files
     - Excludes logs
 
-## 📊 Data Collected
+## Data Collected
 
 ### Active Directory Users
 - User Principal Name (UPN)
@@ -135,7 +135,7 @@
 - Disabled Plans
 - Assignment Date
 
-## 🔄 How It Works
+## How It Works
 
 ### Sync Process Flow
 
@@ -185,7 +185,7 @@
 - Runs as background service
 - Requires NSSM (Non-Sucking Service Manager)
 
-## 🎯 Next Steps
+## Next Steps
 
 ### 1. Backend Implementation (REQUIRED)
 
@@ -247,7 +247,7 @@ e. **Route**
 - Inactive Users Report
 - Password Expiry Report
 
-## 🔐 Security Features
+## Security Features
 
 1. **Secure Credential Storage**
    - API keys stored in Windows Credential Manager
@@ -274,7 +274,7 @@ e. **Route**
    - Sanitization of text fields
    - Protection against injection
 
-## 📈 Performance Characteristics
+## Performance Characteristics
 
 - **Initial Sync:** 5-10 minutes for 1,000 users
 - **Delta Sync:** 30-60 seconds for typical changes
@@ -282,7 +282,7 @@ e. **Route**
 - **Network:** ~1MB per 1,000 users (compressed)
 - **Payload Compression:** JSON with gzip support
 
-## 🐛 Troubleshooting Resources
+## Troubleshooting Resources
 
 **Test Connectivity:**
 ```powershell
@@ -310,7 +310,7 @@ e. **Route**
 Get-Content "C:\Logs\MSPReports\AD\*.log" -Tail 50
 ```
 
-## 📋 File Summary
+## File Summary
 
 ```
 agents/windows_server/active-directory/
@@ -332,20 +332,20 @@ agents/windows_server/active-directory/
 
 **Total: ~1,450 lines of PowerShell code**
 
-## ✨ Key Features
+## Key Features
 
-- ✅ Native Active Directory integration (no extra dependencies)
-- ✅ Secure credential storage (Windows Credential Manager)
-- ✅ Delta sync support (only changed records)
-- ✅ Automatic retry with exponential backoff
-- ✅ Comprehensive logging (file, console, Event Viewer)
-- ✅ Flexible scheduling (task or service)
-- ✅ Easy deployment and testing
-- ✅ Production-ready error handling
-- ✅ Performance optimized (batching, compression)
-- ✅ Well documented (3 documentation files)
+- Native Active Directory integration (no extra dependencies)
+- Secure credential storage (Windows Credential Manager)
+- Delta sync support (only changed records)
+- Automatic retry with exponential backoff
+- Comprehensive logging (file, console, Event Viewer)
+- Flexible scheduling (task or service)
+- Easy deployment and testing
+- Production-ready error handling
+- Performance optimized (batching, compression)
+- Well documented (3 documentation files)
 
-## 🎉 Status: Agent Complete
+## Status: Agent Complete
 
 The Active Directory agent is **100% complete** and ready for:
 1. Backend endpoint implementation

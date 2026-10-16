@@ -35,8 +35,8 @@ password: {YOUR_API_SECRET}
 
 **Example Credentials (TTS Production):**
 ```
-username: ***REMOVED_DATTO_API_KEY***
-password: ***REMOVED_DATTO_API_SECRET***
+username: <api-key>
+password: <api-secret>
 ```
 
 **Response:**
@@ -557,8 +557,8 @@ GET https://syrah-api.centrastage.net/api/v2/site/fb190437-1a25-46ea-b4ec-dd57b9
 **Body (x-www-form-urlencoded):**
 ```
 grant_type: password
-username: ***REMOVED_DATTO_API_KEY***
-password: ***REMOVED_DATTO_API_SECRET***
+username: <api-key>
+password: <api-secret>
 ```
 
 **Copy the `access_token` from response.**
@@ -610,8 +610,8 @@ Create a Postman environment with these variables:
 ```json
 {
   "base_url": "https://syrah-api.centrastage.net",
-  "api_key": "***REMOVED_DATTO_API_KEY***",
-  "api_secret": "***REMOVED_DATTO_API_SECRET***",
+  "api_key": "<api-key>",
+  "api_secret": "<api-secret>",
   "access_token": ""
 }
 ```
@@ -815,29 +815,29 @@ Runs every 15 minutes to sync alerts.
 
 ### Verified Endpoints (TTS Production)
 
-✅ **Authentication**
+**Authentication**
 - Endpoint: `POST /auth/oauth/token`
 - Status: Working
 - Token Expiry: 100 hours (360,000 seconds)
 
-✅ **Account Sites**
+**Account Sites**
 - Endpoint: `GET /api/v2/account/sites`
 - Status: Working
 - Total Sites: 111 (Managed + OnDemand)
 - Response includes: `pageDetails`, `sites[]` with device counts
 
-✅ **Site Devices**
+**Site Devices**
 - Endpoint: `GET /api/v2/site/{siteUid}/devices`
 - Status: Working
 - Example Site: `fb190437-1a25-46ea-b4ec-dd57b98f8377` (Managed)
 - Response includes: Full device details, antivirus, patch status, UDF fields
 
-✅ **Open Alerts**
+**Open Alerts**
 - Endpoint: `GET /api/v2/site/{siteUid}/alerts/open`
 - Status: Working
 - Response includes: Alert details, device info, auto-resolve settings
 
-✅ **Resolved Alerts**
+**Resolved Alerts**
 - Endpoint: `GET /api/v2/site/{siteUid}/alerts/resolved`
 - Status: Working
 - Supports `resolvedSince` parameter for filtering

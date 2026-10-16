@@ -108,25 +108,25 @@ cat .gitignore | grep -E "(override|env.local)"
 
 ### Configuration Templates
 
-✅ `.env.example` - Template for environment variables
-✅ `docker-compose.yml` - Base Docker configuration
-✅ `setup-dev-environment.sh` - Setup script (bash)
-✅ `setup-dev-environment.ps1` - Setup script (PowerShell)
+`.env.example` - Template for environment variables
+`docker-compose.yml` - Base Docker configuration
+`setup-dev-environment.sh` - Setup script (bash)
+`setup-dev-environment.ps1` - Setup script (PowerShell)
 
 ### Application Code
 
-✅ All Laravel application code
-✅ All React frontend code
-✅ Database migrations
-✅ Documentation
+All Laravel application code
+All React frontend code
+Database migrations
+Documentation
 
 ### Docker Configuration
 
-✅ `docker-compose.yml` - Base configuration
-✅ `docker/php/Dockerfile` - PHP container build
-✅ `docker/nginx/nginx.conf` - NGINX configuration
-✅ `docker/timescaledb/Dockerfile` - Database container build
-✅ `docker/timescaledb/init/` - Database initialization scripts
+`docker-compose.yml` - Base configuration
+`docker/php/Dockerfile` - PHP container build
+`docker/nginx/nginx.conf` - NGINX configuration
+`docker/timescaledb/Dockerfile` - Database container build
+`docker/timescaledb/init/` - Database initialization scripts
 
 ---
 
@@ -149,9 +149,9 @@ git status
 ```
 
 **What they DON'T do:**
-- ❌ Commit `docker-compose.override.yml`
-- ❌ Commit `.env.local`
-- ❌ Commit `.env`
+- Commit `docker-compose.override.yml`
+- Commit `.env.local`
+- Commit `.env`
 
 ### Scenario 2: Updating Configuration
 
@@ -243,7 +243,7 @@ docker/timescaledb/ssl/*.csr  # Certificate requests
 
 ## Best Practices
 
-### ✅ DO
+### DO
 
 - Run setup script to generate your configuration
 - Keep your `.env` and `.env.local` private
@@ -251,7 +251,7 @@ docker/timescaledb/ssl/*.csr  # Certificate requests
 - Update `.env.example` when adding new environment variables
 - Commit changes to `docker-compose.yml` (base config)
 
-### ❌ DON'T
+### DON'T
 
 - Commit `docker-compose.override.yml`
 - Commit `.env` or `.env.local`
@@ -314,11 +314,11 @@ git status --ignored
 
 ## Summary
 
-✅ **Developer-specific files are automatically gitignored**
-✅ **Setup scripts generate files that won't be committed**
-✅ **Each developer has their own configuration**
-✅ **Base configuration is shared via git**
-✅ **Sensitive data stays local**
+**Developer-specific files are automatically gitignored**
+**Setup scripts generate files that won't be committed**
+**Each developer has their own configuration**
+**Base configuration is shared via git**
+**Sensitive data stays local**
 
 **Safe to run:** `./setup-dev-environment.sh` - Won't mess up the repo!
 

@@ -57,9 +57,9 @@ IntegrationData::create([
 
 1. **Audit Trail** - Prove monitoring happened
    ```
-   "Device was online at 10:00 ✓"
-   "Device was online at 10:10 ✓"
-   "Device still online at 10:20 ✓"
+   "Device was online at 10:00 "
+   "Device was online at 10:10 "
+   "Device still online at 10:20 "
    ```
 
 2. **Change Detection** - Know EXACTLY when state changed
@@ -177,7 +177,7 @@ private function processUnmappedCustomers(): array
 
 **Replaced pattern (OLD, DO NOT USE):**
 ```php
-// ❌ OLD: Individual jobs per customer
+// OLD: Individual jobs per customer
 foreach ($unmappedCustomers as $customer) {
     AutoMatchCustomersJob::dispatch($customer);  // Creates 100+ jobs!
 }
@@ -244,20 +244,20 @@ private function storeHistoricalData(array $data): void
 
 ### Issues Fixed
 
-1. ❌ **Datto device_status** - Used ON CONFLICT → Removed
-2. ❌ **Datto alerts** - Used ON CONFLICT → Removed  
-3. ❌ **LibreNMS devices** - Used updateOrCreate() → Changed to create()
-4. ❌ **Autotask tickets** - Used ON CONFLICT → Removed
-5. ❌ **ITGlue assets** - Used update() logic → Changed to create()
-6. ❌ **All integrations** - Individual AutoMatchCustomersJob → Batch job
+1. **Datto device_status** - Used ON CONFLICT → Removed
+2. **Datto alerts** - Used ON CONFLICT → Removed  
+3. **LibreNMS devices** - Used updateOrCreate() → Changed to create()
+4. **Autotask tickets** - Used ON CONFLICT → Removed
+5. **ITGlue assets** - Used update() logic → Changed to create()
+6. **All integrations** - Individual AutoMatchCustomersJob → Batch job
 
 ### Result
 
 **All 8 integrations now follow identical pattern:**
-- ✅ Always `create()` for time-series data
-- ✅ Never `updateOrCreate()` or `ON CONFLICT`
-- ✅ Batch customer matching via `BatchAutoMatchCustomersJob`
-- ✅ TimescaleDB compression handles efficiency
+- Always `create()` for time-series data
+- Never `updateOrCreate()` or `ON CONFLICT`
+- Batch customer matching via `BatchAutoMatchCustomersJob`
+- TimescaleDB compression handles efficiency
 
 ---
 
@@ -346,14 +346,14 @@ LIMIT 10;
 
 ## Best Practices Summary
 
-✅ **DO:**
+**DO:**
 - Use `IntegrationData::create()` for all time-series data
 - Use `DB::table()->insert()` for batch inserts
 - Use `BatchAutoMatchCustomersJob` for customer matching
 - Let TimescaleDB handle compression
 - Keep historical snapshots for audit trail
 
-❌ **DON'T:**
+**DON'T:**
 - Use `updateOrCreate()` on time-series data
 - Use `ON CONFLICT` to deduplicate time-series
 - Delete "duplicate" snapshots (they're features!)

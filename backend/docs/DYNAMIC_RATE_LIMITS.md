@@ -244,11 +244,11 @@ tail -f storage/logs/laravel.log | grep "rate limit"
 ## Summary
 
 **All rate limits are now configured per integration:**
-- ✅ No hardcoded arrays in controllers
-- ✅ Single source of truth (config.php)
-- ✅ Easy to update and maintain
-- ✅ Self-documenting
-- ✅ Automatic discovery
+- No hardcoded arrays in controllers
+- Single source of truth (config.php)
+- Easy to update and maintain
+- Self-documenting
+- Automatic discovery
 
 **To change rate limits:**
 1. Edit integration's `config.php`

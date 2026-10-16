@@ -334,7 +334,7 @@ if (formData.report_types.length === 0) {
     <div className="flex items-start gap-3">
       <FileText className="h-5 w-5 text-primary mt-0.5" />
       <div>
-        <h3 className="font-medium text-sm mb-1">💡 Quick Setup with Templates</h3>
+        <h3 className="font-medium text-sm mb-1"> Quick Setup with Templates</h3>
         <p className="text-sm text-muted-foreground mb-3">
           Save time by applying a report template to configure multiple reports at once.
         </p>

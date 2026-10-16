@@ -476,7 +476,7 @@ The Settings page allows administrators to configure company-wide settings inclu
 
 ## Best Practices
 
-✅ **DO:**
+**DO:**
 - Test SMTP settings before going live
 - Use high-quality logo images
 - Choose accessible color combinations
@@ -485,7 +485,7 @@ The Settings page allows administrators to configure company-wide settings inclu
 - Monitor sync failure notifications
 - Document all configuration changes
 
-❌ **DON'T:**
+**DON'T:**
 - Use personal email addresses for company settings
 - Choose colors with poor contrast
 - Set retention periods too short (lose data)

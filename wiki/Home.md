@@ -2,7 +2,7 @@
 
 Welcome to the comprehensive documentation for the Multi-Tenant Reporting Platform!
 
-## 📚 Quick Links
+## Quick Links
 
 ### Getting Started
 - [Installation Guide](Installation)
@@ -37,7 +37,7 @@ Welcome to the comprehensive documentation for the Multi-Tenant Reporting Platfo
 - [API Key Management](API-Keys)
 - [Audit Logging](Audit-Logging)
 
-## 🎯 Overview
+## Overview
 
 The Multi-Tenant Reporting Platform is an enterprise-grade solution designed for MSPs and telcos to:
 
@@ -46,7 +46,7 @@ The Multi-Tenant Reporting Platform is an enterprise-grade solution designed for
 - **Generate Reports**: Automatically create professional, white-labeled reports on flexible schedules
 - **Deliver Results**: Email reports or make available via API
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -68,7 +68,7 @@ The Multi-Tenant Reporting Platform is an enterprise-grade solution designed for
 └─────────────┘ └─────────────┘ └─────────────┘
 ```
 
-## 📖 Documentation Sections
+## Documentation Sections
 
 ### For Users
 - **[User Guide](User-Guide)** - How to use the platform
@@ -90,7 +90,7 @@ The Multi-Tenant Reporting Platform is an enterprise-grade solution designed for
 - **[CI/CD Pipeline](CI-CD-Pipeline)** - GitLab CI/CD setup
 - **[Maintenance](Maintenance)** - Routine maintenance tasks
 
-## 🚀 Quick Start
+## Quick Start
 
 1. **Clone the repository**
    ```bash
@@ -109,16 +109,16 @@ The Multi-Tenant Reporting Platform is an enterprise-grade solution designed for
 
 See the [Quick Start Guide](Quick-Start) for detailed instructions.
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! See our [Contributing Guide](../CONTRIBUTING.md) for details.
 
-## 📞 Support
+## Support
 
 - **Issues**: [GitLab Issues](https://gitlab.athenanetworks.com.au/athenanetworks/reporting/issues)
 - **Email**: support@athenanetworks.com.au
 
-## 📄 License
+## License
 
 MIT License - See [LICENSE](../LICENSE) for details.
 

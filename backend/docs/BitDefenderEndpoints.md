@@ -528,7 +528,7 @@ https://cloud.gravityzone.bitdefender.com/api/v1.0/jsonrpc/incidents
 }
 ```
 
-**Status:** ❌ **NOT AVAILABLE**
+**Status:** **NOT AVAILABLE**
 
 **Notes:**
 - This endpoint/method does not exist in the current API
@@ -720,13 +720,13 @@ $data = json_decode($response, true);
 
 | # | Category | Method | Purpose | Pagination | Status | Line |
 |---|----------|--------|---------|------------|--------|------|
-| 1 | network | `getCompaniesList` | Get all companies | ❌ | ✅ Active | 72 |
-| 2 | network | `getEndpointsList` | Get all endpoints | ✅ | ✅ Active | 110 |
-| 3 | network | `getEndpointsList` | Get endpoints by company | ✅ | ✅ Active | 110 |
-| 4 | network | `getEndpointsList` | Get endpoints with filters | ✅ | ✅ Available | - |
-| 5 | network | `getNetworkInventoryItems` | Get inventory groups | ✅ | ✅ Available | - |
-| 6 | incidents | `getIncidentsList` | Get incidents | ✅ | ❌ Not Found | - |
-| 7 | quarantine | `getQuarantineItemsList` | Get quarantined threats | ✅ | ✅ Available | 156 |
+| 1 | network | `getCompaniesList` | Get all companies | No | Active | 72 |
+| 2 | network | `getEndpointsList` | Get all endpoints | Yes | Active | 110 |
+| 3 | network | `getEndpointsList` | Get endpoints by company | Yes | Active | 110 |
+| 4 | network | `getEndpointsList` | Get endpoints with filters | Yes | Available | - |
+| 5 | network | `getNetworkInventoryItems` | Get inventory groups | Yes | Available | - |
+| 6 | incidents | `getIncidentsList` | Get incidents | Yes | Not Found | - |
+| 7 | quarantine | `getQuarantineItemsList` | Get quarantined threats | Yes | Available | 156 |
 
 ---
 

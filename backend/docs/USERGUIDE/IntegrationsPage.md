@@ -18,10 +18,10 @@ Each integration displays:
 - **Integration Type Icon**: Visual identifier (Datto, Autotask, ITGlue, etc.)
 - **Display Name**: Custom name for this integration
 - **Status Badge**: 
-  - 🟢 Active (green)
-  - 🔴 Disconnected (red)
-  - 🟡 Error (yellow)
-  - 🔵 Importing Historical (blue)
+  - Active (green)
+  - Disconnected (red)
+  - Error (yellow)
+  - Importing Historical (blue)
 - **Last Sync Time**: When data was last synchronized
 - **Customer Count**: Number of customers from this integration
 - **Master Customer List Badge**: Shows if this is the source of truth
@@ -204,9 +204,9 @@ Each integration displays:
    - Next reset time
 
 **Indicators:**
-- 🟢 Green: <50% usage (healthy)
-- 🟡 Yellow: 50-80% usage (caution)
-- 🔴 Red: >80% usage (throttling)
+- Green: <50% usage (healthy)
+- Yellow: 50-80% usage (caution)
+- Red: >80% usage (throttling)
 
 ---
 
@@ -290,10 +290,10 @@ Each integration displays:
 
 | Status | Meaning | Action Required |
 |--------|---------|-----------------|
-| 🟢 **Active** | Syncing successfully | None |
-| 🔴 **Disconnected** | Cannot connect to API | Check credentials, run health check |
-| 🟡 **Error** | Sync failed | View sync logs, check rate limits |
-| 🔵 **Importing Historical** | Background import running | Wait for completion or monitor progress |
+| **Active** | Syncing successfully | None |
+| **Disconnected** | Cannot connect to API | Check credentials, run health check |
+| **Error** | Sync failed | View sync logs, check rate limits |
+| **Importing Historical** | Background import running | Wait for completion or monitor progress |
 
 ---
 
@@ -327,14 +327,14 @@ Each integration displays:
 
 ## Best Practices
 
-✅ **DO:**
+**DO:**
 - Set one integration as Master Customer List
 - Import historical data for trend analysis
 - Monitor sync logs weekly
 - Run health checks monthly
 - Keep credentials updated
 
-❌ **DON'T:**
+**DON'T:**
 - Delete integrations without backing up data
 - Change Master Customer List frequently
 - Ignore sync failures

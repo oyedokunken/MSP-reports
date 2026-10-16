@@ -29,10 +29,10 @@ Each report card displays:
 - **Report Title**: Customer name + Report type
 - **Generation Date**: When report was created
 - **Status Badge**:
-  - ✅ Completed (green)
-  - ❌ Failed (red)
-  - ⏳ Pending (yellow)
-  - 📧 Delivered (blue)
+  - Completed (green)
+  - Failed (red)
+  - Pending (yellow)
+  - Delivered (blue)
 - **File Size**: Size of generated PDF/Excel
 - **Delivery Status**: Email sent, Downloaded, Not delivered
 - **Action Buttons**: Download, Resend, Delete
@@ -100,7 +100,7 @@ Each report card displays:
 **Purpose:** Generate a time-limited link to allow downloading a completed report without requiring the recipient to log in.
 
 **Steps:**
-1. Locate a report with **✅ Completed** status
+1. Locate a report with **Completed** status
 2. Open the report actions menu
 3. Select **"Quick Share Link"**
 4. Copy the generated link and send it to the recipient
@@ -203,12 +203,12 @@ Each report card displays:
 
 **Status Options:**
 
-#### ✅ Completed
+#### Completed
 - Report generated successfully
 - File available for download
 - Ready for delivery
 
-#### ❌ Failed
+#### Failed
 - Report generation failed
 - Error message available
 - Needs troubleshooting
@@ -219,12 +219,12 @@ Each report card displays:
 - Insufficient historical data
 - Configuration error
 
-#### ⏳ Pending
+#### Pending
 - Report generation in progress
 - Queued for processing
 - Check back in a few minutes
 
-#### 📧 Delivered
+#### Delivered
 - Email sent successfully
 - Customer received report
 - Delivery confirmed
@@ -304,20 +304,20 @@ Each report card displays:
 
 | Badge | Meaning | Action Required |
 |-------|---------|-----------------|
-| ✅ **Completed** | Successfully generated | None - ready to download |
-| ❌ **Failed** | Generation failed | Check error message, verify data |
-| ⏳ **Pending** | In progress | Wait for completion |
-| 📧 **Delivered** | Email sent | None - customer received |
+| **Completed** | Successfully generated | None - ready to download |
+| **Failed** | Generation failed | Check error message, verify data |
+| **Pending** | In progress | Wait for completion |
+| **Delivered** | Email sent | None - customer received |
 
 ### Delivery Status
 
 | Status | Meaning |
 |--------|---------|
-| 📧 **Sent** | Email delivered successfully |
-| ⏳ **Pending** | Queued for delivery |
-| ❌ **Failed** | Email delivery failed |
-| 📥 **Downloaded** | User downloaded manually |
-| ⚠️ **Bounced** | Email address invalid |
+| **Sent** | Email delivered successfully |
+| **Pending** | Queued for delivery |
+| **Failed** | Email delivery failed |
+| **Downloaded** | User downloaded manually |
+| **Bounced** | Email address invalid |
 
 ---
 
@@ -348,7 +348,7 @@ Each report card displays:
 ### Verifying Customer Received Reports
 1. Filter by customer name
 2. Check delivery status on report cards
-3. Look for 📧 "Delivered" badge
+3. Look for "Delivered" badge
 4. If failed, click "Resend Email"
 5. Verify customer email address is correct
 
@@ -397,7 +397,7 @@ Each report card displays:
 
 ## Best Practices
 
-✅ **DO:**
+**DO:**
 - Review failed reports daily
 - Download important reports for backup
 - Verify customers receive emails
@@ -405,7 +405,7 @@ Each report card displays:
 - Monitor report generation success rate
 - Test report schedules after setup
 
-❌ **DON'T:**
+**DON'T:**
 - Delete recent reports (<30 days)
 - Ignore failed reports
 - Resend reports excessively (spam)

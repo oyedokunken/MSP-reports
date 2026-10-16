@@ -1,4 +1,4 @@
-# MSP Reports — Production Runbook for TTS
+# MSP Reports: Production Runbook for TTS
 
 > **Quick-reference deployment guide for Josh.**
 > For full details, see [DEPLOYMENT_NATIVE.md](DEPLOYMENT_NATIVE.md).
@@ -163,7 +163,7 @@ cd /var/www/mspreports/backend
 sudo -u athena php artisan migrate --force
 ```
 
-**Note:** There are 6 pending migrations. The `add_unique_index_to_integration_data_external_id` migration takes ~34 seconds — this is normal.
+**Note:** There are 6 pending migrations. The `add_unique_index_to_integration_data_external_id` migration takes ~34 seconds, this is normal.
 
 ## Step 6: Seed Initial Data
 
@@ -206,9 +206,9 @@ sudo ./install-services.sh
 ```
 
 This installs:
-- **mspreports-scheduler** — Runs Laravel scheduler every minute
-- **mspreports-worker@1,2,3** — Queue workers for background jobs (syncs, reports, emails)
-- **mspreports-embedding** — Python embedding service for AI customer matching
+- **mspreports-scheduler**: Runs Laravel scheduler every minute
+- **mspreports-worker@1,2,3**: Queue workers for background jobs (syncs, reports, emails)
+- **mspreports-embedding**: Python embedding service for AI customer matching
 
 ## Step 10: Start Gotenberg (PDF Service)
 
@@ -329,8 +329,8 @@ This automatically:
 - Restarts queue workers
 
 Options:
-- `./deploy.sh --skip-frontend` — Skip frontend rebuild
-- `./deploy.sh --skip-migrate` — Skip migrations
+- `./deploy.sh --skip-frontend`: Skip frontend rebuild
+- `./deploy.sh --skip-migrate`: Skip migrations
 
 ---
 

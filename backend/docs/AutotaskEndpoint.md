@@ -13,9 +13,9 @@
 ### Credentials
 ```json
 {
-  "username": "***REMOVED_AUTOTASK_USERNAME***",
-  "secret": "***REMOVED_AUTOTASK_SECRET***",
-  "api_integration_code": "***REMOVED_AUTOTASK_INTEGRATION_CODE***",
+  "username": "<api-user@your-domain>",
+  "secret": "<api-secret>",
+  "api_integration_code": "<integration-code>",
   "endpoint": "https://webservices26.autotask.net/atservicesrest/v1.0"
 }
 ```
@@ -39,9 +39,9 @@ https://webservices26.autotask.net/atservicesrest/v1.0
 
 ## Authentication Headers (Required for ALL requests)
 ```
-Username: ***REMOVED_AUTOTASK_USERNAME***
-Secret: ***REMOVED_AUTOTASK_SECRET***
-APIIntegrationcode: ***REMOVED_AUTOTASK_INTEGRATION_CODE***
+Username: <api-user@your-domain>
+Secret: <api-secret>
+APIIntegrationcode: <integration-code>
 Content-Type: application/json
 ```
 
@@ -52,7 +52,7 @@ Content-Type: application/json
 
 **Method:** POST
 
-**Body Required:** ✅ Yes
+**Body Required:** Yes
 
 **Purpose:** Retrieve ticket records with filtering and pagination
 
@@ -145,7 +145,7 @@ Content-Type: application/json
 
 **Method:** POST
 
-**Body Required:** ✅ Yes
+**Body Required:** Yes
 
 **Purpose:** Retrieve notes/comments associated with tickets
 
@@ -222,7 +222,7 @@ Content-Type: application/json
 
 **Method:** POST
 
-**Body Required:** ✅ Yes
+**Body Required:** Yes
 
 **Purpose:** Retrieve customer/company records (primary customer data source)
 
@@ -297,7 +297,7 @@ Content-Type: application/json
 
 **Method:** POST
 
-**Body Required:** ✅ Yes
+**Body Required:** Yes
 
 **Purpose:** Retrieve contract records (service agreements, support contracts)
 
@@ -386,7 +386,7 @@ Content-Type: application/json
 
 **Method:** POST
 
-**Body Required:** ✅ Yes
+**Body Required:** Yes
 
 **Request Body:**
 ```json
@@ -413,7 +413,7 @@ Content-Type: application/json
 
 **Method:** POST
 
-**Body Required:** ✅ Yes
+**Body Required:** Yes
 
 **Purpose:** Retrieve employee/technician records (for ticket assignment and time entry tracking)
 
@@ -548,7 +548,7 @@ Content-Type: application/json
 
 **Method:** POST
 
-**Body Required:** ✅ Yes
+**Body Required:** Yes
 
 **Purpose:** Retrieve time entry records (billable/non-billable hours worked on tickets)
 
@@ -628,7 +628,7 @@ Content-Type: application/json
 
 **Method:** GET
 
-**Body Required:** ❌ No
+**Body Required:** No
 
 **Purpose:** Retrieve metadata about entity fields including data types, picklist values, and field constraints
 
@@ -748,20 +748,20 @@ https://webservices26.autotask.net/atservicesrest/v1.0/Contacts/EntityInformatio
 
 | Endpoint | Method | Body Required | Purpose | Sync Priority | Code Line |
 |----------|--------|---------------|---------|---------------|----------|
-| `/Companies/query` | POST | ✅ Yes | Get customer/company records | 🔴 Critical (Source of Truth) | 461 |
-| `/Tickets/query` | POST | ✅ Yes | Get ticket records | 🟢 High (Enabled) | 736, 896 |
-| `/TimeEntries/query` | POST | ✅ Yes | Get time entry records | 🟢 High (Enabled) | 642 |
-| `/Contracts/query` | POST | ✅ Yes | Get contract records | 🟡 Medium (To be enabled) | TBD |
-| `/Resources/query` | POST | ✅ Yes | Get resource (employee) records | 🟡 Medium | 543 |
-| `/TicketNotes/query` | POST | ✅ Yes | Get ticket notes | 🟡 Medium | 131 |
-| `/Contacts/query` | POST | ✅ Yes | Get contact records | 🟡 Medium | 225 |
-| `/{Entity}/EntityInformation/fields` | GET | ❌ No | Get field metadata/schema | 🔵 Low (Metadata) | 308 |
+| `/Companies/query` | POST | Yes | Get customer/company records | Critical (Source of Truth) | 461 |
+| `/Tickets/query` | POST | Yes | Get ticket records | High (Enabled) | 736, 896 |
+| `/TimeEntries/query` | POST | Yes | Get time entry records | High (Enabled) | 642 |
+| `/Contracts/query` | POST | Yes | Get contract records | Medium (To be enabled) | TBD |
+| `/Resources/query` | POST | Yes | Get resource (employee) records | Medium | 543 |
+| `/TicketNotes/query` | POST | Yes | Get ticket notes | Medium | 131 |
+| `/Contacts/query` | POST | Yes | Get contact records | Medium | 225 |
+| `/{Entity}/EntityInformation/fields` | GET | No | Get field metadata/schema | Low (Metadata) | 308 |
 
 **Sync Configuration:**
-- ✅ `sync_tickets`: true
-- ✅ `sync_time_entries`: true
-- 🔜 `sync_contracts`: false (to be enabled)
-- ⏱️ `sync_interval`: 3600 seconds (1 hour)
+- `sync_tickets`: true
+- `sync_time_entries`: true
+- `sync_contracts`: false (to be enabled)
+- `sync_interval`: 3600 seconds (1 hour)
 
 ---
 

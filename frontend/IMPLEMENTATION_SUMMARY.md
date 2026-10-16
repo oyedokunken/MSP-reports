@@ -117,14 +117,14 @@ Route::get('/reports/itglue/license-consumption', [ITGlueReportController::class
 
 ## Features
 
-✅ **Company-Wide Report**: Shows all customers in the company's ITGlue integration
-✅ **No Customer Filter**: Automatically scoped to authenticated company
-✅ **Current Month/Year**: Downloads data for current period
-✅ **Loading States**: Visual feedback during download
-✅ **Error Handling**: Toast notifications for success/failure
-✅ **Conditional Display**: Only shows for ITGlue integrations
-✅ **Clean UI**: Integrated seamlessly into existing preview page
-✅ **Proper Cleanup**: Blob URLs properly revoked after download
+**Company-Wide Report**: Shows all customers in the company's ITGlue integration
+**No Customer Filter**: Automatically scoped to authenticated company
+**Current Month/Year**: Downloads data for current period
+**Loading States**: Visual feedback during download
+**Error Handling**: Toast notifications for success/failure
+**Conditional Display**: Only shows for ITGlue integrations
+**Clean UI**: Integrated seamlessly into existing preview page
+**Proper Cleanup**: Blob URLs properly revoked after download
 
 ## Future Enhancements (Optional)
 

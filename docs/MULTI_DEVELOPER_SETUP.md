@@ -122,7 +122,7 @@ read -p "Enter your developer ID (1-20): " DEV_ID
 
 # Validate input
 if ! [[ "$DEV_ID" =~ ^[0-9]+$ ]] || [ "$DEV_ID" -lt 1 ] || [ "$DEV_ID" -gt 20 ]; then
-    echo "❌ Invalid developer ID. Must be between 1 and 20."
+    echo "Invalid developer ID. Must be between 1 and 20."
     exit 1
 fi
 
@@ -224,7 +224,7 @@ VITE_API_URL=http://localhost:${NGINX_PORT}/api
 EOF
 
 echo ""
-echo "✅ Environment configured for Developer ${DEV_ID}"
+echo "Environment configured for Developer ${DEV_ID}"
 echo ""
 echo "Your service URLs:"
 echo "  Frontend:        http://localhost:${FRONTEND_PORT}"
@@ -290,9 +290,9 @@ reporting-redis-data-dev1
 ```
 
 This ensures:
-- ✅ No data conflicts between developers
-- ✅ Each developer has their own database
-- ✅ Complete isolation between environments
+- No data conflicts between developers
+- Each developer has their own database
+- Complete isolation between environments
 
 ### Network Naming
 
@@ -457,11 +457,11 @@ For production:
 
 ## Summary
 
-✅ **Automated Setup**: Run `./setup-dev-environment.sh` once
-✅ **No Conflicts**: Each developer gets unique ports
-✅ **Isolated Data**: Separate databases and volumes
-✅ **Easy Cleanup**: Standard Docker commands work
-✅ **Team Friendly**: Simple ID-based coordination
+**Automated Setup**: Run `./setup-dev-environment.sh` once
+**No Conflicts**: Each developer gets unique ports
+**Isolated Data**: Separate databases and volumes
+**Easy Cleanup**: Standard Docker commands work
+**Team Friendly**: Simple ID-based coordination
 
 **Questions?** See `docs/DOCKER_SETUP.md` or contact josh@athenanetworks.com.au
 

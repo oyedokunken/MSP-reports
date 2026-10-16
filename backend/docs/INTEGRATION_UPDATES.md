@@ -110,10 +110,10 @@ php artisan integration:create
 # Dynamically generates prompts like:
 # Your AD domain (e.g., customer.local)
 # Active Directory domain:
-#  > tts.local
+# > tts.local
 #
 # Include disabled users? (yes/no) [no]:
-#  > no
+# > no
 ```
 
 ### 5. Adding a New Integration (Example)
@@ -201,8 +201,7 @@ return [
 **Developer adds new integration:**
 1. Create directory in `app/Integrations/`
 2. Add `config.php` with configuration schema
-3. Done! ✓
-
+3. Done! 
 **System automatically:**
 - Discovers new integration
 - Generates interactive prompts

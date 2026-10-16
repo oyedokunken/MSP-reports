@@ -56,9 +56,9 @@ The integration uses a **smart hybrid approach** combining database-driven sched
 ```
 
 **Impact:**
-- ✅ Catches tickets with ANY activity (status changes, comments, assignments)
-- ✅ More comprehensive than TTS-Security implementation
-- ✅ Ensures no ticket updates are missed
+- Catches tickets with ANY activity (status changes, comments, assignments)
+- More comprehensive than TTS-Security implementation
+- Ensures no ticket updates are missed
 
 **Note:** TTS-Security still uses `createDate` for both incremental and historical imports.
 
@@ -219,7 +219,7 @@ Required credentials in `integrations.credentials`:
 ### Headroom
 - **Used:** 42 requests/hour (0.4%)
 - **Available:** 9,958 requests/hour (99.6%)
-- **Status:** ✅ Excellent - can add more data types
+- **Status:** Excellent - can add more data types
 
 ### Potential Additions
 Safe to add without hitting limits:
@@ -326,14 +326,14 @@ The sync queries for tickets/time entries in the last 10 minutes. If there's no 
 
 | Feature | TTS-Security | Current Project |
 |---------|-------------|-----------------|
-| Ticket Filter | ❌ `createDate` | ✅ `lastActivityDate` |
-| Catches New Tickets | ✅ Yes | ✅ Yes |
-| Catches Ticket Updates | ❌ No | ✅ Yes |
-| Catches Status Changes | ❌ No | ✅ Yes |
-| Catches Comments | ❌ No | ✅ Yes |
-| Incremental Sync | ⚠️ Manual only | ✅ Every 10 mins |
-| Historical Import | ✅ Yes | ✅ Yes |
-| API Efficiency | ⚠️ Lower | ✅ Higher |
+| Ticket Filter | `createDate` | `lastActivityDate` |
+| Catches New Tickets | Yes | Yes |
+| Catches Ticket Updates | No | Yes |
+| Catches Status Changes | No | Yes |
+| Catches Comments | No | Yes |
+| Incremental Sync | Manual only | Every 10 mins |
+| Historical Import | Yes | Yes |
+| API Efficiency | Lower | Higher |
 
 **Key Advantage:** Our implementation catches ticket updates that TTS-Security misses, making it more comprehensive for tracking ticket lifecycle.
 
@@ -432,9 +432,9 @@ echo 'Tickets found (last 24hrs): ' . count(\$tickets);
 ## Support & Maintenance
 
 ### Regular Tasks
-- ✅ **Monthly:** Resource sync runs automatically
-- ✅ **Quarterly:** Review rate limit usage
-- ✅ **Annually:** Audit data retention policies
+- **Monthly:** Resource sync runs automatically
+- **Quarterly:** Review rate limit usage
+- **Annually:** Audit data retention policies
 
 ### When to Run Historical Import
 - After fresh database setup

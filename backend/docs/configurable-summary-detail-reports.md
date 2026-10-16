@@ -8,7 +8,7 @@
 - Make reports configurable: generate summary-only OR include full details
 - Give customers flexibility to choose report depth
 
-**Status:** ❌ Not implemented - needs to be built
+**Status:** Not implemented - needs to be built
 
 ---
 
@@ -31,10 +31,10 @@
 ┌─────────────────────────────────┐
 │  Page 1: Executive Summary      │
 │  ┌───────────────────────────┐  │
-│  │ 🟢 Licenses: 15/20 (75%)  │  │
-│  │ 🟠 SSL Certs: 2 expiring  │  │
-│  │ 🔴 Domains: 1 expired     │  │
-│  │ 🟢 Backups: 98% success   │  │
+│  │ Licenses: 15/20 (75%)  │  │
+│  │ SSL Certs: 2 expiring  │  │
+│  │ Domains: 1 expired     │  │
+│  │ Backups: 98% success   │  │
 │  └───────────────────────────┘  │
 ├─────────────────────────────────┤
 │  Page 2: Critical Items Only    │
@@ -56,25 +56,25 @@
 
 ### Status Levels
 
-**🟢 Green - Healthy**
+**Green - Healthy**
 - Everything operating normally
 - No action required
 - Utilization in optimal range (70-89%)
 - No expiries within 30 days
 
-**🟠 Orange - Warning**
+**Orange - Warning**
 - Attention recommended
 - Not critical but should be monitored
 - Utilization outside optimal (50-69% or 90-94%)
 - Expiring within 30 days
 
-**🔴 Red - Critical**
+**Red - Critical**
 - Immediate action required
 - Service at risk
 - Utilization critical (<50% or ≥95%)
 - Expired or expiring within 7 days
 
-**⚪ Grey - Unknown/N/A**
+**Grey - Unknown/N/A**
 - No data available
 - Not applicable
 - Monitoring disabled
@@ -83,34 +83,34 @@
 
 #### Microsoft Licenses
 ```
-🟢 Green:  70-89% utilization
-🟠 Orange: 50-69% or 90-94% utilization
-🔴 Red:    <50% or ≥95% utilization
-⚪ Grey:   No data
+Green:  70-89% utilization
+Orange: 50-69% or 90-94% utilization
+Red:    <50% or ≥95% utilization
+Grey:   No data
 ```
 
 #### SSL Certificates
 ```
-🟢 Green:  >30 days until expiry
-🟠 Orange: 8-30 days until expiry
-🔴 Red:    ≤7 days or expired
-⚪ Grey:   No expiry date
+Green:  >30 days until expiry
+Orange: 8-30 days until expiry
+Red:    ≤7 days or expired
+Grey:   No expiry date
 ```
 
 #### Backups
 ```
-🟢 Green:  ≥95% success rate
-🟠 Orange: 85-94% success rate
-🔴 Red:    <85% success rate
-⚪ Grey:   No backup data
+Green:  ≥95% success rate
+Orange: 85-94% success rate
+Red:    <85% success rate
+Grey:   No backup data
 ```
 
 #### Device Uptime
 ```
-🟢 Green:  ≥99% uptime
-🟠 Orange: 95-98.9% uptime
-🔴 Red:    <95% uptime
-⚪ Grey:   No monitoring data
+Green:  ≥99% uptime
+Orange: 95-98.9% uptime
+Red:    <95% uptime
+Grey:   No monitoring data
 ```
 
 ---
@@ -175,7 +175,7 @@
 
 ---
 
-## 🆕 NEW COMPONENTS TO CREATE
+## NEW COMPONENTS TO CREATE
 
 ### Backend
 
@@ -230,11 +230,11 @@ class ReportStatusCalculator
     public function getStatusIcon(string $status): string
     {
         return match($status) {
-            'green' => '🟢',
-            'orange' => '🟠',
-            'red' => '🔴',
-            'grey' => '⚪',
-            default => '⚪',
+            'green' => '',
+            'orange' => '',
+            'red' => '',
+            'grey' => '',
+            default => '',
         };
     }
     
@@ -555,7 +555,7 @@ class ReportSummaryService
     
     @if(empty($critical_items))
         <div class="no-critical">
-            <span class="icon">🟢</span>
+            <span class="icon"></span>
             <h2>All Systems Healthy</h2>
             <p>No critical items requiring immediate attention.</p>
         </div>
@@ -564,7 +564,7 @@ class ReportSummaryService
             @foreach($critical_items as $item)
                 <div class="critical-item {{ $item['severity'] }}">
                     <div class="item-header">
-                        <span class="severity-badge">{{ $item['severity'] === 'red' ? '🔴 Critical' : '🟠 Warning' }}</span>
+                        <span class="severity-badge">{{ $item['severity'] === 'red' ? 'Critical' : 'Warning' }}</span>
                         <span class="item-type">{{ ucfirst($item['type']) }}</span>
                     </div>
                     <h3 class="item-title">{{ $item['title'] }}</h3>
@@ -661,7 +661,7 @@ class ReportSummaryService
 
 ---
 
-## 🔧 COMPONENTS TO MODIFY
+## COMPONENTS TO MODIFY
 
 ### Backend
 
@@ -807,7 +807,7 @@ Schema::table('report_schedules', function (Blueprint $table) {
 
 ---
 
-## 🗑️ COMPONENTS TO REMOVE
+## COMPONENTS TO REMOVE
 
 **None** - This is purely additive functionality.
 
@@ -916,22 +916,22 @@ Schema::table('report_schedules', function (Blueprint $table) {
 ## Benefits
 
 ### For Executives/Management
-- ✅ Quick at-a-glance health status
-- ✅ Traffic-light system easy to understand
-- ✅ Focus on what needs attention
-- ✅ Shorter reports = faster review
+- Quick at-a-glance health status
+- Traffic-light system easy to understand
+- Focus on what needs attention
+- Shorter reports = faster review
 
 ### For Technical Teams
-- ✅ Full details available when needed
-- ✅ Comprehensive data for troubleshooting
-- ✅ Flexible report depth per customer
-- ✅ Faster generation for summary-only
+- Full details available when needed
+- Comprehensive data for troubleshooting
+- Flexible report depth per customer
+- Faster generation for summary-only
 
 ### For Customers
-- ✅ Choose report depth based on needs
-- ✅ Board reports can be summary-only
-- ✅ Technical reviews can be full detail
-- ✅ Reduced email attachment sizes
+- Choose report depth based on needs
+- Board reports can be summary-only
+- Technical reviews can be full detail
+- Reduced email attachment sizes
 
 ---
 

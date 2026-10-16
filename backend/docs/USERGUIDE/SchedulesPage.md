@@ -27,9 +27,9 @@ Each schedule card displays:
 - **Report Type**: Type of report being generated
 - **Frequency Badge**: Daily, Weekly, Monthly, Yearly
 - **Status Badge**:
-  - 🟢 Active (generating reports)
-  - ⏸️ Paused (temporarily disabled)
-  - ❌ Error (generation failing)
+  - Active (generating reports)
+  - Paused (temporarily disabled)
+  - Error (generation failing)
 - **Next Generation**: When next report will generate
 - **Last Generated**: When last report was created
 - **Success Rate**: Percentage of successful generations
@@ -200,13 +200,13 @@ Each schedule card displays:
 **Pause Steps:**
 1. Locate schedule card
 2. Click **"Pause"** button (pause icon)
-3. Schedule status changes to ⏸️ Paused
+3. Schedule status changes to Paused
 4. No reports will generate until resumed
 
 **Resume Steps:**
 1. Locate paused schedule card
 2. Click **"Resume"** button (play icon)
-3. Schedule status changes to 🟢 Active
+3. Schedule status changes to Active
 4. Next generation time recalculates
 
 **Use Cases:**
@@ -368,10 +368,10 @@ Each schedule card displays:
 
 | Status | Meaning | Action Required |
 |--------|---------|-----------------|
-| 🟢 **Active** | Generating reports on schedule | None |
-| ⏸️ **Paused** | Temporarily disabled | Resume when ready |
-| ❌ **Error** | Failing to generate | Check error message, fix issue |
-| ⏳ **Pending** | First generation not yet run | Wait for scheduled time |
+| **Active** | Generating reports on schedule | None |
+| **Paused** | Temporarily disabled | Resume when ready |
+| **Error** | Failing to generate | Check error message, fix issue |
+| **Pending** | First generation not yet run | Wait for scheduled time |
 
 ---
 
@@ -421,7 +421,7 @@ Each schedule card displays:
 
 ## Best Practices
 
-✅ **DO:**
+**DO:**
 - Set schedules in customer's timezone
 - Test schedules with "Generate Now" before going live
 - Use descriptive email subjects
@@ -430,7 +430,7 @@ Each schedule card displays:
 - Pause schedules instead of deleting
 - Document schedule changes
 
-❌ **DON'T:**
+**DON'T:**
 - Schedule too many reports (overwhelm customers)
 - Use generic email subjects
 - Forget to test email delivery

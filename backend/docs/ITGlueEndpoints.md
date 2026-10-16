@@ -709,10 +709,10 @@ curl -X GET "https://api.au.itglue.com/flexible_assets?filter[flexible_asset_typ
 
 ### Step 3: View Results
 Each test automatically validates:
-- ✅ Status code is 200
-- ✅ Response has correct structure
-- ✅ Required fields exist
-- ✅ Data types are correct
+- Status code is 200
+- Response has correct structure
+- Required fields exist
+- Data types are correct
 
 ---
 
@@ -761,7 +761,7 @@ curl -X GET "https://api.au.itglue.com/ssl_certificates?filter[expiration]=next9
 - **API Key Format:** Must start with `ITG.`
 
 ### Region-Specific URLs
-- **Australia:** `https://api.au.itglue.com` ✅ (Your region)
+- **Australia:** `https://api.au.itglue.com` (Your region)
 - **United States:** `https://api.itglue.com`
 - **Europe:** `https://api.eu.itglue.com`
 
